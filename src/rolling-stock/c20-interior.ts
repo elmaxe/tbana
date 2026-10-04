@@ -110,20 +110,23 @@ function makePaint(style: C20InteriorStyle) {
       p.rect(db + 0.03, db + 0.13, 2.1, 2.62, C.pict);
       p.rect(da - 0.13, da - 0.05, 2.35, 2.5, C.green);
       p.rect(da - 0.13, da - 0.05, 2.6, 2.72, C.red);
-      // leaves: grey-white with a black centre seal and a tall window each
-      p.rect(da, db, F, 3.0, C.door);
-      p.rect(d - 0.015, d + 0.015, F, 3.0, C.rubber);
-      for (const s of [-1, 1]) {
-        const c = d + s * DOOR / 4;
-        p.rect(c - 0.23, c + 0.23, 1.7, 2.88, C.rubber, 0.07);
-        p.rect(c - 0.2, c + 0.2, 1.73, 2.85, C.hole, 0.05);
-        p.rect(c - 0.15, c + 0.15, 2.9, 2.95, C.sticker);
-      }
+      // the doorway: the leaves are separate (doorLeaf below)
+      p.rect(da, db, F, 3.0, C.hole);
       // ribbed aluminium threshold
       p.rectT(da, db, floorEdge - 0.15, floorEdge, C.steel);
       for (let k = 0; k < 6; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.022, floorEdge - 0.132 + k * 0.022, C.ribbed);
     }
   };
+}
+
+// Inside of a door leaf: grey-white with a black seal at the centre and a tall window.
+function doorLeaf(p: Painter, w: number) {
+  p.rect(0, w, 0.95, 3.0, C.door);
+  p.rect(0, 0.015, 0.95, 3.0, C.rubber);
+  const c = w / 2;
+  p.rect(c - 0.23, c + 0.23, 1.7, 2.88, C.rubber, 0.07);
+  p.rect(c - 0.2, c + 0.2, 1.73, 2.85, C.hole, 0.05);
+  p.rect(c - 0.15, c + 0.15, 2.9, 2.95, C.sticker);
 }
 
 // ------------------------------------------------------------------ fabrics
@@ -454,6 +457,7 @@ function make(style: C20InteriorStyle): InteriorSpec {
     materials: makeMaterials(style),
     paint: makePaint(style),
     furnish: makeFurnish(style),
+    doorLeaf,
   };
 }
 

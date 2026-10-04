@@ -114,17 +114,8 @@ function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
     p.rect(da - 0.03, da - 0.01, F + 0.4, 3.04, C.green);
     p.rect(db + 0.01, db + 0.03, F + 0.4, 3.04, C.green);
     p.rect(da, db, 3.06, 3.09, C.green);
-    // dark leaves with stainless kick plates, the windows, open buttons
-    p.rect(da, db, F, 3.04, C.door, 0.15);
-    p.rect(da + 0.02, db - 0.02, F, F + 0.28, C.steel);
-    p.rect(d - 0.012, d + 0.012, F, 3.04, C.seal);
-    for (const s of [-1, 1]) {
-      const c = d + s * DOOR / 4;
-      p.rect(c - 0.225, c + 0.225, 1.5, 2.88, C.seal, 0.1);
-      p.rect(c - 0.21, c + 0.21, 1.52, 2.86, C.hole, 0.09);
-      p.ellipse(d + s * 0.12, F + 1.1, 0.04, 0.04, C.white);
-      p.ellipse(d + s * 0.12, F + 1.1, 0.03, 0.03, C.green);
-    }
+    // the doorway: the leaves are separate (doorLeaf below)
+    p.rect(da, db, F, 3.04, C.hole, 0.15);
     // above the door: a black panel with the line's strip map and a small screen
     p.rect(da, db, 3.0, 3.18, C.panel);
     p.rect(da + 0.06, da + 0.06 + DOOR * 0.62, 3.085, 3.095, C.red);
@@ -135,6 +126,18 @@ function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
     p.rectT(da, db, floorEdge - 0.16, floorEdge, C.steel);
     for (let k = 0; k < 3; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.04, floorEdge - 0.125 + k * 0.04, C.seal);
   }
+}
+
+// Inside of a door leaf: dark, with a stainless kick plate, the window and an open button.
+function doorLeaf(p: Painter, w: number) {
+  p.rect(0, w, 0.99, 3.04, C.door);
+  p.rect(0, w - 0.02, 0.99, F + 0.28, C.steel);
+  p.rect(0, 0.012, 0.99, 3.04, C.seal);
+  const c = w / 2;
+  p.rect(c - 0.225, c + 0.225, 1.5, 2.88, C.seal, 0.1);
+  p.rect(c - 0.21, c + 0.21, 1.52, 2.86, C.hole, 0.09);
+  p.ellipse(0.12, F + 1.1, 0.04, 0.04, C.white);
+  p.ellipse(0.12, F + 1.1, 0.03, 0.03, C.green);
 }
 
 // ------------------------------------------------------------------ materials
@@ -412,4 +415,5 @@ export const interior: InteriorSpec = {
   materials,
   paint,
   furnish,
+  doorLeaf,
 };

@@ -134,9 +134,10 @@ official layout must use space the photos don't show, so the model follows the p
 
 ### How the interiors are built
 
-- `interior.js`: the inner lining is swept from its own cross-section (floor, walls and ceiling
+- `interior.ts`: the inner lining is swept from its own cross-section (floor, walls and ceiling
   in one surface). It is painted like a livery, with the windows and door glazing cut out
-  (alpha-tested) where the outside glass is. The kit also provides:
+  (alpha-tested) where the outside glass is, and the doorways cut out for the door leaves. The kit
+  also provides:
   - end walls with gangway portals or a cab bulkhead
   - pleated gangway tubes
   - a seat made of an extruded moulded shell and cushions
@@ -144,25 +145,33 @@ official layout must use space the photos don't show, so the model follows the p
   - moquette textures
 - Interior surfaces glow a little at their own colour. This stands in for the cars' lighting, so
   they need no real lights.
-- `c20-interior.js` / `c30-interior.js`: the lining paint, materials and the furnishing layout for
-  each type. Window cut-outs come from the same functions that paint the windows outside
+- `c20-interior.ts` / `c30-interior.ts`: the lining paint, materials, the furnishing layout and
+  the inside of the door leaves for each type. Window cut-outs come from the same functions that paint the windows outside
   (`windowPanes`, `windowFrames`).
 - With an interior shown, a car's shell swaps to a glazed material whose windows are partly
   transparent. The station shows interiors only for cars within about 30 m of the player.
 
 ## How the models are built
 
-- `kit.js`: a cross-section profile made of filleted line segments is swept along the car. Cab
+- `kit.ts`: a cross-section profile made of filleted line segments is swept along the car. Cab
   noses are a "cap" surface: the profile shrinks towards its centre and is pushed back with a
   rounded edge plus a nose shape function (rake, plan curve). Liveries are painted on canvases in
   metres, so a door at x = 5.45 m lands at 5.45 m. Each car gets a colour map, a
   roughness/metalness map and an emissive map. Bogies, couplers, bellows and skirts are simple
   geometry.
-- `c20.js` / `c30.js`: dimensions, profile, nose shape, livery painting and the parts under the
-  body for each type.
-- `train.js`: builds car templates once per type and quality, merges each car to one mesh per
+- `c20.ts` / `c30.ts`: dimensions, profile, nose shape, livery painting, the door leaves and the
+  parts under the body for each type.
+- `doors.ts`: the sliding doors. Each doorway is painted into the body as an opening (dark, or
+  clear when the interior shows), and its two leaves per side are separate slabs that follow the
+  body's cross-section. Opening, they move out 4–5 cm and then slide apart along the outside of
+  the body, like the plug doors of the C30 and the outside-hung sliding doors of the C20. All the
+  leaves on one side of a car that slide the same way are one mesh, so a car's doors are four
+  draw calls. With the interior shown, reveals join the doorways to the lining.
+- `train.ts`: builds car templates once per type and quality, merges each car to one mesh per
   material, and assembles trains. Each train has per-cab destination displays and switchable
-  head and tail lights.
+  head and tail lights. Cars open their doors with `car.setDoors(amount, side)` and describe their
+  walkable floor (`car.floor`: saloon, gangways, doorways), which the station uses to let the
+  player board and ride.
 - `trains.html`: the model viewer, which can also export the models as `.glb`.
 
 ## Sources

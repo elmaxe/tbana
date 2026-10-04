@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { profile, box, merge, corrugationNormalMap, noseSkirtGeometry, DARK } from './kit';
 import type { Painter } from './kit';
+import type { DoorStyle } from './doors';
 import type { CarDef, TrainSpec } from './train';
 
 // SL C20 — three-section articulated unit, Adtranz/Bombardier (Kalmar Verkstad), 1997–2004.
@@ -25,6 +26,8 @@ const M = {
   glassFront: { c: '#12171c', r: 0.04, m: 0.3, e: '#0b0b0a' },
   grille: { c: '#2b2f34', r: 0.6, m: 0.4 },
   white: { c: '#f3f5f7', r: 0.4, m: 0 },
+  // a doorway: dark from outside, clear when the interior is drawn
+  opening: { c: '#0b0d10', r: 0.9, m: 0, a: 0 },
 };
 
 export const DOOR = 1.6; // double door, outer width
@@ -70,16 +73,9 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
   }
   for (const d of def.doors) {
     const a = d - DOOR / 2, b = d + DOOR / 2;
-    p.rect(a, b, 0.95, 3.0, M.blue);
     p.rectT(a, b, T(3.0), T(3.38), M.blue); // blue cap on the cant above each door
-    p.frame(a, b, 0.95, 3.0, 0.022, M.black);
-    p.rect(d - 0.01, d + 0.01, 0.95, 3.0, M.black);
-    for (const s of [-1, 1]) {
-      const c = d + s * DOOR / 4;
-      p.rect(c - 0.23, c + 0.23, 1.7, 2.88, M.black, 0.06);
-      p.rect(c - 0.2, c + 0.2, 1.73, 2.85, M.glass, 0.05);
-      p.rect(c - 0.17, c + 0.17, 2.77, 2.83, M.glassLit);
-    }
+    p.frame(a - 0.022, b + 0.022, 0.93, 3.022, 0.022, M.black);
+    p.rect(a, b, 0.95, 3.0, M.opening);
   }
   if (def.cab) {
     p.rect(X(3.12), x1, 0.6, 3.06, M.blue);
@@ -118,6 +114,22 @@ function paintFront(p: Painter, def: CarDef) {
   p.logo(0.72, 1.3, 0.32, M.white);
   p.text(-0.25, 1.86, def.number, 0.1, M.white);
 }
+
+// Blue sliding leaves, black-edged, with a tall window each.
+const doors: DoorStyle = {
+  width: DOOR, y0: 0.95, y1: 3.0, plug: 0.045,
+  outside(p, w) {
+    p.rect(0, w, 0.95, 3.0, M.blue);
+    p.rect(w - 0.022, w, 0.95, 3.0, M.black);
+    p.rect(0, w, 0.95, 0.972, M.black);
+    p.rect(0, w, 2.978, 3.0, M.black);
+    p.rect(0, 0.01, 0.95, 3.0, M.black);
+    const c = w / 2;
+    p.rect(c - 0.23, c + 0.23, 1.7, 2.88, M.black, 0.06);
+    p.rect(c - 0.2, c + 0.2, 1.73, 2.85, M.glass, 0.05);
+    p.rect(c - 0.17, c + 0.17, 2.77, 2.83, M.glassLit);
+  },
+};
 
 // Lower side panels are corrugated: separate panels with a tiling normal map.
 let corrMat: THREE.MeshStandardMaterial | undefined;
@@ -215,5 +227,6 @@ export const C20: TrainSpec = {
     { kind: 'tail', z: 1.18, y: 1.66, w: 0.17, h: 0.11 },
     { kind: 'tail', z: -1.18, y: 1.66, w: 0.17, h: 0.11 },
   ],
+  doors,
   paintSide, paintFront, extras,
 };

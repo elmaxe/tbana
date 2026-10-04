@@ -31,6 +31,8 @@ export interface InteriorSpec {
   materials(): InteriorMaterials;
   paint(p: Painter, def: CarDef, ctx: InteriorContext): void;
   furnish(def: CarDef, ctx: InteriorContext): THREE.Object3D[];
+  // the inside face of a door leaf (see doors.ts)
+  doorLeaf?(p: Painter, w: number): void;
 }
 
 // Lining cross-section. ctrl goes from the floor centre [0, floorY] round the right side to the

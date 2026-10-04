@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { profile, box, merge, noseSkirtGeometry, DARK } from './kit';
 import type { Painter } from './kit';
 import type { CarDef, TrainSpec } from './train';
+import type { DoorStyle } from './doors';
 
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
 // Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each 16.756 m car has its own
@@ -26,6 +27,8 @@ const M = {
   collar: { c: '#e8eef3', r: 0.2, m: 0, e: '#8fa5ba' },
   seam: { c: '#c3c8cc', r: 0.4, m: 0 },
   mark: { c: '#1d2126', r: 0.4, m: 0 },
+  // a doorway: dark from outside, clear when the interior is drawn
+  opening: { c: '#0b0d10', r: 0.9, m: 0, a: 0 },
 };
 
 export const DOOR = 1.56;
@@ -69,13 +72,7 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
   for (const d of doors) {
     const da = d - DOOR / 2, db = d + DOOR / 2;
     p.rect(da - 0.025, db + 0.025, 0.97, 3.065, M.black, 0.17);
-    p.rect(da, db, 0.99, 3.04, M.blue, 0.15);
-    p.rect(d - 0.012, d + 0.012, 0.99, 3.04, M.black);
-    for (const s of [-1, 1]) {
-      const c = d + s * DOOR / 4;
-      p.rect(c - 0.25, c + 0.25, 1.48, 2.9, M.black, 0.12);
-      p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
-    }
+    p.rect(da, db, 0.99, 3.04, M.opening, 0.15);
   }
   if (def.cab) {
     // cab side window: a dark slot just behind the nose; then the driver's door outline
@@ -104,6 +101,18 @@ function paintFront(p: Painter, def: CarDef) {
   // coupler pocket
   p.rect(-0.38, 0.38, 0.8, 1.1, M.black, 0.06);
 }
+
+// Blue plug door leaves with a tall black-framed window each.
+const doors: DoorStyle = {
+  width: DOOR, y0: 0.99, y1: 3.04, plug: 0.05,
+  outside(p, w) {
+    p.rect(-0.2, w, 0.99, 3.04, M.blue, 0.15);
+    p.rect(0, 0.012, 0.99, 3.04, M.black);
+    const c = w / 2;
+    p.rect(c - 0.25, c + 0.25, 1.48, 2.9, M.black, 0.12);
+    p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
+  },
+};
 
 const skirtMat = new THREE.MeshStandardMaterial({ color: 0x4b5157, roughness: 0.55, metalness: 0.15 });
 
@@ -175,5 +184,6 @@ export const C30: TrainSpec = {
     { kind: 'tail', z: 1.09, y: 1.37, w: 0.15, h: 0.1 },
     { kind: 'tail', z: -1.09, y: 1.37, w: 0.15, h: 0.1 },
   ],
+  doors,
   paintSide, paintFront, extras,
 };

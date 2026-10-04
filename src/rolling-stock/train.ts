@@ -8,8 +8,10 @@ import type {
 } from './kit';
 import { liningGeometry, endWallGeometry, portalTube } from './interior';
 import type { InteriorContext, InteriorMaterials, InteriorSpec } from './interior';
+import { carDoors, doorFrames, doorKit } from './doors';
+import type { DoorKit, DoorStyle } from './doors';
 
-// Turns a train type description (see c20.js / c30.js) into car templates and assembles trains.
+// Turns a train type description (see c20.ts / c30.ts) into car templates and assembles trains.
 
 export interface CarDef {
   length: number; cab: boolean; number: string; name?: string;
@@ -33,6 +35,7 @@ export interface TrainSpec {
   sign: { y: number; w: number; h: number };
   lights: LightDef[];
   interior?: InteriorSpec;
+  doors?: DoorStyle;
   paintSide(p: Painter, def: CarDef, x0: number, x1: number): void;
   paintFront(p: Painter, def: CarDef): void;
   extras(def: CarDef, x0: number, x1: number, kit: TypeKit): THREE.Object3D[];
@@ -40,16 +43,29 @@ export interface TrainSpec {
 export interface CarTemplate {
   group: THREE.Group; def: CarDef; length: number;
   glazed?: THREE.MeshStandardMaterial; interior?: THREE.Group;
+  doors?: DoorKit; floor?: CarFloor;
+}
+// Where a car can be walked in, in car coordinates: the saloon from xa to xb within `inner` of the
+// centre line, the gangway portals at the ends (always at x0, at x1 unless there is a cab) with the
+// bellows behind x0, and the doorways out to the body side at `outer`.
+export interface CarFloor {
+  y: number; x0: number; x1: number; xa: number; xb: number;
+  inner: number; outer: number; portal: number; frontPortal: boolean; rearGap: number;
+  doors: number[]; doorWidth: number;
 }
 export interface TypeKit {
   spec: TrainSpec; quality: number; templates: Map<string, CarTemplate>;
   bogie: BogieGeometry; coupler: THREE.BufferGeometry; endMat: THREE.MeshStandardMaterial;
   imats?: InteriorMaterials;
+  doorMats: Map<string, THREE.Material>;
 }
 export interface Car {
   object: THREE.Group; length: number; offset: number; reversed: boolean; kind: string; interior: boolean;
   bodyMats?: THREE.MeshStandardMaterial[];
+  floor?: CarFloor;
   setInterior(on: boolean): void;
+  // opens the doors by `amount` (0–1) on one side (car z sign) or both (0)
+  setDoors(amount: number, side: 1 | -1 | 0): void;
 }
 export type CabLights = 'lead' | 'tail' | 'off';
 export type TrainLights = 'forward' | 'reverse' | 'off';
@@ -58,6 +74,7 @@ export interface Train {
   setDestination(text: string): void;
   setInterior(on: boolean): void;
   setLights(mode: TrainLights): void;
+  setDoors(amount: number, side: 1 | -1 | 0): void;
 }
 export interface BuildOptions {
   units?: number; destination?: string; quality?: number;
@@ -75,7 +92,7 @@ function typeKit(spec: TrainSpec, quality: number) {
   if (cache.has(key)) return cache.get(key)!;
   const bogie = bogieGeometry(spec.bogie);
   const kit: TypeKit = {
-    spec, quality, templates: new Map(),
+    spec, quality, templates: new Map(), doorMats: new Map(),
     bogie, coupler: couplerGeometry(spec.coupler?.len, spec.coupler?.y),
     endMat: new THREE.MeshStandardMaterial({ color: spec.endColor ?? 0x6c7278, roughness: 0.6, metalness: 0.3 }),
   };
@@ -142,11 +159,21 @@ function carTemplate(kit: TypeKit, kind: string, bellowsRear: boolean) {
   for (const o of spec.extras(def, x0, x1, kit)) group.add(o);
 
   const tpl: CarTemplate = { group: mergeByMaterial(group), def, length: L };
+  if (spec.doors) tpl.doors = doorKit(prof, spec.doors, def.doors, it?.doorLeaf, quality, kit.doorMats);
   if (it) {
     tpl.glazed = sp.material({}, 'blend');
+    // the open doorways are clear: cut them out so they don't hide the platform behind them
+    tpl.glazed.alphaTest = 0.01;
     tpl.glazed.name = 'body';
     tpl.interior = mergeByMaterial(interiorGroup(kit, def, x0, x1, bellowsRear));
     tpl.interior.name = 'interior';
+    if (spec.doors) {
+      tpl.floor = {
+        y: it.floorY, x0, x1, xa: x0 + it.endWall, xb: def.cab ? x1 - it.cabDepth : x1 - it.endWall,
+        inner: it.lining.w, outer: prof.w, portal: it.portal.w, frontPortal: !def.cab, rearGap: bellowsRear ? spec.gap : 0,
+        doors: def.doors, doorWidth: spec.doors.width,
+      };
+    }
   }
   kit.templates.set(key, tpl);
   return tpl;
@@ -192,6 +219,7 @@ function interiorGroup(kit: TypeKit, def: CarDef, x0: number, x1: number, bellow
     if (!it.noPlate) group.add(new THREE.Mesh(new THREE.BoxGeometry(glen, 0.02, w).translate(gx, portal.y0 + 0.005, 0), mats.plate));
     for (const o of it.gangway?.(gx, mats) ?? []) group.add(o);
   }
+  if (spec.doors) group.add(new THREE.Mesh(doorFrames(spec.prof, it.lining, spec.doors, def.doors, it.floorY), mats.wall));
   for (const o of it.furnish(def, ctx)) group.add(o);
   group.traverse((o) => { if (isMesh(o)) o.userData.interior = true; });
   return group;
@@ -268,7 +296,15 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
       const obj = tpl.group.clone();
       obj.name = `${spec.id}-${u + 1}-${kind}${reversed ? '-rev' : ''}`;
       if (tpl.def.cab) cabs.push(addCab(spec, obj, tpl.length / 2));
-      const car: Car = { object: obj, length: tpl.length, offset: at + tpl.length / 2, reversed, kind, interior: false, setInterior: () => {} };
+      const car: Car = {
+        object: obj, length: tpl.length, offset: at + tpl.length / 2, reversed, kind, interior: false, floor: tpl.floor,
+        setInterior: () => {}, setDoors: () => {},
+      };
+      if (tpl.doors) {
+        const doors = carDoors(tpl.doors);
+        obj.add(doors.group);
+        car.setDoors = doors.set;
+      }
       if (tpl.interior) {
         const inner = tpl.interior.clone();
         inner.visible = false;
@@ -306,6 +342,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
     type: spec.id, group, cars, length,
     setDestination(text) { for (const c of cabs) c.sign.set(text); },
     setInterior(on) { for (const c of cars) c.setInterior(on); },
+    setDoors(amount, side) { for (const c of cars) c.setDoors(amount, side); },
     // 'forward': lit for running towards +x; 'reverse': the other way; 'off'
     setLights(mode) {
       cabs.forEach((c, i) => {
