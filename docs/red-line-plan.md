@@ -202,11 +202,56 @@ Each phase ends in a pull request with a playable preview.
        Ropsten.
      - There is no ground or city around the open stretches yet; that is phase 7. The network
        can't be walked on yet; that is phase 6.
-5. **Trains on the network.**
-   - Run T13 and T14 along the graph on a simple timetable, choosing their branch by route, with
-     spacing between trains and turning at the ends of the line.
-   - Riding continues to the next station without the fade.
-   - Done when: you can board at T-Centralen and get off at Östermalmstorg.
+5. **Trains on the network.** *Done.*
+   - The timetable is in `data/routes.json`, and `build-track-graph` copies it into the graph:
+     - T13 and T14 each run a train every 5 minutes each way.
+     - They are timed at T-Centralen to alternate on the shared trunk, so from Liljeholmen to
+       Östermalmstorg there is a train every 2.5 minutes each way.
+   - `src/timetable.ts` runs each trip along its route's line from end to end:
+     - The line runs on 220 m beyond the drawn track at each end. A trip comes in from there and
+       stands 75 s at its first station with its doors open. It stops at every station and runs
+       out beyond the last.
+     - At every terminus the trains arrive on one track and leave from the other. The turnback
+       tracks between aren't drawn, so the turn happens out of sight.
+     - Trains run at up to 20 m/s (about 70 km/h) and accelerate and brake at 1 m/s².
+     - They stand at least 22 s at each stop. The timetable allows 4 s more, so a late train
+       catches up.
+     - With nothing in the way, T13 runs 42.0 minutes from its first station to its last, and T14
+       30.6 minutes. T-Centralen to Östermalmstorg is 81 s from the closing chime. 32 trips are
+       out at once.
+     - Trips that set off before the game started are run on, each on its own, to where the
+       timetable has them.
+   - Spacing works on the track graph's pieces, so trips on different routes see each other where
+     they share track:
+     - Each trip holds the stretch of track under it, and claims its braking distance and 60 m
+       more ahead.
+     - A trip stops 30 m short of the train ahead.
+     - At a junction, the trip that would get there first goes first, and the other waits 15 m
+       short of it.
+   - Checked by simulating three hours:
+     - On the timetable no train is ever held, and every train is within 1 s of its times.
+     - Holding a train for 4 minutes at Slussen queues the trains behind it.
+     - So does timing T13 and T14 to reach the junctions together.
+     - In both cases no two trains come closer than 30 m, and nothing deadlocks.
+   - Through T-Centralen the routes run on the model's tracks at its platforms
+     (`src/station-join.ts`), so the trains stand at the model's platforms.
+   - Only trips within 700 m of the player get a train model. Models come from a pool and go back
+     to it beyond 900 m (`src/trains.ts`). A new one takes about 2 ms to build.
+   - Riding goes from station to station without the fade:
+     - The network's platforms can be walked on (`src/network.ts`), so you can get off, wait, and
+       board the next train.
+     - The HUD lists the next trains both ways, and the toasts announce the next station.
+     - Beyond the last station the screen goes dark. You come back in the same car of the trip
+       that leaves from there the other way.
+   - The sky shows where the track runs in the open, by the structure under the player.
+   - Done: you can board at T-Centralen, ride to Östermalmstorg and get off on its platform.
+   - Still open:
+     - The network's platforms lead nowhere yet; that is phase 6.
+     - You can't get off where the platform isn't drawn (see phase 4). Ropsten has none, so its
+       trains turn with you aboard.
+     - The cars' indicator screens always say "Nästa T-Centralen".
+     - The blue and green lines and the pendeltåg still run in and out of T-Centralen's model
+       tunnels.
 6. **Stations, one at a time.**
    - A station builder that turns a short description into a walkable station: platform type and
      length, depth, ticket halls, stairs, escalators, lifts, exits.

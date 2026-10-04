@@ -53,11 +53,16 @@ export interface RouteStop { station: string; piece: number; s: number }
 // run in (+1 from `from` to `to`, -1 the other way).
 export interface Route {
   name: string;
+  service: string; // as named in data/routes.json, such as 'T13'; each service has a route each way
   line: string;
   stops: RouteStop[];
   path: { piece: number; dir: 1 | -1 }[];
   length: number;
 }
+
+// Each service runs a train every `headway` seconds each way, timed so that one is at `station`
+// `offset` seconds into each headway.
+export interface Timetable { station: string; services: Record<string, { headway: number; offset: number }> }
 
 export interface TrackGraph {
   attribution: string;
@@ -66,4 +71,5 @@ export interface TrackGraph {
   pieces: TrackPiece[];
   stations: Station[];
   routes: Route[];
+  timetable?: Timetable;
 }

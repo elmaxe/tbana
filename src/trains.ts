@@ -1,64 +1,31 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { LINES, TRAIN_SPECS } from './lines';
-import type { Destination, Line, ServiceSpec } from './lines';
+import type { Destination } from './lines';
 import * as T from './textures';
 import { createTrain, SERVICE_UNITS } from './rolling-stock/index';
-import type { Car, CarFloor, Train } from './rolling-stock/train';
+import type { BuildOptions, Train, TrainType } from './rolling-stock/index';
+import type { CarFloor } from './rolling-stock/train';
+import { Polyline } from './polyline';
 import type { Platform, SurfaceRecord, Track } from './station';
 import type { Sound } from './sound';
 import type { SurfaceHit } from './surface-index';
+import type { StationJoin } from './station-join';
+import type { TrackGraph } from './track-graph';
+import type { TrackGeometry } from './track-geometry';
+import { ACC, DWELL, RAIL_TOP, advance, nextStation } from './service';
+import type { CarFloorData, Service, ServiceCar, ServiceEvent } from './service';
+import { Timetable } from './timetable';
+import type { NetRoute } from './timetable';
 
-const ACC = 1.0;      // m/s², braking and acceleration
-const DWELL = 22;     // seconds at the platform, from stopping to the closing chime
-const DOORS_OPEN = 2.2, DOORS_SHUT = 2.8;     // seconds for the doors to open / close
-const OPEN_DELAY = 0.8, SHUT_DELAY = 1.2;     // after stopping / after the closing chime
-const LEAVE_DELAY = 1.0;                      // from closed doors to pulling away
+export type { CarFloorData, Service, ServiceCar } from './service';
 
-export const RAIL_TOP = 0.99; // the rail head sits this far below the track path (platform level)
 const INTERIOR_NEAR = 30, INTERIOR_FAR = 36; // metres from a car's end: interior on / off
 const R = 0.25;        // the player's radius when walking in a car
-const LEAVE_AT = 28;   // a ridden car this close to the end of its track ends the ride
-
-type State = 'wait' | 'arrive' | 'dwell' | 'closing' | 'depart';
-
-export interface ServiceCar {
-  object: THREE.Object3D;
-  length: number;
-  offset: number;  // from the front of the train to the car's centre
-  yaw: number;
-  car: Car | null; // the procedural model's car, which has doors and a floor
-  floorData: CarFloorData | null;
-}
-
-// A track with its single train: waits in the tunnel, arrives, dwells, departs, repeats.
-export interface Service {
-  tr: Track & { platform: Platform };
-  spec: ServiceSpec;
-  L: Line;
-  cars: ServiceCar[];
-  model: Train | null;
-  trainLen: number;
-  stopHead: number;
-  startHead: number;
-  endHead: number;
-  state: State;
-  timer: number;
-  head: number;
-  speed: number;
-  doors: number;   // 0 closed … 1 open
-  dest: Destination;
-  destSet: Destination[];
-  next: string;    // the next station in this direction
-}
-
-// What the player stands on inside a car.
-export interface CarFloorData {
-  kind: 'train';
-  rec: { readonly label: string };
-  svc: Service;
-  car: ServiceCar;
-}
+const LEAVE_AT = 28;   // a ridden shuttle's car this close to the end of its track ends the ride
+// a trip on the network gets a train model when it comes this close to the player, and gives it
+// back beyond the second distance
+const MODEL_NEAR = 700, MODEL_FAR = 900;
 
 // The player inside a car: their position and heading relative to it.
 export interface Ride {
@@ -68,15 +35,34 @@ export interface Ride {
   yaw: number;
 }
 
-// One train per platform track. Metro lines run the procedural C20/C30 models, whose doors open at
-// the platform and whose cars can be walked through and ridden; other lines get simple textured boxes.
+// The track network and the station model's join to it, for the trains that run on it.
+export interface TrainsNetwork { graph: TrackGraph; geometry: TrackGeometry; join: StationJoin }
+
+// A platform track of the station model and the trains that call at it: its shuttle, or the
+// network's routes, each with the index of its stop there.
+interface Calls { tr: Track & { platform: Platform }; shuttle: Service | null; stops: { route: NetRoute; k: number }[] }
+
+export interface Departure { line: string; dest: string; when: string; color: string; eta: number }
+
+// The trains. Lines the station model only has a stretch of get a shuttle per platform track: one
+// train that comes out of the tunnel, stops and goes back in. Lines on the track network
+// (src/network.ts) run on its timetable (src/timetable.ts) instead, through the station and on
+// along the whole line. Metro lines run the procedural C20/C30 models, whose doors open at the
+// platform and whose cars can be walked through and ridden; other lines get simple textured boxes.
 export class Trains {
-  services: Service[] = [];
+  shuttles: Service[] = [];
+  timetable: Timetable | null = null;
+  clock = 0;
+  private all: Service[] = [];
+  private calls: Calls[] = [];
+  private pool = new Map<TrainType, Train[]>();
+  private modelOpts: BuildOptions;
+  private boardsAt = 0;
   private _p = new THREE.Vector3();
   private _q = new THREE.Vector3();
 
-  constructor(scene: THREE.Scene, tracks: Track[], public sound: Sound | null,
-    { renderer = null, quality = 1 }: { renderer?: THREE.WebGLRenderer | null; quality?: number } = {}) {
+  constructor(private scene: THREE.Scene, tracks: Track[], public sound: Sound | null,
+    { renderer = null, quality = 1, network = null }: { renderer?: THREE.WebGLRenderer | null; quality?: number; network?: TrainsNetwork | null } = {}) {
     const matCache = new Map<string, THREE.Material>();
     const endTex = T.trainEnd();
     const endMat = new THREE.MeshStandardMaterial({ map: endTex, roughness: 0.6 });
@@ -89,10 +75,12 @@ export class Trains {
       envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
       pmrem.dispose();
     }
+    this.modelOpts = { quality, envMap, envMapIntensity: 0.45, interior: false };
+    const served = network?.join.served;
 
     for (const tr of tracks) {
       const L = LINES[tr.line];
-      if (!hasPlatform(tr) || !L.dest || (L.kind !== 'metro' && L.kind !== 'commuter')) continue;
+      if (!hasPlatform(tr) || !L.dest || (L.kind !== 'metro' && L.kind !== 'commuter') || served?.has(tr)) continue;
       const spec = TRAIN_SPECS[L.kind];
       const platLen = tr.platform.s1 - tr.platform.s0;
       let cars: ServiceCar[], trainLen: number, model: Train | null = null;
@@ -100,11 +88,11 @@ export class Trains {
         // as many units as fit the platform (normally a full 140 m train)
         let m!: Train;
         for (let units = SERVICE_UNITS[L.train]; units >= 1; units--) {
-          m = createTrain(L.train, { units, quality, envMap, envMapIntensity: 0.45, interior: false });
+          m = createTrain(L.train, { ...this.modelOpts, units });
           if (m.length <= platLen - 2 || units === 1) break;
         }
         model = m;
-        cars = m.cars.map((c) => ({ object: c.object, length: c.length, offset: c.offset, yaw: c.reversed ? Math.PI : 0, car: c, floorData: null }));
+        cars = carsOf(m);
         trainLen = m.length;
       } else {
         const n = Math.max(2, Math.min(spec.maxCars, Math.floor((platLen - 4) / (spec.carLen + spec.gap))));
@@ -127,32 +115,94 @@ export class Trains {
         c.object.visible = false;
         scene.add(c.object);
       }
-      const mid = (tr.platform.s0 + tr.platform.s1) / 2;
+      // the train runs along the track in its direction of travel
+      const path = tr.dir > 0 ? tr.path : new Polyline([...tr.path.pts].reverse());
+      const mid = tr.dir > 0 ? (tr.platform.s0 + tr.platform.s1) / 2 : tr.path.length - (tr.platform.s0 + tr.platform.s1) / 2;
       // compass direction of travel at the platform decides the destination set
-      const t = tr.path.tangentAt(mid).multiplyScalar(tr.dir);
+      const t = path.tangentAt(mid);
       const pos = (L.axis === 'x' ? t.x : t.z) > 0;
       const destSet = pos ? L.dest.pos : L.dest.neg;
       const svc: Service = {
-        tr, spec, L, cars, model, trainLen,
-        stopHead: mid + (tr.dir * trainLen) / 2,
-        startHead: tr.dir > 0 ? 0 : tr.path.length,
-        endHead: tr.dir > 0 ? tr.path.length + trainLen : -trainLen,
-        state: 'wait', timer: 4 + Math.random() * 50, head: 0, speed: 0, doors: 0,
-        dest: destSet[0], destSet, next: L.next ? (pos ? L.next.pos : L.next.neg) : '',
+        id: -1 - this.shuttles.length, L, vmax: spec.vmax, cars, model, trainLen, path, shown: [0, path.length],
+        stops: [{ station: L.sign, head: mid + trainLen / 2, side: (tr.platform.side * tr.dir > 0 ? 1 : -1), until: -Infinity }],
+        stop: 0, end: path.length + trainLen,
+        state: 'wait', timer: 4 + Math.random() * 50, head: 0, speed: 0, limit: Infinity, doors: 0,
+        dest: destSet[0], shuttle: { tr, destSet, next: L.next ? (pos ? L.next.pos : L.next.neg) : '' },
       };
-      for (const c of cars) {
-        if (c.car?.floor) {
-          c.floorData = {
-            kind: 'train', svc, car: c,
-            rec: { get label() { return `${svc.L.train} to ${svc.dest[1]} · line ${svc.dest[0]}`; } },
-          };
-        }
-      }
-      this.setDest(svc, pick(svc.destSet));
+      this.floors(svc);
+      this.setDest(svc, pick(destSet));
       // start a few trains already at the platform so the station feels alive
-      if (Math.random() < 0.35) { svc.state = 'dwell'; svc.head = svc.stopHead; svc.timer = 5 + Math.random() * 12; svc.doors = 1; }
-      this.services.push(svc);
+      if (Math.random() < 0.35) { svc.state = 'dwell'; svc.head = svc.stops[0].head; svc.timer = DWELL - 5 - Math.random() * 12; svc.doors = 1; }
+      this.shuttles.push(svc);
+      this.calls.push({ tr, shuttle: svc, stops: [] });
     }
+
+    if (network) {
+      const type = LINES.red.train!;
+      const first = this.newModel(type);
+      this.pool.set(type, [first]);
+      this.timetable = new Timetable(network.graph, network.geometry, first.length, network.join.stretches, (svc) => this.release(svc));
+      for (const [tr, list] of network.join.served) {
+        if (!hasPlatform(tr)) continue;
+        const stops = list.flatMap(({ route }) => {
+          const r = this.timetable!.routes.find((x) => x.name === route);
+          const k = r ? r.stops.findIndex((st) => st.station === network.join.station) : -1;
+          return r && k >= 0 ? [{ route: r, k }] : [];
+        });
+        this.calls.push({ tr, shuttle: null, stops });
+      }
+    }
+    this.all = [...this.shuttles, ...(this.timetable?.trips ?? [])];
+  }
+
+  private newModel(type: TrainType) {
+    return createTrain(type, { ...this.modelOpts, units: SERVICE_UNITS[type] });
+  }
+
+  // The floors of a train's cars, which the player can walk on.
+  private floors(svc: Service) {
+    for (const c of svc.cars) {
+      if (!c.car?.floor) continue;
+      c.floorData = {
+        kind: 'train', svc, car: c,
+        rec: {
+          get label() {
+            const base = `${svc.model?.type} to ${svc.dest[1]} · line ${svc.dest[0]}`;
+            const at = nextStation(svc);
+            if (!svc.trip || !at) return base;
+            return `${base} · ${svc.state === 'run' ? 'next' : 'at'} ${at}`;
+          },
+        },
+      };
+    }
+  }
+
+  // A trip near the player gets a train model, from those given back if there is one.
+  private attach(svc: Service) {
+    const type = svc.L.train;
+    if (svc.model || !type) return;
+    const model = this.pool.get(type)?.pop() ?? this.newModel(type);
+    svc.model = model;
+    svc.cars = carsOf(model);
+    for (const c of svc.cars) {
+      c.object.visible = false;
+      this.scene.add(c.object);
+    }
+    this.floors(svc);
+    model.setDestination(svc.dest[1]);
+  }
+
+  private release(svc: Service) {
+    const m = svc.model;
+    if (!m || svc.shuttle) return;
+    for (const c of svc.cars) {
+      c.object.visible = false;
+      c.car?.setInterior(false);
+      c.car?.setDoors(0, 0);
+    }
+    (this.pool.get(m.type as TrainType) ?? this.pool.set(m.type as TrainType, []).get(m.type as TrainType)!).push(m);
+    svc.model = null;
+    svc.cars = [];
   }
 
   setDest(svc: Service, dest: Destination) {
@@ -160,93 +210,68 @@ export class Trains {
     svc.model?.setDestination(dest[1]);
   }
 
-  // Seconds until the train is at the platform (0 when it is there).
-  eta(svc: Service) {
-    const approachDist = Math.abs(svc.stopHead - svc.startHead);
-    const approachTime = approachDist / svc.spec.vmax + svc.spec.vmax / (2 * ACC);
-    switch (svc.state) {
-      case 'wait': return svc.timer + approachTime;
-      case 'arrive': {
-        const rem = Math.abs(svc.stopHead - svc.head);
-        return rem / Math.max(4, svc.speed) + 2;
+  // `ride` is the car the player is in, if any: that train shows its whole interior.
+  update(dt: number, playerPos: THREE.Vector3 | null, ride: Ride | null = null) {
+    this.clock += dt;
+    for (const svc of this.shuttles) {
+      if (svc.state === 'wait') {
+        svc.timer -= dt;
+        if (svc.timer <= 0) { svc.state = 'run'; svc.head = 0; svc.stop = 0; svc.speed = svc.vmax; }
       }
-      case 'dwell': case 'closing': return 0;
-      default: return Infinity;
+      this.event(svc, advance(svc, dt, this.clock), playerPos);
+    }
+    if (this.timetable) {
+      for (const [svc, ev] of this.timetable.update(dt)) this.event(svc, ev, playerPos);
+      // models for the trips near the player
+      for (const svc of this.timetable.trips) {
+        const onLine = svc.head > svc.shown[0] && svc.head - svc.trainLen < svc.shown[1];
+        const d = playerPos && onLine ? this.trainDistance(svc, playerPos) : Infinity;
+        if (!svc.model && d < MODEL_NEAR) this.attach(svc);
+        else if (svc.model && d > MODEL_FAR && ride?.svc !== svc) this.release(svc);
+      }
+    }
+    this.all = [...this.shuttles, ...(this.timetable?.trips ?? [])];
+    let rumble = 0;
+    for (const svc of this.all) {
+      this.place(svc, playerPos, ride?.svc === svc);
+      if (svc.state === 'run' && svc.speed > 0) {
+        const d = this.distanceTo(svc, playerPos);
+        rumble += (svc.speed / svc.vmax) * Math.max(0, 1 - d / 120) ** 2;
+      }
+    }
+    this.sound?.setRumble(Math.min(1, rumble));
+    if (this.clock >= this.boardsAt) {
+      this.boardsAt = this.clock + 0.5;
+      for (const c of this.calls) this.updateBoard(c);
     }
   }
 
-  // `ride` is the car the player is in, if any: that train shows its whole interior.
-  update(dt: number, playerPos: THREE.Vector3 | null, ride: Ride | null = null) {
-    let rumble = 0;
-    for (const svc of this.services) {
-      const { tr, spec } = svc;
-      switch (svc.state) {
-        case 'wait':
-          svc.timer -= dt;
-          if (svc.timer <= 0) {
-            svc.state = 'arrive'; svc.head = svc.startHead; svc.speed = spec.vmax;
-          }
-          break;
-        case 'arrive': {
-          const rem = Math.abs(svc.stopHead - svc.head);
-          svc.speed = Math.min(spec.vmax, Math.sqrt(2 * ACC * rem) + 0.15);
-          const step = Math.min(rem, svc.speed * dt);
-          svc.head += tr.dir * step;
-          if (rem - step < 0.01) {
-            svc.state = 'dwell'; svc.timer = DWELL; svc.speed = 0;
-            this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
-          }
-          break;
-        }
-        case 'dwell':
-          svc.timer -= dt;
-          if (DWELL - svc.timer > OPEN_DELAY) svc.doors = Math.min(1, svc.doors + dt / DOORS_OPEN);
-          if (svc.timer <= 0) {
-            svc.state = 'closing'; svc.timer = 0;
-            this.sound?.chime(this.distanceTo(svc, playerPos), 'close');
-          }
-          break;
-        case 'closing':
-          svc.timer += dt;
-          if (svc.timer > SHUT_DELAY) svc.doors = Math.max(0, svc.doors - dt / DOORS_SHUT);
-          if (svc.doors === 0 && svc.timer > SHUT_DELAY + DOORS_SHUT + LEAVE_DELAY) { svc.state = 'depart'; svc.speed = 0; }
-          break;
-        case 'depart': {
-          const done = Math.abs(svc.head - svc.stopHead);
-          svc.speed = Math.min(spec.vmax, Math.sqrt(2 * ACC * done) + 0.4);
-          svc.head += tr.dir * svc.speed * dt;
-          if ((svc.head - svc.endHead) * tr.dir >= 0) {
-            svc.state = 'wait'; svc.timer = 35 + Math.random() * 60; this.setDest(svc, pick(svc.destSet));
-          }
-          break;
-        }
-      }
-      this.place(svc, playerPos, ride?.svc === svc);
-      if (svc.state === 'arrive' || svc.state === 'depart') {
-        const d = this.distanceTo(svc, playerPos);
-        rumble += (svc.speed / spec.vmax) * Math.max(0, 1 - d / 120) ** 2;
-      }
-      this.updateBoard(svc);
+  private event(svc: Service, ev: ServiceEvent, playerPos: THREE.Vector3 | null) {
+    if (ev === 'arrived') this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
+    else if (ev === 'closing') this.sound?.chime(this.distanceTo(svc, playerPos), 'close');
+    else if (ev === 'done' && svc.shuttle) {
+      svc.state = 'wait'; svc.timer = 35 + Math.random() * 60; svc.head = 0; svc.stop = 0;
+      this.setDest(svc, pick(svc.shuttle.destSet));
     }
-    this.sound?.setRumble(Math.min(1, rumble));
   }
 
   // Interiors are drawn only for cars close to the player, or for the whole train they ride.
   place(svc: Service, playerPos: THREE.Vector3 | null, ridden = false) {
-    const { tr, cars } = svc;
+    const { path, cars } = svc;
     const visible = svc.state !== 'wait';
-    // car +x points along the direction of travel
-    const turn = tr.dir > 0 ? 0 : Math.PI;
     for (const c of cars) {
       const m = c.object;
-      const sc = svc.head - tr.dir * c.offset;
-      if (!visible || sc < -c.length / 2 || sc > tr.path.length + c.length / 2) { m.visible = false; continue; }
-      const a = tr.path.pointAt(sc - c.length / 2, this._p);
-      const b = tr.path.pointAt(sc + c.length / 2, this._q);
+      // a shuttle's cars run on out of the tunnel the model draws; a trip's cars are drawn on
+      // the line, not where it runs on beyond the ends
+      const sc = svc.head - c.offset, pad = svc.shuttle ? c.length / 2 : 0;
+      if (!visible || sc < svc.shown[0] - pad || sc > svc.shown[1] + pad) { m.visible = false; continue; }
+      const a = path.pointAt(sc - c.length / 2, this._p);
+      const b = path.pointAt(sc + c.length / 2, this._q);
       m.visible = true;
       m.position.addVectors(a, b).multiplyScalar(0.5);
       m.position.y -= RAIL_TOP;
-      m.rotation.set(0, Math.atan2(-(b.z - a.z), b.x - a.x) + turn + c.yaw, 0);
+      // car +x points along the direction of travel
+      m.rotation.set(0, Math.atan2(-(b.z - a.z), b.x - a.x) + c.yaw, 0);
       if (c.car) {
         if (playerPos) {
           const d = m.position.distanceTo(playerPos) - c.length / 2;
@@ -259,7 +284,8 @@ export class Trains {
 
   // The side of a car (its local z sign) that faces the platform.
   platformSide(svc: Service, c: ServiceCar): 1 | -1 {
-    return svc.tr.platform.side * svc.tr.dir * (c.yaw ? -1 : 1) > 0 ? 1 : -1;
+    const st = svc.stops[Math.min(svc.stop, svc.stops.length - 1)];
+    return st.side * (c.yaw ? -1 : 1) > 0 ? 1 : -1;
   }
 
   // Car-local coordinates of a world position (x, z) on car object m.
@@ -274,7 +300,7 @@ export class Trains {
   floorsAt(x: number, z: number, out: SurfaceHit<CarFloorData>[] = []) {
     out.length = 0;
     const l = this._p;
-    for (const svc of this.services) {
+    for (const svc of this.all) {
       if (svc.state === 'wait' || !svc.model) continue;
       for (const c of svc.cars) {
         const f = c.car?.floor, m = c.object;
@@ -291,7 +317,7 @@ export class Trains {
   // The car the player is standing in (inside its body, not on the platform next to a doorway).
   rideAt(pos: THREE.Vector3): Ride | null {
     const l = this._q;
-    for (const svc of this.services) {
+    for (const svc of this.all) {
       if (svc.state === 'wait' || !svc.model) continue;
       for (const c of svc.cars) {
         const f = c.car?.floor, m = c.object;
@@ -329,31 +355,48 @@ export class Trains {
     return true;
   }
 
-  // True once a ridden train has carried the player's car to the end of its track.
+  // True once a ridden train leaves the part of the line that is drawn: a shuttle carrying the
+  // player's car to the end of its track, or a trip leaving the last station of its route.
   leaving(ride: Ride) {
     const { svc, car } = ride;
-    if (svc.state !== 'depart') return false;
-    const sc = svc.head - svc.tr.dir * car.offset;
-    return svc.tr.dir > 0 ? sc > svc.tr.path.length - LEAVE_AT : sc < LEAVE_AT;
+    if (svc.state !== 'run' || svc.stop < svc.stops.length) return false;
+    if (svc.trip) return true;
+    return svc.head - car.offset > svc.path.length - LEAVE_AT;
   }
 
-  // The rest of a ride, off the map: the player comes back into T-Centralen in the same place in
-  // a train running the other way on the same line (or on this track again if there is none).
+  // The rest of a ride, off the map. From a shuttle, the player comes back into the station in the
+  // same place in a train running the other way on the same line (or on this track again if there
+  // is none). From a trip, they stay in the train as it turns, and it comes back as the trip
+  // that leaves the end of the line the other way, standing at the platform.
   transfer(ride: Ride): Ride {
     const from = ride.svc;
-    const to = this.services.find((s) => s !== from && s.L === from.L && s.destSet !== from.destSet
+    const index = from.cars.indexOf(ride.car);
+    if (from.trip) {
+      const to = this.timetable?.turn(from);
+      if (!to) return ride;
+      this.attach(to);
+      this.place(to, null, true);
+      const car = to.cars[index] ?? to.cars[0];
+      return { svc: to, car, local: ride.local.clone(), yaw: car.object.rotation.y };
+    }
+    const to = this.shuttles.find((s) => s !== from && s.L === from.L && s.shuttle!.destSet !== from.shuttle!.destSet
       && s.model?.type === from.model?.type && s.cars.length === from.cars.length) ?? from;
-    to.state = 'arrive';
-    to.speed = to.spec.vmax;
+    to.state = 'run';
+    to.stop = 0;
+    to.speed = to.vmax;
     to.doors = 0;
-    this.setDest(to, pick(to.destSet));
+    this.setDest(to, pick(to.shuttle!.destSet));
     // start with the player's car just inside the tunnel, if the approach is long enough
-    const car = to.cars[from.cars.indexOf(ride.car)];
+    const car = to.cars[index];
     const inside = car.offset + car.length / 2 + 2;
-    const head = to.startHead + to.tr.dir * inside;
-    to.head = (to.stopHead - head) * to.tr.dir > 30 ? head : to.startHead;
+    to.head = to.stops[0].head - inside > 30 ? inside : 0;
     this.place(to, null, true);
     return { svc: to, car, local: ride.local.clone(), yaw: car.object.rotation.y };
+  }
+
+  // Whether a train is still running: a trip is gone once it has run out beyond its last station.
+  inService(svc: Service) {
+    return this.all.includes(svc);
   }
 
   distanceTo(svc: Service, pos: THREE.Vector3 | null) {
@@ -363,42 +406,83 @@ export class Trains {
       if (!m.visible) continue;
       best = Math.min(best, m.position.distanceTo(pos));
     }
-    if (best === Infinity) best = svc.tr.path.pointAt(svc.stopHead, this._p).distanceTo(pos);
+    if (best === Infinity && svc.shuttle) best = svc.path.pointAt(svc.stops[0].head, this._p).distanceTo(pos);
     return best;
   }
 
-  boardText(svc: Service) {
-    const eta = this.eta(svc);
-    const when = svc.state === 'dwell' || svc.state === 'closing' || eta < 30 ? 'Nu' : `${Math.max(1, Math.round(eta / 60))} min`;
-    return { line: svc.dest[0], dest: svc.dest[1], when };
+  // How far the train is from pos, roughly: from the middle of the train, less half its length.
+  private trainDistance(svc: Service, pos: THREE.Vector3) {
+    return svc.path.pointAt(svc.head - svc.trainLen / 2, this._p).distanceTo(pos) - svc.trainLen / 2;
   }
 
-  updateBoard(svc: Service) {
-    const b = svc.tr.board;
+  // ------------------------------------------------------------------ departures
+  // Seconds until a shuttle stands at its platform (0 when it is there).
+  private shuttleEta(svc: Service) {
+    const stop = svc.stops[0].head;
+    switch (svc.state) {
+      case 'wait': return svc.timer + stop / svc.vmax + svc.vmax / (2 * ACC);
+      case 'run': return svc.stop === 0 ? (stop - svc.head) / Math.max(4, svc.speed) + 2 : Infinity;
+      default: return svc.stop === 0 ? 0 : Infinity;
+    }
+  }
+
+  // The next train of each service calling at a platform track, soonest first.
+  private next(c: Calls): Departure[] {
+    const out: Departure[] = [];
+    if (c.shuttle) out.push(departure(c.shuttle.L.color, c.shuttle.dest, this.shuttleEta(c.shuttle)));
+    for (const { route, k } of c.stops) {
+      const n = this.timetable?.nextAt(route, k);
+      if (n) out.push(departure(LINES[route.line].color, route.dest, n.eta));
+    }
+    return out.sort((a, b) => a.eta - b.eta);
+  }
+
+  private updateBoard(c: Calls) {
+    const b = c.tr.board;
     if (!b) return;
-    const { line, dest, when } = this.boardText(svc);
-    const text = `${line}|${dest}|${when}`;
+    const d = this.next(c)[0];
+    if (!d) return;
+    const text = `${d.line}|${d.dest}|${d.when}`;
     if (text === b.text) return;
     b.text = text;
     const x = b.canvas.getContext('2d')!;
     x.fillStyle = '#05070a'; x.fillRect(0, 0, 512, 128);
-    x.fillStyle = svc.L.color;
+    x.fillStyle = d.color;
     x.beginPath(); x.roundRect(14, 24, 76, 80, 12); x.fill();
     x.fillStyle = '#fff'; x.font = '700 48px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText(line, 52, 66);
+    x.fillText(d.line, 52, 66);
     x.fillStyle = '#ffb33a'; x.textAlign = 'left'; x.font = '600 44px Arial, sans-serif';
-    x.fillText(dest.length > 14 ? dest.slice(0, 13) + '…' : dest, 108, 66);
+    x.fillText(d.dest.length > 14 ? d.dest.slice(0, 13) + '…' : d.dest, 108, 66);
     x.textAlign = 'right';
-    x.fillText(when, 496, 66);
+    x.fillText(d.when, 496, 66);
     b.texture.needsUpdate = true;
   }
 
-  // Next departures from the platform the player is standing on.
+  // Next departures from the station model's platform the player is standing on.
   departuresFor(platformRec: SurfaceRecord) {
-    return this.services
-      .filter((s) => s.tr.platform.rec === platformRec)
-      .map((s) => ({ ...this.boardText(s), color: s.L.color }));
+    return this.calls.filter((c) => c.tr.platform.rec === platformRec).flatMap((c) => this.next(c)).sort((a, b) => a.eta - b.eta);
   }
+
+  // Next departures from a station of the network, both ways, by its name.
+  departuresAt(station: string) {
+    const out: Departure[] = [];
+    for (const route of this.timetable?.routes ?? []) {
+      const k = route.stops.findIndex((st) => st.station === station);
+      if (k < 0 || k === route.stops.length - 1) continue;
+      const n = this.timetable!.nextAt(route, k);
+      if (n) out.push(departure(LINES[route.line].color, route.dest, n.eta));
+    }
+    return out.sort((a, b) => a.eta - b.eta);
+  }
+}
+
+function departure(color: string, [line, dest]: Destination, eta: number): Departure {
+  const when = eta < 30 ? 'Nu' : `${Math.max(1, Math.round(eta / 60))} min`;
+  return { line, dest, when, color, eta };
+}
+
+function carsOf(m: Train): ServiceCar[] {
+  return m.cars.map((c) => ({ object: c.object, length: c.length, offset: c.offset, yaw: c.reversed ? Math.PI : 0, car: c, floorData: null }));
 }
 
 function hasPlatform(tr: Track): tr is Track & { platform: Platform } {

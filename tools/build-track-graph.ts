@@ -3,7 +3,8 @@
 //   node tools/build-track-graph.ts
 //
 // Reads data/osm/network.json (tools/fetch-osm.ts network), data/routes.json and
-// data/track-corrections.json; writes public/data/track-graph.json (see src/track-graph.ts).
+// data/track-corrections.json; writes public/data/track-graph.json (see src/track-graph.ts),
+// with the services' timetable from data/routes.json.
 //
 // 1. Every railway=subway way is cut into pieces at its switches, ends, and where the track type
 //    or structure (tunnel, bridge, surface) changes.
@@ -53,7 +54,7 @@ interface Corrections {
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
-const routeDefs: { routes: Record<string, { line: string; stations: string[] }> } = JSON.parse(readFileSync(ROUTES, 'utf8'));
+const routeDefs: { timetable?: TrackGraph['timetable']; routes: Record<string, { line: string; stations: string[] }> } = JSON.parse(readFileSync(ROUTES, 'utf8'));
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
 
 const round = (v: number) => Math.round(v * 100) / 100;
@@ -522,7 +523,7 @@ const platformTracks = (name: string) => {
 // The cheapest run from the first station to the last, stopping at every station in turn and
 // never reversing. Every way of standing at each station is kept, so a cheap arrival that
 // leads nowhere can't block the route.
-function trace(name: string, line: string, names: string[]): Route | null {
+function trace(name: string, service: string, line: string, names: string[]): Route | null {
   let arrivals: Arrival[] = platformTracks(names[0]).flatMap((t) => ([1, -1] as const).map((dir) => (
     { pos: { piece: t.piece, dir, s: (t.s0 + t.s1) / 2 }, cost: 0, path: [], prev: null })));
   for (const next of names.slice(1)) {
@@ -548,14 +549,14 @@ function trace(name: string, line: string, names: string[]): Route | null {
     const leave = i === path.length - 1 ? stops[stops.length - 1].s : st.dir === 1 ? p.length : 0;
     length += Math.abs(leave - enter);
   });
-  return { name, line, stops, path, length: round(length) };
+  return { name, service, line, stops, path, length: round(length) };
 }
 
 const routes: Route[] = [];
 for (const [name, def] of Object.entries(routeDefs.routes)) {
   for (const [label, names] of [[`${name} ${def.stations[0]}–${def.stations.at(-1)}`, def.stations],
     [`${name} ${def.stations.at(-1)}–${def.stations[0]}`, [...def.stations].reverse()]] as const) {
-    const r = trace(label, def.line, names);
+    const r = trace(label, name, def.line, names);
     if (r) routes.push(r);
   }
 }
@@ -609,6 +610,14 @@ const graph: TrackGraph = {
   stations: [...stations.values()].filter((s) => s.platforms.length),
   routes,
 };
+if (routeDefs.timetable) {
+  const { station, services } = routeDefs.timetable;
+  graph.timetable = { station, services };
+  for (const r of routes) {
+    if (!services[r.service]) problems.push(`${r.name}: no timetable`);
+    else if (!r.stops.some((st) => st.station === station)) problems.push(`${r.name}: doesn't stop at ${station}, where the timetable is set`);
+  }
+}
 writeFileSync(OUT, JSON.stringify(graph) + '\n');
 console.log(`wrote ${OUT} (${(JSON.stringify(graph).length / 1024).toFixed(0)} kB)`);
 if (problems.length) {

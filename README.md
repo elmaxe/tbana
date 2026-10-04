@@ -58,11 +58,14 @@ after a chime before they leave. Walk in through an open door and you ride along
 through the car and, on the C30 and between the sections of a C20, into the next car. If you are
 standing in a doorway when the doors close, you step inside or back onto the platform.
 
-On the red line the trains run on into the real tunnels (see [The track and
-tunnels](#the-track-and-tunnels)), as far as the approach to the next station: Östermalmstorg to
-the north, Gamla stan to the south. There the screen goes dark, and you come back through the
-tunnel to T-Centralen in the same spot of a train on the other track. On the other lines the
-model's tunnels are short, so the screen goes dark soon after you leave. Seats don't block you,
+On the red line the trains run the whole line on a timetable (see [Trains on the
+network](#trains-on-the-network)), so you ride on from station to station through the real
+tunnels. Step out at any station whose platform is drawn, Östermalmstorg for one, and wait there
+for the next train either way. At the end of the line the train turns out of sight: the screen goes
+dark, and you come back in the same spot of the train that leaves from there the other way.
+
+On the other lines the model's tunnels are short, so the screen goes dark soon after you leave, and
+you come back to T-Centralen in the same spot of a train on the other track. Seats don't block you,
 and the pendeltåg can't be boarded.
 
 ## Deployment
@@ -154,6 +157,8 @@ npm run plot-graph -- Slussen 400 slussen.svg   # draw part of it, to check by e
 - It matches the platforms to the tracks beside them.
 - It traces T13 and T14 in both directions (`data/routes.json`), stopping at every platform,
   never reversing, and keeping to the left-hand track.
+- It copies their timetable from `data/routes.json` into the graph: how often each service runs,
+  and when its trains are at T-Centralen.
 
 The build fails if a service can't be traced. `DEBUG=1` lists stations with only one platform
 track, and stretches where a service runs on the right-hand track.
@@ -245,6 +250,28 @@ platforms, and beyond them the trains run on the network's track.
 
 To fly the tunnel, jump to a red line platform (`2` or `3`), press `F`, and follow the track
 north to Östermalmstorg or south to Gamla stan.
+
+### Trains on the network
+
+The red line's trains run on the timetable in the track graph (`src/timetable.ts`). T13 and T14
+each run every 5 minutes each way, alternating on the shared trunk, so from Liljeholmen to
+Östermalmstorg there is a train every 2.5 minutes. To change the service, edit `timetable` in
+`data/routes.json` and run `npm run build-track-graph`.
+
+Each trip runs its route from end to end:
+
+- It comes in from beyond the first station and stands there with its doors open until it is due
+  out.
+- It stops at every station for at least 22 s, opening its doors on the platform side.
+- It runs out beyond the last station, where it turns out of sight. At each end of the red line
+  the trains arrive on one track and leave from the other, and the turnback tracks aren't drawn.
+
+The trips keep at least 30 m apart where they share track. At a junction, the one that would get
+there first goes first.
+
+Only the trips within about 700 m of the player get a train model, from a pool.
+
+The network's platforms can be walked on, and the HUD shows the next trains from them.
 
 ## Train models
 

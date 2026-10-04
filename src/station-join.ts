@@ -4,7 +4,9 @@ import type { Track } from './station';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
 import type { Exclusion } from './network';
-import { RAIL_TOP } from './trains';
+import { RAIL_TOP } from './service';
+import { locate, pointAt, routeLine } from './routes';
+import type { RoutePoint } from './routes';
 
 // Joins a station model's tracks to the track network. The model's tracks end a little way into
 // the tunnels, on lines it only sketches; where the network has a track that runs through one of
@@ -16,10 +18,18 @@ const HANDOVER = 6;        // the station draws its platform and walls this far 
 const BLEND = 40;          // over which the track runs from the model's line to the network's
 const SHORT_OF_NEXT = 140; // the track ends this far short of the next stop on either side
 
+// A route's line where it runs through a joined platform: from point `from` of its line (see
+// src/routes.ts), the points `pts` at platform level, blended onto the model's track.
+export interface RouteStretch { from: number; pts: THREE.Vector3[] }
+
 export class StationJoin {
   exclusions: Exclusion[] = [];
+  // the routes that stop at each joined track: the route's name and the index of its stop here
+  served = new Map<Track, { route: string; stop: number }[]>();
+  // where the routes run through the joined platforms, by route name
+  stretches = new Map<string, RouteStretch[]>();
 
-  constructor(private graph: TrackGraph, private geometry: TrackGeometry, private station: string) {}
+  constructor(private graph: TrackGraph, private geometry: TrackGeometry, readonly station: string) {}
 
   join(tracks: Track[]) {
     for (const tr of tracks) if (tr.platform) this.joinTrack(tr);
@@ -30,8 +40,8 @@ export class StationJoin {
     if (!platform) return;
     const mid = (platform.s0 + platform.s1) / 2;
     const p = tr.path.pointAt(mid), run = tr.path.tangentAt(mid).multiplyScalar(tr.dir);
-    // the route through the network that stops here, at this platform, in this direction
-    let best: { line: RoutePoint[]; stop: number; d: number } | null = null;
+    // the routes through the network that stop here, at this platform, in this direction
+    const found: { route: string; k: number; line: RoutePoint[]; from: number; stop: number; d: number }[] = [];
     for (const route of this.graph.routes) {
       const k = route.stops.findIndex((st) => st.station === this.station);
       if (k < 0) continue;
@@ -42,25 +52,35 @@ export class StationJoin {
       const q = pointAt(line, stop), dir = pointAt(line, stop + 5).sub(pointAt(line, stop - 5));
       const d = Math.hypot(q.x - p.x, q.z - p.z);
       if (d > 5 || Math.abs(q.y + RAIL_TOP - p.y) > 3 || dir.x * run.x + dir.z * run.z <= 0) continue;
-      if (best && d >= best.d) continue;
       // out to near the stops before and after
       const prev = k > 0 ? locate(line, route.stops[k - 1].piece, route.stops[k - 1].s) : null;
       const next = k + 1 < route.stops.length ? locate(line, route.stops[k + 1].piece, route.stops[k + 1].s) : null;
       const r0 = prev === null ? 0 : prev + SHORT_OF_NEXT, r1 = next === null ? line[line.length - 1].r : next - SHORT_OF_NEXT;
-      best = { line: line.filter((pt) => pt.r >= r0 && pt.r <= r1), stop, d };
+      const from = line.findIndex((pt) => pt.r >= r0);
+      found.push({ route: route.name, k, line: line.filter((pt) => pt.r >= r0 && pt.r <= r1), from, stop, d });
     }
+    found.sort((a, b) => a.d - b.d);
+    const best = found[0];
     if (!best || best.line.length < 2) return;
-    const { line, stop } = best;
     // The model's track along the platform, and the network's beyond it, blended over BLEND
     // metres. Distances along the model's track from the platform's middle match distances along
     // the network's from the stop.
     const half = (platform.s1 - platform.s0) / 2 + HANDOVER;
-    const pts = line.map((pt) => {
+    const blend = (line: RoutePoint[], stop: number) => line.map((pt) => {
       const off = pt.r - stop, m = mid + off * tr.dir;
       const w = 1 - smooth((Math.abs(off) - half) / BLEND);
       const net = new THREE.Vector3(pt.x, pt.y + RAIL_TOP, pt.z);
       return w > 0 ? net.lerp(tr.path.pointAt(m), w) : net;
     });
+    // every route stopping here runs through the blended stretch, so that its trains stand at the
+    // model's platform
+    for (const f of found) {
+      if (f.line.length < 2) continue;
+      (this.stretches.get(f.route) ?? this.stretches.set(f.route, []).get(f.route)!).push({ from: f.from, pts: blend(f.line, f.stop) });
+      (this.served.get(tr) ?? this.served.set(tr, []).get(tr)!).push({ route: f.route, stop: f.k });
+    }
+    const { line, stop } = best;
+    const pts = blend(line, stop);
     if (tr.dir < 0) pts.reverse();
     const path = new Polyline(pts);
     // the platform and the handover in the new path's distances
@@ -88,47 +108,6 @@ export class StationJoin {
     }
     for (const [piece, [s0, s1]] of byPiece) this.exclusions.push({ piece, s0, s1, trackOnly });
   }
-}
-
-// A point of a route's line through the network, at distance r from its start.
-interface RoutePoint { x: number; y: number; z: number; r: number; piece: number; s: number }
-
-function routeLine(geometry: TrackGeometry, path: TrackGraph['routes'][number]['path']): RoutePoint[] | null {
-  const out: RoutePoint[] = [];
-  let r = 0;
-  for (const step of path) {
-    const g = geometry.pieces[step.piece];
-    if (!g) return null;
-    const idx = g.s.map((_, k) => k);
-    if (step.dir < 0) idx.reverse();
-    for (const k of idx) {
-      const last = out[out.length - 1];
-      if (last) {
-        const d = Math.hypot(g.x[k] - last.x, g.z[k] - last.z);
-        if (d < 0.01) continue;
-        r += d;
-      }
-      out.push({ x: g.x[k], y: g.y[k], z: g.z[k], r, piece: step.piece, s: g.s[k] });
-    }
-  }
-  return out;
-}
-
-// the distance along the line of a place on a piece
-function locate(line: RoutePoint[], piece: number, s: number) {
-  for (let i = 1; i < line.length; i++) {
-    const a = line[i - 1], b = line[i];
-    if (a.piece !== piece || b.piece !== piece) continue;
-    if ((s - a.s) * (s - b.s) <= 0) return a.r + ((b.r - a.r) * (s - a.s)) / (b.s - a.s || 1);
-  }
-  return null;
-}
-
-function pointAt(line: RoutePoint[], r: number) {
-  let i = 1;
-  while (i < line.length - 1 && line[i].r < r) i++;
-  const a = line[i - 1], b = line[i], t = Math.max(0, Math.min(1, (r - a.r) / (b.r - a.r || 1)));
-  return new THREE.Vector3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
 }
 
 // the distance along a polyline of its nearest point to p, in plan
