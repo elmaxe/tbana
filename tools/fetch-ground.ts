@@ -1,7 +1,8 @@
-// Samples the ground height along the traced services' tracks from Lantmäteriet's 1 m elevation
-// model (Markhöjdmodell, RH 2000) into data/ground/red-line.json.
+// Samples the ground height from Lantmäteriet's 1 m elevation model (Markhöjdmodell, RH 2000).
 //
-//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts
+//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts            under the tracks -> data/ground/red-line.json
+//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts entrances  around the stations' entrances
+//                                                                 -> data/ground/entrances.json
 //
 // The model is free (CC BY 4.0) but its download needs a Geotorget account, sent as HTTP Basic
 // auth from LM_USER and LM_PASSWORD. Without them the requests go out unauthenticated, which
@@ -11,15 +12,27 @@
 // The model comes as Cloud Optimized GeoTIFFs, 2.5 × 2.5 km each on SWEREF 99 TM. The files are
 // found through Lantmäteriet's STAC catalogue for height data, and only the blocks under the
 // tracks are read, not whole files. Every piece of track on a traced service is sampled every
-// 10 m, tunnels too: above a tunnel the ground says how deep it must be.
+// 10 m, tunnels too: above a tunnel the ground says how deep it must be. Around each subway
+// entrance near a station on a traced service, a square of ground is sampled on a grid: the street
+// the station's exits come up to.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fromUrl } from 'geotiff';
 import type { GeoTIFFImage } from 'geotiff';
-import { GRID_TM, unproject, worldToGrid } from '../src/geo.ts';
+import { GRID_TM, lonLatToWorld, unproject, worldToGrid } from '../src/geo.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 
-const OUT = 'data/ground/red-line.json';
+const MODE = process.argv[2] ?? 'tracks';
+if (MODE !== 'tracks' && MODE !== 'entrances') {
+  console.error('usage: node tools/fetch-ground.ts [tracks|entrances]');
+  process.exit(1);
+}
+const OUT = MODE === 'tracks' ? 'data/ground/red-line.json' : 'data/ground/entrances.json';
 const STEP = 10;
+// around the entrances: a square PATCH × PATCH cells of PATCH_STEP m, centred on the entrance, for
+// the entrances within NEAR of a station
+const PATCH = 18, PATCH_STEP = 4, NEAR = 450;
+// around each station: STATION_PATCH × STATION_PATCH cells
+const STATION_PATCH = 50;
 const STAC = 'https://api.lantmateriet.se/stac-hojd/v1/search';
 
 // The download server turns away some requests (403) when too many arrive at once, so geotiff's
@@ -65,12 +78,51 @@ function pointAt(p: TrackPiece, s: number): [number, number] {
 // points to sample
 interface Point { x: number; z: number; e: number; n: number; h?: number }
 const points: Point[] = [];
-for (const p of pieces) {
-  const n = Math.max(1, Math.ceil(p.length / STEP));
-  for (let k = 0; k <= n; k++) {
-    const [x, z] = pointAt(p, (p.length * k) / n);
-    const g = worldToGrid(x, z, GRID_TM);
-    points.push({ x, z, e: g.e, n: g.n });
+const point = (x: number, z: number) => {
+  const g = worldToGrid(x, z, GRID_TM);
+  const p: Point = { x, z, e: g.e, n: g.n };
+  points.push(p);
+  return p;
+};
+if (MODE === 'tracks') {
+  for (const p of pieces) {
+    const n = Math.max(1, Math.ceil(p.length / STEP));
+    for (let k = 0; k <= n; k++) point(...pointAt(p, (p.length * k) / n));
+  }
+}
+
+// the entrances near the traced services' stations, each with its square of points
+interface Entrance { osm: number; name: string | null; station: string; x: number; z: number; pts: Point[] }
+const entrances: Entrance[] = [];
+const stationPatches: { station: string; x: number; z: number; pts: Point[] }[] = [];
+if (MODE === 'entrances') {
+  const osm = JSON.parse(readFileSync('data/osm/network.json', 'utf8')) as {
+    elements: { type: string; id: number; lat: number; lon: number; tags?: Record<string, string> }[];
+  };
+  const served = new Set(graph.routes.flatMap((r) => r.stops.map((s) => s.station)));
+  const stations = graph.stations.filter((s) => served.has(s.name));
+  for (const el of osm.elements) {
+    if (el.type !== 'node' || el.tags?.railway !== 'subway_entrance') continue;
+    const { x, z } = lonLatToWorld(el.lon, el.lat);
+    let near: { name: string; d: number } | null = null;
+    for (const st of stations) {
+      const d = Math.hypot(st.x - x, st.z - z);
+      if (d < NEAR && (!near || d < near.d)) near = { name: st.name, d };
+    }
+    if (!near) continue;
+    const pts: Point[] = [];
+    for (let i = 0; i <= PATCH; i++) {
+      for (let j = 0; j <= PATCH; j++) pts.push(point(x + (j - PATCH / 2) * PATCH_STEP, z + (i - PATCH / 2) * PATCH_STEP));
+    }
+    entrances.push({ osm: el.id, name: el.tags.name ?? null, station: near.name, x, z, pts });
+  }
+  console.log(`${entrances.length} entrances near ${stations.length} stations`);
+  for (const st of stations) {
+    const pts: Point[] = [];
+    for (let i = 0; i <= STATION_PATCH; i++) {
+      for (let j = 0; j <= STATION_PATCH; j++) pts.push(point(st.x + (j - STATION_PATCH / 2) * PATCH_STEP, st.z + (i - STATION_PATCH / 2) * PATCH_STEP));
+    }
+    stationPatches.push({ station: st.name, x: st.x, z: st.z, pts });
   }
 }
 
@@ -84,10 +136,12 @@ if (!user || !password) console.warn('LM_USER / LM_PASSWORD not set: trying with
 interface Tile { url: string; bbox: number[]; pts: Point[] }
 const tiles: Tile[] = [];
 {
-  const corners = [
-    [Math.min(...points.map((p) => p.e)), Math.min(...points.map((p) => p.n))],
-    [Math.max(...points.map((p) => p.e)), Math.max(...points.map((p) => p.n))],
-  ].map(([e, n]) => unproject(e, n, GRID_TM));
+  const lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (const p of points) {
+    lo[0] = Math.min(lo[0], p.e); lo[1] = Math.min(lo[1], p.n);
+    hi[0] = Math.max(hi[0], p.e); hi[1] = Math.max(hi[1], p.n);
+  }
+  const corners = [lo, hi].map(([e, n]) => unproject(e, n, GRID_TM));
   let body: object | undefined = {
     bbox: [corners[0].lon - 0.01, corners[0].lat - 0.01, corners[1].lon + 0.01, corners[1].lat + 0.01],
     limit: 200,
@@ -149,9 +203,31 @@ for (const { url, pts } of tiles) {
 
 const missing = points.filter((p) => p.h === undefined).length;
 if (missing) console.warn(`${missing} points without a height`);
+mkdirSync('data/ground', { recursive: true });
+if (MODE === 'entrances') {
+  const r = (n: number) => Math.round(n * 10) / 10;
+  const heights = (pts: Point[]) => pts.map((p) => (p.h === undefined ? null : Math.round(p.h * 100) / 100));
+  const rows = entrances.map((e) => '    ' + JSON.stringify({ osm: e.osm, name: e.name, station: e.station, x: r(e.x), z: r(e.z), h: heights(e.pts) }));
+  const stationRows = stationPatches.map((e) => '    ' + JSON.stringify({ station: e.station, x: r(e.x), z: r(e.z), h: heights(e.pts) }));
+  writeFileSync(OUT, `{
+  "attribution": "Markhöjdmodell © Lantmäteriet, CC BY 4.0",
+  "note": "Ground height (RH 2000) around the subway entrances within ${NEAR} m of a station on a traced service, and around those stations: h is a square of size × size points (stationSize around a station) ${PATCH_STEP} m apart, centred on the entrance or the station's node, row by row from north to south, each row from west to east (world x, z as in src/geo.ts).",
+  "step": ${PATCH_STEP},
+  "size": ${PATCH + 1},
+  "stationSize": ${STATION_PATCH + 1},
+  "entrances": [
+${rows.join(',\n')}
+  ],
+  "stations": [
+${stationRows.join(',\n')}
+  ]
+}
+`);
+  console.log(`${OUT}: ${entrances.length} entrances`);
+  process.exit(0);
+}
 const samples = points.filter((p) => p.h !== undefined)
   .map((p) => [Math.round(p.x * 10) / 10, Math.round(p.z * 10) / 10, Math.round(p.h! * 100) / 100]);
-mkdirSync('data/ground', { recursive: true });
 writeFileSync(OUT, `{
   "attribution": "Markhöjdmodell © Lantmäteriet, CC BY 4.0",
   "note": "Ground height (RH 2000) under the tracks of the traced services, every ${STEP} m: [world x, world z, height].",

@@ -527,24 +527,37 @@ for (const p of pieces) {
     const st = graph.stations.find((s) => s.name === r.station)!;
     const pl = st.platforms.find((q) => q.osm === r.osm)!;
     const g = out[p.id];
-    const mid = (r.s0 + r.s1) / 2;
-    const x = interp(g.s, g.x, mid), z = interp(g.s, g.z, mid);
-    const [tx, tz] = tangent(p, mid);
-    // the nearest track on the platform's side, and whether it is at this platform
-    let across = Infinity, island = false;
-    for (const q of pieces) {
-      if (q.id === p.id) continue;
-      const o = out[q.id], atPlatform = pl.tracks.filter((t) => t.piece === q.id);
-      for (let k = 0; k < o.s.length; k++) {
-        const lateral = (-tz * (o.x[k] - x) + tx * (o.z[k] - z)) * r.side;
-        const along = tx * (o.x[k] - x) + tz * (o.z[k] - z);
-        if (lateral < 1 || lateral > 30 || Math.abs(along) > 60 || Math.abs(o.y[k] - interp(g.s, g.y, mid)) > 3) continue;
-        if (lateral < across) {
-          across = lateral;
-          island = atPlatform.some((t) => o.s[k] >= t.s0 - STEP && o.s[k] <= t.s1 + STEP);
+    // Square to the platform's track at each of its points, the nearest track on the platform's
+    // side and whether that track is at this platform; then the median of these. Measured at each
+    // point since platforms may be on a curve, and leaving out the ends, where the tracks part or
+    // close in.
+    const margin = Math.min(20, (r.s1 - r.s0) / 4);
+    const found: { lateral: number; island: boolean }[] = [];
+    for (let k = 0; k < g.s.length; k++) {
+      if (g.s[k] < r.s0 + margin || g.s[k] > r.s1 - margin) continue;
+      const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
+      const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
+      const tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
+      let best = { lateral: Infinity, island: false };
+      for (const q of pieces) {
+        if (q.id === p.id) continue;
+        const o = out[q.id], atPlatform = pl.tracks.filter((t) => t.piece === q.id);
+        for (let j = 0; j < o.s.length; j++) {
+          if (Math.abs(o.y[j] - g.y[k]) > 3) continue;
+          const dx = o.x[j] - g.x[k], dz = o.z[j] - g.z[k];
+          if (Math.abs(tx * dx + tz * dz) > STEP / 2) continue;
+          const lateral = (-tz * dx + tx * dz) * r.side;
+          if (lateral < 1 || lateral > 30) continue;
+          // (OSM may match only part of the other track to the platform)
+          const island = atPlatform.length > 0;
+          // where two tracks are as near, the one at this platform
+          if (lateral < best.lateral - 0.3 || (island && lateral < best.lateral + 0.3)) best = { lateral: Math.min(lateral, best.lateral), island };
         }
       }
+      found.push(best);
     }
+    found.sort((a, b) => a.lateral - b.lateral);
+    const { lateral: across, island } = found.length ? found[Math.floor(found.length / 2)] : { lateral: Infinity, island: false };
     const width = island ? across - 2 * PLATFORM_EDGE : Math.min(SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
     g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island });

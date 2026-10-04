@@ -180,6 +180,12 @@ ul { list-style: none; margin: 0; padding: 0; }
   background: #1a212c; color: var(--text); font: 14px system-ui, sans-serif;
 }
 .credit a { color: #8fb8ff; }
+.line-jump { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; padding: 3px 6px; color: #d4dbe4; }
+.line-jump[hidden] { display: none; }
+.line-jump select {
+  flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid #3a4656; border-radius: 8px;
+  background: #1a212c; color: var(--text); font: 14px system-ui, sans-serif;
+}
 
 #teleports li { min-height: 36px; }
 
