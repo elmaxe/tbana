@@ -1,0 +1,21 @@
+{
+  "note": "The services traced through the track graph by tools/build-track-graph.ts, each in one direction of travel; the reverse is traced too. Station names as in OpenStreetMap.",
+  "routes": {
+    "T13": {
+      "line": "red",
+      "stations": [
+        "Norsborg", "Hallunda", "Alby", "Fittja", "Masmo", "Vårby gård", "Vårberg", "Skärholmen", "Sätra", "Bredäng",
+        "Mälarhöjden", "Axelsberg", "Örnsberg", "Aspudden", "Liljeholmen", "Hornstull", "Zinkensdamm", "Mariatorget",
+        "Slussen", "Gamla stan", "T-Centralen", "Östermalmstorg", "Karlaplan", "Gärdet", "Ropsten"
+      ]
+    },
+    "T14": {
+      "line": "red",
+      "stations": [
+        "Fruängen", "Västertorp", "Hägerstensåsen", "Telefonplan", "Midsommarkransen", "Liljeholmen", "Hornstull",
+        "Zinkensdamm", "Mariatorget", "Slussen", "Gamla stan", "T-Centralen", "Östermalmstorg", "Stadion",
+        "Tekniska högskolan", "Universitetet", "Bergshamra", "Danderyds sjukhus", "Mörby centrum"
+      ]
+    }
+  }
+}
