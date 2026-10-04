@@ -67,12 +67,33 @@ gates and tracks, identified by colour. `src/station.js` reads it and adds:
 - **Tracks**: each track ribbon's centre line is recovered and shifted to meet its platform edge,
   then given a track bed, rails, tunnels and a back wall.
 - **Trains** (`src/trains.js`) on the blue, red and green metro lines and the pendeltåg. They arrive,
-  dwell with a door chime and leave. Departure boards and the HUD show the next trains.
+  dwell with a door chime and leave. Departure boards and the HUD show the next trains. The red line
+  runs C30 trains and the blue and green lines run C20s (see below). The pendeltåg are still plain
+  boxes.
 - **Lifts**: each shaft links the floors next to it.
 - A **minimap** rendered once from above.
 
 Model axes: +x is roughly east and +z roughly south. Destinations are picked from the direction of
 travel.
+
+## Train models
+
+![C30 and C20](trains.jpg)
+
+`trains.html` is a viewer for procedural 3D models of the metro's two current train types, the
+**C20** (1997–2004, corrugated stainless steel) and the **C30** (MOVIA, in service since 2020). It
+shows one unit or a full 140 m train, has front, side and bogie views, and can download the
+model as `.glb`. Open it at https://elmaxe.github.io/tbana/trains.html, or locally at `/trains.html`.
+
+The models are exterior only so far. They are built in code (`src/rolling-stock/`) from real
+dimensions, door layouts and liveries. Research notes and sources are in
+[`docs/rolling-stock.md`](docs/rolling-stock.md).
+
+```js
+import { createTrain } from './src/rolling-stock/index.js';
+const train = createTrain('C30', { destination: 'Norsborg' }); // two units, 140 m
+scene.add(train.group);
+```
 
 ## Credits
 

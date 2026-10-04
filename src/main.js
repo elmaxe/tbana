@@ -73,7 +73,7 @@ loader.load(
     station = buildStation(gltf.scene);
     scene.add(station.group);
     player = new Player(camera, station.walk);
-    trains = new Trains(scene, station.tracks, sound);
+    trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
     minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $('minimap'), $('bigmap'));
     sizeBigMap();
     buildTeleportList();
