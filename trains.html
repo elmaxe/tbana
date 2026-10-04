@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Stockholm Metro Trains</title>
   <meta name="description" content="Procedural 3D models of the Stockholm metro's C20 and C30 trains, with their interiors.">
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-      }
-    }
-  </script>
   <style>
     :root { --panel: rgba(14, 18, 26, 0.88); --text: #eef2f7; --muted: #9aa6b5; --sl: #0c4da2; --line: #2a3340; }
     * { box-sizing: border-box; }
@@ -72,17 +64,13 @@
         <button data-view="front">Front</button><button data-view="side">Side</button><button data-view="bogie">Bogie</button><button data-view="top">Top</button><button data-view="inside">Inside</button>
       </div>
       <div class="row"><span>Model</span>
-        <button id="spin">Turntable</button><button id="cut">Cutaway</button><button id="glb">Download .glb</button>
+        <button id="spin">Turntable</button><button id="cut">Cutaway</button><button id="doors">Doors</button><button id="glb">Download .glb</button>
       </div>
       <div class="row" id="buildSwitch" hidden></div>
       <div id="spec" class="spec"></div>
     </div>
   </div>
   <div id="hint">Drag to orbit · scroll to zoom · right-drag to pan · WASD to walk</div>
-  <script type="module" src="src/viewer.js"></script>
-  <script type="module">
-    import { mountBuildSwitcher } from './src/build-switcher.js';
-    mountBuildSwitcher(document.getElementById('buildSwitch'));
-  </script>
+  <script type="module" src="./src/viewer.ts"></script>
 </body>
 </html>

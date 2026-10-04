@@ -1,8 +1,17 @@
 import * as THREE from 'three';
 
+export interface MapPlayer { pos: THREE.Vector3; yaw: number }
+export interface MapMarker { x: number; z: number; color: string }
+
 // Renders the plan once (top-down, north up) and draws it as a minimap / full map with the player.
 export class MiniMap {
-  constructor(renderer, mapGroup, bounds, mini, big) {
+  mini: HTMLCanvasElement;
+  big: HTMLCanvasElement;
+  x0: number; x1: number; z0: number; z1: number;
+  W: number; H: number;
+  image: HTMLCanvasElement;
+
+  constructor(renderer: THREE.WebGLRenderer, mapGroup: THREE.Object3D, bounds: THREE.Box3, mini: HTMLCanvasElement, big: HTMLCanvasElement) {
     this.mini = mini;
     this.big = big;
     const pad = 10;
@@ -33,7 +42,7 @@ export class MiniMap {
 
     this.image = document.createElement('canvas');
     this.image.width = W; this.image.height = H;
-    const ctx = this.image.getContext('2d');
+    const ctx = this.image.getContext('2d')!;
     const img = ctx.createImageData(W, H);
     for (let y = 0; y < H; y++) {
       img.data.set(px.subarray((H - 1 - y) * W * 4, (H - y) * W * 4), y * W * 4);
@@ -41,11 +50,11 @@ export class MiniMap {
     ctx.putImageData(img, 0, 0);
   }
 
-  toPx(x, z) {
+  toPx(x: number, z: number): [number, number] {
     return [((x - this.x0) / (this.x1 - this.x0)) * this.W, ((z - this.z0) / (this.z1 - this.z0)) * this.H];
   }
 
-  drawPlayer(ctx, x, y, yaw, size) {
+  drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, yaw: number, size: number) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(-yaw);
@@ -58,8 +67,8 @@ export class MiniMap {
     ctx.restore();
   }
 
-  draw(player, extra = []) {
-    const c = this.mini, ctx = c.getContext('2d');
+  draw(player: MapPlayer, extra: MapMarker[] = []) {
+    const c = this.mini, ctx = c.getContext('2d')!;
     const S = c.width;
     const [px, py] = this.toPx(player.pos.x, player.pos.z);
     const zoom = 1.5; // canvas px per map px
@@ -80,8 +89,8 @@ export class MiniMap {
     ctx.fillText('N', S / 2, 16);
   }
 
-  drawBig(player) {
-    const c = this.big, ctx = c.getContext('2d');
+  drawBig(player: MapPlayer) {
+    const c = this.big, ctx = c.getContext('2d')!;
     const w = c.width, h = c.height;
     const s = Math.min(w / this.W, h / this.H) * 0.96;
     const ox = (w - this.W * s) / 2, oy = (h - this.H * s) / 2;

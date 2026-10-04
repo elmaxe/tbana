@@ -1,16 +1,39 @@
 // Keyboard + mouse (pointer lock) + touch (floating stick on the left, drag to look on the right).
 // Switches between mouse and touch mode automatically, so hybrid devices work too.
+export interface InputState {
+  forward: number;
+  strafe: number;
+  run: boolean;
+  up: number;
+}
+
+export interface TouchUI {
+  showStick(x: number, y: number): void;
+  moveStick(dx: number, dy: number): void;
+  hideStick(): void;
+}
+
+interface Handlers {
+  onLook: (dx: number, dy: number) => void;
+  onKey?: (code: string, e: KeyboardEvent) => void;
+  onModeChange?: (touch: boolean) => void;
+}
+
 export class Input {
-  constructor(canvas, { onLook, onKey, onModeChange }) {
-    this.keys = new Set();
+  keys = new Set<string>();
+  onLook: Handlers['onLook'];
+  onKey: Handlers['onKey'];
+  onModeChange: Handlers['onModeChange'];
+  touchMode = matchMedia('(pointer: coarse)').matches;
+  stick: { id: number | null; x: number; y: number; ox: number; oy: number } = { id: null, x: 0, y: 0, ox: 0, oy: 0 };
+  look: { id: number | null; x: number; y: number } = { id: null, x: 0, y: 0 };
+  hold = { up: false, down: false };
+  touchUI: TouchUI | null = null;
+
+  constructor(canvas: HTMLCanvasElement, { onLook, onKey, onModeChange }: Handlers) {
     this.onLook = onLook;
     this.onKey = onKey;
     this.onModeChange = onModeChange;
-    this.touchMode = matchMedia('(pointer: coarse)').matches;
-    this.stick = { id: null, x: 0, y: 0, ox: 0, oy: 0 };
-    this.look = { id: null, x: 0, y: 0 };
-    this.hold = { up: false, down: false };
-    this.touchUI = null;
 
     addEventListener('keydown', (e) => {
       if (e.repeat) return;
@@ -51,7 +74,7 @@ export class Input {
         this.look.y = e.clientY;
       }
     });
-    const end = (e) => {
+    const end = (e: PointerEvent) => {
       if (e.pointerId === this.stick.id) {
         Object.assign(this.stick, { id: null, x: 0, y: 0 });
         this.touchUI?.hideStick();
@@ -68,7 +91,7 @@ export class Input {
     }
   }
 
-  setTouchMode(on) {
+  setTouchMode(on: boolean) {
     if (on === this.touchMode) return;
     this.touchMode = on;
     if (!on) this.release();
@@ -82,8 +105,8 @@ export class Input {
     this.touchUI?.hideStick();
   }
 
-  state() {
-    const k = (...codes) => codes.some((c) => this.keys.has(c));
+  state(): InputState {
+    const k = (...codes: string[]) => codes.some((c) => this.keys.has(c));
     let forward = (k('KeyW', 'ArrowUp') ? 1 : 0) - (k('KeyS', 'ArrowDown') ? 1 : 0);
     let strafe = (k('KeyD', 'ArrowRight') ? 1 : 0) - (k('KeyA', 'ArrowLeft') ? 1 : 0);
     let run = k('ShiftLeft', 'ShiftRight');

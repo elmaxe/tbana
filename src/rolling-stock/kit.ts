@@ -10,13 +10,36 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const V = THREE.Vector2;
 
+export interface Paint { c: string; r?: number; m?: number; e?: string; a?: number; g?: number }
+export type ProfileCtrl = [z: number, y: number, r?: number];
+export interface ProfilePoint { z: number; y: number; t: number; nz: number; ny: number }
+export interface Profile {
+  pts: ProfilePoint[]; w: number; yb: number; ytop: number;
+  tMin: number; tMax: number; T: (y: number) => number;
+}
+export type Rim = (z: number, y: number) => number;
+export type UvMap = (z: number, y: number) => [number, number];
+export interface LoopPoint { z: number; y: number; nz: number; ny: number }
+export interface CapOptions { k?: number; R?: number; face?: Rim; cy?: number; ni?: number; nb?: number; uv?: UvMap }
+export interface BellowsOptions { scale?: number; pleat?: number; depth?: number; cy?: number }
+export interface Band { sa: number; oa: number; sb: number; ob: number }
+export interface PainterOptions { ty?: (y: number) => number; detail?: number; alpha?: boolean; glow?: number }
+export interface TextOptions { font?: string; align?: CanvasTextAlign; ring?: number }
+export type LayerKind = 'c' | 'orm' | 'e' | 'a';
+export interface Layer { kind: LayerKind; s: number; cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
+export type PainterTextures = Partial<Record<'c' | 'orm' | 'e' | 'ca', THREE.CanvasTexture>>;
+export type AlphaMode = false | 'blend' | 'mask';
+export interface BogieOptions { wheelbase?: number; wheelR?: number; inside?: boolean; gauge?: number; motors?: boolean }
+export interface BogieGeometry { frame: THREE.BufferGeometry; wheels: THREE.BufferGeometry; shoe: THREE.BufferGeometry }
+export interface DestinationSign { mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>; set: (text: string) => void }
+
 // ------------------------------------------------------------------ cross-section
 
 // Half cross-section, from the bottom centre round the right side (+z) to the roof centre.
 // `ctrl` is a list of [z, y, filletRadius]. Returns points with arc length `t` (0 at the bottom
 // corner, roughly) and outward normals, plus `T(y)` that maps a height on the side to `t`.
-export function profile(ctrl, step = 0.1) {
-  const poly = [];
+export function profile(ctrl: ProfileCtrl[], step = 0.1): Profile {
+  const poly: THREE.Vector2[] = [];
   for (let i = 0; i < ctrl.length; i++) {
     const [z, y, r = 0] = ctrl[i];
     const p = new V(z, y);
@@ -58,7 +81,7 @@ export function profile(ctrl, step = 0.1) {
   out[0].nz = 0; out[0].ny = -1;
   out[out.length - 1].nz = 0; out[out.length - 1].ny = 1;
   const side = out.filter((p) => p.t >= -0.02);
-  const T = (y) => {
+  const T = (y: number) => {
     if (y <= side[0].y) return side[0].t - (side[0].y - y);
     for (let i = 1; i < side.length; i++) {
       if (side[i].y >= y) {
@@ -79,10 +102,10 @@ export function profile(ctrl, step = 0.1) {
 // Side and roof of a car between x0 and x1. sb0/sb1(z, y) give how far each end of the shell is
 // pulled in from x0/x1 (where a cab nose curves away). UVs: u along the car, v in two bands
 // (right side 0–0.49, left side 0.51–1) of arc length, mirrored so lettering reads on both sides.
-export function shellGeometry(prof, x0, x1, sb0, sb1) {
-  const pos = [], nor = [], uv = [], idx = [];
+export function shellGeometry(prof: Profile, x0: number, x1: number, sb0: Rim, sb1: Rim) {
+  const pos: number[] = [], nor: number[] = [], uv: number[] = [], idx: number[] = [];
   const L = x1 - x0;
-  const vb = (t) => (THREE.MathUtils.clamp(t, prof.tMin, prof.tMax) - prof.tMin) / (prof.tMax - prof.tMin) * 0.49;
+  const vb = (t: number) => (THREE.MathUtils.clamp(t, prof.tMin, prof.tMax) - prof.tMin) / (prof.tMax - prof.tMin) * 0.49;
   for (const side of [1, -1]) {
     const base = pos.length / 3;
     for (const p of prof.pts) {
@@ -109,7 +132,7 @@ export function shellGeometry(prof, x0, x1, sb0, sb1) {
 }
 
 // Closed loop of the full cross-section (right half, then the left half back down).
-export function loopOf(prof) {
+export function loopOf(prof: Profile) {
   const P = prof.pts;
   const loop = P.map((p) => ({ z: p.z, y: p.y, nz: p.nz, ny: p.ny }));
   for (let j = P.length - 2; j >= 1; j--) loop.push({ z: -P[j].z, y: P[j].y, nz: -P[j].nz, ny: P[j].ny });
@@ -120,7 +143,7 @@ export function loopOf(prof) {
 //   setback = R·(1 − cos θ) in an outer band of relative width k (a rounded edge), plus face(z, y)
 // for the shape of the nose. dir = +1 for an end at +x. Returns the geometry and setback(z, y) at
 // the rim so the shell can be trimmed to meet it.
-export function capGeometry(prof, xEnd, dir, { k = 0.05, R = 0.03, face = () => 0, cy, ni = 6, nb = 9, uv } = {}) {
+export function capGeometry(prof: Profile, xEnd: number, dir: number, { k = 0.05, R = 0.03, face = () => 0, cy, ni = 6, nb = 9, uv }: CapOptions = {}) {
   cy ??= (prof.yb + prof.ytop) / 2;
   const loop = loopOf(prof);
   const rings = [];
@@ -129,7 +152,7 @@ export function capGeometry(prof, xEnd, dir, { k = 0.05, R = 0.03, face = () => 
     const th = (Math.PI / 2) * (m / nb);
     rings.push({ r: 1 - k + k * Math.sin(th), base: R * (1 - Math.cos(th)) });
   }
-  const pos = [], uvs = [], idx = [];
+  const pos: number[] = [], uvs: number[] = [], idx: number[] = [];
   for (const ring of rings) {
     for (const p of loop) {
       const z = p.z * ring.r, y = cy + (p.y - cy) * ring.r;
@@ -155,15 +178,15 @@ export function capGeometry(prof, xEnd, dir, { k = 0.05, R = 0.03, face = () => 
   // rim normals match the shell so the seam does not show
   const n = g.attributes.normal, last = (rings.length - 1) * M;
   for (let m = 0; m < M; m++) n.setXYZ(last + m, 0, loop[m].ny, loop[m].nz);
-  return { geometry: g, rim: (z, y) => R + face(z, y) };
+  return { geometry: g, rim: (z: number, y: number) => R + face(z, y) };
 }
 
 // Pleated rubber bellows between two car bodies.
-export function bellowsGeometry(prof, xa, xb, { scale = 0.95, pleat = 0.05, depth = 0.035, cy } = {}) {
+export function bellowsGeometry(prof: Profile, xa: number, xb: number, { scale = 0.95, pleat = 0.05, depth = 0.035, cy }: BellowsOptions = {}) {
   cy ??= (prof.yb + prof.ytop) / 2;
   const loop = loopOf(prof).filter((_, i) => i % 3 === 0);
   const n = Math.max(2, Math.round((xb - xa) / (pleat / 2)));
-  const pos = [], idx = [];
+  const pos: number[] = [], idx: number[] = [];
   for (let i = 0; i <= n; i++) {
     const x = xa + ((xb - xa) * i) / n;
     const s = i % 2 ? scale - depth : scale;
@@ -185,7 +208,7 @@ export function bellowsGeometry(prof, xa, xb, { scale = 0.95, pleat = 0.05, dept
 
 // ------------------------------------------------------------------ painting
 
-const toPx = (v) => Math.round(v);
+const toPx = (v: number) => Math.round(v);
 
 // Paints liveries in metres onto three canvases at once: colour, roughness/metalness (G/B) and
 // emission. `bands` are affine maps from (a, b) metres to canvas pixels: px = sa·a + oa,
@@ -194,20 +217,25 @@ const toPx = (v) => Math.round(v);
 // can see through and for holes cut in interior panels. `glow` makes paints without their own
 // emission glow at that fraction of their colour, which stands in for a car's interior lighting.
 export class Painter {
-  constructor(W, H, bands, { ty = (y) => y, detail = 0.5, alpha = false, glow = 0 } = {}) {
+  W: number; H: number; bands: Band[]; ty: (y: number) => number; glow: number;
+  layers: Layer[];
+  uv?: UvMap;
+  _tex?: PainterTextures;
+
+  constructor(W: number, H: number, bands: Band[], { ty = (y: number) => y, detail = 0.5, alpha = false, glow = 0 }: PainterOptions = {}) {
     this.W = W; this.H = H; this.bands = bands; this.ty = ty; this.glow = glow;
     this.layers = [];
-    const kinds = [['c', 1], ['orm', detail], ['e', detail]];
+    const kinds: [LayerKind, number][] = [['c', 1], ['orm', detail], ['e', detail]];
     if (alpha) kinds.push(['a', 1]);
     for (const [kind, s] of kinds) {
       const cv = document.createElement('canvas');
       cv.width = toPx(W * s); cv.height = toPx(H * s);
-      const ctx = cv.getContext('2d');
+      const ctx = cv.getContext('2d')!;
       this.layers.push({ kind, s, cv, ctx });
     }
   }
 
-  styleFor(kind, m) {
+  styleFor(kind: LayerKind, m: Paint) {
     if (kind === 'c') return m.c;
     if (kind === 'orm') return `rgb(255,${Math.round((m.r ?? 0.5) * 255)},${Math.round((m.m ?? 0) * 255)})`;
     if (kind === 'a') { const g = Math.round((m.a ?? 1) * 255); return `rgb(${g},${g},${g})`; }
@@ -217,7 +245,7 @@ export class Painter {
   }
 
   // Run a path-building function in metre space for every band and layer, then fill it.
-  fill(build, m, rule = 'nonzero') {
+  fill(build: (ctx: CanvasRenderingContext2D) => void, m: Paint, rule: CanvasFillRule = 'nonzero') {
     for (const L of this.layers) {
       for (const B of this.bands) {
         L.ctx.setTransform(B.sa * L.s, 0, 0, B.sb * L.s, B.oa * L.s, B.ob * L.s);
@@ -231,7 +259,7 @@ export class Painter {
   }
 
   // Axis-aligned rectangle; ya/yb are heights (converted with ty), optional corner radius r.
-  rect(a0, a1, ya, yb, m, r = 0) {
+  rect(a0: number, a1: number, ya: number, yb: number, m: Paint, r = 0) {
     const b0 = this.ty(ya), b1 = this.ty(yb);
     this.fill((ctx) => {
       if (r) ctx.roundRect(Math.min(a0, a1), Math.min(b0, b1), Math.abs(a1 - a0), Math.abs(b1 - b0), r);
@@ -240,11 +268,11 @@ export class Painter {
   }
 
   // Same, with the vertical range given directly in band units (arc length on the side).
-  rectT(a0, a1, b0, b1, m) {
+  rectT(a0: number, a1: number, b0: number, b1: number, m: Paint) {
     this.fill((ctx) => ctx.rect(a0, b0, a1 - a0, b1 - b0), m);
   }
 
-  poly(points, m) {
+  poly(points: [number, number][], m: Paint) {
     this.fill((ctx) => {
       points.forEach(([a, y], i) => (i ? ctx.lineTo(a, this.ty(y)) : ctx.moveTo(a, this.ty(y))));
       ctx.closePath();
@@ -252,7 +280,7 @@ export class Painter {
   }
 
   // Outline of a rectangle, `lw` metres wide, drawn inside the given bounds.
-  frame(a0, a1, ya, yb, lw, m, r = 0) {
+  frame(a0: number, a1: number, ya: number, yb: number, lw: number, m: Paint, r = 0) {
     const b0 = this.ty(ya), b1 = this.ty(yb);
     this.fill((ctx) => {
       ctx.roundRect(a0, b0, a1 - a0, b1 - b0, r);
@@ -260,13 +288,13 @@ export class Painter {
     }, m, 'evenodd');
   }
 
-  ellipse(a, y, ra, rb, m) {
+  ellipse(a: number, y: number, ra: number, rb: number, m: Paint) {
     const b = this.ty(y);
     this.fill((ctx) => ctx.ellipse(a, b, ra, rb, 0, 0, Math.PI * 2), m);
   }
 
   // Text is never mirrored: it is drawn upright at the anchor's pixel position in each band.
-  text(a, y, str, size, m, { font = '700 {px}px Arial, Helvetica, sans-serif', align = 'center', ring = 0 } = {}) {
+  text(a: number, y: number, str: string, size: number, m: Paint, { font = '700 {px}px Arial, Helvetica, sans-serif', align = 'center', ring = 0 }: TextOptions = {}) {
     const b = this.ty(y);
     for (const L of this.layers) {
       for (const B of this.bands) {
@@ -288,13 +316,13 @@ export class Painter {
   }
 
   // SL roundel: the letters in a ring with the "wave" underline.
-  logo(a, y, size, m) {
+  logo(a: number, y: number, size: number, m: Paint) {
     this.text(a, y + size * 0.05, 'SL', size * 0.55, m, { font: '800 italic {px}px Arial, Helvetica, sans-serif', ring: 0.92 });
   }
 
   textures(aniso = 8) {
     if (this._tex) return this._tex;
-    const out = {};
+    const out: PainterTextures = {};
     for (const L of this.layers) {
       if (L.kind === 'a') continue;
       const t = new THREE.CanvasTexture(L.cv);
@@ -305,10 +333,10 @@ export class Painter {
     const A = this.layers.find((L) => L.kind === 'a');
     if (A) {
       // colour with the alpha canvas in its alpha channel (glTF keeps opacity in the base colour)
-      const C = this.layers.find((L) => L.kind === 'c');
+      const C = this.layers.find((L) => L.kind === 'c')!;
       const cv = document.createElement('canvas');
       cv.width = C.cv.width; cv.height = C.cv.height;
-      const ctx = cv.getContext('2d');
+      const ctx = cv.getContext('2d')!;
       const img = C.ctx.getImageData(0, 0, cv.width, cv.height);
       const a = A.ctx.getImageData(0, 0, cv.width, cv.height).data;
       for (let i = 3; i < img.data.length; i += 4) img.data[i] = a[i - 1];
@@ -323,7 +351,7 @@ export class Painter {
   }
 
   // alpha: false (opaque), 'blend' (see-through glass) or 'mask' (holes cut out).
-  material(extra = {}, alpha = false) {
+  material(extra: THREE.MeshStandardMaterialParameters = {}, alpha: AlphaMode = false) {
     const t = this.textures();
     const opts = alpha === 'blend' ? { map: t.ca, transparent: true }
       : alpha === 'mask' ? { map: t.ca, alphaTest: 0.5 } : { map: t.c };
@@ -336,11 +364,11 @@ export class Painter {
 
 // Painter for a car side. Coordinates: a = x along the car, vertical = height (or arc length via rectT).
 // `inside` paints the inner lining (liningGeometry), whose sides are seen from the other face.
-export function sidePainter(prof, x0, x1, ppm, { inside = false, ...opts } = {}) {
+export function sidePainter(prof: Profile, x0: number, x1: number, ppm: number, { inside = false, ...opts }: PainterOptions & { inside?: boolean } = {}) {
   const L = x1 - x0, span = prof.tMax - prof.tMin;
   const W = Math.min(4096, Math.ceil(L * ppm)), H = Math.min(2048, Math.ceil((span * ppm) / 0.49));
   const vs = 0.49 / span;
-  const band = (vOff, mirror) => ({
+  const band = (vOff: number, mirror: boolean): Band => ({
     sa: (mirror ? -W : W) / L, oa: mirror ? (x1 * W) / L : (-x0 * W) / L,
     sb: -H * vs, ob: H * (1 - vOff + prof.tMin * vs),
   });
@@ -348,28 +376,28 @@ export function sidePainter(prof, x0, x1, ppm, { inside = false, ...opts } = {})
 }
 
 // Painter for the front of a cab, projected flat onto the (z, y) plane as seen from ahead.
-export function frontPainter(prof, ppm) {
+export function frontPainter(prof: Profile, ppm: number) {
   const w = prof.w, h = prof.ytop - prof.yb;
   const W = Math.ceil(2 * w * ppm), H = Math.ceil(h * ppm);
   const p = new Painter(W, H, [{ sa: -W / (2 * w), oa: W / 2, sb: -H / h, ob: (H * prof.ytop) / h }]);
-  p.uv = (z, y) => [0.5 - z / (2 * w), (y - prof.yb) / h];
+  p.uv = (z: number, y: number) => [0.5 - z / (2 * w), (y - prof.yb) / h];
   return p;
 }
 
 // ------------------------------------------------------------------ parts
 
-export function box(w, h, d, x, y, z) {
+export function box(w: number, h: number, d: number, x: number, y: number, z: number) {
   return new THREE.BoxGeometry(w, h, d).translate(x, y, z);
 }
 
-export function cyl(r, len, x, y, z, axis = 'z', seg = 16) {
+export function cyl(r: number, len: number, x: number, y: number, z: number, axis: 'x' | 'y' | 'z' = 'z', seg = 16) {
   const g = new THREE.CylinderGeometry(r, r, len, seg);
   if (axis === 'z') g.rotateX(Math.PI / 2);
   else if (axis === 'x') g.rotateZ(Math.PI / 2);
   return g.translate(x, y, z);
 }
 
-export function merge(list) {
+export function merge(list: THREE.BufferGeometry[]) {
   const clean = list.map((g) => {
     const n = g.clone();
     for (const k of Object.keys(n.attributes)) if (!['position', 'normal', 'uv'].includes(k)) n.deleteAttribute(k);
@@ -383,8 +411,8 @@ export function merge(list) {
 }
 
 // A two-axle bogie centred on x = 0. Returns geometry per material: frame, wheels, shoe.
-export function bogieGeometry({ wheelbase = 2.1, wheelR = 0.39, inside = false, gauge = 1.435, motors = true } = {}) {
-  const frame = [], wheels = [], shoe = [];
+export function bogieGeometry({ wheelbase = 2.1, wheelR = 0.39, inside = false, gauge = 1.435, motors = true }: BogieOptions = {}): BogieGeometry {
+  const frame: THREE.BufferGeometry[] = [], wheels: THREE.BufferGeometry[] = [], shoe: THREE.BufferGeometry[] = [];
   const g2 = gauge / 2 + 0.035;
   const fz = inside ? g2 - 0.2 : g2 + 0.22;
   const ax = [-wheelbase / 2, wheelbase / 2];
@@ -433,7 +461,7 @@ export function couplerGeometry(len = 0.75, y = 0.78) {
 export function corrugationNormalMap() {
   const cv = document.createElement('canvas');
   cv.width = 8; cv.height = 64;
-  const ctx = cv.getContext('2d');
+  const ctx = cv.getContext('2d')!;
   for (let y = 0; y < 64; y++) {
     const s = Math.sin((y / 64) * Math.PI * 2);
     const ny = s * 0.75;
@@ -447,7 +475,7 @@ export function corrugationNormalMap() {
 }
 
 // Destination display: a small emissive panel with its own canvas.
-export function destinationSign(width, height) {
+export function destinationSign(width: number, height: number): DestinationSign {
   const cv = document.createElement('canvas');
   cv.width = 512; cv.height = Math.round((512 * height) / width);
   const tex = new THREE.CanvasTexture(cv);
@@ -456,8 +484,8 @@ export function destinationSign(width, height) {
   const mat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: tex, roughness: 0.2, metalness: 0 });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
   mesh.name = 'destination';
-  const set = (text) => {
-    const ctx = cv.getContext('2d');
+  const set = (text: string) => {
+    const ctx = cv.getContext('2d')!;
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, cv.width, cv.height);
     ctx.fillStyle = '#ffae1a';
@@ -491,7 +519,7 @@ export const LIGHTS = {
 
 // Skirt under a cab nose: a slab whose front edge follows xFront(z) in plan, from y0 to y1,
 // reaching back to xBack and out to ±w.
-export function noseSkirtGeometry(xFront, xBack, w, y0, y1, seg = 24) {
+export function noseSkirtGeometry(xFront: (z: number) => number, xBack: number, w: number, y0: number, y1: number, seg = 24) {
   const s = new THREE.Shape();
   // drawn in (x, −z) so that rotating the extrusion up maps the shape onto the ground plane
   s.moveTo(xBack, -w);

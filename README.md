@@ -10,15 +10,17 @@ from [Stations and transfers](http://stations.albertguillaumes.cat/).
 
 ## Run it
 
-It's a static site with no build step. three.js is loaded from a CDN through an import map. Serve
-the folder with any static server and open it:
+It's written in TypeScript and built with [Vite](https://vite.dev/). You need Node.js 20 or newer:
 
 ```sh
-npx serve .            # or: python3 -m http.server 8000
+npm install
+npm run dev            # dev server with hot reload, e.g. http://localhost:5173
+npm run build          # type-check, then build the static site into dist/
+npm run typecheck      # type-check only
 ```
 
-Then open the printed URL, for example http://localhost:3000. Opening `index.html` straight from
-disk (`file://`) won't work, because browsers block loading the model that way.
+`npm run preview` serves the built `dist/`. The station model is in `public/assets/` and is copied
+into the build unchanged.
 
 ## Controls
 
@@ -27,6 +29,7 @@ disk (`file://`) won't work, because browsers block loading the model that way.
 | `W A S D` / arrows | Walk (`Shift` to run) |
 | Mouse | Look (click the view to capture the mouse, `Esc` to pause) |
 | `E` / `Q` | Ride a lift up / down (stand next to a light-blue shaft) |
+| Walk through an open door | Board a metro train and ride it |
 | `1`–`9` | Jump to a platform |
 | `M` | Full map |
 | `F` | Free flight (`Space` / `C` to rise and sink) |
@@ -42,23 +45,41 @@ Touch controls switch on automatically:
 - **Lift ▲ / Lift ▼** buttons appear when you stand next to a lift shaft.
 - **⇡ / ⇣** appear in free flight.
 - **Map** opens the full map, and so does tapping the minimap.
+- Board a train by walking through an open door, as on a computer.
 - **☰** opens the menu and the list of platforms to jump to.
 
 On Android the game goes fullscreen in landscape when you start. On iPhone, turn the phone sideways
 for the widest view. If the frame rate is low, the render resolution drops automatically.
+
+### Riding the trains
+
+Metro trains open their doors on the platform side a moment after they stop, and close them
+after a chime before they leave. Walk in through an open door and you ride along: you can walk
+through the car and, on the C30 and between the sections of a C20, into the next car. If you are
+standing in a doorway when the doors close, you step inside or back onto the platform.
+
+The model ends a little way into the tunnels. When your train gets there the screen goes dark for
+the trip to the next station and back, and you arrive at T-Centralen again in the same spot of a
+train coming in on the other track of the line. Seats don't block you, and the pendeltåg can't be
+boarded.
 
 ## Deployment
 
 `.github/workflows/pages.yml` publishes the site to GitHub Pages. It needs Pages to be switched on
 once: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
-Every deploy rebuilds the whole site from `.github/scripts/assemble-site.sh`:
+Every deploy rebuilds the whole site with `.github/scripts/assemble-site.sh`:
 
 - `main` is at the root, https://elmaxe.github.io/tbana/.
 - Every open pull request from this repository is at `pr/<number>/`, for example
   https://elmaxe.github.io/tbana/pr/3/. The workflow comments the link on the PR. Pushes to the PR
   redeploy it, and closing the PR takes it down. PRs from forks are not deployed, because their
   code would run on this site.
+- The workflow always runs from `main`, and so do the build tools: a PR's files are compiled and
+  bundled by `main`'s Vite and `vite.config.ts`, never run during the build. A PR that changes the
+  build setup or adds packages is previewed with `main`'s setup until it is merged.
+
+`.github/workflows/ci.yml` type-checks and builds every push and pull request.
 
 The **Build** menu, on the start/pause screen and in the train viewer's panel, switches between
 `main` and the PR builds and keeps you on the same page. It reads `builds.json` at the site root and
@@ -68,20 +89,20 @@ locally.
 ## What's generated
 
 The source model is a diagram: extruded floor slabs, stairs, escalators and lift shafts, ticket
-gates and tracks, identified by colour. `src/station.js` reads it and adds:
+gates and tracks, identified by colour. `src/station.ts` reads it and adds:
 
 - **Walkable surfaces**: floors, stairs and escalators, indexed in an XZ grid
-  (`src/surface-index.js`). Collision is simply "is there floor within a step of where you're
+  (`src/surface-index.ts`). Collision is simply "is there floor within a step of where you're
   going".
 - **Walls, glass railings and platform edges**, generated along every slab outline. Each edge is
   probed to see whether it continues into another surface, overlooks a lower level, or faces a
   track. The blue line platform gets the blue vines on white rock that T-Centralen is known for.
 - **Tracks**: each track ribbon's centre line is recovered and shifted to meet its platform edge,
   then given a track bed, rails, tunnels and a back wall.
-- **Trains** (`src/trains.js`) on the blue, red and green metro lines and the pendeltåg. They arrive,
-  dwell with a door chime and leave. Departure boards and the HUD show the next trains. The red line
-  runs C30 trains and the blue and green lines run C20s (see below). The pendeltåg are still plain
-  boxes.
+- **Trains** (`src/trains.ts`) on the blue, red and green metro lines and the pendeltåg. They arrive,
+  open their doors on the platform side, chime, close them and leave, and you can ride the metro
+  trains. Departure boards and the HUD show the next trains. The red line runs C30 trains and the
+  blue and green lines run C20s (see below). The pendeltåg are still plain boxes.
 - **Lifts**: each shaft links the floors next to it.
 - A **minimap** rendered once from above.
 
@@ -97,6 +118,7 @@ travel.
 
 - It shows one unit or a full 140 m train.
 - It has front, side, bogie and inside views. WASD walks the camera through the cars.
+- **Doors** opens and closes the sliding doors.
 - A cutaway takes the roof off to show the seat layout.
 - It can download the model as `.glb`.
 
@@ -114,11 +136,12 @@ The models are built in code (`src/rolling-stock/`) from real dimensions, door a
 liveries and fabrics. Research notes and sources are in
 [`docs/rolling-stock.md`](docs/rolling-stock.md).
 
-```js
-import { createTrain } from './src/rolling-stock/index.js';
+```ts
+import { createTrain } from './src/rolling-stock';
 const train = createTrain('C30', { destination: 'Norsborg' }); // two units, 140 m
 scene.add(train.group);
 train.setInterior(false); // exterior only; cars also have car.setInterior(on)
+train.setDoors(1, 0);     // open the doors (0–1) on both sides; 1 / -1 for one side only
 const c20 = createTrain('C20', { interiorStyle: 'original' }); // the 1997 interior
 ```
 

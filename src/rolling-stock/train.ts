@@ -2,20 +2,97 @@ import * as THREE from 'three';
 import {
   shellGeometry, capGeometry, bellowsGeometry, sidePainter, frontPainter, bogieGeometry, couplerGeometry,
   destinationSign, LIGHTS, DARK, merge,
-} from './kit.js';
-import { liningGeometry, endWallGeometry, portalTube } from './interior.js';
+} from './kit';
+import type {
+  BellowsOptions, BogieGeometry, BogieOptions, CapOptions, DestinationSign, Painter, Profile, Rim,
+} from './kit';
+import { liningGeometry, endWallGeometry, portalTube } from './interior';
+import type { InteriorContext, InteriorMaterials, InteriorSpec } from './interior';
+import { carDoors, doorFrames, doorKit } from './doors';
+import type { DoorKit, DoorStyle } from './doors';
 
-// Turns a train type description (see c20.js / c30.js) into car templates and assembles trains.
+// Turns a train type description (see c20.ts / c30.ts) into car templates and assembles trains.
 
+export interface CarDef {
+  length: number; cab: boolean; number: string; name?: string;
+  doors: number[]; bogies: number[]; flip?: boolean;
+}
+export interface NoseSpec extends CapOptions { face: Rim }
+export interface LightDef { kind: 'head' | 'tail'; z: number; y: number; w: number; h: number; round?: boolean }
+export interface TrainSpec {
+  id: string;
+  title: string;
+  prof: Profile;
+  nose: NoseSpec;
+  cars: Record<string, CarDef>;
+  formation: [kind: string, reversed: boolean][];
+  gap: number;
+  unitGap: number;
+  bellows?: BellowsOptions;
+  endColor?: number;
+  bogie?: BogieOptions;
+  coupler?: { len?: number; y?: number; setback?: number };
+  sign: { y: number; w: number; h: number };
+  lights: LightDef[];
+  interior?: InteriorSpec;
+  doors?: DoorStyle;
+  paintSide(p: Painter, def: CarDef, x0: number, x1: number): void;
+  paintFront(p: Painter, def: CarDef): void;
+  extras(def: CarDef, x0: number, x1: number, kit: TypeKit): THREE.Object3D[];
+}
+export interface CarTemplate {
+  group: THREE.Group; def: CarDef; length: number;
+  glazed?: THREE.MeshStandardMaterial; interior?: THREE.Group;
+  doors?: DoorKit; floor?: CarFloor;
+}
+// Where a car can be walked in, in car coordinates: the saloon from xa to xb within `inner` of the
+// centre line, the gangway portals at the ends (always at x0, at x1 unless there is a cab) with the
+// bellows behind x0, and the doorways out to the body side at `outer`.
+export interface CarFloor {
+  y: number; x0: number; x1: number; xa: number; xb: number;
+  inner: number; outer: number; portal: number; frontPortal: boolean; rearGap: number;
+  doors: number[]; doorWidth: number;
+}
+export interface TypeKit {
+  spec: TrainSpec; quality: number; templates: Map<string, CarTemplate>;
+  bogie: BogieGeometry; coupler: THREE.BufferGeometry; endMat: THREE.MeshStandardMaterial;
+  imats?: InteriorMaterials;
+  doorMats: Map<string, THREE.Material>;
+}
+export interface Car {
+  object: THREE.Group; length: number; offset: number; reversed: boolean; kind: string; interior: boolean;
+  bodyMats?: THREE.MeshStandardMaterial[];
+  floor?: CarFloor;
+  setInterior(on: boolean): void;
+  // opens the doors by `amount` (0–1) on one side (car z sign) or both (0)
+  setDoors(amount: number, side: 1 | -1 | 0): void;
+}
+export type CabLights = 'lead' | 'tail' | 'off';
+export type TrainLights = 'forward' | 'reverse' | 'off';
+export interface Train {
+  type: string; group: THREE.Group; cars: Car[]; length: number;
+  setDestination(text: string): void;
+  setInterior(on: boolean): void;
+  setLights(mode: TrainLights): void;
+  setDoors(amount: number, side: 1 | -1 | 0): void;
+}
+export interface BuildOptions {
+  units?: number; destination?: string; quality?: number;
+  envMap?: THREE.Texture | null; envMapIntensity?: number; interior?: boolean;
+}
+interface Cab { sign: DestinationSign; setLights(mode: CabLights): void }
+type StdMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[]>;
 
-const cache = new Map();
+const isMesh = (o: THREE.Object3D): o is THREE.Mesh<THREE.BufferGeometry, THREE.Material> => (o as THREE.Mesh).isMesh;
 
-function typeKit(spec, quality) {
+const cache = new Map<string, TypeKit>();
+
+function typeKit(spec: TrainSpec, quality: number) {
   const key = `${spec.id}|${spec.interior?.key ?? ''}|${quality}`;
-  if (cache.has(key)) return cache.get(key);
+  if (cache.has(key)) return cache.get(key)!;
   const bogie = bogieGeometry(spec.bogie);
-  const kit = {
-    spec, quality, templates: new Map(),
+  const kit: TypeKit = {
+    spec, quality, templates: new Map(), doorMats: new Map(),
     bogie, coupler: couplerGeometry(spec.coupler?.len, spec.coupler?.y),
     endMat: new THREE.MeshStandardMaterial({ color: spec.endColor ?? 0x6c7278, roughness: 0.6, metalness: 0.3 }),
   };
@@ -24,9 +101,9 @@ function typeKit(spec, quality) {
 }
 
 // A car template: everything except the per-train parts (destination signs, lights).
-function carTemplate(kit, kind, bellowsRear) {
+function carTemplate(kit: TypeKit, kind: string, bellowsRear: boolean) {
   const key = `${kind}|${bellowsRear}`;
-  if (kit.templates.has(key)) return kit.templates.get(key);
+  if (kit.templates.has(key)) return kit.templates.get(key)!;
   const { spec, quality } = kit;
   const def = spec.cars[kind];
   const { prof } = spec;
@@ -38,7 +115,7 @@ function carTemplate(kit, kind, bellowsRear) {
   // gangway portal cut through them; without one they are closed caps.
   const it = spec.interior;
   const flat = { k: 0.04, R: 0.03, ni: 1, nb: 2 };
-  const gangwayEnd = (x, dir) => (it
+  const gangwayEnd = (x: number, dir: number) => (it
     ? { geometry: endWallGeometry(prof, x, dir, [it.portal]), rim: () => 0 }
     : capGeometry(prof, x, dir, flat));
   const rear = gangwayEnd(x0, -1);
@@ -81,21 +158,31 @@ function carTemplate(kit, kind, bellowsRear) {
   }
   for (const o of spec.extras(def, x0, x1, kit)) group.add(o);
 
-  const tpl = { group: mergeByMaterial(group), def, length: L };
+  const tpl: CarTemplate = { group: mergeByMaterial(group), def, length: L };
+  if (spec.doors) tpl.doors = doorKit(prof, spec.doors, def.doors, it?.doorLeaf, quality, kit.doorMats);
   if (it) {
     tpl.glazed = sp.material({}, 'blend');
+    // the open doorways are clear: cut them out so they don't hide the platform behind them
+    tpl.glazed.alphaTest = 0.01;
     tpl.glazed.name = 'body';
     tpl.interior = mergeByMaterial(interiorGroup(kit, def, x0, x1, bellowsRear));
     tpl.interior.name = 'interior';
+    if (spec.doors) {
+      tpl.floor = {
+        y: it.floorY, x0, x1, xa: x0 + it.endWall, xb: def.cab ? x1 - it.cabDepth : x1 - it.endWall,
+        inner: it.lining.w, outer: prof.w, portal: it.portal.w, frontPortal: !def.cab, rearGap: bellowsRear ? spec.gap : 0,
+        doors: def.doors, doorWidth: spec.doors.width,
+      };
+    }
   }
   kit.templates.set(key, tpl);
   return tpl;
 }
 
 // The passenger saloon of one car: lining, end walls, gangway and whatever the type furnishes.
-function interiorGroup(kit, def, x0, x1, bellowsRear) {
+function interiorGroup(kit: TypeKit, def: CarDef, x0: number, x1: number, bellowsRear: boolean) {
   const { spec, quality } = kit;
-  const it = spec.interior;
+  const it = spec.interior!;
   kit.imats ??= it.materials();
   const mats = kit.imats;
   const { portal } = it;
@@ -103,7 +190,7 @@ function interiorGroup(kit, def, x0, x1, bellowsRear) {
   group.name = `${spec.id}-${def.cab ? 'A' : 'M'}-interior`;
   // the saloon runs from just inside the rear end to the cab bulkhead or the front end
   const xa = x0 + it.endWall, xb = def.cab ? x1 - it.cabDepth : x1 - it.endWall;
-  const ctx = { x0, x1, xa, xb, mats, prof: it.lining };
+  const ctx: InteriorContext = { x0, x1, xa, xb, mats, prof: it.lining };
   const lp = sidePainter(it.lining, xa, xb, 100 * quality, { inside: true, alpha: true, glow: it.glow });
   it.paint(lp, def, ctx);
   const lining = new THREE.Mesh(liningGeometry(it.lining, xa, xb), lp.material({}, 'mask'));
@@ -114,7 +201,7 @@ function interiorGroup(kit, def, x0, x1, bellowsRear) {
   if (def.cab) {
     group.add(new THREE.Mesh(endWallGeometry(it.lining, xb, -1), mats.bulkhead ?? mats.wall));
     // a plain driver's cab behind the bulkhead: floor, desk and seat (seen in the cutaway)
-    const F = it.lining.floorY, cab = [];
+    const F = it.lining.floorY, cab: THREE.BufferGeometry[] = [];
     cab.push(new THREE.BoxGeometry(x1 - xb - 0.8, 0.02, 2.5).translate((xb + x1 - 0.8) / 2, F + 0.01, 0));
     cab.push(new THREE.BoxGeometry(0.7, 0.85, 2.3).translate(x1 - 1.35, F + 0.43, 0));
     cab.push(new THREE.BoxGeometry(0.55, 0.06, 2.1).rotateZ(-0.35).translate(x1 - 1.55, F + 0.93, 0));
@@ -132,19 +219,20 @@ function interiorGroup(kit, def, x0, x1, bellowsRear) {
     if (!it.noPlate) group.add(new THREE.Mesh(new THREE.BoxGeometry(glen, 0.02, w).translate(gx, portal.y0 + 0.005, 0), mats.plate));
     for (const o of it.gangway?.(gx, mats) ?? []) group.add(o);
   }
+  if (spec.doors) group.add(new THREE.Mesh(doorFrames(spec.prof, it.lining, spec.doors, def.doors, it.floorY), mats.wall));
   for (const o of it.furnish(def, ctx)) group.add(o);
-  group.traverse((o) => { if (o.isMesh) o.userData.interior = true; });
+  group.traverse((o) => { if (isMesh(o)) o.userData.interior = true; });
   return group;
 }
 
 // One mesh per material keeps a car to a handful of draw calls.
-function mergeByMaterial(group) {
+function mergeByMaterial(group: THREE.Group) {
   group.updateMatrixWorld(true);
-  const buckets = new Map();
+  const buckets = new Map<THREE.Material, THREE.BufferGeometry[]>();
   group.traverse((o) => {
-    if (!o.isMesh) return;
+    if (!isMesh(o)) return;
     if (!buckets.has(o.material)) buckets.set(o.material, []);
-    buckets.get(o.material).push(o.geometry.clone().applyMatrix4(o.matrixWorld));
+    buckets.get(o.material)!.push(o.geometry.clone().applyMatrix4(o.matrixWorld));
   });
   const out = new THREE.Group();
   out.name = group.name;
@@ -157,9 +245,9 @@ function mergeByMaterial(group) {
 }
 
 // Cab parts that differ per train: the destination display and switchable lights.
-function addCab(spec, car, x1) {
+function addCab(spec: TrainSpec, car: THREE.Object3D, x1: number): Cab {
   const f = spec.nose.face;
-  const onNose = (z, y, out) => {
+  const onNose = (z: number, y: number, out: THREE.Object3D) => {
     const e = 0.01;
     const n = new THREE.Vector3(1, (f(z, y + e) - f(z, y - e)) / (2 * e), (f(z + e, y) - f(z - e, y)) / (2 * e)).normalize();
     out.position.set(x1 - f(z, y), y, z).addScaledVector(n, 0.012);
@@ -172,7 +260,7 @@ function addCab(spec, car, x1) {
   const sign = destinationSign(spec.sign.w, spec.sign.h);
   onNose(0, spec.sign.y, sign.mesh);
   car.add(sign.mesh);
-  const heads = [], tails = [];
+  const heads: THREE.Mesh[] = [], tails: THREE.Mesh[] = [];
   for (const l of spec.lights) {
     const g = l.round ? new THREE.CircleGeometry(l.w / 2, 20) : new THREE.PlaneGeometry(l.w, l.h);
     const m = new THREE.Mesh(g, l.kind === 'head' ? LIGHTS.headOff : LIGHTS.tailOff);
@@ -183,7 +271,7 @@ function addCab(spec, car, x1) {
   }
   return {
     sign,
-    setLights(mode) {
+    setLights(mode: CabLights) {
       for (const m of heads) m.material = mode === 'lead' ? LIGHTS.headOn : LIGHTS.headOff;
       for (const m of tails) m.material = mode === 'tail' ? LIGHTS.tailOn : LIGHTS.tailOff;
     },
@@ -195,11 +283,11 @@ function addCab(spec, car, x1) {
 // to its centre (`offset`), so callers can also place cars one by one along a curved track.
 // `interior` shows the passenger interiors from the start; cars can switch them with
 // car.setInterior(on) (the station turns them on only for cars near the player).
-export function buildTrain(spec, { units = 1, destination = '', quality = 1, envMap = null, envMapIntensity = 1, interior = true } = {}) {
+export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quality = 1, envMap = null, envMapIntensity = 1, interior = true }: BuildOptions = {}): Train {
   const kit = typeKit(spec, quality);
   const group = new THREE.Group();
   group.name = spec.id;
-  const cars = [], cabs = [];
+  const cars: Car[] = [], cabs: Cab[] = [];
   let at = 0;
   for (let u = 0; u < units; u++) {
     spec.formation.forEach(([kind, reversed], i) => {
@@ -208,23 +296,31 @@ export function buildTrain(spec, { units = 1, destination = '', quality = 1, env
       const obj = tpl.group.clone();
       obj.name = `${spec.id}-${u + 1}-${kind}${reversed ? '-rev' : ''}`;
       if (tpl.def.cab) cabs.push(addCab(spec, obj, tpl.length / 2));
-      const car = { object: obj, length: tpl.length, offset: at + tpl.length / 2, reversed, kind, interior: false };
+      const car: Car = {
+        object: obj, length: tpl.length, offset: at + tpl.length / 2, reversed, kind, interior: false, floor: tpl.floor,
+        setInterior: () => {}, setDoors: () => {},
+      };
+      if (tpl.doors) {
+        const doors = carDoors(tpl.doors);
+        obj.add(doors.group);
+        car.setDoors = doors.set;
+      }
       if (tpl.interior) {
         const inner = tpl.interior.clone();
         inner.visible = false;
-        inner.traverse((o) => { if (o.isMesh) o.userData.interior = true; });
+        inner.traverse((o) => { if (isMesh(o)) o.userData.interior = true; });
         obj.add(inner);
-        const body = obj.children.find((o) => o.name === 'body');
+        const body = obj.children.find((o) => o.name === 'body') as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
         const opaque = body.material;
-        car.bodyMats = [opaque, tpl.glazed];
+        car.bodyMats = [opaque, tpl.glazed!];
         // with the interior on, the windows turn to glass you can see through
         car.setInterior = (on) => {
           if (on === car.interior) return;
           car.interior = on;
           inner.visible = on;
-          body.material = on ? tpl.glazed : opaque;
+          body.material = on ? tpl.glazed! : opaque;
         };
-      } else car.setInterior = () => {};
+      }
       cars.push(car);
       at += tpl.length + (last ? spec.unitGap : spec.gap);
       group.add(obj);
@@ -239,13 +335,14 @@ export function buildTrain(spec, { units = 1, destination = '', quality = 1, env
   for (const c of cars) c.setInterior(interior);
   if (envMap) {
     const mats = new Set(cars.flatMap((c) => c.bodyMats ?? []));
-    group.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => mats.add(m)); });
+    group.traverse((o) => { if ((o as StdMesh).material) ([] as THREE.MeshStandardMaterial[]).concat((o as StdMesh).material).forEach((m) => mats.add(m)); });
     for (const m of mats) { m.envMap = envMap; m.envMapIntensity = envMapIntensity; m.needsUpdate = true; }
   }
-  const train = {
+  const train: Train = {
     type: spec.id, group, cars, length,
     setDestination(text) { for (const c of cabs) c.sign.set(text); },
     setInterior(on) { for (const c of cars) c.setInterior(on); },
+    setDoors(amount, side) { for (const c of cars) c.setDoors(amount, side); },
     // 'forward': lit for running towards +x; 'reverse': the other way; 'off'
     setLights(mode) {
       cabs.forEach((c, i) => {

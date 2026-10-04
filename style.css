@@ -57,6 +57,9 @@ kbd {
 #toast.on { opacity: 1; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
 #fade.on { opacity: 1; }
+#fade.slow { transition: opacity 0.7s; }
+#fade p { position: absolute; left: 0; right: 0; top: 46%; margin: 0; text-align: center; font-size: 22px; color: var(--text); opacity: 0; }
+#fade.slow p { opacity: 1; }
 
 /* ---------------------------------------------------------------- touch controls */
 #menuBtn, #touchButtons, #stick, #stickHint { display: none; }

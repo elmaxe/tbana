@@ -1,10 +1,15 @@
 import * as THREE from 'three';
-import { merge } from './kit.js';
+import { merge } from './kit';
 import {
   liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches, endWallMaterial,
   screenTexture,
-} from './interior.js';
-import { DOOR, windowPanes } from './c20.js';
+} from './interior';
+import type { Painter } from './kit';
+import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating } from './interior';
+import { DOOR, windowPanes } from './c20';
+import type { CarDef } from './train';
+
+export type C20InteriorStyle = 'upgraded' | 'original';
 
 // C20 interiors, from Wikimedia Commons photos (2008–2026), SL's seat plan for the upgrade and
 // press material. See docs/rolling-stock.md for the research notes.
@@ -31,7 +36,7 @@ const G = 0.16;
 // gangway portal, 1.8 m wide and 2.0 m high with rounded top corners
 const PORTAL = { w: 1.8, y0: F, y1: F + 2.0, r: 0.3 };
 
-function tAt(z, part) {
+function tAt(z: number, part: 'floor' | 'ceiling') {
   const list = prof.pts.filter((p) => (part === 'floor' ? p.y < F + 0.01 : p.y > 3.3)).sort((a, b) => a.z - b.z);
   for (let i = 1; i < list.length; i++) {
     const a = list[i - 1], b = list[i];
@@ -61,9 +66,9 @@ const C = {
 };
 const ADS = [['#2b5d9b', '#eef2f7'], ['#c43a62', '#f4d3dc'], ['#f1b51c', '#2b2b2b'], ['#3c8a5a', '#f1efe6'], ['#7a4a2a', '#f3e6d6'], ['#1c2536', '#e8eaec']];
 
-function makePaint(style) {
+function makePaint(style: C20InteriorStyle) {
   const floor = style === 'original' ? { c: '#a8a49c', r: 0.75 } : { c: '#b8b7b1', r: 0.75 };
-  return function paint(p, def, { xa, xb, x0, x1 }) {
+  return function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
     const floorEdge = tAt(IW, 'floor');
     p.rectT(xa, xb, prof.tMin, prof.tMax, C.wall);
     p.rectT(xa, xb, prof.tMin, floorEdge, floor);
@@ -78,7 +83,7 @@ function makePaint(style) {
     p.rect(xa, xb, F, F + 0.34, C.heater);
     for (let x = xa + 0.1; x < xb - 0.1; x += 0.05) p.rect(x, x + 0.02, F + 0.08, F + 0.26, C.perf);
     // ceiling: slot grilles beside the flat centre, silver-grey ceiling
-    const tc = (z) => tAt(z, 'ceiling');
+    const tc = (z: number) => tAt(z, 'ceiling');
     p.rectT(xa, xb, tc(0.8) - 0.24, prof.tMax, C.ceiling);
     for (let k = 0; k < 4; k++) p.rect(xa, xb, 3.262 + k * 0.016, 3.268 + k * 0.016, C.slot);
     // a row of angled advert frames in the cove above the windows
@@ -105,15 +110,8 @@ function makePaint(style) {
       p.rect(db + 0.03, db + 0.13, 2.1, 2.62, C.pict);
       p.rect(da - 0.13, da - 0.05, 2.35, 2.5, C.green);
       p.rect(da - 0.13, da - 0.05, 2.6, 2.72, C.red);
-      // leaves: grey-white with a black centre seal and a tall window each
-      p.rect(da, db, F, 3.0, C.door);
-      p.rect(d - 0.015, d + 0.015, F, 3.0, C.rubber);
-      for (const s of [-1, 1]) {
-        const c = d + s * DOOR / 4;
-        p.rect(c - 0.23, c + 0.23, 1.7, 2.88, C.rubber, 0.07);
-        p.rect(c - 0.2, c + 0.2, 1.73, 2.85, C.hole, 0.05);
-        p.rect(c - 0.15, c + 0.15, 2.9, 2.95, C.sticker);
-      }
+      // the doorway: the leaves are separate (doorLeaf below)
+      p.rect(da, db, F, 3.0, C.hole);
       // ribbed aluminium threshold
       p.rectT(da, db, floorEdge - 0.15, floorEdge, C.steel);
       for (let k = 0; k < 6; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.022, floorEdge - 0.132 + k * 0.022, C.ribbed);
@@ -121,15 +119,25 @@ function makePaint(style) {
   };
 }
 
+// Inside of a door leaf: grey-white with a black seal at the centre and a tall window.
+function doorLeaf(p: Painter, w: number) {
+  p.rect(0, w, 0.95, 3.0, C.door);
+  p.rect(0, 0.015, 0.95, 3.0, C.rubber);
+  const c = w / 2;
+  p.rect(c - 0.23, c + 0.23, 1.7, 2.88, C.rubber, 0.07);
+  p.rect(c - 0.2, c + 0.2, 1.73, 2.85, C.hole, 0.05);
+  p.rect(c - 0.15, c + 0.15, 2.9, 2.95, C.sticker);
+}
+
 // ------------------------------------------------------------------ fabrics
 
 // Lasse Åberg's 1997 moquette: navy, scattered with quick sketches of Stockholm.
-function aberg(ctx, n) {
+function aberg(ctx: CanvasRenderingContext2D, n: number) {
   ctx.fillStyle = '#233070'; ctx.fillRect(0, 0, n, n);
   const cols = ['#e2483d', '#f08a3c', '#f2d34a', '#5bbf6a', '#6fb6e8', '#e889b7', '#f4f4f4'];
   const k = n / 256;
   ctx.lineWidth = 2.2 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  const draw = {
+  const draw: Record<string, (x: number, y: number) => void> = {
     // City Hall: tower with a lantern and three crowns
     hall(x, y) { ctx.strokeRect(x - 6, y - 4, 12, 26); ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x, y - 14); ctx.lineTo(x + 4, y - 4); ctx.stroke(); for (const d of [-4, 0, 4]) { ctx.beginPath(); ctx.arc(x + d, y - 17, 1.4, 0, 7); ctx.stroke(); } },
     spire(x, y) { ctx.beginPath(); ctx.moveTo(x - 7, y + 20); ctx.lineTo(x - 7, y); ctx.lineTo(x, y - 18); ctx.lineTo(x + 7, y); ctx.lineTo(x + 7, y + 20); ctx.stroke(); ctx.strokeRect(x - 2, y + 6, 4, 6); },
@@ -156,7 +164,7 @@ function aberg(ctx, n) {
   weave(ctx, n);
 }
 
-function plattan(ctx, n, dark, light) {
+function plattan(ctx: CanvasRenderingContext2D, n: number, dark: string, light: string) {
   ctx.fillStyle = light; ctx.fillRect(0, 0, n, n);
   ctx.fillStyle = dark;
   const w = n / 2;
@@ -169,20 +177,20 @@ function plattan(ctx, n, dark, light) {
   weave(ctx, n);
 }
 
-function weave(ctx, n) {
+function weave(ctx: CanvasRenderingContext2D, n: number) {
   ctx.globalAlpha = 0.06;
   for (let y = 0; y < n; y += 2) for (let x = (y / 2) % 2; x < n; x += 2) { ctx.fillStyle = '#fff'; ctx.fillRect(x, y, 1, 1); }
   ctx.globalAlpha = 1;
 }
 
-function plain(ctx, n, col) {
+function plain(ctx: CanvasRenderingContext2D, n: number, col: string) {
   ctx.fillStyle = col; ctx.fillRect(0, 0, n, n);
   weave(ctx, n);
 }
 
-function makeMaterials(style) {
-  return () => {
-    const fab = (draw, size, n) => glowMat('#ffffff', { glow: G, map: moquette(draw, size, n), roughness: 0.95 });
+function makeMaterials(style: C20InteriorStyle) {
+  return (): InteriorMaterials => {
+    const fab = (draw: (ctx: CanvasRenderingContext2D, n: number) => void, size: number, n?: number) => glowMat('#ffffff', { glow: G, map: moquette(draw, size, n), roughness: 0.95 });
     const mats = {
       wall: glowMat('#e4e4e0', { glow: G, roughness: 0.5, side: THREE.DoubleSide }),
       ceiling: glowMat('#c8cacc', { glow: G, roughness: 0.5 }),
@@ -216,7 +224,7 @@ function makeMaterials(style) {
   };
 }
 
-function drawSign(ctx, w, h) {
+function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = '#ffae1a'; ctx.font = '700 38px Arial, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -224,7 +232,7 @@ function drawSign(ctx, w, h) {
 }
 
 // C20U widescreen: next station in white on dark blue
-function drawTft(ctx, w, h) {
+function drawTft(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = '#0d2350'; ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = '#1f9a3c'; ctx.fillRect(0, 0, w, 50);
   ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
@@ -247,7 +255,7 @@ function bulkheadMaterial() {
       ctx.beginPath(); ctx.roundRect(-0.125, F + 1.25, 0.25, 0.6, 0.06); ctx.fill();
       ctx.fillStyle = '#9a9ea2'; ctx.fillRect(0.22, F + 0.95, 0.05, 0.14);
       // posters either side of the door
-      for (const [x, bg, fg] of [[-0.95, '#f4efe6', '#c43a62'], [0.6, '#eef2f7', '#2b5d9b']]) {
+      for (const [x, bg, fg] of [[-0.95, '#f4efe6', '#c43a62'], [0.6, '#eef2f7', '#2b5d9b']] as const) {
         ctx.fillStyle = bg; ctx.fillRect(x, F + 1.25, 0.38, 0.55);
         ctx.fillStyle = fg; ctx.fillRect(x + 0.03, F + 1.55, 0.32, 0.2);
       }
@@ -258,23 +266,23 @@ function bulkheadMaterial() {
 // ------------------------------------------------------------------ furnishing
 
 const SEAT = { width: 0.45, height: 0.45, depth: 0.44, back: 1.2, recline: 0.12, shellT: 0.04, cushion: 0.06, cushionBack: 0.95 };
-let seats;
+let seats: Seating | undefined;
 const S = () => (seats ??= seating({ F, IW, seat: SEAT }));
 
-function makeFurnish(style) {
+function makeFurnish(style: C20InteriorStyle) {
   const upgraded = style !== 'original';
-  return function furnish(def, ctx) {
+  return function furnish(def: CarDef, ctx: InteriorContext) {
     const parts = new Parts();
     const { xa, xb } = ctx;
     const doors = [...def.doors].sort((a, b) => a - b);
     const CLR = 0.1;
     const W = SEAT.width;
-    const zWin = (s) => s * (IW - 0.04 - W / 2), zAisle = (s) => s * (IW - 0.06 - 1.5 * W);
-    const zEdge = (s) => s * (IW - 0.08 - 2 * W);
+    const zWin = (s: number) => s * (IW - 0.04 - W / 2), zAisle = (s: number) => s * (IW - 0.06 - 1.5 * W);
+    const zEdge = (s: number) => s * (IW - 0.08 - 2 * W);
     const ceilingY = 3.33;
 
     // a row of two seats across one side, back at x, facing dir
-    const pair = (x, s, dir, priority = false) => {
+    const pair = (x: number, s: number, dir: number, priority = false) => {
       S().across(parts, x, zWin(s), dir, priority);
       S().across(parts, x, zAisle(s), dir, false);
       // the frame under the pair, fixed to the wall
@@ -282,18 +290,18 @@ function makeFurnish(style) {
       parts.add('frame', new THREE.BoxGeometry(0.05, 0.36, 0.05).translate(x + dir * 0.25, F + 0.18, zEdge(s) + s * 0.1));
     };
     // a group of four facing seats between x = a and b on side s
-    const group = (a, b, s, { hoops = [] } = {}) => {
+    const group = (a: number, b: number, s: number, { hoops = [] }: { hoops?: number[] } = {}) => {
       pair(a + 0.06, s, 1);
       pair(b - 0.06, s, -1);
       for (const x of hoops) hoop(x, s);
     };
     // the tall yellow hoop over the aisle seats where two rows meet back to back
-    const hoop = (x, s) => {
+    const hoop = (x: number, s: number) => {
       const top = F + SEAT.back - 0.02, z = zAisle(s) - s * 0.12;
       parts.add('yellow', rail([[x - 0.1, top - 0.05, z], [x - 0.1, top + 0.22, z], [x + 0.1, top + 0.22, z], [x + 0.1, top - 0.05, z]], 0.018, 0.09));
     };
     // a row of seats along the wall from a to b on side s, priority seat at the `pEnd` end
-    const longRow = (a, b, s, pEnd) => {
+    const longRow = (a: number, b: number, s: number, pEnd: number) => {
       const n = Math.max(1, Math.floor((b - a) / (W + 0.02)));
       const pitch = (b - a) / n;
       for (let k = 0; k < n; k++) {
@@ -307,7 +315,7 @@ function makeFurnish(style) {
       parts.add('yellow', rail([[a - 0.04, F + 1.9, zp], [b + 0.04, F + 1.9, zp]], 0.017));
     };
     // multipurpose area: double lean rail on the wall and a pictogram
-    const flexArea = (a, b, s) => {
+    const flexArea = (a: number, b: number, s: number) => {
       for (const y of [F + 0.7, F + 0.9]) {
         parts.add('yellow', rail([[a + 0.1, y, s * (IW - 0.03)], [a + 0.1, y, s * (IW - 0.1)], [b - 0.1, y, s * (IW - 0.1)], [b - 0.1, y, s * (IW - 0.03)]], 0.017, 0.05));
       }
@@ -401,7 +409,7 @@ function makeFurnish(style) {
     }
 
     // LED destination displays hanging in front of the gangway portals and over the cab door
-    const signAt = (x, face) => {
+    const signAt = (x: number, face: number) => {
       parts.add('housing', new THREE.BoxGeometry(0.08, 0.15, 1.04).translate(x, ceilingY - 0.14, 0));
       parts.add('sign', new THREE.PlaneGeometry(0.98, 0.11).rotateY(face * Math.PI / 2).translate(x + face * 0.041, ceilingY - 0.14, 0));
     };
@@ -420,13 +428,13 @@ function makeFurnish(style) {
   };
 }
 
-const e0 = (d) => (d > 0 ? -1 : 1);
+const e0 = (d: number) => (d > 0 ? -1 : 1);
 
 // Turntable floor between the sections: a round plate with a dark segmented ring.
-function gangway(xc, mats) {
+function gangway(xc: number, mats: InteriorMaterials) {
   const plate = new THREE.CylinderGeometry(0.6, 0.6, 0.01, 48).translate(xc, F + 0.006, 0);
   const ring = new THREE.RingGeometry(0.47, 0.56, 48, 1).rotateX(-Math.PI / 2).translate(xc, F + 0.012, 0);
-  const segs = [];
+  const segs: THREE.BufferGeometry[] = [];
   for (let k = 0; k < 12; k++) {
     const a = (k / 12) * Math.PI * 2;
     segs.push(new THREE.BoxGeometry(0.1, 0.004, 0.012).rotateY(-a).translate(xc + Math.cos(a) * 0.515, F + 0.014, Math.sin(a) * 0.515));
@@ -434,7 +442,7 @@ function gangway(xc, mats) {
   return [new THREE.Mesh(plate, mats.plate), new THREE.Mesh(merge([ring, ...segs]), mats.ring)];
 }
 
-function make(style) {
+function make(style: C20InteriorStyle): InteriorSpec {
   return {
     key: style,
     lining: prof,
@@ -449,6 +457,7 @@ function make(style) {
     materials: makeMaterials(style),
     paint: makePaint(style),
     furnish: makeFurnish(style),
+    doorLeaf,
   };
 }
 

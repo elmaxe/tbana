@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import type { SurfaceIndex, SurfaceHit } from './surface-index';
+import type { SurfaceData } from './station';
+import type { InputState } from './input';
 
 const EYE = 1.65;
 const STEP_UP = 0.62;
@@ -8,22 +11,24 @@ const WALK = 3.2, RUN = 8, FLY = 22;
 // First-person walker. Collision is purely "is there a walkable surface under the next position
 // within step range?" — every slab outline either continues into another surface or has a wall,
 // railing or platform edge generated on it, so this matches what you see.
-export class Player {
-  constructor(camera, walk) {
-    this.camera = camera;
-    this.walk = walk;
-    this.pos = new THREE.Vector3();
-    this.vel = new THREE.Vector3();
-    this.yaw = 0;
-    this.pitch = 0;
-    this.eyeY = 0;
-    this.fly = false;
-    this.surface = null;
-    this.bob = 0;
-    this._hits = [];
-  }
+// Floors that move (train cars) come from `extra`, added to the station's surfaces.
+export type FloorSource<T> = (x: number, z: number, out: SurfaceHit<T>[]) => SurfaceHit<T>[];
 
-  teleport(pos, yaw) {
+export class Player<T = SurfaceData> {
+  pos = new THREE.Vector3();
+  vel = new THREE.Vector3();
+  yaw = 0;
+  pitch = 0;
+  eyeY = 0;
+  fly = false;
+  surface: SurfaceData | T | null = null;
+  bob = 0;
+  private _hits: SurfaceHit<SurfaceData>[] = [];
+  private _extra: SurfaceHit<T>[] = [];
+
+  constructor(public camera: THREE.Camera, public walk: SurfaceIndex<SurfaceData>, public extra: FloorSource<T> | null = null) {}
+
+  teleport(pos: THREE.Vector3, yaw?: number) {
     this.pos.copy(pos);
     this.yaw = yaw ?? this.yaw;
     this.pitch = 0;
@@ -33,18 +38,19 @@ export class Player {
     this.applyCamera(0);
   }
 
-  look(dx, dy) {
+  look(dx: number, dy: number) {
     this.yaw -= dx;
     this.pitch = THREE.MathUtils.clamp(this.pitch - dy, -1.5, 1.5);
   }
 
   // Highest surface under (x, z) reachable from height y (stepping up or down a little).
-  groundAt(x, z, y, offsets = true) {
-    const hits = this.walk.query(x, z, this._hits);
-    let best = null;
-    for (const h of hits) {
+  groundAt(x: number, z: number, y: number, offsets = true): { y: number; data: SurfaceData | T } | null {
+    let best: { y: number; data: SurfaceData | T } | null = null;
+    const consider = (h: { y: number; data: SurfaceData | T }) => {
       if (h.y <= y + STEP_UP && h.y >= y - STEP_DOWN && (!best || h.y > best.y)) best = { y: h.y, data: h.data };
-    }
+    };
+    for (const h of this.walk.query(x, z, this._hits)) consider(h);
+    if (this.extra) for (const h of this.extra(x, z, this._extra)) consider(h);
     if (best || !offsets) return best;
     // Bridge hairline gaps between neighbouring slabs in the drawing.
     for (const [ox, oz] of [[0.3, 0], [-0.3, 0], [0, 0.3], [0, -0.3]]) {
@@ -54,7 +60,7 @@ export class Player {
     return best;
   }
 
-  update(dt, input) {
+  update(dt: number, input: InputState) {
     const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
     const wish = new THREE.Vector3()
@@ -104,7 +110,7 @@ export class Player {
     this.applyCamera(dt, moving);
   }
 
-  applyCamera(dt, moving = 0) {
+  applyCamera(dt: number, moving = 0) {
     const targetEye = this.pos.y + EYE;
     // smooth stair stepping, but follow big jumps (lifts/teleports) instantly
     if (dt === 0 || Math.abs(targetEye - this.eyeY) > 2) this.eyeY = targetEye;

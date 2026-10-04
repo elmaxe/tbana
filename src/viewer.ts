@@ -2,14 +2,19 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { createTrain } from './rolling-stock/index.js';
+import { createTrain } from './rolling-stock/index';
+import type { C20InteriorStyle, Train, TrainType } from './rolling-stock/index';
+import { mountBuildSwitcher } from './build-switcher';
 
 // Model viewer for the procedural C20 and C30 trains (trains.html).
 
-const $ = (id) => document.getElementById(id);
+const $ = (id: string) => document.getElementById(id)!;
 const params = new URLSearchParams(location.search);
+mountBuildSwitcher($('buildSwitch'));
 
-const SPECS = {
+interface TypeInfo { title: string; blurb: string; rows: [string, string][]; dest: string }
+
+const SPECS: Record<TrainType, TypeInfo> = {
   C20: {
     title: 'C20',
     blurb: 'Three-section articulated unit with bare corrugated stainless-steel sides. Runs on all three lines; three units make a 140 m train.',
@@ -84,7 +89,7 @@ addEventListener('resize', () => {
 });
 
 // ------------------------------------------------------------------ ground: ballast, sleepers, rails
-function track(len, z) {
+function track(len: number, z: number) {
   const g = new THREE.Group();
   const ballast = new THREE.Mesh(
     new THREE.BoxGeometry(len, 0.3, 3.4),
@@ -115,7 +120,7 @@ function track(len, z) {
 }
 
 // Platform top 0.99 m above the rail, edge 1.55 m from the track centre (as in the station).
-function platform(len, z, w) {
+function platform(len: number, z: number, w: number) {
   const h = 0.99 + 0.48;
   const m = new THREE.Mesh(new THREE.BoxGeometry(len, h, w), new THREE.MeshStandardMaterial({ color: 0xb9b6b0, roughness: 0.9 }));
   m.position.set(0, 0.99 - h / 2, z);
@@ -137,25 +142,29 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // ------------------------------------------------------------------ state
-let state = {
-  type: ['C20', 'C30', 'both'].includes(params.get('type')) ? params.get('type') : 'C30',
+type View = 'front' | 'side' | 'bogie' | 'top' | 'nose' | 'inside';
+const typeParam = params.get('type');
+const state: { type: TrainType | 'both'; full: boolean; view: View; spin: boolean; cut: boolean; c20: C20InteriorStyle; doors: boolean } = {
+  type: typeParam === 'C20' || typeParam === 'C30' || typeParam === 'both' ? typeParam : 'C30',
   full: params.get('len') === 'full',
-  view: params.get('view') || 'front',
+  view: (params.get('view') as View | null) || 'front',
   spin: false,
   cut: params.has('cut'),
   c20: params.get('c20') === 'original' ? 'original' : 'upgraded',
+  doors: params.has('doors'),
 };
-let world = null;
-let trains = [];
+let world: THREE.Group | null = null;
+let trains: Train[] = [];
+let doors = state.doors ? 1 : 0;
 
 function build() {
   if (world) {
     scene.remove(world);
-    world.traverse((o) => o.isInstancedMesh && o.dispose());
+    world.traverse((o) => { if (o instanceof THREE.InstancedMesh) o.dispose(); });
   }
-  world = new THREE.Group();
+  const group = (world = new THREE.Group());
   trains = [];
-  const types = state.type === 'both' ? ['C20', 'C30'] : [state.type];
+  const types: TrainType[] = state.type === 'both' ? ['C20', 'C30'] : [state.type];
   let maxLen = 0;
   const made = types.map((t) => createTrain(t, { units: state.full ? undefined : 1, destination: SPECS[t].dest, interiorStyle: state.c20 }));
   const front = Math.max(...made.map((t) => t.length)) / 2;
@@ -163,18 +172,19 @@ function build() {
     // fronts line up at the platform end
     train.group.position.set(front - train.length / 2, 0, types.length > 1 ? (i ? 3.6 : -3.6) : 0);
     // the shell shades the interior, so the sun only gets in through the windows
-    train.group.traverse((o) => { if (o.isMesh) { o.castShadow = !o.userData.interior; o.receiveShadow = true; } });
-    world.add(train.group);
+    train.group.traverse((o) => { if (o instanceof THREE.Mesh) { o.castShadow = !o.userData.interior; o.receiveShadow = true; } });
+    train.setDoors(doors, 0);
+    group.add(train.group);
     trains.push(train);
     maxLen = Math.max(maxLen, train.length);
   });
   const len = maxLen + 60;
   if (types.length > 1) {
-    world.add(track(len, -3.6), track(len, 3.6), platform(len, 0, 2 * (3.6 - 1.55)));
+    group.add(track(len, -3.6), track(len, 3.6), platform(len, 0, 2 * (3.6 - 1.55)));
   } else {
-    world.add(track(len, 0), platform(len, -3.55, 4.0));
+    group.add(track(len, 0), platform(len, -3.55, 4.0));
   }
-  scene.add(world);
+  scene.add(group);
   applyCutaway();
   // shadow camera covers the trains
   const s = sun.shadow.camera;
@@ -185,20 +195,18 @@ function build() {
   setView(state.view);
 }
 
-function renderSpec(types) {
+function renderSpec(types: TrainType[]) {
   $('spec').innerHTML = types.map((t) => {
     const s = SPECS[t];
     return `<h2>${s.title}</h2><p>${s.blurb}</p><table>${s.rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>`;
   }).join('') + '<p style="margin-top:10px">Sources: Wikipedia (SL C20, SL C30) and Wikimedia Commons photos. Notes: <a href="https://github.com/elmaxe/tbana/blob/main/docs/rolling-stock.md" target="_blank" rel="noopener">docs/rolling-stock.md</a>.</p>';
 }
 
-function setView(v) {
+function setView(v: View) {
   state.view = v;
-  const t = trains[0];
   const front = trains.length ? Math.max(...trains.map((x) => x.length)) / 2 : 20;
-  const z0 = 0;
   const both = state.type === 'both';
-  const views = {
+  const views: Record<View, THREE.Vector3[]> = {
     front: both ? [new THREE.Vector3(front + 11, 3.6, 0.6), new THREE.Vector3(front - 8, 1.8, 0)]
       : [new THREE.Vector3(front + 9, 3.4, 8.5), new THREE.Vector3(front - 6, 1.9, 0)],
     side: [new THREE.Vector3(front - 12, 2.2, both ? 30 : 19), new THREE.Vector3(front - 12, 1.9, 0)],
@@ -217,55 +225,59 @@ function setView(v) {
   camera.fov = v === 'inside' ? 62 : 40;
   camera.updateProjectionMatrix();
   controls.update();
-  document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+  document.querySelectorAll<HTMLElement>('#views button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
 }
 
 function syncButtons() {
-  document.querySelectorAll('#types button').forEach((b) => b.classList.toggle('on', b.dataset.type === state.type));
-  document.querySelectorAll('#lengths button').forEach((b) => b.classList.toggle('on', (b.dataset.len === 'full') === state.full));
+  document.querySelectorAll<HTMLElement>('#types button').forEach((b) => b.classList.toggle('on', b.dataset.type === state.type));
+  document.querySelectorAll<HTMLElement>('#lengths button').forEach((b) => b.classList.toggle('on', (b.dataset.len === 'full') === state.full));
   $('spin').classList.toggle('on', state.spin);
   $('cut').classList.toggle('on', !!state.cut);
-  document.querySelectorAll('#c20style button').forEach((b) => b.classList.toggle('on', b.dataset.style === state.c20));
+  $('doors').classList.toggle('on', state.doors);
+  document.querySelectorAll<HTMLElement>('#c20style button').forEach((b) => b.classList.toggle('on', b.dataset.style === state.c20));
   $('c20style').hidden = state.type === 'C30';
 }
 
+// the data-* attribute of the clicked button
+const data = (e: Event, key: string) => (e.target as HTMLElement).dataset?.[key];
 $('types').addEventListener('click', (e) => {
-  const t = e.target.dataset?.type; if (!t) return;
+  const t = data(e, 'type') as TrainType | 'both' | undefined; if (!t) return;
   state.type = t; syncButtons(); build();
 });
 $('lengths').addEventListener('click', (e) => {
-  const l = e.target.dataset?.len; if (!l) return;
+  const l = data(e, 'len'); if (!l) return;
   state.full = l === 'full'; syncButtons(); build();
 });
 $('c20style').addEventListener('click', (e) => {
-  const st = e.target.dataset?.style; if (!st) return;
+  const st = data(e, 'style') as C20InteriorStyle | undefined; if (!st) return;
   state.c20 = st; syncButtons(); build();
 });
 $('views').addEventListener('click', (e) => {
-  const v = e.target.dataset?.view; if (v) setView(v);
+  const v = data(e, 'view') as View | undefined; if (v) setView(v);
 });
 $('spin').addEventListener('click', () => { state.spin = !state.spin; controls.autoRotate = state.spin; syncButtons(); });
 $('cut').addEventListener('click', () => { state.cut = !state.cut; applyCutaway(); syncButtons(); });
+$('doors').addEventListener('click', () => { state.doors = !state.doors; syncButtons(); });
 
 // Cutaway: clip everything above the window band so the layout shows from above.
 renderer.localClippingEnabled = true;
 const cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.95);
 function applyCutaway() {
   world?.traverse((o) => {
-    if (!o.isMesh) return;
-    for (const m of [].concat(o.material)) { m.clippingPlanes = state.cut ? [cutPlane] : null; m.clipShadows = true; m.needsUpdate = true; }
+    if (!(o instanceof THREE.Mesh)) return;
+    for (const m of ([] as THREE.Material[]).concat(o.material)) { m.clippingPlanes = state.cut ? [cutPlane] : null; m.clipShadows = true; m.needsUpdate = true; }
   });
   for (const t of trains) for (const c of t.cars) for (const m of c.bodyMats ?? []) { m.clippingPlanes = state.cut ? [cutPlane] : null; m.needsUpdate = true; }
 }
 
 // WASD / arrow keys walk the camera (and its target) around, e.g. through the cars.
-const keys = new Set();
-addEventListener('keydown', (e) => { if (!e.target.closest?.('button')) keys.add(e.code); });
+const keys = new Set<string>();
+addEventListener('keydown', (e) => { if (!(e.target as HTMLElement).closest?.('button')) keys.add(e.code); });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 const _f = new THREE.Vector3(), _r = new THREE.Vector3();
-function walk(dt) {
-  const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
+function walk(dt: number) {
+  const k = (a: string, b: string) => (keys.has(a) || keys.has(b) ? 1 : 0);
   const fwd = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown'), right = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
   const up = k('KeyE', 'PageUp') - k('KeyQ', 'PageDown');
   if (!fwd && !right && !up) return;
@@ -284,9 +296,9 @@ $('toggle').addEventListener('click', () => {
 $('glb').addEventListener('click', () => {
   const exporter = new GLTFExporter();
   const types = trains.map((t) => t.type).join('-');
-  exporter.parse(trains.length > 1 ? world.children.filter((o) => trains.some((t) => t.group === o)) : trains[0].group, (buf) => {
+  exporter.parse(trains.length > 1 ? world!.children.filter((o) => trains.some((t) => t.group === o)) : trains[0].group, (buf) => {
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
+    a.href = URL.createObjectURL(new Blob([buf as ArrayBuffer], { type: 'model/gltf-binary' }));
     a.download = `sl-${types.toLowerCase()}${state.full ? '-train' : ''}.glb`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
@@ -299,8 +311,15 @@ build();
 
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
-  walk(Math.min(0.05, clock.getDelta()));
+  const dt = Math.min(0.05, clock.getDelta());
+  walk(dt);
+  // the doors take about two seconds to open or close
+  const target = state.doors ? 1 : 0;
+  if (doors !== target) {
+    doors = target > doors ? Math.min(1, doors + dt / 2.2) : Math.max(0, doors - dt / 2.8);
+    for (const t of trains) t.setDoors(doors, 0);
+  }
   controls.update();
   renderer.render(scene, camera);
 });
-window.__viewer = { scene, camera, controls, setView, get trains() { return trains; } };
+(window as Window & { __viewer?: unknown }).__viewer = { scene, camera, controls, setView, get trains() { return trains; } };

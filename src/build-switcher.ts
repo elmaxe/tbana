@@ -5,18 +5,26 @@
 // gets builds.json listing all of them. Served locally there is no build.json, so the picker
 // stays hidden.
 
-const fetchJSON = async (url) => {
+interface Build {
+  id: string;
+  label: string;
+  path: string;
+  sha?: string;
+  url?: string;
+}
+
+const fetchJSON = async <T>(url: string): Promise<T> => {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`${url}: ${res.status}`);
   return res.json();
 };
 
-export async function mountBuildSwitcher(container) {
+export async function mountBuildSwitcher(container: HTMLElement | null) {
   if (!container) return;
-  let current, builds;
+  let current: { id: string; root: string }, builds: Build[] | undefined;
   try {
     current = await fetchJSON('build.json');
-    ({ builds } = await fetchJSON(`${current.root}builds.json`));
+    ({ builds } = await fetchJSON<{ builds?: Build[] }>(`${current.root}builds.json`));
   } catch {
     return;
   }

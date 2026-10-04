@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { profile, box, merge, noseSkirtGeometry, DARK } from './kit.js';
+import { profile, box, merge, noseSkirtGeometry, DARK } from './kit';
+import type { Painter } from './kit';
+import type { CarDef, TrainSpec } from './train';
+import type { DoorStyle } from './doors';
 
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
 // Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each 16.756 m car has its own
@@ -24,21 +27,23 @@ const M = {
   collar: { c: '#e8eef3', r: 0.2, m: 0, e: '#8fa5ba' },
   seam: { c: '#c3c8cc', r: 0.4, m: 0 },
   mark: { c: '#1d2126', r: 0.4, m: 0 },
+  // a doorway: dark from outside, clear when the interior is drawn
+  opening: { c: '#0b0d10', r: 0.9, m: 0, a: 0 },
 };
 
 export const DOOR = 1.56;
 
 // Window frames between the doors, as [a, b] along the car (the glass is 5 cm inside the frame).
 // The interior cuts its window openings from the same list.
-function windowsBetween(out, xa, xb) {
+function windowsBetween(out: [number, number][], xa: number, xb: number) {
   const post = 0.32, max = 1.65;
   const n = Math.max(1, Math.ceil((xb - xa + post) / (max + post)));
   const w = (xb - xa - post * (n - 1)) / n;
   for (let i = 0; i < n; i++) out.push([xa + i * (w + post), xa + i * (w + post) + w]);
 }
 
-export function windowFrames(def, x0, x1) {
-  const out = [];
+export function windowFrames(def: CarDef, x0: number, x1: number) {
+  const out: [number, number][] = [];
   const doors = [...def.doors].sort((a, b) => a - b);
   let a = x0 + 0.42;
   const end = def.cab ? x1 - 2.3 : x1 - 0.42;
@@ -50,8 +55,8 @@ export function windowFrames(def, x0, x1) {
   return out;
 }
 
-function paintSide(p, def, x0, x1) {
-  const X = (dx) => x1 - dx;
+function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
+  const X = (dx: number) => x1 - dx;
   p.rectT(x0, x1, prof.tMin, prof.tMax, M.roof);
   p.rect(x0, x1, 0.6, 3.12, M.white);
   p.rect(x0, x1, 0.6, 1.0, M.skirt);
@@ -67,13 +72,7 @@ function paintSide(p, def, x0, x1) {
   for (const d of doors) {
     const da = d - DOOR / 2, db = d + DOOR / 2;
     p.rect(da - 0.025, db + 0.025, 0.97, 3.065, M.black, 0.17);
-    p.rect(da, db, 0.99, 3.04, M.blue, 0.15);
-    p.rect(d - 0.012, d + 0.012, 0.99, 3.04, M.black);
-    for (const s of [-1, 1]) {
-      const c = d + s * DOOR / 4;
-      p.rect(c - 0.25, c + 0.25, 1.48, 2.9, M.black, 0.12);
-      p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
-    }
+    p.rect(da, db, 0.99, 3.04, M.opening, 0.15);
   }
   if (def.cab) {
     // cab side window: a dark slot just behind the nose; then the driver's door outline
@@ -87,7 +86,7 @@ function paintSide(p, def, x0, x1) {
   p.text(x0 + 1.0, 1.12, `C30-${def.number}`, 0.07, M.white, { font: '600 {px}px Arial, Helvetica, sans-serif' });
 }
 
-function paintFront(p, def) {
+function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.8, 3.8, M.white);
   p.rect(-1.6, 1.6, 0.8, 1.2, M.skirt);
   p.rect(-1.1, 1.1, 1.64, 3.5, M.collar, 0.34);
@@ -103,9 +102,21 @@ function paintFront(p, def) {
   p.rect(-0.38, 0.38, 0.8, 1.1, M.black, 0.06);
 }
 
+// Blue plug door leaves with a tall black-framed window each.
+const doors: DoorStyle = {
+  width: DOOR, y0: 0.99, y1: 3.04, plug: 0.05,
+  outside(p, w) {
+    p.rect(-0.2, w, 0.99, 3.04, M.blue, 0.15);
+    p.rect(0, 0.012, 0.99, 3.04, M.black);
+    const c = w / 2;
+    p.rect(c - 0.25, c + 0.25, 1.48, 2.9, M.black, 0.12);
+    p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
+  },
+};
+
 const skirtMat = new THREE.MeshStandardMaterial({ color: 0x4b5157, roughness: 0.55, metalness: 0.15 });
 
-function extras(def, x0, x1) {
+function extras(def: CarDef, x0: number, x1: number) {
   const out = [];
   const under = [], skirt = [];
   const [b0, b1] = def.bogies;
@@ -149,7 +160,7 @@ const cars = {
   },
 };
 
-export const C30 = {
+export const C30: TrainSpec = {
   id: 'C30',
   title: 'C30',
   prof,
@@ -173,5 +184,6 @@ export const C30 = {
     { kind: 'tail', z: 1.09, y: 1.37, w: 0.15, h: 0.1 },
     { kind: 'tail', z: -1.09, y: 1.37, w: 0.15, h: 0.1 },
   ],
+  doors,
   paintSide, paintFront, extras,
 };

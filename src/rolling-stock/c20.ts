@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { profile, box, merge, corrugationNormalMap, noseSkirtGeometry, DARK } from './kit.js';
+import { profile, box, merge, corrugationNormalMap, noseSkirtGeometry, DARK } from './kit';
+import type { Painter } from './kit';
+import type { DoorStyle } from './doors';
+import type { CarDef, TrainSpec } from './train';
 
 // SL C20 — three-section articulated unit, Adtranz/Bombardier (Kalmar Verkstad), 1997–2004.
 // 46.5 m over couplers, 2.90 m wide, 3.68 m high. Four bogies per unit: two under the middle car,
@@ -23,19 +26,23 @@ const M = {
   glassFront: { c: '#12171c', r: 0.04, m: 0.3, e: '#0b0b0a' },
   grille: { c: '#2b2f34', r: 0.6, m: 0.4 },
   white: { c: '#f3f5f7', r: 0.4, m: 0 },
+  // a doorway: dark from outside, clear when the interior is drawn
+  opening: { c: '#0b0d10', r: 0.9, m: 0, a: 0 },
 };
 
 export const DOOR = 1.6; // double door, outer width
 
+export interface C20Car extends CarDef { under: [number, number, number, number][] }
+
 // Window panes between doors: split each free stretch into equal panes no wider than `max`.
-function panes(xa, xb, max = 1.8, post = 0.12) {
+function panes(xa: number, xb: number, max = 1.8, post = 0.12) {
   const n = Math.max(1, Math.ceil((xb - xa + post) / (max + post)));
   const w = (xb - xa - post * (n - 1)) / n;
-  return Array.from({ length: n }, (_, i) => [xa + i * (w + post), xa + i * (w + post) + w]);
+  return Array.from({ length: n }, (_, i): [number, number] => [xa + i * (w + post), xa + i * (w + post) + w]);
 }
 
-function freeSpans(from, to, doors) {
-  const spans = [];
+function freeSpans(from: number, to: number, doors: number[]) {
+  const spans: [number, number][] = [];
   let a = from;
   for (const d of [...doors].sort((p, q) => p - q)) {
     if (d - DOOR / 2 - 0.22 > a) spans.push([a, d - DOOR / 2 - 0.22]);
@@ -46,13 +53,13 @@ function freeSpans(from, to, doors) {
 }
 
 // Window panes (the glass, [a, b] along the car). The interior cuts its windows from the same list.
-export function windowPanes(def, x0, x1) {
+export function windowPanes(def: CarDef, x0: number, x1: number) {
   const passengerEnd = def.cab ? x1 - 3.45 : x1 - 0.3;
   return freeSpans(x0 + 0.3, passengerEnd, def.doors).flatMap(([a, b]) => panes(a, b));
 }
 
-function paintSide(p, def, x0, x1) {
-  const X = (dx) => x1 - dx; // distance back from the cab nose
+function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
+  const X = (dx: number) => x1 - dx; // distance back from the cab nose
   p.rectT(x0, x1, prof.tMin, prof.tMax, M.roof);
   p.rect(x0, x1, 0.6, 3.06, M.steel);
   p.rect(x0, x1, 0.6, 0.975, M.black);
@@ -66,16 +73,9 @@ function paintSide(p, def, x0, x1) {
   }
   for (const d of def.doors) {
     const a = d - DOOR / 2, b = d + DOOR / 2;
-    p.rect(a, b, 0.95, 3.0, M.blue);
     p.rectT(a, b, T(3.0), T(3.38), M.blue); // blue cap on the cant above each door
-    p.frame(a, b, 0.95, 3.0, 0.022, M.black);
-    p.rect(d - 0.01, d + 0.01, 0.95, 3.0, M.black);
-    for (const s of [-1, 1]) {
-      const c = d + s * DOOR / 4;
-      p.rect(c - 0.23, c + 0.23, 1.7, 2.88, M.black, 0.06);
-      p.rect(c - 0.2, c + 0.2, 1.73, 2.85, M.glass, 0.05);
-      p.rect(c - 0.17, c + 0.17, 2.77, 2.83, M.glassLit);
-    }
+    p.frame(a - 0.022, b + 0.022, 0.93, 3.022, 0.022, M.black);
+    p.rect(a, b, 0.95, 3.0, M.opening);
   }
   if (def.cab) {
     p.rect(X(3.12), x1, 0.6, 3.06, M.blue);
@@ -94,13 +94,13 @@ function paintSide(p, def, x0, x1) {
     p.rect(X(3.38), X(3.18), 1.55, 2.95, M.grille);
     for (let y = 1.6; y < 2.92; y += 0.05) p.rect(X(3.38), X(3.18), y, y + 0.02, M.black);
     p.text(X(1.65), 3.23, def.number, 0.15, M.white);
-    p.text(X(2.75), 3.25, def.name, 0.13, M.white, { font: 'italic 600 {px}px Georgia, serif' });
+    p.text(X(2.75), 3.25, def.name!, 0.13, M.white, { font: 'italic 600 {px}px Georgia, serif' });
   } else if (def.number) {
     p.text(x1 - 1.2, 3.16, def.number, 0.13, M.black);
   }
 }
 
-function paintFront(p, def) {
+function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.8, 3.75, M.blue);
   p.rect(-1.19, 1.19, 1.9, 3.44, M.black, 0.14);
   p.rect(-1.09, 1.09, 1.99, 3.07, M.glassFront, 0.09);
@@ -115,23 +115,39 @@ function paintFront(p, def) {
   p.text(-0.25, 1.86, def.number, 0.1, M.white);
 }
 
+// Blue sliding leaves, black-edged, with a tall window each.
+const doors: DoorStyle = {
+  width: DOOR, y0: 0.95, y1: 3.0, plug: 0.045,
+  outside(p, w) {
+    p.rect(0, w, 0.95, 3.0, M.blue);
+    p.rect(w - 0.022, w, 0.95, 3.0, M.black);
+    p.rect(0, w, 0.95, 0.972, M.black);
+    p.rect(0, w, 2.978, 3.0, M.black);
+    p.rect(0, 0.01, 0.95, 3.0, M.black);
+    const c = w / 2;
+    p.rect(c - 0.23, c + 0.23, 1.7, 2.88, M.black, 0.06);
+    p.rect(c - 0.2, c + 0.2, 1.73, 2.85, M.glass, 0.05);
+    p.rect(c - 0.17, c + 0.17, 2.77, 2.83, M.glassLit);
+  },
+};
+
 // Lower side panels are corrugated: separate panels with a tiling normal map.
-let corrMat;
-function corrugation(def, x0, x1) {
+let corrMat: THREE.MeshStandardMaterial | undefined;
+function corrugation(def: CarDef, x0: number, x1: number) {
   corrMat ??= new THREE.MeshStandardMaterial({
     color: 0xb6bcc2, roughness: 0.3, metalness: 0.85, normalMap: corrugationNormalMap(),
     normalScale: new THREE.Vector2(1, 1),
   });
   const ya = 1.0, yb = 1.86, period = 0.05;
   const end = def.cab ? x1 - 3.42 : x1 - 0.06;
-  const spans = [];
+  const spans: [number, number][] = [];
   let a = x0 + 0.06;
   for (const d of [...def.doors].sort((p, q) => p - q)) {
     if (d - DOOR / 2 - 0.02 > a) spans.push([a, d - DOOR / 2 - 0.02]);
     a = d + DOOR / 2 + 0.02;
   }
   if (end > a) spans.push([a, end]);
-  const pos = [], uv = [], idx = [];
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
   for (const s of [1, -1]) {
     const z = s * (W + 0.004);
     for (const [xa, xb] of spans) {
@@ -151,7 +167,7 @@ function corrugation(def, x0, x1) {
 }
 
 
-function extras(def, x0, x1) {
+function extras(def: C20Car, x0: number, x1: number) {
   const out = [corrugation(def, x0, x1)];
   // underframe equipment boxes between the bogies
   const parts = [];
@@ -171,7 +187,7 @@ function extras(def, x0, x1) {
   return out;
 }
 
-const cars = {
+const cars: Record<string, C20Car> = {
   // end car, cab at +x. Bogie under the cab; the inner end rides on the middle car.
   A: {
     length: 14.9, cab: true, number: '2201A', name: 'Ivo',
@@ -188,7 +204,7 @@ const cars = {
   },
 };
 
-export const C20 = {
+export const C20: TrainSpec = {
   id: 'C20',
   title: 'C20',
   prof,
@@ -211,5 +227,6 @@ export const C20 = {
     { kind: 'tail', z: 1.18, y: 1.66, w: 0.17, h: 0.11 },
     { kind: 'tail', z: -1.18, y: 1.66, w: 0.17, h: 0.11 },
   ],
+  doors,
   paintSide, paintFront, extras,
 };
