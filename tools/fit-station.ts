@@ -9,55 +9,20 @@
 // on). The fit is a rotation and a shift in plan; heights are kept, since the models are already
 // drawn in metres above sea level.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { classifyColor } from '../src/model-colors.ts';
-import { extractCenterlines, splitComponents } from '../src/polyline.ts';
 import type { Tri } from '../src/polyline.ts';
 import { lonLatToWorld, ORIGIN } from '../src/geo.ts';
+import { loadStationModel } from './lib/station-model.ts';
+import type { TrackKind as Kind } from './lib/station-model.ts';
 
-type Kind = 'blue' | 'red' | 'green' | 'pink' | 'tram' | 'main';
 interface OsmWay { id: number; tags: Record<string, string>; geometry: { lat: number; lon: number }[] }
 interface Seg { ax: number; az: number; bx: number; bz: number; way: number }
 
 const name = process.argv[2] || 't-centralen';
-const MODEL = `public/assets/${name}.glb`;
 const OSM = `data/osm/${name}.json`;
 const OUT = 'public/data/stations.json';
 
 // ------------------------------------------------------------------ model track samples
-function loadModel(path: string): Promise<THREE.Object3D> {
-  const buf = readFileSync(path);
-  const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  return new Promise((ok, fail) => new GLTFLoader().parse(ab, '', (g) => ok(g.scene), fail));
-}
-
-const root = await loadModel(MODEL);
-root.updateMatrixWorld(true);
-const samples: { kind: Kind; x: number; y: number; z: number }[] = [];
-const floors: Tri[] = [];
-root.traverse((obj) => {
-  const mesh = obj as THREE.Mesh;
-  if (!mesh.isMesh) return;
-  const kind = classifyColor((mesh.material as THREE.MeshStandardMaterial).color);
-  if (kind !== 'floor' && !kind.startsWith('track:')) return;
-  let g = mesh.geometry.clone();
-  if (g.index) g = g.toNonIndexed();
-  g.applyMatrix4(mesh.matrixWorld);
-  g.computeVertexNormals();
-  const p = g.attributes.position, n = g.attributes.normal;
-  const top: Tri[] = [];
-  for (let i = 0; i < p.count; i += 3) {
-    if ((n.getY(i) + n.getY(i + 1) + n.getY(i + 2)) / 3 < 0.35) continue;
-    top.push([0, 1, 2].map((k) => new THREE.Vector3(p.getX(i + k), p.getY(i + k), p.getZ(i + k))) as Tri);
-  }
-  if (kind === 'floor') { floors.push(...top); return; }
-  for (const comp of splitComponents(top)) {
-    for (const pl of extractCenterlines(comp)) {
-      for (const v of pl.resample(0, pl.length, 2)) samples.push({ kind: kind.slice(6) as Kind, x: v.x, y: v.y, z: v.z });
-    }
-  }
-});
+const { samples, floors }: { samples: { kind: Kind; x: number; y: number; z: number }[]; floors: Tri[] } = await loadStationModel(name);
 
 // ------------------------------------------------------------------ OSM tracks
 function osmKind(t: Record<string, string>): Kind | 'metro' | null {
