@@ -79,15 +79,25 @@
           <ul id="teleports"></ul>
         </div>
       </div>
+      <h2>Train models</h2>
+      <ul class="trainlinks">
+        <li><a href="trains.html?type=C20" target="_blank" rel="noopener"><span class="dot" style="background:#0b5fc6"></span>C20<small>1997–2004, stainless steel</small></a></li>
+        <li><a href="trains.html?type=C30" target="_blank" rel="noopener"><span class="dot" style="background:#eceeef"></span>C30<small>MOVIA, since 2020</small></a></li>
+        <li><a href="trains.html?type=C30&amp;view=inside" target="_blank" rel="noopener"><span class="dot" style="background:#f2c94c"></span>Inside<small>walk through a C30</small></a></li>
+      </ul>
+      <div id="buildSwitch" hidden></div>
       <p class="credit">
         Station geometry: 3D drawing of T-Centralen / Stockholm City / Stockholm C © Albert Guillaumes,
         from <a href="http://stations.albertguillaumes.cat/" target="_blank" rel="noopener">Stations and transfers</a>.
         Walls, tracks, trains and lighting are generated around it.
-        <a href="trains.html" target="_blank" rel="noopener">See the C20 and C30 train models</a>.
       </p>
     </div>
   </div>
 
   <script type="module" src="src/main.js"></script>
+  <script type="module">
+    import { mountBuildSwitcher } from './src/build-switcher.js';
+    mountBuildSwitcher(document.getElementById('buildSwitch'));
+  </script>
 </body>
 </html>
