@@ -1,7 +1,7 @@
 // Line metadata. Model axes: +x ≈ east, +z ≈ south (worked out from the track geometry).
 export const LINES = {
   blue: {
-    name: 'Blue line', local: 'Blå linjen', color: '#0a73c4', kind: 'metro',
+    name: 'Blue line', local: 'Blå linjen', color: '#0a73c4', kind: 'metro', train: 'C20',
     numbers: ['10', '11'], sign: 'T-Centralen', signBg: '#0c4da2', axis: 'x',
     // travel towards +x (east) / -x (west)
     dest: {
@@ -10,7 +10,7 @@ export const LINES = {
     },
   },
   red: {
-    name: 'Red line', local: 'Röda linjen', color: '#d71d24', kind: 'metro',
+    name: 'Red line', local: 'Röda linjen', color: '#d71d24', kind: 'metro', train: 'C30',
     numbers: ['13', '14'], sign: 'T-Centralen', signBg: '#0c4da2', axis: 'z',
     // travel towards +z (south) / -z (north)
     dest: {
@@ -19,7 +19,7 @@ export const LINES = {
     },
   },
   green: {
-    name: 'Green line', local: 'Gröna linjen', color: '#1f9a3c', kind: 'metro',
+    name: 'Green line', local: 'Gröna linjen', color: '#1f9a3c', kind: 'metro', train: 'C20',
     numbers: ['17', '18', '19'], sign: 'T-Centralen', signBg: '#0c4da2', axis: 'z',
     dest: {
       pos: [['17', 'Skarpnäck'], ['18', 'Farsta strand'], ['19', 'Hagsätra']],

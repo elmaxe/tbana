@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Stockholm Metro Trains</title>
+  <meta name="description" content="Procedural 3D models of the Stockholm metro's C20 and C30 trains.">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root { --panel: rgba(14, 18, 26, 0.88); --text: #eef2f7; --muted: #9aa6b5; --sl: #0c4da2; --line: #2a3340; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #c9d3dc; color: var(--text);
+      font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    #panel { position: fixed; left: 16px; top: 16px; width: 300px; max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px); overflow: auto; padding: 14px 16px; border-radius: 10px; background: var(--panel); }
+    h1 { margin: 0 0 2px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+    h1 .t { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--sl); font-size: 14px; }
+    .sub { margin: 0 0 12px; color: var(--muted); }
+    .row { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+    .row > span { width: 100%; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    button { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px;
+      background: #1a212c; color: var(--text); font: inherit; cursor: pointer; }
+    button:hover { background: #222b38; }
+    button.on { background: var(--sl); border-color: #3d7bd0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    td { padding: 3px 0; border-top: 1px solid var(--line); vertical-align: top; }
+    td:first-child { color: var(--muted); width: 42%; padding-right: 8px; }
+    .spec h2 { margin: 12px 0 0; font-size: 15px; }
+    .spec p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    #hint { position: fixed; right: 16px; bottom: 14px; padding: 6px 10px; border-radius: 6px;
+      background: var(--panel); color: var(--muted); font-size: 12px; }
+    #panel.min .body { display: none; }
+    #toggle { position: absolute; right: 10px; top: 10px; flex: none; width: 28px; padding: 2px; }
+    a { color: #8fc0ff; }
+    @media (max-width: 600px) {
+      #panel { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46vh; }
+      #hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="panel">
+    <button id="toggle" aria-label="Collapse panel">–</button>
+    <h1><span class="t">T</span> Stockholm metro trains</h1>
+    <p class="sub">Exterior models of the C20 and C30</p>
+    <div class="body">
+      <div class="row" id="types"><span>Train</span>
+        <button data-type="C20">C20</button><button data-type="C30">C30</button><button data-type="both">Both</button>
+      </div>
+      <div class="row" id="lengths"><span>Length</span>
+        <button data-len="1">One unit</button><button data-len="full">Full train</button>
+      </div>
+      <div class="row" id="views"><span>View</span>
+        <button data-view="front">Front</button><button data-view="side">Side</button><button data-view="bogie">Bogie</button><button data-view="top">Top</button>
+      </div>
+      <div class="row"><span>Model</span>
+        <button id="spin">Turntable</button><button id="glb">Download .glb</button>
+      </div>
+      <div id="spec" class="spec"></div>
+    </div>
+  </div>
+  <div id="hint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+  <script type="module" src="src/viewer.js"></script>
+</body>
+</html>
