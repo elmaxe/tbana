@@ -10,7 +10,11 @@
     "fetch-osm": "node tools/fetch-osm.ts",
     "fit-station": "node tools/fit-station.ts",
     "build-track-graph": "node tools/build-track-graph.ts",
-    "plot-graph": "node tools/plot-graph.ts"
+    "plot-graph": "node tools/plot-graph.ts",
+    "fetch-station-heights": "node tools/fetch-station-heights.ts",
+    "fetch-ground": "node tools/fetch-ground.ts",
+    "build-heights": "node tools/build-heights.ts",
+    "plot-profile": "node tools/plot-profile.ts"
   },
   "dependencies": {
     "three": "0.170.0"
@@ -18,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/three": "0.170.0",
+    "geotiff": "^3.0.5",
     "typescript": "^5.9.0",
     "vite": "^8.0.0"
   }

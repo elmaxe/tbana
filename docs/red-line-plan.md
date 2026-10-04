@@ -91,12 +91,30 @@ Each phase ends in a pull request with a playable preview.
      - Track geometry in the tunnels is OSM's sketch: Mörby's two tracks are 30 m apart.
        Phase 4 will need to smooth it and space parallel tracks properly.
      - The graph has the whole network, but only the red line is traced and checked.
-3. **Heights.**
-   - Give each station its Wikidata height and each tunnel mouth the height of the ground there.
-   - Fill in the track between them within the 1975 limits for the red line: 40‰ at most, 10‰ at
-     stations, vertical curves of at least 2,000 m, curve radius at least 250 m.
-   - A check script reports anything outside the limits.
-   - Done when: the whole red line passes the check, and a side view of the line looks plausible.
+3. **Heights.** *In progress: everything but the terrain.*
+   - `tools/fetch-station-heights.ts` takes the stations' heights from Wikidata, matched by
+     OSM's `wikidata` tag. 49 stations have one, including 35 of the red line's 36; T-Centralen
+     doesn't.
+   - `tools/fetch-ground.ts` samples Lantmäteriet's 1 m elevation model every 10 m under the
+     services' tracks. It reads only the needed blocks of the Cloud Optimized GeoTIFFs.
+     - Not run yet: the Geotorget login (`LM_USER`, `LM_PASSWORD`) reaches only sessions started
+       after it was added.
+   - `tools/build-heights.ts` cuts every piece into points about 10 m apart, joined at the nodes,
+     and fits the smoothest line by least squares (conjugate gradients) through these anchors:
+     - Stations: 1.0 m below their Wikidata height, which is taken to be the platform level.
+     - T-Centralen: its platform tracks in the station model. The model's tunnel ends drop at
+       up to 70‰ and are only sketched, so they are left out.
+     - Surface track: 0.2 m above the ground.
+     - Tunnels: at least 6 m under the ground more than 120 m from a mouth, re-solved until they
+       are.
+     - Bridges: carried across with no anchor.
+   - It then checks the result against the 1975 limits and fails on anything outside them.
+   - `tools/plot-profile.ts` draws a service's side view.
+   - Without the terrain it already passes the check: steepest 37.3‰ (near Östermalmstorg) and
+     tightest vertical curve 6.3 km. T-Centralen comes out on two levels: northbound red about
+     −12 m, southbound about −5 m, as in the station model.
+   - To finish: in a session with the login, run `npm run fetch-ground` then
+     `npm run build-heights`, look at the side views, and fix what the check reports.
 4. **Tunnels and track in the game.**
    - Draw track, rails and third rail along the graph.
    - Add tunnel shells by type: rock tunnel, concrete box, open cutting, bridge and embankment.

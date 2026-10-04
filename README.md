@@ -165,6 +165,31 @@ each with its reason:
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.
 
+### Track heights
+
+`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every
+piece of track the red line services run on.
+
+```sh
+npm run fetch-station-heights    # Wikidata station heights -> data/station-heights.json
+LM_USER=… LM_PASSWORD=… npm run fetch-ground   # ground under the tracks -> data/ground/red-line.json
+npm run build-heights            # -> public/data/track-heights.json, and the check
+npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
+```
+
+`build-heights` fits the smoothest line through these anchors:
+
+- **Stations:** 1 m below their height from Wikidata, which is taken to be the platform's level.
+- **T-Centralen:** its platforms in the station model.
+- **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
+
+It keeps tunnels at least 6 m under the ground away from their mouths. It then checks the result
+against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of at
+least 2,000 m. It fails on anything outside them.
+
+`fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
+`LM_PASSWORD`.
+
 ## Train models
 
 ![C30 and C20](trains.jpg)

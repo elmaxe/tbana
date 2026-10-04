@@ -45,6 +45,36 @@ export function project(lat: number, lon: number, g: Grid = GRID_1800) {
   return { e, n };
 }
 
+// Inverse of project(): grid easting and northing back to latitude and longitude.
+export function unproject(e: number, n: number, g: Grid = GRID_1800) {
+  const d1 = N / 2 - (2 / 3) * N ** 2 + (37 / 96) * N ** 3 - (1 / 360) * N ** 4;
+  const d2 = (1 / 48) * N ** 2 + (1 / 15) * N ** 3 - (437 / 1440) * N ** 4;
+  const d3 = (17 / 480) * N ** 3 - (37 / 840) * N ** 4;
+  const d4 = (4397 / 161280) * N ** 4;
+  const cA = E2 + E2 ** 2 + E2 ** 3 + E2 ** 4;
+  const cB = -(7 * E2 ** 2 + 17 * E2 ** 3 + 30 * E2 ** 4) / 6;
+  const cC = (224 * E2 ** 3 + 889 * E2 ** 4) / 120;
+  const cD = -(4279 * E2 ** 4) / 1260;
+  const xi = (n - g.fn) / (g.k0 * AR), eta = (e - g.fe) / (g.k0 * AR);
+  const xi1 = xi
+    - d1 * Math.sin(2 * xi) * Math.cosh(2 * eta) - d2 * Math.sin(4 * xi) * Math.cosh(4 * eta)
+    - d3 * Math.sin(6 * xi) * Math.cosh(6 * eta) - d4 * Math.sin(8 * xi) * Math.cosh(8 * eta);
+  const eta1 = eta
+    - d1 * Math.cos(2 * xi) * Math.sinh(2 * eta) - d2 * Math.cos(4 * xi) * Math.sinh(4 * eta)
+    - d3 * Math.cos(6 * xi) * Math.sinh(6 * eta) - d4 * Math.cos(8 * xi) * Math.sinh(8 * eta);
+  const phiC = Math.asin(Math.sin(xi1) / Math.cosh(eta1));
+  const dl = Math.atan(Math.sinh(eta1) / Math.cos(xi1));
+  const s = Math.sin(phiC), c = Math.cos(phiC);
+  const phi = phiC + s * c * (cA + cB * s ** 2 + cC * s ** 4 + cD * s ** 6);
+  return { lat: phi / RAD, lon: g.lon0 + dl / RAD };
+}
+
+// World x, z to a point on another grid, e.g. SWEREF 99 TM for Lantmäteriet's data.
+export function worldToGrid(x: number, z: number, g: Grid) {
+  const { lat, lon } = unproject(ORIGIN.e + x, ORIGIN.n - z);
+  return project(lat, lon, g);
+}
+
 // Latitude/longitude (WGS 84 / SWEREF 99, which agree to a few decimetres) to world x, z.
 export function lonLatToWorld(lon: number, lat: number) {
   const { e, n } = project(lat, lon);
