@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { merge } from './kit';
 import {
-  liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches,
+  liningProfile, seating, pole, rail, moquette, interiorMat, Parts, freeStretches,
   endWallMaterial, screenTexture, portalLoop,
 } from './interior';
 import type { Painter } from './kit';
+import type { CabinLights } from './cabin-light';
 import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating, Vec3 } from './interior';
 import { DOOR, windowFrames } from './c30';
 import type { CarDef } from './train';
@@ -26,7 +27,16 @@ const IW = 1.385;   // inner half-width at the floor
 const prof = liningProfile([
   [0, F], [IW, F, 0.03], [IW, 1.95, 0.8], [1.335, 2.96, 0.08], [1.03, 3.2, 0.04], [1.0, 3.36, 0.04], [0, 3.38],
 ]);
-const G = 0.16; // how strongly the interior glows (stands in for its lighting)
+// The light line along each cove shines in across the ceiling and down, and the row of round
+// downlights each side of the centre shines straight down. Neutral white LEDs.
+const LIGHTS: CabinLights = {
+  strips: [
+    { y: 3.25, z: 0.99, facing: [-0.35, -1], power: 0.38 },
+    { y: 3.36, z: 0.76, facing: [-1, 0], power: 0.3 },
+  ],
+  color: 0xfffaf4,
+  fill: 0.2,
+};
 
 // t (arc length) where the lining crosses z on the floor / on the ceiling
 function tAt(z: number, part: 'floor' | 'ceiling') {
@@ -40,7 +50,7 @@ function tAt(z: number, part: 'floor' | 'ceiling') {
 
 const C = {
   wall: { c: '#eaecea', r: 0.45 },
-  ceiling: { c: '#eef0ee', r: 0.6, g: 1.1 },
+  ceiling: { c: '#eef0ee', r: 0.6 },
   floor: { c: '#c3c4bf', r: 0.75 },
   fleck: { c: '#8f918c', r: 0.75 },
   fleckL: { c: '#e2e3df', r: 0.75 },
@@ -172,22 +182,22 @@ function plain(ctx: CanvasRenderingContext2D, n: number, col: string) {
 function materials(): InteriorMaterials {
   const tex = (draw: (ctx: CanvasRenderingContext2D, n: number) => void, size: number, n?: number) => moquette(draw, size, n);
   return {
-    wall: glowMat('#eaecea', { glow: G, roughness: 0.5, side: THREE.DoubleSide }),
-    bellows: glowMat('#9a9ea2', { glow: G, roughness: 0.85, side: THREE.DoubleSide }),
-    plate: glowMat('#1e1f21', { glow: 0.1, roughness: 0.85 }),
-    shell: glowMat('#d4d2ce', { glow: G, roughness: 0.45 }),
-    rim: glowMat('#a8abae', { glow: G * 0.8, roughness: 0.35, metalness: 0.5 }),
-    back: glowMat('#ffffff', { glow: G, map: tex((c, n) => plattan(c, n, '#2b3241', '#5b6576'), 0.42), roughness: 0.95 }),
-    pan: glowMat('#ffffff', { glow: G, map: tex((c, n) => plain(c, n, '#3a4250'), 0.05, 32), roughness: 0.95 }),
-    backY: glowMat('#ffffff', { glow: G, map: tex((c, n) => plattan(c, n, '#e3a628', '#f3c94a'), 0.42), roughness: 0.95 }),
-    panY: glowMat('#ffffff', { glow: G, map: tex((c, n) => plain(c, n, '#eab23a'), 0.05, 32), roughness: 0.95 }),
-    steel: glowMat('#c3c7ca', { glow: G * 0.6, roughness: 0.22, metalness: 0.9 }),
-    yellow: glowMat('#f5c800', { glow: G, roughness: 0.45 }),
+    wall: interiorMat('#eaecea', { roughness: 0.5, side: THREE.DoubleSide }),
+    bellows: interiorMat('#9a9ea2', { roughness: 0.85, side: THREE.DoubleSide }),
+    plate: interiorMat('#1e1f21', { roughness: 0.85 }),
+    shell: interiorMat('#d4d2ce', { roughness: 0.45 }),
+    rim: interiorMat('#a8abae', { roughness: 0.35, metalness: 0.5 }),
+    back: interiorMat('#ffffff', { map: tex((c, n) => plattan(c, n, '#2b3241', '#5b6576'), 0.42), roughness: 0.95 }),
+    pan: interiorMat('#ffffff', { map: tex((c, n) => plain(c, n, '#3a4250'), 0.05, 32), roughness: 0.95 }),
+    backY: interiorMat('#ffffff', { map: tex((c, n) => plattan(c, n, '#e3a628', '#f3c94a'), 0.42), roughness: 0.95 }),
+    panY: interiorMat('#ffffff', { map: tex((c, n) => plain(c, n, '#eab23a'), 0.05, 32), roughness: 0.95 }),
+    steel: interiorMat('#c3c7ca', { roughness: 0.22, metalness: 0.9 }),
+    yellow: interiorMat('#f5c800', { roughness: 0.45 }),
     glass: new THREE.MeshStandardMaterial({ color: 0xdfeef0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff8ec, emissiveIntensity: 1.3 }),
-    strap: glowMat('#b07a45', { glow: G, roughness: 0.6 }),
+    strap: interiorMat('#b07a45', { roughness: 0.6 }),
     sign: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 64, drawSign), roughness: 0.2 }),
-    housing: glowMat('#1d2024', { glow: 0.1, roughness: 0.5 }),
+    housing: interiorMat('#1d2024', { roughness: 0.5 }),
     bulkhead: bulkheadMaterial(),
   };
 }
@@ -210,7 +220,7 @@ function bulkheadMaterial() {
     ctx.restore();
   };
   return endWallMaterial({
-    w: 1.5, y0: F, y1: 3.4, glow: G,
+    w: 1.5, y0: F, y1: 3.4,
     draw(ctx) {
       ctx.fillStyle = '#eaecea'; ctx.fillRect(-1.5, F, 3, 2.4);
       ctx.fillStyle = '#3a3f47'; ctx.fillRect(-1.5, F, 3, 2.2);
@@ -406,7 +416,7 @@ function furnish(def: CarDef, ctx: InteriorContext) {
 export const interior: InteriorSpec = {
   lining: prof,
   floorY: F,
-  glow: G,
+  lights: LIGHTS,
   endWall: 0.08,
   cabDepth: 2.2,
   // octagonal gangway portal, about 1.75 m wide and 2.05 m high

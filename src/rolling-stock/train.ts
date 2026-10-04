@@ -10,6 +10,7 @@ import { liningGeometry, endWallGeometry, portalTube } from './interior';
 import type { InteriorContext, InteriorMaterials, InteriorSpec } from './interior';
 import { carDoors, doorFrames, doorKit } from './doors';
 import type { DoorKit, DoorStyle } from './doors';
+import { cabinShadows, lightCabin } from './cabin-light';
 
 // Turns a train type description (see c20.ts / c30.ts) into car templates and assembles trains.
 
@@ -167,9 +168,28 @@ function carTemplate(kit: TypeKit, kind: string, bellowsRear: boolean) {
     tpl.glazed.name = 'body';
     tpl.interior = mergeByMaterial(interiorGroup(kit, def, x0, x1, bellowsRear));
     tpl.interior.name = 'interior';
+    // the car's own ceiling lights, and the shadows of what stands in it (this template's own
+    // copies of the materials carry them)
+    const { xa, xb } = saloon(it, def, x0, x1);
+    const meshes: THREE.Mesh<THREE.BufferGeometry, THREE.Material>[] = [];
+    tpl.interior.traverse((o) => { if (isMesh(o)) meshes.push(o); });
+    const F = it.floorY;
+    const shadows = cabinShadows(meshes.filter((m) => m.name !== 'lining'), {
+      x0: x0 - (bellowsRear ? spec.gap : 0), x1, w: prof.w, y0: F - 0.05, y1: F + 1.35,
+    });
+    const own = new Map<THREE.Material, THREE.Material>();
+    for (const m of meshes) {
+      if (!own.has(m.material)) own.set(m.material, m.material.clone());
+      m.material = own.get(m.material)!;
+    }
+    lightCabin(own.values(), it.lights, { xa, xb, shadows });
+    if (tpl.doors) {
+      tpl.doors = { ...tpl.doors, material: tpl.doors.material.clone() };
+      lightCabin([tpl.doors.material], it.lights, { xa, xb, shadows, door: true });
+    }
     if (spec.doors) {
       tpl.floor = {
-        y: it.floorY, x0, x1, xa: x0 + it.endWall, xb: def.cab ? x1 - it.cabDepth : x1 - it.endWall,
+        y: it.floorY, x0, x1, xa, xb,
         inner: it.lining.w, outer: prof.w, portal: it.portal.w, frontPortal: !def.cab, rearGap: bellowsRear ? spec.gap : 0,
         doors: def.doors, doorWidth: spec.doors.width,
       };
@@ -177,6 +197,11 @@ function carTemplate(kit: TypeKit, kind: string, bellowsRear: boolean) {
   }
   kit.templates.set(key, tpl);
   return tpl;
+}
+
+// The saloon runs from just inside the rear end to the cab bulkhead or the front end.
+function saloon(it: InteriorSpec, def: CarDef, x0: number, x1: number) {
+  return { xa: x0 + it.endWall, xb: def.cab ? x1 - it.cabDepth : x1 - it.endWall };
 }
 
 // The passenger saloon of one car: lining, end walls, gangway and whatever the type furnishes.
@@ -188,10 +213,9 @@ function interiorGroup(kit: TypeKit, def: CarDef, x0: number, x1: number, bellow
   const { portal } = it;
   const group = new THREE.Group();
   group.name = `${spec.id}-${def.cab ? 'A' : 'M'}-interior`;
-  // the saloon runs from just inside the rear end to the cab bulkhead or the front end
-  const xa = x0 + it.endWall, xb = def.cab ? x1 - it.cabDepth : x1 - it.endWall;
+  const { xa, xb } = saloon(it, def, x0, x1);
   const ctx: InteriorContext = { x0, x1, xa, xb, mats, prof: it.lining };
-  const lp = sidePainter(it.lining, xa, xb, 100 * quality, { inside: true, alpha: true, glow: it.glow });
+  const lp = sidePainter(it.lining, xa, xb, 100 * quality, { inside: true, alpha: true });
   it.paint(lp, def, ctx);
   const lining = new THREE.Mesh(liningGeometry(it.lining, xa, xb), lp.material({}, 'mask'));
   lining.material.name = 'lining';

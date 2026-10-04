@@ -4,6 +4,7 @@ import { buildStation } from './station';
 import type { Station } from './station';
 import { Player } from './player';
 import { Trains } from './trains';
+import { setOutsideLight } from './rolling-stock/index';
 import type { CarFloorData, Ride } from './trains';
 import { MiniMap } from './minimap';
 import { Input } from './input';
@@ -39,6 +40,9 @@ sun.position.set(0.35, 1, 0.25);
 scene.add(sun);
 const headLight = new THREE.PointLight(0xfff1dc, 9, 26, 1.5);
 scene.add(headLight);
+// Inside the train cars: none of these lights cast shadows, so the sun and the head light would
+// shine through the roofs. The cars' own lights light them, with a little of the station's.
+setOutsideLight({ direct: 0, ambient: 0.15 });
 
 // Keep at least ~70° horizontal view in portrait.
 function fitCamera() {
