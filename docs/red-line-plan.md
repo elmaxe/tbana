@@ -54,7 +54,6 @@ Each phase ends in a pull request with a playable preview.
    - The drawing's heights are kept as drawn. They look like RH 2000:
      - The blue line is at −24 m, between Rådhuset at −20.5 m and Kungsträdgården at −29.3 m.
      - The Stockholm C tracks are at +6 m.
-     - Phase 3 checks this against the elevation model.
 2. **Track data tools.** *Done.*
    - `tools/fetch-osm.ts network` downloads every metro track with its nodes, the switches,
      platforms (ways and multipolygons), stations, entrances and route relations.
@@ -89,20 +88,120 @@ Each phase ends in a pull request with a playable preview.
    - `tools/plot-graph.ts` draws any part of the graph with the traced services, for checking.
    - Still open:
      - Track geometry in the tunnels is OSM's sketch: Mörby's two tracks are 30 m apart.
-       Phase 4 will need to smooth it and space parallel tracks properly.
+       Phase 4 smooths it and spaces the tracks as built.
      - The graph has the whole network, but only the red line is traced and checked.
-3. **Heights.**
-   - Give each station its Wikidata height and each tunnel mouth the height of the ground there.
-   - Fill in the track between them within the 1975 limits for the red line: 40‰ at most, 10‰ at
-     stations, vertical curves of at least 2,000 m, curve radius at least 250 m.
-   - A check script reports anything outside the limits.
-   - Done when: the whole red line passes the check, and a side view of the line looks plausible.
-4. **Tunnels and track in the game.**
-   - Draw track, rails and third rail along the graph.
-   - Add tunnel shells by type: rock tunnel, concrete box, open cutting, bridge and embankment.
-     Size them from the typical sections in the 1952 and 1975 descriptions.
-   - Load only the stretch near the player.
-   - Done when: you can fly from T-Centralen to Östermalmstorg through a real tunnel.
+3. **Heights.** *Done.*
+   - `tools/fetch-station-heights.ts` takes the stations' heights from Wikidata, matched by
+     OSM's `wikidata` tag. 49 stations have one, including 35 of the red line's 36; T-Centralen
+     doesn't.
+   - `tools/fetch-ground.ts` samples Lantmäteriet's 1 m elevation model every 10 m under the
+     services' tracks: 8,354 samples in `data/ground/red-line.json`.
+     - The files (2.5 km squares) are found through Lantmäteriet's STAC catalogue, and only the
+       needed blocks of each Cloud Optimized GeoTIFF are read.
+     - The download server turns away (403) some requests when several arrive at once, so they go
+       out three at a time, with retries.
+   - `tools/build-heights.ts` cuts every piece into points about 10 m apart, joined at the nodes,
+     and fits the smoothest line by least squares through these anchors:
+     - Stations: 1.0 m below their Wikidata height, which is taken to be the platform level, and
+       level along the platform. Without that, the fit tilted Gamla stan's and Slussen's platforms
+       by up to 26‰ to meet the line between them.
+     - T-Centralen: its platform tracks in the station model. The model's tunnel ends drop at
+       up to 70‰ and are only sketched, so they are left out.
+     - Surface track: 0.2 m above the ground, except the last 30 m to a bridge, which is
+       embankment.
+     - Bridges: carried across with no anchor.
+   - Two limits are enforced by holding the line where it breaks them, and letting go where a
+     hold no longer pushes, until nothing changes:
+     - Tunnels: at least 6 m under the ground more than 120 m from a mouth. The ground is
+       averaged over 25 m, so a tunnel may pass under a short dip (a channel, a road cutting)
+       with less. Platforms are exempt.
+     - Gradient: at most 37‰. Between two level stations the smoothest line is an S whose middle
+       is half as steep again as the average: 45‰ from Östermalmstorg up to Stadion. A real line
+       runs at an even grade between short vertical curves.
+   - The solve is an exact sparse Cholesky (reverse Cuthill–McKee order), in under a second.
+     Conjugate gradients didn't converge on the long, gentle sags under the lakes.
+   - `data/height-corrections.json` fixes the inputs, each with its reason:
+     - Gamla stan's Wikidata height (2.6 m) is the street. The ticket hall is under the tracks,
+       and the elevation model shows the station deck at +7 to +7.5 m. The bridge to Slussen
+       (platforms at 8 m, which Wikipedia puts 7–24 m under the ground) is then nearly level.
+     - Riddarholmskanalen: the line runs in a trough built in the canal, with Centralbron resting
+       on it, so it needs no cover under the water.
+     - The 54 m of OSM surface track south of Gamla stan's platforms is still on the deck.
+   - It then checks the result against the 1975 limits and fails on anything outside them, with
+     the place.
+   - `tools/plot-profile.ts` draws a service's side view.
+   - Result: all four directions pass. Steepest 37.2‰ (near Östermalmstorg), tightest vertical
+     curve 3.1 km (near Telefonplan). Surface track is within 0.8 m of the ground for 90% of its
+     length. T-Centralen is on two levels: northbound red at −12.6 m, southbound at −5.1 m.
+   - Tunnels under water follow OSM: Riddarholmskanalen, Liljeholmsviken (OSM has the line in
+     tunnel there, not on a bridge) and Brunnsviken. The elevation model gives the water's
+     surface, not the bottom, so their depth is only as good as the 6 m rule.
+4. **Tunnels and track in the game.** *Done.*
+   - The typical sections are from the 1952 and 1975 descriptions (in `src/sections.ts`):
+     - Track centres are 3.15 m.
+     - The double-track rock tunnel is 8.0 m wide, with walls to 3.2 m and the crown 4.6 m above
+       the rails.
+     - The single-track rock tunnel is 4.3 m wide (1975: 1.9 m on one side of the track, 2.4 m on
+       the other), with its crown at 4.45 m.
+     - The concrete box is 4.2 m high inside, with haunched corners.
+     - The embankment's formation is 10.8 m wide, with 1:2 slopes. A double-track viaduct deck is
+       8.4 m wide.
+     - Track is concrete sleepers 2.4 m long at 0.741 m, with SJ50 rail.
+     - The conductor rail is on the side away from the other track and from the platform, 1.40 m
+       from the track centre and 0.1 m above the rails, under a wooden cover board.
+     - Tunnel lights are every 10 m on alternate walls (every 7 m in single-track tunnels).
+     - Neither description dimensions an open trough or the Söderström bridge, so those sizes
+       are guesses.
+   - `tools/build-track-geometry.ts` writes `public/data/track-geometry.json`.
+     - It refits the plan by least squares: closely to OSM in the open and at platforms (median
+       0.1 m), loosely in tunnels (median 3.5 m, 90% within 9 m), and onto the T-Centralen model
+       at its platforms.
+     - In tunnels, the two tracks of a line at the same level are pulled to 3.15 m apart, away
+       from mouths and platforms they don't share. At an island platform they are pulled to the
+       platform's width apart: Mörby centrum's 30 m becomes 14.6 m.
+     - Tracks at different levels are held at least 7.5 m apart. These are T-Centralen's two
+       levels on their way to Gamla stan and Östermalmstorg.
+     - Curves are held at 310 m radius between points 10 m apart. Over 20 m the tightest is
+       253 m (limit 250 m), near Hötorget.
+     - Each point is classified:
+       - tunnels: concrete box within 20 m of a mouth, in the Riddarholmskanalen trough, and
+         where the rail is less than 12 m below the ground; rock elsewhere
+       - open track: cutting more than 1.5 m below the ground, embankment more than 1 m above
+         it, otherwise on the ground
+       - bridges: bridge
+     - The red line comes out as 47.1 km of rock tunnel, 13.4 km of box, 13.0 km on the ground,
+       5.9 km of bridge, 0.6 km of embankment and 0.2 km of cutting.
+     - 74% of the track shares its tunnel, bridge or bank with the other track.
+   - `src/network.ts` sweeps the cross-sections along the line every 2.5 m (Catmull–Rom through
+     the 10 m points):
+     - ballast and sleepers, rails, the conductor rail and its cover
+     - the tunnel, cutting walls, bank or bridge deck with piers
+     - portals where a tunnel opens, and bulkheads where its section changes
+     - a hall, platform, lights and name signs at stations other than T-Centralen
+     Where two tracks share a structure, each draws its half.
+   - Only the 200 m tiles within about 600 m of the camera are built, two per frame. The whole
+     line is 258 tiles, about 2.4 million triangles, and takes 0.6 s to build. A tile takes
+     2.3 ms (median).
+   - `src/station-join.ts` joins T-Centralen to the network.
+     - Each red platform track in the model is replaced by its service's line through the
+       network, out to 140 m short of the next stop, blended from the model's track over 40 m.
+     - The station draws the platform stretch, and the network leaves it out.
+     - The trains now run in the real tunnels. A ride goes to the approach of Östermalmstorg or
+       Gamla stan, then fades and comes back through the tunnel.
+   - Done: you can fly from T-Centralen to Östermalmstorg through the real tunnel.
+     `tools/plot-graph.ts` also draws the refitted track, coloured by structure.
+   - Still open:
+     - Where T-Centralen's two levels meet into one tunnel there are three places (near Hötorget,
+       Östermalmstorg and Gamla stan). There the tracks are 4.4–4.8 m apart at 2–2.5 m different
+       heights, so their tunnels cut into each other for a few tens of metres. The build lists
+       them.
+     - Crossovers, sidings and turnback tracks aren't drawn, because only the services' track has
+       heights.
+     - Seven platforms have no room beside their track as matched, mostly at junction stations,
+       and aren't drawn: Hägerstensåsen, Bredäng (two), Västertorp, Liljeholmen, Slussen and
+       Ropsten.
+     - There is no ground or city around the open stretches yet; that is phase 7. The network
+       can't be walked on yet; that is phase 6.
 5. **Trains on the network.**
    - Run T13 and T14 along the graph on a simple timetable, choosing their branch by route, with
      spacing between trains and turning at the ends of the line.
@@ -135,6 +234,9 @@ game's code.
 - [ ] Borrow the 1964 technical description from Stockholms stadsbibliotek, and photograph its red
       line profiles and standard sections.
 - [ ] Does Wikidata's station height mean top of rail or platform level, and in which height system?
-      Check it against the new-line drawings, which give top of rail in RH 2000.
+      Check it against the new-line drawings, which give top of rail in RH 2000. Against the
+      elevation model it is the platform for underground stations (Slussen: 8 m, with 7–24 m of
+      ground above), but at least once the street (Gamla stan).
 - [ ] Credits: OpenStreetMap is ODbL (attribution in the game, and our derived track data under the
-      same licence). Lantmäteriet data needs attribution.
+      same licence). Lantmäteriet data needs attribution: "Markhöjdmodell © Lantmäteriet, CC BY
+      4.0", which `track-heights.json` already carries.

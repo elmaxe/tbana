@@ -58,10 +58,12 @@ after a chime before they leave. Walk in through an open door and you ride along
 through the car and, on the C30 and between the sections of a C20, into the next car. If you are
 standing in a doorway when the doors close, you step inside or back onto the platform.
 
-The model ends a little way into the tunnels. When your train gets there the screen goes dark for
-the trip to the next station and back, and you arrive at T-Centralen again in the same spot of a
-train coming in on the other track of the line. Seats don't block you, and the pendeltåg can't be
-boarded.
+On the red line the trains run on into the real tunnels (see [The track and
+tunnels](#the-track-and-tunnels)), as far as the approach to the next station: Östermalmstorg to
+the north, Gamla stan to the south. There the screen goes dark, and you come back through the
+tunnel to T-Centralen in the same spot of a train on the other track. On the other lines the
+model's tunnels are short, so the screen goes dark soon after you leave. Seats don't block you,
+and the pendeltåg can't be boarded.
 
 ## Deployment
 
@@ -135,8 +137,9 @@ sketched, so they can be 20–40 m off.
 ### The track graph
 
 `public/data/track-graph.json` holds the whole metro's track network from OpenStreetMap, with the
-red line services traced through it. The format is in `src/track-graph.ts`. The game doesn't use
-it yet.
+red line services traced through it. The format is in `src/track-graph.ts`. The game reads its
+stations and services to draw the track and join T-Centralen to it (see [The track and
+tunnels](#the-track-and-tunnels)).
 
 ```sh
 npm run fetch-osm -- network      # every metro track, switch, platform and station -> data/osm/network.json
@@ -164,6 +167,84 @@ each with its reason:
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.
+
+### Track heights
+
+`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every
+piece of track the red line services run on.
+
+```sh
+npm run fetch-station-heights    # Wikidata station heights -> data/station-heights.json
+LM_USER=… LM_PASSWORD=… npm run fetch-ground   # ground under the tracks -> data/ground/red-line.json
+npm run build-heights            # -> public/data/track-heights.json, and the check
+npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
+```
+
+`build-heights` fits the smoothest line through these anchors:
+
+- **Stations:** 1 m below their height from Wikidata, which is taken to be the platform's level,
+  and level along the platform.
+- **T-Centralen:** its platforms in the station model.
+- **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
+
+It keeps tunnels at least 6 m under the ground away from their mouths, and the gradient at 37‰ or
+less, the way a real line runs at an even grade between short vertical curves. It then checks the
+result against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of
+at least 2,000 m. It fails on anything outside them, and says where.
+
+`data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
+
+- Gamla stan's Wikidata height is the street; its platforms are on a deck about 5 m higher.
+- In Riddarholmskanalen the line runs in a trough, not a bored tunnel, so it needs no cover.
+- South of Gamla stan's platforms, OSM's surface track is still on the station deck.
+
+`fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
+`LM_PASSWORD`. It finds the files through Lantmäteriet's STAC catalogue for height data. Behind a
+proxy that adds the login, run it with `NODE_USE_ENV_PROXY=1` so that Node's `fetch` uses the proxy.
+Its output, `data/ground/red-line.json`, is in the repository, so `build-heights` runs without a
+login.
+
+### The track and tunnels
+
+The game draws the red line's track beyond T-Centralen, with its tunnels, bridges and banks, from
+`public/data/track-geometry.json` (format in `src/track-geometry.ts`):
+
+```sh
+npm run build-track-geometry   # -> public/data/track-geometry.json, and the check
+npm run plot-graph -- Östermalmstorg 700 otorg.svg   # draws it too, coloured by structure
+```
+
+`build-track-geometry` does two things.
+
+**The plan.** OpenStreetMap is traced from aerial photos in the open, but in the tunnels it is
+sketched, and the two tracks of a line wander 4 to 35 m apart. The tool fits the smoothest line
+through:
+
+- OpenStreetMap's track: closely in the open and at the platforms, loosely in the tunnels
+- T-Centralen's platform tracks in the station model
+- the two tracks of a line in a tunnel at the same level: 3.15 m apart, as built (the 1975
+  standard), or a platform's width apart at an island platform
+- tracks at different levels: at least 7.5 m apart, so that their tunnels don't cut into each other
+
+It keeps curves at 250 m radius or more, the red line's limit, and fails if it can't.
+
+**The structure.** Each point is in a rock tunnel, a concrete box (cut and cover, near the
+mouths, and wherever the rock over the tunnel would be less than 12 m), a cutting, on the
+ground, on an embankment, or on a bridge. The two tracks of a line share a tunnel, bridge or bank
+where they run side by side.
+
+The game sweeps cross-sections along this line (`src/network.ts`): ballast and sleepers, rails, the
+conductor rail with its cover board, and the tunnel or bank around them. The sizes come from the
+typical sections in the 1952 and 1975 technical descriptions (`src/sections.ts`): an 8.0 m wide
+double-track rock tunnel 4.6 m high, a 4.3 m single-track one, and a box 4.2 m high. Stations
+other than T-Centralen get a plain hall with a platform and name signs until they are built.
+
+The network is cut into 200 m tiles, and only the tiles within about 600 m of the camera are built.
+`src/station-join.ts` joins T-Centralen's red tracks to the network: the station draws its
+platforms, and beyond them the trains run on the network's track.
+
+To fly the tunnel, jump to a red line platform (`2` or `3`), press `F`, and follow the track
+north to Östermalmstorg or south to Gamla stan.
 
 ## Train models
 
@@ -209,4 +290,8 @@ site's `t-centralen.gltf` to `assets/t-centralen.glb`. The drawing is his work. 
 publish or redistribute this project.
 
 Map data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, under the Open
-Database License (`data/osm/`, and the placements derived from it in `public/data/`).
+Database License (`data/osm/`, and the placements, track graph and track geometry derived from it
+in `public/data/`).
+
+Heights: Markhöjdmodell © Lantmäteriet, CC BY 4.0 (`data/ground/`, and the track heights and
+geometry derived from it in `public/data/`).

@@ -11,6 +11,10 @@ import { Input } from './input';
 import { Sound } from './sound';
 import { LINES } from './lines';
 import { mountBuildSwitcher } from './build-switcher';
+import { Network } from './network';
+import { StationJoin } from './station-join';
+import type { TrackGraph } from './track-graph';
+import type { TrackGeometry } from './track-geometry';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -63,6 +67,7 @@ addEventListener('resize', () => {
 // ------------------------------------------------------------------ state
 interface Game {
   station: Station;
+  network: Network | null;
   player: Player<CarFloorData>;
   trains: Trains;
   minimap: MiniMap;
@@ -90,14 +95,18 @@ function loadingFailed(err: unknown) {
   $('loading').textContent = 'Could not load the station model: ' + (err instanceof Error ? err.message : String(err));
 }
 
-function onStationLoaded(root: THREE.Object3D) {
-  const station = buildStation(root);
+function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
+  // the station's tracks that run on through the network are joined to it
+  const join = net ? new StationJoin(net.graph, net.geometry, 'T-Centralen') : null;
+  const station = buildStation(root, { join: join ? (tracks) => join.join(tracks) : undefined });
   scene.add(station.group);
+  const network = net && join ? new Network(net.graph, net.geometry, join.exclusions) : null;
+  if (network) scene.add(network.group);
   const trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
   // the cars of the trains are floors too, so the player can board them through open doors
   const player = new Player<CarFloorData>(camera, station.walk, (x, z, out) => trains.floorsAt(x, z, out));
   const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
-  game = { station, player, trains, minimap };
+  game = { station, network, player, trains, minimap };
   sizeBigMap();
   buildTeleportList(station);
 
@@ -115,11 +124,18 @@ function onStationLoaded(root: THREE.Object3D) {
   (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
 }
 
-fetch('data/stations.json')
-  .then((res) => {
-    if (!res.ok) throw new Error(`data/stations.json: HTTP ${res.status}`);
-    return res.json() as Promise<Record<string, StationPlacement>>;
-  })
+// The track network outside the station (src/network.ts). The game runs without it if it fails
+// to load.
+interface NetworkData { graph: TrackGraph; geometry: TrackGeometry }
+const getJson = <T>(url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+  return res.json() as Promise<T>;
+});
+const networkData: Promise<NetworkData | null> = Promise.all([
+  getJson<TrackGraph>('data/track-graph.json'), getJson<TrackGeometry>('data/track-geometry.json'),
+]).then(([graph, geometry]) => ({ graph, geometry }), (err) => { console.warn('no track network:', err); return null; });
+
+getJson<Record<string, StationPlacement>>('data/stations.json')
   .then((stations) => {
     const place = stations['t-centralen'];
     new GLTFLoader().load(
@@ -127,7 +143,7 @@ fetch('data/stations.json')
       (gltf) => {
         gltf.scene.rotation.y = THREE.MathUtils.degToRad(place.rotationY);
         gltf.scene.position.fromArray(place.position);
-        onStationLoaded(gltf.scene);
+        networkData.then((net) => onStationLoaded(gltf.scene, net));
       },
       (e) => {
         if (e.total) $('progress').style.width = `${(100 * e.loaded) / e.total}%`;
@@ -318,9 +334,10 @@ function toast(text: string, ms = 1800) {
 }
 
 // ------------------------------------------------------------------ riding
-// A ride ends where the modelled tunnel does. The screen goes dark for the trip to the next station
-// and back, and the player comes back into T-Centralen standing in the same spot of a train on
-// the other track (see Trains.transfer).
+// A ride ends where the train's track does: on the red line, joined to the network, short of the
+// next station; on the other lines, where the model's tunnel ends. The screen goes dark for the
+// rest of the trip and back, and the player comes back into T-Centralen standing in the same spot
+// of a train on the other track (see Trains.transfer).
 interface Journey {
   ride: Ride;
   stage: 'leaving' | 'away';
@@ -385,6 +402,11 @@ function rideNotices(ride: Ride | null) {
 
 // ------------------------------------------------------------------ HUD
 let hudNext = 0;
+// "near Östermalmstorg · ", in free flight along the network
+function nearby(pos: THREE.Vector3) {
+  const st = game?.network?.nearestStation(pos.x, pos.z);
+  return st && st.d < 1500 ? `near ${st.name} · ` : '';
+}
 function updateHud() {
   if (!game) return;
   const { player, trains } = game;
@@ -403,7 +425,7 @@ function updateHud() {
   hudNext = now + 250;
   const surface = player.surface;
   $('where').textContent = player.fly
-    ? `Free flight · ${player.pos.y.toFixed(0)} m`
+    ? `Free flight · ${nearby(player.pos)}${player.pos.y.toFixed(0)} m`
     : `${surface?.rec.label ?? '—'} · level ${player.pos.y.toFixed(0)} m`;
   const platform = surface && surface.kind !== 'train' && surface.rec.platformLine ? surface.rec : null;
   const deps = platform ? trains.departuresFor(platform) : [];
@@ -461,6 +483,7 @@ function simulate(dt: number) {
     if (running && !journey) player.update(dt, input.state());
     else player.applyCamera(dt);
     headLight.position.set(player.pos.x, player.eyeY + 0.6, player.pos.z);
+    game.network?.update(camera.position);
     updateAtmosphere(player, dt);
   }
 }

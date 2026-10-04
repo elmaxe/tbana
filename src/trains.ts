@@ -15,10 +15,10 @@ const DOORS_OPEN = 2.2, DOORS_SHUT = 2.8;     // seconds for the doors to open /
 const OPEN_DELAY = 0.8, SHUT_DELAY = 1.2;     // after stopping / after the closing chime
 const LEAVE_DELAY = 1.0;                      // from closed doors to pulling away
 
-const RAIL_TOP = 0.99; // the rail head sits this far below the track path (platform level)
+export const RAIL_TOP = 0.99; // the rail head sits this far below the track path (platform level)
 const INTERIOR_NEAR = 30, INTERIOR_FAR = 36; // metres from a car's end: interior on / off
 const R = 0.25;        // the player's radius when walking in a car
-const LEAVE_AT = 28;   // a ridden car this close to the end of the modelled tunnel ends the ride
+const LEAVE_AT = 28;   // a ridden car this close to the end of its track ends the ride
 
 type State = 'wait' | 'arrive' | 'dwell' | 'closing' | 'depart';
 
@@ -329,7 +329,7 @@ export class Trains {
     return true;
   }
 
-  // True once a ridden train has carried the player's car to the end of the modelled tunnel.
+  // True once a ridden train has carried the player's car to the end of its track.
   leaving(ride: Ride) {
     const { svc, car } = ride;
     if (svc.state !== 'depart') return false;

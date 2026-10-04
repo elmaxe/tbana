@@ -6,9 +6,12 @@
 // are thick. The traced services are drawn beside their tracks, offset to the side they run on
 // relative to the track's direction, so a service running on the left shows up to the left of
 // its direction of travel. Piece ids are printed along the pieces when zoomed in (radius up to
-// 1500 m).
-import { readFileSync, writeFileSync } from 'node:fs';
+// 1500 m). When public/data/track-geometry.json is there, the track the game draws is drawn too,
+// coloured by its structure.
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { TrackGraph } from '../src/track-graph.ts';
+import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
+import type { TrackGeometry } from '../src/track-geometry.ts';
 
 const g: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const [where, radiusArg, out = 'graph.svg'] = process.argv.slice(2);
@@ -51,6 +54,18 @@ for (const p of g.pieces) {
   parts.push(`<path d="${path(p.points)}" fill="none" stroke="${p.service === 'main' ? '#333' : '#aaa'}" stroke-width="1.5"/>`);
   const [mx, mz] = pointAt(p.points, p.length / 2);
   if (radius <= 1500 && inView(mx, mz)) parts.push(`<text x="${X(mx)}" y="${Z(mz)}" font-size="10" fill="#06c">${p.id}</text>`);
+}
+const KIND_COLOURS: Record<string, string> = { rock: '#8a5a2b', box: '#7b8794', cutting: '#c9a400', grade: '#2e9e44', embankment: '#7fbf3f', bridge: '#2a7de6' };
+if (existsSync('public/data/track-geometry.json')) {
+  const geo: TrackGeometry = JSON.parse(readFileSync('public/data/track-geometry.json', 'utf8'));
+  for (const piece of Object.values(geo.pieces)) {
+    for (let k = 1; k < piece.s.length; k++) {
+      if (!inView(piece.x[k], piece.z[k])) continue;
+      const colour = KIND_COLOURS[STRUCTURE_KINDS[piece.kind[k - 1]]];
+      parts.push(`<path d="${path([[piece.x[k - 1], piece.z[k - 1]], [piece.x[k], piece.z[k]]])}" stroke="${colour}" stroke-width="3" opacity="0.8"/>`);
+    }
+  }
+  STRUCTURE_KINDS.forEach((k, i) => parts.push(`<text x="${W - 110}" y="${20 + 16 * i}" font-size="13" fill="${KIND_COLOURS[k]}">${k}</text>`));
 }
 for (const s of g.stations) {
   for (const pl of s.platforms) {

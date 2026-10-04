@@ -36,7 +36,16 @@ export type WalkHit = SurfaceHit<SurfaceData>;
 
 export interface Platform { s0: number; s1: number; side: number; rec: SurfaceRecord }
 export interface Board { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture; text: string }
-export interface Track { line: LineId; path: Polyline; platform: Platform | null; dir: number; board?: Board }
+// `drawn` is the stretch of the path the station draws track along, with no tunnels of its own:
+// the track network (src/network.ts) draws the rest. Without it, the station draws the whole
+// path, and tunnels beyond the platform.
+export interface Track { line: LineId; path: Polyline; platform: Platform | null; dir: number; board?: Board; drawn?: [number, number] }
+
+export interface StationOptions {
+  // called once the tracks and their platforms are found, before anything is built along them:
+  // may replace a track's path, and set the stretch the station draws
+  join?: (tracks: Track[]) => void;
+}
 
 export interface LiftLevel { y: number; pos: THREE.Vector3; yaw: number }
 export interface Lift { center: THREE.Vector3; radius: number; minY: number; maxY: number; levels: LiftLevel[] }
@@ -89,7 +98,7 @@ class Builder {
 
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
-export function buildStation(root: THREE.Object3D): Station {
+export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): Station {
   const group = new THREE.Group();
   const mapGroup = new THREE.Group(); // simplified flat-shaded copy for the minimap
   const walk = new SurfaceIndex<SurfaceData>(4);
@@ -274,12 +283,14 @@ export function buildStation(root: THREE.Object3D): Station {
     }
   }
   assignDirections(tracks);
+  opts.join?.(tracks);
 
   const bedB = new Builder(), railGeoms: THREE.BufferGeometry[] = [], tunnelGeoms: THREE.BufferGeometry[] = [], caveGeoms: THREE.BufferGeometry[] = [], trackWallGeoms: THREE.BufferGeometry[] = [], lampB = new Builder(), tunnelLampB = new Builder();
   const signs: THREE.Group[] = [];
   for (const tr of tracks) {
     const spec = TRAIN_SPECS[LINES[tr.line].kind];
-    const pts = tr.path.resample(0, tr.path.length, 2);
+    const [d0, d1] = tr.drawn ?? [0, tr.path.length];
+    const pts = tr.path.resample(d0, d1, 2);
     const bedHalf = spec.halfWidth + 0.9;
     railGeoms.push(sweep(pts.map((p) => p.clone().setY(p.y - 1.15)), [[-bedHalf, 0], [bedHalf, 0]], { uScale: 0.25, vScale: 0.25 }));
     for (const g of [-0.72, 0.72]) {
@@ -297,7 +308,7 @@ export function buildStation(root: THREE.Object3D): Station {
       }
       prof.push([W, 2.4], [W, -1.25]);
       const { s0, s1 } = tr.platform;
-      const ranges = [[0, s0 - 6], [s1 + 6, tr.path.length]];
+      const ranges = tr.drawn ? [] : [[0, s0 - 6], [s1 + 6, tr.path.length]];
       for (const [a, b] of ranges) {
         if (b - a < 4) continue;
         const seg = tr.path.resample(a, b, 2);
