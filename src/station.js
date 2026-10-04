@@ -440,35 +440,12 @@ function analyseTrack(path, line, walk, hits) {
   return track;
 }
 
-// Running directions. Two tracks of the same line at one island platform run opposite ways
-// (Stockholm keeps left, so the platform is on each train's right). Where different lines share
-// a platform (red/green), both run the same way for cross-platform interchange.
+// Running directions. The Stockholm metro keeps left, so the two tracks at an island platform run
+// opposite ways with the platform on each train's right. On the red/green levels the lines swap
+// sides: the upper level has green northbound and red southbound, the lower level green southbound
+// and red northbound.
 function assignDirections(tracks) {
-  const groups = new Map();
-  for (const tr of tracks) {
-    if (!tr.platform) continue;
-    const k = tr.platform.rec;
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(tr);
-  }
-  const southboundLevels = [];
-  for (const [rec, list] of groups) {
-    const lines = new Set(list.map((t) => t.line));
-    if (lines.size === 1) {
-      for (const tr of list) tr.dir = tr.platform.side;
-    } else {
-      southboundLevels.push({ rec, list, y: rec.box.max.y });
-    }
-  }
-  // Mixed-line platforms: the higher one southbound (+z), the next one northbound, and so on.
-  southboundLevels.sort((a, b) => b.y - a.y);
-  southboundLevels.forEach(({ list }, i) => {
-    const south = i % 2 === 0;
-    for (const tr of list) {
-      const t = tr.path.tangentAt((tr.platform.s0 + tr.platform.s1) / 2);
-      tr.dir = (t.z > 0) === south ? 1 : -1;
-    }
-  });
+  for (const tr of tracks) if (tr.platform) tr.dir = tr.platform.side;
 }
 
 // Is there another track or a floor just beyond the far side of this track (so no wall belongs there)?
