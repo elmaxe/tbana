@@ -6,15 +6,18 @@ import { Player } from './player';
 import { Trains } from './trains';
 import { setOutsideLight } from './rolling-stock/index';
 import type { CarFloorData, Ride } from './trains';
+import { nextStation } from './service';
 import { MiniMap } from './minimap';
 import { Input } from './input';
 import { Sound } from './sound';
 import { LINES } from './lines';
 import { mountBuildSwitcher } from './build-switcher';
 import { Network } from './network';
+import type { PlatformFloorData } from './network';
 import { StationJoin } from './station-join';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
+import type { SurfaceHit } from './surface-index';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -65,10 +68,13 @@ addEventListener('resize', () => {
 });
 
 // ------------------------------------------------------------------ state
+// what the player can stand on besides the station model: train cars, and the network's platforms
+type Floor = CarFloorData | PlatformFloorData;
+
 interface Game {
   station: Station;
   network: Network | null;
-  player: Player<CarFloorData>;
+  player: Player<Floor>;
   trains: Trains;
   minimap: MiniMap;
 }
@@ -102,9 +108,13 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   scene.add(station.group);
   const network = net && join ? new Network(net.graph, net.geometry, join.exclusions) : null;
   if (network) scene.add(network.group);
-  const trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
-  // the cars of the trains are floors too, so the player can board them through open doors
-  const player = new Player<CarFloorData>(camera, station.walk, (x, z, out) => trains.floorsAt(x, z, out));
+  // the red line's trains run on the network's timetable, through the station and on
+  const trains = new Trains(scene, station.tracks, sound, {
+    renderer, quality: coarse ? 0.5 : 0.8, network: net && join ? { ...net, join } : null,
+  });
+  // the cars of the trains are floors too, so the player can board them through open doors, and
+  // so are the network's platforms, to get off on
+  const player = new Player<Floor>(camera, station.walk, (x, z, out) => floorsAt(trains, network, x, z, out));
   const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
   game = { station, network, player, trains, minimap };
   sizeBigMap();
@@ -122,6 +132,13 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   $('loading').hidden = true;
   $('start').hidden = false;
   (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
+}
+
+const _platforms: SurfaceHit<PlatformFloorData>[] = [];
+function floorsAt(trains: Trains, network: Network | null, x: number, z: number, out: SurfaceHit<Floor>[]) {
+  trains.floorsAt(x, z, out as SurfaceHit<CarFloorData>[]);
+  if (network) for (const h of network.floors.query(x, z, _platforms)) out.push(h);
+  return out;
 }
 
 // The track network outside the station (src/network.ts). The game runs without it if it fails
@@ -227,7 +244,7 @@ function handleKey(code: string) {
       player.fly = !player.fly;
       if (!player.fly) {
         // land on whatever is below, a train's floor included
-        const hits = [...station.walk.query(player.pos.x, player.pos.z), ...trains.floorsAt(player.pos.x, player.pos.z)];
+        const hits = [...station.walk.query(player.pos.x, player.pos.z), ...floorsAt(trains, game.network, player.pos.x, player.pos.z, [])];
         const below = hits.filter((h) => h.y <= player.pos.y + 0.5).sort((a, b) => b.y - a.y)[0];
         if (below) player.teleport(new THREE.Vector3(player.pos.x, below.y, player.pos.z), player.yaw);
         else player.teleport(station.spawn.pos, station.spawn.yaw);
@@ -334,14 +351,17 @@ function toast(text: string, ms = 1800) {
 }
 
 // ------------------------------------------------------------------ riding
-// A ride ends where the train's track does: on the red line, joined to the network, short of the
-// next station; on the other lines, where the model's tunnel ends. The screen goes dark for the
-// rest of the trip and back, and the player comes back into T-Centralen standing in the same spot
-// of a train on the other track (see Trains.transfer).
+// On the red line the trains run on through the network, and a ride goes on from station to
+// station. Beyond the last station, the train turns out of sight: the screen goes dark, and the
+// player comes back in the same spot of the train that leaves from there the other way. On the
+// other lines a ride ends where the model's tunnel does: the screen goes dark for the rest of the
+// trip and back, and the player comes back into T-Centralen standing in the same spot of a train
+// on the other track (see Trains.transfer).
 interface Journey {
   ride: Ride;
   stage: 'leaving' | 'away';
   relYaw: number; // the player's heading relative to their car
+  arrival: string;
 }
 let journey: Journey | null = null;
 let journeyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -350,20 +370,24 @@ let lastRide: { svc: Ride['svc']; state: string } | null = null;
 function startJourney(ride: Ride) {
   if (!game) return;
   const { player, trains } = game;
-  const next = ride.svc.next;
-  journey = { ride, stage: 'leaving', relYaw: 0 };
-  $('fadeText').textContent = next ? `${next} …` : '…';
+  const { svc } = ride;
+  // a trip turning at the end of the line, or a shuttle going on to its next station and back
+  const end = svc.trip ? svc.stops[svc.stops.length - 1].station : '';
+  const next = nextStation(svc);
+  journey = { ride, stage: 'leaving', relYaw: 0, arrival: 'Arriving at T-Centralen' };
+  $('fadeText').textContent = end ? `${end} — the train turns back` : next ? `${next} …` : '…';
   $('fade').classList.add('on', 'slow');
   journeyTimer = setTimeout(() => {
     if (!journey) return;
     journey.relYaw = player.yaw - ride.car.object.rotation.y;
     journey.ride = trains.transfer(ride);
     journey.stage = 'away';
-    $('fadeText').textContent = next ? `${next} … and back to T-Centralen` : 'Back to T-Centralen';
+    if (end) journey.arrival = `${end} — to ${journey.ride.svc.dest[1]}`;
+    else $('fadeText').textContent = next ? `${next} … and back to T-Centralen` : 'Back to T-Centralen';
   }, 1600);
 }
 
-// The train coming back has reached the modelled tunnel: put the player in it and fade in.
+// The train coming back is in sight: put the player in it and fade in.
 function arrive(j: Journey) {
   if (!game) return;
   const { player, trains } = game;
@@ -377,7 +401,7 @@ function arrive(j: Journey) {
   journeyTimer = setTimeout(() => {
     $('fade').classList.remove('on');
     setTimeout(() => $('fade').classList.remove('slow'), 800);
-    toast('Arriving at T-Centralen', 2500);
+    toast(j.arrival, 2500);
   }, 300);
 }
 
@@ -388,14 +412,18 @@ function endJourney() {
   $('fade').classList.remove('on', 'slow');
 }
 
-// Toasts as the train the player is in closes its doors and leaves.
+// Toasts as the train the player is in closes its doors, leaves and arrives.
 function rideNotices(ride: Ride | null) {
   if (!ride) { lastRide = null; return; }
   const { svc } = ride;
   if (lastRide?.svc === svc && lastRide.state !== svc.state) {
+    const at = nextStation(svc);
     if (svc.state === 'closing') toast('Doors closing — stand clear', 2200);
-    else if (svc.state === 'depart' && svc.next) toast(`Nästa: ${svc.next}`, 3000);
-    else if (svc.state === 'dwell') toast('T-Centralen — doors opening', 2200);
+    else if (svc.state === 'run' && at) toast(`Nästa: ${at}`, 3000);
+    else if (svc.state === 'dwell') {
+      const last = svc.trip && svc.stop === svc.stops.length - 1;
+      toast(last ? `Slutstation ${at} — doors opening` : `${at} — doors opening`, 2200);
+    }
   }
   lastRide = { svc, state: svc.state };
 }
@@ -427,8 +455,10 @@ function updateHud() {
   $('where').textContent = player.fly
     ? `Free flight · ${nearby(player.pos)}${player.pos.y.toFixed(0)} m`
     : `${surface?.rec.label ?? '—'} · level ${player.pos.y.toFixed(0)} m`;
-  const platform = surface && surface.kind !== 'train' && surface.rec.platformLine ? surface.rec : null;
-  const deps = platform ? trains.departuresFor(platform) : [];
+  // on a platform: the station model's, or a station's on the network
+  const deps = !surface || surface.kind === 'train' ? []
+    : surface.kind === 'platform' ? trains.departuresAt(surface.station).slice(0, 4)
+    : surface.rec.platformLine ? trains.departuresFor(surface.rec) : [];
   const box = $('departures');
   box.hidden = deps.length === 0;
   box.innerHTML = deps
@@ -437,11 +467,18 @@ function updateHud() {
 }
 
 // ------------------------------------------------------------------ atmosphere
-// Stockholm C and the tram stop are above ground: fade to an evening sky up there.
+// Stockholm C and the tram stop are above ground: fade to an evening sky up there, and where the
+// network's track runs in the open.
 const SKY = new THREE.Color(0x8193ad), DARK = new THREE.Color(FOG);
 let outdoor = 0;
-function updateAtmosphere(player: Player<CarFloorData>, dt: number) {
-  const target = player.fly ? 0.5 : THREE.MathUtils.smoothstep(player.pos.y, 3.5, 5.8);
+function inStation(pos: THREE.Vector3, margin = 0) {
+  const b = game?.station.bounds;
+  return !!b && pos.x > b.min.x - margin && pos.x < b.max.x + margin && pos.z > b.min.z - margin && pos.z < b.max.z + margin;
+}
+function updateAtmosphere(player: Player<Floor>, dt: number) {
+  const { x, y, z } = player.pos;
+  const station = THREE.MathUtils.smoothstep(y, 3.5, 5.8);
+  const target = player.fly ? 0.5 : inStation(player.pos) ? station : game?.network?.outdoorsAt(x, y, z) ?? station;
   outdoor += (target - outdoor) * Math.min(1, dt * 3);
   background.copy(DARK).lerp(SKY, player.fly ? 0 : outdoor);
   fog.color.copy(background);
@@ -474,6 +511,11 @@ function simulate(dt: number) {
     trains.update(dt, player.pos, ride);
     if (journey) {
       if (journey.stage === 'away' && journey.ride.car.object.visible) arrive(journey);
+      else if (journey.stage === 'away' && !trains.inService(journey.ride.svc)) {
+        // a train that had nowhere to turn: back to the start
+        endJourney();
+        player.teleport(game.station.spawn.pos, game.station.spawn.yaw);
+      }
     } else if (ride) {
       player.yaw += trains.carry(ride, player.pos);
       trains.clearDoorway(ride, player.pos);
@@ -496,7 +538,10 @@ function frame() {
   if (game) {
     const { player, minimap } = game;
     if (running) {
-      minimap.draw(player);
+      // the minimap is of the station: away from it, it is hidden
+      const near = inStation(player.pos, 60);
+      $('minimap').hidden = !near;
+      if (near) minimap.draw(player);
       updateHud();
     }
     if (showMap) minimap.drawBig(player);

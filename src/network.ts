@@ -4,6 +4,7 @@ import { STRUCTURE_KINDS } from './track-geometry';
 import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } from './track-geometry';
 import * as S from './sections';
 import * as T from './textures';
+import { SurfaceIndex } from './surface-index';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -18,6 +19,7 @@ const BUILD_PER_UPDATE = 2;
 const SHELL_POINTS = 25; // points around a tunnel's outline
 const OVERLAP = 0.15;    // the halves of a shared tunnel or deck overlap by this at the middle
 const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track
+const POINT_CELL = 20;
 
 type UV = [number, number];
 
@@ -39,6 +41,9 @@ interface Sample {
 // graph's distances; with `trackOnly`, the station draws the track there but the network still
 // draws the tunnel around it.
 export interface Exclusion { piece: number; s0: number; s1: number; trackOnly?: boolean }
+
+// What the player stands on, on a platform of the network's stations.
+export interface PlatformFloorData { kind: 'platform'; rec: { label: string }; station: string }
 
 interface Run { samples: Sample[]; i0: number; i1: number }
 interface Tile { key: string; cx: number; cz: number; runs: Run[]; group: THREE.Group | null }
@@ -103,7 +108,12 @@ function materials() {
 
 export class Network {
   group = new THREE.Group();
+  // the platforms, which can be walked on
+  floors = new SurfaceIndex<PlatformFloorData>(4);
   private tiles = new Map<string, Tile>();
+  // every point of the track, by POINT_CELL square, for what kind of structure is where
+  private points = new Map<string, { x: number; y: number; z: number; kind: StructureKind }[]>();
+  private floorData = new Map<string, PlatformFloorData>();
   private mats = materials();
   private signs = new Map<string, THREE.MeshBasicMaterial>();
   private stations: TrackGraph['stations'];
@@ -118,7 +128,41 @@ export class Network {
       const d = dirs.get(Number(id));
       const samples = densify(piece, d?.size === 1 ? [...d][0] : 0, exclude.filter((e) => e.piece === Number(id)));
       this.addRuns(samples);
+      this.addFloors(samples);
+      piece.x.forEach((x, i) => {
+        const key = `${Math.floor(x / POINT_CELL)},${Math.floor(piece.z[i] / POINT_CELL)}`;
+        (this.points.get(key) ?? this.points.set(key, []).get(key)!).push({ x, y: piece.y[i], z: piece.z[i], kind: STRUCTURE_KINDS[piece.kind[i]] });
+      });
     }
+  }
+
+  // The platforms' tops, from the edge to the back, where the station models don't draw them.
+  private addFloors(samples: Sample[]) {
+    const corner = (sm: Sample, u: number) => at(sm, u, S.PLATFORM_HEIGHT, new THREE.Vector3());
+    for (let i = 1; i < samples.length; i++) {
+      const a = samples[i - 1], b = samples[i], p = a.plat;
+      if (!p || b.plat !== p || a.skip || b.skip || b.along - a.along < 0.01) continue;
+      let data = this.floorData.get(p.station);
+      if (!data) this.floorData.set(p.station, data = { kind: 'platform', rec: { label: `${p.station} · platform` }, station: p.station });
+      const ea = corner(a, p.side * S.PLATFORM_EDGE), oa = corner(a, platformOuter(a));
+      const eb = corner(b, p.side * S.PLATFORM_EDGE), ob = corner(b, platformOuter(b));
+      this.floors.add(ea, oa, ob, data);
+      this.floors.add(ea, ob, eb, data);
+    }
+  }
+
+  // Whether someone standing at (x, y, z) on or beside the track is out in the open (1) or in a
+  // tunnel (0); null away from the track.
+  outdoorsAt(x: number, y: number, z: number) {
+    let best: StructureKind | null = null, bestD = 12;
+    const ci = Math.floor(x / POINT_CELL), cj = Math.floor(z / POINT_CELL);
+    for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) {
+      for (const p of this.points.get(`${i},${j}`) ?? []) {
+        const d = Math.hypot(p.x - x, p.z - z);
+        if (d < bestD && Math.abs(p.y + 1 - y) < 4) { bestD = d; best = p.kind; }
+      }
+    }
+    return best === null ? null : best === 'rock' || best === 'box' ? 0 : 1;
   }
 
   // Cuts a piece's samples into runs, one per tile it passes through, leaving out the excluded
