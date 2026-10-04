@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Stockholm Metro Trains</title>
-  <meta name="description" content="Procedural 3D models of the Stockholm metro's C20 and C30 trains.">
+  <meta name="description" content="Procedural 3D models of the Stockholm metro's C20 and C30 trains, with their interiors.">
   <script type="importmap">
     {
       "imports": {
@@ -26,6 +26,7 @@
       background: var(--sl); font-size: 14px; }
     .sub { margin: 0 0 12px; color: var(--muted); }
     .row { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+    .row[hidden] { display: none; }
     .row > span { width: 100%; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
     button { flex: 1; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px;
       background: #1a212c; color: var(--text); font: inherit; cursor: pointer; }
@@ -52,7 +53,7 @@
   <div id="panel">
     <button id="toggle" aria-label="Collapse panel">–</button>
     <h1><span class="t">T</span> Stockholm metro trains</h1>
-    <p class="sub">Exterior models of the C20 and C30</p>
+    <p class="sub">Models of the C20 and C30, inside and out</p>
     <div class="body">
       <div class="row" id="types"><span>Train</span>
         <button data-type="C20">C20</button><button data-type="C30">C30</button><button data-type="both">Both</button>
@@ -60,16 +61,19 @@
       <div class="row" id="lengths"><span>Length</span>
         <button data-len="1">One unit</button><button data-len="full">Full train</button>
       </div>
+      <div class="row" id="c20style"><span>C20 interior</span>
+        <button data-style="upgraded">Today (C20U)</button><button data-style="original">1997 original</button>
+      </div>
       <div class="row" id="views"><span>View</span>
-        <button data-view="front">Front</button><button data-view="side">Side</button><button data-view="bogie">Bogie</button><button data-view="top">Top</button>
+        <button data-view="front">Front</button><button data-view="side">Side</button><button data-view="bogie">Bogie</button><button data-view="top">Top</button><button data-view="inside">Inside</button>
       </div>
       <div class="row"><span>Model</span>
-        <button id="spin">Turntable</button><button id="glb">Download .glb</button>
+        <button id="spin">Turntable</button><button id="cut">Cutaway</button><button id="glb">Download .glb</button>
       </div>
       <div id="spec" class="spec"></div>
     </div>
   </div>
-  <div id="hint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+  <div id="hint">Drag to orbit · scroll to zoom · right-drag to pan · WASD to walk</div>
   <script type="module" src="src/viewer.js"></script>
 </body>
 </html>

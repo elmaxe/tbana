@@ -109,7 +109,7 @@ export function shellGeometry(prof, x0, x1, sb0, sb1) {
 }
 
 // Closed loop of the full cross-section (right half, then the left half back down).
-function loopOf(prof) {
+export function loopOf(prof) {
   const P = prof.pts;
   const loop = P.map((p) => ({ z: p.z, y: p.y, nz: p.nz, ny: p.ny }));
   for (let j = P.length - 2; j >= 1; j--) loop.push({ z: -P[j].z, y: P[j].y, nz: -P[j].nz, ny: P[j].ny });
@@ -190,11 +190,16 @@ const toPx = (v) => Math.round(v);
 // Paints liveries in metres onto three canvases at once: colour, roughness/metalness (G/B) and
 // emission. `bands` are affine maps from (a, b) metres to canvas pixels: px = sa·a + oa,
 // py = sb·b + ob. `ty` converts a height to the band's vertical coordinate.
+// Options: `alpha` adds a fourth canvas for opacity (a paint's `a`, default 1), used for glass you
+// can see through and for holes cut in interior panels. `glow` makes paints without their own
+// emission glow at that fraction of their colour, which stands in for a car's interior lighting.
 export class Painter {
-  constructor(W, H, bands, { ty = (y) => y, detail = 0.5 } = {}) {
-    this.W = W; this.H = H; this.bands = bands; this.ty = ty;
+  constructor(W, H, bands, { ty = (y) => y, detail = 0.5, alpha = false, glow = 0 } = {}) {
+    this.W = W; this.H = H; this.bands = bands; this.ty = ty; this.glow = glow;
     this.layers = [];
-    for (const [kind, s] of [['c', 1], ['orm', detail], ['e', detail]]) {
+    const kinds = [['c', 1], ['orm', detail], ['e', detail]];
+    if (alpha) kinds.push(['a', 1]);
+    for (const [kind, s] of kinds) {
       const cv = document.createElement('canvas');
       cv.width = toPx(W * s); cv.height = toPx(H * s);
       const ctx = cv.getContext('2d');
@@ -205,7 +210,10 @@ export class Painter {
   styleFor(kind, m) {
     if (kind === 'c') return m.c;
     if (kind === 'orm') return `rgb(255,${Math.round((m.r ?? 0.5) * 255)},${Math.round((m.m ?? 0) * 255)})`;
-    return m.e || '#000';
+    if (kind === 'a') { const g = Math.round((m.a ?? 1) * 255); return `rgb(${g},${g},${g})`; }
+    if (m.e || !this.glow || m.c[0] !== '#') return m.e || '#000';
+    const n = parseInt(m.c.slice(1), 16), k = this.glow * (m.g ?? 1);
+    return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`;
   }
 
   // Run a path-building function in metre space for every band and layer, then fill it.
@@ -285,27 +293,50 @@ export class Painter {
   }
 
   textures(aniso = 8) {
+    if (this._tex) return this._tex;
     const out = {};
     for (const L of this.layers) {
+      if (L.kind === 'a') continue;
       const t = new THREE.CanvasTexture(L.cv);
       if (L.kind !== 'orm') t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = aniso;
       out[L.kind] = t;
     }
+    const A = this.layers.find((L) => L.kind === 'a');
+    if (A) {
+      // colour with the alpha canvas in its alpha channel (glTF keeps opacity in the base colour)
+      const C = this.layers.find((L) => L.kind === 'c');
+      const cv = document.createElement('canvas');
+      cv.width = C.cv.width; cv.height = C.cv.height;
+      const ctx = cv.getContext('2d');
+      const img = C.ctx.getImageData(0, 0, cv.width, cv.height);
+      const a = A.ctx.getImageData(0, 0, cv.width, cv.height).data;
+      for (let i = 3; i < img.data.length; i += 4) img.data[i] = a[i - 1];
+      ctx.putImageData(img, 0, 0);
+      const t = new THREE.CanvasTexture(cv);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = aniso;
+      out.ca = t;
+    }
+    this._tex = out;
     return out;
   }
 
-  material(extra = {}) {
+  // alpha: false (opaque), 'blend' (see-through glass) or 'mask' (holes cut out).
+  material(extra = {}, alpha = false) {
     const t = this.textures();
+    const opts = alpha === 'blend' ? { map: t.ca, transparent: true }
+      : alpha === 'mask' ? { map: t.ca, alphaTest: 0.5 } : { map: t.c };
     return new THREE.MeshStandardMaterial({
-      map: t.c, roughnessMap: t.orm, metalnessMap: t.orm, roughness: 1, metalness: 1,
+      ...opts, roughnessMap: t.orm, metalnessMap: t.orm, roughness: 1, metalness: 1,
       emissiveMap: t.e, emissive: 0xffffff, emissiveIntensity: 1, ...extra,
     });
   }
 }
 
 // Painter for a car side. Coordinates: a = x along the car, vertical = height (or arc length via rectT).
-export function sidePainter(prof, x0, x1, ppm) {
+// `inside` paints the inner lining (liningGeometry), whose sides are seen from the other face.
+export function sidePainter(prof, x0, x1, ppm, { inside = false, ...opts } = {}) {
   const L = x1 - x0, span = prof.tMax - prof.tMin;
   const W = Math.min(4096, Math.ceil(L * ppm)), H = Math.min(2048, Math.ceil((span * ppm) / 0.49));
   const vs = 0.49 / span;
@@ -313,7 +344,7 @@ export function sidePainter(prof, x0, x1, ppm) {
     sa: (mirror ? -W : W) / L, oa: mirror ? (x1 * W) / L : (-x0 * W) / L,
     sb: -H * vs, ob: H * (1 - vOff + prof.tMin * vs),
   });
-  return new Painter(W, H, [band(0, false), band(0.51, true)], { ty: prof.T });
+  return new Painter(W, H, [band(0, inside), band(0.51, !inside)], { ty: prof.T, ...opts });
 }
 
 // Painter for the front of a cab, projected flat onto the (z, y) plane as seen from ahead.
@@ -370,7 +401,7 @@ export function bogieGeometry({ wheelbase = 2.1, wheelR = 0.39, inside = false, 
     // side frame: deeper in the middle where it sits over the secondary springs
     frame.push(box(wheelbase + 0.75, 0.16, 0.2, 0, wheelR + 0.42, s * fz));
     frame.push(box(1.0, 0.3, 0.22, 0, wheelR + 0.3, s * fz));
-    frame.push(cyl(0.17, 0.26, 0, wheelR + 0.62, s * fz, 'y', 16)); // air spring
+    frame.push(cyl(0.17, 0.2, 0, wheelR + 0.44, s * fz, 'y', 16)); // air spring, up to the underframe
     frame.push(box(0.5, 0.14, 0.12, 0, wheelR + 0.3, s * (fz + (inside ? -0.17 : 0.17)))); // damper bracket
     // third-rail collector: an insulated beam on the axle boxes and a shoe outside the wheels
     shoe.push(box(0.12, 0.08, 0.5, ax[1], wheelR - 0.05, s * (fz + 0.28)));

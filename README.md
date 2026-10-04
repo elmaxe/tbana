@@ -81,18 +81,33 @@ travel.
 ![C30 and C20](trains.jpg)
 
 `trains.html` is a viewer for procedural 3D models of the metro's two current train types, the
-**C20** (1997–2004, corrugated stainless steel) and the **C30** (MOVIA, in service since 2020). It
-shows one unit or a full 140 m train, has front, side and bogie views, and can download the
-model as `.glb`. Open it at https://elmaxe.github.io/tbana/trains.html, or locally at `/trains.html`.
+**C20** (1997–2004, corrugated stainless steel) and the **C30** (MOVIA, in service since 2020).
 
-The models are exterior only so far. They are built in code (`src/rolling-stock/`) from real
-dimensions, door layouts and liveries. Research notes and sources are in
+- It shows one unit or a full 140 m train.
+- It has front, side, bogie and inside views. WASD walks the camera through the cars.
+- A cutaway takes the roof off to show the seat layout.
+- It can download the model as `.glb`.
+
+Open it at https://elmaxe.github.io/tbana/trains.html, or locally at `/trains.html`.
+
+![C30, upgraded C20 and original C20 interiors](interiors.jpg)
+
+The models include the passenger interiors: seats, poles and rails, lighting, screens, doors,
+cab bulkheads and the open gangways, and you can see them through the windows. The C20 comes
+with its current interior from the 2020–2024 upgrade, or the original 1997 one with Lasse
+Åberg's moquette (`interiorStyle: 'original'`). In the station, interiors are drawn only for cars
+near the player.
+
+The models are built in code (`src/rolling-stock/`) from real dimensions, door and seat layouts,
+liveries and fabrics. Research notes and sources are in
 [`docs/rolling-stock.md`](docs/rolling-stock.md).
 
 ```js
 import { createTrain } from './src/rolling-stock/index.js';
 const train = createTrain('C30', { destination: 'Norsborg' }); // two units, 140 m
 scene.add(train.group);
+train.setInterior(false); // exterior only; cars also have car.setInterior(on)
+const c20 = createTrain('C20', { interiorStyle: 'original' }); // the 1997 interior
 ```
 
 ## Credits

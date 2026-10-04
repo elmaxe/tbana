@@ -8,6 +8,7 @@ const ACC = 1.0;      // m/s², braking and acceleration
 const DWELL = 22;     // seconds at the platform
 
 const RAIL_TOP = 0.99; // the rail head sits this far below the track path (platform level)
+const INTERIOR_NEAR = 30, INTERIOR_FAR = 36; // metres from a car's end: interior on / off
 
 // One train per platform track: waits in the tunnel, arrives, dwells, departs, repeats.
 // Metro lines run the procedural C20/C30 models; other lines get simple textured boxes.
@@ -37,10 +38,10 @@ export class Trains {
       if (L.train) {
         // as many units as fit the platform (normally a full 140 m train)
         for (let units = SERVICE_UNITS[L.train]; units >= 1; units--) {
-          model = createTrain(L.train, { units, quality, envMap, envMapIntensity: 0.45 });
+          model = createTrain(L.train, { units, quality, envMap, envMapIntensity: 0.45, interior: false });
           if (model.length <= platLen - 2 || units === 1) break;
         }
-        cars = model.cars.map((c) => ({ ...c, yaw: c.reversed ? Math.PI : 0 }));
+        cars = model.cars.map((c) => Object.assign(c, { yaw: c.reversed ? Math.PI : 0 }));
         trainLen = model.length;
       } else {
         const n = Math.max(2, Math.min(spec.maxCars, Math.floor((platLen - 4) / (spec.carLen + spec.gap))));
@@ -142,7 +143,7 @@ export class Trains {
           break;
         }
       }
-      this.place(svc);
+      this.place(svc, playerPos);
       if (svc.state === 'arrive' || svc.state === 'depart') {
         const d = this.distanceTo(svc, playerPos);
         rumble += (svc.speed / spec.vmax) * Math.max(0, 1 - d / 120) ** 2;
@@ -152,7 +153,8 @@ export class Trains {
     this.sound?.setRumble(Math.min(1, rumble));
   }
 
-  place(svc) {
+  // Interiors are drawn only for cars close to the player.
+  place(svc, playerPos) {
     const { tr, cars } = svc;
     const visible = svc.state !== 'wait';
     // car +x points along the direction of travel
@@ -167,6 +169,10 @@ export class Trains {
       m.position.addVectors(a, b).multiplyScalar(0.5);
       m.position.y -= RAIL_TOP;
       m.rotation.set(0, Math.atan2(-(b.z - a.z), b.x - a.x) + turn + c.yaw, 0);
+      if (c.setInterior && playerPos) {
+        const d = m.position.distanceTo(playerPos) - c.length / 2;
+        c.setInterior(d < (c.interior ? INTERIOR_FAR : INTERIOR_NEAR));
+      }
     }
   }
 

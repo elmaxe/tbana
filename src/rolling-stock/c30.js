@@ -17,26 +17,37 @@ const M = {
   blue: { c: '#0e52bd', r: 0.3, m: 0 },
   black: { c: '#121417', r: 0.35, m: 0.05 },
   skirt: { c: '#4b5157', r: 0.5, m: 0.1 },
-  glass: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f' },
-  glassLit: { c: '#262c32', r: 0.05, m: 0.2, e: '#5e5848' },
+  // side glass: `a` is its opacity when the interior shows through
+  glass: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f', a: 0.3 },
+  glassLit: { c: '#262c32', r: 0.05, m: 0.2, e: '#5e5848', a: 0.34 },
   glassFront: { c: '#11161b', r: 0.04, m: 0.3, e: '#0b0b0a' },
   collar: { c: '#e8eef3', r: 0.2, m: 0, e: '#8fa5ba' },
   seam: { c: '#c3c8cc', r: 0.4, m: 0 },
   mark: { c: '#1d2126', r: 0.4, m: 0 },
 };
 
-const DOOR = 1.56;
+export const DOOR = 1.56;
 
-function windowsBetween(p, xa, xb) {
+// Window frames between the doors, as [a, b] along the car (the glass is 5 cm inside the frame).
+// The interior cuts its window openings from the same list.
+function windowsBetween(out, xa, xb) {
   const post = 0.32, max = 1.65;
   const n = Math.max(1, Math.ceil((xb - xa + post) / (max + post)));
   const w = (xb - xa - post * (n - 1)) / n;
-  for (let i = 0; i < n; i++) {
-    const a = xa + i * (w + post), b = a + w;
-    p.rect(a, b, 1.9, 2.93, M.black, 0.16);
-    p.rect(a + 0.05, b - 0.05, 1.95, 2.88, M.glass, 0.12);
-    p.rect(a + 0.12, b - 0.12, 2.8, 2.86, M.glassLit);
+  for (let i = 0; i < n; i++) out.push([xa + i * (w + post), xa + i * (w + post) + w]);
+}
+
+export function windowFrames(def, x0, x1) {
+  const out = [];
+  const doors = [...def.doors].sort((a, b) => a - b);
+  let a = x0 + 0.42;
+  const end = def.cab ? x1 - 2.3 : x1 - 0.42;
+  for (const d of doors) {
+    if (d - DOOR / 2 - 0.3 - a > 0.6) windowsBetween(out, a, d - DOOR / 2 - 0.3);
+    a = d + DOOR / 2 + 0.3;
   }
+  if (end - a > 0.6) windowsBetween(out, a, end);
+  return out;
 }
 
 function paintSide(p, def, x0, x1) {
@@ -47,13 +58,11 @@ function paintSide(p, def, x0, x1) {
   p.rect(x0, x1, 3.12, 3.135, M.seam);
 
   const doors = [...def.doors].sort((a, b) => a - b);
-  let a = x0 + 0.42;
-  const end = def.cab ? X(2.3) : x1 - 0.42;
-  for (const d of doors) {
-    if (d - DOOR / 2 - 0.3 - a > 0.6) windowsBetween(p, a, d - DOOR / 2 - 0.3);
-    a = d + DOOR / 2 + 0.3;
+  for (const [a, b] of windowFrames(def, x0, x1)) {
+    p.rect(a, b, 1.9, 2.93, M.black, 0.16);
+    p.rect(a + 0.05, b - 0.05, 1.95, 2.88, M.glass, 0.12);
+    p.rect(a + 0.12, b - 0.12, 2.8, 2.86, M.glassLit);
   }
-  if (end - a > 0.6) windowsBetween(p, a, end);
 
   for (const d of doors) {
     const da = d - DOOR / 2, db = d + DOOR / 2;

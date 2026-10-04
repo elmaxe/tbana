@@ -16,14 +16,16 @@ const M = {
   steel: { c: '#b3b9bf', r: 0.3, m: 0.85 },
   blue: { c: '#0b5fc6', r: 0.32, m: 0.05 },
   black: { c: '#14171b', r: 0.4, m: 0.1 },
-  glass: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f' },
-  glassLit: { c: '#262c32', r: 0.05, m: 0.2, e: '#5e5848' },
+  // side glass: `a` is its opacity when the interior shows through; the cab's stays opaque
+  glass: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f', a: 0.3 },
+  glassLit: { c: '#262c32', r: 0.05, m: 0.2, e: '#5e5848', a: 0.34 },
+  glassCab: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f' },
   glassFront: { c: '#12171c', r: 0.04, m: 0.3, e: '#0b0b0a' },
   grille: { c: '#2b2f34', r: 0.6, m: 0.4 },
   white: { c: '#f3f5f7', r: 0.4, m: 0 },
 };
 
-const DOOR = 1.6; // double door, outer width
+export const DOOR = 1.6; // double door, outer width
 
 // Window panes between doors: split each free stretch into equal panes no wider than `max`.
 function panes(xa, xb, max = 1.8, post = 0.12) {
@@ -43,6 +45,12 @@ function freeSpans(from, to, doors) {
   return spans.filter(([p, q]) => q - p > 0.5);
 }
 
+// Window panes (the glass, [a, b] along the car). The interior cuts its windows from the same list.
+export function windowPanes(def, x0, x1) {
+  const passengerEnd = def.cab ? x1 - 3.45 : x1 - 0.3;
+  return freeSpans(x0 + 0.3, passengerEnd, def.doors).flatMap(([a, b]) => panes(a, b));
+}
+
 function paintSide(p, def, x0, x1) {
   const X = (dx) => x1 - dx; // distance back from the cab nose
   p.rectT(x0, x1, prof.tMin, prof.tMax, M.roof);
@@ -51,13 +59,10 @@ function paintSide(p, def, x0, x1) {
   // drip rail and roof seam
   p.rect(x0, x1, 3.03, 3.06, M.roof);
 
-  const passengerEnd = def.cab ? X(3.45) : x1 - 0.3;
-  for (const [a, b] of freeSpans(x0 + 0.3, passengerEnd, def.doors)) {
-    for (const [pa, pb] of panes(a, b)) {
-      p.rect(pa - 0.04, pb + 0.04, 1.89, 2.92, M.black, 0.07);
-      p.rect(pa, pb, 1.93, 2.88, M.glass, 0.05);
-      p.rect(pa + 0.05, pb - 0.05, 2.8, 2.86, M.glassLit);
-    }
+  for (const [pa, pb] of windowPanes(def, x0, x1)) {
+    p.rect(pa - 0.04, pb + 0.04, 1.89, 2.92, M.black, 0.07);
+    p.rect(pa, pb, 1.93, 2.88, M.glass, 0.05);
+    p.rect(pa + 0.05, pb - 0.05, 2.8, 2.86, M.glassLit);
   }
   for (const d of def.doors) {
     const a = d - DOOR / 2, b = d + DOOR / 2;
@@ -80,10 +85,10 @@ function paintSide(p, def, x0, x1) {
     // the black band: from the light band at the nose, up and back round the cab side window
     p.poly([[x1, 1.52], [X(1.6), 1.58], [X(2.15), 1.72], [X(2.42), 2.05], [X(2.42), 3.12], [X(1.1), 3.3],
       [X(0.62), 1.86], [x1, 1.8]], M.black);
-    p.poly([[X(2.3), 2.0], [X(2.3), 2.98], [X(1.2), 3.12], [X(0.9), 2.02]], M.glass);
+    p.poly([[X(2.3), 2.0], [X(2.3), 2.98], [X(1.2), 3.12], [X(0.9), 2.02]], M.glassCab);
     // driver's door
     p.frame(X(3.06), X(2.5), 0.97, 3.0, 0.02, M.black);
-    p.rect(X(2.96), X(2.6), 2.02, 2.86, M.glass, 0.05);
+    p.rect(X(2.96), X(2.6), 2.02, 2.86, M.glassCab, 0.05);
     p.rect(X(2.66), X(2.6), 1.83, 1.93, M.steel);
     // ventilation grille behind the cab
     p.rect(X(3.38), X(3.18), 1.55, 2.95, M.grille);

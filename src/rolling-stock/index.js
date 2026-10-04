@@ -1,15 +1,22 @@
 import { buildTrain } from './train.js';
 import { C20 } from './c20.js';
+import { interior as C20_INTERIOR } from './c20-interior.js';
 import { C30 } from './c30.js';
+import { interior as C30_INTERIOR } from './c30-interior.js';
 
-export const TRAIN_TYPES = { C20, C30 };
+export const TRAIN_TYPES = { C20: { ...C20, interior: C20_INTERIOR.upgraded }, C30: { ...C30, interior: C30_INTERIOR } };
+
+// Interior styles a type can be built with (the first is the current one).
+export const INTERIOR_STYLES = { C20: ['upgraded', 'original'], C30: ['current'] };
 
 // Full-length trains as they run in service: three C20 units (139.5 m) or two C30 units (140 m).
 export const SERVICE_UNITS = { C20: 3, C30: 2 };
 
-// createTrain('C30', { units: 2, destination: 'Norsborg' }) → { group, cars, length, setDestination, setLights }
+// createTrain('C30', { units: 2, destination: 'Norsborg' }) → { group, cars, length, setDestination, setLights, setInterior }
+// C20 options: interiorStyle 'upgraded' (C20U, 2020–2024, the default) or 'original' (1997).
 export function createTrain(type, opts = {}) {
-  const spec = TRAIN_TYPES[type];
+  let spec = TRAIN_TYPES[type];
   if (!spec) throw new Error(`Unknown train type ${type}`);
+  if (type === 'C20' && opts.interiorStyle === 'original') spec = { ...spec, interior: C20_INTERIOR.original };
   return buildTrain(spec, { ...opts, units: opts.units ?? SERVICE_UNITS[type] });
 }
