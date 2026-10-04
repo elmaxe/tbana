@@ -55,15 +55,42 @@ Each phase ends in a pull request with a playable preview.
      - The blue line is at −24 m, between Rådhuset at −20.5 m and Kungsträdgården at −29.3 m.
      - The Stockholm C tracks are at +6 m.
      - Phase 3 checks this against the elevation model.
-2. **Track data tools.** Scripts in `tools/` that write data files to `public/data/`:
-   - Download the red line from OpenStreetMap (Overpass): tracks, platforms, stations, entrances.
-   - Turn it into a track graph: track pieces with their polylines, and switches wherever a track
-     branches. Many tunnel switches lack the `railway=switch` tag, so switches come from the
-     branches, not the tags. Mark each piece as tunnel, bridge or surface.
-   - Keep hand fixes in a small corrections file, checked against Gleisplanweb, which is reference
-     only because of its NC licence.
-   - Done when: T13 and T14 can be traced through the graph end to end, with every platform on its
-     track.
+2. **Track data tools.** *Done.*
+   - `tools/fetch-osm.ts network` downloads every metro track with its nodes, the switches,
+     platforms (ways and multipolygons), stations, entrances and route relations.
+   - `tools/build-track-graph.ts` writes `public/data/track-graph.json` (format in
+     `src/track-graph.ts`). The network has 1,743 pieces and 304 km of track: 220 km of running
+     line and 179 km in tunnel.
+     - Pieces are cut at switches, ends and tunnel mouths and bridge ends ("portals", which phase
+       3 needs).
+     - It finds 608 switches. Only 385 are tagged in OSM, so switches come from where the track
+       branches.
+     - At each switch, two tracks connect if they leave it at more than 110° to each other.
+   - Platforms are matched to the tracks running beside them.
+   - T13 and T14 are traced in both directions with a Dijkstra search that keeps every way of
+     standing at each station, so a cheap arrival can't strand the route. The trains never
+     reverse, prefer their own line's running lines, and keep left: on double track the other
+     track must be on the train's right.
+   - Results:
+     - T13 Norsborg–Ropsten is 26.9 km and T14 Fruängen–Mörby centrum is 19.1 km.
+     - All four directions stop at all their stations, and none use a crossover or siding.
+     - Every station's platform is on the train's right, except at Slussen and Gamla stan
+       (where the red tracks run between the green ones) and Liljeholmen northbound on T14 (a
+       five-track station).
+     - The services run on the right-hand track for only three short stretches (52–151 m), at
+       the junctions near Liljeholmen and Östermalmstorg and at Ropsten. There the "other
+       track" check is ambiguous.
+   - OSM fixes, in `data/track-corrections.json`, checked against Gleisplanweb:
+     - The crossover south of Mörby centrum was missing, so one direction ran 9.4 km on the
+       wrong track.
+     - Norsborg has no platform mapped.
+     - At Danderyds sjukhus and Aspudden, the island platform is drawn outside one of the
+       tracks, and at Aspudden the other track is 25 m away.
+   - `tools/plot-graph.ts` draws any part of the graph with the traced services, for checking.
+   - Still open:
+     - Track geometry in the tunnels is OSM's sketch: Mörby's two tracks are 30 m apart.
+       Phase 4 will need to smooth it and space parallel tracks properly.
+     - The graph has the whole network, but only the red line is traced and checked.
 3. **Heights.**
    - Give each station its Wikidata height and each tunnel mouth the height of the ground there.
    - Fill in the track between them within the 1975 limits for the red line: 40‰ at most, 10‰ at

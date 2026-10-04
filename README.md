@@ -132,6 +132,39 @@ matching each line only to the same line. It prints how far apart they are: for 
 median along the platforms is 0.8 m, and 90% are within 2 m. The tunnel ends of the drawing are
 sketched, so they can be 20–40 m off.
 
+### The track graph
+
+`public/data/track-graph.json` holds the whole metro's track network from OpenStreetMap, with the
+red line services traced through it. The format is in `src/track-graph.ts`. The game doesn't use
+it yet.
+
+```sh
+npm run fetch-osm -- network      # every metro track, switch, platform and station -> data/osm/network.json
+npm run build-track-graph         # -> public/data/track-graph.json
+npm run plot-graph -- Slussen 400 slussen.svg   # draw part of it, to check by eye
+```
+
+`build-track-graph` does the following:
+
+- It cuts the tracks into pieces at switches, ends and tunnel mouths.
+- It works out which pairs of tracks each switch connects.
+- It matches the platforms to the tracks beside them.
+- It traces T13 and T14 in both directions (`data/routes.json`), stopping at every platform,
+  never reversing, and keeping to the left-hand track.
+
+The build fails if a service can't be traced. `DEBUG=1` lists stations with only one platform
+track, and stretches where a service runs on the right-hand track.
+
+OpenStreetMap is sketchy in the tunnels, so a few fixes are kept in `data/track-corrections.json`,
+each with its reason:
+
+- a missing crossover at Mörby centrum
+- the missing platform at Norsborg
+- island platforms drawn on the wrong side of a track at Danderyds sjukhus and Aspudden
+
+[Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
+only a reference, because its licence doesn't allow reuse.
+
 ## Train models
 
 ![C30 and C20](trains.jpg)

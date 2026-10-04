@@ -1,0 +1,34 @@
+{
+  "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts, checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
+  "links": [],
+  "crossovers": [
+    {
+      "a": [
+        152088.2,
+        6587042.2
+      ],
+      "b": [
+        152144.9,
+        6587004.4
+      ],
+      "why": "Mörby centrum: the crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: it leaves the western track nearer the platform."
+    }
+  ],
+  "platforms": [
+    {
+      "station": "Norsborg",
+      "why": "No platform is mapped at Norsborg in OSM (October 2026)."
+    },
+    {
+      "station": "Danderyds sjukhus",
+      "why": "OSM draws the island platform outside the western track, so the eastern track gets no platform and the western one has it on the wrong side. Both are placed from the station's node, which lies between the tracks.",
+      "replace": true
+    },
+    {
+      "station": "Aspudden",
+      "reach": 30,
+      "why": "OSM draws the island platform south of the southern track, and the northern track about 25 m away from it. Both tracks are placed from the station's node, which lies between them.",
+      "replace": true
+    }
+  ]
+}
