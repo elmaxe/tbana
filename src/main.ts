@@ -1,20 +1,22 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { buildStation } from './station';
+import type { Station } from './station';
 import { Player } from './player';
 import { Trains } from './trains';
+import type { CarFloorData, Ride } from './trains';
 import { MiniMap } from './minimap';
 import { Input } from './input';
 import { Sound } from './sound';
 import { LINES } from './lines';
 import { mountBuildSwitcher } from './build-switcher';
 
-const $ = (id) => document.getElementById(id);
+const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
 const coarse = matchMedia('(pointer: coarse)').matches;
 
 // ------------------------------------------------------------------ renderer & scene
-const canvas = $('c');
+const canvas = $<HTMLCanvasElement>('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 const maxRatio = Math.min(devicePixelRatio, coarse ? 1.5 : 2);
 let pixelRatio = maxRatio;
@@ -25,8 +27,10 @@ renderer.toneMappingExposure = 1.1;
 
 const scene = new THREE.Scene();
 const FOG = 0x0a0c11;
-scene.background = new THREE.Color(FOG);
-scene.fog = new THREE.FogExp2(FOG, 0.0105);
+const background = new THREE.Color(FOG);
+const fog = new THREE.FogExp2(FOG, 0.0105);
+scene.background = background;
+scene.fog = fog;
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 1200);
 scene.add(new THREE.HemisphereLight(0xf2f5ff, 0x4a4540, 1.7));
@@ -53,13 +57,20 @@ addEventListener('resize', () => {
 });
 
 // ------------------------------------------------------------------ state
+interface Game {
+  station: Station;
+  player: Player<CarFloorData>;
+  trains: Trains;
+  minimap: MiniMap;
+}
+
 const sound = new Sound();
-let station, player, trains, minimap;
+let game: Game | null = null;
 let running = false;
 let showMap = false;
 
 const input = new Input(canvas, {
-  onLook: (dx, dy) => player && running && player.look(dx, dy),
+  onLook: (dx, dy) => { if (game && running) game.player.look(dx, dy); },
   onKey: (code) => handleKey(code),
   onModeChange: (touch) => document.body.classList.toggle('touch', touch),
 });
@@ -72,13 +83,15 @@ const loader = new GLTFLoader();
 loader.load(
   'assets/t-centralen.glb',
   (gltf) => {
-    station = buildStation(gltf.scene);
+    const station = buildStation(gltf.scene);
     scene.add(station.group);
-    player = new Player(camera, station.walk);
-    trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
-    minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $('minimap'), $('bigmap'));
+    const trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
+    // the cars of the trains are floors too, so the player can board them through open doors
+    const player = new Player<CarFloorData>(camera, station.walk, (x, z, out) => trains.floorsAt(x, z, out));
+    const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
+    game = { station, player, trains, minimap };
     sizeBigMap();
-    buildTeleportList();
+    buildTeleportList(station);
 
     const cam = params.get('cam');
     if (cam) {
@@ -91,19 +104,19 @@ loader.load(
     }
     $('loading').hidden = true;
     $('start').hidden = false;
-    window.__game = { station, player, trains, scene, camera, renderer, THREE };
+    (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
   },
   (e) => {
     if (e.total) $('progress').style.width = `${(100 * e.loaded) / e.total}%`;
   },
   (err) => {
-    $('loading').textContent = 'Could not load the station model: ' + err.message;
+    $('loading').textContent = 'Could not load the station model: ' + (err instanceof Error ? err.message : String(err));
   },
 );
 
 // ------------------------------------------------------------------ start / pause
 function start() {
-  if (!player) return;
+  if (!game) return;
   sound.start();
   $('overlay').hidden = true;
   running = true;
@@ -111,8 +124,9 @@ function start() {
     // Android: go fullscreen in landscape. (iPhone Safari has no fullscreen API; the page still fills the screen.)
     const el = document.documentElement;
     if (!document.fullscreenElement && el.requestFullscreen) {
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
       el.requestFullscreen({ navigationUI: 'hide' })
-        .then(() => screen.orientation?.lock?.('landscape'))
+        .then(() => orientation?.lock?.('landscape'))
         .catch(() => {});
     }
   } else {
@@ -148,11 +162,12 @@ function pause() {
     moveStick: (dx, dy) => { knob.style.transform = `translate(${dx}px, ${dy}px)`; },
     hideStick: () => { stick.classList.remove('active'); knob.style.transform = ''; },
   };
-  for (const b of document.querySelectorAll('[data-key]')) {
-    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); handleKey(b.dataset.key); });
+  for (const b of document.querySelectorAll<HTMLElement>('[data-key]')) {
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); handleKey(b.dataset.key!); });
   }
-  for (const b of document.querySelectorAll('[data-hold]')) {
-    const set = (v) => (e) => { e.preventDefault(); input.hold[b.dataset.hold] = v; b.classList.toggle('down', v); };
+  for (const b of document.querySelectorAll<HTMLElement>('[data-hold]')) {
+    const key = b.dataset.hold as keyof Input['hold'];
+    const set = (v: boolean) => (e: Event) => { e.preventDefault(); input.hold[key] = v; b.classList.toggle('down', v); };
     b.addEventListener('pointerdown', set(true));
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, set(false));
   }
@@ -162,16 +177,18 @@ function pause() {
 }
 
 // ------------------------------------------------------------------ keys
-function handleKey(code) {
-  if (!player) return;
+function handleKey(code: string) {
+  if (!game) return;
+  const { station, player, trains } = game;
   if (code === 'KeyM') { toggleMap(); return; }
   if (!running) return;
   switch (code) {
     case 'KeyF':
+      endJourney();
       player.fly = !player.fly;
       if (!player.fly) {
-        // land on whatever is below
-        const hits = station.walk.query(player.pos.x, player.pos.z);
+        // land on whatever is below, a train's floor included
+        const hits = [...station.walk.query(player.pos.x, player.pos.z), ...trains.floorsAt(player.pos.x, player.pos.z)];
         const below = hits.filter((h) => h.y <= player.pos.y + 0.5).sort((a, b) => b.y - a.y)[0];
         if (below) player.teleport(new THREE.Vector3(player.pos.x, below.y, player.pos.z), player.yaw);
         else player.teleport(station.spawn.pos, station.spawn.yaw);
@@ -185,12 +202,13 @@ function handleKey(code) {
       sound.setMuted(!sound.muted);
       toast(sound.muted ? 'Sound off' : 'Sound on');
       break;
-    case 'KeyR': fadeTo(() => player.teleport(station.spawn.pos, station.spawn.yaw)); break;
+    case 'KeyR': fadeTo(() => { endJourney(); player.teleport(station.spawn.pos, station.spawn.yaw); }); break;
     default: {
       const m = /^Digit(\d)$/.exec(code);
       if (m) {
         const t = station.teleports[Number(m[1]) - 1];
         if (t) fadeTo(() => {
+          endJourney();
           player.fly = false;
           document.body.classList.remove('flying');
           player.teleport(t.pos, t.yaw);
@@ -202,20 +220,20 @@ function handleKey(code) {
 }
 
 function toggleMap() {
-  if (!minimap) return;
+  if (!game) return;
   showMap = !showMap;
   $('bigmapWrap').hidden = !showMap;
-  if (showMap) minimap.drawBig(player);
+  if (showMap) game.minimap.drawBig(game.player);
 }
 
 function sizeBigMap() {
-  const c = $('bigmap');
+  const c = $<HTMLCanvasElement>('bigmap');
   c.width = Math.round(innerWidth * 0.9 * Math.min(devicePixelRatio, 2));
   c.height = Math.round(innerHeight * 0.85 * Math.min(devicePixelRatio, 2));
-  if (showMap && minimap) minimap.drawBig(player);
+  if (showMap && game) game.minimap.drawBig(game.player);
 }
 
-function buildTeleportList() {
+function buildTeleportList(station: Station) {
   const ul = $('teleports');
   ul.innerHTML = '';
   station.teleports.slice(0, 9).forEach((t, i) => {
@@ -232,17 +250,20 @@ function buildTeleportList() {
 
 // ------------------------------------------------------------------ lifts
 function nearbyLift() {
+  if (!game) return null;
+  const { player } = game;
   let best = null, bestD = Infinity;
-  for (const l of station.lifts) {
+  for (const l of game.station.lifts) {
     const d = Math.hypot(player.pos.x - l.center.x, player.pos.z - l.center.z) - l.radius;
     if (d < 3.2 && player.pos.y > l.minY - 0.6 && player.pos.y < l.maxY + 0.6 && d < bestD) { best = l; bestD = d; }
   }
   return best;
 }
 
-function useLift(dir) {
+function useLift(dir: number) {
   const lift = nearbyLift();
-  if (!lift) return;
+  if (!lift || !game) return;
+  const { player } = game;
   let i = 0;
   lift.levels.forEach((l, k) => { if (Math.abs(l.y - player.pos.y) < Math.abs(lift.levels[i].y - player.pos.y)) i = k; });
   const j = i + dir;
@@ -253,7 +274,7 @@ function useLift(dir) {
 }
 
 let fading = false;
-function fadeTo(fn, hold = 250) {
+function fadeTo(fn: () => void, hold = 250) {
   if (fading) return;
   fading = true;
   const f = $('fade');
@@ -264,18 +285,86 @@ function fadeTo(fn, hold = 250) {
   }, hold);
 }
 
-let toastTimer;
-function toast(text) {
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+function toast(text: string, ms = 1800) {
   const t = $('toast');
   t.textContent = text;
   t.classList.add('on');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('on'), 1800);
+  toastTimer = setTimeout(() => t.classList.remove('on'), ms);
+}
+
+// ------------------------------------------------------------------ riding
+// A ride ends where the modelled tunnel does. The screen goes dark for the trip to the next station
+// and back, and the player comes back into T-Centralen standing in the same spot of a train on
+// the other track (see Trains.transfer).
+interface Journey {
+  ride: Ride;
+  stage: 'leaving' | 'away';
+  relYaw: number; // the player's heading relative to their car
+}
+let journey: Journey | null = null;
+let journeyTimer: ReturnType<typeof setTimeout> | undefined;
+let lastRide: { svc: Ride['svc']; state: string } | null = null;
+
+function startJourney(ride: Ride) {
+  if (!game) return;
+  const { player, trains } = game;
+  const next = ride.svc.next;
+  journey = { ride, stage: 'leaving', relYaw: 0 };
+  $('fadeText').textContent = next ? `${next} …` : '…';
+  $('fade').classList.add('on', 'slow');
+  journeyTimer = setTimeout(() => {
+    if (!journey) return;
+    journey.relYaw = player.yaw - ride.car.object.rotation.y;
+    journey.ride = trains.transfer(ride);
+    journey.stage = 'away';
+    $('fadeText').textContent = next ? `${next} … and back to T-Centralen` : 'Back to T-Centralen';
+  }, 1600);
+}
+
+// The train coming back has reached the modelled tunnel: put the player in it and fade in.
+function arrive(j: Journey) {
+  if (!game) return;
+  const { player, trains } = game;
+  const car = j.ride.car.object;
+  j.ride.yaw = car.rotation.y;
+  trains.carry(j.ride, player.pos);
+  player.yaw = j.relYaw + car.rotation.y;
+  player.vel.set(0, 0, 0);
+  player.applyCamera(0);
+  journey = null;
+  journeyTimer = setTimeout(() => {
+    $('fade').classList.remove('on');
+    setTimeout(() => $('fade').classList.remove('slow'), 800);
+    toast('Arriving at T-Centralen', 2500);
+  }, 300);
+}
+
+function endJourney() {
+  if (!journey) return;
+  journey = null;
+  clearTimeout(journeyTimer);
+  $('fade').classList.remove('on', 'slow');
+}
+
+// Toasts as the train the player is in closes its doors and leaves.
+function rideNotices(ride: Ride | null) {
+  if (!ride) { lastRide = null; return; }
+  const { svc } = ride;
+  if (lastRide?.svc === svc && lastRide.state !== svc.state) {
+    if (svc.state === 'closing') toast('Doors closing — stand clear', 2200);
+    else if (svc.state === 'depart' && svc.next) toast(`Nästa: ${svc.next}`, 3000);
+    else if (svc.state === 'dwell') toast('T-Centralen — doors opening', 2200);
+  }
+  lastRide = { svc, state: svc.state };
 }
 
 // ------------------------------------------------------------------ HUD
 let hudNext = 0;
 function updateHud() {
+  if (!game) return;
+  const { player, trains } = game;
   const lift = nearbyLift();
   const atLift = !!lift && !player.fly;
   $('prompt').hidden = !atLift;
@@ -289,11 +378,12 @@ function updateHud() {
   const now = performance.now();
   if (now < hudNext) return;
   hudNext = now + 250;
-  const rec = player.surface?.rec;
+  const surface = player.surface;
   $('where').textContent = player.fly
     ? `Free flight · ${player.pos.y.toFixed(0)} m`
-    : `${rec?.label ?? '—'} · level ${player.pos.y.toFixed(0)} m`;
-  const deps = rec?.platformLine ? trains.departuresFor(rec) : [];
+    : `${surface?.rec.label ?? '—'} · level ${player.pos.y.toFixed(0)} m`;
+  const platform = surface && surface.kind !== 'train' && surface.rec.platformLine ? surface.rec : null;
+  const deps = platform ? trains.departuresFor(platform) : [];
   const box = $('departures');
   box.hidden = deps.length === 0;
   box.innerHTML = deps
@@ -305,19 +395,19 @@ function updateHud() {
 // Stockholm C and the tram stop are above ground: fade to an evening sky up there.
 const SKY = new THREE.Color(0x8193ad), DARK = new THREE.Color(FOG);
 let outdoor = 0;
-function updateAtmosphere(dt) {
+function updateAtmosphere(player: Player<CarFloorData>, dt: number) {
   const target = player.fly ? 0.5 : THREE.MathUtils.smoothstep(player.pos.y, 3.5, 5.8);
   outdoor += (target - outdoor) * Math.min(1, dt * 3);
-  scene.background.copy(DARK).lerp(SKY, player.fly ? 0 : outdoor);
-  scene.fog.color.copy(scene.background);
-  scene.fog.density = THREE.MathUtils.lerp(0.0105, 0.0035, outdoor);
+  background.copy(DARK).lerp(SKY, player.fly ? 0 : outdoor);
+  fog.color.copy(background);
+  fog.density = THREE.MathUtils.lerp(0.0105, 0.0035, outdoor);
 }
 
 // ------------------------------------------------------------------ loop
 const clock = new THREE.Clock();
 // Drop the render resolution on slow devices (never raises it again, to avoid oscillating).
 let perfFrames = 0, perfTime = 0;
-function adaptResolution(rawDt) {
+function adaptResolution(rawDt: number) {
   if (!running) return;
   perfFrames++; perfTime += rawDt;
   if (perfTime < 2.5) return;
@@ -330,15 +420,35 @@ function adaptResolution(rawDt) {
   }
 }
 
+// One step of the game: trains, riding, the player.
+function simulate(dt: number) {
+  if (game) {
+    const { player, trains } = game;
+    // the car the player stands in carries them along when it moves
+    const ride = journey ? journey.ride : player.fly ? null : trains.rideAt(player.pos);
+    trains.update(dt, player.pos, ride);
+    if (journey) {
+      if (journey.stage === 'away' && journey.ride.car.object.visible) arrive(journey);
+    } else if (ride) {
+      player.yaw += trains.carry(ride, player.pos);
+      trains.clearDoorway(ride, player.pos);
+      if (trains.leaving(ride)) startJourney(ride);
+    }
+    rideNotices(journey ? null : ride);
+    if (running && !journey) player.update(dt, input.state());
+    else player.applyCamera(dt);
+    headLight.position.set(player.pos.x, player.eyeY + 0.6, player.pos.z);
+    updateAtmosphere(player, dt);
+  }
+}
+
 function frame() {
   const raw = clock.getDelta();
   const dt = Math.min(0.05, raw);
   if (!params.has('cam')) adaptResolution(raw);
-  if (player) {
-    if (running) player.update(dt, input.state());
-    trains.update(dt, player.pos);
-    headLight.position.set(player.pos.x, player.eyeY + 0.6, player.pos.z);
-    updateAtmosphere(dt);
+  simulate(dt);
+  if (game) {
+    const { player, minimap } = game;
     if (running) {
       minimap.draw(player);
       updateHud();
