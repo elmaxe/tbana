@@ -42,6 +42,10 @@
     #panel.min .body { display: none; }
     #toggle { position: absolute; right: 10px; top: 10px; flex: none; width: 28px; padding: 2px; }
     a { color: #8fc0ff; }
+    .build-switcher { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+    .build-switcher span { width: 100%; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .build-switcher select { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px;
+      background: #1a212c; color: var(--text); font: 14px system-ui, sans-serif; }
     @media (max-width: 600px) {
       #panel { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46vh; }
       #hint { display: none; }
@@ -70,10 +74,15 @@
       <div class="row"><span>Model</span>
         <button id="spin">Turntable</button><button id="cut">Cutaway</button><button id="glb">Download .glb</button>
       </div>
+      <div class="row" id="buildSwitch" hidden></div>
       <div id="spec" class="spec"></div>
     </div>
   </div>
   <div id="hint">Drag to orbit · scroll to zoom · right-drag to pan · WASD to walk</div>
   <script type="module" src="src/viewer.js"></script>
+  <script type="module">
+    import { mountBuildSwitcher } from './src/build-switcher.js';
+    mountBuildSwitcher(document.getElementById('buildSwitch'));
+  </script>
 </body>
 </html>

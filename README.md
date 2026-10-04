@@ -49,9 +49,21 @@ for the widest view. If the frame rate is low, the render resolution drops autom
 
 ## Deployment
 
-`.github/workflows/pages.yml` publishes the site to GitHub Pages on every push to `main`. It needs
-Pages to be switched on once: **Settings → Pages → Build and deployment → Source: GitHub
-Actions**.
+`.github/workflows/pages.yml` publishes the site to GitHub Pages. It needs Pages to be switched on
+once: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Every deploy rebuilds the whole site from `.github/scripts/assemble-site.sh`:
+
+- `main` is at the root, https://elmaxe.github.io/tbana/.
+- Every open pull request from this repository is at `pr/<number>/`, for example
+  https://elmaxe.github.io/tbana/pr/3/. The workflow comments the link on the PR. Pushes to the PR
+  redeploy it, and closing the PR takes it down. PRs from forks are not deployed, because their
+  code would run on this site.
+
+The **Build** menu, on the start/pause screen and in the train viewer's panel, switches between
+`main` and the PR builds and keeps you on the same page. It reads `builds.json` at the site root and
+`build.json` in each build, which the workflow writes, so it doesn't show when you run the site
+locally.
 
 ## What's generated
 

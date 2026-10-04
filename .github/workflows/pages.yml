@@ -1,14 +1,24 @@
 name: Deploy to GitHub Pages
 
+# Publishes main at the site root and every open pull request from this repository under
+# pr/<number>/. Each run rebuilds the whole site, so a closed PR disappears on the next deploy.
+#
+# PR events use pull_request_target so the run is on main: the github-pages environment only
+# deploys from main, and this workflow and its script always come from main. The PR's files are
+# only copied, never run here.
+
 on:
   push:
     branches: [main]
+  pull_request_target:
+    types: [opened, reopened, synchronize, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 concurrency:
   group: pages
@@ -22,12 +32,34 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Collect site files
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Assemble site
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir _site
-          cp -r index.html trains.html style.css src assets screenshot.png trains.jpg _site/
-          touch _site/.nojekyll
-      - uses: actions/configure-pages@v5
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 \
+            --json number,title,isCrossRepository,url > "$RUNNER_TEMP/prs.json"
+          .github/scripts/assemble-site.sh _site "$RUNNER_TEMP/prs.json"
       - uses: actions/upload-pages-artifact@v3
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Comment preview link on the PR
+        if: >-
+          github.event_name == 'pull_request_target' && github.event.action != 'closed' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          PREVIEW: ${{ steps.pages.outputs.base_url }}/pr/${{ github.event.pull_request.number }}/
+        run: |
+          marker='<!-- pages-preview -->'
+          if gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate --jq '.[].body' | grep -qF "$marker"; then
+            exit 0
+          fi
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$marker
+          Preview: $PREVIEW · train models: ${PREVIEW}trains.html
+
+          It's redeployed on every push and taken down when the PR closes. Switch builds from the **Build** menu in the game."
