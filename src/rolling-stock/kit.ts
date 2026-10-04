@@ -10,7 +10,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const V = THREE.Vector2;
 
-export interface Paint { c: string; r?: number; m?: number; e?: string; a?: number; g?: number }
+export interface Paint { c: string; r?: number; m?: number; e?: string; a?: number }
 export type ProfileCtrl = [z: number, y: number, r?: number];
 export interface ProfilePoint { z: number; y: number; t: number; nz: number; ny: number }
 export interface Profile {
@@ -23,7 +23,7 @@ export interface LoopPoint { z: number; y: number; nz: number; ny: number }
 export interface CapOptions { k?: number; R?: number; face?: Rim; cy?: number; ni?: number; nb?: number; uv?: UvMap }
 export interface BellowsOptions { scale?: number; pleat?: number; depth?: number; cy?: number }
 export interface Band { sa: number; oa: number; sb: number; ob: number }
-export interface PainterOptions { ty?: (y: number) => number; detail?: number; alpha?: boolean; glow?: number }
+export interface PainterOptions { ty?: (y: number) => number; detail?: number; alpha?: boolean }
 export interface TextOptions { font?: string; align?: CanvasTextAlign; ring?: number }
 export type LayerKind = 'c' | 'orm' | 'e' | 'a';
 export interface Layer { kind: LayerKind; s: number; cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
@@ -214,16 +214,15 @@ const toPx = (v: number) => Math.round(v);
 // emission. `bands` are affine maps from (a, b) metres to canvas pixels: px = sa·a + oa,
 // py = sb·b + ob. `ty` converts a height to the band's vertical coordinate.
 // Options: `alpha` adds a fourth canvas for opacity (a paint's `a`, default 1), used for glass you
-// can see through and for holes cut in interior panels. `glow` makes paints without their own
-// emission glow at that fraction of their colour, which stands in for a car's interior lighting.
+// can see through and for holes cut in interior panels.
 export class Painter {
-  W: number; H: number; bands: Band[]; ty: (y: number) => number; glow: number;
+  W: number; H: number; bands: Band[]; ty: (y: number) => number;
   layers: Layer[];
   uv?: UvMap;
   _tex?: PainterTextures;
 
-  constructor(W: number, H: number, bands: Band[], { ty = (y: number) => y, detail = 0.5, alpha = false, glow = 0 }: PainterOptions = {}) {
-    this.W = W; this.H = H; this.bands = bands; this.ty = ty; this.glow = glow;
+  constructor(W: number, H: number, bands: Band[], { ty = (y: number) => y, detail = 0.5, alpha = false }: PainterOptions = {}) {
+    this.W = W; this.H = H; this.bands = bands; this.ty = ty;
     this.layers = [];
     const kinds: [LayerKind, number][] = [['c', 1], ['orm', detail], ['e', detail]];
     if (alpha) kinds.push(['a', 1]);
@@ -239,9 +238,7 @@ export class Painter {
     if (kind === 'c') return m.c;
     if (kind === 'orm') return `rgb(255,${Math.round((m.r ?? 0.5) * 255)},${Math.round((m.m ?? 0) * 255)})`;
     if (kind === 'a') { const g = Math.round((m.a ?? 1) * 255); return `rgb(${g},${g},${g})`; }
-    if (m.e || !this.glow || m.c[0] !== '#') return m.e || '#000';
-    const n = parseInt(m.c.slice(1), 16), k = this.glow * (m.g ?? 1);
-    return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`;
+    return m.e || '#000';
   }
 
   // Run a path-building function in metre space for every band and layer, then fill it.

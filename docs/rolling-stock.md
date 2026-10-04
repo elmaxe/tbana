@@ -143,8 +143,20 @@ official layout must use space the photos don't show, so the model follows the p
   - a seat made of an extruded moulded shell and cushions
   - poles, and rails swept along polylines
   - moquette textures
-- Interior surfaces glow a little at their own colour. This stands in for the cars' lighting, so
-  they need no real lights.
+- `cabin-light.ts`: the interiors are lit by their own ceiling lights. Each type lists them as
+  strips along the saloon: the C20's two rows of opal panels, and the C30's cove light lines and
+  rows of downlights. A patch to the standard material's shader adds, for every strip:
+  - the analytic irradiance of a line light, clipped to the surface's horizon and weighted by the
+    way the strip faces
+  - a highlight from the point on the strip the reflection sees, so poles and rails gleam
+  - a soft fill for light bounced round the car
+
+  Each car template has a height map of its seats and fittings seen from above, made once on the
+  CPU. The shader steps up the ray towards each strip through it, so the floor and walls under
+  the seats fall into shadow. Outside light only gets in through the windows: the sky and
+  environment are turned well down inside, and direct light is kept only where it casts shadows
+  (the viewer's sun). The station turns it off with `setOutsideLight({ direct: 0 })`, since its
+  lights would shine through the roofs.
 - `c20-interior.ts` / `c30-interior.ts`: the lining paint, materials, the furnishing layout and
   the inside of the door leaves for each type. Window cut-outs come from the same functions that paint the windows outside
   (`windowPanes`, `windowFrames`).

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { merge } from './kit';
 import {
-  liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches, endWallMaterial,
+  liningProfile, seating, pole, rail, moquette, interiorMat, Parts, freeStretches, endWallMaterial,
   screenTexture,
 } from './interior';
 import type { Painter } from './kit';
+import type { CabinLights } from './cabin-light';
 import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating } from './interior';
 import { DOOR, windowPanes } from './c20';
 import type { CarDef } from './train';
@@ -32,7 +33,12 @@ const IW = 1.38;   // inner half-width at the floor
 const prof = liningProfile([
   [0, F], [IW, F, 0.03], [IW, 1.9, 0.5], [1.33, 2.95, 0.15], [1.02, 3.25, 0.05], [0.8, 3.33, 0.04], [0, 3.35],
 ]);
-const G = 0.16;
+// The two rows of opal panels under the ceiling spine, neutral white, shining straight down.
+const LIGHTS: CabinLights = {
+  strips: [{ y: 3.26, z: 0.2, facing: [-1, 0], power: 0.5 }],
+  color: 0xfff7ee,
+  fill: 0.2,
+};
 // gangway portal, 1.8 m wide and 2.0 m high with rounded top corners
 const PORTAL = { w: 1.8, y0: F, y1: F + 2.0, r: 0.3 };
 
@@ -190,21 +196,21 @@ function plain(ctx: CanvasRenderingContext2D, n: number, col: string) {
 
 function makeMaterials(style: C20InteriorStyle) {
   return (): InteriorMaterials => {
-    const fab = (draw: (ctx: CanvasRenderingContext2D, n: number) => void, size: number, n?: number) => glowMat('#ffffff', { glow: G, map: moquette(draw, size, n), roughness: 0.95 });
+    const fab = (draw: (ctx: CanvasRenderingContext2D, n: number) => void, size: number, n?: number) => interiorMat('#ffffff', { map: moquette(draw, size, n), roughness: 0.95 });
     const mats = {
-      wall: glowMat('#e4e4e0', { glow: G, roughness: 0.5, side: THREE.DoubleSide }),
-      ceiling: glowMat('#c8cacc', { glow: G, roughness: 0.5 }),
-      bellows: glowMat('#8e9194', { glow: G, roughness: 0.85, side: THREE.DoubleSide }),
-      plate: glowMat('#7d8083', { glow: G, roughness: 0.6, metalness: 0.4 }),
-      ring: glowMat('#2a2c2f', { glow: 0.08, roughness: 0.7 }),
-      frame: glowMat('#7a7e83', { glow: G * 0.8, roughness: 0.4, metalness: 0.6 }),
-      pillar: glowMat('#a9abad', { glow: G, roughness: 0.45 }),
-      steel: glowMat('#c3c7ca', { glow: G * 0.6, roughness: 0.22, metalness: 0.9 }),
-      yellow: glowMat('#f2d21e', { glow: G, roughness: 0.4 }),
+      wall: interiorMat('#e4e4e0', { roughness: 0.5, side: THREE.DoubleSide }),
+      ceiling: interiorMat('#c8cacc', { roughness: 0.5 }),
+      bellows: interiorMat('#8e9194', { roughness: 0.85, side: THREE.DoubleSide }),
+      plate: interiorMat('#7d8083', { roughness: 0.6, metalness: 0.4 }),
+      ring: interiorMat('#2a2c2f', { roughness: 0.7 }),
+      frame: interiorMat('#7a7e83', { roughness: 0.4, metalness: 0.6 }),
+      pillar: interiorMat('#a9abad', { roughness: 0.45 }),
+      steel: interiorMat('#c3c7ca', { roughness: 0.22, metalness: 0.9 }),
+      yellow: interiorMat('#f2d21e', { roughness: 0.4 }),
       glass: new THREE.MeshStandardMaterial({ color: 0xdfeef0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide }),
       lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4e2, emissiveIntensity: 1.3 }),
       sign: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 64, drawSign), roughness: 0.2 }),
-      housing: glowMat('#1d2024', { glow: 0.1, roughness: 0.5 }),
+      housing: interiorMat('#1d2024', { roughness: 0.5 }),
       bulkhead: bulkheadMaterial(),
     };
     if (style === 'original') {
@@ -246,7 +252,7 @@ function drawTft(ctx: CanvasRenderingContext2D, w: number, h: number) {
 // The cab bulkhead is bright yellow, with the cab door and its narrow dark window.
 function bulkheadMaterial() {
   return endWallMaterial({
-    w: 1.5, y0: F, y1: 3.4, glow: G,
+    w: 1.5, y0: F, y1: 3.4,
     draw(ctx) {
       ctx.fillStyle = '#e8c21f'; ctx.fillRect(-1.5, F, 3, 2.4);
       ctx.fillStyle = '#d4ae16'; ctx.fillRect(-0.34, F, 0.68, 2.02);
@@ -447,7 +453,7 @@ function make(style: C20InteriorStyle): InteriorSpec {
     key: style,
     lining: prof,
     floorY: F,
-    glow: G,
+    lights: LIGHTS,
     endWall: 0.08,
     cabDepth: 3.42,
     portal: PORTAL,

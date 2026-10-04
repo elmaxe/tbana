@@ -9,6 +9,7 @@ import { interior as C30_INTERIOR } from './c30-interior';
 export type { Car, CarDef, BuildOptions, Train, TrainLights, TrainSpec } from './train';
 export type { InteriorSpec } from './interior';
 export type { C20InteriorStyle } from './c20-interior';
+export { setOutsideLight } from './cabin-light';
 
 export const TRAIN_TYPES = { C20: { ...C20, interior: C20_INTERIOR.upgraded }, C30: { ...C30, interior: C30_INTERIOR } };
 export type TrainType = keyof typeof TRAIN_TYPES;
