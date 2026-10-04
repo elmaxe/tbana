@@ -1,4 +1,4 @@
-// Line metadata. Model axes: +x ≈ east, +z ≈ south (worked out from the track geometry).
+// Line metadata. World axes: +x east, +z south (src/geo.ts).
 export type LineId = 'blue' | 'red' | 'green' | 'pink' | 'tram' | 'main';
 export type TrainKind = 'metro' | 'commuter' | 'tram' | 'mainline';
 // [line number, destination]

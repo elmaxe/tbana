@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { SurfaceIndex } from './surface-index';
 import type { SurfaceHit } from './surface-index';
-import { extractCenterlines, sweep } from './polyline';
+import { extractCenterlines, splitComponents, sweep, vkey } from './polyline';
+import { classifyColor } from './model-colors';
+import type { RecordKind } from './model-colors';
 import type { Polyline, Tri } from './polyline';
 import { LINES, TRAIN_SPECS } from './lines';
 import type { GaugeSpec, LineId } from './lines';
@@ -11,8 +13,6 @@ import * as T from './textures';
 // lift shafts, ticket gates and tracks, each identified only by its colour. This module turns
 // it into a walkable station: classifies every piece, builds walls/railings/platform edges,
 // track beds and tunnels, and indexes every walkable surface.
-
-export type RecordKind = 'deco' | 'floor' | 'stairs' | 'lightblue' | 'elevator' | 'tube' | 'gates' | `track:${LineId}`;
 
 export interface SurfaceRecord {
   name: string;
@@ -57,29 +57,6 @@ export interface Station {
 
 type UV = [number, number];
 
-const PALETTE: [RecordKind, [number, number, number]][] = [
-  ['track:blue', [0.0018, 0.2874, 0.6445]],
-  ['track:red', [0.7913, 0.013, 0.0194]],
-  ['track:green', [0.013, 0.4452, 0.1022]],
-  ['track:pink', [0.8879, 0.1329, 0.3813]],
-  ['track:tram', [0.2195, 0.2346, 0.2159]],
-  ['track:main', [0.3771, 0.4195, 0.8]],
-  ['floor', [0.7084, 0.7084, 0.7682]],
-  ['floor', [0.84, 0.84, 0.84]],
-  ['floor', [0.9, 0.86, 0.83]],
-  ['stairs', [0.9, 0.77, 0.68]],
-  ['lightblue', [0.67, 0.78, 1.0]],
-  ['gates', [1.0, 0.6, 0.0]],
-];
-
-function classifyColor(c: THREE.Color) {
-  let best: RecordKind = 'deco', bestD = 0.02;
-  for (const [kind, rgb] of PALETTE) {
-    const d = (c.r - rgb[0]) ** 2 + (c.g - rgb[1]) ** 2 + (c.b - rgb[2]) ** 2;
-    if (d < bestD) { bestD = d; best = kind; }
-  }
-  return best;
-}
 
 class Builder {
   pos: number[];
@@ -422,28 +399,6 @@ function boxInto(b: Builder, c: THREE.Vector3, hx: number, hy: number, hz: numbe
     [p(-hx, -hy, -hz), p(hx, -hy, -hz), p(hx, -hy, hz), p(-hx, -hy, hz)],
   ];
   for (const q of f) b.quad(q[0], q[1], q[2], q[3], [0, 0], [1, 0], [1, 1], [0, 1]);
-}
-
-const vkey = (v: THREE.Vector3) => `${Math.round(v.x * 100)},${Math.round(v.y * 100)},${Math.round(v.z * 100)}`;
-
-function splitComponents(tris: Tri[]) {
-  const id = new Map<string, number>();
-  const parent: number[] = [];
-  const find = (a: number) => { while (parent[a] !== a) a = parent[a] = parent[parent[a]]; return a; };
-  const vid = (v: THREE.Vector3) => {
-    const k = vkey(v);
-    if (!id.has(k)) { id.set(k, parent.length); parent.push(parent.length); }
-    return id.get(k)!;
-  };
-  const tv = tris.map((t) => t.map(vid));
-  for (const [a, b, c] of tv) { parent[find(b)] = find(a); parent[find(c)] = find(a); }
-  const comps = new Map<number, Tri[]>();
-  tris.forEach((t, i) => {
-    const r = find(tv[i][0]);
-    if (!comps.has(r)) comps.set(r, []);
-    comps.get(r)!.push(t);
-  });
-  return [...comps.values()];
 }
 
 interface Sample { s: number; side: number; d: number; rec: SurfaceRecord }

@@ -40,11 +40,21 @@ are:
 
 Each phase ends in a pull request with a playable preview.
 
-1. **Shared coordinates.**
-   - Put the game in metres on SWEREF 99 TM, with T-Centralen as the origin, +x east and +z south
-     as today. Heights are RH 2000.
-   - Fit the T-Centralen model onto that grid by matching its tracks to the OpenStreetMap tracks.
-   - Done when: the T-Centralen tracks lie on the OpenStreetMap tracks to within about 2 m.
+1. **Shared coordinates.** *Done.*
+   - The game is in metres on SWEREF 99 18 00 (EPSG:3011), with the origin at T-Centralen, +x east
+     and +z south as before. Heights are RH 2000. This is the Stockholm zone rather than SWEREF 99
+     TM: grid north is true north here, a grid metre is a ground metre, and the Nya tunnelbanan
+     drawings use it. `src/geo.ts` also converts to SWEREF 99 TM for Lantmäteriet's data.
+   - `tools/fit-station.ts` fits the T-Centralen model onto the OpenStreetMap tracks
+     (`tools/fetch-osm.ts`). The result is a 0.14° turn and a shift of a few decimetres, in
+     `public/data/stations.json`. The scale check is 1.0007, so the drawing is in metres.
+   - Along the platforms the model's tracks are a median 0.8 m from OSM, and 90% are within 2 m.
+     Red and green are best (0.7 m), blue is worst (1.4 m). The tunnel ends of the drawing are
+     sketched and part from OSM by up to 40 m, so phase 2 must not take track geometry from them.
+   - The drawing's heights are kept as drawn. They look like RH 2000:
+     - The blue line is at −24 m, between Rådhuset at −20.5 m and Kungsträdgården at −29.3 m.
+     - The Stockholm C tracks are at +6 m.
+     - Phase 3 checks this against the elevation model.
 2. **Track data tools.** Scripts in `tools/` that write data files to `public/data/`:
    - Download the red line from OpenStreetMap (Overpass): tracks, platforms, stations, entrances.
    - Turn it into a track graph: track pieces with their polylines, and switches wherever a track
@@ -92,8 +102,9 @@ game's code.
 
 - [ ] Write to Albert Guillaumes: ask permission, and whether he would share the red line stations'
       3D files. That could save most of phase 6.
-- [ ] A free Geotorget account at Lantmäteriet, to download the 1 m elevation model for phases 3
-      and 7. Until then we can use the free 30 m Copernicus elevation model.
+- [x] A free Geotorget account at Lantmäteriet, for the 1 m elevation model in phases 3 and 7.
+      The downloads use HTTP Basic auth with the account's user name and password. Phase 3's tools
+      will read them from the environment variables `LM_USER` and `LM_PASSWORD`.
 - [ ] Borrow the 1964 technical description from Stockholms stadsbibliotek, and photograph its red
       line profiles and standard sections.
 - [ ] Does Wikidata's station height mean top of rail or platform level, and in which height system?

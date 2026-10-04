@@ -65,6 +65,29 @@ export class Polyline {
 }
 const _a = new THREE.Vector3(), _b = new THREE.Vector3();
 
+export const vkey = (v: THREE.Vector3) => `${Math.round(v.x * 100)},${Math.round(v.y * 100)},${Math.round(v.z * 100)}`;
+
+// Splits triangles into groups that share vertices.
+export function splitComponents(tris: Tri[]) {
+  const id = new Map<string, number>();
+  const parent: number[] = [];
+  const find = (a: number) => { while (parent[a] !== a) a = parent[a] = parent[parent[a]]; return a; };
+  const vid = (v: THREE.Vector3) => {
+    const k = vkey(v);
+    if (!id.has(k)) { id.set(k, parent.length); parent.push(parent.length); }
+    return id.get(k)!;
+  };
+  const tv = tris.map((t) => t.map(vid));
+  for (const [a, b, c] of tv) { parent[find(b)] = find(a); parent[find(c)] = find(a); }
+  const comps = new Map<number, Tri[]>();
+  tris.forEach((t, i) => {
+    const r = find(tv[i][0]);
+    if (!comps.has(r)) comps.set(r, []);
+    comps.get(r)!.push(t);
+  });
+  return [...comps.values()];
+}
+
 // Recovers the centre line of a thin ribbon (a track drawn as an extruded SVG stroke).
 // Slices the ribbon perpendicular to its principal axis and takes the middle of each slice.
 // Returns an array of polylines (the ribbon is split where a slice looks implausibly wide).

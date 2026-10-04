@@ -79,40 +79,59 @@ document.body.classList.toggle('touch', touchMode());
 mountBuildSwitcher($('buildSwitch'));
 
 // ------------------------------------------------------------------ loading
-const loader = new GLTFLoader();
-loader.load(
-  'assets/t-centralen.glb',
-  (gltf) => {
-    const station = buildStation(gltf.scene);
-    scene.add(station.group);
-    const trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
-    // the cars of the trains are floors too, so the player can board them through open doors
-    const player = new Player<CarFloorData>(camera, station.walk, (x, z, out) => trains.floorsAt(x, z, out));
-    const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
-    game = { station, player, trains, minimap };
-    sizeBigMap();
-    buildTeleportList(station);
+// Where each station model sits on the world grid (src/geo.ts), as fitted by tools/fit-station.ts.
+interface StationPlacement { model: string; rotationY: number; position: [number, number, number] }
 
-    const cam = params.get('cam');
-    if (cam) {
-      const [x, y, z, yaw = 0, pitch = 0] = cam.split(',').map(Number);
-      player.teleport(new THREE.Vector3(x, y, z), yaw);
-      player.pitch = pitch;
-      player.fly = params.has('fly');
-    } else {
-      player.teleport(station.spawn.pos, station.spawn.yaw);
-    }
-    $('loading').hidden = true;
-    $('start').hidden = false;
-    (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
-  },
-  (e) => {
-    if (e.total) $('progress').style.width = `${(100 * e.loaded) / e.total}%`;
-  },
-  (err) => {
-    $('loading').textContent = 'Could not load the station model: ' + (err instanceof Error ? err.message : String(err));
-  },
-);
+function loadingFailed(err: unknown) {
+  $('loading').textContent = 'Could not load the station model: ' + (err instanceof Error ? err.message : String(err));
+}
+
+function onStationLoaded(root: THREE.Object3D) {
+  const station = buildStation(root);
+  scene.add(station.group);
+  const trains = new Trains(scene, station.tracks, sound, { renderer, quality: coarse ? 0.5 : 0.8 });
+  // the cars of the trains are floors too, so the player can board them through open doors
+  const player = new Player<CarFloorData>(camera, station.walk, (x, z, out) => trains.floorsAt(x, z, out));
+  const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
+  game = { station, player, trains, minimap };
+  sizeBigMap();
+  buildTeleportList(station);
+
+  const cam = params.get('cam');
+  if (cam) {
+    const [x, y, z, yaw = 0, pitch = 0] = cam.split(',').map(Number);
+    player.teleport(new THREE.Vector3(x, y, z), yaw);
+    player.pitch = pitch;
+    player.fly = params.has('fly');
+  } else {
+    player.teleport(station.spawn.pos, station.spawn.yaw);
+  }
+  $('loading').hidden = true;
+  $('start').hidden = false;
+  (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
+}
+
+fetch('data/stations.json')
+  .then((res) => {
+    if (!res.ok) throw new Error(`data/stations.json: HTTP ${res.status}`);
+    return res.json() as Promise<Record<string, StationPlacement>>;
+  })
+  .then((stations) => {
+    const place = stations['t-centralen'];
+    new GLTFLoader().load(
+      place.model,
+      (gltf) => {
+        gltf.scene.rotation.y = THREE.MathUtils.degToRad(place.rotationY);
+        gltf.scene.position.fromArray(place.position);
+        onStationLoaded(gltf.scene);
+      },
+      (e) => {
+        if (e.total) $('progress').style.width = `${(100 * e.loaded) / e.total}%`;
+      },
+      loadingFailed,
+    );
+  })
+  .catch(loadingFailed);
 
 // ------------------------------------------------------------------ start / pause
 function start() {

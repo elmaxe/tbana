@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc && tsc -p tsconfig.node.json"
+    "typecheck": "tsc && tsc -p tsconfig.node.json && tsc -p tsconfig.tools.json",
+    "fetch-osm": "node tools/fetch-osm.ts",
+    "fit-station": "node tools/fit-station.ts"
   },
   "dependencies": {
     "three": "0.170.0"
