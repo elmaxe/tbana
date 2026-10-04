@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>T-Centralen Walk</title>
+  <meta name="description" content="Walk around T-Centralen / Stockholm City in first person, built on Albert Guillaumes' 3D station drawing.">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="hud">
+    <div id="where"></div>
+    <div id="departures" hidden></div>
+    <canvas id="minimap" width="220" height="220"></canvas>
+    <div id="crosshair"></div>
+    <div id="prompt" hidden></div>
+    <div id="toast"></div>
+    <div id="touchButtons">
+      <button data-key="KeyE">▲</button>
+      <button data-key="KeyQ">▼</button>
+      <button data-key="KeyM">Map</button>
+      <button data-key="KeyF">Fly</button>
+    </div>
+    <div id="stick" hidden><div id="knob"></div></div>
+  </div>
+
+  <div id="bigmapWrap" hidden>
+    <canvas id="bigmap"></canvas>
+    <p>Map — press <kbd>M</kbd> to close</p>
+  </div>
+
+  <div id="fade"></div>
+
+  <div id="overlay">
+    <div class="panel">
+      <h1><span class="t">T</span> T-Centralen</h1>
+      <p class="sub">Stockholm City · Stockholm C — a first-person walk through the station drawing</p>
+      <div id="loading">Loading station… <div class="bar"><div id="progress"></div></div></div>
+      <button id="start" hidden>Enter the station</button>
+      <div class="cols">
+        <div>
+          <h2>Controls</h2>
+          <ul class="keys">
+            <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Shift</kbd> run</li>
+            <li><kbd>Mouse</kbd> look · <kbd>Esc</kbd> pause</li>
+            <li><kbd>E</kbd>/<kbd>Q</kbd> lift up / down (stand next to a blue shaft)</li>
+            <li><kbd>M</kbd> map · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> sound</li>
+            <li class="touchonly">Touch: drag left side to walk, right side to look</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Jump to a platform</h2>
+          <ul id="teleports"></ul>
+        </div>
+      </div>
+      <p class="credit">
+        Station geometry: 3D drawing of T-Centralen / Stockholm City / Stockholm C © Albert Guillaumes,
+        from <a href="http://stations.albertguillaumes.cat/" target="_blank" rel="noopener">Stations and transfers</a>.
+        Walls, tracks, trains and lighting are generated around it.
+      </p>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
