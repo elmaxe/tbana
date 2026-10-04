@@ -106,8 +106,31 @@ gates and tracks, identified by colour. `src/station.ts` reads it and adds:
 - **Lifts**: each shaft links the floors next to it.
 - A **minimap** rendered once from above.
 
-Model axes: +x is roughly east and +z roughly south. Destinations are picked from the direction of
-travel.
+Destinations are picked from the direction of travel.
+
+## World coordinates
+
+The game is laid out on the real map, so that the rest of the network can be added around
+T-Centralen (see [`docs/red-line-plan.md`](docs/red-line-plan.md)). World coordinates are metres on
+SWEREF 99 18 00, the Stockholm zone of Sweden's national grid, around an origin at T-Centralen
+(`src/geo.ts`):
+
+- +x is east and +z is south (grid north is within 0.1° of true north here).
+- y is the height above sea level in RH 2000. The station drawing is already drawn in those heights:
+  the blue line platform is at −24 m, and the Stockholm C tracks are at +6 m.
+
+`public/data/stations.json` says where each station model sits on that grid. The tools that make
+it run on Node's built-in TypeScript support:
+
+```sh
+npm run fetch-osm -- t-centralen    # OpenStreetMap tracks and platforms -> data/osm/t-centralen.json
+npm run fit-station -- t-centralen  # fit the model's tracks onto them -> public/data/stations.json
+```
+
+`fit-station` turns and moves the model in plan until its tracks lie on the OpenStreetMap tracks,
+matching each line only to the same line. It prints how far apart they are: for T-Centralen the
+median along the platforms is 0.8 m, and 90% are within 2 m. The tunnel ends of the drawing are
+sketched, so they can be 20–40 m off.
 
 ## Train models
 
@@ -151,3 +174,6 @@ Station geometry: 3D drawing of T-Centralen / Stockholm City / Stockholm C © Al
 [stations.albertguillaumes.cat](http://stations.albertguillaumes.cat/), converted unchanged from the
 site's `t-centralen.gltf` to `assets/t-centralen.glb`. The drawing is his work. Ask him before you
 publish or redistribute this project.
+
+Map data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, under the Open
+Database License (`data/osm/`, and the placements derived from it in `public/data/`).
