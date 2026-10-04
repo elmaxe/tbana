@@ -3,18 +3,24 @@
 //   node tools/build-heights.ts
 //
 // Reads public/data/track-graph.json, data/station-heights.json (Wikidata), the T-Centralen
-// model, and data/ground/red-line.json (Lantmäteriet's elevation model) when it is there; writes
+// model, data/ground/red-line.json (Lantmäteriet's elevation model) when it is there, and the
+// fixes to these in data/height-corrections.json; writes
 // public/data/track-heights.json: the height of the top of the rail (RH 2000) at every point of
 // every piece the services run on.
 //
 // Every piece is cut into points about 10 m apart, joined at the graph's nodes, and the heights
 // are the smoothest line through these, by least squares:
 // - stations: the platform tracks sit 1.0 m below the station's height from Wikidata, which is
-//   taken to be the platform's level
+//   taken to be the platform's level (unless data/height-corrections.json fixes it), and are held
+//   level along the platform
 // - T-Centralen, which Wikidata lacks: the heights of the model's tracks, which are drawn at
 //   platform level, also 1.0 m above the rail
-// - surface track: 0.2 m above the ground; bridges: no anchor, the line is carried across
-// - tunnels: below the ground with at least 6 m of cover, except near their mouths
+// - surface track: 0.2 m above the ground, except on the last 30 m to a bridge; bridges: no
+//   anchor, the line is carried across
+// - tunnels: below the ground with at least 6 m of cover, except near their mouths and along
+//   platforms (the ground over a covered station such as Gamla stan is its roof), and where the
+//   corrections say the line is in a trough rather than a bored tunnel
+// - the gradient: no steeper than 37‰
 // Then the result is checked against the 1975 limits for the red line: 40‰ at most, 10‰ along
 // platforms, vertical curves of at least 2,000 m radius. The build fails on anything clearly
 // outside them, and lists it.
@@ -25,14 +31,37 @@ import { loadStationModel, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-heights.json';
 const GROUND = 'data/ground/red-line.json';
+const CORRECTIONS = 'data/height-corrections.json';
 const STEP = 10;
 const PLATFORM_ABOVE_RAIL = 1.0;
 const LIMITS = { gradient: 0.040, platformGradient: 0.010, radius: 2000, cover: 6 };
-// how far each kind of anchor may be off, in metres (or 1/m for curvature)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.5, curvature: 1 / 4000, level: 50 };
+// how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
+const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, grade: 0.001, level: 50 };
+// the gradient the line is held to where it would be steeper
+const GRADE_HOLD = 0.037;
 
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const stationHeights: Record<string, { height: number }> = JSON.parse(readFileSync('data/station-heights.json', 'utf8')).stations;
+interface Corrections {
+  stations?: { station: string; height: number; why: string }[];
+  uncovered?: Segment[];
+  offGround?: Segment[];
+}
+interface Segment { along: [number, number][]; reach: number; why: string }
+const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
+for (const c of corrections.stations ?? []) {
+  if (!graph.stations.some((s) => s.name === c.station)) throw new Error(`${CORRECTIONS}: no station ${c.station}`);
+  stationHeights[c.station] = { height: c.height };
+}
+// within reach of the line of any of the fixes
+const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixes ?? []).some(({ along, reach }) =>
+  along.slice(1).some(([bx, bz], k) => {
+    const [ax, az] = along[k], dx = bx - ax, dz = bz - az;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+    return Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach;
+  }));
+// tunnel that needs no cover, and surface track that isn't on the ground
+const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround);
 const ground: [number, number, number][] = existsSync(GROUND) ? JSON.parse(readFileSync(GROUND, 'utf8')).samples : [];
 if (!ground.length) console.warn(`${GROUND} missing: no ground anchors, and tunnel cover is not checked`);
 
@@ -113,6 +142,18 @@ for (const st of graph.stations) {
   }
 }
 
+// ... and are level along their length: the smoothing must not tilt them to meet the line on
+// either side
+const onPlatform = new Set(stationRows.map((r) => r.v));
+for (const p of pieces) {
+  const { s, v } = disc.get(p.id)!;
+  for (let k = 1; k < v.length; k++) {
+    if (!onPlatform.has(v[k]) || !onPlatform.has(v[k - 1])) continue;
+    const h = s[k] - s[k - 1];
+    rows.push({ i: [v[k - 1], v[k]], c: [-1 / h, 1 / h], b: 0, w: 1 / SIGMA.platformGradient });
+  }
+}
+
 // T-Centralen: the model's tracks along its platforms, where a graph point lies within 3 m of one
 // of the same line. Beyond the platforms the model only sketches where the tunnels go: its
 // tunnel ends drop at up to 70‰, so they are left out.
@@ -170,7 +211,10 @@ const mouthDistance = new Map<number, number>();
 {
   const tunnelPieces = pieces.filter((p) => p.structure === 'tunnel');
   const dist = new Map<number, number>();
-  for (const n of graph.nodes) if (n.kind === 'portal' && nodeVar.has(n.id)) dist.set(n.id, 0);
+  // a mouth is where a tunnel meets track in the open; it may also be a switch, so the node's
+  // kind doesn't say
+  const open = new Set(graph.pieces.filter((p) => p.structure !== 'tunnel').flatMap((p) => [p.from, p.to]));
+  for (const p of tunnelPieces) for (const n of [p.from, p.to]) if (open.has(n)) dist.set(n, 0);
   for (let changed = true; changed;) {
     changed = false;
     for (const p of tunnelPieces) {
@@ -191,67 +235,147 @@ const structureOf = new Map<number, TrackPiece['structure']>();
 for (const p of pieces) for (const vi of disc.get(p.id)!.v) if (!structureOf.has(vi) || p.structure !== 'surface') structureOf.set(vi, p.structure);
 let groundAnchors = 0;
 const groundOf = vars.map((v) => groundAt(v.x, v.z));
+// the ground a tunnel's cover is measured from: the mean within 25 m, since a tunnel may pass
+// with less cover under something short, such as a channel or a road in a cutting
+const coverGround = vars.map((v) => {
+  let sum = 0, n = 0;
+  for (let i = Math.floor(v.x / 10) - 3; i <= Math.floor(v.x / 10) + 3; i++) for (let j = Math.floor(v.z / 10) - 3; j <= Math.floor(v.z / 10) + 3; j++) {
+    for (const g of groundGrid.get(`${i},${j}`) ?? []) if (Math.hypot(g[0] - v.x, g[1] - v.z) <= 25) { sum += g[2]; n++; }
+  }
+  return n ? sum / n : null;
+});
+// Surface track next to a bridge is on the embankment up to it, which OSM counts as surface for a
+// few metres more than the ground is level: no ground anchor there.
+const bridgeEnds = graph.nodes.filter((n) => nodeVar.has(n.id)
+  && pieces.some((p) => p.structure === 'bridge' && (p.from === n.id || p.to === n.id))
+  && pieces.some((p) => p.structure !== 'bridge' && (p.from === n.id || p.to === n.id)));
+const onGround = (vi: number) => structureOf.get(vi) === 'surface' && groundOf[vi] !== null
+  && !bridgeEnds.some((n) => Math.hypot(n.x - vars[vi].x, n.z - vars[vi].z) < 30) && !offGround(vars[vi].x, vars[vi].z);
 vars.forEach((_, vi) => {
-  const g = groundOf[vi];
-  if (g !== null && structureOf.get(vi) === 'surface') { addAnchor(vi, g + 0.2, SIGMA.ground); groundAnchors++; }
+  if (onGround(vi)) { addAnchor(vi, groundOf[vi]! + 0.2, SIGMA.ground); groundAnchors++; }
 });
 
 // ------------------------------------------------------------------ solve
-// The normal equations by conjugate gradients; rows are few per unknown, so this is quick.
+// The normal equations, solved exactly by Cholesky. Each unknown is tied only to its neighbours
+// along the track, so after numbering the points along the lines (reverse Cuthill–McKee) the
+// matrix is a narrow band, stored as each row's span from its first non-zero to the diagonal.
+// (Conjugate gradients stalls here: the long, gentle bends a tunnel under a lake needs are the
+// slowest thing for it to find.)
+const order: number[] = [];
+{
+  const nb: Set<number>[] = vars.map(() => new Set());
+  for (const r of rows) for (const a of r.i) for (const b of r.i) if (a !== b) nb[a].add(b);
+  const seen = new Uint8Array(vars.length);
+  // start each part of the network from an end of it, then visit by distance from there,
+  // fewest neighbours first
+  const byDegree = vars.map((_, v) => v).sort((a, b) => nb[a].size - nb[b].size);
+  for (const s0 of byDegree) {
+    if (seen[s0]) continue;
+    const part: number[] = [s0];
+    seen[s0] = 1;
+    for (let h = 0; h < part.length; h++) {
+      for (const w of [...nb[part[h]]].sort((a, b) => nb[a].size - nb[b].size)) if (!seen[w]) { seen[w] = 1; part.push(w); }
+    }
+    order.push(...part.reverse());
+  }
+}
+const pos = new Int32Array(vars.length);
+order.forEach((v, k) => { pos[v] = k; });
+
 function solve(extra: Row[]) {
   const all = rows.concat(extra);
   const n = vars.length;
-  const apply = (x: Float64Array) => {
-    const out = new Float64Array(n);
-    for (const r of all) {
-      let a = 0;
-      for (let k = 0; k < r.i.length; k++) a += r.c[k] * x[r.i[k]];
-      a *= r.w * r.w;
-      for (let k = 0; k < r.i.length; k++) out[r.i[k]] += r.c[k] * a;
-    }
-    return out;
-  };
-  const rhs = new Float64Array(n);
-  for (const r of all) for (let k = 0; k < r.i.length; k++) rhs[r.i[k]] += r.c[k] * r.b * r.w * r.w;
-  // Jacobi-preconditioned conjugate gradients
-  const diag = new Float64Array(n);
-  for (const r of all) for (let k = 0; k < r.i.length; k++) diag[r.i[k]] += (r.c[k] * r.w) ** 2;
-  const x = new Float64Array(n);
-  let r = rhs.slice();
-  let z = r.map((v, i) => v / diag[i]);
-  let p = z.slice();
-  let rz = r.reduce((a, v, i) => a + v * z[i], 0);
-  const rhsNorm = Math.sqrt(rhs.reduce((a, v) => a + v * v, 0)) || 1;
-  for (let it = 0; it < 20000; it++) {
-    const ap = apply(p);
-    const alpha = rz / p.reduce((a, v, i) => a + v * ap[i], 0);
-    for (let i = 0; i < n; i++) { x[i] += alpha * p[i]; r[i] -= alpha * ap[i]; }
-    if (Math.sqrt(r.reduce((a, v) => a + v * v, 0)) < 1e-9 * rhsNorm) break;
-    z = r.map((v, i) => v / diag[i]);
-    const rz2 = r.reduce((a, v, i) => a + v * z[i], 0);
-    const beta = rz2 / rz;
-    rz = rz2;
-    for (let i = 0; i < n; i++) p[i] = z[i] + beta * p[i];
+  // the matrix in the new numbering: first column of each row, and the row from there
+  const first = new Int32Array(n).map((_, i) => i);
+  for (const r of all) {
+    const ps = r.i.map((v) => pos[v]), lo = Math.min(...ps);
+    for (const q of ps) if (lo < first[q]) first[q] = lo;
   }
-  return x;
+  const start = new Int32Array(n + 1);
+  for (let i = 0; i < n; i++) start[i + 1] = start[i] + i - first[i] + 1;
+  const L = new Float64Array(start[n]);
+  const at = (i: number, j: number) => start[i] + j - first[i];
+  const rhs = new Float64Array(n);
+  for (const r of all) {
+    const w2 = r.w * r.w;
+    for (let a = 0; a < r.i.length; a++) {
+      const pa = pos[r.i[a]];
+      rhs[pa] += r.c[a] * r.b * w2;
+      for (let b = 0; b < r.i.length; b++) {
+        const pb = pos[r.i[b]];
+        if (pb <= pa) L[at(pa, pb)] += r.c[a] * r.c[b] * w2;
+      }
+    }
+  }
+  // factor in place: L·Lᵀ
+  for (let i = 0; i < n; i++) {
+    for (let j = first[i]; j <= i; j++) {
+      let sum = L[at(i, j)];
+      for (let k = Math.max(first[i], first[j]); k < j; k++) sum -= L[at(i, k)] * L[at(j, k)];
+      if (j < i) L[at(i, j)] = sum / L[at(j, j)];
+      else {
+        if (!(sum > 0)) throw new Error('the height equations are singular');
+        L[at(i, i)] = Math.sqrt(sum);
+      }
+    }
+  }
+  // L·u = rhs, then Lᵀ·x = u
+  const x = rhs.slice();
+  for (let i = 0; i < n; i++) {
+    let sum = x[i];
+    for (let k = first[i]; k < i; k++) sum -= L[at(i, k)] * x[k];
+    x[i] = sum / L[at(i, i)];
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] /= L[at(i, i)];
+    for (let k = first[i]; k < i; k++) x[k] -= L[at(i, k)] * x[i];
+  }
+  const y = new Float64Array(n);
+  order.forEach((v, k) => { y[v] = x[k]; });
+  return y;
 }
 
-// Tunnels must stay under the ground: where the line comes too close to the surface (away
-// from the mouths), hold it down there and solve again.
-const cover: Row[] = [];
-let y = solve(cover);
-for (let round = 0; round < 8 && ground.length; round++) {
-  let added = 0;
-  vars.forEach((_, vi) => {
-    const g = groundOf[vi];
-    if (g === null || structureOf.get(vi) !== 'tunnel' || (mouthDistance.get(vi) ?? Infinity) < 120) return;
-    if (y[vi] > g - LIMITS.cover && !cover.some((r) => r.i[0] === vi)) {
-      cover.push({ i: [vi], c: [1], b: g - LIMITS.cover, w: 1 / SIGMA.cover });
-      added++;
-    }
+// Two limits the smoothest line doesn't keep by itself, enforced by holding the line where it
+// breaks them, solving again, and letting go wherever a hold is no longer pushing, until nothing
+// changes:
+// - tunnels must stay under the ground, away from their mouths
+// - the gradient: between level stations the smoothest line is an S whose middle is half as
+//   steep again as the average, where a real line runs at an even grade between short vertical
+//   curves; so it is held to just under the limit
+const coverAt = (vi: number) => {
+  const g = coverGround[vi];
+  if (g === null || structureOf.get(vi) !== 'tunnel' || (mouthDistance.get(vi) ?? Infinity) < 120 || onPlatform.has(vi)
+    || uncovered(vars[vi].x, vars[vi].z)) return null;
+  return g - LIMITS.cover;
+};
+const steps = pieces.flatMap((p) => {
+  const { s, v } = disc.get(p.id)!;
+  return v.slice(1).map((b, k) => ({ a: v[k], b, h: s[k + 1] - s[k] }));
+});
+const coverHeld = new Set<number>(), gradeHeld = new Map<number, number>();
+const holds = () => [
+  ...[...coverHeld].map((vi): Row => ({ i: [vi], c: [1], b: coverAt(vi)!, w: 1 / SIGMA.cover })),
+  ...[...gradeHeld].map(([k, sign]): Row => {
+    const { a, b, h } = steps[k];
+    return { i: [a, b], c: [-1 / h, 1 / h], b: sign * GRADE_HOLD, w: 1 / SIGMA.grade };
+  }),
+];
+let y = solve([]);
+for (let round = 0; round < 50; round++) {
+  let changed = 0;
+  if (ground.length) vars.forEach((_, vi) => {
+    const top = coverAt(vi);
+    if (top === null) return;
+    if (!coverHeld.has(vi) && y[vi] > top) { coverHeld.add(vi); changed++; }
+    else if (coverHeld.has(vi) && y[vi] < top) { coverHeld.delete(vi); changed++; }
   });
-  if (!added) break;
-  y = solve(cover);
+  steps.forEach(({ a, b, h }, k) => {
+    const g = (y[b] - y[a]) / h;
+    if (!gradeHeld.has(k) && Math.abs(g) > GRADE_HOLD) { gradeHeld.set(k, Math.sign(g)); changed++; }
+    else if (gradeHeld.has(k) && Math.abs(g) < GRADE_HOLD) { gradeHeld.delete(k); changed++; }
+  });
+  if (!changed) break;
+  y = solve(holds());
 }
 
 // ------------------------------------------------------------------ write
@@ -273,18 +397,18 @@ writeFileSync(OUT, JSON.stringify({
   note: 'Height of the top of the rail (RH 2000) at each point of each piece of public/data/track-graph.json that a traced service runs on.',
   pieces: heights,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${groundAnchors} on surface ground, ${cover.length} held under ground`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check
 const problems: string[] = [];
+const where = (v: Var) => `x ${Math.round(v.x)}, z ${Math.round(v.z)}`;
 const near = (x: number, z: number) => graph.stations.reduce((a, b) => (Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a)).name;
 for (const st of new Set(stationRows.map((r) => r.name))) {
   const mine = stationRows.filter((r) => r.name === st);
   const off = Math.max(...mine.map((r) => Math.abs(y[r.v] - r.b)));
   if (off > 2) problems.push(`${st}: platform ${off.toFixed(1)} m off its height`);
 }
-const platformAt = new Set(stationRows.map((r) => r.v));
 for (const route of graph.routes) {
   const prof = routeProfile(graph, route, heights);
   // gradient over 20 m, curvature over 60 m
@@ -311,7 +435,7 @@ for (const route of graph.routes) {
 for (const p of pieces) {
   const { s, v } = disc.get(p.id)!;
   for (let k = 1; k < v.length; k++) {
-    if (!platformAt.has(v[k]) || !platformAt.has(v[k - 1])) continue;
+    if (!onPlatform.has(v[k]) || !onPlatform.has(v[k - 1])) continue;
     const g = Math.abs((y[v[k]] - y[v[k - 1]]) / (s[k] - s[k - 1]));
     if (g > LIMITS.platformGradient * 1.5) problems.push(`platform near ${near(vars[v[k]].x, vars[v[k]].z)}: ${(g * 1000).toFixed(1)}‰ (limit 10‰)`);
   }
@@ -320,9 +444,9 @@ if (ground.length) {
   vars.forEach((vv, vi) => {
     const g = groundOf[vi];
     if (g === null) return;
-    const st = structureOf.get(vi);
-    if (st === 'tunnel' && (mouthDistance.get(vi) ?? Infinity) >= 120 && y[vi] > g - LIMITS.cover + 1) problems.push(`tunnel near ${near(vv.x, vv.z)}: only ${(g - y[vi]).toFixed(1)} m under the ground`);
-    if (st === 'surface' && Math.abs(y[vi] - g - 0.2) > 4) problems.push(`surface track near ${near(vv.x, vv.z)}: ${(y[vi] - g).toFixed(1)} m from the ground`);
+    const top = coverAt(vi);
+    if (top !== null && y[vi] > top + 1) problems.push(`tunnel near ${near(vv.x, vv.z)}: only ${(coverGround[vi]! - y[vi]).toFixed(1)} m under the ground at ${where(vv)}`);
+    if (onGround(vi) && Math.abs(y[vi] - g - 0.2) > 4) problems.push(`surface track near ${near(vv.x, vv.z)}: ${(y[vi] - g).toFixed(1)} m from the ground at ${where(vv)}`);
   });
 }
 if (problems.length) {

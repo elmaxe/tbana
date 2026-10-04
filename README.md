@@ -179,16 +179,27 @@ npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
 
 `build-heights` fits the smoothest line through these anchors:
 
-- **Stations:** 1 m below their height from Wikidata, which is taken to be the platform's level.
+- **Stations:** 1 m below their height from Wikidata, which is taken to be the platform's level,
+  and level along the platform.
 - **T-Centralen:** its platforms in the station model.
 - **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
 
-It keeps tunnels at least 6 m under the ground away from their mouths. It then checks the result
-against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of at
-least 2,000 m. It fails on anything outside them.
+It keeps tunnels at least 6 m under the ground away from their mouths, and the gradient at 37‰ or
+less, the way a real line runs at an even grade between short vertical curves. It then checks the
+result against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of
+at least 2,000 m. It fails on anything outside them, and says where.
+
+`data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
+
+- Gamla stan's Wikidata height is the street; its platforms are on a deck about 5 m higher.
+- In Riddarholmskanalen the line runs in a trough, not a bored tunnel, so it needs no cover.
+- South of Gamla stan's platforms, OSM's surface track is still on the station deck.
 
 `fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
-`LM_PASSWORD`.
+`LM_PASSWORD`. It finds the files through Lantmäteriet's STAC catalogue for height data. Behind a
+proxy that adds the login, run it with `NODE_USE_ENV_PROXY=1` so that Node's `fetch` uses the proxy.
+Its output, `data/ground/red-line.json`, is in the repository, so `build-heights` runs without a
+login.
 
 ## Train models
 

@@ -1,5 +1,6 @@
 // Draws a traced service's side view as an SVG: the top of the rail along the route, the ground
-// above it, tunnels and bridges, and the stations with their heights from Wikidata.
+// above it, tunnels and bridges, and the stations with their heights from Wikidata (or
+// data/height-corrections.json where that fixes them).
 //
 //   node tools/plot-profile.ts "T13 Norsborg" [out.svg] [from km] [to km]
 //
@@ -12,6 +13,9 @@ const [which = 'T13', out = 'profile.svg', fromKm, toKm] = process.argv.slice(2)
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const stationHeights: Record<string, { height: number }> = JSON.parse(readFileSync('data/station-heights.json', 'utf8')).stations;
+if (existsSync('data/height-corrections.json')) {
+  for (const c of JSON.parse(readFileSync('data/height-corrections.json', 'utf8')).stations ?? []) stationHeights[c.station] = { height: c.height };
+}
 const ground: [number, number, number][] = existsSync('data/ground/red-line.json')
   ? JSON.parse(readFileSync('data/ground/red-line.json', 'utf8')).samples : [];
 
@@ -99,6 +103,6 @@ for (const st of stops) {
   if (st.h !== undefined) parts.push(`<circle cx="${X(st.p.s)}" cy="${Y(st.h - 1)}" r="4" fill="none" stroke="#000"/>`);
   parts.push(`<text transform="translate(${X(st.p.s) + 4},${T - 4}) rotate(-30)" font-size="11">${st.name}</text>`);
 }
-const title = `${route.name}: top of rail (red), ground (green), Wikidata station height − 1 m (circles); tunnels brown, bridges blue. Heights in m RH 2000.`;
+const title = `${route.name}: top of rail (red), ground (green), station height − 1 m (circles); tunnels brown, bridges blue. Heights in m RH 2000.`;
 writeFileSync(out, `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H + 30}" viewBox="0 0 ${W} ${H + 30}" style="background:#fff;font-family:sans-serif">${parts.join('')}<text x="${L}" y="${H + 20}" font-size="12">${title}</text></svg>\n`);
 console.log(`wrote ${out}`);
