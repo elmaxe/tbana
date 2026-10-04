@@ -23,6 +23,7 @@ const SPECS = {
       ['Capacity', '126 seated, 288 standing'],
       ['Power', '1 MW, 750 V DC third rail'],
       ['Top speed', '90 km/h design, 80 km/h service'],
+      ['Interior', 'Upgraded 2020–2024 (C20U): 102 seats, mixed facing groups and wall rows, multipurpose areas. Original 1997: 126 seats in Lasse Åberg\'s navy moquette'],
     ],
     dest: 'Skarpnäck',
   },
@@ -38,6 +39,7 @@ const SPECS = {
       ['Doors per side', '12 (3 per car)'],
       ['Capacity', 'about 140 seated, 634 total'],
       ['Top speed', '90 km/h design, 80 km/h service'],
+      ['Interior', 'Facing rows and wall benches, flex areas, "Plattan" triangle fabric, ring lamps over the doors'],
     ],
     dest: 'Norsborg',
   },
@@ -63,7 +65,7 @@ const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 10
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI * 0.495;
-controls.minDistance = 2;
+controls.minDistance = 0.05;
 controls.maxDistance = 320;
 
 scene.add(new THREE.HemisphereLight(0xeef4ff, 0x6b6660, 0.8));
@@ -140,6 +142,8 @@ let state = {
   full: params.get('len') === 'full',
   view: params.get('view') || 'front',
   spin: false,
+  cut: params.has('cut'),
+  c20: params.get('c20') === 'original' ? 'original' : 'upgraded',
 };
 let world = null;
 let trains = [];
@@ -153,12 +157,13 @@ function build() {
   trains = [];
   const types = state.type === 'both' ? ['C20', 'C30'] : [state.type];
   let maxLen = 0;
-  const made = types.map((t) => createTrain(t, { units: state.full ? undefined : 1, destination: SPECS[t].dest }));
+  const made = types.map((t) => createTrain(t, { units: state.full ? undefined : 1, destination: SPECS[t].dest, interiorStyle: state.c20 }));
   const front = Math.max(...made.map((t) => t.length)) / 2;
   made.forEach((train, i) => {
     // fronts line up at the platform end
     train.group.position.set(front - train.length / 2, 0, types.length > 1 ? (i ? 3.6 : -3.6) : 0);
-    train.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // the shell shades the interior, so the sun only gets in through the windows
+    train.group.traverse((o) => { if (o.isMesh) { o.castShadow = !o.userData.interior; o.receiveShadow = true; } });
     world.add(train.group);
     trains.push(train);
     maxLen = Math.max(maxLen, train.length);
@@ -170,6 +175,7 @@ function build() {
     world.add(track(len, 0), platform(len, -3.55, 4.0));
   }
   scene.add(world);
+  applyCutaway();
   // shadow camera covers the trains
   const s = sun.shadow.camera;
   const half = Math.max(30, maxLen / 2 + 8);
@@ -199,10 +205,17 @@ function setView(v) {
     bogie: [new THREE.Vector3(front - 1.0, 0.9, (both ? 3.6 : 0) + 4.2), new THREE.Vector3(front - 3.6, 0.6, both ? 3.6 : 0)],
     top: [new THREE.Vector3(front + 6, 14, 12), new THREE.Vector3(front - 10, 1.5, 0)],
     nose: [new THREE.Vector3(front + 5.5, 2.3, 2.6), new THREE.Vector3(front - 0.5, 2.0, 0)],
+    // standing in the aisle of the leading car behind the cab, looking back down the train
+    inside: (() => {
+      const lead = trains[0]?.type === 'C30' ? 5.6 : 6.3, z = (both ? -3.6 : 0) - 0.15;
+      return [new THREE.Vector3(front - lead, 2.62, z), new THREE.Vector3(front - lead - 0.4, 2.52, z - 0.02)];
+    })(),
   };
   const [pos, target] = views[v] || views.front;
   camera.position.copy(pos);
   controls.target.copy(target);
+  camera.fov = v === 'inside' ? 62 : 40;
+  camera.updateProjectionMatrix();
   controls.update();
   document.querySelectorAll('#views button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
 }
@@ -211,6 +224,9 @@ function syncButtons() {
   document.querySelectorAll('#types button').forEach((b) => b.classList.toggle('on', b.dataset.type === state.type));
   document.querySelectorAll('#lengths button').forEach((b) => b.classList.toggle('on', (b.dataset.len === 'full') === state.full));
   $('spin').classList.toggle('on', state.spin);
+  $('cut').classList.toggle('on', !!state.cut);
+  document.querySelectorAll('#c20style button').forEach((b) => b.classList.toggle('on', b.dataset.style === state.c20));
+  $('c20style').hidden = state.type === 'C30';
 }
 
 $('types').addEventListener('click', (e) => {
@@ -221,10 +237,46 @@ $('lengths').addEventListener('click', (e) => {
   const l = e.target.dataset?.len; if (!l) return;
   state.full = l === 'full'; syncButtons(); build();
 });
+$('c20style').addEventListener('click', (e) => {
+  const st = e.target.dataset?.style; if (!st) return;
+  state.c20 = st; syncButtons(); build();
+});
 $('views').addEventListener('click', (e) => {
   const v = e.target.dataset?.view; if (v) setView(v);
 });
 $('spin').addEventListener('click', () => { state.spin = !state.spin; controls.autoRotate = state.spin; syncButtons(); });
+$('cut').addEventListener('click', () => { state.cut = !state.cut; applyCutaway(); syncButtons(); });
+
+// Cutaway: clip everything above the window band so the layout shows from above.
+renderer.localClippingEnabled = true;
+const cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.95);
+function applyCutaway() {
+  world?.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) { m.clippingPlanes = state.cut ? [cutPlane] : null; m.clipShadows = true; m.needsUpdate = true; }
+  });
+  for (const t of trains) for (const c of t.cars) for (const m of c.bodyMats ?? []) { m.clippingPlanes = state.cut ? [cutPlane] : null; m.needsUpdate = true; }
+}
+
+// WASD / arrow keys walk the camera (and its target) around, e.g. through the cars.
+const keys = new Set();
+addEventListener('keydown', (e) => { if (!e.target.closest?.('button')) keys.add(e.code); });
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+const _f = new THREE.Vector3(), _r = new THREE.Vector3();
+function walk(dt) {
+  const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
+  const fwd = k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown'), right = k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft');
+  const up = k('KeyE', 'PageUp') - k('KeyQ', 'PageDown');
+  if (!fwd && !right && !up) return;
+  camera.getWorldDirection(_f); _f.y = 0; _f.normalize();
+  _r.crossVectors(_f, camera.up).normalize();
+  const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 8 : 2.5) * dt;
+  const d = _f.multiplyScalar(fwd * speed).addScaledVector(_r, right * speed);
+  d.y = up * speed;
+  camera.position.add(d);
+  controls.target.add(d);
+}
 $('toggle').addEventListener('click', () => {
   const min = $('panel').classList.toggle('min');
   $('toggle').textContent = min ? '+' : '–';
@@ -245,7 +297,9 @@ controls.autoRotateSpeed = 0.8;
 syncButtons();
 build();
 
+const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
+  walk(Math.min(0.05, clock.getDelta()));
   controls.update();
   renderer.render(scene, camera);
 });
