@@ -10,12 +10,14 @@ import { LINES } from './lines.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const isTouch = matchMedia('(pointer: coarse)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
 
 // ------------------------------------------------------------------ renderer & scene
 const canvas = $('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
+const maxRatio = Math.min(devicePixelRatio, coarse ? 1.5 : 2);
+let pixelRatio = maxRatio;
+renderer.setPixelRatio(pixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
@@ -33,10 +35,19 @@ scene.add(sun);
 const headLight = new THREE.PointLight(0xfff1dc, 9, 26, 1.5);
 scene.add(headLight);
 
+// Keep at least ~70° horizontal view in portrait.
+function fitCamera() {
+  const aspect = innerWidth / innerHeight;
+  const minH = THREE.MathUtils.degToRad(70);
+  const vfov = Math.max(72, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(minH / 2) / aspect)));
+  camera.fov = Math.min(vfov, 100);
+  camera.aspect = aspect;
+  camera.updateProjectionMatrix();
+}
+fitCamera();
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
+  fitCamera();
   sizeBigMap();
 });
 
@@ -49,7 +60,10 @@ let showMap = false;
 const input = new Input(canvas, {
   onLook: (dx, dy) => player && running && player.look(dx, dy),
   onKey: (code) => handleKey(code),
+  onModeChange: (touch) => document.body.classList.toggle('touch', touch),
 });
+const touchMode = () => input.touchMode;
+document.body.classList.toggle('touch', touchMode());
 
 // ------------------------------------------------------------------ loading
 const loader = new GLTFLoader();
@@ -87,35 +101,62 @@ loader.load(
 
 // ------------------------------------------------------------------ start / pause
 function start() {
+  if (!player) return;
   sound.start();
   $('overlay').hidden = true;
   running = true;
-  if (!isTouch) canvas.requestPointerLock?.();
+  if (touchMode()) {
+    // Android: go fullscreen in landscape. (iPhone Safari has no fullscreen API; the page still fills the screen.)
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) {
+      el.requestFullscreen({ navigationUI: 'hide' })
+        .then(() => screen.orientation?.lock?.('landscape'))
+        .catch(() => {});
+    }
+  } else {
+    canvas.requestPointerLock?.();
+  }
 }
 $('start').addEventListener('click', start);
 canvas.addEventListener('click', () => {
-  if (running && !isTouch && document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
+  if (running && !touchMode() && document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
 });
 document.addEventListener('pointerlockchange', () => {
-  if (!isTouch && document.pointerLockElement !== canvas && running && !showMap) pause();
+  if (!touchMode() && document.pointerLockElement !== canvas && running && !showMap) pause();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && running) pause();
 });
 function pause() {
   running = false;
+  input.release();
   $('overlay').hidden = false;
   $('start').textContent = 'Resume';
 }
 
-if (isTouch) {
-  document.body.classList.add('touch');
+// ------------------------------------------------------------------ touch UI
+{
   const stick = $('stick'), knob = $('knob');
   input.touchUI = {
-    showStick: (x, y) => { stick.style.left = `${x}px`; stick.style.top = `${y}px`; stick.hidden = false; },
+    showStick: (x, y) => {
+      stick.style.left = `${x}px`; stick.style.top = `${y}px`;
+      stick.classList.add('active');
+      $('stickHint').hidden = true;
+    },
     moveStick: (dx, dy) => { knob.style.transform = `translate(${dx}px, ${dy}px)`; },
-    hideStick: () => { stick.hidden = true; knob.style.transform = ''; },
+    hideStick: () => { stick.classList.remove('active'); knob.style.transform = ''; },
   };
   for (const b of document.querySelectorAll('[data-key]')) {
-    b.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); handleKey(b.dataset.key); }, { passive: false });
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); handleKey(b.dataset.key); });
   }
+  for (const b of document.querySelectorAll('[data-hold]')) {
+    const set = (v) => (e) => { e.preventDefault(); input.hold[b.dataset.hold] = v; b.classList.toggle('down', v); };
+    b.addEventListener('pointerdown', set(true));
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, set(false));
+  }
+  $('menuBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); if (running) pause(); });
+  $('minimap').addEventListener('pointerdown', (e) => { if (touchMode()) { e.preventDefault(); toggleMap(); } });
+  $('bigmapWrap').addEventListener('pointerdown', (e) => { if (touchMode()) { e.preventDefault(); toggleMap(); } });
 }
 
 // ------------------------------------------------------------------ keys
@@ -133,7 +174,8 @@ function handleKey(code) {
         if (below) player.teleport(new THREE.Vector3(player.pos.x, below.y, player.pos.z), player.yaw);
         else player.teleport(station.spawn.pos, station.spawn.yaw);
       }
-      toast(player.fly ? 'Free flight on — Space/C to rise/sink' : 'Walking');
+      toast(player.fly ? (touchMode() ? 'Free flight on — hold ⇡ / ⇣ to rise/sink' : 'Free flight on — Space/C to rise/sink') : 'Walking');
+      document.body.classList.toggle('flying', player.fly);
       break;
     case 'KeyE': useLift(+1); break;
     case 'KeyQ': useLift(-1); break;
@@ -146,7 +188,12 @@ function handleKey(code) {
       const m = /^Digit(\d)$/.exec(code);
       if (m) {
         const t = station.teleports[Number(m[1]) - 1];
-        if (t) fadeTo(() => { player.fly = false; player.teleport(t.pos, t.yaw); toast(t.label); });
+        if (t) fadeTo(() => {
+          player.fly = false;
+          document.body.classList.remove('flying');
+          player.teleport(t.pos, t.yaw);
+          toast(t.label);
+        });
       }
     }
   }
@@ -228,11 +275,13 @@ function toast(text) {
 let hudNext = 0;
 function updateHud() {
   const lift = nearbyLift();
-  $('prompt').hidden = !lift || player.fly;
+  const atLift = !!lift && !player.fly;
+  $('prompt').hidden = !atLift;
+  document.body.classList.toggle('at-lift', atLift);
   if (lift) {
     const idx = lift.levels.findIndex((l) => Math.abs(l.y - player.pos.y) < 0.8);
-    $('prompt').innerHTML = isTouch
-      ? 'Lift — tap ▲ / ▼'
+    $('prompt').innerHTML = touchMode()
+      ? `Lift · floor ${idx + 1} of ${lift.levels.length}`
       : `Lift ${idx + 1}/${lift.levels.length} — <kbd>E</kbd> up · <kbd>Q</kbd> down`;
   }
   const now = performance.now();
@@ -264,8 +313,25 @@ function updateAtmosphere(dt) {
 
 // ------------------------------------------------------------------ loop
 const clock = new THREE.Clock();
+// Drop the render resolution on slow devices (never raises it again, to avoid oscillating).
+let perfFrames = 0, perfTime = 0;
+function adaptResolution(rawDt) {
+  if (!running) return;
+  perfFrames++; perfTime += rawDt;
+  if (perfTime < 2.5) return;
+  const fps = perfFrames / perfTime;
+  perfFrames = 0; perfTime = 0;
+  if (fps < 40 && pixelRatio > 0.75) {
+    pixelRatio = Math.max(0.75, pixelRatio - 0.25);
+    renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(innerWidth, innerHeight);
+  }
+}
+
 function frame() {
-  const dt = Math.min(0.05, clock.getDelta());
+  const raw = clock.getDelta();
+  const dt = Math.min(0.05, raw);
+  if (!params.has('cam')) adaptResolution(raw);
   if (player) {
     if (running) player.update(dt, input.state());
     trains.update(dt, player.pos);

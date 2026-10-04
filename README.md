@@ -6,6 +6,8 @@ A first-person walk through **T-Centralen / Stockholm City / Stockholm C**, runn
 with [three.js](https://threejs.org/). It is built on Albert Guillaumes' 3D drawing of the station
 from [Stations and transfers](http://stations.albertguillaumes.cat/).
 
+**Play it online:** https://elmaxe.github.io/tbana/
+
 ## Run it
 
 It's a static site with no build step. three.js is loaded from a CDN through an import map. Serve
@@ -31,8 +33,25 @@ disk (`file://`) won't work, because browsers block loading the model that way.
 | `R` | Back to the start |
 | `N` | Sound on/off |
 
-On touch devices, drag on the left half of the screen to walk and on the right half to look. The
-buttons on the right are for lifts, the map and flight.
+### Phones and tablets
+
+Touch controls switch on automatically:
+
+- **Left half:** drag to walk. Push the stick all the way to run.
+- **Right half:** drag to look around. You can walk and look at the same time with two fingers.
+- **Lift ▲ / Lift ▼** buttons appear when you stand next to a lift shaft.
+- **⇡ / ⇣** appear in free flight.
+- **Map** opens the full map, and so does tapping the minimap.
+- **☰** opens the menu and the list of platforms to jump to.
+
+On Android the game goes fullscreen in landscape when you start. On iPhone, turn the phone sideways
+for the widest view. If the frame rate is low, the render resolution drops automatically.
+
+## Deployment
+
+`.github/workflows/pages.yml` publishes the site to GitHub Pages on every push to `main`. It needs
+Pages to be switched on once: **Settings → Pages → Build and deployment → Source: GitHub
+Actions**.
 
 ## What's generated
 

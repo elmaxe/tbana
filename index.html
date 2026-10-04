@@ -25,18 +25,28 @@
     <div id="crosshair"></div>
     <div id="prompt" hidden></div>
     <div id="toast"></div>
+    <button id="menuBtn" class="touchonly-btn" aria-label="Menu">☰</button>
     <div id="touchButtons">
-      <button data-key="KeyE">▲</button>
-      <button data-key="KeyQ">▼</button>
-      <button data-key="KeyM">Map</button>
-      <button data-key="KeyF">Fly</button>
+      <div id="liftButtons">
+        <button data-key="KeyE" aria-label="Lift up">Lift ▲</button>
+        <button data-key="KeyQ" aria-label="Lift down">Lift ▼</button>
+      </div>
+      <div id="flyButtons">
+        <button data-hold="up" aria-label="Rise">⇡</button>
+        <button data-hold="down" aria-label="Sink">⇣</button>
+      </div>
+      <div class="row">
+        <button data-key="KeyM">Map</button>
+        <button data-key="KeyF">Fly</button>
+      </div>
     </div>
-    <div id="stick" hidden><div id="knob"></div></div>
+    <div id="stick"><div id="knob"></div></div>
+    <div id="stickHint">Drag here to walk<br><span>drag right side to look</span></div>
   </div>
 
   <div id="bigmapWrap" hidden>
     <canvas id="bigmap"></canvas>
-    <p>Map — press <kbd>M</kbd> to close</p>
+    <p><span class="mouseonly">Map — press <kbd>M</kbd> to close</span><span class="touchonly-inline">Map — tap to close</span></p>
   </div>
 
   <div id="fade"></div>
@@ -50,12 +60,18 @@
       <div class="cols">
         <div>
           <h2>Controls</h2>
-          <ul class="keys">
+          <ul class="keys mouseonly-block">
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Shift</kbd> run</li>
             <li><kbd>Mouse</kbd> look · <kbd>Esc</kbd> pause</li>
             <li><kbd>E</kbd>/<kbd>Q</kbd> lift up / down (stand next to a blue shaft)</li>
             <li><kbd>M</kbd> map · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> sound</li>
-            <li class="touchonly">Touch: drag left side to walk, right side to look</li>
+          </ul>
+          <ul class="keys touchonly-block">
+            <li><b>Left side</b>: drag to walk (push far to run)</li>
+            <li><b>Right side</b>: drag to look around</li>
+            <li><b>Lift ▲ ▼</b> appear next to lift shafts</li>
+            <li>Tap the minimap for the full map, ☰ for this menu</li>
+            <li class="rotate">Turn your phone sideways for a wider view</li>
           </ul>
         </div>
         <div>
