@@ -14,7 +14,8 @@
     "fetch-station-heights": "node tools/fetch-station-heights.ts",
     "fetch-ground": "node tools/fetch-ground.ts",
     "build-heights": "node tools/build-heights.ts",
-    "plot-profile": "node tools/plot-profile.ts"
+    "plot-profile": "node tools/plot-profile.ts",
+    "build-track-geometry": "node tools/build-track-geometry.ts"
   },
   "dependencies": {
     "three": "0.170.0"

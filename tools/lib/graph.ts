@@ -24,6 +24,26 @@ export function pointAt(p: TrackPiece, s: number): [number, number] {
   return p.points[0];
 }
 
+// How far each node of the given tunnel pieces is from the nearest tunnel mouth, through tunnel
+// pieces. A mouth is where a tunnel meets track in the open; it may also be a switch, so the
+// node's kind doesn't say.
+export function mouthDistances(graph: TrackGraph, pieces: TrackPiece[]) {
+  const tunnelPieces = pieces.filter((p) => p.structure === 'tunnel');
+  const dist = new Map<number, number>();
+  const open = new Set(graph.pieces.filter((p) => p.structure !== 'tunnel').flatMap((p) => [p.from, p.to]));
+  for (const p of tunnelPieces) for (const n of [p.from, p.to]) if (open.has(n)) dist.set(n, 0);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const p of tunnelPieces) {
+      for (const [a, b] of [[p.from, p.to], [p.to, p.from]]) {
+        const d = (dist.get(a) ?? Infinity) + p.length;
+        if (d < (dist.get(b) ?? Infinity)) { dist.set(b, d); changed = true; }
+      }
+    }
+  }
+  return dist;
+}
+
 // linear interpolation in a sorted table
 export function interp(xs: number[], ys: number[], x: number) {
   if (x <= xs[0]) return ys[0];

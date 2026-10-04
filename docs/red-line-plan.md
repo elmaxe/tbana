@@ -88,7 +88,7 @@ Each phase ends in a pull request with a playable preview.
    - `tools/plot-graph.ts` draws any part of the graph with the traced services, for checking.
    - Still open:
      - Track geometry in the tunnels is OSM's sketch: Mörby's two tracks are 30 m apart.
-       Phase 4 will need to smooth it and space parallel tracks properly.
+       Phase 4 smooths it and spaces the tracks as built.
      - The graph has the whole network, but only the red line is traced and checked.
 3. **Heights.** *Done.*
    - `tools/fetch-station-heights.ts` takes the stations' heights from Wikidata, matched by
@@ -136,12 +136,72 @@ Each phase ends in a pull request with a playable preview.
    - Tunnels under water follow OSM: Riddarholmskanalen, Liljeholmsviken (OSM has the line in
      tunnel there, not on a bridge) and Brunnsviken. The elevation model gives the water's
      surface, not the bottom, so their depth is only as good as the 6 m rule.
-4. **Tunnels and track in the game.**
-   - Draw track, rails and third rail along the graph.
-   - Add tunnel shells by type: rock tunnel, concrete box, open cutting, bridge and embankment.
-     Size them from the typical sections in the 1952 and 1975 descriptions.
-   - Load only the stretch near the player.
-   - Done when: you can fly from T-Centralen to Östermalmstorg through a real tunnel.
+4. **Tunnels and track in the game.** *Done.*
+   - The typical sections are from the 1952 and 1975 descriptions (in `src/sections.ts`):
+     - Track centres are 3.15 m.
+     - The double-track rock tunnel is 8.0 m wide, with walls to 3.2 m and the crown 4.6 m above
+       the rails.
+     - The single-track rock tunnel is 4.3 m wide (1975: 1.9 m on one side of the track, 2.4 m on
+       the other), with its crown at 4.45 m.
+     - The concrete box is 4.2 m high inside, with haunched corners.
+     - The embankment's formation is 10.8 m wide, with 1:2 slopes. A double-track viaduct deck is
+       8.4 m wide.
+     - Track is concrete sleepers 2.4 m long at 0.741 m, with SJ50 rail.
+     - The conductor rail is on the side away from the other track and from the platform, 1.40 m
+       from the track centre and 0.1 m above the rails, under a wooden cover board.
+     - Tunnel lights are every 10 m on alternate walls (every 7 m in single-track tunnels).
+     - Neither description dimensions an open trough or the Söderström bridge, so those sizes
+       are guesses.
+   - `tools/build-track-geometry.ts` writes `public/data/track-geometry.json`.
+     - It refits the plan by least squares: closely to OSM in the open and at platforms (median
+       0.1 m), loosely in tunnels (median 3.5 m, 90% within 9 m), and onto the T-Centralen model
+       at its platforms.
+     - In tunnels, the two tracks of a line at the same level are pulled to 3.15 m apart, away
+       from mouths and platforms they don't share. At an island platform they are pulled to the
+       platform's width apart: Mörby centrum's 30 m becomes 14.6 m.
+     - Tracks at different levels are held at least 7.5 m apart. These are T-Centralen's two
+       levels on their way to Gamla stan and Östermalmstorg.
+     - Curves are held at 310 m radius between points 10 m apart. Over 20 m the tightest is
+       253 m (limit 250 m), near Hötorget.
+     - Each point is classified:
+       - tunnels: concrete box within 20 m of a mouth, in the Riddarholmskanalen trough, and
+         where the rail is less than 12 m below the ground; rock elsewhere
+       - open track: cutting more than 1.5 m below the ground, embankment more than 1 m above
+         it, otherwise on the ground
+       - bridges: bridge
+     - The red line comes out as 47.1 km of rock tunnel, 13.4 km of box, 13.0 km on the ground,
+       5.9 km of bridge, 0.6 km of embankment and 0.2 km of cutting.
+     - 74% of the track shares its tunnel, bridge or bank with the other track.
+   - `src/network.ts` sweeps the cross-sections along the line every 2.5 m (Catmull–Rom through
+     the 10 m points):
+     - ballast and sleepers, rails, the conductor rail and its cover
+     - the tunnel, cutting walls, bank or bridge deck with piers
+     - portals where a tunnel opens, and bulkheads where its section changes
+     - a hall, platform, lights and name signs at stations other than T-Centralen
+     Where two tracks share a structure, each draws its half.
+   - Only the 200 m tiles within about 600 m of the camera are built, two per frame. The whole
+     line is 258 tiles, about 2.4 million triangles, and takes 0.6 s to build. A tile takes
+     2.3 ms (median).
+   - `src/station-join.ts` joins T-Centralen to the network.
+     - Each red platform track in the model is replaced by its service's line through the
+       network, out to 140 m short of the next stop, blended from the model's track over 40 m.
+     - The station draws the platform stretch, and the network leaves it out.
+     - The trains now run in the real tunnels. A ride goes to the approach of Östermalmstorg or
+       Gamla stan, then fades and comes back through the tunnel.
+   - Done: you can fly from T-Centralen to Östermalmstorg through the real tunnel.
+     `tools/plot-graph.ts` also draws the refitted track, coloured by structure.
+   - Still open:
+     - Where T-Centralen's two levels meet into one tunnel there are three places (near Hötorget,
+       Östermalmstorg and Gamla stan). There the tracks are 4.4–4.8 m apart at 2–2.5 m different
+       heights, so their tunnels cut into each other for a few tens of metres. The build lists
+       them.
+     - Crossovers, sidings and turnback tracks aren't drawn, because only the services' track has
+       heights.
+     - Seven platforms have no room beside their track as matched, mostly at junction stations,
+       and aren't drawn: Hägerstensåsen, Bredäng (two), Västertorp, Liljeholmen, Slussen and
+       Ropsten.
+     - There is no ground or city around the open stretches yet; that is phase 7. The network
+       can't be walked on yet; that is phase 6.
 5. **Trains on the network.**
    - Run T13 and T14 along the graph on a simple timetable, choosing their branch by route, with
      spacing between trains and turning at the ends of the line.

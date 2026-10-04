@@ -26,7 +26,9 @@
 // outside them, and lists it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
-import { pointAt, routeProfile } from './lib/graph.ts';
+import { mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
+import { LeastSquares } from './lib/least-squares.ts';
+import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-heights.json';
@@ -92,7 +94,6 @@ for (const p of pieces) {
 
 // ------------------------------------------------------------------ the equations
 // Each row asks sum(c·y) = b, with weight 1/sigma.
-interface Row { i: number[]; c: number[]; b: number; w: number }
 const rows: Row[] = [];
 const addAnchor = (v: number, b: number, sigma: number) => rows.push({ i: [v], c: [1], b, w: 1 / sigma });
 
@@ -209,25 +210,12 @@ const groundAt = (x: number, z: number) => {
 // how far each point of a tunnel is from its nearest tunnel mouth, through tunnel pieces
 const mouthDistance = new Map<number, number>();
 {
-  const tunnelPieces = pieces.filter((p) => p.structure === 'tunnel');
-  const dist = new Map<number, number>();
-  // a mouth is where a tunnel meets track in the open; it may also be a switch, so the node's
-  // kind doesn't say
-  const open = new Set(graph.pieces.filter((p) => p.structure !== 'tunnel').flatMap((p) => [p.from, p.to]));
-  for (const p of tunnelPieces) for (const n of [p.from, p.to]) if (open.has(n)) dist.set(n, 0);
-  for (let changed = true; changed;) {
-    changed = false;
-    for (const p of tunnelPieces) {
-      for (const [a, b] of [[p.from, p.to], [p.to, p.from]]) {
-        const d = (dist.get(a) ?? Infinity) + p.length;
-        if (d < (dist.get(b) ?? Infinity)) { dist.set(b, d); changed = true; }
-      }
-    }
-  }
-  for (const p of tunnelPieces) {
+  const atNode = mouthDistances(graph, pieces);
+  for (const p of pieces) {
+    if (p.structure !== 'tunnel') continue;
     const { s, v } = disc.get(p.id)!;
     v.forEach((vi, k) => mouthDistance.set(vi, Math.min(
-      (dist.get(p.from) ?? Infinity) + s[k], (dist.get(p.to) ?? Infinity) + p.length - s[k], mouthDistance.get(vi) ?? Infinity)));
+      (atNode.get(p.from) ?? Infinity) + s[k], (atNode.get(p.to) ?? Infinity) + p.length - s[k], mouthDistance.get(vi) ?? Infinity)));
   }
 }
 
@@ -256,84 +244,8 @@ vars.forEach((_, vi) => {
 });
 
 // ------------------------------------------------------------------ solve
-// The normal equations, solved exactly by Cholesky. Each unknown is tied only to its neighbours
-// along the track, so after numbering the points along the lines (reverse Cuthill–McKee) the
-// matrix is a narrow band, stored as each row's span from its first non-zero to the diagonal.
-// (Conjugate gradients stalls here: the long, gentle bends a tunnel under a lake needs are the
-// slowest thing for it to find.)
-const order: number[] = [];
-{
-  const nb: Set<number>[] = vars.map(() => new Set());
-  for (const r of rows) for (const a of r.i) for (const b of r.i) if (a !== b) nb[a].add(b);
-  const seen = new Uint8Array(vars.length);
-  // start each part of the network from an end of it, then visit by distance from there,
-  // fewest neighbours first
-  const byDegree = vars.map((_, v) => v).sort((a, b) => nb[a].size - nb[b].size);
-  for (const s0 of byDegree) {
-    if (seen[s0]) continue;
-    const part: number[] = [s0];
-    seen[s0] = 1;
-    for (let h = 0; h < part.length; h++) {
-      for (const w of [...nb[part[h]]].sort((a, b) => nb[a].size - nb[b].size)) if (!seen[w]) { seen[w] = 1; part.push(w); }
-    }
-    order.push(...part.reverse());
-  }
-}
-const pos = new Int32Array(vars.length);
-order.forEach((v, k) => { pos[v] = k; });
-
-function solve(extra: Row[]) {
-  const all = rows.concat(extra);
-  const n = vars.length;
-  // the matrix in the new numbering: first column of each row, and the row from there
-  const first = new Int32Array(n).map((_, i) => i);
-  for (const r of all) {
-    const ps = r.i.map((v) => pos[v]), lo = Math.min(...ps);
-    for (const q of ps) if (lo < first[q]) first[q] = lo;
-  }
-  const start = new Int32Array(n + 1);
-  for (let i = 0; i < n; i++) start[i + 1] = start[i] + i - first[i] + 1;
-  const L = new Float64Array(start[n]);
-  const at = (i: number, j: number) => start[i] + j - first[i];
-  const rhs = new Float64Array(n);
-  for (const r of all) {
-    const w2 = r.w * r.w;
-    for (let a = 0; a < r.i.length; a++) {
-      const pa = pos[r.i[a]];
-      rhs[pa] += r.c[a] * r.b * w2;
-      for (let b = 0; b < r.i.length; b++) {
-        const pb = pos[r.i[b]];
-        if (pb <= pa) L[at(pa, pb)] += r.c[a] * r.c[b] * w2;
-      }
-    }
-  }
-  // factor in place: L·Lᵀ
-  for (let i = 0; i < n; i++) {
-    for (let j = first[i]; j <= i; j++) {
-      let sum = L[at(i, j)];
-      for (let k = Math.max(first[i], first[j]); k < j; k++) sum -= L[at(i, k)] * L[at(j, k)];
-      if (j < i) L[at(i, j)] = sum / L[at(j, j)];
-      else {
-        if (!(sum > 0)) throw new Error('the height equations are singular');
-        L[at(i, i)] = Math.sqrt(sum);
-      }
-    }
-  }
-  // L·u = rhs, then Lᵀ·x = u
-  const x = rhs.slice();
-  for (let i = 0; i < n; i++) {
-    let sum = x[i];
-    for (let k = first[i]; k < i; k++) sum -= L[at(i, k)] * x[k];
-    x[i] = sum / L[at(i, i)];
-  }
-  for (let i = n - 1; i >= 0; i--) {
-    x[i] /= L[at(i, i)];
-    for (let k = first[i]; k < i; k++) x[k] -= L[at(i, k)] * x[i];
-  }
-  const y = new Float64Array(n);
-  order.forEach((v, k) => { y[v] = x[k]; });
-  return y;
-}
+const lsq = new LeastSquares(vars.length, rows);
+const solve = (extra: Row[]) => lsq.solve(extra);
 
 // Two limits the smoothest line doesn't keep by itself, enforced by holding the line where it
 // breaks them, solving again, and letting go wherever a hold is no longer pushing, until nothing
