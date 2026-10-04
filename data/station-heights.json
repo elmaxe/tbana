@@ -1,0 +1,201 @@
+{
+  "note": "Height above sea level of each metro station, in metres, from Wikidata (P2044, CC0), which takes it from Swedish Wikipedia and the book \"Stockholm under\" (2007). Taken to be the platform level; the height system is not stated.",
+  "stations": {
+    "Alby": {
+      "wikidata": "Q1606137",
+      "height": 17.8
+    },
+    "Aspudden": {
+      "wikidata": "Q738113",
+      "height": 10.9
+    },
+    "Axelsberg": {
+      "wikidata": "Q1812642",
+      "height": 18.8
+    },
+    "Bergshamra": {
+      "wikidata": "Q2034007",
+      "height": 6.7
+    },
+    "Bredäng": {
+      "wikidata": "Q904909",
+      "height": 46.1
+    },
+    "Danderyds sjukhus": {
+      "wikidata": "Q1159416",
+      "height": 6.4
+    },
+    "Duvbo": {
+      "wikidata": "Q1268061",
+      "height": -10.3
+    },
+    "Fittja": {
+      "wikidata": "Q1251859",
+      "height": 18.1
+    },
+    "Fruängen": {
+      "wikidata": "Q2569761",
+      "height": 46.8
+    },
+    "Gamla stan": {
+      "wikidata": "Q1208392",
+      "height": 2.6
+    },
+    "Gärdet": {
+      "wikidata": "Q744021",
+      "height": 7.1
+    },
+    "Hallunda": {
+      "wikidata": "Q1571967",
+      "height": 31.8
+    },
+    "Hjulsta": {
+      "wikidata": "Q259341",
+      "height": 11.1
+    },
+    "Hornstull": {
+      "wikidata": "Q942052",
+      "height": 0.9
+    },
+    "Huvudsta": {
+      "wikidata": "Q1639390",
+      "height": 4
+    },
+    "Hägerstensåsen": {
+      "wikidata": "Q1641934",
+      "height": 46.5
+    },
+    "Karlaplan": {
+      "wikidata": "Q1577742",
+      "height": -10.6
+    },
+    "Kista": {
+      "wikidata": "Q1743793",
+      "height": 10
+    },
+    "Kungsträdgården": {
+      "wikidata": "Q960098",
+      "height": -29.3
+    },
+    "Liljeholmen": {
+      "wikidata": "Q1538339",
+      "height": 4.6
+    },
+    "Mariatorget": {
+      "wikidata": "Q936958",
+      "height": 1.5
+    },
+    "Masmo": {
+      "wikidata": "Q2037701",
+      "height": 11.1
+    },
+    "Midsommarkransen": {
+      "wikidata": "Q1547656",
+      "height": 23.5
+    },
+    "Mälarhöjden": {
+      "wikidata": "Q1763157",
+      "height": 24.6
+    },
+    "Mörby centrum": {
+      "wikidata": "Q15088440",
+      "height": 6.6
+    },
+    "Norsborg": {
+      "wikidata": "Q2000224",
+      "height": 31.8
+    },
+    "Rinkeby": {
+      "wikidata": "Q2154226",
+      "height": 1.2
+    },
+    "Rissne": {
+      "wikidata": "Q2036394",
+      "height": -5.54
+    },
+    "Ropsten": {
+      "wikidata": "Q2037690",
+      "height": 12.5
+    },
+    "Rådhuset": {
+      "wikidata": "Q1363780",
+      "height": -20.5
+    },
+    "Skärholmen": {
+      "wikidata": "Q1811758",
+      "height": 31.3
+    },
+    "Slussen": {
+      "wikidata": "Q1208360",
+      "height": 8
+    },
+    "Solna centrum": {
+      "wikidata": "Q1811748",
+      "height": -16.5
+    },
+    "Solna strand": {
+      "wikidata": "Q2037673",
+      "height": -8.4
+    },
+    "Stadion": {
+      "wikidata": "Q597072",
+      "height": -4.4
+    },
+    "Stadshagen": {
+      "wikidata": "Q1811380",
+      "height": 2.1
+    },
+    "Sundbybergs centrum": {
+      "wikidata": "Q1648174",
+      "height": -11.5
+    },
+    "Sätra": {
+      "wikidata": "Q586524",
+      "height": 36.3
+    },
+    "Tekniska högskolan": {
+      "wikidata": "Q1811832",
+      "height": 4.5
+    },
+    "Telefonplan": {
+      "wikidata": "Q2037803",
+      "height": 34.3
+    },
+    "Tensta": {
+      "wikidata": "Q1570793",
+      "height": -2.5
+    },
+    "Universitetet": {
+      "wikidata": "Q1811770",
+      "height": -9.5
+    },
+    "Vårberg": {
+      "wikidata": "Q1415246",
+      "height": 37.6
+    },
+    "Vårby gård": {
+      "wikidata": "Q749999",
+      "height": 27.3
+    },
+    "Västertorp": {
+      "wikidata": "Q1812633",
+      "height": 42.8
+    },
+    "Västra skogen": {
+      "wikidata": "Q121704",
+      "height": -3.3
+    },
+    "Zinkensdamm": {
+      "wikidata": "Q204763",
+      "height": 6.2
+    },
+    "Örnsberg": {
+      "wikidata": "Q297962",
+      "height": 9.1
+    },
+    "Östermalmstorg": {
+      "wikidata": "Q298499",
+      "height": -23.3
+    }
+  }
+}

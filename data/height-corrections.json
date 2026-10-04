@@ -1,0 +1,37 @@
+{
+  "note": "Fixes to the inputs of tools/build-heights.ts, each with its reason. Positions are world x, z (src/geo.ts); a fix applies within reach metres of the line along the given points.",
+  "stations": [
+    {
+      "station": "Gamla stan",
+      "height": 7.5,
+      "why": "Wikidata's 2.6 m is the street. The ticket hall is under the tracks and platforms (Swedish and English Wikipedia) and is entered from Mälartorget, Munkbroleden and Munkbrohamnen at +3 to +4 m, so the platforms are higher. Lantmäteriet's elevation model shows the station deck as a strip at +7 to +7.5 m, and the bridge on to Slussen (platforms at 8 m) is close to level."
+    }
+  ],
+  "uncovered": [
+    {
+      "along": [
+        [74, 324],
+        [122, 398],
+        [163, 449],
+        [229, 511],
+        [301, 593],
+        [335, 648],
+        [367, 709],
+        [397, 784],
+        [426, 860]
+      ],
+      "reach": 25,
+      "why": "Riddarholmskanalen, between T-Centralen and Gamla stan: the line runs in a trough built in the canal, with Centralbron resting on it, not in a bored tunnel under ground. It needs no cover under the water, and from the canal to the platforms' north end the \"ground\" above it is Gamla stan's station deck."
+    }
+  ],
+  "offGround": [
+    {
+      "along": [
+        [478, 967],
+        [508, 1012]
+      ],
+      "reach": 15,
+      "why": "Gamla stan, south of the platforms: OSM has the tracks in the open here, but they are still on the station deck, at its level, until the bridge to Slussen. The ground below is the quay and the water."
+    }
+  ]
+}
