@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { loopOf, profile } from './kit';
 import type { Painter, Profile, ProfileCtrl } from './kit';
+import type { CabinLights } from './cabin-light';
 import type { CarDef } from './train';
 
 // Building blocks for the passenger interiors. Same car axes as kit.js: +x forward, +y up from the
 // top of the rail, +z right. An interior is an inner lining (floor, walls and ceiling swept from a
 // cross-section, painted like a livery, with the windows cut out), end walls with gangway portals
-// or a cab bulkhead, and seats, poles and rails placed from a layout.
+// or a cab bulkhead, and seats, poles and rails placed from a layout. The ceiling lights are
+// described as strips (`lights`) that light every interior material (see cabin-light.ts).
 
 export interface LiningProfile extends Profile { floorY: number }
 export interface Portal { w: number; y0: number; y1: number; r: number; chamfer?: boolean; foot?: number; z?: number }
@@ -21,7 +23,7 @@ export interface InteriorSpec {
   key?: string;
   lining: LiningProfile;
   floorY: number;
-  glow: number;
+  lights: CabinLights;
   endWall: number;
   cabDepth: number;
   portal: Portal;
@@ -294,13 +296,9 @@ export function moquette(draw: (ctx: CanvasRenderingContext2D, n: number) => voi
   return t;
 }
 
-// Interior materials glow at a fraction of their colour: there are no real lights inside the cars,
-// so this stands in for the light from the ceiling.
-export function glowMat(color: THREE.ColorRepresentation, { glow = 0.35, map = null, ...extra }: THREE.MeshStandardMaterialParameters & { glow?: number } = {}) {
-  const c = new THREE.Color(color);
-  return new THREE.MeshStandardMaterial({
-    color: c, map, emissive: c.clone().multiplyScalar(glow), emissiveMap: map, roughness: 0.6, metalness: 0, ...extra,
-  });
+// A plain interior material; the car's own lights are added when the train is built.
+export function interiorMat(color: THREE.ColorRepresentation, extra: THREE.MeshStandardMaterialParameters = {}) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0, ...extra });
 }
 
 // A small emissive screen with its own canvas (passenger information displays).
@@ -350,8 +348,8 @@ export function freeStretches(xa: number, xb: number, doors: number[], doorW: nu
 
 // A canvas-textured material for a flat end wall made by endWallGeometry: draw(ctx) paints in
 // metres, z from −w to w (as seen from inside the saloon, left to right) and y from y0 to y1.
-export function endWallMaterial({ w, y0, y1, ppm = 160, glow = 0.35, draw }: {
-  w: number; y0: number; y1: number; ppm?: number; glow?: number; draw: (ctx: CanvasRenderingContext2D) => void;
+export function endWallMaterial({ w, y0, y1, ppm = 160, draw }: {
+  w: number; y0: number; y1: number; ppm?: number; draw: (ctx: CanvasRenderingContext2D) => void;
 }) {
   const W = Math.ceil(2 * w * ppm), H = Math.ceil((y1 - y0) * ppm);
   const cv = document.createElement('canvas');
@@ -366,7 +364,7 @@ export function endWallMaterial({ w, y0, y1, ppm = 160, glow = 0.35, draw }: {
   t.repeat.set(1 / (2 * w), 1 / (y1 - y0));
   t.offset.set(0.5, -y0 / (y1 - y0));
   return new THREE.MeshStandardMaterial({
-    map: t, emissiveMap: t, emissive: new THREE.Color(glow, glow, glow), roughness: 0.6, metalness: 0,
+    map: t, roughness: 0.6, metalness: 0,
   });
 }
 
