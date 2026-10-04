@@ -16,6 +16,15 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       input: { main: resolve(root, 'index.html'), trains: resolve(root, 'trains.html') },
+      // three and the train models are shared by both pages
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'three', test: /node_modules\/three\// },
+            { name: 'rolling-stock', test: /src\/rolling-stock\// },
+          ],
+        },
+      },
     },
   },
 });
