@@ -1,20 +1,35 @@
+import type { Vector3 } from 'three';
+
+export interface SurfaceHit<T> { y: number; data: T }
+
+interface SurfaceTri<T> {
+  ax: number; ay: number; az: number;
+  bx: number; by: number; bz: number;
+  cx: number; cy: number; cz: number;
+  det: number; data: T;
+}
+
 // Uniform XZ grid over triangles, answering "which surfaces are directly above/below (x, z)?".
 // Used for player ground checks, wall generation, platform detection and elevators.
-export class SurfaceIndex {
+export class SurfaceIndex<T> {
+  cell: number;
+  cells: Map<number, number[]>;
+  tris: SurfaceTri<T>[];
+
   constructor(cellSize = 4) {
     this.cell = cellSize;
     this.cells = new Map();
     this.tris = [];
   }
 
-  key(ix, iz) {
+  key(ix: number, iz: number) {
     return (ix + 50000) * 100000 + (iz + 50000);
   }
 
-  add(a, b, c, data) {
+  add(a: Vector3, b: Vector3, c: Vector3, data: T) {
     const det = (b.z - c.z) * (a.x - c.x) + (c.x - b.x) * (a.z - c.z);
     if (Math.abs(det) < 1e-8) return; // vertical / degenerate in plan view
-    const t = {
+    const t: SurfaceTri<T> = {
       ax: a.x, ay: a.y, az: a.z,
       bx: b.x, by: b.y, bz: b.z,
       cx: c.x, cy: c.y, cz: c.z,
@@ -35,7 +50,7 @@ export class SurfaceIndex {
   }
 
   // Returns every surface crossing the vertical line through (x, z): [{ y, data }, ...]
-  query(x, z, out = []) {
+  query(x: number, z: number, out: SurfaceHit<T>[] = []) {
     out.length = 0;
     const list = this.cells.get(this.key(Math.floor(x / this.cell), Math.floor(z / this.cell)));
     if (!list) return out;

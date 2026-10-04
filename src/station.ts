@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { SurfaceIndex } from './surface-index';
+import type { SurfaceHit } from './surface-index';
 import { extractCenterlines, sweep } from './polyline';
+import type { Polyline, Tri } from './polyline';
 import { LINES, TRAIN_SPECS } from './lines';
+import type { GaugeSpec, LineId } from './lines';
 import * as T from './textures';
 
 // The source model is an extruded 2D drawing: floor slabs, stair ramps, escalator tubes,
@@ -9,7 +12,52 @@ import * as T from './textures';
 // it into a walkable station: classifies every piece, builds walls/railings/platform edges,
 // track beds and tunnels, and indexes every walkable surface.
 
-const PALETTE = [
+export type RecordKind = 'deco' | 'floor' | 'stairs' | 'lightblue' | 'elevator' | 'tube' | 'gates' | `track:${LineId}`;
+
+export interface SurfaceRecord {
+  name: string;
+  kind: RecordKind;
+  color: THREE.Color;
+  box: THREE.Box3;
+  size: THREE.Vector3;
+  top: Tri[];
+  side: Tri[];
+  bottom: Tri[];
+  all: Tri[];
+  line?: LineId;
+  platformLine?: LineId;
+  platformLines?: Set<LineId>;
+  label?: string;
+}
+
+export interface SurfaceData { kind: 'floor' | 'stairs' | 'escalator'; rec: SurfaceRecord }
+export interface TrackData { line: LineId }
+export type WalkHit = SurfaceHit<SurfaceData>;
+
+export interface Platform { s0: number; s1: number; side: number; rec: SurfaceRecord }
+export interface Board { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture; text: string }
+export interface Track { line: LineId; path: Polyline; platform: Platform | null; dir: number; board?: Board }
+
+export interface LiftLevel { y: number; pos: THREE.Vector3; yaw: number }
+export interface Lift { center: THREE.Vector3; radius: number; minY: number; maxY: number; levels: LiftLevel[] }
+export interface Teleport { label: string; line: LineId; pos: THREE.Vector3; yaw: number }
+
+export interface Station {
+  group: THREE.Group;
+  mapGroup: THREE.Group;
+  walk: SurfaceIndex<SurfaceData>;
+  trackIdx: SurfaceIndex<TrackData>;
+  tracks: Track[];
+  lifts: Lift[];
+  teleports: Teleport[];
+  spawn: Teleport;
+  bounds: THREE.Box3;
+  records: SurfaceRecord[];
+}
+
+type UV = [number, number];
+
+const PALETTE: [RecordKind, [number, number, number]][] = [
   ['track:blue', [0.0018, 0.2874, 0.6445]],
   ['track:red', [0.7913, 0.013, 0.0194]],
   ['track:green', [0.013, 0.4452, 0.1022]],
@@ -24,8 +72,8 @@ const PALETTE = [
   ['gates', [1.0, 0.6, 0.0]],
 ];
 
-function classifyColor(c) {
-  let best = 'deco', bestD = 0.02;
+function classifyColor(c: THREE.Color) {
+  let best: RecordKind = 'deco', bestD = 0.02;
   for (const [kind, rgb] of PALETTE) {
     const d = (c.r - rgb[0]) ** 2 + (c.g - rgb[1]) ** 2 + (c.b - rgb[2]) ** 2;
     if (d < bestD) { bestD = d; best = kind; }
@@ -34,13 +82,19 @@ function classifyColor(c) {
 }
 
 class Builder {
+  pos: number[];
+  uv: number[];
+  col: number[];
   constructor() { this.pos = []; this.uv = []; this.col = []; }
-  tri(a, b, c, uva, uvb, uvc, color) {
+  tri(a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, uva: UV, uvb: UV, uvc: UV, color?: THREE.Color) {
     this.pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
     this.uv.push(uva[0], uva[1], uvb[0], uvb[1], uvc[0], uvc[1]);
     if (color) for (let i = 0; i < 3; i++) this.col.push(color.r, color.g, color.b);
   }
-  quad(a, b, c, d, ua, ub, uc, ud, color) {
+  quad(
+    a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, d: THREE.Vector3,
+    ua: UV, ub: UV, uc: UV, ud: UV, color?: THREE.Color,
+  ) {
     this.tri(a, b, c, ua, ub, uc, color);
     this.tri(a, c, d, ua, uc, ud, color);
   }
@@ -56,39 +110,41 @@ class Builder {
   }
 }
 
-const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 
-export function buildStation(root) {
+export function buildStation(root: THREE.Object3D): Station {
   const group = new THREE.Group();
   const mapGroup = new THREE.Group(); // simplified flat-shaded copy for the minimap
-  const walk = new SurfaceIndex(4);
-  const trackIdx = new SurfaceIndex(4);
-  const records = [];
+  const walk = new SurfaceIndex<SurfaceData>(4);
+  const trackIdx = new SurfaceIndex<TrackData>(4);
+  const records: SurfaceRecord[] = [];
 
   // ---------------------------------------------------------------- 1. read & classify
   root.updateMatrixWorld(true);
-  root.traverse((o) => {
-    if (!o.isMesh) return;
+  root.traverse((obj) => {
+    if (!(obj as THREE.Mesh).isMesh) return;
+    const o = obj as THREE.Mesh;
+    const mat = o.material as { color?: THREE.Color } | undefined;
     let g = o.geometry.clone();
     if (g.index) g = g.toNonIndexed();
     g.applyMatrix4(o.matrixWorld);
     if (!g.attributes.normal) g.computeVertexNormals();
-    const color = o.material?.color ? o.material.color.clone() : new THREE.Color(0.6, 0.6, 0.6);
+    const color = mat?.color ? mat.color.clone() : new THREE.Color(0.6, 0.6, 0.6);
     let kind = classifyColor(color);
     g.computeBoundingBox();
-    const box = g.boundingBox.clone();
+    const box = g.boundingBox!.clone();
     const size = box.getSize(new THREE.Vector3());
     if (kind === 'lightblue') kind = Math.max(size.x, size.z) < 5.5 && size.y > 5 ? 'elevator' : 'tube';
-    const rec = { name: o.name, kind, color, box, size, top: [], side: [], bottom: [], all: [] };
+    const rec: SurfaceRecord = { name: o.name, kind, color, box, size, top: [], side: [], bottom: [], all: [] };
     const p = g.attributes.position, n = g.attributes.normal;
     for (let i = 0; i < p.count; i += 3) {
-      const tri = [0, 1, 2].map((k) => V(p.getX(i + k), p.getY(i + k), p.getZ(i + k)));
+      const tri = [0, 1, 2].map((k) => V(p.getX(i + k), p.getY(i + k), p.getZ(i + k))) as Tri;
       const ny = (n.getY(i) + n.getY(i + 1) + n.getY(i + 2)) / 3;
       rec.all.push(tri);
       (ny > 0.35 ? rec.top : ny < -0.35 ? rec.bottom : rec.side).push(tri);
     }
     // Guard against inverted normals: the "top" faces must be the higher ones.
-    const meanY = (ts) => ts.reduce((s, t) => s + t[0].y + t[1].y + t[2].y, 0) / (3 * ts.length || 1);
+    const meanY = (ts: Tri[]) => ts.reduce((s, t) => s + t[0].y + t[1].y + t[2].y, 0) / (3 * ts.length || 1);
     if (rec.top.length && rec.bottom.length && meanY(rec.top) < meanY(rec.bottom)) {
       [rec.top, rec.bottom] = [rec.bottom, rec.top];
     }
@@ -102,12 +158,12 @@ export function buildStation(root) {
     elevator: new Builder(), gates: new Builder(), deco: new Builder(),
   };
   const mapB = { floors: new Builder() };
-  const lineMap = {};
-  const planar = (p) => [p.x / 2, p.z / 2];
-  const sideUV = (p) => [(p.x + p.z) / 2, p.y / 2];
-  const darker = (c, k) => c.clone().multiplyScalar(k);
+  const lineMap: Partial<Record<LineId, Builder>> = {};
+  const planar = (p: THREE.Vector3): UV => [p.x / 2, p.z / 2];
+  const sideUV = (p: THREE.Vector3): UV => [(p.x + p.z) / 2, p.y / 2];
+  const darker = (c: THREE.Color, k: number) => c.clone().multiplyScalar(k);
 
-  const rampUV = (tris, stepsPerMetre) => {
+  const rampUV = (tris: Tri[], stepsPerMetre: number) => {
     // Treads run perpendicular to the steepest-descent direction.
     const n = new THREE.Vector3();
     for (const t of tris) {
@@ -116,11 +172,11 @@ export function buildStation(root) {
     const d = new THREE.Vector2(n.x, n.z);
     if (d.lengthSq() < 1e-9) d.set(1, 0);
     d.normalize();
-    return (p) => [(p.x * -d.y + p.z * d.x) / 2, (p.x * d.x + p.z * d.y) * stepsPerMetre];
+    return (p: THREE.Vector3): UV => [(p.x * -d.y + p.z * d.x) / 2, (p.x * d.x + p.z * d.y) * stepsPerMetre];
   };
 
-  const trackComponents = [];
-  const elevators = [];
+  const trackComponents: { line: LineId; tris: Tri[] }[] = [];
+  const elevators: SurfaceRecord[] = [];
 
   for (const rec of records) {
     const c = rec.color;
@@ -165,7 +221,7 @@ export function buildStation(root) {
         break;
       default: {
         if (!rec.kind.startsWith('track:')) break;
-        const line = rec.kind.slice(6);
+        const line = rec.kind.slice(6) as LineId;
         rec.line = line;
         (lineMap[line] ||= new Builder());
         for (const t of rec.top) {
@@ -211,21 +267,21 @@ export function buildStation(root) {
     tunnelLamp: new THREE.MeshBasicMaterial({ color: 0xffd48a }),
   };
 
-  const addMesh = (builder, mat, opts = {}) => {
+  const addMesh = (builder: Builder, mat: THREE.Material, opts: { renderOrder?: number } = {}) => {
     if (builder.empty) return null;
     const m = new THREE.Mesh(builder.build(), mat);
     if (opts.renderOrder) m.renderOrder = opts.renderOrder;
     group.add(m);
     return m;
   };
-  for (const k of ['floorTop', 'slabSide', 'slabBottom', 'stairTop', 'tubeFloor', 'gates', 'deco']) addMesh(B[k], mats[k]);
+  for (const k of ['floorTop', 'slabSide', 'slabBottom', 'stairTop', 'tubeFloor', 'gates', 'deco'] as const) addMesh(B[k], mats[k]);
   addMesh(B.elevator, mats.elevator, { renderOrder: 2 });
   addMesh(B.tubeGlass, mats.tubeGlass, { renderOrder: 3 });
 
   // Minimap copy: flat colours, original track ribbons in line colours.
   const mapFloor = new THREE.Mesh(mapB.floors.build(), new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
   mapGroup.add(mapFloor);
-  for (const [line, b] of Object.entries(lineMap)) {
+  for (const [line, b] of Object.entries(lineMap) as [LineId, Builder][]) {
     const m = new THREE.Mesh(b.build(), new THREE.MeshBasicMaterial({ color: LINES[line].color, side: THREE.DoubleSide }));
     m.position.y = 3; // keep tracks visible on top of floors in the top-down view
     m.renderOrder = 1;
@@ -233,8 +289,8 @@ export function buildStation(root) {
   }
 
   // ---------------------------------------------------------------- 3. tracks
-  const tracks = [];
-  const hits = [];
+  const tracks: Track[] = [];
+  const hits: WalkHit[] = [];
   for (const comp of trackComponents) {
     for (const pl of extractCenterlines(comp.tris)) {
       tracks.push(analyseTrack(pl, comp.line, walk, hits));
@@ -242,8 +298,8 @@ export function buildStation(root) {
   }
   assignDirections(tracks);
 
-  const bedB = new Builder(), railGeoms = [], tunnelGeoms = [], caveGeoms = [], trackWallGeoms = [], lampB = new Builder(), tunnelLampB = new Builder();
-  const signs = [];
+  const bedB = new Builder(), railGeoms: THREE.BufferGeometry[] = [], tunnelGeoms: THREE.BufferGeometry[] = [], caveGeoms: THREE.BufferGeometry[] = [], trackWallGeoms: THREE.BufferGeometry[] = [], lampB = new Builder(), tunnelLampB = new Builder();
+  const signs: THREE.Group[] = [];
   for (const tr of tracks) {
     const spec = TRAIN_SPECS[LINES[tr.line].kind];
     const pts = tr.path.resample(0, tr.path.length, 2);
@@ -257,7 +313,7 @@ export function buildStation(root) {
     if (tr.platform && !underground) addPlatformFurniture(tr, spec, lampB, signs);
     if (tr.platform && underground) {
       const W = spec.halfWidth + 1.15;
-      const prof = [[-W, -1.25], [-W, 2.4]];
+      const prof: [number, number][] = [[-W, -1.25], [-W, 2.4]];
       for (let i = 1; i < 12; i++) {
         const a = Math.PI - (i / 12) * Math.PI;
         prof.push([Math.cos(a) * W, 2.4 + Math.sin(a) * W * 0.8]);
@@ -279,7 +335,7 @@ export function buildStation(root) {
       // Rock / tiled wall behind the track, curving over towards the platform.
       const far = -tr.platform.side * W, k = tr.platform.side;
       const farClear = !neighbourBeyond(tr, -tr.platform.side, W, walk, trackIdx, hits);
-      const wallProf = [[far, -1.25], [far, 3.0], [far + k * 0.7, 4.2], [far + k * 1.9, 5.1], [far + k * 3.6, 5.6]];
+      const wallProf: [number, number][] = [[far, -1.25], [far, 3.0], [far + k * 0.7, 4.2], [far + k * 1.9, 5.1], [far + k * 3.6, 5.6]];
       const run = tr.path.resample(Math.max(0, s0 - 6), Math.min(tr.path.length, s1 + 6), 2);
       const blue = tr.line === 'blue';
       if (farClear) (blue ? caveGeoms : trackWallGeoms).push(sweep(run, wallProf, { uScale: blue ? 0.2 : 0.5, vScale: blue ? 0.2 : 0.5, swapUV: true }));
@@ -310,7 +366,7 @@ export function buildStation(root) {
   const lifts = buildLifts(elevators, walk, hits);
 
   // ---------------------------------------------------------------- 6. labels, spawn, teleports
-  const LABEL = { blue: 'Blue line', red: 'Red line', green: 'Green line', pink: 'Pendeltåg', main: 'Stockholm C', tram: 'Tram 7' };
+  const LABEL: Record<LineId, string> = { blue: 'Blue line', red: 'Red line', green: 'Green line', pink: 'Pendeltåg', main: 'Stockholm C', tram: 'Tram 7' };
   for (const rec of records) {
     if (rec.platformLines) {
       const ls = [...rec.platformLines].sort((a, b) => Object.keys(LABEL).indexOf(a) - Object.keys(LABEL).indexOf(b));
@@ -323,23 +379,23 @@ export function buildStation(root) {
     else rec.label = 'Concourse';
   }
 
-  const teleports = [];
-  const seen = new Set();
+  const teleports: Teleport[] = [];
+  const seen = new Set<SurfaceRecord>();
   for (const tr of tracks) {
     if (!tr.platform || seen.has(tr.platform.rec)) continue;
     seen.add(tr.platform.rec);
     const spot = platformSpot(tr, walk, hits, lifts);
-    if (spot) teleports.push({ label: tr.platform.rec.label, line: tr.line, ...spot });
+    if (spot) teleports.push({ label: tr.platform.rec.label!, line: tr.line, ...spot });
   }
   const order = ['blue', 'red', 'green', 'pink', 'main', 'tram'];
   teleports.sort((a, b) => order.indexOf(a.line) - order.indexOf(b.line) || b.pos.y - a.pos.y);
-  const dupes = new Map();
+  const dupes = new Map<string, Teleport[]>();
   for (const t of teleports) dupes.set(t.label, [...(dupes.get(t.label) || []), t]);
   for (const list of dupes.values()) {
     if (list.length !== 2) continue;
     const [a, b] = list;
     const dy = a.pos.y - b.pos.y, dx = a.pos.x - b.pos.x, dz = a.pos.z - b.pos.z;
-    let names;
+    let names: string[];
     if (Math.abs(dy) > 1) names = dy > 0 ? ['upper', 'lower'] : ['lower', 'upper'];
     else if (Math.abs(dx) > Math.abs(dz)) names = dx < 0 ? ['west', 'east'] : ['east', 'west'];
     else names = dz < 0 ? ['north', 'south'] : ['south', 'north'];
@@ -355,8 +411,8 @@ export function buildStation(root) {
 
 // ------------------------------------------------------------------ helpers
 
-function boxInto(b, c, hx, hy, hz) {
-  const p = (x, y, z) => V(c.x + x, c.y + y, c.z + z);
+function boxInto(b: Builder, c: THREE.Vector3, hx: number, hy: number, hz: number) {
+  const p = (x: number, y: number, z: number) => V(c.x + x, c.y + y, c.z + z);
   const f = [
     [p(-hx, -hy, hz), p(hx, -hy, hz), p(hx, hy, hz), p(-hx, hy, hz)],
     [p(hx, -hy, -hz), p(-hx, -hy, -hz), p(-hx, hy, -hz), p(hx, hy, -hz)],
@@ -368,37 +424,40 @@ function boxInto(b, c, hx, hy, hz) {
   for (const q of f) b.quad(q[0], q[1], q[2], q[3], [0, 0], [1, 0], [1, 1], [0, 1]);
 }
 
-const vkey = (v) => `${Math.round(v.x * 100)},${Math.round(v.y * 100)},${Math.round(v.z * 100)}`;
+const vkey = (v: THREE.Vector3) => `${Math.round(v.x * 100)},${Math.round(v.y * 100)},${Math.round(v.z * 100)}`;
 
-function splitComponents(tris) {
-  const id = new Map();
-  const parent = [];
-  const find = (a) => { while (parent[a] !== a) a = parent[a] = parent[parent[a]]; return a; };
-  const vid = (v) => {
+function splitComponents(tris: Tri[]) {
+  const id = new Map<string, number>();
+  const parent: number[] = [];
+  const find = (a: number) => { while (parent[a] !== a) a = parent[a] = parent[parent[a]]; return a; };
+  const vid = (v: THREE.Vector3) => {
     const k = vkey(v);
     if (!id.has(k)) { id.set(k, parent.length); parent.push(parent.length); }
-    return id.get(k);
+    return id.get(k)!;
   };
   const tv = tris.map((t) => t.map(vid));
   for (const [a, b, c] of tv) { parent[find(b)] = find(a); parent[find(c)] = find(a); }
-  const comps = new Map();
+  const comps = new Map<number, Tri[]>();
   tris.forEach((t, i) => {
     const r = find(tv[i][0]);
     if (!comps.has(r)) comps.set(r, []);
-    comps.get(r).push(t);
+    comps.get(r)!.push(t);
   });
   return [...comps.values()];
 }
 
+interface Sample { s: number; side: number; d: number; rec: SurfaceRecord }
+interface SampleRun { i0: number; i1: number; items: Sample[] }
+
 // Finds the platform alongside a track and shifts the track so a train's side meets the platform edge.
-function analyseTrack(path, line, walk, hits) {
+function analyseTrack(path: Polyline, line: LineId, walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
   const spec = TRAIN_SPECS[LINES[line].kind];
   const step = 2;
-  const samples = [];
+  const samples: (Sample | null)[] = [];
   const p = new THREE.Vector3(), r = new THREE.Vector3();
   for (let s = 0; s <= path.length; s += step) {
     path.pointAt(s, p); path.rightAt(s, r);
-    let found = null;
+    let found: Sample | null = null;
     for (const side of [1, -1]) {
       for (let d = 0.3; d <= 4.8 && !found; d += 0.3) {
         walk.query(p.x + r.x * side * d, p.z + r.z * side * d, hits);
@@ -410,10 +469,10 @@ function analyseTrack(path, line, walk, hits) {
     samples.push(found);
   }
   // Dominant side, then the longest run of samples with a platform on that side (small gaps allowed).
-  const count = { 1: 0, '-1': 0 };
+  const count: Record<number, number> = { 1: 0, '-1': 0 };
   for (const f of samples) if (f) count[f.side]++;
   const side = count[1] >= count[-1] ? 1 : -1;
-  let best = null, cur = null, gap = 0;
+  let best = null as SampleRun | null, cur = null as SampleRun | null, gap = 0;
   samples.forEach((f, i) => {
     if (f && f.side === side) {
       if (!cur) cur = { i0: i, i1: i, items: [] };
@@ -425,11 +484,11 @@ function analyseTrack(path, line, walk, hits) {
   });
   if (cur && (!best || cur.items.length > best.items.length)) best = cur;
 
-  const track = { line, path, platform: null, dir: 1 };
+  const track: Track = { line, path, platform: null, dir: 1 };
   if (best && (best.i1 - best.i0) * step >= 40) {
     const ds = best.items.map((f) => f.d).sort((a, b) => a - b);
     const edge = ds[ds.length >> 1] - 0.15;
-    const recCount = new Map();
+    const recCount = new Map<SurfaceRecord, number>();
     for (const f of best.items) recCount.set(f.rec, (recCount.get(f.rec) || 0) + 1);
     const rec = [...recCount.entries()].sort((a, b) => b[1] - a[1])[0][0];
     rec.platformLine ||= line;
@@ -444,22 +503,25 @@ function analyseTrack(path, line, walk, hits) {
 // opposite ways with the platform on each train's right. On the red/green levels the lines swap
 // sides: the upper level has green northbound and red southbound, the lower level green southbound
 // and red northbound.
-function assignDirections(tracks) {
+function assignDirections(tracks: Track[]) {
   for (const tr of tracks) if (tr.platform) tr.dir = tr.platform.side;
 }
 
 // Is there another track or a floor just beyond the far side of this track (so no wall belongs there)?
-function neighbourBeyond(tr, dirSign, W, walk, trackIdx, hits) {
+function neighbourBeyond(
+  tr: Track, dirSign: number, W: number, walk: SurfaceIndex<SurfaceData>, trackIdx: SurfaceIndex<TrackData>, hits: WalkHit[],
+) {
+  const trackHits: SurfaceHit<TrackData>[] = [];
   const p = new THREE.Vector3(), r = new THREE.Vector3();
-  const { s0, s1 } = tr.platform;
+  const { s0, s1 } = tr.platform!;
   let found = 0, total = 0;
   for (let s = s0; s <= s1; s += 6) {
     tr.path.pointAt(s, p); tr.path.rightAt(s, r);
     total++;
     for (let d = W - 1.2; d <= W + 4; d += 0.4) {
       const x = p.x + r.x * dirSign * d, z = p.z + r.z * dirSign * d;
-      trackIdx.query(x, z, hits);
-      let hit = hits.some((q) => Math.abs(q.y - p.y) < 1.5);
+      trackIdx.query(x, z, trackHits);
+      let hit = trackHits.some((q) => Math.abs(q.y - p.y) < 1.5);
       if (!hit) { walk.query(x, z, hits); hit = hits.some((q) => Math.abs(q.y - p.y) < 1.5); }
       if (hit) { found++; break; }
     }
@@ -467,9 +529,9 @@ function neighbourBeyond(tr, dirSign, W, walk, trackIdx, hits) {
   return found > total * 0.25;
 }
 
-function addPlatformFurniture(tr, spec, lampB, signs) {
+function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs: THREE.Group[]) {
   const L = LINES[tr.line];
-  const { s0, s1, side } = tr.platform;
+  const { s0, s1, side } = tr.platform!;
   const edgeOff = side * (spec.halfWidth + 0.12);
   const p = new THREE.Vector3(), r = new THREE.Vector3(), t = new THREE.Vector3();
 
@@ -524,25 +586,25 @@ function addPlatformFurniture(tr, spec, lampB, signs) {
 }
 
 // Builds walls, glass railings and yellow safety lines along the outline of every walkable slab.
-function buildEdges(records, walk, trackIdx) {
+function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, trackIdx: SurfaceIndex<TrackData>) {
   const out = { wall: new Builder(), cave: new Builder(), glass: new Builder(), handrail: new Builder(), yellow: new Builder() };
-  const hits = [];
+  const hits: WalkHit[] = [], trackHits: SurfaceHit<TrackData>[] = [];
   const OPEN = 0, PLATFORM = 1, RAILING = 2, WALL = 3;
 
-  const classify = (x, y, z, nx, nz) => {
+  const classify = (x: number, y: number, z: number, nx: number, nz: number) => {
     for (const d of [0.2, 0.55, 0.9]) {
       walk.query(x + nx * d, z + nz * d, hits);
       if (hits.some((q) => Math.abs(q.y - y) < 0.7)) return OPEN;
     }
     for (const d of [0.3, 0.8, 1.4, 2.2, 3.2]) {
-      trackIdx.query(x + nx * d, z + nz * d, hits);
-      if (hits.some((q) => y - q.y > -0.4 && y - q.y < 1.8)) return PLATFORM;
+      trackIdx.query(x + nx * d, z + nz * d, trackHits);
+      if (trackHits.some((q) => y - q.y > -0.4 && y - q.y < 1.8)) return PLATFORM;
     }
     walk.query(x + nx * 1.2, z + nz * 1.2, hits);
     if (hits.some((q) => q.y < y - 0.7 && q.y > y - 30)) return RAILING;
     return WALL;
   };
-  const headroom = (x, y, z) => {
+  const headroom = (x: number, y: number, z: number) => {
     walk.query(x, z, hits);
     let h = 4.2;
     for (const q of hits) if (q.y > y + 1.6) h = Math.min(h, q.y - 1.0 - y - 0.03);
@@ -551,7 +613,7 @@ function buildEdges(records, walk, trackIdx) {
 
   for (const rec of records) {
     if (rec.kind !== 'floor' && rec.kind !== 'stairs') continue;
-    const edges = new Map();
+    const edges = new Map<string, { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3; n: number }>();
     for (const t of rec.top) {
       for (let e = 0; e < 3; e++) {
         const a = t[e], b = t[(e + 1) % 3], c = t[(e + 2) % 3];
@@ -574,8 +636,8 @@ function buildEdges(records, walk, trackIdx) {
       let nx = dz / len, nz = -dx / len;
       if ((c.x - (a.x + b.x) / 2) * nx + (c.z - (a.z + b.z) / 2) * nz > 0) { nx = -nx; nz = -nz; }
       const segs = Math.max(1, Math.ceil(len / 1.0));
-      const at = (t) => new THREE.Vector3().lerpVectors(a, b, t);
-      const runs = [];
+      const at = (t: number) => new THREE.Vector3().lerpVectors(a, b, t);
+      const runs: { type: number; t0: number; t1: number; h: number }[] = [];
       for (let i = 0; i < segs; i++) {
         const t0 = i / segs, t1 = (i + 1) / segs, m = at((t0 + t1) / 2);
         let type = classify(m.x, m.y, m.z, nx, nz);
@@ -589,13 +651,13 @@ function buildEdges(records, walk, trackIdx) {
         const p0 = at(run.t0), p1 = at(run.t1);
         const u0 = run.t0 * len, u1 = run.t1 * len;
         if (run.type === WALL) {
-          const top = (p) => p.y + Math.max(1.05, Math.min(run.h, capY - p.y));
+          const top = (p: THREE.Vector3) => p.y + Math.max(1.05, Math.min(run.h, capY - p.y));
           const t0 = top(p0), t1 = top(p1);
           wallB.quad(p0, p1, p1.clone().setY(t1), p0.clone().setY(t0),
             [u0 * uvScale, p0.y * uvScale], [u1 * uvScale, p1.y * uvScale],
             [u1 * uvScale, t1 * uvScale], [u0 * uvScale, t0 * uvScale]);
         } else if (run.type === RAILING) {
-          const up = (p, h) => p.clone().setY(p.y + h);
+          const up = (p: THREE.Vector3, h: number) => p.clone().setY(p.y + h);
           out.glass.quad(p0, p1, up(p1, 1.05), up(p0, 1.05), [0, 0], [1, 0], [1, 1], [0, 1]);
           // handrail: small horizontal + vertical strip
           const o = new THREE.Vector3(nx * 0.04, 0, nz * 0.04);
@@ -612,12 +674,12 @@ function buildEdges(records, walk, trackIdx) {
 }
 
 // Groups the floors around each lift shaft into stops.
-function buildLifts(elevators, walk, hits) {
-  const lifts = [];
+function buildLifts(elevators: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
+  const lifts: Lift[] = [];
   for (const rec of elevators) {
     const c = rec.box.getCenter(new THREE.Vector3());
     const rad = Math.max(rec.size.x, rec.size.z) / 2;
-    const found = [];
+    const found: { y: number; pos: THREE.Vector3; d: number }[] = [];
     for (let k = 0; k < 24; k++) {
       const a = (k / 24) * Math.PI * 2;
       for (const d of [0.9, 1.6, 2.6]) {
@@ -630,7 +692,7 @@ function buildLifts(elevators, walk, hits) {
       }
     }
     found.sort((a, b) => a.y - b.y);
-    const levels = [];
+    const levels: { y: number; pos: THREE.Vector3; d: number }[] = [];
     for (const f of found) {
       const last = levels[levels.length - 1];
       if (last && Math.abs(last.y - f.y) < 0.8) { if (f.d < last.d) Object.assign(last, f); }
@@ -646,9 +708,9 @@ function buildLifts(elevators, walk, hits) {
   return lifts;
 }
 
-function platformSpot(tr, walk, hits, lifts) {
+function platformSpot(tr: Track, walk: SurfaceIndex<SurfaceData>, hits: WalkHit[], lifts: Lift[]) {
   const spec = TRAIN_SPECS[LINES[tr.line].kind];
-  const { s0, s1, side } = tr.platform;
+  const { s0, s1, side } = tr.platform!;
   const p = new THREE.Vector3(), r = new THREE.Vector3(), t = new THREE.Vector3();
   for (const f of [0.5, 0.4, 0.6, 0.3, 0.7]) {
     const s = s0 + (s1 - s0) * f;

@@ -4,7 +4,10 @@ import {
   liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches,
   endWallMaterial, screenTexture, portalLoop,
 } from './interior';
+import type { Painter } from './kit';
+import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating, Vec3 } from './interior';
 import { DOOR, windowFrames } from './c30';
+import type { CarDef } from './train';
 
 // C30 interior, from photos of cars in service (2019–2024) and Bombardier's press pictures.
 // See docs/rolling-stock.md for the research notes.
@@ -26,7 +29,7 @@ const prof = liningProfile([
 const G = 0.16; // how strongly the interior glows (stands in for its lighting)
 
 // t (arc length) where the lining crosses z on the floor / on the ceiling
-function tAt(z, part) {
+function tAt(z: number, part: 'floor' | 'ceiling') {
   const list = prof.pts.filter((p) => (part === 'floor' ? p.y < F + 0.01 : p.y > 3.3)).sort((a, b) => a.z - b.z);
   for (let i = 1; i < list.length; i++) {
     const a = list[i - 1], b = list[i];
@@ -62,7 +65,7 @@ const C = {
 // Colours of the paper adverts in the frames along the coves.
 const ADS = [['#c43a62', '#f4d3dc'], ['#2b5d9b', '#eef2f7'], ['#f1b51c', '#2b2b2b'], ['#3c8a5a', '#f1efe6'], ['#5b3f8f', '#f5e9ff']];
 
-function paint(p, def, { xa, xb, x0, x1 }) {
+function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
   const floorEdge = tAt(IW, 'floor');
   p.rectT(xa, xb, prof.tMin, prof.tMax, C.wall);
   // floor: speckled vinyl
@@ -80,7 +83,7 @@ function paint(p, def, { xa, xb, x0, x1 }) {
   for (let x = xa + 0.1; x < xb - 0.1; x += 0.06) p.rect(x, x + 0.025, F + 0.08, F + 0.2, C.vent);
   // ceiling: the light line along the edge of the cove, louvres above it, downlights, air slots
   p.rect(xa, xb, 3.205, 3.3, C.light);
-  const tc = (z) => tAt(z, 'ceiling');
+  const tc = (z: number) => tAt(z, 'ceiling');
   p.rectT(xa, xb, tc(0.995), tc(0), C.ceiling);
   for (let z = 0.94; z > 0.88; z -= 0.02) p.rectT(xa, xb, tc(z), tc(z) + 0.008, C.slot);
   for (const z of [0.1, 0.16]) p.rectT(xa, xb, tc(z), tc(z) + 0.014, C.slot);
@@ -137,7 +140,7 @@ function paint(p, def, { xa, xb, x0, x1 }) {
 // ------------------------------------------------------------------ materials
 
 // "Plattan": big tilted triangles in two tones, after the paving of Sergels torg.
-function plattan(ctx, n, dark, light) {
+function plattan(ctx: CanvasRenderingContext2D, n: number, dark: string, light: string) {
   ctx.fillStyle = light; ctx.fillRect(0, 0, n, n);
   ctx.fillStyle = dark;
   const w = n / 2;
@@ -152,19 +155,19 @@ function plattan(ctx, n, dark, light) {
   weave(ctx, n);
 }
 
-function weave(ctx, n) {
+function weave(ctx: CanvasRenderingContext2D, n: number) {
   ctx.globalAlpha = 0.06;
   for (let y = 0; y < n; y += 2) for (let x = (y / 2) % 2; x < n; x += 2) { ctx.fillStyle = '#fff'; ctx.fillRect(x, y, 1, 1); }
   ctx.globalAlpha = 1;
 }
 
-function plain(ctx, n, col) {
+function plain(ctx: CanvasRenderingContext2D, n: number, col: string) {
   ctx.fillStyle = col; ctx.fillRect(0, 0, n, n);
   weave(ctx, n);
 }
 
-function materials() {
-  const tex = (draw, size, n) => moquette(draw, size, n);
+function materials(): InteriorMaterials {
+  const tex = (draw: (ctx: CanvasRenderingContext2D, n: number) => void, size: number, n?: number) => moquette(draw, size, n);
   return {
     wall: glowMat('#eaecea', { glow: G, roughness: 0.5, side: THREE.DoubleSide }),
     bellows: glowMat('#9a9ea2', { glow: G, roughness: 0.85, side: THREE.DoubleSide }),
@@ -187,7 +190,7 @@ function materials() {
 }
 
 // amber LED sign hanging from the ceiling
-function drawSign(ctx, w, h) {
+function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = '#ffae1a'; ctx.font = '700 38px Arial, sans-serif';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -197,7 +200,7 @@ function drawSign(ctx, w, h) {
 // The cab bulkhead: dark slate, a narrow cab door in a stainless frame with the rail network map
 // on it, and yellow priority pictograms.
 function bulkheadMaterial() {
-  const text = (ctx, str, x, y, size, col) => {
+  const text = (ctx: CanvasRenderingContext2D, str: string, x: number, y: number, size: number, col: string) => {
     ctx.save(); ctx.scale(1, -1);
     ctx.fillStyle = col; ctx.font = `600 ${size}px Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(str, x, -y);
@@ -212,7 +215,7 @@ function bulkheadMaterial() {
       ctx.fillStyle = '#2f343b'; ctx.fillRect(-0.34, F, 0.68, 2.02);
       // network map
       ctx.fillStyle = '#f2f3f1'; ctx.fillRect(-0.28, F + 0.95, 0.56, 0.78);
-      const lines = [['#e3242b', [[-0.2, 1.1], [0, 0.5], [0.15, 0.2]]], ['#2a9a47', [[-0.22, 0.3], [0, 0.48], [0.2, 0.68]]],
+      const lines: [string, [number, number][]][] = [['#e3242b', [[-0.2, 1.1], [0, 0.5], [0.15, 0.2]]], ['#2a9a47', [[-0.22, 0.3], [0, 0.48], [0.2, 0.68]]],
         ['#1270c8', [[-0.24, 0.6], [0, 0.5], [0.06, 0.15]]], ['#e5609a', [[-0.1, 0.72], [0.02, 0.45], [0.22, 0.25]]]];
       ctx.lineWidth = 0.014;
       for (const [col, pts] of lines) {
@@ -234,13 +237,13 @@ function bulkheadMaterial() {
 
 const SEAT = { width: 0.47, height: 0.46, depth: 0.44, back: 1.0, recline: 0.15, shellT: 0.028, cushion: 0.035, cushionBack: 0.97 };
 const PITCH = SEAT.width + 0.015;
-let seats;
+let seats: Seating | undefined;
 const S = () => (seats ??= seating({ F, IW, seat: SEAT }));
-const seatAt = (parts, x, z, dir, priority) => S().across(parts, x, z, dir, priority);
-const wallSeat = (parts, x, s, priority) => S().along(parts, x, s, priority);
+const seatAt = (parts: Parts, x: number, z: number, dir: number, priority: boolean) => S().across(parts, x, z, dir, priority);
+const wallSeat = (parts: Parts, x: number, s: number, priority: boolean) => S().along(parts, x, s, priority);
 
 // Bench of n seats along the wall from x = a towards dir; the priority seat is the first one.
-function bench(parts, a, dir, n, s, { priorityFirst = true } = {}) {
+function bench(parts: Parts, a: number, dir: number, n: number, s: number, { priorityFirst = true }: { priorityFirst?: boolean } = {}) {
   const xs = Array.from({ length: n }, (_, k) => a + dir * (PITCH / 2 + k * PITCH));
   xs.forEach((x, k) => wallSeat(parts, x, s, priorityFirst ? k === 0 : k === n - 1));
   // a seat beam under the bench and curved stainless supports at its ends
@@ -254,21 +257,21 @@ function bench(parts, a, dir, n, s, { priorityFirst = true } = {}) {
 }
 
 // Yellow-sleeved pole with stainless ends, floor to ceiling.
-function addPole(parts, x, z, y0 = F, y1 = 3.3) {
+function addPole(parts: Parts, x: number, z: number, y0 = F, y1 = 3.3) {
   parts.add('steel', pole(x, z, y0, y0 + 0.3, 0.0175));
   parts.add('yellow', pole(x, z, y0 + 0.3, y0 + 1.9, 0.0195));
   parts.add('steel', pole(x, z, y0 + 1.9, y1, 0.0175));
 }
 
 // Triangular leather hand strap hanging from a rail.
-function strap(x, y, z) {
+function strap(x: number, y: number, z: number) {
   return [
     new THREE.BoxGeometry(0.035, 0.18, 0.01).translate(x, y - 0.1, z),
     new THREE.TorusGeometry(0.07, 0.012, 5, 3).rotateZ(Math.PI / 2).rotateY(Math.PI / 2).translate(x, y - 0.25, z),
   ];
 }
 
-function furnish(def, ctx) {
+function furnish(def: CarDef, ctx: InteriorContext) {
   const parts = new Parts();
   const { xa, xb } = ctx;
   const doors = [...def.doors].sort((a, b) => a - b);
@@ -276,7 +279,7 @@ function furnish(def, ctx) {
   const railY = F + 1.9, railZ = 0.98;
   const stretches = freeStretches(xa, xb, doors, DOOR, CLR);
   let zone = 0;
-  const signs = [];
+  const signs: number[] = [];
   for (const [a, b] of stretches) {
     const atDoorA = doors.some((d) => Math.abs(d + DOOR / 2 + CLR - a) < 0.01);
     const atDoorB = doors.some((d) => Math.abs(d - DOOR / 2 - CLR - b) < 0.01);
@@ -380,8 +383,8 @@ function furnish(def, ctx) {
   }
 
   // light lines round the gangway portals
-  const ring = (x) => {
-    const pts = portalLoop(interior.portal, 64).map((p) => [x, p.y, p.z]);
+  const ring = (x: number) => {
+    const pts = portalLoop(interior.portal, 64).map((p): Vec3 => [x, p.y, p.z]);
     return rail([...pts, pts[0]], 0.012, 0.01);
   };
   parts.add('lamp', ring(xa + 0.005));
@@ -397,7 +400,7 @@ function furnish(def, ctx) {
   return parts.meshes(ctx.mats, merge);
 }
 
-export const interior = {
+export const interior: InteriorSpec = {
   lining: prof,
   floorY: F,
   glow: G,

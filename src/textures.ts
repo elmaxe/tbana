@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // All textures are drawn procedurally so the project ships with no image assets.
 
-function rng(seed) {
+function rng(seed: number) {
   let s = seed >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -13,13 +13,13 @@ function rng(seed) {
   };
 }
 
-function canvas(w, h = w) {
+function canvas(w: number, h = w): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
-  return [c, c.getContext('2d')];
+  return [c, c.getContext('2d')!];
 }
 
-function toTexture(c, { srgb = true, repeat = true, aniso = 8 } = {}) {
+function toTexture(c: HTMLCanvasElement, { srgb = true, repeat = true, aniso = 8 }: { srgb?: boolean; repeat?: boolean; aniso?: number } = {}) {
   const t = new THREE.CanvasTexture(c);
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -27,7 +27,7 @@ function toTexture(c, { srgb = true, repeat = true, aniso = 8 } = {}) {
   return t;
 }
 
-function speckle(ctx, w, h, n, alpha, seed, light = false) {
+function speckle(ctx: CanvasRenderingContext2D, w: number, h: number, n: number, alpha: number, seed: number, light = false) {
   const r = rng(seed);
   for (let i = 0; i < n; i++) {
     const v = light ? 255 : Math.floor(r() * 80);
@@ -126,7 +126,7 @@ export function caveVines() {
     x.restore();
   }
   // vines that wrap across the tile edges
-  const vine = (sx, sy) => {
+  const vine = (sx: number, sy: number) => {
     let px = sx, py = sy, ang = r() * Math.PI * 2;
     x.strokeStyle = '#1554b8';
     x.fillStyle = '#1554b8';
@@ -180,7 +180,7 @@ export function tunnelRock() {
 }
 
 // Train side: body, windows, doors and a stripe in the line colour. One texture per car side.
-export function trainSide(lineColor, { doors = 3, carLen = 16 } = {}) {
+export function trainSide(lineColor: string, { doors = 3, carLen = 16 }: { doors?: number; carLen?: number } = {}) {
   const W = 1024, H = 256;
   const [c, x] = canvas(W, H);
   const [ce, xe] = canvas(W, H);
@@ -193,9 +193,9 @@ export function trainSide(lineColor, { doors = 3, carLen = 16 } = {}) {
   // windows
   const winTop = 70, winH = 70;
   const doorW = (1.4 / carLen) * W;
-  const doorXs = [];
+  const doorXs: number[] = [];
   for (let i = 0; i < doors; i++) doorXs.push(((i + 0.5) / doors) * W - doorW / 2);
-  const glass = (gx, gy, gw, gh) => {
+  const glass = (gx: number, gy: number, gw: number, gh: number) => {
     x.fillStyle = '#1d2530'; x.fillRect(gx, gy, gw, gh);
     xe.fillStyle = '#fff1c9'; xe.fillRect(gx + 3, gy + 3, gw - 6, gh - 6);
   };
@@ -224,7 +224,7 @@ export function trainEnd() {
 }
 
 // Station name sign, SL style (blue plate, white text).
-export function nameSign(text, bg = '#0c4da2') {
+export function nameSign(text: string, bg = '#0c4da2') {
   const [c, x] = canvas(1024, 192);
   x.fillStyle = bg; x.fillRect(0, 0, 1024, 192);
   x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 6; x.strokeRect(10, 10, 1004, 172);

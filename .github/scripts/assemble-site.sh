@@ -4,24 +4,31 @@
 #
 #   assemble-site.sh <out-dir> <prs.json>
 #
-# prs.json is `gh pr list --json number,title,isCrossRepository,url` output. Run it
-# from a checkout of the default branch; PR heads are fetched from origin. Every build gets a
-# build.json ({ id, root }) and the root gets builds.json, which src/build-switcher.js reads.
+# prs.json is `gh pr list --json number,title,isCrossRepository,url` output. Run it from a
+# checkout of the default branch after `npm ci`; PR heads are fetched from origin. Every build
+# gets a build.json ({ id, root }) and the root gets builds.json, which src/build-switcher.ts reads.
+#
+# Pull requests are built with the default branch's toolchain: its node_modules, vite.config.ts
+# and Vite. Vite only compiles and bundles a PR's files, so none of its code runs here (the config
+# also keeps Vite from loading a PostCSS config from the checkout). A PR that changes the build
+# setup or adds dependencies is previewed with main's until it merges.
 set -euo pipefail
 
-out=$1
+out=$(realpath -m "$1")
 prs=$2
+tool=$PWD
+vite="$tool/node_modules/.bin/vite"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
 
-# Copies the site files at a commit into a directory. Repo tooling is left out.
-export_tree() {
-  mkdir -p "$2"
-  git archive "$1" | tar -x -C "$2"
-  rm -rf "$2/.github" "$2/.gitignore"
+# Builds the site in directory $1 into $2.
+build() {
+  (cd "$1" && "$vite" build --config "$tool/vite.config.ts" --outDir "$2" --emptyOutDir --logLevel warn)
 }
 
 rm -rf "$out"
 main_sha=$(git rev-parse HEAD)
-export_tree "$main_sha" "$out"
+build "$tool" "$out"
 jq -n '{id: "main", root: ""}' > "$out/build.json"
 
 builds=$(jq -n --arg sha "$main_sha" '[{id: "main", label: "main", path: "", sha: $sha}]')
@@ -35,7 +42,16 @@ while read -r pr; do
     continue
   fi
   sha=$(git rev-parse FETCH_HEAD)
-  export_tree "$sha" "$out/pr/$num"
+  src="$work/pr-$num"
+  mkdir -p "$src"
+  git archive "$sha" | tar -x -C "$src"
+  rm -rf "$src/node_modules"
+  ln -s "$tool/node_modules" "$src/node_modules"
+  if ! build "$src" "$out/pr/$num"; then
+    echo "::warning::PR #$num did not build, skipping it"
+    rm -rf "$out/pr/$num"
+    continue
+  fi
   jq -n --arg id "pr-$num" '{id: $id, root: "../../"}' > "$out/pr/$num/build.json"
   builds=$(jq --argjson pr "$pr" --arg sha "$sha" '. + [{
     id: "pr-\($pr.number)",

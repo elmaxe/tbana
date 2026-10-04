@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { profile, box, merge, noseSkirtGeometry, DARK } from './kit';
+import type { Painter } from './kit';
+import type { CarDef, TrainSpec } from './train';
 
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
 // Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each 16.756 m car has its own
@@ -30,15 +32,15 @@ export const DOOR = 1.56;
 
 // Window frames between the doors, as [a, b] along the car (the glass is 5 cm inside the frame).
 // The interior cuts its window openings from the same list.
-function windowsBetween(out, xa, xb) {
+function windowsBetween(out: [number, number][], xa: number, xb: number) {
   const post = 0.32, max = 1.65;
   const n = Math.max(1, Math.ceil((xb - xa + post) / (max + post)));
   const w = (xb - xa - post * (n - 1)) / n;
   for (let i = 0; i < n; i++) out.push([xa + i * (w + post), xa + i * (w + post) + w]);
 }
 
-export function windowFrames(def, x0, x1) {
-  const out = [];
+export function windowFrames(def: CarDef, x0: number, x1: number) {
+  const out: [number, number][] = [];
   const doors = [...def.doors].sort((a, b) => a - b);
   let a = x0 + 0.42;
   const end = def.cab ? x1 - 2.3 : x1 - 0.42;
@@ -50,8 +52,8 @@ export function windowFrames(def, x0, x1) {
   return out;
 }
 
-function paintSide(p, def, x0, x1) {
-  const X = (dx) => x1 - dx;
+function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
+  const X = (dx: number) => x1 - dx;
   p.rectT(x0, x1, prof.tMin, prof.tMax, M.roof);
   p.rect(x0, x1, 0.6, 3.12, M.white);
   p.rect(x0, x1, 0.6, 1.0, M.skirt);
@@ -87,7 +89,7 @@ function paintSide(p, def, x0, x1) {
   p.text(x0 + 1.0, 1.12, `C30-${def.number}`, 0.07, M.white, { font: '600 {px}px Arial, Helvetica, sans-serif' });
 }
 
-function paintFront(p, def) {
+function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.8, 3.8, M.white);
   p.rect(-1.6, 1.6, 0.8, 1.2, M.skirt);
   p.rect(-1.1, 1.1, 1.64, 3.5, M.collar, 0.34);
@@ -105,7 +107,7 @@ function paintFront(p, def) {
 
 const skirtMat = new THREE.MeshStandardMaterial({ color: 0x4b5157, roughness: 0.55, metalness: 0.15 });
 
-function extras(def, x0, x1) {
+function extras(def: CarDef, x0: number, x1: number) {
   const out = [];
   const under = [], skirt = [];
   const [b0, b1] = def.bogies;
@@ -149,7 +151,7 @@ const cars = {
   },
 };
 
-export const C30 = {
+export const C30: TrainSpec = {
   id: 'C30',
   title: 'C30',
   prof,

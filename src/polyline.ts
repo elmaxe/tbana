@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 
+export type Tri = [THREE.Vector3, THREE.Vector3, THREE.Vector3];
+
 // A 3D polyline parameterised by arc length (measured in the XZ plane).
 export class Polyline {
-  constructor(points) {
+  pts: THREE.Vector3[];
+  cum: number[];
+  length: number;
+
+  constructor(points: THREE.Vector3[]) {
     this.pts = points;
     this.cum = [0];
     for (let i = 1; i < points.length; i++) {
@@ -12,7 +18,7 @@ export class Polyline {
     this.length = this.cum[this.cum.length - 1];
   }
 
-  pointAt(s, out = new THREE.Vector3()) {
+  pointAt(s: number, out = new THREE.Vector3()) {
     const { pts, cum } = this;
     if (s <= 0) return out.copy(pts[0]);
     if (s >= this.length) return out.copy(pts[pts.length - 1]);
@@ -26,7 +32,7 @@ export class Polyline {
   }
 
   // Horizontal unit tangent, smoothed over a couple of metres.
-  tangentAt(s, out = new THREE.Vector3()) {
+  tangentAt(s: number, out = new THREE.Vector3()) {
     const a = this.pointAt(Math.max(0, s - 1.5), _a);
     const b = this.pointAt(Math.min(this.length, s + 1.5), _b);
     out.set(b.x - a.x, 0, b.z - a.z);
@@ -35,13 +41,13 @@ export class Polyline {
   }
 
   // Right-hand horizontal normal (tangent × up).
-  rightAt(s, out = new THREE.Vector3()) {
+  rightAt(s: number, out = new THREE.Vector3()) {
     this.tangentAt(s, out);
     return out.set(-out.z, 0, out.x);
   }
 
   // Copy of this polyline shifted sideways by `offset` metres (positive = right).
-  offset(offset) {
+  offset(offset: number) {
     const pts = this.cum.map((s, i) => {
       const r = this.rightAt(s, new THREE.Vector3());
       return this.pts[i].clone().addScaledVector(r, offset);
@@ -50,9 +56,9 @@ export class Polyline {
   }
 
   // Sub-range [s0, s1] resampled every `step` metres.
-  resample(s0, s1, step) {
+  resample(s0: number, s1: number, step: number) {
     const n = Math.max(1, Math.ceil((s1 - s0) / step));
-    const pts = [];
+    const pts: THREE.Vector3[] = [];
     for (let i = 0; i <= n; i++) pts.push(this.pointAt(s0 + ((s1 - s0) * i) / n));
     return pts;
   }
@@ -62,8 +68,8 @@ const _a = new THREE.Vector3(), _b = new THREE.Vector3();
 // Recovers the centre line of a thin ribbon (a track drawn as an extruded SVG stroke).
 // Slices the ribbon perpendicular to its principal axis and takes the middle of each slice.
 // Returns an array of polylines (the ribbon is split where a slice looks implausibly wide).
-export function extractCenterlines(tris, step = 2) {
-  const verts = [];
+export function extractCenterlines(tris: Tri[], step = 2) {
+  const verts: THREE.Vector3[] = [];
   for (const t of tris) verts.push(t[0], t[1], t[2]);
   let mx = 0, mz = 0;
   for (const v of verts) { mx += v.x; mz += v.z; }
@@ -76,8 +82,8 @@ export function extractCenterlines(tris, step = 2) {
   const ang = 0.5 * Math.atan2(2 * cxz, cxx - czz);
   const e1x = Math.cos(ang), e1z = Math.sin(ang);
   const e2x = -e1z, e2z = e1x;
-  const proj = (v) => (v.x - mx) * e1x + (v.z - mz) * e1z;
-  const perp = (x, z) => (x - mx) * e2x + (z - mz) * e2z;
+  const proj = (v: THREE.Vector3) => (v.x - mx) * e1x + (v.z - mz) * e1z;
+  const perp = (x: number, z: number) => (x - mx) * e2x + (z - mz) * e2z;
 
   let umin = Infinity, umax = -Infinity;
   const pre = tris.map((t) => {
@@ -86,7 +92,7 @@ export function extractCenterlines(tris, step = 2) {
     return { t, u, lo: Math.min(...u), hi: Math.max(...u) };
   });
 
-  const samples = [];
+  const samples: ({ p: THREE.Vector3; w: number } | null)[] = [];
   for (let u = umin + 0.05; u <= umax - 0.05; u += step) {
     let pmin = Infinity, pmax = -Infinity, ys = 0, yn = 0;
     for (const p of pre) {
@@ -112,10 +118,10 @@ export function extractCenterlines(tris, step = 2) {
     });
   }
 
-  const widths = samples.filter(Boolean).map((s) => s.w).sort((a, b) => a - b);
+  const widths = samples.filter(Boolean).map((s) => s!.w).sort((a, b) => a - b);
   const medianW = widths[widths.length >> 1] || 1;
-  const runs = [];
-  let cur = [];
+  const runs: THREE.Vector3[][] = [];
+  let cur: THREE.Vector3[] = [];
   for (const s of samples) {
     if (s && s.w < medianW * 2.2 + 0.4) cur.push(s.p);
     else { if (cur.length) runs.push(cur); cur = []; }
@@ -128,7 +134,7 @@ export function extractCenterlines(tris, step = 2) {
     .filter((pl) => pl.length > 20);
 }
 
-function smooth(pts, passes) {
+function smooth(pts: THREE.Vector3[], passes: number) {
   let p = pts;
   for (let k = 0; k < passes; k++) {
     p = p.map((v, i) => {
@@ -141,8 +147,11 @@ function smooth(pts, passes) {
 
 // Sweeps a 2D cross-section along a list of 3D points (profile u = sideways, v = up).
 // Returns a non-indexed BufferGeometry with uv.x = profile distance, uv.y = path distance.
-export function sweep(points, profile, { uScale = 1, vScale = 1, closed = false, swapUV = false } = {}) {
-  const pos = [], uv = [];
+export function sweep(
+  points: THREE.Vector3[], profile: [number, number][],
+  { uScale = 1, vScale = 1, closed = false, swapUV = false }: { uScale?: number; vScale?: number; closed?: boolean; swapUV?: boolean } = {},
+) {
+  const pos: number[] = [], uv: number[] = [];
   const n = points.length;
   const rights = points.map((p, i) => {
     const a = points[Math.max(0, i - 1)], b = points[Math.min(n - 1, i + 1)];
@@ -155,7 +164,7 @@ export function sweep(points, profile, { uScale = 1, vScale = 1, closed = false,
   for (let j = 1; j < profile.length; j++) {
     profLen.push(profLen[j - 1] + Math.hypot(profile[j][0] - profile[j - 1][0], profile[j][1] - profile[j - 1][1]));
   }
-  const P = (i, j) => {
+  const P = (i: number, j: number) => {
     const r = rights[i], p = points[i];
     return [p.x + r.x * profile[j][0], p.y + profile[j][1], p.z + r.z * profile[j][0]];
   };
