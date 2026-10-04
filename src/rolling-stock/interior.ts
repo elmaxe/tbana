@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { loopOf, profile } from './kit.js';
+import { loopOf, profile } from './kit';
 
 // Building blocks for the passenger interiors. Same car axes as kit.js: +x forward, +y up from the
 // top of the rail, +z right. An interior is an inner lining (floor, walls and ceiling swept from a

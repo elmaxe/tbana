@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { merge } from './kit.js';
+import { merge } from './kit';
 import {
   liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches, endWallMaterial,
   screenTexture,
-} from './interior.js';
-import { DOOR, windowPanes } from './c20.js';
+} from './interior';
+import { DOOR, windowPanes } from './c20';
 
 // C20 interiors, from Wikimedia Commons photos (2008–2026), SL's seat plan for the upgrade and
 // press material. See docs/rolling-stock.md for the research notes.

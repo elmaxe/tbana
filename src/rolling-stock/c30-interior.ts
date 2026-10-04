@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { merge } from './kit.js';
+import { merge } from './kit';
 import {
   liningProfile, seating, pole, rail, moquette, glowMat, Parts, freeStretches,
   endWallMaterial, screenTexture, portalLoop,
-} from './interior.js';
-import { DOOR, windowFrames } from './c30.js';
+} from './interior';
+import { DOOR, windowFrames } from './c30';
 
 // C30 interior, from photos of cars in service (2019–2024) and Bombardier's press pictures.
 // See docs/rolling-stock.md for the research notes.

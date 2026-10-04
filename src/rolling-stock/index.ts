@@ -1,8 +1,8 @@
-import { buildTrain } from './train.js';
-import { C20 } from './c20.js';
-import { interior as C20_INTERIOR } from './c20-interior.js';
-import { C30 } from './c30.js';
-import { interior as C30_INTERIOR } from './c30-interior.js';
+import { buildTrain } from './train';
+import { C20 } from './c20';
+import { interior as C20_INTERIOR } from './c20-interior';
+import { C30 } from './c30';
+import { interior as C30_INTERIOR } from './c30-interior';
 
 export const TRAIN_TYPES = { C20: { ...C20, interior: C20_INTERIOR.upgraded }, C30: { ...C30, interior: C30_INTERIOR } };
 

@@ -5,15 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>T-Centralen Walk</title>
   <meta name="description" content="Walk around T-Centralen / Stockholm City in first person, built on Albert Guillaumes' 3D station drawing.">
-  <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <canvas id="c"></canvas>
@@ -94,10 +86,6 @@
     </div>
   </div>
 
-  <script type="module" src="src/main.js"></script>
-  <script type="module">
-    import { mountBuildSwitcher } from './src/build-switcher.js';
-    mountBuildSwitcher(document.getElementById('buildSwitch'));
-  </script>
+  <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

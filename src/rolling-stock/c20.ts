@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { profile, box, merge, corrugationNormalMap, noseSkirtGeometry, DARK } from './kit.js';
+import { profile, box, merge, corrugationNormalMap, noseSkirtGeometry, DARK } from './kit';
 
 // SL C20 — three-section articulated unit, Adtranz/Bombardier (Kalmar Verkstad), 1997–2004.
 // 46.5 m over couplers, 2.90 m wide, 3.68 m high. Four bogies per unit: two under the middle car,

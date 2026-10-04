@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import {
   shellGeometry, capGeometry, bellowsGeometry, sidePainter, frontPainter, bogieGeometry, couplerGeometry,
   destinationSign, LIGHTS, DARK, merge,
-} from './kit.js';
-import { liningGeometry, endWallGeometry, portalTube } from './interior.js';
+} from './kit';
+import { liningGeometry, endWallGeometry, portalTube } from './interior';
 
 // Turns a train type description (see c20.js / c30.js) into car templates and assembles trains.
 

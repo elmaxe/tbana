@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { SurfaceIndex } from './surface-index.js';
-import { extractCenterlines, sweep } from './polyline.js';
-import { LINES, TRAIN_SPECS } from './lines.js';
-import * as T from './textures.js';
+import { SurfaceIndex } from './surface-index';
+import { extractCenterlines, sweep } from './polyline';
+import { LINES, TRAIN_SPECS } from './lines';
+import * as T from './textures';
 
 // The source model is an extruded 2D drawing: floor slabs, stair ramps, escalator tubes,
 // lift shafts, ticket gates and tracks, each identified only by its colour. This module turns

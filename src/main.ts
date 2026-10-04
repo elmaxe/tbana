@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildStation } from './station.js';
-import { Player } from './player.js';
-import { Trains } from './trains.js';
-import { MiniMap } from './minimap.js';
-import { Input } from './input.js';
-import { Sound } from './sound.js';
-import { LINES } from './lines.js';
+import { buildStation } from './station';
+import { Player } from './player';
+import { Trains } from './trains';
+import { MiniMap } from './minimap';
+import { Input } from './input';
+import { Sound } from './sound';
+import { LINES } from './lines';
+import { mountBuildSwitcher } from './build-switcher';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -64,6 +65,7 @@ const input = new Input(canvas, {
 });
 const touchMode = () => input.touchMode;
 document.body.classList.toggle('touch', touchMode());
+mountBuildSwitcher($('buildSwitch'));
 
 // ------------------------------------------------------------------ loading
 const loader = new GLTFLoader();

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { profile, box, merge, noseSkirtGeometry, DARK } from './kit.js';
+import { profile, box, merge, noseSkirtGeometry, DARK } from './kit';
 
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
 // Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each 16.756 m car has its own

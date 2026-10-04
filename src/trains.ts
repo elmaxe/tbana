@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { LINES, TRAIN_SPECS } from './lines.js';
-import * as T from './textures.js';
-import { createTrain, SERVICE_UNITS } from './rolling-stock/index.js';
+import { LINES, TRAIN_SPECS } from './lines';
+import * as T from './textures';
+import { createTrain, SERVICE_UNITS } from './rolling-stock/index';
 
 const ACC = 1.0;      // m/s², braking and acceleration
 const DWELL = 22;     // seconds at the platform

@@ -2,12 +2,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-import { createTrain } from './rolling-stock/index.js';
+import { createTrain } from './rolling-stock/index';
+import { mountBuildSwitcher } from './build-switcher';
 
 // Model viewer for the procedural C20 and C30 trains (trains.html).
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
+mountBuildSwitcher($('buildSwitch'));
 
 const SPECS = {
   C20: {
