@@ -22,6 +22,37 @@ npm run typecheck      # type-check only
 `npm run preview` serves the built `dist/`. The station model is in `public/assets/` and is copied
 into the build unchanged.
 
+### The inspector
+
+```sh
+npm run inspect               # opens http://localhost:5180/inspect.html in your browser
+npm run inspect -- Slussen    # ... at a station; --no-open, --port 5180
+```
+
+A tool for checking the network by eye, which runs only on your machine. It starts the dev server
+and opens a page in three panes:
+
+- **Network:** a map of the whole track graph, each line in its colour, the red line's drawn
+  track coloured by structure (rock, box, cutting, grade, embankment, bridge), and the places
+  where `data/*-corrections.json` fixes the inputs. Click a station to stand on its platform,
+  click the red line's track to stand over it looking along it, and shift-click to look down from above. The
+  camera is shown on the map.
+- **World:** the game's world at that place: T-Centralen, the network's track and stations, the
+  city and the trains. Drag to look, `W A S D` to fly, `E`/`Q` up and down, `Shift` to go fast,
+  the wheel for the speed. `T` drops to the track below, and a double-click says what you are
+  looking at: its position, and the track and rail height there. **Open in game** opens the game
+  at the same view.
+- **Reference:** what the place was built from. For a station: Albert Guillaumes' drawing (fetched
+  from his site into `node_modules/.cache/inspect/`, never into the repository), the description,
+  its frame (`build-stations --frame`), the heights from Wikidata and as built, the fixes made by
+  hand with their reasons, OpenStreetMap's entrances, and the track plan and profile round it
+  (`plot-graph`, `plot-profile`). For a track: its OpenStreetMap nodes and ways, its height,
+  ground, gradient and structure where you clicked, and the services on it. With **follow
+  camera** it shows the station you fly to.
+
+After editing a description or a correction, **Rebuild…** runs the build tool and reloads at the
+same view (the view is kept in the address). The game is served too, at `/`.
+
 ## Controls
 
 | Key | Action |

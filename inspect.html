@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Network Inspector</title>
+  <meta name="description" content="Check the network by eye: a map of the whole track graph, the game's world where you click on it, and what each place was built from. Run it with npm run inspect.">
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #141a23; --raised: #1b2330; --line: #2a3340; --text: #e8edf3; --muted: #93a0b0;
+      --accent: #4c8dff; --warn: #e8b04b; --bad: #ef6b6b; --good: #5bc27a;
+      --left: 30%; --right: 32%;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+      font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    a { color: #8fc0ff; }
+    kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--raised); font: 11px ui-monospace, monospace; }
+    button, select { padding: 3px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--raised);
+      color: var(--text); font: inherit; cursor: pointer; }
+    button:hover { border-color: #3d4a5c; }
+    button.on { background: #1f3a66; border-color: var(--accent); }
+    label { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+
+    #app { display: grid; height: 100%; grid-template-columns: var(--left) 5px 1fr 5px var(--right); }
+    .pane { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); }
+    .split { background: var(--line); cursor: col-resize; }
+    .split:hover, .split.drag { background: var(--accent); }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .bar h1 { margin: 0 6px 0 0; font-size: 13px; }
+    .bar .grow { flex: 1; }
+    .bar input[type=search] { width: 150px; padding: 3px 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--text); font: inherit; }
+
+    /* the map */
+    .stage { position: relative; flex: 1; min-height: 0; }
+    #map, #view { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+    #map { cursor: crosshair; touch-action: none; }
+    #view { outline: none; }
+    #mapHint { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); padding: 3px 7px; border-radius: 4px; background: rgba(13, 17, 23, .85);
+      color: var(--muted); font-size: 11px; pointer-events: none; }
+    #mapLegend { padding: 4px 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    #mapLegend span { display: inline-block; width: 10px; height: 3px; margin: 0 4px 2px 8px; vertical-align: middle; }
+    #mapLegend span:first-child { margin-left: 0; }
+
+    /* the 3D view */
+    #hud { position: absolute; left: 8px; top: 8px; padding: 5px 8px; border-radius: 5px; background: rgba(13, 17, 23, .8);
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none; white-space: pre; }
+    #pick { position: absolute; left: 8px; right: 8px; bottom: 8px; cursor: pointer; padding: 5px 8px; border-radius: 5px;
+      background: rgba(13, 17, 23, .85); font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; }
+    #help { position: absolute; right: 8px; bottom: 8px; padding: 5px 8px; border-radius: 5px; background: rgba(13, 17, 23, .8);
+      color: var(--muted); font-size: 11px; line-height: 1.7; pointer-events: none; }
+    #loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); color: var(--muted); font-size: 14px; }
+    #loading[hidden], #pick[hidden], #pick:not([hidden]) ~ #help { display: none; }
+
+    /* the reference */
+    #ref { flex: 1; min-height: 0; overflow: auto; padding: 10px 12px 40px; }
+    #ref h2 { margin: 0 0 2px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+    #ref h3 { margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--line); font-size: 12px;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    #ref p { margin: 4px 0; }
+    #ref .sub { color: var(--muted); margin: 0 0 6px; }
+    #ref .why { padding: 6px 8px; margin: 6px 0; border-left: 3px solid var(--warn); background: var(--raised); border-radius: 0 4px 4px 0; }
+    #ref table { width: 100%; border-collapse: collapse; }
+    #ref td { padding: 2px 0; border-top: 1px solid var(--line); vertical-align: top; }
+    #ref td:first-child { color: var(--muted); width: 38%; padding-right: 8px; }
+    #ref pre { margin: 6px 0; padding: 8px; overflow: auto; max-height: 360px; background: var(--bg); border: 1px solid var(--line);
+      border-radius: 5px; font: 11.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+    #ref pre.bad { border-color: var(--bad); }
+    #ref .buttons { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+    #ref .figure { margin: 6px 0; background: #fff; border-radius: 5px; overflow: hidden; cursor: zoom-in; }
+    #ref .figure img { display: block; width: 100%; }
+    #ref .figure.drawing { background: #f4f1ea; }
+    #ref .note { color: var(--muted); font-size: 12px; }
+    #ref .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+    #ref .err { color: var(--bad); }
+    #ref ul { margin: 4px 0; padding-left: 18px; }
+    #ref details { margin: 4px 0; }
+    #ref summary { cursor: pointer; color: var(--muted); }
+    #ref .chip { display: inline-block; padding: 0 6px; margin: 0 3px 3px 0; border-radius: 9px; background: var(--raised);
+      border: 1px solid var(--line); font-size: 12px; }
+
+    /* a figure over everything: fitted to the window, or at full size */
+    #zoom { position: fixed; inset: 0; z-index: 10; overflow: auto; background: rgba(5, 7, 10, .92); cursor: zoom-out; }
+    #zoom img { display: block; margin: 2vh auto; max-width: 96vw; max-height: 96vh; background: #fff; cursor: zoom-in; }
+    #zoom img.full { max-width: none; max-height: none; cursor: zoom-out; }
+    #zoom[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <section class="pane" id="mapPane">
+      <div class="bar">
+        <h1>Network</h1>
+        <input id="find" type="search" placeholder="Station…" list="stationNames">
+        <datalist id="stationNames"></datalist>
+        <button id="fitMap" title="Show the whole network">Whole map</button>
+        <span class="grow"></span>
+        <label title="Colour the red line's track by the structure it runs in"><input type="checkbox" id="showKinds" checked>structure</label>
+        <label title="Track no service runs on: crossovers, sidings, depots"><input type="checkbox" id="showYards" checked>yards</label>
+        <label title="Where data/*-corrections.json fixes the inputs"><input type="checkbox" id="showFixes" checked>fixes</label>
+      </div>
+      <div class="stage">
+        <canvas id="map"></canvas>
+        <div id="mapHint">click: fly there · shift-click: view from above · drag: pan · wheel: zoom</div>
+      </div>
+      <div id="mapLegend"></div>
+    </section>
+    <div class="split" data-side="left"></div>
+    <section class="pane" id="viewPane">
+      <div class="bar">
+        <h1>World</h1>
+        <label><input type="checkbox" id="optCity" checked>city</label>
+        <label><input type="checkbox" id="optTrains" checked>trains</label>
+        <label title="The game's fog and darkness underground"><input type="checkbox" id="optFog">fog</label>
+        <label title="Light everything evenly, as in daylight"><input type="checkbox" id="optBright" checked>bright</label>
+        <label><input type="checkbox" id="optWire">wireframe</label>
+        <span class="grow"></span>
+        <button id="openGame" title="Open the game here, in free flight">Open in game ↗</button>
+        <button id="copyCam" title="Copy this view as the game's ?cam=">Copy view</button>
+      </div>
+      <div class="stage">
+        <canvas id="view" tabindex="0"></canvas>
+        <div id="hud"></div>
+        <div id="pick" title="Click to close" hidden></div>
+        <div id="help">
+          drag: look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>E</kbd>/<kbd>Space</kbd> up · <kbd>Q</kbd>/<kbd>C</kbd> down<br>
+          <kbd>Shift</kbd> fast · wheel: speed · double-click: what's that? · <kbd>T</kbd> to the track below
+        </div>
+        <div id="loading">Loading the world…</div>
+      </div>
+    </section>
+    <div class="split" data-side="right"></div>
+    <section class="pane" id="refPane">
+      <div class="bar">
+        <h1>Reference</h1>
+        <span class="grow"></span>
+        <label title="Show the station nearest the camera as you fly"><input type="checkbox" id="follow" checked>follow camera</label>
+        <select id="rebuild" title="Run a build tool after editing its inputs, then reload">
+          <option value="">Rebuild…</option>
+          <option>build-stations</option>
+          <option>build-heights</option>
+          <option>build-track-geometry</option>
+          <option>build-track-graph</option>
+        </select>
+      </div>
+      <div id="ref"></div>
+    </section>
+  </div>
+  <div id="zoom" hidden></div>
+  <script type="module" src="./src/inspect/main.ts"></script>
+</body>
+</html>
