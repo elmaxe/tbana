@@ -10,12 +10,15 @@ import { ACC, DWELL, RAIL_TOP, advance } from './service';
 import type { Service, Stop } from './service';
 
 // The trains on the track network: each service of the timetable (public/data/track-graph.json)
-// runs its routes end to end, a train every headway each way. A trip comes in from beyond the
-// first station, stands there with its doors open until its departure time, stops at every
-// station and runs out beyond the last, where it turns out of sight: at each end of the red line
-// the trains arrive on one track and leave from the other, and the turnback tracks between
-// aren't drawn. The trips keep their distance on the track they share, and at a junction the one
-// that would get there first goes first.
+// runs its routes end to end, a train every headway each way. A trip stands at its first station
+// with its doors open until its departure time, and stops at every station. At the last it turns
+// where it stands: the route arrives on the platform track the route the other way leaves from,
+// and the train becomes that route's next trip, waiting with its doors open until it leaves. So
+// once the game is going, the trips at the ends of the line are the trains that came in, and no
+// new ones are set off there. (A route that can't turn so runs on beyond its last station, out of
+// sight.) The trips keep their distance on the track they share, and at a junction the one that
+// would get there first goes first; a train waiting to leave the end of the line claims the track
+// out to where it leaves the incoming trains' way.
 
 const LINE_SPEED = 20;    // m/s, about 70 km/h
 const RUN_ON = 220;       // the line is extended this far beyond each end, to run in and out on
@@ -42,6 +45,11 @@ export interface NetRoute {
   base: number;   // when trip 0 sets off; trip k sets off a headway later than trip k − 1
   sched: Schedule;
   reverse: NetRoute | null;
+  turns: boolean; // its trains turn into `reverse`'s at the last stop
+  fed: boolean;   // its trips are the trains that turned at its first stop (once the game is going)
+  // how far a train waiting at the first stop claims the track ahead: out to where it leaves the
+  // track the incoming trains come in on
+  startClaim: number;
   nextK: number;  // the next trip to set off
 }
 
@@ -49,13 +57,16 @@ export interface NetRoute {
 // from when it sets off, and where its front is every FF_STEP seconds.
 interface Schedule { arrive: number[]; close: number[]; heads: Float32Array; duration: number }
 
-interface Span { s0: number; s1: number; svc: Service; claim: boolean; sHead: number; dHead: number }
+// A stretch of a piece a trip holds (under it) or claims (ahead of it). A hard claim is given way
+// to whoever would get there first: a train leaving the end of the line has the track out.
+interface Span { s0: number; s1: number; svc: Service; claim: boolean; hard: boolean; sHead: number; dHead: number }
 
 export class Timetable {
   routes: NetRoute[] = [];
   trips: Service[] = [];
   clock = 0;
   private ids = 0;
+  private started = false;
 
   // `trainLen`: the length of the trains; `stretches`: where the station models replace the
   // routes' lines (src/station-join.ts)
@@ -105,22 +116,40 @@ export class Timetable {
         name: route.name, service: route.service, line: route.line as LineId,
         dest: [route.service.replace(/^\D+/, ''), stops[stops.length - 1].station],
         path, shown, stops, segs, trainLen, headway: timing.headway, base: 0,
-        sched: null!, reverse: null, nextK: 0,
+        sched: null!, reverse: null, turns: false, fed: false, startClaim: CLAIM, nextK: 0,
       };
       nr.sched = this.schedule(nr);
       nr.base = timing.offset - (ref >= 0 ? nr.sched.arrive[ref] : 0);
       this.routes.push(nr);
     }
-    // each service's two routes turn into each other at the ends
+    // each service's two routes turn into each other at the ends: where the trains stand at the
+    // last stop of one is where they stand at the first stop of the other
+    const middle = (r: NetRoute, k: number) => r.path.pointAt(r.stops[k].head - r.trainLen / 2);
     for (const r of this.routes) {
       r.reverse = this.routes.find((o) => o !== r && o.service === r.service
         && o.stops[0].station === r.stops[r.stops.length - 1].station) ?? null;
+      r.turns = !!r.reverse && middle(r, r.stops.length - 1).distanceTo(middle(r.reverse, 0)) < 2;
     }
-    // the trips under way now, where the timetable has them
+    for (const r of this.routes) {
+      const from = this.routes.find((o) => o.reverse === r && o.turns);
+      if (!from) continue;
+      r.fed = true;
+      // out along the path while it runs on the track the incoming trains come in on
+      const theirs = new Set(from.segs.map((sg) => sg.piece));
+      let end = r.stops[0].head;
+      for (const sg of r.segs) if (sg.r1 > end && theirs.has(sg.piece) && sg.r0 <= end + 1) end = sg.r1;
+      r.startClaim = Math.max(CLAIM, end - r.stops[0].head + JUNCTION + MARGIN);
+    }
+    // the trips under way now, where the timetable has them; those that have come to the end of
+    // a line where trains turn have turned into a trip that is already there
     for (const r of this.routes) {
       r.nextK = Math.floor((this.clock - r.sched.duration - r.base) / r.headway);
     }
     this.spawn();
+    for (const svc of [...this.trips]) {
+      if (this.route(svc).turns && svc.stop >= svc.stops.length - 1 && svc.state !== 'run') this.remove(svc);
+    }
+    this.started = true;
   }
 
   // A trip of `route` running with nothing in its way, from when it sets off.
@@ -148,7 +177,7 @@ export class Timetable {
       id: this.ids++, L, vmax: LINE_SPEED, cars: [], model: null, trainLen: route.trainLen,
       path: route.path, shown: route.shown,
       stops: route.stops.map((st, j) => ({ ...st, until: route.sched ? spawn + route.sched.close[j] : -Infinity })),
-      stop: 0, end: route.shown[1] + route.trainLen + 5,
+      stop: 0, end: route.turns ? route.stops[route.stops.length - 1].head : route.shown[1] + route.trainLen + 5,
       state: 'run', timer: 0, head: route.shown[0], speed: 0, limit: Infinity, doors: 0,
       dest: route.dest, trip: { route: route.name, k, spawn },
     };
@@ -160,6 +189,7 @@ export class Timetable {
   // own, to where it is now.
   private spawn() {
     for (const r of this.routes) {
+      if (r.fed && this.started) continue;
       for (let t = this.spawnTime(r, r.nextK); t <= this.clock; t = this.spawnTime(r, ++r.nextK)) {
         const svc = this.trip(r, r.nextK, t);
         let done = false;
@@ -179,9 +209,31 @@ export class Timetable {
     for (const svc of this.trips) {
       const ev = advance(svc, dt, this.clock);
       if (ev) events.push([svc, ev]);
+      if (ev === 'arrived' && svc.stop === svc.stops.length - 1 && this.route(svc).turns) {
+        this.turnAround(svc);
+        events.push([svc, 'turned']);
+      }
     }
     for (const [svc, ev] of events) if (ev === 'done') this.remove(svc);
     return events;
+  }
+
+  // A train that has come to the end of its route becomes the next trip the other way, from where
+  // it stands: it keeps its doors open until that trip leaves.
+  private turnAround(svc: Service) {
+    const route = this.route(svc).reverse!;
+    const k = route.nextK++;
+    const spawn = this.spawnTime(route, k);
+    const next = this.trip(route, k, spawn);
+    svc.path = next.path;
+    svc.shown = next.shown;
+    svc.stops = next.stops;
+    svc.end = next.end;
+    svc.stop = 0;
+    svc.head = next.stops[0].head;
+    svc.dest = next.dest;
+    svc.trip = next.trip;
+    svc.timer = 0;
   }
 
   private remove(svc: Service) {
@@ -202,16 +254,20 @@ export class Timetable {
       const route = this.route(svc);
       const tail = svc.head - svc.trainLen;
       if (svc.head < route.shown[0] || tail > route.shown[1]) continue;
-      this.pieces(route, tail, svc.head, (piece, s0, s1) => add(piece, { s0, s1, svc, claim: false, sHead: 0, dHead: 0 }));
-      this.pieces(route, svc.head, svc.head + braking(svc.speed) + CLAIM, (piece, s0, s1, rFrom) => add(piece, {
-        s0, s1, svc, claim: true, sHead: s0, dHead: rFrom - svc.head,
+      this.pieces(route, tail, svc.head, (piece, s0, s1) => add(piece, { s0, s1, svc, claim: false, hard: false, sHead: 0, dHead: 0 }));
+      // a train waiting to leave the end of the line, or leaving, claims the track out of the
+      // station
+      const hard = leaving(svc, route);
+      const ahead = Math.max(braking(svc.speed) + CLAIM, hard ? route.stops[0].head + route.startClaim - svc.head : 0);
+      this.pieces(route, svc.head, svc.head + ahead, (piece, s0, s1, rFrom) => add(piece, {
+        s0, s1, svc, claim: true, hard, sHead: s0, dHead: rFrom - svc.head,
       }));
     }
     for (const svc of this.trips) {
       if (svc.state !== 'run') continue;
       const route = this.route(svc);
       const look = braking(Math.max(svc.speed, LINE_SPEED)) + MARGIN + CLAIM;
-      const me = Math.max(svc.speed, 3);
+      const me = Math.max(svc.speed, 3), mine = leaving(svc, route);
       let room = Infinity;
       for (const sg of this.segsBetween(route, svc.head, svc.head + look)) {
         if (sg.r0 - svc.head > room) break;
@@ -224,7 +280,9 @@ export class Timetable {
           const near = Math.min(ra, rb), sNear = ra < rb ? lo : hi;
           if (near < svc.head - 0.5) continue; // behind this trip's front: not in its way
           const gap = near - svc.head;
-          if (sp.claim) {
+          if (sp.claim && sp.hard) room = Math.min(room, gap - JUNCTION);
+          else if (sp.claim) {
+            if (mine) continue;
             // give way if the other would get there first; side by side, the older trip goes first
             const other = sp.dHead + Math.abs(sNear - sp.sHead);
             const tOther = other / Math.max(sp.svc.speed, 3), tMe = gap / me;
@@ -288,7 +346,7 @@ export class Timetable {
       }
       if (!best || eta < best.eta) best = { eta, svc };
     }
-    const t = this.spawnTime(route, route.nextK) + sched.arrive[k] - this.clock;
+    const t = Math.max(0, this.spawnTime(route, route.nextK) + sched.arrive[k] - this.clock);
     if (!best || t < best.eta) best = { eta: t, svc: null };
     return best;
   }
@@ -319,5 +377,7 @@ export class Timetable {
 }
 
 const braking = (v: number) => (v * v) / (2 * ACC);
+// a trip at the start of a route fed by trains turning there, until it is out of their way
+const leaving = (svc: Service, route: NetRoute) => route.fed && svc.stop <= 1 && svc.head < route.stops[0].head + route.startClaim;
 const sOn = (sg: NetRoute['segs'][number], r: number) => sg.s0 + ((sg.s1 - sg.s0) * (r - sg.r0)) / (sg.r1 - sg.r0 || 1);
 const rOn = (sg: NetRoute['segs'][number], s: number) => sg.r0 + ((sg.r1 - sg.r0) * (s - sg.s0)) / (sg.s1 - sg.s0 || 1);

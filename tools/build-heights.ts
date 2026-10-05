@@ -26,6 +26,7 @@
 // platforms, vertical curves of at least 2,000 m radius. The build fails on anything clearly
 // outside them, and lists it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { lineTrack, mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
@@ -97,7 +98,7 @@ if (!ground.length) console.warn(`${GROUND} missing: no ground anchors, and tunn
 // The fit is made twice: first the services' track alone, then all of the red line's track with
 // the services' track pinned where the first fit put it, so that the crossovers, sidings and
 // depots are fitted to the line and don't move it.
-const run = new Set(graph.routes.flatMap((r) => r.path.map((st) => st.piece)));
+const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
 const STACKED = 6.5, CROSS_REACH = 7, JOINED = 250;
 interface Var { x: number; z: number; key: string }
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));

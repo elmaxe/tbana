@@ -1,4 +1,5 @@
 // Helpers for reading the track graph (src/track-graph.ts) in the tools.
+import { runningWays } from '../../src/track-graph.ts';
 import type { Route, TrackGraph, TrackPiece } from '../../src/track-graph.ts';
 
 // distance along a piece of each of its points
@@ -96,7 +97,7 @@ export function routeProfile(graph: TrackGraph, route: Route, heights: Record<st
 //   track at Liljeholmen): the stations are described without them
 // - and then what is left of such a track that leads nowhere
 export function lineTrack(graph: TrackGraph, line = 'red') {
-  const run = new Set(graph.routes.filter((r) => r.line === line).flatMap((r) => r.path.map((s) => s.piece)));
+  const run = new Set([...runningWays(graph), ...graph.routes].filter((r) => r.line === line).flatMap((r) => r.path.map((s) => s.piece)));
   const at = new Map<number, TrackPiece[]>();
   for (const p of graph.pieces) for (const n of new Set([p.from, p.to])) (at.get(n) ?? at.set(n, []).get(n)!).push(p);
   const foreign = (p: TrackPiece) => p.lines.length > 0 && !p.lines.includes(line);

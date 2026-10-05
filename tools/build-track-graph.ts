@@ -14,7 +14,8 @@
 // 3. Platforms are matched to the tracks running beside them, and to the nearest station.
 // 4. Each service is traced from its first station to its last through the platforms of every
 //    station in turn, the train never reversing, keeping left on double track and preferring
-//    running lines of its own colour. A service that can't be traced, or a station without a
+//    running lines of its own colour, and arriving at each end on the track the trains the other
+//    way leave from, where they turn. A service that can't be traced, or a station without a
 //    platform track, fails the build.
 //
 // Where OSM is wrong, data/track-corrections.json adds links, crossovers or platform tracks.
@@ -530,12 +531,19 @@ const platformTracks = (name: string) => {
 // The cheapest run from the first station to the last, stopping at every station in turn and
 // never reversing. Every way of standing at each station is kept, so a cheap arrival that
 // leads nowhere can't block the route.
-function trace(name: string, service: string, line: string, names: string[]): Route | null {
+// `start` and `finish`, where given, are where the train must stand at the first and last station.
+type Stand = { piece: number; dir: 1 | -1 };
+function trace(name: string, service: string, line: string, names: string[], start?: Stand, finish?: Stand): Route | null {
   let arrivals: Arrival[] = platformTracks(names[0]).flatMap((t) => ([1, -1] as const).map((dir) => (
     { pos: { piece: t.piece, dir, s: (t.s0 + t.s1) / 2 }, cost: 0, path: [], prev: null })));
+  if (start) arrivals = arrivals.filter((a) => a.pos.piece === start.piece && a.pos.dir === start.dir);
   for (const next of names.slice(1)) {
     arrivals = nextArrivals(arrivals, platformTracks(next), line);
     if (!arrivals.length) { problems.push(`${name}: could not get from ${names[names.indexOf(next) - 1]} to ${next}`); return null; }
+  }
+  if (finish) {
+    arrivals = arrivals.filter((a) => a.pos.piece === finish.piece && a.pos.dir === finish.dir);
+    if (!arrivals.length) return null;
   }
   const end = arrivals.reduce((a, b) => (b.cost < a.cost ? b : a));
   const chain: Arrival[] = [];
@@ -556,17 +564,43 @@ function trace(name: string, service: string, line: string, names: string[]): Ro
     const leave = i === path.length - 1 ? stops[stops.length - 1].s : st.dir === 1 ? p.length : 0;
     length += Math.abs(leave - enter);
   });
-  return { name, service, line, stops, path, length: round(length) };
+  return { name, service, line, stops, path, length: round(length), cost: end.cost } as Route & { cost: number };
 }
 
+// Each service is traced both ways. At each end the trains turn where they stand: a train arrives
+// on the platform track the train the other way leaves from, and reverses there. Either the
+// arriving train crosses over to the track the other leaves from, or the leaving train leaves
+// from the track the other arrived on and crosses over after: at each end, whichever costs less
+// (the crossovers by a terminus may suit only one of them).
 const routes: Route[] = [];
+// the services' running lines as first traced, before the ends were turned
+const ways: NonNullable<TrackGraph['ways']> = [];
+type Traced = Route & { cost: number };
+const flip = (st: Stand): Stand => ({ piece: st.piece, dir: -st.dir as 1 | -1 });
+const standAt = (r: Route, k: 0 | -1): Stand => {
+  const stop = r.stops.at(k)!, step = k === 0 ? r.path[0] : r.path.at(-1)!;
+  return { piece: stop.piece, dir: step.dir };
+};
 for (const [name, def] of Object.entries(routeDefs.routes)) {
-  for (const [label, names] of [[`${name} ${def.stations[0]}–${def.stations.at(-1)}`, def.stations],
-    [`${name} ${def.stations.at(-1)}–${def.stations[0]}`, [...def.stations].reverse()]] as const) {
-    const r = trace(label, name, def.line, names);
-    if (r) routes.push(r);
+  const dirs = [[`${name} ${def.stations[0]}–${def.stations.at(-1)}`, def.stations],
+    [`${name} ${def.stations.at(-1)}–${def.stations[0]}`, [...def.stations].reverse()]] as const;
+  const [a, b] = dirs.map(([label, names]) => trace(label, name, def.line, names) as Traced | null);
+  for (const r of [a, b]) if (r) ways.push({ service: name, line: def.line, path: r.path });
+  if (!a || !b) { for (const r of [a, b]) if (r) routes.push(r); continue; }
+  // at the far end of a (where b starts), and at the far end of b (where a starts): true when the
+  // arriving train crosses over, false when the leaving one does
+  let best: [Traced, Traced] | null = null;
+  for (const arriveFar of [true, false]) for (const arriveNear of [true, false]) {
+    const aStart = arriveNear ? standAt(a, 0) : flip(standAt(b, -1)), aEnd = arriveFar ? flip(standAt(b, 0)) : standAt(a, -1);
+    const bStart = arriveFar ? standAt(b, 0) : flip(standAt(a, -1)), bEnd = arriveNear ? flip(standAt(a, 0)) : standAt(b, -1);
+    const ra = trace(dirs[0][0], name, def.line, dirs[0][1], aStart, aEnd) as Traced | null;
+    const rb = trace(dirs[1][0], name, def.line, dirs[1][1], bStart, bEnd) as Traced | null;
+    if (ra && rb && (!best || ra.cost + rb.cost < best[0].cost + best[1].cost)) best = [ra, rb];
   }
+  if (!best) problems.push(`${name}: its trains can't turn where they stand at the ends`);
+  for (const r of best ?? [a, b]) routes.push(r);
 }
+for (const r of routes) delete (r as Partial<Traced>).cost;
 
 // ------------------------------------------------------------------ report and write
 const count = (k: NodeKind) => [...nodes.values()].filter((n) => n.kind === k).length;
@@ -616,6 +650,7 @@ const graph: TrackGraph = {
   pieces,
   stations: [...stations.values()].filter((s) => s.platforms.length),
   routes,
+  ways,
 };
 if (routeDefs.timetable) {
   const { station, services } = routeDefs.timetable;

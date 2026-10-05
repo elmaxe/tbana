@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { runningWays } from './track-graph';
 import type { TrackGraph } from './track-graph';
 import { STRUCTURE_KINDS } from './track-geometry';
 import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } from './track-geometry';
@@ -181,7 +182,7 @@ export class Network {
     this.stations = graph.stations;
     // the direction each piece is run in, where it is only run one way
     const dirs = new Map<number, Set<number>>();
-    for (const r of graph.routes) for (const st of r.path) (dirs.get(st.piece) ?? dirs.set(st.piece, new Set()).get(st.piece)!).add(st.dir);
+    for (const r of runningWays(graph)) for (const st of r.path) (dirs.get(st.piece) ?? dirs.set(st.piece, new Set()).get(st.piece)!).add(st.dir);
     for (const [id, piece] of Object.entries(geometry.pieces)) {
       const d = dirs.get(Number(id));
       const samples = densify(piece, d?.size === 1 ? [...d][0] : 0, exclude.filter((e) => e.piece === Number(id)), !d);

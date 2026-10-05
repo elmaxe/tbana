@@ -30,6 +30,7 @@
 // - bridge: a bridge
 // Where the two tracks of a line run side by side at one level, they share the structure.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
@@ -96,10 +97,10 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
 
   // the services on each piece ('T13', 'T14'), and the direction they run it in
   const services = new Map<number, Set<string>>(), dirs = new Map<number, Set<number>>();
-  for (const r of graph.routes) {
+  for (const r of runningWays(graph)) {
     for (const st of r.path) {
       if (!services.has(st.piece)) { services.set(st.piece, new Set()); dirs.set(st.piece, new Set()); }
-      services.get(st.piece)!.add(r.name.split(' ')[0]);
+      services.get(st.piece)!.add(r.service);
       dirs.get(st.piece)!.add(st.dir);
     }
   }
@@ -421,7 +422,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
 
   return { pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, pct };
 }
-const run = new Set(graph.routes.flatMap((r) => r.path.map((st) => st.piece)));
+const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
 const first = plan(run, null, () => {});
 const {
   pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, pct,

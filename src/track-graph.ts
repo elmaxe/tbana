@@ -72,6 +72,17 @@ export interface TrackGraph {
   nodes: TrackNode[];
   pieces: TrackPiece[];
   stations: Station[];
+  // The routes the trains run. At each end of a service they turn where they stand, so they
+  // arrive on the platform track the trains the other way leave from (crossing over to it, or
+  // the leaving train crossing over after).
   routes: Route[];
+  // The services' running lines: each way as traced before the ends were turned, keeping left
+  // all the way. The tools fit and draw the track from these: a terminus keeps both its tracks.
+  ways?: { service: string; line: string; path: { piece: number; dir: 1 | -1 }[] }[];
   timetable?: Timetable;
+}
+
+// The services' running lines (the graph's `ways`, or its routes where it has none).
+export function runningWays(graph: TrackGraph) {
+  return graph.ways ?? graph.routes.map((r) => ({ service: r.service, line: r.line, path: r.path }));
 }

@@ -82,7 +82,8 @@ export interface Service {
   trip?: TripInfo;
 }
 
-export type ServiceEvent = 'arrived' | 'closing' | 'departed' | 'done' | null;
+// turned: a timetabled trip at the end of its route has become the next trip the other way
+export type ServiceEvent = 'arrived' | 'closing' | 'departed' | 'done' | 'turned' | null;
 
 // One step of a train's run, at `clock` on the trains' clock; returns what happened.
 export function advance(svc: Service, dt: number, clock: number): ServiceEvent {
