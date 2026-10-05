@@ -1,4 +1,5 @@
-// Typical cross-sections of the red line's track and structures, in metres, from the standard
+// Typical cross-sections of the metro's track and structures (the red line's, used for the green
+// line too), in metres, from the standard
 // sections in the 1952 and 1975 technical descriptions ("Stockholms tunnelbanesystem", 1952,
 // figure 6; "Stockholms tunnelbanor '75", pages 25, 38, 82, 102 and 129–151; see
 // docs/red-line-plan.md). Lateral distances are from a track's centre line, heights from the top

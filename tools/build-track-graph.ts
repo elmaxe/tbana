@@ -51,8 +51,9 @@ interface Corrections {
   // `reach` m (default 12) of the station's node gets a 145 m platform track centred on its
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
-  // north), the platform is placed from that point instead of the station's node.
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number] }[];
+  // north), the platform is placed from that point instead of the station's node. With `extend`,
+  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
@@ -413,6 +414,20 @@ for (const e of osm.elements) {
 for (const c of corrections.platforms ?? []) {
   const st = stations.get(c.station);
   if (!st) throw new Error(`correction: no station called ${c.station}`);
+  if (c.extend) {
+    // OSM's platform is drawn short of the 145 m it is: each of its tracks is lengthened about
+    // its middle
+    let grown = 0;
+    for (const t of st.platforms.flatMap((p) => p.tracks)) {
+      if (t.s1 - t.s0 >= 140) continue;
+      const len = pieces[t.piece].length, mid = Math.min(len - 72.5, Math.max(72.5, (t.s0 + t.s1) / 2));
+      t.s0 = round(Math.max(0, mid - 72.5));
+      t.s1 = round(Math.min(len, mid + 72.5));
+      grown++;
+    }
+    if (!grown) throw new Error(`correction: ${c.station}'s platforms are long enough already (${c.why})`);
+    continue;
+  }
   const reach = c.reach ?? 12;
   if (c.replace) st.platforms = [];
   const at = c.at ? { x: c.at[0] - ORIGIN.e, z: ORIGIN.n - c.at[1] } : st;

@@ -72,6 +72,15 @@
       ],
       "reach": 25,
       "why": "Riddarholmskanalen, between T-Centralen and Gamla stan: the line runs in a trough built in the canal, with Centralbron resting on it, not in a bored tunnel under ground. It needs no cover under the water, and from the canal to the platforms' north end the \"ground\" above it is Gamla stan's station deck."
+    },
+    {
+      "along": [
+        [1240, 3600],
+        [1255, 3680],
+        [1262, 3745]
+      ],
+      "reach": 25,
+      "why": "Gullmarsplan, south of the platforms: the tracks run on under the bus terminal's deck and Nynäsvägen in a concrete box, not a bored tunnel, so they need no cover of rock."
     }
   ],
   "offGround": [
@@ -114,6 +123,14 @@
       ],
       "reach": 12,
       "why": "Farsta, north of the station: the elevation model dips 5 m under the line for about 20 m, where a road passes under it. OSM doesn't map the bridge."
+    },
+    {
+      "along": [
+        [468, 6013],
+        [519, 5964]
+      ],
+      "reach": 12,
+      "why": "Svedmyra, the platform's north-east half: the ground falls away under it towards the street that passes under the line there, and the platform stands on a bank, level."
     }
   ]
 }

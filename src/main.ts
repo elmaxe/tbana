@@ -127,7 +127,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   if (network) scene.add(network.group);
   const stations = network && net?.layouts ? new Stations(net.layouts, network.floors, !city) : null;
   if (stations) scene.add(stations.group);
-  // the red line's trains run on the network's timetable, through the station and on
+  // the red and green lines' trains run on the network's timetable, through the station and on
   const trains = new Trains(scene, station.tracks, sound, {
     renderer, quality: coarse ? 0.5 : 0.8, network: net && join ? { ...net, join } : null,
   });
@@ -138,7 +138,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   game = { station, network, stations, city, player, trains, minimap };
   sizeBigMap();
   buildTeleportList(station);
-  buildStationList(stations, net?.graph.depots ?? []);
+  buildStationList(stations, net?.graph ?? null);
 
   const cam = params.get('cam');
   if (cam) {
@@ -349,13 +349,22 @@ function flyTo(player: Player<Floor>, [x, y, z, yaw, pitch]: number[]) {
   document.body.classList.add('flying');
 }
 
-function buildStationList(stations: Stations | null, depots: NonNullable<TrackGraph['depots']>) {
-  if (!stations) return;
+function buildStationList(stations: Stations | null, graph: TrackGraph | null) {
+  if (!stations || !graph) return;
+  const depots = graph.depots ?? [];
   const select = $<HTMLSelectElement>('lineStations');
-  for (const st of [...stations.layouts].sort((a, b) => a.name.localeCompare(b.name, 'sv'))) {
-    const o = document.createElement('option');
-    o.value = o.textContent = st.name;
-    select.appendChild(o);
+  // a group of stations for each line, in the order of LINES; a station of two lines is in both
+  const lines = Object.keys(LINES).filter((l) => graph.routes.some((r) => r.line === l)) as (keyof typeof LINES)[];
+  for (const line of lines) {
+    const group = document.createElement('optgroup');
+    group.label = LINES[line].name;
+    const served = new Set(graph.routes.filter((r) => r.line === line).flatMap((r) => r.stops.map((s) => s.station)));
+    for (const st of [...stations.layouts].filter((s) => served.has(s.name)).sort((a, b) => a.name.localeCompare(b.name, 'sv'))) {
+      const o = document.createElement('option');
+      o.value = o.textContent = st.name;
+      group.appendChild(o);
+    }
+    select.appendChild(group);
   }
   if (depots.length) {
     const group = document.createElement('optgroup');
@@ -444,7 +453,7 @@ function toast(text: string, ms = 1800) {
 }
 
 // ------------------------------------------------------------------ riding
-// On the red line the trains run on through the network, and a ride goes on from station to
+// On the red and green lines the trains run on through the network, and a ride goes on from station to
 // station. Beyond the last station, the train turns out of sight: the screen goes dark, and the
 // player comes back in the same spot of the train that leaves from there the other way. On the
 // other lines a ride ends where the model's tunnel does: the screen goes dark for the rest of the

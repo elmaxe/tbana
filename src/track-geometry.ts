@@ -1,6 +1,6 @@
 // The track as the game draws it, as written by tools/build-track-geometry.ts to
-// public/data/track-geometry.json: every piece of the red line's track in
-// public/data/track-graph.json (what its services run on, and the crossovers, sidings and depots
+// public/data/track-geometry.json: every piece of the drawn lines' track in
+// public/data/track-graph.json (what their services run on, and the crossovers, sidings and depots
 // joined to that; tools/lib/graph.ts lineTrack), with its plan smoothed and the two tracks of a
 // line spaced as built, its heights from public/data/track-heights.json, and the kind of
 // structure it runs in.

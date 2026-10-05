@@ -1,4 +1,4 @@
-// Builds the red line's stations from their descriptions: data/station-descriptions.json
+// Builds the red and green lines' stations from their descriptions: data/station-descriptions.json
 // -> public/data/station-layouts.json (format in src/station-layout.ts), which the game builds
 // (src/stations.ts).
 //
@@ -396,7 +396,10 @@ function checkClearance(st: StationLayout, problems: Problems) {
           const fy = heightOn(p, x, z);
           const c = p.kind === 'floor' ? (p.ceiling ?? 3) : p.ceiling;
           if (fy - 0.6 > y + TRAIN.above || fy + c + 0.3 < y - TRAIN.below) continue;
-          problems.add(`${st.name}: ${p.label} runs into the trains' space over the track at ${x.toFixed(0)}, ${z.toFixed(0)} (rail ${y.toFixed(1)} m, floor ${fy.toFixed(1)} m)`);
+          // where, in the station's frame
+          const tx = -Math.sin(st.yaw), tz = -Math.cos(st.yaw), dx = x - st.x, dz = z - st.z;
+          const su = `[${(tx * dx + tz * dz).toFixed(0)}, ${(-tz * dx + tx * dz).toFixed(0)}]`;
+          problems.add(`${st.name}: ${p.label} runs into the trains' space over the track at ${x.toFixed(0)}, ${z.toFixed(0)}, ${su} in its frame (rail ${y.toFixed(1)} m, floor ${fy.toFixed(1)} m)`);
           j = n; k = g.s.length;
         }
       }

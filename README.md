@@ -58,16 +58,16 @@ after a chime before they leave. Walk in through an open door and you ride along
 through the car and, on the C30 and between the sections of a C20, into the next car. If you are
 standing in a doorway when the doors close, you step inside or back onto the platform.
 
-On the red line the trains run the whole line on a timetable (see [Trains on the
-network](#trains-on-the-network)), so you ride on from station to station through the real
-tunnels. Step out at any station and wait there for the next train either way, or walk up to the
-street (see [The stations](#the-stations)). At the end of the line the train waits at the platform
-with its doors open and turns there: it leaves as the next train the other way, and you can stay
-aboard.
+On the red and green lines the trains run the whole line on a timetable (see [Trains on the
+network](#trains-on-the-network)), so you ride on from station to station through the real tunnels
+and over the bridges. Step out at any station and wait there for the next train either way, or walk
+up to the street (see [The stations](#the-stations)). At the end of the line the train waits at the
+platform with its doors open and turns there: it leaves as the next train the other way, and you can
+stay aboard.
 
-On the other lines the model's tunnels are short, so the screen goes dark soon after you leave, and
-you come back to T-Centralen in the same spot of a train on the other track. Seats don't block you,
-and the pendeltåg can't be boarded.
+On the blue line and the pendeltåg the model's tunnels are short, so the screen goes dark soon after
+you leave, and you come back to T-Centralen in the same spot of a train on the other track. Seats
+don't block you, and the pendeltåg can't be boarded.
 
 ## Deployment
 
@@ -141,8 +141,8 @@ sketched, so they can be 20–40 m off.
 ### The track graph
 
 `public/data/track-graph.json` holds the whole metro's track network from OpenStreetMap, with the
-red line services traced through it. The format is in `src/track-graph.ts`. The game reads its
-stations and services to draw the track and join T-Centralen to it (see [The track and
+red and green lines' services traced through it. The format is in `src/track-graph.ts`. The game
+reads its stations and services to draw the track and join T-Centralen to it (see [The track and
 tunnels](#the-track-and-tunnels)).
 
 ```sh
@@ -155,14 +155,21 @@ npm run plot-graph -- Slussen 400 slussen.svg   # draw part of it, to check by e
 
 - It cuts the tracks into pieces at switches, ends and tunnel mouths.
 - It works out which pairs of tracks each switch connects.
-- It matches the platforms to the tracks beside them.
-- It traces T13 and T14 in both directions (`data/routes.json`), stopping at every platform,
-  never reversing, and keeping to the left-hand track. These are the running lines (`ways`), which
-  the tools fit and draw.
+- It matches the platforms to the tracks beside them. A platform beside less than 50 m of track
+  is another's (the pendeltåg's under Odenplan) and is left out; where platforms overlap along a
+  track, the train stands at the middle of them together.
+- Where OpenStreetMap glues two lines' tracks together with shared nodes, as the red and green
+  lines' at T-Centralen, where they run one over the other, each line gets its own node. Yard
+  track wired only overhead is a tram depot's (the Nockebybanan's at Alvik), not the metro's.
+- It traces T13, T14, T17, T18 and T19 in both directions (`data/routes.json`), stopping at every
+  platform, never reversing, and keeping to the left-hand track. These are the running lines
+  (`ways`), which the tools fit and draw.
 - It traces them again so that the trains can turn where they stand at each end: a train arrives
   on the platform track the train the other way leaves from. Either the arriving train crosses
-  over before the platform, or the leaving one crosses over after it, whichever costs less at that
-  end. These are the routes the trains run.
+  over before the platform, or the leaving one crosses over after it, or both use a track between
+  the running lines (Åkeshov), whichever costs least at that end. Two services that turn at the
+  same station stand on different tracks there (T18 and T19 at Hässelby strand). These are the
+  routes the trains run.
 - It copies the depots' views (for the game's list of places) from `data/routes.json`.
 - It copies their timetable from `data/routes.json` into the graph: how often each service runs,
   and when its trains are at T-Centralen.
@@ -173,25 +180,27 @@ track, and stretches where a service runs on the right-hand track.
 OpenStreetMap is sketchy in the tunnels, so a few fixes are kept in `data/track-corrections.json`,
 each with its reason:
 
-- a missing crossover at Mörby centrum
-- the missing platform at Norsborg
-- island platforms drawn on the wrong side of a track at Danderyds sjukhus and Aspudden
+- missing crossovers at Mörby centrum and Skarpnäck
+- the missing platforms at Norsborg, Gubbängen and Skarpnäck
+- island platforms drawn on the wrong side of a track, or across it, at Danderyds sjukhus,
+  Aspudden, Medborgarplatsen, Skanstull, Svedmyra and Sankt Eriksplan
+- platforms drawn short of their 145 m at Bagarmossen, Bandhagen, Blackeberg, Rågsved and Stureby
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.
 
 ### Track heights
 
-`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every
-piece of the red line's track: what its services run on, and the crossovers, sidings, turnback
-tracks and depots joined to that, as far as other lines' track (`lineTrack` in
-`tools/lib/graph.ts`). Track no service runs on is left out where it passes a platform (the
-middle tracks at Alby and Sätra, Liljeholmen's third track), because the stations are described
-without it.
+`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every piece
+of the red and green lines' track: what their services run on, and the crossovers, sidings, turnback
+tracks and depots joined to that, and the tracks joining the two lines, as far as the blue line's
+track (`lineTrack` in `tools/lib/graph.ts`). Track no service runs on is left out where it passes a
+platform (the middle tracks at Alby and Sätra, Liljeholmen's third track), because the stations are
+described without it.
 
 ```sh
 npm run fetch-station-heights    # Wikidata station heights -> data/station-heights.json
-LM_USER=… LM_PASSWORD=… npm run fetch-ground   # ground under the tracks -> data/ground/red-line.json
+LM_USER=… LM_PASSWORD=… npm run fetch-ground -- tracks green   # ground under the tracks -> data/ground/green-line.json
 npm run build-heights            # -> public/data/track-heights.json, and the check
 npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
 ```
@@ -199,19 +208,23 @@ npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
 `build-heights` fits the smoothest line through these anchors:
 
 - **Stations:** 1 m below their height from Wikidata, which is taken to be the platform's level,
-  and level along the platform.
+  and level along the platform. Wikidata has none of the green line's: for its underground
+  stations `data/height-corrections.json` gives the height or the depth under the ground from
+  Swedish Wikipedia (Fridhemsplan 1.3 m, Odenplan 9 m deep, Skarpnäck 25 m deep…). A station with
+  no height still has its platform tracks level with each other.
 - **T-Centralen:** its platforms in the station model.
 - **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
 
 It keeps tunnels at least 6 m under the ground away from their mouths (3 m for the track no
 service runs on, which may be in concrete boxes), and the gradient at 37‰ or less, the way a real
-line runs at an even grade between short vertical curves. It fits the running lines first, then
+line runs at an even grade between short vertical curves, and the vertical curves of the services'
+track no tighter than their line's limit. It fits the running lines first, then
 the rest of the track with the running lines pinned, so the depots don't move the line. Where two
 tracks cross one over the other (OpenStreetMap's layers differ), they are held 6.5 m apart. A
 depot's track through its halls, or inside any building, gets no ground anchor: the elevation
 model there follows the roof. It then checks the
-result against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of
-at least 2,000 m. It fails on anything outside them, and says where.
+result against the 1975 limits: 40‰, 10‰ along platforms, and vertical curves of at least 2,000 m
+on the red line and 1,500 m on the green. It fails on anything outside them, and says where.
 
 `data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
 
@@ -219,17 +232,21 @@ at least 2,000 m. It fails on anything outside them, and says where.
 - In Riddarholmskanalen the line runs in a trough, not a bored tunnel, so it needs no cover.
 - South of Gamla stan's platforms, OSM's surface track is still on the station deck.
 - At Sätra, OSM draws a siding a few metres into the bank beside the running lines.
+- The green line's station heights and depths, above.
+- Under the green line at Kristineberg, Alvik and Farsta the elevation model dips 5 m where a road
+  passes under the track, and at Svedmyra the platform stands on a bank over the street.
+- At Gullmarsplan the tracks south of the platforms are in a box under the bus terminal's deck.
 
 `fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
 `LM_PASSWORD`. It finds the files through Lantmäteriet's STAC catalogue for height data. Behind a
 proxy that adds the login, run it with `NODE_USE_ENV_PROXY=1` so that Node's `fetch` uses the proxy.
-Its output, `data/ground/red-line.json`, is in the repository, so `build-heights` runs without a
-login.
+Each line has its file, `data/ground/<line>-line.json`, which takes the drawn track the other
+lines' files don't have. They are in the repository, so `build-heights` runs without a login.
 
 ### The track and tunnels
 
-The game draws the red line's track beyond T-Centralen, with its tunnels, bridges and banks, from
-`public/data/track-geometry.json` (format in `src/track-geometry.ts`):
+The game draws the red and green lines' track beyond T-Centralen, with its tunnels, bridges and
+banks, from `public/data/track-geometry.json` (format in `src/track-geometry.ts`):
 
 ```sh
 npm run build-track-geometry   # -> public/data/track-geometry.json, and the check
@@ -248,7 +265,11 @@ through:
   standard), or a platform's width apart at an island platform
 - tracks at different levels: at least 7.5 m apart, so that their tunnels don't cut into each other
 
-It keeps curves at 250 m radius or more, the red line's limit, and fails if it can't. Track no
+It keeps curves at the line's limit or wider: 250 m on the red line and 200 m on the green (the
+1975 description), and fails if it can't. In the open the green line keeps OpenStreetMap's curves,
+traced from aerial photos, even where they are tighter than that: it turns at 115–150 m between
+Alvik and Stora mossen. Where OSM's track at T-Centralen's two levels winds out of the station it
+is smoothed only roughly, and the check leaves it out. Track no
 service runs on is fitted afterwards, closely to OpenStreetMap even in the tunnels (the depots and
 sidings are mapped from plans), with the running lines pinned. For every point it also notes the
 nearest track on each side.
@@ -276,18 +297,24 @@ The crossovers, sidings and depots are drawn too:
   turnouts). Tracks that end have a buffer stop, and in a tunnel a wall.
 
 The network is cut into 200 m tiles, and only the tiles within about 600 m of the camera are built.
-`src/station-join.ts` joins T-Centralen's red tracks to the network: the station draws its
-platforms, and beyond them the trains run on the network's track.
+`src/station-join.ts` joins T-Centralen's red and green tracks to the network: the station draws
+its platforms, and beyond them the trains run on the network's track. A route stops where its line
+passes the middle of the model's platform.
 
 To fly the tunnel, jump to a red line platform (`2` or `3`), press `F`, and follow the track
-north to Östermalmstorg or south to Gamla stan. The menu's list of red line stations also has the
-depots (Norsborgsdepån, Nybodadepån), which it flies to; so does `?at=Nybodadepån`.
+north to Östermalmstorg or south to Gamla stan. The menu's list of the lines' stations also has the
+depots (Norsborgsdepån and Nybodadepån on the red line, Vällingbydepån, Hammarbydepån and
+Högdalsdepån on the green), which it flies to; so does `?at=Nybodadepån`.
 
 ### Trains on the network
 
-The red line's trains run on the timetable in the track graph (`src/timetable.ts`). T13 and T14
-each run every 5 minutes each way, alternating on the shared trunk, so from Liljeholmen to
-Östermalmstorg there is a train every 2.5 minutes. To change the service, edit `timetable` in
+The red and green lines' trains run on the timetable in the track graph (`src/timetable.ts`). T13
+and T14 each run every 5 minutes each way, alternating on the shared trunk, so from Liljeholmen to
+Östermalmstorg there is a train every 2.5 minutes. T17 (Åkeshov–Skarpnäck), T18 (Hässelby
+strand–Farsta strand) and T19 (Hässelby strand–Hagsätra) each run every 10 minutes, taking turns
+from Alvik to Gullmarsplan, a train every 200 s. T18 runs to Hässelby strand as in the rush hours:
+off-peak it turns at Alvik, on a platform the through trains use, which the timetable can't do yet.
+The red line runs C30 trains and the green line C20s. To change the service, edit `timetable` in
 `data/routes.json` and run `npm run build-track-graph`.
 
 Each trip runs its route from end to end:
@@ -297,16 +324,18 @@ Each trip runs its route from end to end:
 - At the last station it turns where it stands: it becomes the next trip the other way, and waits
   with its doors open until that one is due out. Once the game is going, every train leaving the
   end of the line is one that came in; when the game starts, the trips under way are placed where
-  the timetable has them.
+  the timetable has them, and the trains that came in before it started stand at the ends as the
+  next trips.
 
 The trips keep at least 30 m apart where they share track. At a junction, the one that would get
 there first goes first. A train waiting to leave the end of the line has the track out of the
 station, out to where it leaves the incoming trains' way, so the next train in waits clear of it.
-Simulated for three hours, 31 trains run round, and they turn at the ends in 65 s (Fruängen) to
-236 s (Norsborg). A train held 4 minutes at Slussen makes those behind it late, and the lateness
-dies out at the ends.
+Simulated for three hours, 63 trains run round, every green line trip on time. The red line's
+trains turn at the ends in 65 s (Fruängen) to 236 s (Norsborg), the green line's in 4 to 8 minutes.
+A train held 4 minutes at Slussen makes those behind it late, and the lateness dies out at the
+ends.
 
-25 trains stand out of service on the depots' stabling tracks and on the sidings that end at a
+About 50 trains stand out of service on the depots' stabling tracks and on the sidings that end at a
 buffer stop, showing "Ej i trafik".
 
 Only the trips within about 700 m of the player get a train model, from a pool.
@@ -316,9 +345,11 @@ station halls.
 
 ### The stations
 
-Every red line station beyond T-Centralen can be walked from its platform up (or down) to the
-street: through passages, stairs, escalators and ticket halls, to exits at OpenStreetMap's subway
-entrances. Each station is built from a short description in `data/station-descriptions.json`,
+Every red and green line station beyond T-Centralen can be walked from its platform up (or down)
+to the street: through passages, stairs, escalators and ticket halls, to exits at OpenStreetMap's
+subway entrances. Out on the green line's branches, OSM's entrance often lies between the tracks
+just past the platform, where the passage under the bank comes out; there isn't the headroom for
+an exit under the track, so the passage leads on under it to an exit beside the line. Each station is built from a short description in `data/station-descriptions.json`,
 read from Albert Guillaumes' drawing of it:
 
 ```sh
@@ -348,14 +379,16 @@ A description lists the ways out, each as a route of steps from a point on the p
 - `lift` rises a height; `gates` puts ticket gates across the way; `mark` names a place that
   another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
-  by stairs, escalators, a ramp (`walk`) or a lift.
+  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track) or a
+  lift.
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,
 and fails, saying where, on:
 
 - a ramp steeper than 8%, or stairs with no room before their point
-- anything in the trains' way: 1.5 m either side of a track, up to 4 m above the rails
+- anything in the trains' way: 1.5 m either side of a track, up to 4 m above the rails (it says
+  where, in the station's frame too)
 - a platform from which the street can't be walked to, or an exit that leads to no platform,
   walked on a 0.5 m grid with steps of up to 0.6 m
 
@@ -365,11 +398,12 @@ out of whatever it runs into (`src/clip.ts`): a passage opens through the platfo
 escalator climbs through its vault, stairs go down through a platform or up through the street.
 The network cuts the same spaces out of its tunnels and platforms.
 
-To visit one, pick it under **Red line** in the menu, or start there with `?at=Mariatorget`.
+To visit one, pick it from the red and green lines' stations in the menu, or start there with
+`?at=Mariatorget`.
 
 ### The city
 
-Everything within 1 km of the red line has its ground and buildings, so the city is there
+Everything within 1 km of the red and green lines has its ground and buildings, so the city is there
 wherever you look out from a train, a bridge or a station's exit:
 
 ```sh
@@ -380,12 +414,12 @@ npm run build-city                             # -> public/data/city/
 
 - `fetch-terrain` reads Lantmäteriet's elevation model at 2 m (the overviews in its 10 km files)
   and samples it every 5 m on the game's grid, over the 500 m tiles that come within 1 km of the
-  track: 396 tiles.
+  track: 766 tiles.
 - `fetch-city` reads OpenStreetMap's extract of Stockholm county (from openstreetmap.fr, about
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
-  parts in those tiles, with their courtyards: about 30,000.
+  parts in those tiles, with their courtyards: about 69,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 5.3 MB in all. The format is in tagged sections, so roof shapes,
+  (format in `src/city-tile.ts`), 10.9 MB in all. The format is in tagged sections, so roof shapes,
   streets and water can be added later as new sections without breaking the game.
 
 How the ground meets the track:
@@ -412,7 +446,7 @@ The buildings are blocks with flat roofs:
   building, and so is a way from the exit on through the building to the outside.
 - A building the depot's covered track runs through (OSM's `covered=yes`) is a hall: it stands
   on the ground, open inside, with a door wherever a track passes through its walls. Nyboda has
-  12, with 57 doors.
+  12, and the green line's depots at Vällingby, Hammarby and Högdalen 12 more.
 
 The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
 frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground
@@ -478,6 +512,6 @@ geometry, the stations' streets and the city's ground derived from it in `public
 Buildings: © OpenStreetMap contributors, ODbL (`data/osm/buildings.json`, from the
 openstreetmap.fr extract of Stockholm county, and the city's buildings in `public/data/city/`).
 
-Station layouts: the red line's stations are built from descriptions read off Albert Guillaumes'
-drawings of them ([estacions.albertguillaumes.cat](http://estacions.albertguillaumes.cat/)), used
-as a reference only; none of the drawings is copied into the project.
+Station layouts: the red and green lines' stations are built from descriptions read off Albert
+Guillaumes' drawings of them ([estacions.albertguillaumes.cat](http://estacions.albertguillaumes.cat/)),
+used as a reference only; none of the drawings is copied into the project.

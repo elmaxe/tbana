@@ -12,10 +12,13 @@
     }
   },
   "depots": {
-    "note": "The depots the red line uses, for the game's list of places to go: a view of each, as world x, y, z (src/geo.ts), the heading and the pitch (radians, as the game's ?cam=). The game flies there.",
+    "note": "The depots the lines use, for the game's list of places to go: a view of each, as world x, y, z (src/geo.ts), the heading and the pitch (radians, as the game's ?cam=). The game flies there.",
     "places": [
       { "name": "Norsborgsdepån", "view": [-14457.0, 16.0, 9817.2, -1.77, -0.05] },
-      { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] }
+      { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] },
+      { "name": "Vällingbydepån", "view": [-10050, 70, -2900, 0.99, -0.19] },
+      { "name": "Hammarbydepån", "view": [2100, 95, 4100, 2.12, -0.2] },
+      { "name": "Högdalsdepån", "view": [-100, 95, 7950, 2.19, -0.2] }
     ]
   },
   "routes": {

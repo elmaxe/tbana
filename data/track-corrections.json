@@ -83,6 +83,31 @@
       "station": "Sankt Eriksplan",
       "replace": true,
       "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it. Both tracks are placed from the station's node, which lies between them."
+    },
+    {
+      "station": "Bagarmossen",
+      "extend": true,
+      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Bandhagen",
+      "extend": true,
+      "why": "OSM draws the island platform 90 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Blackeberg",
+      "extend": true,
+      "why": "OSM draws the island platform about 60 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Rågsved",
+      "extend": true,
+      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Stureby",
+      "extend": true,
+      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "note": "How the red line's stations are laid out, for tools/build-stations.ts (see there for the format). Each is read from Albert Guillaumes' drawing of the station (estacions.albertguillaumes.cat, used as a reference only), with its exits at OpenStreetMap's subway entrances.",
+  "note": "How the red and green lines' stations are laid out, for tools/build-stations.ts (see there for the format). Each is read from Albert Guillaumes' drawing of the station (estacions.albertguillaumes.cat, used as a reference only), with its exits at OpenStreetMap's subway entrances.",
   "stations": {
     "Östermalmstorg": {
       "drawing": "ostermalmstorg.png",
@@ -708,6 +708,818 @@
           {"walk": [85, 0]},
           {"gates": true},
           {"exit": 13752056825}
+        ] }
+      ]
+    },
+    "Hötorget": {
+      "drawing": "hotorget.png",
+      "note": "An island platform deep under Sveavägen, with three ticket halls: one over the middle of the platform, under the street at Hötorget, and one at each end.",
+      "routes": [
+        { "from": [-20, 0], "width": 5, "go": [
+          {"escalators": 10, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"mark": "middle"},
+          {"exit": 266318961}
+        ] },
+        { "from": "middle", "width": 4, "go": [
+          {"exit": 266319011}
+        ] },
+        { "from": [42, 0], "width": 5, "go": [
+          {"escalators": 10, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"mark": "north"},
+          {"exit": 13893157444}
+        ] },
+        { "from": "north", "width": 4, "go": [
+          {"exit": 446162174}
+        ] },
+        { "from": [-42, 0], "width": 5, "go": [
+          {"escalators": 10, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 446162176}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 446162175}
+        ] }
+      ]
+    },
+    "Rådmansgatan": {
+      "drawing": "radmansgatan.png",
+      "note": "An island platform under Sveavägen. Escalators climb from each end to a ticket hall, each with exits to both sides of the street.",
+      "routes": [
+        { "from": [-48, 0], "width": 5, "go": [
+          {"escalators": 7, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"walk": 2},
+          {"mark": "south"},
+          {"exit": 1364657019, "by": "walk"}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 1364657020, "by": "walk"}
+        ] },
+        { "from": [45, 0], "width": 5, "go": [
+          {"escalators": 8.8, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"walk": 2},
+          {"mark": "north"},
+          {"exit": 1403941737, "by": "walk"}
+        ] },
+        { "from": "north", "width": 4, "go": [
+          {"exit": 926342291, "by": "walk"}
+        ] }
+      ]
+    },
+    "Odenplan": {
+      "drawing": "odenplan.png",
+      "note": "An island platform under Karlbergsvägen. Escalators climb from each end to a ticket hall: at Västmannagatan to the west, and at Odenplan to the east.",
+      "routes": [
+        { "from": [-40, 0], "width": 5, "go": [
+          {"escalators": 11, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"exit": 222155657, "by": "walk"}
+        ] },
+        { "from": [46, 0], "width": 5, "go": [
+          {"escalators": 8, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"mark": "east"},
+          {"exit": 2554667703, "by": "walk"}
+        ] },
+        { "from": "east", "width": 4, "go": [
+          {"exit": 29827007, "by": "walk"}
+        ] },
+        { "from": "east", "width": 4, "go": [
+          {"exit": 222155120, "by": "walk"}
+        ] }
+      ]
+    },
+    "Sankt Eriksplan": {
+      "drawing": "st_eriksplan.png",
+      "note": "An island platform in a concrete box under Sankt Eriksgatan. Escalators climb from each end to a ticket hall: three exits round Sankt Eriksplan to the south, one to the north.",
+      "routes": [
+        { "from": [-48, 0], "width": 5, "go": [
+          {"escalators": 7, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"walk": 2},
+          {"mark": "south"},
+          {"exit": 271664708, "by": "walk"}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 271664699, "by": "walk"}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 708032014, "by": "walk"}
+        ] },
+        { "from": [42, 0], "width": 5, "go": [
+          {"escalators": 10, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"exit": 29828241, "by": "walk"}
+        ] }
+      ]
+    },
+    "Fridhemsplan": {
+      "drawing": "fridhemsplan.png",
+      "note": "The green line's platform hall, deep in the rock: the two tracks far apart round a wide platform. Escalators climb from each end to ticket halls: at Fridhemsplan to the south-west, and at Sankt Eriksgatan and Fleminggatan to the north-east.",
+      "routes": [
+        { "from": [0, -6.5], "width": 8, "go": [
+          {"walk": [0, 6.5]}
+        ] },
+        { "from": [-30, -7.5], "width": 8, "go": [
+          {"walk": [-30, 6.5]}
+        ] },
+        { "from": [30, -6.5], "width": 8, "go": [
+          {"walk": [30, 6.5]}
+        ] },
+        { "from": [-50, -10.5], "width": 8, "go": [
+          {"walk": [-50, 2.5]}
+        ] },
+        { "from": [50, -8], "width": 8, "go": [
+          {"walk": [50, 1]}
+        ] },
+        { "from": [-50, -4], "width": 5, "go": [
+          {"escalators": 18, "toward": [-150, -40], "lanes": "EES"},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"walk": 3},
+          {"mark": "sw"},
+          {"exit": 2292768968}
+        ] },
+        { "from": "sw", "width": 4, "go": [
+          {"exit": 271665322}
+        ] },
+        { "from": [50, -3.5], "width": 5, "go": [
+          {"escalators": 16, "toward": [150, -30], "lanes": "EES"},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"walk": 3},
+          {"mark": "ne"},
+          {"exit": 271665458}
+        ] },
+        { "from": "ne", "width": 4, "go": [
+          {"exit": 3964503259}
+        ] },
+        { "from": "ne", "width": 4, "go": [
+          {"exit": 13748279786}
+        ] }
+      ]
+    },
+    "Thorildsplan": {
+      "drawing": "thorildsplan.png",
+      "note": "An island platform in the open. At its east end stairs go down to a ticket hall under the tracks, with passages out to either side of the line.",
+      "routes": [
+        { "from": [49.87436714794674, -1.7], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, -2.2]},
+          {"walk": [66.0, -2.5], "width": 6},
+          {"walk": [66.0, 10.6], "width": 4},
+          {"gates": true},
+          {"exit": 345579406}
+        ] }
+      ]
+    },
+    "Kristineberg": {
+      "drawing": "kristineberg.png",
+      "note": "An island platform on a bank. At its west end stairs go down to the ticket hall at the street.",
+      "routes": [
+        { "from": [-49.87436714794674, -1.0], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.3]},
+          {"walk": [-66.0, -1.4], "width": 6},
+          {"walk": [-66.0, -13.4], "width": 4},
+          {"gates": true},
+          {"exit": 370082786}
+        ] }
+      ]
+    },
+    "Alvik": {
+      "drawing": "alvik.png",
+      "note": "Two side platforms, with the Nockebybanan's tracks between them. At their west end stairs go down from each to the ticket hall at Alviks torg; at the east end stairs climb from the northern one to Tranebergsvägen up the hill.",
+      "routes": [
+        { "from": [-40, 6.8], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-150, 6.6]},
+          {"walk": [-62, 6.6], "width": 4},
+          {"walk": [-62, 0], "width": 6},
+          {"mark": "hall"}
+        ] },
+        { "from": [-40, -9.2], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-150, -9.7]},
+          {"walk": [-62, -9.7], "width": 4},
+          {"walk": [-62, 0], "width": 6}
+        ] },
+        { "from": "hall", "width": 6, "go": [
+          {"walk": [-80, 0]},
+          {"gates": true},
+          {"exit": 2851544626, "by": "walk"}
+        ] },
+        { "from": [20, -6], "width": 3, "go": [
+          {"stairs": 8.0, "toward": [150, -6]},
+          {"walk": [60, -6], "width": 4},
+          {"walk": [80, -18]},
+          {"gates": true},
+          {"exit": 2495141972, "by": "walk"}
+        ] }
+      ]
+    },
+    "Stora mossen": {
+      "drawing": "stora_mossen.png",
+      "note": "An island platform in the open. At its east end stairs go down to the ticket hall under the tracks, with exits to either side.",
+      "routes": [
+        { "from": [49.87436714794674, -0.9], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, -1.3]},
+          {"walk": [66.0, -1.5], "width": 6},
+          {"walk": [66.0, -13.3], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [66.0, -27.3], "name":  "Stora mossen"}}
+        ] }
+      ]
+    },
+    "Abrahamsberg": {
+      "drawing": "abrahamsberg.png",
+      "note": "An island platform in the open. At its west end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, -0.9], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.0]},
+          {"walk": [-66.0, -1.1], "width": 6},
+          {"walk": [-66.0, 10.7], "width": 4},
+          {"gates": true},
+          {"exit": 1522690585}
+        ] }
+      ]
+    },
+    "Brommaplan": {
+      "drawing": "brommaplan.png",
+      "note": "An island platform in the open. At its west end stairs go down to the ticket hall at Brommaplan.",
+      "routes": [
+        { "from": [-48.374273392087005, -2.2], "width": 3, "go": [
+          {"stairs": -6.2, "toward": [-60.0, -3.3]},
+          {"walk": [-66.0, -4.1], "width": 6},
+          {"walk": [-66.0, -16.3], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -30.3], "name":  "Brommaplan"}}
+        ] }
+      ]
+    },
+    "Åkeshov": {
+      "drawing": "akeshov.png",
+      "note": "Two island platforms, with the track between them where the T17 turns. At their east end stairs go down from each to a passage under the tracks, with an exit on each side. (OpenStreetMap maps no entrance here.)",
+      "routes": [
+        { "from": [45, 5], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [150, 5]},
+          {"walk": [62, 5], "width": 4},
+          {"walk": [62, -5]},
+          {"mark": "under"}
+        ] },
+        { "from": [45, -5], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [150, -5]},
+          {"walk": [62, -5], "width": 4}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [62, -16]},
+          {"gates": true},
+          {"exit": {"at":  [62, -30], "name":  "Åkeshov"}}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [62, 17]},
+          {"gates": true},
+          {"exit": {"at":  [62, 31], "name":  "Åkeshov"}}
+        ] }
+      ]
+    },
+    "Ängbyplan": {
+      "drawing": "angbyplan.png",
+      "note": "An island platform on a curve in the open. At its west end stairs go down to the ticket hall at the street. (OpenStreetMap maps no entrance here.)",
+      "routes": [
+        { "from": [-49.87436714794674, 0.3], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -0.2]},
+          {"walk": [-66.0, -0.5], "width": 6},
+          {"walk": [-66.0, -13.8], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -27.8], "name":  "Ängbyplan"}}
+        ] }
+      ]
+    },
+    "Islandstorget": {
+      "drawing": "islandstorget.png",
+      "note": "An island platform in a cutting. At its west end stairs climb to the ticket hall over the tracks, which opens onto the street up the slope by Islandstorget.",
+      "routes": [
+        { "from": [-50, 0.6], "width": 3, "go": [
+          {"stairs": 4.8, "toward": [-150, -2]},
+          {"walk": 8, "width": 6},
+          {"gates": true},
+          {"walk": [-74, -14]},
+          {"exit": {"at":  [-96, -26], "name":  "Islandstorget"}}
+        ] }
+      ]
+    },
+    "Blackeberg": {
+      "drawing": "blackeberg.png",
+      "note": "An island platform in a cutting. At its north-west end stairs climb to a ticket hall over the tracks, with exits to Blackebergs torg and both sides of Vinjegatan.",
+      "routes": [
+        { "from": [-35, 0], "width": 3, "go": [
+          {"stairs": 7.6, "toward": [-150, 0]},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"walk": 4},
+          {"mark": "hall"},
+          {"exit": 1460580680, "by": "walk"}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 10596164544, "by": "walk"}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 1460580704, "by": "walk"}
+        ] }
+      ]
+    },
+    "Råcksta": {
+      "drawing": "racksta.png",
+      "note": "An island platform in the open. At its north end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [47.99924995312207, -1.4], "width": 3, "go": [
+          {"stairs": -6.4, "toward": [60.0, -2.1]},
+          {"walk": [66.0, -2.5], "width": 6},
+          {"walk": [66.0, 9.9], "width": 4},
+          {"gates": true},
+          {"exit": 13773584505}
+        ] }
+      ]
+    },
+    "Vällingby": {
+      "drawing": "vallingby.png",
+      "note": "A wide island platform, its west end under the deck of Vällingby centrum. Escalators climb from that end to the ticket hall in the centre, with exits onto its squares; at the east end stairs go down to the street.",
+      "routes": [
+        { "from": [-70, 0], "width": 7, "go": [
+          {"walk": [55, 0], "open": true}
+        ] },
+        { "from": [-50, 0], "width": 5, "go": [
+          {"escalators": 5.6, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"walk": 4},
+          {"mark": "centrum"},
+          {"exit": 2601421822, "by": "walk"}
+        ] },
+        { "from": "centrum", "width": 4, "go": [
+          {"exit": 2601421819, "by": "walk"}
+        ] },
+        { "from": "centrum", "width": 4, "go": [
+          {"exit": 2601421832, "by": "walk"}
+        ] },
+        { "from": [40, 0], "width": 3, "go": [
+          {"stairs": -3.2, "toward": [150, 0]},
+          {"walk": 10, "width": 6},
+          {"gates": true},
+          {"exit": 4252587857, "by": "walk"}
+        ] }
+      ]
+    },
+    "Johannelund": {
+      "drawing": "johannelund.png",
+      "note": "Two side platforms in the open. In the middle stairs go down from each to a passage under the tracks, which leads out to the north.",
+      "routes": [
+        { "from": [10, 6], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [100, 6]},
+          {"walk": [27, 6], "width": 4},
+          {"walk": [27, -6]},
+          {"mark": "under"}
+        ] },
+        { "from": [10, -6], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [100, -6]},
+          {"walk": [27, -6], "width": 4}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [29, -8]},
+          {"gates": true},
+          {"exit": 6765039096}
+        ] }
+      ]
+    },
+    "Hässelby gård": {
+      "drawing": "hasselby_gard.png",
+      "note": "An island platform on a viaduct. At its west end stairs go down through the platform to the ticket hall under the tracks, at the street.",
+      "routes": [
+        { "from": [-31.124132758297392, 0.8], "width": 3, "go": [
+          {"stairs": -7.4, "toward": [-45.0, 1.1]},
+          {"walk": [-51.0, 1.2], "width": 6},
+          {"walk": [-51.0, -12.8], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-51.0, -26.8], "name":  "Hässelby gård"}}
+        ] }
+      ]
+    },
+    "Hässelby strand": {
+      "drawing": "hasselby_strand.png",
+      "note": "The western end of the line: a wide island platform in the open. At its west end stairs go down to the ticket hall under it, which opens onto the street below.",
+      "routes": [
+        { "from": [-49.49934370898181, 1.7], "width": 3, "go": [
+          {"stairs": -5.6, "toward": [-60.0, 2.1]},
+          {"walk": [-66.0, 2.3], "width": 6},
+          {"walk": [-66.0, 21.0], "width": 4},
+          {"gates": true},
+          {"exit": 1461122642}
+        ] }
+      ]
+    },
+    "Medborgarplatsen": {
+      "drawing": "medborgarplatsen.png",
+      "note": "An island platform in a concrete box under Götgatan. In the middle stairs climb to an exit on Medborgarplatsen; from the south end escalators climb to a ticket hall with exits to both sides of the street.",
+      "routes": [
+        { "from": [0, 0], "width": 4, "go": [
+          {"stairs": 6, "toward": [150, 0]},
+          {"walk": 3, "width": 6},
+          {"gates": true},
+          {"exit": 2945905833}
+        ] },
+        { "from": [-48, 0], "width": 5, "go": [
+          {"escalators": 7, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 254887800, "by": "walk"}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 254887892, "by": "walk"}
+        ] }
+      ]
+    },
+    "Skanstull": {
+      "drawing": "skanstull.png",
+      "note": "An island platform in a concrete box under Götgatan, just north of the bridge. Escalators climb from the south end to a ticket hall with exits round Ringvägen; a long passage leads from the north end to Götgatan.",
+      "routes": [
+        { "from": [-50, 0], "width": 5, "go": [
+          {"escalators": 5, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 9558088612}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 247214690, "by": "walk"}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 247214709}
+        ] },
+        { "from": [50, 0], "width": 5, "go": [
+          {"escalators": 5, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 10, "width": 8},
+          {"gates": true},
+          {"exit": 8099384, "by": "walk"}
+        ] }
+      ]
+    },
+    "Gullmarsplan": {
+      "drawing": "gullmarsplan.png",
+      "note": "Two island platforms where the line divides, their south end under the bus terminal's deck. From the south end of each, stairs climb to a ticket hall over the tracks, which opens onto the terminal.",
+      "routes": [
+        { "from": [-5, 9.5], "width": 3, "go": [
+          {"stairs": 6, "toward": [-150, 9.5]},
+          {"walk": [-30, 9.5], "width": 4},
+          {"walk": [-30, -9.6], "width": 6},
+          {"mark": "hall"}
+        ] },
+        { "from": [-5, -9.6], "width": 3, "go": [
+          {"stairs": 6, "toward": [-150, -9.6]},
+          {"walk": [-30, -9.6], "width": 4}
+        ] },
+        { "from": "hall", "width": 6, "go": [
+          {"walk": [-30, -27]},
+          {"gates": true},
+          {"exit": 247214892}
+        ] }
+      ]
+    },
+    "Skärmarbrink": {
+      "drawing": "skarmarbrink.png",
+      "note": "Two island platforms where the Farsta and Skarpnäck branches part. From the south-east end of each, stairs climb to a bridge over the tracks, and down from it to the street.",
+      "routes": [
+        { "from": [30, -7.6], "width": 3, "go": [
+          {"stairs": 6.5, "toward": [150, -7.6]},
+          {"walk": [50, -7.6], "width": 4},
+          {"walk": [50, 11]},
+          {"mark": "bridge"}
+        ] },
+        { "from": [30, 11], "width": 3, "go": [
+          {"stairs": 6.5, "toward": [150, 11]},
+          {"walk": [50, 11], "width": 4}
+        ] },
+        { "from": "bridge", "width": 4, "go": [
+          {"walk": [50, 30]},
+          {"gates": true},
+          {"exit": {"at":  [50, 44], "name":  "Skärmarbrink"}}
+        ] }
+      ]
+    },
+    "Hammarbyhöjden": {
+      "drawing": "hammarbyhojden.png",
+      "note": "An island platform in the open. At its west end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, 0.1], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, 0.1]},
+          {"walk": [-66.0, 0.1], "width": 6},
+          {"walk": [-66.0, -12.6], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -26.6], "name":  "Hammarbyhöjden"}}
+        ] }
+      ]
+    },
+    "Björkhagen": {
+      "drawing": "bjorkhagen.png",
+      "note": "An island platform in the open. In the middle stairs go down to a passage under the tracks, with an exit on each side.",
+      "routes": [
+        { "from": [-10, 0], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [150, 0]},
+          {"walk": [6, 0], "width": 6},
+          {"mark": "under"}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [6, -12]},
+          {"gates": true},
+          {"exit": {"at":  [6, -24], "name":  "Björkhagen"}}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [6, 12]},
+          {"gates": true},
+          {"exit": {"at":  [6, 24], "name":  "Björkhagen"}}
+        ] }
+      ]
+    },
+    "Kärrtorp": {
+      "drawing": "karrtorp.png",
+      "note": "An island platform in the open. At its south end stairs go down to the ticket hall at the street.",
+      "routes": [
+        { "from": [-48.74929683105194, 0.2], "width": 3, "go": [
+          {"stairs": -6, "toward": [-60.0, 0.8]},
+          {"walk": [-66.0, 1.1], "width": 6},
+          {"walk": [-66.0, -12.1], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -26.1], "name":  "Kärrtorp"}}
+        ] }
+      ]
+    },
+    "Bagarmossen": {
+      "drawing": "bagarmossen.png",
+      "note": "An island platform in the rock, 19 m down. Long escalators climb from its north end to the ticket hall at Bagarmossen's centre.",
+      "routes": [
+        { "from": [40, 0], "width": 5, "go": [
+          {"escalators": 18, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"exit": 7519687621}
+        ] }
+      ]
+    },
+    "Skarpnäck": {
+      "drawing": "skarpnack.png",
+      "note": "The end of T17: an island platform in a cavern 25 m down, the tracks ending at buffers just past it. From its south end long escalators climb to a passage that leads to the ticket hall at Skarpnäcks allé.",
+      "routes": [
+        { "from": [-45, 0], "width": 5, "go": [
+          {"escalators": 23, "toward": [-150, -30], "lanes": "EES"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"exit": 1737367944, "by": "walk"}
+        ] }
+      ]
+    },
+    "Blåsut": {
+      "drawing": "blasut.png",
+      "note": "An island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, 0.2], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, 0.4]},
+          {"walk": [-66.0, 0.4], "width": 6},
+          {"walk": [-66.0, -11.5], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -25.5], "name":  "Blåsut"}}
+        ] }
+      ]
+    },
+    "Sandsborg": {
+      "drawing": "sandsborg.png",
+      "note": "An island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, -0.9], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.0]},
+          {"walk": [-66.0, -1.1], "width": 6},
+          {"walk": [-66.0, -12.9], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -26.9], "name":  "Sandsborg"}}
+        ] }
+      ]
+    },
+    "Skogskyrkogården": {
+      "drawing": "skogskyrkogarden.png",
+      "note": "An island platform in the open, by the cemetery. At its north end stairs go down to the ticket hall at the street.",
+      "routes": [
+        { "from": [49.87436714794674, -0.8], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, -1.1]},
+          {"walk": [66.0, -1.3], "width": 6},
+          {"walk": [66.0, -13.5], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [66.0, -27.5], "name":  "Skogskyrkogården"}}
+        ] }
+      ]
+    },
+    "Tallkrogen": {
+      "drawing": "tallkrogen.png",
+      "note": "An island platform in the open. At its south-west end stairs go down to the ticket hall at the street.",
+      "routes": [
+        { "from": [-48.374273392087005, -0.5], "width": 3, "go": [
+          {"stairs": -6.2, "toward": [-60.0, -0.6]},
+          {"walk": [-66.0, -0.5], "width": 6},
+          {"walk": [-66.0, -12.3], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -26.3], "name":  "Tallkrogen"}}
+        ] }
+      ]
+    },
+    "Gubbängen": {
+      "drawing": "gubbangen.png",
+      "note": "An island platform in a shallow cutting. At its south end stairs go down to a passage under the tracks, with an exit to the street beside the line.",
+      "routes": [
+        { "from": [-49.87436714794674, -0.1], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -0.1]},
+          {"walk": [-66.0, -0.0], "width": 6},
+          {"walk": [-66.0, -12.2], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -26.2], "name":  "Gubbängen"}}
+        ] }
+      ]
+    },
+    "Hökarängen": {
+      "drawing": "hokarangen.png",
+      "note": "An island platform in the open. At each end stairs go down to a ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, 3.0], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, 4.3]},
+          {"walk": [-66.0, 5.2], "width": 6},
+          {"walk": [-66.0, 17.5], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, 31.5], "name":  "Hökarängen"}}
+        ] },
+        { "from": [49.87436714794674, 2.9], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, 4.1]},
+          {"walk": [66.0, 5.0], "width": 6},
+          {"walk": [66.0, -7.3], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [66.0, -21.3], "name":  "Hökarängen"}}
+        ] }
+      ]
+    },
+    "Farsta": {
+      "drawing": "farsta.png",
+      "note": "A wide island platform on a viaduct by Farsta centrum. In the middle stairs go down to the ticket hall under the tracks, which opens onto the street on the west side.",
+      "routes": [
+        { "from": [-5, 2.5], "width": 4, "go": [
+          {"stairs": -5.6, "toward": [150, 2.5]},
+          {"walk": [12, 2.5], "width": 6},
+          {"gates": true},
+          {"walk": [16, -12]},
+          {"mark": "hall"},
+          {"exit": 1960123595, "by": "walk"}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 1960123582, "by": "walk"}
+        ] }
+      ]
+    },
+    "Farsta strand": {
+      "drawing": "farsta_strand.png",
+      "note": "The end of T18: an island platform in a concrete box under the centre. In the middle stairs climb to the ticket hall at the street.",
+      "routes": [
+        { "from": [-30, 0], "width": 4, "go": [
+          {"stairs": 4, "toward": [150, 0]},
+          {"walk": 3, "width": 6},
+          {"gates": true},
+          {"exit": 1203647912, "by": "walk"}
+        ] }
+      ]
+    },
+    "Globen": {
+      "drawing": "globen.png",
+      "note": "A wide island platform in a cutting. At its east end stairs climb to a ticket hall at the street, by the arena.",
+      "routes": [
+        { "from": [40, 0], "width": 4, "go": [
+          {"stairs": 7, "toward": [150, 0]},
+          {"walk": 6, "width": 6},
+          {"gates": true},
+          {"mark": "east"},
+          {"exit": 13820436338}
+        ] },
+        { "from": "east", "width": 4, "go": [
+          {"exit": 5418076910}
+        ] }
+      ]
+    },
+    "Enskede gård": {
+      "drawing": "enskede_gard.png",
+      "note": "An island platform in the open. At its north end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [49.87436714794674, 2.1], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, 3.2]},
+          {"walk": [66.0, 3.9], "width": 6},
+          {"walk": [66.0, -8.5], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [66.0, -22.5], "name":  "Enskede gård"}}
+        ] }
+      ]
+    },
+    "Sockenplan": {
+      "drawing": "sockenplan.png",
+      "note": "An island platform in the open. At its north end stairs go down to the ticket hall at the street.",
+      "routes": [
+        { "from": [49.87436714794674, 0.6], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [60.0, 0.8]},
+          {"walk": [66.0, 0.9], "width": 6},
+          {"walk": [66.0, -11.4], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [66.0, -25.4], "name":  "Sockenplan"}}
+        ] }
+      ]
+    },
+    "Svedmyra": {
+      "drawing": "svedmyra.png",
+      "note": "An island platform, its north-east half on a bank over the street. In the middle stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [5, 0], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [150, 0]},
+          {"walk": [20, 0], "width": 6},
+          {"gates": true},
+          {"exit": 1621419858, "by": "walk"}
+        ] }
+      ]
+    },
+    "Stureby": {
+      "drawing": "stureby.png",
+      "note": "An island platform in the open. At its west end stairs go down to a long passage under the tracks, out to the ticket hall at the street.",
+      "routes": [
+        { "from": [-49.87436714794674, -1.2], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.6]},
+          {"walk": [-66.0, -1.9], "width": 6},
+          {"walk": [-66.0, -13.6], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -27.6], "name":  "Stureby"}}
+        ] }
+      ]
+    },
+    "Bandhagen": {
+      "drawing": "bandhagen.png",
+      "note": "An island platform in the open. At its south end stairs go down to a passage under the tracks, out to the street.",
+      "routes": [
+        { "from": [-48.74929683105194, -0.2], "width": 3, "go": [
+          {"stairs": -6, "toward": [-60.0, -0.2]},
+          {"walk": [-66.0, -0.2], "width": 6},
+          {"walk": [-66.0, -13.1], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -27.1], "name":  "Bandhagen"}}
+        ] }
+      ]
+    },
+    "Högdalen": {
+      "drawing": "hogdalen.png",
+      "note": "Two platforms either side of a middle track, which isn't drawn: the platforms are joined across it. At the south end the platform leads out to the ticket hall at the street.",
+      "routes": [
+        { "from": [-65, 0], "width": 4.6, "go": [
+          {"walk": [40, 0], "open": true}
+        ] },
+        { "from": [-49.87436714794674, -1.2], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.2]},
+          {"walk": [-66.0, -1.2], "width": 6},
+          {"walk": [-66.0, -18.4], "width": 4},
+          {"gates": true},
+          {"exit": {"at":  [-66.0, -32.4], "name":  "Högdalen"}}
+        ] }
+      ]
+    },
+    "Rågsved": {
+      "drawing": "ragsved.png",
+      "note": "An island platform in the open. At its south-west end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, -2.9], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -3.8]},
+          {"walk": [-66.0, -4.4], "width": 6},
+          {"walk": [-66.0, -19.1], "width": 4},
+          {"gates": true},
+          {"exit": 3531858631}
+        ] }
+      ]
+    },
+    "Hagsätra": {
+      "drawing": "hagsatra.png",
+      "note": "The end of T19: a wide island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "routes": [
+        { "from": [-49.87436714794674, -1.0], "width": 3, "go": [
+          {"stairs": -5.4, "toward": [-60.0, -1.3]},
+          {"walk": [-66.0, -1.5], "width": 6},
+          {"walk": [-66.0, -15.4], "width": 4},
+          {"gates": true},
+          {"exit": 2623384628}
         ] }
       ]
     }

@@ -487,8 +487,109 @@ Each phase ends in a pull request with a playable preview.
        each; a real terminus alternates.
      - Nyboda's halls have the city's facade and windows, and the depot's other buildings are
        blocks.
-9. **The green and blue lines.**
-   - The same tools, for the green and blue lines, with their stations and depots.
+9. **The green and blue lines.** *Green line done; the blue line is next.*
+   - The green line first, before the blue. The same tools, made to take any number of lines
+     rather than copied; the services follow SL's pattern where the timetable allows it.
+   - Services (`data/routes.json`): T17 Åkeshov–Skarpnäck, T18 Hässelby strand–Farsta strand and
+     T19 Hässelby strand–Hagsätra, each every 10 minutes, taking turns from Alvik to Gullmarsplan
+     (a train every 200 s). Off-peak T18 turns at Alvik, but Alvik has only the two through tracks
+     for the metro (its middle tracks are the Nockebybanan's): a train turning there meets the
+     through trains head-on, and the timetable deadlocked. So T18 runs to Hässelby strand, as in
+     the rush hours.
+   - Track graph:
+     - At T-Centralen OSM glues the red and green lines' tracks together with shared nodes for
+       400 m, where they run one over the other. That tied their heights and let a route switch
+       lines. Each line now gets its own node where two lines' tracks pass straight through one.
+       The old geometry had escaped its curve check there, because the shared nodes counted as
+       switches; see below.
+     - Overlapping platforms along a track (T-Centralen again) are stood at together, in the
+       middle; a platform beside less than 50 m of track is another's (the pendeltåg's at
+       Odenplan, which the trains had stopped at).
+     - A terminus may be turned at on any of its platform tracks, not only those the first trace
+       chose: T17 turns on Åkeshov's middle track. Two services that turn at the same station
+       stand on different tracks (T18 and T19 at Hässelby strand), since each stands there longer
+       than the other leaves between trains. The red line's routes came out the same.
+     - Yard track wired only overhead is a tram depot's (the Nockebybanan's at Alvik, mapped as
+       `railway=subway`), and is left out.
+     - Corrections, checked against Gleisplanweb: Skarpnäck's scissors crossover and its platform
+       (its node is 50 m off the tracks); Gubbängen's platform; island platforms drawn across a
+       track at Medborgarplatsen, Skanstull (both with OSM `fixme`s), Svedmyra and Sankt
+       Eriksplan; and platforms drawn short at Bagarmossen, Bandhagen, Blackeberg, Rågsved and
+       Stureby, lengthened to 145 m (a new `extend`).
+     - Result: T17 19.6 km, T18 29.1 km, T19 28.7 km. The green line's own track is 125 km: 85 km
+       its services run on, 34 km of depots (Högdalen 14.4, Vällingby 12.7, Hammarby 6.0), and the
+       rest crossovers, sidings and spurs. `lineTrack` now takes every drawn line, and the tracks
+       joining them (near T-Centralen and Gamla stan).
+   - Heights:
+     - Wikidata has no height for any green line station. Swedish Wikipedia gives a depth or a
+       height for the underground ones (Fridhemsplan 1.3 m above sea level, Medborgarplatsen
+       17 m, Hagsätra 46.2 m; Sankt Eriksplan, Rådmansgatan 8 m deep, Odenplan 9, Skanstull and
+       Farsta strand 5, Bagarmossen 19, Skarpnäck 25). A depth is taken from the ground over the
+       platforms (`depth` in `data/height-corrections.json`). Hötorget has neither.
+     - A station with no height still has its platform tracks level with each other: without it,
+       Hötorget's two tracks came out 3.6 m apart, and Gullmarsplan's up to 6 m.
+     - Vertical curves are held at the line's limit, like the gradient, across the nodes too: the
+       ground at Gullmarsplan bent the line to 926 m. The 1975 limits are per line: 1,500 m on the
+       green, 2,000 m on the red.
+     - `fetch-ground` writes a file per line (`data/ground/green-line.json`, 14,280 samples).
+     - New fixes: three road underpasses OSM doesn't map as bridges (Kristineberg, Alvik,
+       Farsta); Svedmyra's platform on a bank over the street; Gullmarsplan's tracks under the bus
+       terminal's deck, in a box.
+     - The red line's heights are as before, to 0.13 m.
+     - Result: within the limits; the green line's steepest is 37.6‰ near Gullmarsplan, and its
+       tightest vertical curve 1,692 m, also there.
+   - Plan:
+     - Curve limits per line: 200 m on the green line (held at 248 m between points 10 m apart).
+       The holds now reach across the nodes, so a curve can't kink where two pieces meet.
+     - In the open the green line keeps OSM's curves, traced from aerial photos: between Alvik and
+       Stora mossen it turns at 115–150 m, tighter than its limit, and holding it to 200 m moved
+       the track 9 m off the photos. The check reports these as mapped.
+     - The red line's plan moved up to 7 m within about 1 km of T-Centralen: with the glued nodes
+       split, the curve holds now reach the stretches they didn't before. Its old geometry had
+       curves down to 139 m there, hidden by the switches. Within 350 m of T-Centralen the check
+       still leaves the curves out: OSM sketches the two levels winding out of the station, and
+       the plan smooths them only roughly.
+     - The green line is 13.7 km of box, 10.8 km of rock, 11.8 km of bridge, 2.8 km of bank,
+       1.6 km of cutting and 83.9 km on the ground (the depots' yards included).
+   - Trains:
+     - The green line runs C20s, the red C30s; each line's trains have their length in the
+       timetable, and the parked trains are their depot's line's.
+     - T-Centralen's red and green northbound platforms hadn't joined the network once the graph's
+       stop moved a few metres: a route now stops where its line passes the middle of the model's
+       platform, and the timetable stops its trains there.
+     - The green line's ends have long layovers (4–8 minutes), and the trains that had come in
+       before the game started were dropped, so every later turn took a trip already due and ran
+       late for good. They now stand at the ends as the next trips.
+     - Simulated for three hours: 63 trains out, every green trip on time (the red line as before,
+       T14 16 s late at Fruängen on `main` too). Green trains turn in 218–503 s.
+     - The green depots are in the menu: Vällingbydepån, Hammarbydepån and Högdalsdepån, with
+       about 50 trains parked on both lines.
+   - Stations: all 46 of the green line's own (Gamla stan and Slussen were built with the red
+     line), described from Albert Guillaumes' drawings, 80 exits.
+     - The underground stations (Fridhemsplan to Hötorget, Medborgarplatsen, Skanstull, Bagarmossen,
+       Skarpnäck, Farsta strand) have escalators from their ends, and Hötorget a third hall over
+       the middle.
+     - Most of the rest are islands in the open with a ticket hall under the tracks. OSM's entrance
+       there often lies between the tracks just past the platform, where the passage comes out
+       under the bank; with the tracks 3–5 m above the street there is no headroom for an exit
+       there, so the passage goes on under the track to an exit beside the line.
+     - Fridhemsplan's and Vällingby's wide islands are two platforms in OSM, so they are drawn as
+       two side platforms joined by floors, like Östermalmstorg's halls; Högdalen's platforms are
+       joined across its middle track, which isn't drawn.
+     - At Gamla stan the Munkbroleden passage now runs under the green track, so it is lower
+       (`ceiling` on an exit's ramp).
+     - `build-stations` says where a clash is in the station's frame.
+   - City: the tiles within 1 km of either line, 766 (99 → 191 km²); 68,241 buildings; 24 depot
+     halls, 12 of them at the green depots. 10.9 MB.
+   - Still open:
+     - T18 off-peak to Alvik, which needs trains to turn on a through platform.
+     - Fridhemsplan and Odenplan have 3D files of their own from Albert Guillaumes; they could
+       replace their descriptions, as T-Centralen's model does.
+     - The green line at Gamla stan and Slussen shares the red line's stations; Slussen's and
+       Gamla stan's green tracks are now drawn, but the stations were described for the red line.
+     - Where the Skärmarbrink and Gullmarsplan halls meet the street, OSM's entrances are over the
+       tracks (on a deck or a bridge); the exits are placed beside them.
+     - The blue line.
 
 The game reads only the files the tools write, so new lines and corrections need no change to the
 game's code.

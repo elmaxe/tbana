@@ -46,7 +46,7 @@ const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 
 // 1,500 m, the red to 2,000 m)
 const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01 };
+const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01 };
 // the gradient the line is held to where it would be steeper
 const GRADE_HOLD = 0.037;
 
@@ -206,6 +206,25 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   // ... and are level along their length: the smoothing must not tilt them to meet the line on
   // either side
   const onPlatform = new Set(stationRows.map((r) => r.v));
+  // A station with no known height still has its platform tracks level with each other, as well
+  // as along their length: each track's points are held to the same height as the station's first
+  // platform point.
+  for (const st of graph.stations) {
+    if (stationHeights[st.name] || st.name === 'T-Centralen') continue;
+    let first: number | null = null;
+    for (const pl of st.platforms) {
+      for (const t of pl.tracks) {
+        const d = disc.get(t.piece);
+        if (!d) continue;
+        d.s.forEach((s, k) => {
+          if (s < t.s0 || s > t.s1) return;
+          onPlatform.add(d.v[k]);
+          if (first === null) first = d.v[k];
+          else if (first !== d.v[k]) rows.push({ i: [first, d.v[k]], c: [1, -1], b: 0, w: 1 / SIGMA.platformLevel });
+        });
+      }
+    }
+  }
   for (const p of pieces) {
     const { s, v } = disc.get(p.id)!;
     for (let k = 1; k < v.length; k++) {
