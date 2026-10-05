@@ -196,7 +196,7 @@ Each phase ends in a pull request with a playable preview.
        heights, so their tunnels cut into each other for a few tens of metres. The build lists
        them.
      - Crossovers, sidings and turnback tracks aren't drawn, because only the services' track has
-       heights.
+       heights. Phase 8 draws them.
      - Seven platforms had no room beside their track as matched, mostly at junction stations,
        and weren't drawn. Phase 6 fixed this (see there).
      - There is no ground or city around the open stretches yet; that is phase 7. The network
@@ -211,7 +211,8 @@ Each phase ends in a pull request with a playable preview.
        stands 75 s at its first station with its doors open. It stops at every station and runs
        out beyond the last.
      - At every terminus the trains arrive on one track and leave from the other. The turnback
-       tracks between aren't drawn, so the turn happens out of sight.
+       tracks between aren't drawn, so the turn happens out of sight. (Phase 8: they turn where
+       they stand.)
      - Trains run at up to 20 m/s (about 70 km/h) and accelerate and brake at 1 m/s².
      - They stand at least 22 s at each stop. The timetable allows 4 s more, so a late train
        catches up.
@@ -396,10 +397,98 @@ Each phase ends in a pull request with a playable preview.
        would do better.
      - The troughs under Riddarholmskanalen and Liljeholmsviken have their tops above the water
        in the track heights, and make low mounds across it.
-     - The other lines' tracks above ground, at Gamla stan, Slussen and beyond, are phase 8.
-8. **Depots and later lines.**
-   - Add the depots the red line uses, then the green and blue lines.
-   - The same tools work for those lines unchanged.
+     - The other lines' tracks above ground, at Gamla stan, Slussen and beyond, are phase 9.
+8. **Depots and the red line's other track.** *Done.*
+   - Settled before starting: this phase is the red line's own track (its two depots, crossovers,
+     sidings and turnback tracks); the green and blue lines are phase 9. The trains turn where
+     they can be seen and park in the depots, but don't run in and out of service. Nyboda's halls
+     are sheds the tracks run into.
+   - `lineTrack` (`tools/lib/graph.ts`) takes the services' track and everything joined to it that
+     isn't another line's, stopping short of track that touches another line. It leaves out track
+     no service runs on beside a platform (the middle tracks at Alby and Sätra, Liljeholmen's
+     third track, Aspudden's depot track), because the stations were described without it, and
+     what is then left leading nowhere. That adds 294 pieces and 23.2 km: 19.4 km of depot track
+     (10.7 km at Nyboda, 8.7 km at Norsborg), 2.2 km of sidings, 1.4 km of crossovers.
+     - Norsborgsdepån is in rock: 7.9 km of its yard is in tunnel (OSM's layer −1).
+     - At Nyboda, OSM's `covered=yes` track runs through the halls. `build-track-graph` now counts
+       a covered yard track as being in the open, flagged `covered` (it was a tunnel).
+   - `fetch-ground` samples under the new track too: 11,165 samples.
+   - Heights: the running lines are fitted first, then the rest with the running lines pinned, so
+     the stations come out as before (to the centimetre) and the depots are fitted to the line.
+     - Track inside a building (or within 8 m of its walls) gets no ground anchor: under Nyboda's
+       halls the elevation model follows the roofs, 6 m above the yard.
+     - Where two tracks cross one over the other more than 250 m apart along the track, and OSM's
+       layers differ, they are held 6.5 m apart (29 points). A service's track stays put, and the
+       other passes on the side it is already on. This is the Nyboda access tracks over T14 near
+       Liljeholmen, and Norsborg's depot on two levels.
+     - Tunnels of track no service runs on need 3 m of cover instead of 6: Norsborg's two-level
+       stub by the portal can't have both 6 m of rock and 6.5 m over the lower track.
+     - One more fix in `data/height-corrections.json`: at Sätra OSM draws a siding into the bank.
+   - Plan: also in two stages. Track no service runs on is anchored closely to OSM even in the
+     tunnels (0.3 m): the depots are mapped from plans, and anchored loosely the smoothing pulled
+     the Norsborg loop well inside OSM's. Its curves are held only against kinks (50 m).
+   - `build-track-geometry` notes the nearest track on each side of every point, within 12 m, at
+     about the same level, and both in a tunnel or both not (negative for a service's track).
+   - `src/network.ts`:
+     - Depot tracks in rock or concrete side by side share a hall with a flat roof 6 m high and
+       a lamp over each track every 8 m, with walls only at the outer tracks. Its height is a
+       guess: the 1975 description has no section of a depot.
+     - In the open their formations meet halfway between the tracks.
+     - Where a siding or crossover comes within 4.5 m of a running line in a tunnel, the running
+       line's tunnel widens round it with a flat roof at the crown, and the siding has none of its
+       own. Where its own tunnel begins, each tunnel is cut out of the other's walls (42 short
+       volumes, through a grid so a tile still builds in 3–13 ms median under software
+       rendering).
+     - No conductor rail where another track is closer than the standard spacing; buffer stops
+       at track ends, and an end wall in a tunnel. The ballast of track no service runs on is
+       1.5 cm lower, so it doesn't flicker where it meets a running line's.
+   - Turning at the ends:
+     - The termini have no tail tracks: the tracks end at buffers just past the platforms, with
+       crossovers before them. So the trains turn where they stand.
+     - `build-track-graph` traces each service again so that at each end the arriving train stands
+       on the track the train the other way leaves from: either the arriving train crosses over
+       (Fruängen) or the leaving one does after it leaves (Norsborg, Ropsten, Mörby centrum,
+       whose crossover suits only that). Whichever costs less is taken at each end.
+     - The running lines as first traced are kept as `ways`, which the tools fit and draw, so each
+       terminus keeps both its tracks and its platform halls.
+     - `src/timetable.ts`: a trip arriving at the end becomes the next trip the other way, doors
+       open; its cars swap ends without moving, so a rider stays put. Once the game is going no
+       new trips are set off at the ends.
+     - A train waiting to leave the end of the line has a hard claim on the track out of the
+       station, until it is out of the incoming trains' way; without it, an incoming train would
+       pull up between the platform and the crossover the leaving one needs.
+     - Simulated for three hours: 31 trains run round, nothing late beyond the closing chime, and
+       they turn in 65 s (Fruängen), 105 s (Ropsten), 182 s (Mörby centrum) and 236 s (Norsborg).
+       A train held 4 minutes at Slussen makes the trains after it late, by up to 215 s, and it
+       dies out; nothing locks.
+   - 25 trains stand out of service, showing "Ej i trafik", on about two in three of the stabling
+     tracks (a yard track beside another for most of its length) and the sidings ending at a buffer.
+     They get a model within 700 m, like the trips.
+   - Nyboda's halls: `build-city` makes a building that covered track runs through for 20 m a shed
+     (12 halls), standing on the ground, with a door 4.6 m wide and 5.2 m above the rails wherever a
+     track crosses its outline (57 doors, a new `DOOR` section in the tiles). The game draws its
+     walls inside and out and a ceiling. Its ground is walked on, and its walls block but at the
+     doors.
+   - The ground beside track no service runs on is walkable, so the yards and halls can be walked
+     through (97% of a hall's floor).
+   - The menu's list of stations has the depots, as views to fly to; `?at=Nybodadepån` too.
+   - Checked: screenshots in Norsborg's hall, inside and outside Nyboda's halls, at buffer stops,
+     and at the junctions at Ropsten, Sätra, Östermalmstorg and Alby; a train turning at Mörby
+     centrum.
+   - Still open:
+     - Where a siding leaves a running line's widened tunnel at a sharp angle (south of Ropsten)
+       there is a gap in the roof.
+     - The Nyboda access tracks rise out of the main line's tunnels too close to their junctions
+       to clear the line they cross over: their tunnels cut into the running lines' near
+       Liljeholmen and Aspudden (the build lists them).
+     - The middle tracks at Alby and Sätra and Liljeholmen's third track aren't drawn; the
+       stations would need describing again with them.
+     - Trains don't run in and out of the depots, and the termini use only one platform track
+       each; a real terminus alternates.
+     - Nyboda's halls have the city's facade and windows, and the depot's other buildings are
+       blocks.
+9. **The green and blue lines.**
+   - The same tools, for the green and blue lines, with their stations and depots.
 
 The game reads only the files the tools write, so new lines and corrections need no change to the
 game's code.
