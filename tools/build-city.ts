@@ -33,17 +33,21 @@
 //   left out: the stations draw their own.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
 //   of the building, and an exit's way out continues through the building to the outside.
+// - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
+//   it stands on the ground, open inside, with a door wherever a track passes through its walls.
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import polygonClipping from 'polygon-clipping';
 import type { MultiPolygon, Polygon } from 'polygon-clipping';
 import { CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName } from '../src/city-tile.ts';
-import type { Building, CityIndex, RoofShape } from '../src/city-tile.ts';
+import type { Building, CityIndex, Door, RoofShape } from '../src/city-tile.ts';
 import { ROOF_SHAPES } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { LIFT, floorHeights, inclineCorners, liftCorners } from '../src/station-layout.ts';
 import type { StationLayouts } from '../src/station-layout.ts';
+import { runningWays } from '../src/track-graph.ts';
+import type { TrackGraph } from '../src/track-graph.ts';
 import * as S from '../src/sections.ts';
 
 const OUT = 'public/data/city';
@@ -58,9 +62,13 @@ const MOUTH = { into: 6, out: 8 };
 const LEVEL = 3.1;   // storey height, for buildings given in levels
 const PARAPET = 0.6; // above the top storey
 const SINK = 0.5;    // walls go this far below the lowest ground under them
+// a depot's hall: covered track through it for at least this long; its doors this wide (square
+// to the track) and this high above the rails
+const SHED_TRACK = 20, DOOR = { width: 4.6, height: 5.2 };
 
 type XZ = [number, number];
 const geometry: TrackGeometry = JSON.parse(readFileSync('public/data/track-geometry.json', 'utf8'));
+const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const layouts: StationLayouts = JSON.parse(readFileSync('public/data/station-layouts.json', 'utf8'));
 const groundMeta: { attribution: string; tile: number; step: number; n: number; tiles: [number, number, number][] } =
   JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
@@ -95,6 +103,7 @@ interface Seg {
   pair: number;          // the other track's offset to the right (negative: left), 0 if none
   plat: { side: number; width: number } | null;
   clampA: boolean; clampB: boolean; // whether the ends round off (false at a mouth)
+  yard: boolean;         // track no service runs on (a depot's, a siding): its ground is walked on
 }
 const segs: Seg[] = [];
 interface Mouth { x: number; z: number; tx: number; tz: number; y: number; crown: number; left: number; right: number }
@@ -131,7 +140,9 @@ function crownOf(kind: StructureKind, pair: number, plat: Seg['plat']) {
   return pair ? S.ROCK.doubleCrown : S.ROCK.singleCrown;
 }
 
-for (const p of Object.values(geometry.pieces)) {
+const running = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+for (const [id, p] of Object.entries(geometry.pieces)) {
+  const yard = !running.has(Number(id));
   const n = p.x.length;
   const platAt = (k: number) => {
     const pl = p.platforms.find((q) => p.s[k] >= q.s0 - 1 && p.s[k] <= q.s1 + 1);
@@ -152,7 +163,7 @@ for (const p of Object.values(geometry.pieces)) {
       const g = p.ground[i];
       return g === null || g > p.y[i] + crownOf(kindAt(i), p.pair[i], platAt(i)) / 2;
     };
-    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, buried: buried(k) && buried(k + 1) };
+    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, buried: buried(k) && buried(k + 1), yard };
     const first = k === 0 ? endJoins(0) : true, last = k + 1 === n - 1 ? endJoins(n - 1) : true;
     if (ka === kb) {
       segs.push({ ax: p.x[k], az: p.z[k], bx: p.x[k + 1], bz: p.z[k + 1], ...base, kind: ka, plat: platAt(k), clampA: first, clampB: last });
@@ -161,8 +172,8 @@ for (const p of Object.values(geometry.pieces)) {
     // the structure changes halfway (as the network draws it)
     const mx = (p.x[k] + p.x[k + 1]) / 2, mz = (p.z[k] + p.z[k + 1]) / 2, my = (p.y[k] + p.y[k + 1]) / 2;
     const mouth = tunnelClass(ka) !== tunnelClass(kb);
-    segs.push({ ax: p.x[k], az: p.z[k], bx: mx, bz: mz, ya: p.y[k], yb: my, pair: base.pair, buried: buried(k), kind: ka, plat: platAt(k), clampA: first, clampB: !mouth });
-    segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last });
+    segs.push({ ax: p.x[k], az: p.z[k], bx: mx, bz: mz, ya: p.y[k], yb: my, pair: base.pair, buried: buried(k), kind: ka, plat: platAt(k), clampA: first, clampB: !mouth, yard });
+    segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last, yard });
     // pointing out of the tunnel
     const out = tunnelClass(ka) ? 1 : -1;
     if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k));
@@ -208,9 +219,10 @@ function relate(s: Seg, x: number, z: number) {
   return { t: tc, across, d, y: s.ya + (s.yb - s.ya) * tc };
 }
 
-// The ground at a point, shaped for the track: [height, whether it is beside open track]
+// The ground at a point, shaped for the track: [height, whether it is beside open track a service
+// runs on (and so isn't walked on)]
 function shape(x: number, z: number, h0: number): [number, boolean] {
-  let lower = -Infinity, upper = Infinity, beside = false;
+  let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false;
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
@@ -226,11 +238,12 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
       const floor = s.kind === 'bridge' ? r.y + S.FLOOR - S.BRIDGE.depth - UNDER : r.y + S.FLOOR - UNDER;
       const u = floor + Math.max(0, out - 1) / (s.kind === 'cutting' ? 1 : S.EMBANKMENT.slope);
       upper = Math.min(upper, u);
-      if (out < 1.5) beside = true;
+      if (!s.yard) upperRun = Math.min(upperRun, u);
+      if (out < 1.5 && !s.yard) beside = true;
     }
   }
   let h = Math.max(h0, lower);
-  if (upper < h) { h = upper; beside = true; }
+  if (upper < h) { h = upper; if (upperRun < upper + 0.01) beside = true; }
   return [h, beside];
 }
 
@@ -489,8 +502,67 @@ stationCuts.forEach((c, id) => {
   }
 });
 
+// The depot's covered track (OpenStreetMap's covered=yes), as segments by 50 m cell.
+const covered: [XZ, XZ][] = [];
+for (const [id, g] of Object.entries(geometry.pieces)) {
+  if (!graph.pieces[Number(id)].covered) continue;
+  for (let k = 0; k + 1 < g.x.length; k++) covered.push([[g.x[k], g.z[k]], [g.x[k + 1], g.z[k + 1]]]);
+}
+// how much of it lies inside an outline
+function coveredInside(ring: Ring) {
+  const [x0, z0, x1, z1] = bbox(ring);
+  let len = 0;
+  for (const [a, b] of covered) {
+    if (Math.max(a[0], b[0]) < x0 || Math.min(a[0], b[0]) > x1 || Math.max(a[1], b[1]) < z0 || Math.min(a[1], b[1]) > z1) continue;
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(l / 2));
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n;
+      if (inside([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], ring)) len += l / n;
+    }
+  }
+  return len;
+}
+// A hall's doors: wherever a track in the open crosses its outline, a door DOOR.width wide square
+// to the track and DOOR.height above its rails; doors that overlap on a wall are made one.
+function doorsOf(ring: Ring): Door[] {
+  const out: Door[] = [];
+  for (let e = 0; e < ring.length; e++) {
+    const [ax, az] = ring[e], [bx, bz] = ring[(e + 1) % ring.length];
+    const ex = bx - ax, ez = bz - az, len = Math.hypot(ex, ez);
+    if (len < 0.5) continue;
+    const found: { from: number; to: number; top: number }[] = [];
+    const seen = new Set<number>();
+    for (let i = Math.floor(Math.min(ax, bx) / SEG_CELL) - 1; i <= Math.floor(Math.max(ax, bx) / SEG_CELL) + 1; i++) {
+      for (let j = Math.floor(Math.min(az, bz) / SEG_CELL) - 1; j <= Math.floor(Math.max(az, bz) / SEG_CELL) + 1; j++) {
+        for (const id of segIndex.get(`${i},${j}`) ?? []) {
+          if (seen.has(id)) continue;
+          seen.add(id);
+          const sg = segs[id];
+          if (TUNNEL.has(sg.kind)) continue;
+          const dx = sg.bx - sg.ax, dz = sg.bz - sg.az;
+          const den = ex * dz - ez * dx;
+          if (Math.abs(den) < 1e-9) continue;
+          // where the track crosses the wall: t along the wall, u along the track's segment
+          const t = ((sg.ax - ax) * dz - (sg.az - az) * dx) / den, u = ((sg.ax - ax) * ez - (sg.az - az) * ex) / den;
+          if (t < 0 || t > 1 || u < 0 || u > 1) continue;
+          const sin = Math.abs(den) / (len * Math.hypot(dx, dz));
+          const half = Math.min(8, DOOR.width / 2 / Math.max(0.3, sin));
+          found.push({ from: Math.max(0, t * len - half), to: Math.min(len, t * len + half), top: sg.ya + (sg.yb - sg.ya) * u + DOOR.height });
+        }
+      }
+    }
+    found.sort((p, q) => p.from - q.from);
+    for (const d of found) {
+      const last = out[out.length - 1];
+      if (last && last.edge === e && d.from <= last.to) { last.to = Math.max(last.to, d.to); last.top = Math.max(last.top, d.top); }
+      else out.push({ edge: e, ...d });
+    }
+  }
+  return out;
+}
+
 const tiles = new Map<string, Building[]>();
-let overTrack = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
+let overTrack = 0, sheds = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
 for (const s of sources) {
   if (s.hasParts) continue;
   const ti = Math.floor(s.c[0] / CITY_TILE), tj = Math.floor(s.c[1] / CITY_TILE);
@@ -504,12 +576,13 @@ for (const s of sources) {
   const g0 = Math.min(...gs), g1 = Math.max(...gs);
   const { roof, roofHeight, walls, min } = heights(s);
   const roofOnly = s.tags.building === 'roof';
+  const shed = !roofOnly && coveredInside(outline) >= SHED_TRACK;
   let top = g0 + walls;
   // a building sunk into a slope still stands above its highest ground
   if (!min && !roofOnly) top = Math.max(top, g1 + 2.5);
   const bottom = roofOnly ? top - 0.4 : min ? g0 + min : g0 - SINK;
   const base: Omit<Building, 'rings'> = {
-    kind: roofOnly ? 'roof' : s.part ? 'part' : 'building', roof, bottom, top, roofHeight,
+    kind: roofOnly ? 'roof' : shed ? 'shed' : s.part ? 'part' : 'building', roof, bottom, top, roofHeight,
     colour: colour(s.tags['building:colour']),
   };
   let shape: MultiPolygon = [toPoly(s.rings)];
@@ -534,6 +607,14 @@ for (const s of sources) {
   // the track's space
   const space = trackSpace((bx0 + bx1) / 2, (bz0 + bz1) / 2, Math.hypot(bx1 - bx0, bz1 - bz0) / 2 + 20);
   const hits = space.filter(({ poly }) => polygonClipping.intersection(shape, poly).length);
+  if (shed) {
+    // a hall: the tracks run in through its doors
+    sheds++;
+    const from = list.length;
+    emit(list, shape, base);
+    for (const b of list.slice(from)) b.doors = doorsOf(b.rings[0]);
+    continue;
+  }
   if (hits.length) {
     if (roofOnly) { roofsDropped++; continue; }
     overTrack++;
@@ -613,5 +694,5 @@ writeFileSync(`${OUT}/index.json`, JSON.stringify(index, null, 1) + '\n');
 if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toFixed(0)}, ${m.z.toFixed(0)}, rail ${m.y.toFixed(1)}, out towards ${m.tx.toFixed(2)}, ${m.tz.toFixed(2)}`);
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
-console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations`);
+console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);
