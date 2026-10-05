@@ -247,3 +247,34 @@ export function trackBed() {
   }
   return toTexture(c);
 }
+
+// A building's facade, white so vertex colours tint it: one bay of one storey (3 × 3.1 m), a
+// window with a sill in plaster. Repeats along the wall and up it.
+export function facade() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#f4f2ee';
+  x.fillRect(0, 0, 128, 128);
+  speckle(x, 128, 128, 500, 0.1, 21);
+  // the window: dark glass, a lighter frame and a sill under it
+  x.fillStyle = '#8c8a86';
+  x.fillRect(36, 30, 56, 64);
+  x.fillStyle = '#3a4048';
+  x.fillRect(40, 34, 48, 56);
+  x.fillStyle = '#56606b';
+  x.fillRect(40, 34, 48, 22);
+  x.fillStyle = '#8c8a86';
+  x.fillRect(62, 34, 4, 56);
+  x.fillStyle = '#d8d6d2';
+  x.fillRect(32, 94, 64, 5);
+  return toTexture(c, { aniso: 4 });
+}
+
+// Ground: rough, light grey, so vertex colours give it grass or paving. Covers 8 × 8 m.
+export function ground() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#d6d6d6';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 4000, 0.09, 31);
+  speckle(x, 256, 256, 2500, 0.06, 32, true);
+  return toTexture(c);
+}

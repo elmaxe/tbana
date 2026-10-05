@@ -222,6 +222,13 @@ Note each page's number and the drawing's date, and include a scale bar if there
 - **Lantmäteriet Markhöjdmodell:** 1 m grid, CC BY 4.0, as Cloud Optimized GeoTIFFs in 10 × 10 km
   tiles (SWEREF 99 TM, RH 2000). The STAC catalogue is at <https://api.lantmateriet.se/stac-hojd/v1>.
   Downloading needs a free Geotorget account.
+  The catalogue also lists the same model as 10 × 10 km files (`dtm-cog`) with overviews at 2, 4
+  and 8 m, which `tools/fetch-terrain.ts` reads for the city's ground, and a surface point cloud
+  (`dsm-skoglig-copc`, Laserdata Skog) under another licence.
+- **OpenStreetMap buildings:** about 30,000 within 1 km of the red line. 39% have `height` or
+  `building:levels`. Overpass wasn't reachable from the build environment in October 2026, and
+  would be slow for this many; openstreetmap.fr's daily extract of Stockholm county (80 MB PBF)
+  has them all.
 - **Lantmäteriet buildings** (Byggnad Nedladdning, vektor): footprints, CC BY 4.0.
 - **Stockholm stad:** LOD1 3D buildings (flat-roofed blocks) are listed as open data at
   <https://dataportalen.stockholm.se>. We have not read the licence text. LOD2, with roof shapes,

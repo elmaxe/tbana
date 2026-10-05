@@ -328,6 +328,60 @@ The network cuts the same spaces out of its tunnels and platforms.
 
 To visit one, pick it under **Red line** in the menu, or start there with `?at=Mariatorget`.
 
+### The city
+
+Everything within 1 km of the red line has its ground and buildings, so the city is there
+wherever you look out from a train, a bridge or a station's exit:
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-terrain  # the ground, every 5 m -> data/ground/city.json, city.bin.gz
+npm run fetch-city                             # OSM's buildings -> data/osm/buildings.json
+npm run build-city                             # -> public/data/city/
+```
+
+- `fetch-terrain` reads Lantmäteriet's elevation model at 2 m (the overviews in its 10 km files)
+  and samples it every 5 m on the game's grid, over the 500 m tiles that come within 1 km of the
+  track: 396 tiles.
+- `fetch-city` reads OpenStreetMap's extract of Stockholm county (from openstreetmap.fr, about
+  80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
+  parts in those tiles, with their courtyards: about 30,000.
+- `build-city` shapes the ground round the track and writes one gzipped binary file per tile
+  (format in `src/city-tile.ts`), 5.3 MB in all. The format is in tagged sections, so roof shapes,
+  streets and water can be added later as new sections without breaking the game.
+
+How the ground meets the track:
+
+- Under open track the ground is lowered below the formation and rises from it at the bank's
+  slope, so the track runs in a shallow cutting wherever the ground is higher; where the ground is
+  lower, the track's bank runs on down into it.
+- Over a tunnel the ground stays at least 0.5 m above the crown. A "tunnel" whose ground the
+  elevation model has below half its height is a short covered way or one under a bridge the
+  model leaves out, and stands in the open instead.
+- At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
+  round the opening.
+
+The buildings are blocks with flat roofs:
+
+- They stand from below the lowest ground under them to their height above it: OSM's `height`,
+  or its levels at 3.1 m, or for the 60% with neither, the median levels of the tagged buildings
+  of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
+- A building with parts is drawn as its parts. Roof shapes are kept for later; for now a pitched
+  roof is a flat one halfway up it.
+- Where a building stands over open track, the part over the track's space is lifted 5 m above
+  the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
+- Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
+  building, and so is a way from the exit on through the building to the outside.
+
+The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
+frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground
+has every other point. The ground is paved where buildings are close together and grass where
+they aren't. It can be walked on, except beside open track, inside buildings and over the
+stations' openings, and the street around the exits stays walkable as before but isn't drawn. A
+flood fill from each of the 75 exits, with the player's step rule, reaches the city's ground from
+74; Sätra's comes up into a street hemmed in by the shopping centre, the track and higher ground.
+
+`?nocity` starts the game without it.
+
 ## Train models
 
 ![C30 and C20](trains.jpg)
@@ -376,7 +430,10 @@ Database License (`data/osm/`, and the placements, track graph and track geometr
 in `public/data/`).
 
 Heights: Markhöjdmodell © Lantmäteriet, CC BY 4.0 (`data/ground/`, and the track heights and
-geometry and the stations' streets derived from it in `public/data/`).
+geometry, the stations' streets and the city's ground derived from it in `public/data/`).
+
+Buildings: © OpenStreetMap contributors, ODbL (`data/osm/buildings.json`, from the
+openstreetmap.fr extract of Stockholm county, and the city's buildings in `public/data/city/`).
 
 Station layouts: the red line's stations are built from descriptions read off Albert Guillaumes'
 drawings of them ([estacions.albertguillaumes.cat](http://estacions.albertguillaumes.cat/)), used
