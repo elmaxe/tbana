@@ -3,12 +3,16 @@
 // address (?cam=…&place=…), so a reload after rebuilding comes back to it.
 import * as THREE from 'three';
 import { TrackIndex, loadData, worldLatLon } from './data';
-import { Fly } from './fly';
+import { Fly, typing } from './fly';
 import { Outside } from './outside';
 import type { CutMode } from './outside';
 import { Overview } from './overview';
 import type { MapHit } from './overview';
 import { Reference } from './reference';
+import { ReportPanel } from './report-panel';
+import type { Draft } from './report-panel';
+import { ReportStore } from './reports';
+import type { Report } from './reports';
 import type { Place } from './reference';
 import { aerial, onPlatform, onTrack } from './views';
 import type { View } from './views';
@@ -97,6 +101,11 @@ function select(p: Place, flyThere: boolean, fromAbove = false) {
 }
 
 map.onPick = (hit: MapHit, shift: boolean) => {
+  if (hit.kind === 'report') {
+    const r = store.list.find((q) => q.id === hit.id);
+    if (r) goReport(r);
+    return;
+  }
   const place: Place = hit.kind === 'station' ? { kind: 'station', name: hit.name } : hit;
   select(place, true, shift);
 };
@@ -118,7 +127,7 @@ for (const [id, key] of [['optCity', 'city'], ['optTrains', 'trains'], ['optFog'
   box.addEventListener('change', () => world.setOptions({ [key]: box.checked }));
   world.setOptions({ [key]: box.checked });
 }
-for (const [id, key] of [['showKinds', 'kinds'], ['showYards', 'yards'], ['showFixes', 'fixes']] as const) {
+for (const [id, key] of [['showKinds', 'kinds'], ['showYards', 'yards'], ['showFixes', 'fixes'], ['showReports', 'reports']] as const) {
   const box = $<HTMLInputElement>(id);
   box.addEventListener('change', () => map.setOptions({ [key]: box.checked }));
 }
@@ -159,7 +168,7 @@ $<HTMLSelectElement>('rebuild').addEventListener('change', async (e) => {
 // ------------------------------------------------------------------ the view in 3D
 // T: down (or up) to the track nearest under the camera
 addEventListener('keydown', (e) => {
-  if (e.code !== 'KeyT' || e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+  if (e.code !== 'KeyT' || typing(e)) return;
   const sm = track.nearest(fly.pos.x, fly.pos.z, 300, fly.pos.y);
   if (!sm) return;
   // keep looking the way the camera does, along the track
@@ -214,6 +223,13 @@ for (const [el, key] of [[viewMode, 'inspect-views'], [cutMode, 'inspect-cut']] 
 }
 layout();
 
+// The views to draw.
+function viewports(): Viewport[] {
+  const views: Viewport[] = [{ camera: world.camera, ...fpRect }];
+  if (outRect) views.push({ camera: outside.camera, ...outRect, cut: outside.cutAt(fly, world.outdoorsAt(fly.pos)), outside: true });
+  return views;
+}
+
 // which view a point of the page is in
 const inRect = (r: Rect | null, cx: number, cy: number) => {
   if (!r) return false;
@@ -245,7 +261,8 @@ fly.accepts = (cx, cy) => !inOutside(cx, cy) && inRect(fpRect, cx, cy);
   }, { passive: false });
 }
 
-// double-click: what's that? (in either view)
+// double-click: what's that? (in either view) A report made soon after is about it.
+let lastPick: { point: THREE.Vector3; names: string[]; at: number } | null = null;
 $('view').addEventListener('dblclick', (e) => {
   const out = inOutside(e.clientX, e.clientY), r = out ? outRect! : fpRect;
   const c = $('view').getBoundingClientRect();
@@ -258,8 +275,10 @@ $('view').addEventListener('dblclick', (e) => {
   const { lat, lon } = worldLatLon(x, z);
   box.textContent = `${hit.names.join(' › ') || '(unnamed)'}\n`
     + `x ${x.toFixed(2)}  y ${y.toFixed(2)}  z ${z.toFixed(2)}  · ${hit.distance.toFixed(1)} m away · ${lat.toFixed(6)}, ${lon.toFixed(6)}\n`
-    + (sm ? `track: piece ${sm.piece}, ${sm.kind}, rail ${sm.y.toFixed(2)} m (${(y - sm.y).toFixed(2)} m from here), ${Math.hypot(sm.x - x, sm.z - z).toFixed(1)} m across` : 'no drawn track within 30 m');
+    + (sm ? `track: piece ${sm.piece}, ${sm.kind}, rail ${sm.y.toFixed(2)} m (${(y - sm.y).toFixed(2)} m from here), ${Math.hypot(sm.x - x, sm.z - z).toFixed(1)} m across` : 'no drawn track within 30 m')
+    + '\nR: report a problem here';
   box.hidden = false;
+  lastPick = { point: hit.point.clone(), names: hit.names, at: performance.now() };
   map.setMarks([{ x, z, colour: '#ffd21f' }]);
 });
 
@@ -313,22 +332,117 @@ function parsePlace(s: string | null): Place | null {
   return null;
 }
 let keptAt = 0;
-function keepState() {
+// The view as the address's query: the camera, and the place shown.
+function viewQuery() {
   const q = new URLSearchParams();
   q.set('cam', [fly.pos.x, fly.pos.y, fly.pos.z].map((n) => n.toFixed(1)).concat([fly.yaw.toFixed(3), fly.pitch.toFixed(3)]).join(','));
   if (ref.place) q.set('place', placeParam(ref.place));
-  history.replaceState(null, '', `?${q.toString().replace(/%2C/g, ',').replace(/%3A/g, ':')}`);
+  return q.toString().replace(/%2C/g, ',').replace(/%3A/g, ':');
 }
+function keepState() {
+  history.replaceState(null, '', `?${viewQuery()}`);
+}
+
+// Back to a view kept in a query; false if it has none.
+function restore(q: URLSearchParams) {
+  const cam = q.get('cam')?.split(',').map(Number);
+  if (!cam || cam.length < 3 || !cam.every(Number.isFinite)) return false;
+  fly.set([cam[0], cam[1], cam[2]], cam[3] ?? 0, cam[4] ?? 0);
+  const place = parsePlace(q.get('place'));
+  if (place) select(place, false);
+  map.reveal(cam[0], cam[2]);
+  return true;
+}
+
+// ------------------------------------------------------------------ reporting problems
+// The commit the world was built from, and whether the checkout has changed since ('+').
+const commit = data.refs ? await fetch('__inspect/version').then((r) => (r.ok ? r.text() : null), () => null) : null;
+const store = new ReportStore();
+
+// The view now, for a report: what it's about, where that is, and a picture.
+async function capture(): Promise<Draft> {
+  const recent = lastPick && performance.now() - lastPick.at < 120_000 ? lastPick : null;
+  lastPick = null;
+  const looked = recent ? null : world.pick(world.camera, 0, 0);
+  const point = recent?.point ?? looked?.point
+    ?? fly.pos.clone().add(new THREE.Vector3(0, 0, -5).applyEuler(world.camera.rotation));
+  const near = world.network?.nearestStation(point.x, point.z);
+  const sm = track.nearest(point.x, point.z, 30, point.y);
+  const { lat, lon } = worldLatLon(point.x, point.z);
+  return {
+    at: { x: point.x, y: point.y, z: point.z }, lat, lon,
+    what: (recent?.names ?? looked?.names ?? []).join(' › ') || null,
+    station: near ? { name: near.name, d: near.d } : null,
+    track: sm ? { piece: sm.piece, kind: sm.kind, rail: sm.y } : null,
+    inspect: viewQuery(), game: gameCam(), commit,
+    image: await screenshot(),
+  };
+}
+
+// Both views as they are, at most 1280 wide.
+function screenshot() {
+  world.render(viewports());
+  const c = $<HTMLCanvasElement>('view'), k = Math.min(1, 1280 / c.width);
+  const out = Object.assign(document.createElement('canvas'), { width: Math.round(c.width * k), height: Math.round(c.height * k) });
+  // straight after drawing, before the browser clears the canvas
+  out.getContext('2d')!.drawImage(c, 0, 0, out.width, out.height);
+  return new Promise<Blob | null>((ok) => out.toBlob(ok, 'image/jpeg', 0.82));
+}
+
+function goReport(r: Report) {
+  showTab('reports');
+  panel.flash(r.id);
+  restore(new URLSearchParams(r.inspect));
+  map.setMarks([{ x: r.at.x, z: r.at.z, colour: '#ff6a3d' }]);
+}
+
+const panel = new ReportPanel(store, $('reports'), { capture, go: goReport, canSave: !!data.refs });
+
+// Pins where the reports are, in both views (not picked: on a layer of their own).
+const PIN_LAYER = 2;
+const pins = new THREE.Group();
+world.scene.add(pins);
+world.camera.layers.enable(PIN_LAYER);
+outside.camera.layers.enable(PIN_LAYER);
+const pinGeometry = new THREE.ConeGeometry(0.35, 1.1, 4).rotateX(Math.PI).translate(0, 0.55, 0);
+const pinMaterials = [0xff6a3d, 0x5bc27a].map((color) => new THREE.MeshBasicMaterial({ color, depthTest: false, transparent: true, opacity: 0.85 }));
+store.onChange = () => {
+  panel.render();
+  map.setReports(store.list.map((r) => ({ id: r.id, x: r.at.x, z: r.at.z, done: r.done, text: r.text })));
+  pins.clear();
+  for (const r of store.list) {
+    const pin = new THREE.Mesh(pinGeometry, pinMaterials[r.done ? 1 : 0]);
+    pin.position.set(r.at.x, r.at.y, r.at.z);
+    pin.layers.set(PIN_LAYER);
+    pin.renderOrder = 998;
+    pins.add(pin);
+  }
+};
+$<HTMLInputElement>('showReports').addEventListener('change', (e) => { pins.visible = (e.target as HTMLInputElement).checked; });
+await store.open();
+
+$('report').addEventListener('click', () => void panel.start());
+addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyR' || typing(e) || e.ctrlKey || e.metaKey || e.altKey || panel.open) return;
+  e.preventDefault();
+  void panel.start();
+});
+
+// the Reference and Reports tabs
+function showTab(tab: 'ref' | 'reports') {
+  $('ref').hidden = tab !== 'ref';
+  $('reports').hidden = tab !== 'reports';
+  $('tabRef').classList.toggle('on', tab === 'ref');
+  $('tabReports').classList.toggle('on', tab === 'reports');
+}
+$('tabRef').addEventListener('click', () => showTab('ref'));
+$('tabReports').addEventListener('click', () => showTab('reports'));
 
 // ------------------------------------------------------------------ start
 {
-  const cam = params.get('cam')?.split(',').map(Number);
-  const place = parsePlace(params.get('place'));
   const at = params.get('at');
-  if (cam && cam.length >= 3 && cam.every(Number.isFinite)) {
-    fly.set([cam[0], cam[1], cam[2]], cam[3] ?? 0, cam[4] ?? 0);
-    if (place) select(place, false);
-    map.centre(cam[0], cam[2], 0.15);
+  if (restore(params)) {
+    map.centre(fly.pos.x, fly.pos.z, 0.15);
   } else {
     const name = names.find((n) => n.toLowerCase() === (at ?? 'T-Centralen').toLowerCase()) ?? 'T-Centralen';
     const st = data.graph.stations.find((s) => s.name === name)!;
@@ -344,15 +458,13 @@ function frame() {
   const now = performance.now();
   fly.update(dt);
   world.update(dt);
-  const views: Viewport[] = [{ camera: world.camera, ...fpRect }];
   world.camera.aspect = fpRect.w / fpRect.h;
   if (outRect) {
     outside.cut = cutMode.value as CutMode;
     outside.update(dt, fly, world.camera);
-    views.push({ camera: outside.camera, ...outRect, cut: outside.cutAt(fly, world.outdoorsAt(fly.pos)), outside: true });
   }
   outside.marker.visible = !!outRect;
-  world.render(views);
+  world.render(viewports());
   const { fov, aspect } = world.camera;
   const o = outside.camera.position;
   map.setCamera(fly.pos.x, fly.pos.z, fly.yaw, 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(fov) / 2) * aspect), outRect ? { x: o.x, z: o.z } : null);

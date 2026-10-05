@@ -17,16 +17,18 @@ const YARD = '#5d6876', UNNAMED = '#7c8794', FIX = '#e8b04b';
 export type MapHit =
   | { kind: 'station'; name: string; x: number; z: number }
   | { kind: 'track'; piece: number; x: number; z: number }
-  | { kind: 'point'; x: number; z: number };
+  | { kind: 'point'; x: number; z: number }
+  | { kind: 'report'; id: string; n: number; text: string; x: number; z: number };
 
-export interface MapOptions { kinds: boolean; yards: boolean; fixes: boolean }
+export interface MapOptions { kinds: boolean; yards: boolean; fixes: boolean; reports: boolean }
+export interface MapReport { id: string; x: number; z: number; done: boolean; text: string }
 
 interface Layer { path: Path2D; colour: string; width: number; dash?: number[] }
 
 export class Overview {
   // the view: the world point at the middle, and pixels (CSS) per metre
   cx = 0; cz = 0; scale = 0.05;
-  options: MapOptions = { kinds: true, yards: true, fixes: true };
+  options: MapOptions = { kinds: true, yards: true, fixes: true, reports: true };
   onPick: (hit: MapHit, shift: boolean) => void = () => {};
 
   private ctx: CanvasRenderingContext2D;
@@ -36,6 +38,7 @@ export class Overview {
   private outside: { x: number; z: number } | null = null;
   private marks: { x: number; z: number; colour: string }[] = [];
   private hover: MapHit | null = null;
+  private reports: MapReport[] = [];
   private lines: Layer[] = [];
   private yards: Layer[] = [];
   private kinds: Layer[] = [];
@@ -147,6 +150,12 @@ export class Overview {
     this.draw();
   }
 
+  // The problems reported, as flags.
+  setReports(reports: MapReport[]) {
+    this.reports = reports;
+    this.draw();
+  }
+
   setOptions(o: Partial<MapOptions>) {
     Object.assign(this.options, o);
     this.dirty = true;
@@ -251,6 +260,26 @@ export class Overview {
       g.stroke();
     }
     if (this.hover?.kind === 'track') this.strokePiece(g, this.hover.piece, '#ffffff');
+    if (this.options.reports) {
+      for (const r of this.reports) {
+        const [rx, ry] = this.toScreen(r.x, r.z);
+        g.fillStyle = r.done ? '#5bc27a' : '#ff6a3d';
+        g.strokeStyle = '#0d1117';
+        g.lineWidth = 1.5;
+        // a flag on a pole standing at the point
+        g.beginPath();
+        g.moveTo(rx, ry);
+        g.lineTo(rx, ry - 14);
+        g.stroke();
+        g.beginPath();
+        g.moveTo(rx, ry - 14);
+        g.lineTo(rx + 9, ry - 10.5);
+        g.lineTo(rx, ry - 7);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+    }
     // the camera, and the width of its view; the outside camera, and the line it looks along
     const { x, z, yaw, fov } = this.cam;
     const [px, py] = this.toScreen(x, z);
@@ -308,6 +337,15 @@ export class Overview {
   hitAt(px: number, py: number): MapHit {
     const { x, z } = this.toWorld(px, py);
     let best: MapHit | null = null, bestD = 12;
+    if (this.options.reports) {
+      for (const [i, r] of this.reports.entries()) {
+        const [rx, ry] = this.toScreen(r.x, r.z);
+        // the foot of the pole, or the flag
+        const d = Math.min(Math.hypot(rx - px, ry - py), Math.hypot(rx + 4 - px, ry - 11 - py));
+        if (d < 9 && d < bestD) { bestD = d; best = { kind: 'report', id: r.id, n: i + 1, text: r.text, x: r.x, z: r.z }; }
+      }
+    }
+    if (best) return best;
     for (const st of this.data.graph.stations) {
       const [sx, sy] = this.toScreen(st.x, st.z);
       const d = Math.hypot(sx - px, sy - py);
@@ -330,6 +368,7 @@ export class Overview {
   private describe(hit: MapHit) {
     const at = `${hit.x.toFixed(0)}, ${hit.z.toFixed(0)}`;
     if (hit.kind === 'station') return `${hit.name} · ${at}`;
+    if (hit.kind === 'report') return `report ${hit.n}: ${hit.text.split('\n')[0].slice(0, 80)}`;
     if (hit.kind === 'track') {
       const p = this.data.graph.pieces[hit.piece];
       const sm = this.track.nearest(hit.x, hit.z, 1);

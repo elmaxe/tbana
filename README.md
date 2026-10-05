@@ -59,6 +59,19 @@ and opens a page in three panes:
 After editing a description or a correction, **Rebuild…** runs the build tool and reloads at the
 same view (the view is kept in the address). The game is served too, at `/`.
 
+**Reporting problems.** Aim at something wrong (or double-click it) and press `R` (or
+**⚑ Report**): write what's wrong, pick its kind, and `Ctrl`+`Enter` saves it. A report keeps a
+screenshot of the views, the point and what's there (the nearest station, the track piece and its
+rail height), links that open the inspector and the game at that view, and the commit it was seen
+on (`+` if the checkout had changed). Reports are kept in the browser (IndexedDB) until cleared,
+and show as flags on the map and pins in the world. The **Reports** tab lists them, takes you back
+to each, and exports them:
+
+- **Copy Markdown** or **Download .md**, to paste into an issue
+- **Download .json**, with the screenshots; **Import .json** adds them in another browser
+- **Save to repo** writes `inspect-reports/` in the checkout: `README.md`, `reports.json` and the
+  screenshots, to commit or hand on
+
 ## Controls
 
 | Key | Action |

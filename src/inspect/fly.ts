@@ -6,6 +6,10 @@ import * as THREE from 'three';
 const KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyQ', 'Space', 'KeyC', 'ShiftLeft', 'ShiftRight',
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
+// Whether a key goes to a form field rather than to the view.
+export const typing = (e: KeyboardEvent) =>
+  e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
+
 export class Fly {
   pos = new THREE.Vector3();
   yaw = 0;
@@ -18,7 +22,6 @@ export class Fly {
 
   constructor(private canvas: HTMLCanvasElement, private camera: THREE.PerspectiveCamera, private onSpeed: (speed: number) => void = () => {}) {
     // keys go to the view, unless typing into something
-    const typing = (e: KeyboardEvent) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement;
     addEventListener('keydown', (e) => {
       if (typing(e) || e.metaKey || e.ctrlKey || e.altKey || !KEYS.includes(e.code)) return;
       this.down.add(e.code);

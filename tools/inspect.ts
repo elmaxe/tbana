@@ -17,8 +17,11 @@
 //   plot?at=x,z&r=…              tools/plot-graph.ts: the track graph round a point, as SVG
 //   profile?route=…&from=…&to=…  tools/plot-profile.ts: a route's side view (km), as SVG
 //   build?tool=build-stations    runs a build tool, and answers with its output
+//   version                      the commit checked out, with '+' if the checkout has changed
+//   reports                      saves the reports posted (src/inspect/reports.ts) into
+//                                inspect-reports/: README.md, reports.json and the screenshots
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -28,6 +31,7 @@ import type { Plugin } from 'vite';
 const ROOT = process.cwd();
 const DRAWINGS = 'http://estacions.albertguillaumes.cat/img/estocolm/';
 const CACHE = resolve(ROOT, 'node_modules/.cache/inspect');
+const REPORTS = 'inspect-reports';
 // the build tools the inspector can run, after a description or correction is edited
 const BUILDS = ['build-stations', 'build-track-geometry', 'build-heights', 'build-track-graph'];
 
@@ -67,6 +71,40 @@ async function drawing(name: string) {
   return readFileSync(file);
 }
 
+function git(gitArgs: string[]) {
+  return new Promise<string>((ok, fail) => execFile('git', gitArgs, { cwd: ROOT }, (err, out) => (err ? fail(err) : ok(out.trim()))));
+}
+
+function body(req: IncomingMessage) {
+  return new Promise<string>((ok, fail) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => ok(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', fail);
+  });
+}
+
+// Writes the reports into inspect-reports/, replacing what was there: the screenshots as
+// <id>.jpg, the reports without them in reports.json, and README.md to read them by.
+function saveReports(posted: { markdown: string; reports: { id: string; image: string | null }[] }) {
+  const dir = join(ROOT, REPORTS);
+  mkdirSync(dir, { recursive: true });
+  const keep = new Set<string>();
+  const reports = posted.reports.map((r) => {
+    if (!/^[a-z0-9-]+$/.test(r.id)) throw new Error(`not a report id: ${r.id}`);
+    const m = r.image ? /^data:image\/jpeg;base64,(.*)$/.exec(r.image) : null;
+    if (!m) return { ...r, image: null };
+    const file = `${r.id}.jpg`;
+    writeFileSync(join(dir, file), Buffer.from(m[1], 'base64'));
+    keep.add(file);
+    return { ...r, image: file };
+  });
+  for (const f of readdirSync(dir)) if (f.endsWith('.jpg') && !keep.has(f)) rmSync(join(dir, f));
+  writeFileSync(join(dir, 'reports.json'), JSON.stringify({ saved: new Date().toISOString(), reports }, null, 1) + '\n');
+  writeFileSync(join(dir, 'README.md'), posted.markdown);
+  return `Wrote ${REPORTS}/: README.md, reports.json and ${keep.size} screenshot${keep.size === 1 ? '' : 's'}.`;
+}
+
 function send(res: ServerResponse, status: number, type: string, body: string | Buffer) {
   res.statusCode = status;
   res.setHeader('Content-Type', type);
@@ -97,6 +135,15 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     }
     case 'profile':
       return send(res, 200, 'image/svg+xml', await plot('plot-profile', (out) => [q('route'), out, num('from'), num('to')]));
+    case 'version': {
+      const head = await git(['rev-parse', '--short', 'HEAD']);
+      // what the world is built from: the source and the data, not the reports
+      const dirty = await git(['status', '--porcelain', '--', '.', `:(exclude)${REPORTS}`]);
+      return send(res, 200, 'text/plain', `${head}${dirty ? '+' : ''}`);
+    }
+    case 'reports':
+      if (req.method !== 'POST') return send(res, 405, 'text/plain', 'POST them');
+      return send(res, 200, 'text/plain; charset=utf-8', saveReports(JSON.parse(await body(req))));
     case 'build': {
       if (req.method !== 'POST') return send(res, 405, 'text/plain', 'POST it');
       const tool = q('tool');
