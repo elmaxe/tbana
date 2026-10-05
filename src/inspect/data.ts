@@ -29,6 +29,10 @@ export interface Refs {
   entrances: { id: number; x: number; z: number; name: string | null }[];
 }
 
+// A station on Albert Guillaumes' site: its drawing, and the name of its 3D model where he has
+// published one.
+export interface GuillaumesStation { name: string; drawing: string; model: string | null }
+
 export interface InspectData {
   graph: TrackGraph;
   geometry: TrackGeometry;
@@ -36,6 +40,8 @@ export interface InspectData {
   city: CityIndex | null;
   // null when the page isn't served by tools/inspect.ts
   refs: Refs | null;
+  // by name; null when his site couldn't be reached either
+  guillaumes: Map<string, GuillaumesStation> | null;
 }
 
 interface OsmElement { type: string; id: number; lat?: number; lon?: number; tags?: Record<string, string> }
@@ -56,14 +62,16 @@ async function loadRefs(): Promise<Refs> {
 }
 
 export async function loadData(): Promise<InspectData> {
-  const [graph, geometry, layouts, city, refs] = await Promise.all([
+  const [graph, geometry, layouts, city, refs, guillaumes] = await Promise.all([
     getJson<TrackGraph>('data/track-graph.json'),
     getJson<TrackGeometry>('data/track-geometry.json'),
     getJson<StationLayouts>('data/station-layouts.json').catch(() => null),
     getJson<CityIndex>('data/city/index.json').catch(() => null),
     loadRefs().catch((err) => { console.warn('no reference data (run npm run inspect):', err); return null; }),
+    getJson<GuillaumesStation[]>('__inspect/guillaumes').then((list) => new Map(list.map((s) => [s.name, s])))
+      .catch((err) => { console.warn("no index of Albert Guillaumes' stations:", err); return null; }),
   ]);
-  return { graph, geometry, layouts, city, refs };
+  return { graph, geometry, layouts, city, refs, guillaumes };
 }
 
 // ------------------------------------------------------------------ places

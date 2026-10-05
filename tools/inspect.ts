@@ -10,9 +10,14 @@
 // the inspector's own endpoints under /__inspect/, which only the dev server has:
 //
 //   data/<file>                  a file from data/ (the tools' inputs: descriptions, corrections, …)
-//   drawing/<file>               Albert Guillaumes' drawing of a station, fetched from his site
-//                                once and kept in node_modules/.cache/inspect/ (never in the repo:
-//                                the drawings are his, and are used as a reference only)
+//   guillaumes                   the Stockholm stations on Albert Guillaumes' site: each one's
+//                                drawing, and its 3D model where he has published one
+//   drawing/<file>               his drawing of a station
+//   model/<name>.gltf            his 3D model of a station
+//
+// What comes from his site is fetched once and kept in node_modules/.cache/inspect/, never in the
+// repo: the drawings and models are his, and are used as a reference only. Delete the folder to
+// fetch them again.
 //   frame?station=…              tools/build-stations.ts --frame: the station's frame, as text
 //   plot?at=x,z&r=…              tools/plot-graph.ts: the track graph round a point, as SVG
 //   profile?route=…&from=…&to=…  tools/plot-profile.ts: a route's side view (km), as SVG
@@ -29,7 +34,9 @@ import { createServer } from 'vite';
 import type { Plugin } from 'vite';
 
 const ROOT = process.cwd();
-const DRAWINGS = 'http://estacions.albertguillaumes.cat/img/estocolm/';
+const SITE = 'http://estacions.albertguillaumes.cat/';
+// his names for stations OpenStreetMap names otherwise
+const SITE_NAMES: Record<string, string> = { 'S:t Eriksplan': 'Sankt Eriksplan', 'Sundbyberg centrum': 'Sundbybergs centrum' };
 const CACHE = resolve(ROOT, 'node_modules/.cache/inspect');
 const REPORTS = 'inspect-reports';
 // the build tools the inspector can run, after a description or correction is edited
@@ -59,16 +66,31 @@ async function plot(tool: string, toolArgs: (out: string) => string[]) {
   }
 }
 
-async function drawing(name: string) {
-  if (!/^[a-z0-9_-]+\.png$/.test(name)) throw new Error(`not a drawing: ${name}`);
-  const file = join(CACHE, name);
-  if (!existsSync(file)) {
-    const res = await fetch(DRAWINGS + name);
-    if (!res.ok) throw new Error(`${DRAWINGS}${name}: HTTP ${res.status}`);
+// A file from Albert Guillaumes' site, fetched the first time it's asked for. His site turns
+// away many requests close together (HTTP 429), so nothing is fetched before it's wanted.
+async function fromSite(path: string, file: string) {
+  const cached = join(CACHE, file);
+  if (!existsSync(cached)) {
+    const res = await fetch(SITE + path);
+    if (res.status === 429) throw Object.assign(new Error(`${SITE}${path}: the site asks to slow down (HTTP 429); try again in a minute`), { status: 503 });
+    if (!res.ok) throw Object.assign(new Error(`${SITE}${path}: HTTP ${res.status}`), { status: 502 });
     mkdirSync(CACHE, { recursive: true });
-    writeFileSync(file, Buffer.from(await res.arrayBuffer()));
+    writeFileSync(cached, Buffer.from(await res.arrayBuffer()));
   }
-  return readFileSync(file);
+  return readFileSync(cached);
+}
+
+// His Stockholm stations, from the index his site's map reads (js/dades.js, one station a line).
+async function guillaumes() {
+  const index = (await fromSite('js/dades.js', 'dades.js')).toString('utf8');
+  const stations = [];
+  for (const line of index.split('\n')) {
+    if (!line.includes('"carpeta": "estocolm"')) continue;
+    const p = JSON.parse(line.trim().replace(/,$/, '')).properties as { 'estació': string; url1: string; '3d'?: string };
+    const name = p['estació'];
+    stations.push({ name: SITE_NAMES[name] ?? name, drawing: p.url1.replace(/^estocolm\//, ''), model: p['3d'] ?? null });
+  }
+  return stations;
 }
 
 function git(gitArgs: string[]) {
@@ -124,8 +146,18 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
       if (!file.startsWith(join(ROOT, 'data') + '/') || !existsSync(file)) return send(res, 404, 'text/plain', 'not found');
       return send(res, 200, file.endsWith('.json') ? 'application/json' : 'application/octet-stream', readFileSync(file));
     }
-    case 'drawing':
-      return send(res, 200, 'image/png', await drawing(rest.join('/')));
+    case 'guillaumes':
+      return send(res, 200, 'application/json', JSON.stringify(await guillaumes()));
+    case 'drawing': {
+      const name = rest.join('/');
+      if (!/^[a-z0-9_-]+\.png$/.test(name)) return send(res, 400, 'text/plain', `not a drawing: ${name}`);
+      return send(res, 200, 'image/png', await fromSite(`img/estocolm/${name}`, name));
+    }
+    case 'model': {
+      const name = rest.join('/');
+      if (!/^[a-z0-9_-]+\.gltf$/.test(name)) return send(res, 400, 'text/plain', `not a model: ${name}`);
+      return send(res, 200, 'model/gltf+json', await fromSite(`3d/${name}`, name));
+    }
     case 'frame':
       return send(res, 200, 'text/plain; charset=utf-8', await run('build-stations', ['--frame', q('station')]));
     case 'plot': {
@@ -164,7 +196,7 @@ function inspectApi(): Plugin {
     name: 'tbana-inspect',
     configureServer(server) {
       server.middlewares.use('/__inspect', (req, res) => {
-        handle(req, res).catch((err: Error) => send(res, 500, 'text/plain; charset=utf-8', err.message));
+        handle(req, res).catch((err: Error & { status?: number }) => send(res, err.status ?? 500, 'text/plain; charset=utf-8', err.message));
       });
     },
   };

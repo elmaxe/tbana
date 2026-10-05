@@ -9,6 +9,7 @@ import type { Route } from '../track-graph';
 import type { StationLayout } from '../station-layout';
 import { distToLine, gridToWorld, worldLatLon } from './data';
 import type { InspectData, Sample, TrackIndex } from './data';
+import { ModelView } from './model-view';
 import { KIND_COLOURS } from './overview';
 import { aerial, atExit, onPlatform, onTrack } from './views';
 import type { View } from './views';
@@ -24,7 +25,7 @@ export interface RefActions {
   select(p: Place, fly: boolean): void;
 }
 
-const DRAWINGS = 'http://estacions.albertguillaumes.cat/img/estocolm/';
+const SITE = 'http://estacions.albertguillaumes.cat/';
 
 const esc = (s: unknown) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const a = (href: string, text: string) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(text)}</a>`;
@@ -37,10 +38,13 @@ export class Reference {
   private views = new Map<string, View>();
   private token = 0;
   private redLayouts: Map<string, StationLayout>;
+  private models: ModelView[] = [];
 
   constructor(private el: HTMLElement, private data: InspectData, private track: TrackIndex, private world: World, private actions: RefActions) {
     this.redLayouts = new Map((data.layouts?.stations ?? []).map((s) => [s.name, s]));
     el.addEventListener('click', (e) => {
+      const act = (e.target as HTMLElement).closest<HTMLElement>('[data-model-act]');
+      if (act) return this.modelAct(act);
       const t = (e.target as HTMLElement).closest<HTMLElement>('[data-view],[data-station],[data-piece],.figure');
       if (!t) return;
       if (t.dataset.view) this.actions.view(this.views.get(t.dataset.view)!);
@@ -65,8 +69,14 @@ export class Reference {
     this.views.clear();
     const token = ++this.token;
     const html = place.kind === 'station' ? this.station(place.name) : place.kind === 'track' ? this.trackPiece(place.piece, place.x, place.z) : this.point(place.x, place.z);
+    for (const v of this.models) v.dispose();
+    this.models = [];
     this.el.innerHTML = html + this.sources();
     this.el.scrollTop = 0;
+    for (const box of this.el.querySelectorAll<HTMLElement>('[data-model]')) {
+      const status = box.querySelector<HTMLElement>('.model-status')!;
+      this.models.push(new ModelView(box, box.dataset.model!, (text, bad) => { status.textContent = text; status.classList.toggle('err', !!bad); }));
+    }
     for (const img of this.el.querySelectorAll('img')) {
       img.addEventListener('error', () => {
         img.closest('.figure')!.outerHTML = `<p class="err">Couldn't load ${esc(decodeURIComponent(img.src))}</p>`;
@@ -107,6 +117,7 @@ export class Reference {
       h += '<div class="buttons">' + layout.exits.map((e) => this.button(`↑ ${e.name}`, atExit(e), 'Out in the street, looking at the exit')).join('') + '</div>';
     }
     if (!built) h += '<p class="note">Not built yet: the game draws only the red line. This is the track graph from OpenStreetMap.</p>';
+    h += this.guillaumes(name, desc?.drawing);
 
     // heights
     const wd = refs?.heights[name];
@@ -134,12 +145,9 @@ export class Reference {
     } else if (desc) {
       h += '<h3>Description</h3>';
       if (desc.note) h += `<p>${esc(desc.note)}</p>`;
-      if (desc.drawing) {
-        h += `<div class="figure drawing" title="Click to see it full size"><img src="__inspect/drawing/${esc(desc.drawing)}" alt="Drawing of ${esc(name)}"></div>`;
-        h += `<p class="note">Albert Guillaumes' drawing, read for the description and used as a reference only: ${a(DRAWINGS + desc.drawing, desc.drawing)}</p>`;
-      }
+      if (desc.drawing) h += `<p class="note">Read off Albert Guillaumes' drawing, above.</p>`;
       const { note: _n, drawing: _d, ...rest } = desc;
-      h += `<details${desc.drawing ? '' : ' open'}><summary>The description in data/station-descriptions.json (${(desc.routes ?? []).length} routes)</summary><pre>${esc(JSON.stringify(rest, null, 1))}</pre></details>`;
+      h += `<details><summary>The description in data/station-descriptions.json (${(desc.routes ?? []).length} routes)</summary><pre>${esc(JSON.stringify(rest, null, 1))}</pre></details>`;
       h += `<h3>Frame</h3><p class="note">Where the tracks, platforms, street and entrances are in the description's [s, u] frame (<code>npm run build-stations -- --frame ${esc(name)}</code>).</p>`;
       h += `<pre data-src="__inspect/frame?station=${encodeURIComponent(name)}">…</pre>`;
     } else if (built && refs) {
@@ -163,6 +171,48 @@ export class Reference {
     }
     h += '<h3>Links</h3>' + this.links(st.x, st.z, `https://www.openstreetmap.org/node/${st.osm}`);
     return h;
+  }
+
+  // Albert Guillaumes' 3D model of the station, where he has published one (T-Centralen's is the
+  // one the game is built on), and his drawing of it.
+  private guillaumes(name: string, described?: string) {
+    const g = this.data.guillaumes?.get(name);
+    const drawing = this.data.refs ? g?.drawing ?? described : undefined;
+    const model = name === 'T-Centralen' ? 'assets/t-centralen.glb' : this.data.refs && g?.model ? `__inspect/model/${g.model}.gltf` : null;
+    let h = '';
+    if (model) {
+      h += `<div class="model" data-model="${esc(model)}"><div class="model-bar"><span class="model-status"></span>`
+        + '<button data-model-act="reset">Reset</button><button data-model-act="wire">Wireframe</button><button data-model-act="big" title="Fill the window (Esc to shrink)">Enlarge</button></div></div>';
+      h += `<p class="note">His 3D model${name === 'T-Centralen' ? ', which the game is built on (<code>public/assets/t-centralen.glb</code>)' : ''}: drag to turn it, the wheel to zoom, right-drag to pan.</p>`;
+    }
+    if (drawing) {
+      h += `<div class="figure drawing" title="Click to see it full size"><img src="__inspect/drawing/${esc(drawing)}" alt="Drawing of ${esc(name)}"></div>`;
+      h += `<p class="note">His drawing${described ? ', which the description is read from' : ''}: ${a(`${SITE}img/estocolm/${drawing}`, drawing)}</p>`;
+    }
+    if (h) return `<h3>Albert Guillaumes</h3>${h}<p class="note">© Albert Guillaumes, ${a(SITE, 'estacions.albertguillaumes.cat')}: used as a reference only, and kept out of the repository.</p>`;
+    if (this.data.refs && !this.data.guillaumes) return `<p class="note">Albert Guillaumes' site couldn't be reached for his drawings: reload to try again.</p>`;
+    return '';
+  }
+
+  private modelAct(btn: HTMLElement) {
+    const box = btn.closest<HTMLElement>('[data-model]')!;
+    const view = this.models[[...this.el.querySelectorAll('[data-model]')].indexOf(box)];
+    if (!view) return;
+    if (btn.dataset.modelAct === 'reset') view.reset();
+    if (btn.dataset.modelAct === 'wire') {
+      view.toggleWire();
+      btn.classList.toggle('on');
+    }
+    if (btn.dataset.modelAct === 'big') {
+      const big = box.classList.toggle('big');
+      btn.textContent = big ? 'Shrink' : 'Enlarge';
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key !== 'Escape') return;
+        removeEventListener('keydown', onKey);
+        if (box.classList.contains('big')) this.modelAct(btn);
+      };
+      if (big) addEventListener('keydown', onKey);
+    }
   }
 
   // ---------------------------------------------------------------- a piece of track

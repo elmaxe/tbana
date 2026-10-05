@@ -48,8 +48,11 @@ and opens a page in three panes:
   in it to swing it round, and the wheel brings it closer or further. While the first-person
   camera is indoors or underground, the outside view cuts away everything over its head, so you
   look down into the tunnel or station (**cut:** always or never instead).
-- **Reference:** what the place was built from. For a station: Albert Guillaumes' drawing (fetched
-  from his site into `node_modules/.cache/inspect/`, never into the repository), the description,
+- **Reference:** what the place was built from. For a station: Albert Guillaumes' 3D model of it
+  where he has published one (T-Centralen, Odenplan, Fridhemsplan), to turn round and enlarge, and
+  his drawing of it (all 105 of his Stockholm stations, on any line). Both are fetched from his site
+  the first time they're shown and kept in `node_modules/.cache/inspect/`, never in the repository
+  (delete that folder to fetch them again). Then the description,
   its frame (`build-stations --frame`), the heights from Wikidata and as built, the fixes made by
   hand with their reasons, OpenStreetMap's entrances, and the track plan and profile round it
   (`plot-graph`, `plot-profile`). For a track: its OpenStreetMap nodes and ways, its height,
