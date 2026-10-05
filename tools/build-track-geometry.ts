@@ -46,7 +46,7 @@ import { loadStationModel, placeSample } from './lib/station-model.ts';
 const OUT = 'public/data/track-geometry.json';
 const STEP = 10;
 // how far each kind of anchor may be off, in metres (1/m for curvature)
-const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3 };
+const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3, middle: 0.1 };
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
 // 250 m, and measured over 20 m this keeps above it (and in proportion on the other lines). Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
@@ -97,6 +97,32 @@ interface Seg { piece: TrackPiece; k: number }
 const CELL = 20;
 interface Partner { piece: TrackPiece; k: number; t: number; d: number; dy: number; x: number; z: number; y: number; s: number }
 interface Across { vi: number; b0: number; b1: number; t: number; nx: number; nz: number }
+// Sidings and spurs in a tunnel, as OpenStreetMap has them: where one runs between the two tracks of
+// a line (a turnback track between the running lines, as west of Odenplan), those two are not
+// pulled together.
+const sidings: [number, number, number, number][] = [];
+{
+  const running = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+  for (const id of lineTrack(graph)) {
+    const p = graph.pieces[id];
+    if (running.has(id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+    for (let k = 1; k < p.points.length; k++) sidings.push([...p.points[k - 1], ...p.points[k]] as [number, number, number, number]);
+  }
+}
+const SIDING_CLEAR = 2;
+// the running lines either side of such a siding are looked for this far from it
+const SIDING_SPAN = 12;
+function sidingBetween(ax: number, az: number, bx: number, bz: number) {
+  const dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
+  if (d < 2 * SIDING_CLEAR) return false;
+  for (const [cx, cz, ex, ez] of sidings) {
+    const fx = ex - cx, fz = ez - cz, den = dx * fz - dz * fx;
+    if (Math.abs(den) < 1e-9) continue;
+    const u = ((cx - ax) * fz - (cz - az) * fx) / den, w = ((cx - ax) * dz - (cz - az) * dx) / den;
+    if (w >= 0 && w <= 1 && u * d > SIDING_CLEAR && (1 - u) * d > SIDING_CLEAR) return true;
+  }
+  return false;
+}
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
 const model = (await loadStationModel('t-centralen')).samples.map((s) => placeSample(s, placements['t-centralen']));
 
@@ -325,6 +351,28 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     const at = pinned?.get(v.key);
     if (at) anchor(vi, at[0], at[1], SIGMA.pinned);
   }
+  // a siding in a tunnel between the two running lines (a turnback track), as they are fitted:
+  // in the middle between them
+  if (pinned) {
+    const fitted: [number, number][] = [];
+    for (const v of vars) { const at = pinned.get(v.key); if (at) fitted.push(at); }
+    for (const p of pieces) {
+      if (services.has(p.id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => {
+        if (pinned.has(vars[vi].key)) return;
+        const [tx, tz] = tangent(p, s[k]), x = vars[vi].x0, z = vars[vi].z0;
+        let left: [number, number, number] | null = null, right: [number, number, number] | null = null;
+        for (const [fx, fz] of fitted) {
+          const along = (fx - x) * tx + (fz - z) * tz, across = -tz * (fx - x) + tx * (fz - z);
+          if (Math.abs(along) > STEP / 2 || Math.abs(across) > SIDING_SPAN) continue;
+          if (across < 0 && (!left || -across < left[2])) left = [fx, fz, -across];
+          if (across > 0 && (!right || across < right[2])) right = [fx, fz, across];
+        }
+        if (left && right) anchor(vi, (left[0] + right[0]) / 2, (left[1] + right[1]) / 2, SIGMA.middle);
+      });
+    }
+  }
 
   // the two tracks of a line, beside each other
   const osmPos = (v: number): [number, number] => [vars[v].x0, vars[v].z0];
@@ -340,7 +388,13 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       if (!b || b.piece.structure !== 'tunnel') return;
       const here = platformAt(p.id, s[k]), there = platformAt(b.piece.id, b.s);
       let target: number, f: number;
-      if (here && there && here.osm === there.osm) {
+      if (sidingBetween(a.x0, a.z0, b.x, b.z)) {
+        // a siding between them, at the standard spacing from each
+        target = 2 * TRACK_CENTRES;
+        f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
+        if (f < 0.05) return;
+        pairRows++;
+      } else if (here && there && here.osm === there.osm) {
         // an island platform between them
         target = ISLAND_WIDTH + 2 * PLATFORM_EDGE;
         f = 1;
