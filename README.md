@@ -60,8 +60,8 @@ standing in a doorway when the doors close, you step inside or back onto the pla
 
 On the red line the trains run the whole line on a timetable (see [Trains on the
 network](#trains-on-the-network)), so you ride on from station to station through the real
-tunnels. Step out at any station whose platform is drawn, Östermalmstorg for one, and wait there
-for the next train either way. At the end of the line the train turns out of sight: the screen goes
+tunnels. Step out at any station and wait there for the next train either way, or walk up to the
+street (see [The stations](#the-stations)). At the end of the line the train turns out of sight: the screen goes
 dark, and you come back in the same spot of the train that leaves from there the other way.
 
 On the other lines the model's tunnels are short, so the screen goes dark soon after you leave, and
@@ -241,8 +241,9 @@ where they run side by side.
 The game sweeps cross-sections along this line (`src/network.ts`): ballast and sleepers, rails, the
 conductor rail with its cover board, and the tunnel or bank around them. The sizes come from the
 typical sections in the 1952 and 1975 technical descriptions (`src/sections.ts`): an 8.0 m wide
-double-track rock tunnel 4.6 m high, a 4.3 m single-track one, and a box 4.2 m high. Stations
-other than T-Centralen get a plain hall with a platform and name signs until they are built.
+double-track rock tunnel 4.6 m high, a 4.3 m single-track one, and a box 4.2 m high. At the
+stations it draws the platform hall, the platform and its name signs, and the stations' own
+passages and stairs open out of it (see [The stations](#the-stations)).
 
 The network is cut into 200 m tiles, and only the tiles within about 600 m of the camera are built.
 `src/station-join.ts` joins T-Centralen's red tracks to the network: the station draws its
@@ -271,7 +272,61 @@ there first goes first.
 
 Only the trips within about 700 m of the player get a train model, from a pool.
 
-The network's platforms can be walked on, and the HUD shows the next trains from them.
+The network's platforms can be walked on, and the HUD shows the next trains from them and from the
+station halls.
+
+### The stations
+
+Every red line station beyond T-Centralen can be walked from its platform up (or down) to the
+street: through passages, stairs, escalators and ticket halls, to exits at OpenStreetMap's subway
+entrances. Each station is built from a short description in `data/station-descriptions.json`,
+read from Albert Guillaumes' drawing of it:
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-ground -- entrances   # streets round the stations -> data/ground/entrances.json
+npm run build-stations                    # -> public/data/station-layouts.json, and the checks
+npm run build-stations -- --frame Slussen # a station's frame, for writing its description
+```
+
+A description lists the ways out, each as a route of steps from a point on the platform:
+
+```json
+{ "from": [70, 0], "width": 6, "go": [
+  { "walk": [92, 0] },
+  { "escalators": 15, "toward": [147.6, -42.9], "lanes": "EES" },
+  { "walk": 8, "width": 8 }, { "gates": true }, { "walk": 4 },
+  { "exit": 247203403 }
+] }
+```
+
+- Points are `[s, u]` in the station's frame: metres along the platforms from their middle, and
+  across them to the right. Heights are metres above the platform. `--frame` prints where the
+  tracks and platforms are in it, the street above, and the entrances nearby.
+- `walk` goes to a point, or on for so many metres; with `dh` it is a ramp, and `open` leaves it
+  without a ceiling.
+- `stairs` and `escalators` climb a height (down if negative) towards a point, or end at it with
+  `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs.
+- `lift` rises a height; `gates` puts ticket gates across the way; `mark` names a place that
+  another route can start `from`.
+- `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
+  by stairs, escalators, a ramp (`walk`) or a lift.
+
+The platforms themselves come from the track geometry, so a description gives only the ways out.
+`build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,
+and fails, saying where, on:
+
+- a ramp steeper than 8%, or stairs with no room before their point
+- anything in the trains' way: 1.5 m either side of a track, up to 4 m above the rails
+- a platform from which the street can't be walked to, or an exit that leads to no platform,
+  walked on a 0.5 m grid with steps of up to 0.6 m
+
+The game builds them in `src/stations.ts`. Walls aren't described: they stand wherever a floor
+ends without another floor beyond it, as in the T-Centralen model. Each part's open space is cut
+out of whatever it runs into (`src/clip.ts`): a passage opens through the platform hall's wall, an
+escalator climbs through its vault, stairs go down through a platform or up through the street.
+The network cuts the same spaces out of its tunnels and platforms.
+
+To visit one, pick it under **Red line** in the menu, or start there with `?at=Mariatorget`.
 
 ## Train models
 
@@ -321,4 +376,8 @@ Database License (`data/osm/`, and the placements, track graph and track geometr
 in `public/data/`).
 
 Heights: Markhöjdmodell © Lantmäteriet, CC BY 4.0 (`data/ground/`, and the track heights and
-geometry derived from it in `public/data/`).
+geometry and the stations' streets derived from it in `public/data/`).
+
+Station layouts: the red line's stations are built from descriptions read off Albert Guillaumes'
+drawings of them ([estacions.albertguillaumes.cat](http://estacions.albertguillaumes.cat/)), used
+as a reference only; none of the drawings is copied into the project.

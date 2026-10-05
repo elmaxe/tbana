@@ -197,9 +197,8 @@ Each phase ends in a pull request with a playable preview.
        them.
      - Crossovers, sidings and turnback tracks aren't drawn, because only the services' track has
        heights.
-     - Seven platforms have no room beside their track as matched, mostly at junction stations,
-       and aren't drawn: Hägerstensåsen, Bredäng (two), Västertorp, Liljeholmen, Slussen and
-       Ropsten.
+     - Seven platforms had no room beside their track as matched, mostly at junction stations,
+       and weren't drawn. Phase 6 fixed this (see there).
      - There is no ground or city around the open stretches yet; that is phase 7. The network
        can't be walked on yet; that is phase 6.
 5. **Trains on the network.** *Done.*
@@ -246,18 +245,74 @@ Each phase ends in a pull request with a playable preview.
    - The sky shows where the track runs in the open, by the structure under the player.
    - Done: you can board at T-Centralen, ride to Östermalmstorg and get off on its platform.
    - Still open:
-     - The network's platforms lead nowhere yet; that is phase 6.
-     - You can't get off where the platform isn't drawn (see phase 4). Ropsten has none, so its
-       trains turn with you aboard.
+     - The network's platforms led nowhere; phase 6 built the stations.
      - The cars' indicator screens always say "Nästa T-Centralen".
      - The blue and green lines and the pendeltåg still run in and out of T-Centralen's model
        tunnels.
-6. **Stations, one at a time.**
-   - A station builder that turns a short description into a walkable station: platform type and
-     length, depth, ticket halls, stairs, escalators, lifts, exits.
-   - Order: Östermalmstorg, then south through Gamla stan, Slussen, Mariatorget, Zinkensdamm and
-     Hornstull to Liljeholmen, then the four branches.
-   - Done when: each station can be walked from platform to street.
+6. **Stations, one at a time.** *Done.*
+   - `data/station-descriptions.json` describes all 35 red line stations beyond T-Centralen, in
+     the plan's order: Östermalmstorg, the trunk south to Liljeholmen, then the four branches.
+     - Each is read from Albert Guillaumes' drawing of the station, as a reference only. The
+       platforms come from the track geometry, so a description gives only the ways out.
+     - A way out is a route of steps from a point on the platform: walk to a point, stairs or
+       escalators up or down a given height, a lift, ticket gates, and an exit. Points are given
+       in the station's own frame: metres along the platforms and across them.
+     - An exit comes up at one of OpenStreetMap's subway entrances, at the height of the street
+       there. Vårberg has no entrance in OSM, so its exit is placed by hand, and so are the lift
+       up the hill at Gärdet and Västertorp's western exit, which OSM has under the track.
+     - 75 exits, 95 flights of stairs and escalators (30 with escalators), 48 rows of ticket gates.
+       The deepest is Östermalmstorg: two flights of escalators, 38 m from platform to street.
+   - `tools/fetch-ground.ts entrances` samples Lantmäteriet's elevation model around the stations:
+     - a 72 m square at 4 m around each of the 115 entrances near them, in
+       `data/ground/entrances.json`
+     - a 200 m square around each station, for exits OSM doesn't map
+   - `tools/build-stations.ts` turns the descriptions into `public/data/station-layouts.json`
+     (format in `src/station-layout.ts`):
+     - level floors and ramps
+     - stairs and escalators: stairs rise 0.16 in 0.30 m, escalators at 30°
+     - lifts, ticket gates, signs at the exits, and the street around each group of exits
+     - roofs over open platforms
+     - the insides of the platform halls the network draws
+   - It fails on anything that can't be built, with the place:
+     - a ramp steeper than 8%, or stairs with no room before their point or their exit
+     - anything in the trains' space: 1.5 m either side of a track, from the ballast to 4 m
+       above the rails
+     - a platform from which the street can't be walked to, or an exit that leads to no
+       platform. This is checked on a 0.5 m grid with steps of up to 0.6 m, as the player walks.
+   - `src/stations.ts` builds the stations in the game:
+     - Walls aren't described. They stand wherever a floor ends without another floor beyond it
+       that can be stepped onto, as in the T-Centralen model, so a passage opens wherever another
+       one meets it. Where a room opens into a lower one, a lintel comes down to its ceiling.
+     - Each part's open space is cut out of whatever it runs into (`src/clip.ts`, exact convex
+       clipping). This is how a passage opens through a platform hall's wall and an escalator
+       climbs through its vault, and how stairs go down through a platform or come up through
+       the street. The network cuts the same volumes out of its tunnels, platforms and their
+       floors, and nobody walks under a flight of stairs.
+     - Stairs going down through a floor get a railing round the opening. Exits come up through
+       the street with a parapet round them and the blue T on a pole.
+   - Everything that can be walked on is indexed at load, in 130 ms for all 35 stations. A
+     station's meshes are built when the camera comes within 700 m: 7 ms (median), 47 ms for
+     Östermalmstorg, 131,000 triangles for all of them.
+   - The platforms in `build-track-geometry` are now measured square to their track at each point
+     along them, and the median taken. Before, they were measured from the middle of the platform
+     only, so on a curve a track 60 m away looked as if it ran beside the platform. All the
+     platforms are now drawn, including Slussen's, Ropsten's and Liljeholmen's, and island
+     platforms are the same width from both tracks.
+   - The menu can jump to any of the stations, and `?at=Mariatorget` starts on its platform.
+   - Done: every station can be walked from platform to street. A flood fill with the player's
+     own step rule, in the game, reaches every exit from the platform of every station. Gärdet's
+     lift is reached by riding it.
+   - Still open:
+     - The layouts follow the drawings, but are simpler: one or two ways out, straight passages,
+       and few lifts. Some of the exits OSM maps are left out: Götgatan and Medborgarplatsen at
+       Slussen, Fatbursgatan at Mariatorget, the western ones at Liljeholmen, the far ones at
+       Ropsten, Bergshamra's southern one, and one each at Alby, Hallunda, Telefonplan, Vårby gård
+       and Danderyds sjukhus.
+     - Where two exit passages leave a hall side by side, a thin wall stands between them.
+     - Exits that come up on a slope stand partly out of the ground, like small entrance
+       buildings.
+     - The street is a square of ground 60 m across around the exits, with nothing on it; the
+       city is phase 7.
 7. **The surface.**
    - Ground from the elevation model, with buildings from OpenStreetMap at first, and Lantmäteriet
      or Stockholm stad later. Start where the red line is above ground.

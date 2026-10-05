@@ -11,7 +11,9 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    // src/station-layout.ts imports src/clip.ts with its extension, for the tools on Node
+    "allowImportingTsExtensions": true
   },
   "include": ["src"]
 }

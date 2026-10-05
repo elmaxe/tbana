@@ -5,6 +5,8 @@ import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } fr
 import * as S from './sections';
 import * as T from './textures';
 import { SurfaceIndex } from './surface-index';
+import { cutIndexed, subtractAll } from './clip.ts';
+import type { Volume } from './clip.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -75,12 +77,32 @@ class MeshBuilder {
     this.vertex(d.x, d.y, d.z, ...ud);
     this.idx.push(i, i + 1, i + 2, i, i + 2, i + 3);
   }
-  build() {
+  // with the holes cut out of it, after the normals are found, so it stays smooth around them
+  build(holes: Volume[] = []) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
     g.setIndex(this.idx);
     g.computeVertexNormals();
+    if (holes.length) {
+      const n = g.attributes.normal.array, attrs: number[] = [];
+      for (let i = 0; i < this.pos.length / 3; i++) {
+        attrs.push(this.pos[3 * i], this.pos[3 * i + 1], this.pos[3 * i + 2], this.uv[2 * i], this.uv[2 * i + 1], n[3 * i], n[3 * i + 1], n[3 * i + 2]);
+      }
+      const cut = cutIndexed(attrs, 8, this.idx, holes);
+      const count = cut.attrs.length / 8;
+      const pos = new Float32Array(count * 3), uv = new Float32Array(count * 2), normal = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const a = cut.attrs;
+        pos.set([a[8 * i], a[8 * i + 1], a[8 * i + 2]], 3 * i);
+        uv.set([a[8 * i + 3], a[8 * i + 4]], 2 * i);
+        normal.set([a[8 * i + 5], a[8 * i + 6], a[8 * i + 7]], 3 * i);
+      }
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      g.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
+      g.setIndex(cut.idx);
+    }
     g.computeBoundingSphere();
     return g;
   }
@@ -118,8 +140,16 @@ export class Network {
   private signs = new Map<string, THREE.MeshBasicMaterial>();
   private stations: TrackGraph['stations'];
 
-  constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = []) {
+  // The stations' shafts and passages are cut out of the tunnels, platforms and everything else
+  // drawn (`holes`), and out of the platforms' floors, as are the solid undersides of their stairs
+  // (`solids`).
+  private holes: Volume[];
+  private solids: Volume[];
+
+  constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = [], { holes = [] as Volume[], solids = [] as Volume[] } = {}) {
     this.group.name = 'network';
+    this.holes = holes;
+    this.solids = solids;
     this.stations = graph.stations;
     // the direction each piece is run in, where it is only run one way
     const dirs = new Map<number, Set<number>>();
@@ -146,8 +176,13 @@ export class Network {
       if (!data) this.floorData.set(p.station, data = { kind: 'platform', rec: { label: `${p.station} · platform` }, station: p.station });
       const ea = corner(a, p.side * S.PLATFORM_EDGE), oa = corner(a, platformOuter(a));
       const eb = corner(b, p.side * S.PLATFORM_EDGE), ob = corner(b, platformOuter(b));
-      this.floors.add(ea, oa, ob, data);
-      this.floors.add(ea, ob, eb, data);
+      for (const tri of [[ea, oa, ob], [ea, ob, eb]]) {
+        for (const piece of subtractAll(tri.map((v) => [v.x, v.y, v.z]), [...this.holes, ...this.solids])) {
+          for (let k = 1; k + 1 < piece.length; k++) {
+            this.floors.add(new THREE.Vector3(...piece[0]), new THREE.Vector3(...piece[k]), new THREE.Vector3(...piece[k + 1]), data);
+          }
+        }
+      }
     }
   }
 
@@ -230,8 +265,11 @@ export class Network {
     const group = new THREE.Group();
     group.name = `tile ${tile.key}`;
     for (const run of tile.runs) this.buildRun(run, b, group);
+    // the holes reaching into the tile (its runs reach a little beyond it)
+    const m = 60, x0 = tile.cx - TILE / 2 - m, x1 = tile.cx + TILE / 2 + m, z0 = tile.cz - TILE / 2 - m, z1 = tile.cz + TILE / 2 + m;
+    const holes = this.holes.filter((h) => h.max[0] > x0 && h.min[0] < x1 && h.max[2] > z0 && h.min[2] < z1);
     for (const [name, builder] of Object.entries(b) as [MaterialName, MeshBuilder][]) {
-      if (!builder.empty) group.add(new THREE.Mesh(builder.build(), this.mats[name]));
+      if (!builder.empty) group.add(new THREE.Mesh(builder.build(holes), this.mats[name]));
     }
     return group;
   }

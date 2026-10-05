@@ -15,6 +15,9 @@ import { mountBuildSwitcher } from './build-switcher';
 import { Network } from './network';
 import type { PlatformFloorData } from './network';
 import { StationJoin } from './station-join';
+import { Stations } from './stations';
+import type { StationFloorData } from './stations';
+import type { StationLayouts } from './station-layout';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
 import type { SurfaceHit } from './surface-index';
@@ -68,12 +71,14 @@ addEventListener('resize', () => {
 });
 
 // ------------------------------------------------------------------ state
-// what the player can stand on besides the station model: train cars, and the network's platforms
-type Floor = CarFloorData | PlatformFloorData;
+// what the player can stand on besides the station model: train cars, the network's platforms, and
+// the network's stations
+type Floor = CarFloorData | PlatformFloorData | StationFloorData;
 
 interface Game {
   station: Station;
   network: Network | null;
+  stations: Stations | null;
   player: Player<Floor>;
   trains: Trains;
   minimap: MiniMap;
@@ -106,19 +111,24 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   const join = net ? new StationJoin(net.graph, net.geometry, 'T-Centralen') : null;
   const station = buildStation(root, { join: join ? (tracks) => join.join(tracks) : undefined });
   scene.add(station.group);
-  const network = net && join ? new Network(net.graph, net.geometry, join.exclusions) : null;
+  // the stations' passages and shafts open through the network's tunnel walls
+  const cuts = net?.layouts ? Stations.volumes(net.layouts) : undefined;
+  const network = net && join ? new Network(net.graph, net.geometry, join.exclusions, cuts) : null;
   if (network) scene.add(network.group);
+  const stations = network && net?.layouts ? new Stations(net.layouts, network.floors) : null;
+  if (stations) scene.add(stations.group);
   // the red line's trains run on the network's timetable, through the station and on
   const trains = new Trains(scene, station.tracks, sound, {
     renderer, quality: coarse ? 0.5 : 0.8, network: net && join ? { ...net, join } : null,
   });
   // the cars of the trains are floors too, so the player can board them through open doors, and
   // so are the network's platforms, to get off on
-  const player = new Player<Floor>(camera, station.walk, (x, z, out) => floorsAt(trains, network, x, z, out));
+  const player = new Player<Floor>(camera, station.walk, (x, z, out) => floorsAt(trains, network, stations, x, z, out));
   const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
-  game = { station, network, player, trains, minimap };
+  game = { station, network, stations, player, trains, minimap };
   sizeBigMap();
   buildTeleportList(station);
+  buildStationList(stations);
 
   const cam = params.get('cam');
   if (cam) {
@@ -128,6 +138,8 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
     player.fly = params.has('fly');
   } else {
     player.teleport(station.spawn.pos, station.spawn.yaw);
+    const at = params.get('at') && stations?.spot(params.get('at')!);
+    if (at) player.teleport(at.pos, at.yaw);
   }
   $('loading').hidden = true;
   $('start').hidden = false;
@@ -135,22 +147,25 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
 }
 
 const _platforms: SurfaceHit<PlatformFloorData>[] = [];
-function floorsAt(trains: Trains, network: Network | null, x: number, z: number, out: SurfaceHit<Floor>[]) {
+const _stationFloors: SurfaceHit<StationFloorData>[] = [];
+function floorsAt(trains: Trains, network: Network | null, stations: Stations | null, x: number, z: number, out: SurfaceHit<Floor>[]) {
   trains.floorsAt(x, z, out as SurfaceHit<CarFloorData>[]);
   if (network) for (const h of network.floors.query(x, z, _platforms)) out.push(h);
+  if (stations) for (const h of stations.walk.query(x, z, _stationFloors)) out.push(h);
   return out;
 }
 
-// The track network outside the station (src/network.ts). The game runs without it if it fails
-// to load.
-interface NetworkData { graph: TrackGraph; geometry: TrackGeometry }
+// The track network outside the station (src/network.ts), and its stations (src/stations.ts). The
+// game runs without them if they fail to load.
+interface NetworkData { graph: TrackGraph; geometry: TrackGeometry; layouts: StationLayouts | null }
 const getJson = <T>(url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
   return res.json() as Promise<T>;
 });
 const networkData: Promise<NetworkData | null> = Promise.all([
   getJson<TrackGraph>('data/track-graph.json'), getJson<TrackGeometry>('data/track-geometry.json'),
-]).then(([graph, geometry]) => ({ graph, geometry }), (err) => { console.warn('no track network:', err); return null; });
+  getJson<StationLayouts>('data/station-layouts.json').catch((err) => { console.warn('no station layouts:', err); return null; }),
+]).then(([graph, geometry, layouts]) => ({ graph, geometry, layouts }), (err) => { console.warn('no track network:', err); return null; });
 
 getJson<Record<string, StationPlacement>>('data/stations.json')
   .then((stations) => {
@@ -244,7 +259,7 @@ function handleKey(code: string) {
       player.fly = !player.fly;
       if (!player.fly) {
         // land on whatever is below, a train's floor included
-        const hits = [...station.walk.query(player.pos.x, player.pos.z), ...floorsAt(trains, game.network, player.pos.x, player.pos.z, [])];
+        const hits = [...station.walk.query(player.pos.x, player.pos.z), ...floorsAt(trains, game.network, game.stations, player.pos.x, player.pos.z, [])];
         const below = hits.filter((h) => h.y <= player.pos.y + 0.5).sort((a, b) => b.y - a.y)[0];
         if (below) player.teleport(new THREE.Vector3(player.pos.x, below.y, player.pos.z), player.yaw);
         else player.teleport(station.spawn.pos, station.spawn.yaw);
@@ -304,12 +319,39 @@ function buildTeleportList(station: Station) {
   });
 }
 
+// The network's stations, to jump to from the menu.
+function buildStationList(stations: Stations | null) {
+  if (!stations) return;
+  const select = $<HTMLSelectElement>('lineStations');
+  for (const st of [...stations.layouts].sort((a, b) => a.name.localeCompare(b.name, 'sv'))) {
+    const o = document.createElement('option');
+    o.value = o.textContent = st.name;
+    select.appendChild(o);
+  }
+  $('lineJump').hidden = false;
+  select.addEventListener('change', () => {
+    const name = select.value;
+    select.value = '';
+    const spot = name ? stations.spot(name) : null;
+    if (!spot || !game) return;
+    start();
+    const { player } = game;
+    fadeTo(() => {
+      endJourney();
+      player.fly = false;
+      document.body.classList.remove('flying');
+      player.teleport(spot.pos, spot.yaw);
+      toast(`${name} · platform`);
+    });
+  });
+}
+
 // ------------------------------------------------------------------ lifts
 function nearbyLift() {
   if (!game) return null;
   const { player } = game;
   let best = null, bestD = Infinity;
-  for (const l of game.station.lifts) {
+  for (const l of [...game.station.lifts, ...(game.stations?.lifts ?? [])]) {
     const d = Math.hypot(player.pos.x - l.center.x, player.pos.z - l.center.z) - l.radius;
     if (d < 3.2 && player.pos.y > l.minY - 0.6 && player.pos.y < l.maxY + 0.6 && d < bestD) { best = l; bestD = d; }
   }
@@ -455,9 +497,9 @@ function updateHud() {
   $('where').textContent = player.fly
     ? `Free flight · ${nearby(player.pos)}${player.pos.y.toFixed(0)} m`
     : `${surface?.rec.label ?? '—'} · level ${player.pos.y.toFixed(0)} m`;
-  // on a platform: the station model's, or a station's on the network
+  // on a platform: the station model's, or a station's on the network, or in that station
   const deps = !surface || surface.kind === 'train' ? []
-    : surface.kind === 'platform' ? trains.departuresAt(surface.station).slice(0, 4)
+    : surface.kind === 'platform' || surface.kind === 'station' ? trains.departuresAt(surface.station).slice(0, 4)
     : surface.rec.platformLine ? trains.departuresFor(surface.rec) : [];
   const box = $('departures');
   box.hidden = deps.length === 0;
@@ -478,7 +520,9 @@ function inStation(pos: THREE.Vector3, margin = 0) {
 function updateAtmosphere(player: Player<Floor>, dt: number) {
   const { x, y, z } = player.pos;
   const station = THREE.MathUtils.smoothstep(y, 3.5, 5.8);
-  const target = player.fly ? 0.5 : inStation(player.pos) ? station : game?.network?.outdoorsAt(x, y, z) ?? station;
+  // the network's stations first: the station model's box reaches over some of them
+  const target = player.fly ? 0.5 : game?.stations?.outdoorsAt(x, y, z)
+    ?? (inStation(player.pos) ? station : game?.network?.outdoorsAt(x, y, z) ?? station);
   outdoor += (target - outdoor) * Math.min(1, dt * 3);
   background.copy(DARK).lerp(SKY, player.fly ? 0 : outdoor);
   fog.color.copy(background);
@@ -526,6 +570,7 @@ function simulate(dt: number) {
     else player.applyCamera(dt);
     headLight.position.set(player.pos.x, player.eyeY + 0.6, player.pos.z);
     game.network?.update(camera.position);
+    game.stations?.update(camera.position);
     updateAtmosphere(player, dt);
   }
 }
