@@ -64,7 +64,7 @@ export class Trains {
   private _p = new THREE.Vector3();
   private _q = new THREE.Vector3();
 
-  constructor(private scene: THREE.Scene, tracks: Track[], public sound: Sound | null,
+  constructor(private scene: THREE.Object3D, tracks: Track[], public sound: Sound | null,
     { renderer = null, quality = 1, network = null }: { renderer?: THREE.WebGLRenderer | null; quality?: number; network?: TrainsNetwork | null } = {}) {
     const matCache = new Map<string, THREE.Material>();
     const endTex = T.trainEnd();
