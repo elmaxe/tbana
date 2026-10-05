@@ -72,7 +72,7 @@
           {"exit": 401798228, "by": "walk"}
         ] },
         { "from": "gates", "width": 4, "go": [
-          {"exit": 3596988872, "by": "walk"}
+          {"exit": 3596988872, "by": "walk", "ceiling": 2.6}
         ] },
         { "from": "gates", "width": 4, "go": [
           {"exit": 486085165, "by": "walk"}

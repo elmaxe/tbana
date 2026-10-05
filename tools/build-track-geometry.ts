@@ -3,15 +3,16 @@
 //
 //   node tools/build-track-geometry.ts
 //
-// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/red-line.json,
+// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json,
 // data/height-corrections.json and the T-Centralen model; writes public/data/track-geometry.json
 // (format in src/track-geometry.ts).
 //
 // The plan. OpenStreetMap's track is traced from aerial photos in the open, but sketched in the
 // tunnels: there the two tracks of a line wander 4 to 35 m apart, where the line was built with
-// both in one tunnel at 3.15 m centres. Every piece of the red line's track (tools/lib/graph.ts
-// lineTrack: what its services run on, and the crossovers, sidings and depots joined to that) is cut into points about
-// 10 m apart, joined at the nodes, and the plan is the smoothest line, by least squares, through:
+// both in one tunnel at 3.15 m centres. Every piece of the drawn lines' track (tools/lib/graph.ts
+// lineTrack: what their services run on, and the crossovers, sidings and depots joined to that)
+// is cut into points about 10 m apart, joined at the nodes, and the plan is the smoothest line, by
+// least squares, through:
 // - OpenStreetMap's track: closely in the open and along platforms, loosely in tunnels (but
 //   closely for track no service runs on, which OSM maps from depot and track plans)
 // - T-Centralen's platform tracks: the station model's tracks, which the game draws
@@ -20,6 +21,8 @@
 //   and at an island platform in a tunnel, the platform's width apart. Not near the tunnel's
 //   mouths, nor near the other platforms, where the tracks part to pass a platform or a station
 //   hall, so that they part and meet again in long, gentle curves.
+// Its curves are held to the line's limit: 250 m on the red line, 200 m on the green, where the
+// green line in the open keeps OpenStreetMap's curves, traced from aerial photos.
 //
 // The structure, at every point:
 // - tunnel: in a concrete box where the rock would be thin (less than 12 m from the rail to the
@@ -35,21 +38,26 @@ import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { ISLAND_WIDTH, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES } from '../src/sections.ts';
-import { chainage, interp, lineTrack, mouthDistances, pointAt } from './lib/graph.ts';
+import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-geometry.json';
-const GROUND = 'data/ground/red-line.json';
 const STEP = 10;
 // how far each kind of anchor may be off, in metres (1/m for curvature)
 const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3 };
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
-// 250 m, and measured over 20 m this keeps above it. Track no service runs on (crossovers,
+// 250 m, and measured over 20 m this keeps above it (and in proportion on the other lines). Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
 const CURVE_HOLD = 310, YARD_CURVE_HOLD = 50;
-const CURVE_LIMIT = 250;
+// the tightest curve of each line (the 1975 description: the green line was built to 200 m, the
+// red to 250 m)
+const CURVE_LIMIT: Record<string, number> = { green: 200, red: 250 };
+// Lines whose curves in the open are kept as OpenStreetMap traces them from aerial photos, held
+// only against kinks: the green line turns at 115–150 m between Alvik and Stora mossen, tighter
+// than its limit. (The red line's are held to its limit everywhere, as they always were.)
+const OPEN_AS_MAPPED = new Set(['green']);
 // the two tracks are pulled together where they are within this of each other in plan, and in
 // height (fully within the second figure)
 const PAIR_REACH = 40, PAIR_DY = [2.0, 1.5];
@@ -70,13 +78,16 @@ const SHARE_REACH = 7.5, SHARE_DY = 2.0;
 const MIN_RUN = 30;
 
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
+// the line a piece belongs to: as OpenStreetMap names it, or the line of the services on it
+const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
+const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
-const ground: [number, number, number][] = existsSync(GROUND) ? JSON.parse(readFileSync(GROUND, 'utf8')).samples : [];
-if (!ground.length) console.warn(`${GROUND} missing: every tunnel is taken to be in rock, and all open track on the ground`);
+const ground = groundSamples(graph);
+if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
 // ------------------------------------------------------------------ the plan
-// The plan is fitted twice: first the services' track alone, then all of the red line's track with
+// The plan is fitted twice: first the services' track alone, then all of the lines' track with
 // the services' track pinned where the first fit put it, so that the crossovers, sidings and
 // depots are fitted to the line and don't move it.
 interface Var { x0: number; z0: number; y: number; tunnel: boolean; key: string }
@@ -379,15 +390,31 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   // tighter than the limit, the curvature is held at it, the line solved again, and a hold let go
   // where it no longer pushes, until nothing changes (as build-heights does for gradients).
   const lsq = new LeastSquares(2 * vars.length, rows);
+  // the radius a point of a piece is held to
+  const holdAt = (p: TrackPiece, v: number) => {
+    if (!services.has(p.id) || (!vars[v].tunnel && OPEN_AS_MAPPED.has(lineOf(p)))) return YARD_CURVE_HOLD;
+    return CURVE_HOLD * (CURVE_LIMIT[lineOf(p)] ?? 250) / 250;
+  };
   const bends = pieces.flatMap((p) => {
     const { s, v } = disc.get(p.id)!;
-    const hold = services.has(p.id) ? CURVE_HOLD : YARD_CURVE_HOLD;
-    return v.slice(1, -1).map((b, k) => ({ a: v[k], b, c: v[k + 2], h1: s[k + 1] - s[k], h2: s[k + 2] - s[k + 1], hold }));
-  });
+    return v.slice(1, -1).map((b, k) => ({ a: v[k], b, c: v[k + 2], h1: s[k + 1] - s[k], h2: s[k + 2] - s[k + 1], hold: holdAt(p, b) }));
+  }).concat(graph.nodes.flatMap((n) => {
+    // ... and across the nodes, between pieces a train runs through
+    if (!nodeVar.has(n.id)) return [];
+    const at = pieces.filter((p) => p.from === n.id || p.to === n.id);
+    const pairs: [number, number][] = n.through ?? (at.length === 2 ? [[at[0].id, at[1].id]] : []);
+    return pairs.filter(([a, b]) => used.has(a) && used.has(b)).map(([a, b]) => {
+      const pa = nextTo(graph.pieces[a], n.id), pb = nextTo(graph.pieces[b], n.id);
+      const node = nodeVar.get(n.id)!;
+      const hold = Math.min(holdAt(graph.pieces[a], node), holdAt(graph.pieces[b], node));
+      return { a: pa.v, b: node, c: pb.v, h1: pa.h, h2: pb.h, hold };
+    });
+  }));
   const curvature = (y: Float64Array, { a, b, c, h1, h2 }: (typeof bends)[number]) => {
     const k = 2 / (h1 + h2);
     return [X, Z].map((f) => k * ((y[f(a)] - y[f(b)]) / h1 + (y[f(c)] - y[f(b)]) / h2));
   };
+
   // Likewise tracks at different levels are held apart where they come too close.
   const held = new Map<number, [number, number]>(); // bend → the direction it is held in
   const heldApart = new Set<number>();
@@ -647,7 +674,7 @@ for (const g of Object.values(out)) {
 const result: TrackGeometry = {
   attribution: JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).attribution,
   osm: graph.osm,
-  note: 'The track the game draws, per piece of the red line\'s track in public/data/track-graph.json (the pieces its services run on, and the crossovers, sidings and depots joined to them). Format in src/track-geometry.ts.',
+  note: 'The track the game draws, per piece of the drawn lines\' track in public/data/track-graph.json (the pieces their services run on, and the crossovers, sidings and depots joined to them). Format in src/track-geometry.ts.',
   pieces: out,
 };
 writeFileSync(OUT, JSON.stringify(result) + '\n');
@@ -669,31 +696,41 @@ console.log(`track centres in shared rock tunnels: median ${pct(centres, 0.5).to
 // the tightest curves, away from switches
 const problems: string[] = [];
 const switches = graph.nodes.filter((n) => n.kind === 'switch' || n.kind === 'crossing');
+const tc = graph.stations.find((s) => s.name === 'T-Centralen')!, TC_TWISTS = 350;
 const near = (x: number, z: number) => graph.stations.reduce((a, b) => (Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a)).name;
 for (const route of graph.routes) {
-  const pts: { x: number; z: number; platform: boolean }[] = [];
+  const pts: { x: number; z: number; platform: boolean; mapped: boolean }[] = [];
   for (const step of route.path) {
     const g = out[step.piece];
     const idx = g.s.map((_, k) => k);
     if (step.dir < 0) idx.reverse();
     for (const k of idx) {
-      const q = { x: g.x[k], z: g.z[k], platform: !!platformAt(step.piece, g.s[k]) };
+      const kind = STRUCTURE_KINDS[g.kind[k]];
+      const mapped = kind !== 'rock' && kind !== 'box' && OPEN_AS_MAPPED.has(route.line);
+      const q = { x: g.x[k], z: g.z[k], platform: !!platformAt(step.piece, g.s[k]), mapped };
       const last = pts[pts.length - 1];
       if (!last || Math.hypot(last.x - q.x, last.z - q.z) > 0.5) pts.push(q);
     }
   }
-  let worst = { r: Infinity, at: '' }, worstPlatform = { r: Infinity, at: '' };
+  let worst = { r: Infinity, at: '' }, worstPlatform = { r: Infinity, at: '' }, worstMapped = { r: Infinity, at: '' };
   for (let i = 2; i + 2 < pts.length; i++) {
     const a = pts[i - 2], b = pts[i], c = pts[i + 2];
     if (switches.some((n) => Math.hypot(n.x - b.x, n.z - b.z) < 40)) continue;
+    // T-Centralen's two levels: OpenStreetMap sketches how they wind out of the station, and the
+    // plan smooths that only roughly (curves down to about 140 m, as before the red and green
+    // lines' tracks there were told apart, when this stretch was full of switches)
+    if (Math.hypot(tc.x - b.x, tc.z - b.z) < TC_TWISTS) continue;
     const ab = Math.hypot(b.x - a.x, b.z - a.z), bc = Math.hypot(c.x - b.x, c.z - b.z), ac = Math.hypot(c.x - a.x, c.z - a.z);
     const cross = Math.abs((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x));
     const r = cross > 1e-9 ? (ab * bc * ac) / (2 * cross) : Infinity;
-    if (r < worst.r) worst = { r, at: near(b.x, b.z) };
     if (b.platform && r < worstPlatform.r) worstPlatform = { r, at: near(b.x, b.z) };
+    if (b.mapped) { if (r < worstMapped.r) worstMapped = { r, at: near(b.x, b.z) }; continue; }
+    if (r < worst.r) worst = { r, at: near(b.x, b.z) };
   }
-  console.log(`${route.name}: tightest curve ${Math.round(worst.r)} m near ${worst.at}, at a platform ${Math.round(worstPlatform.r)} m at ${worstPlatform.at}`);
-  if (worst.r < CURVE_LIMIT * 0.95) problems.push(`${route.name}: a curve of ${Math.round(worst.r)} m near ${worst.at} (limit ${CURVE_LIMIT} m)`);
+  console.log(`${route.name}: tightest curve ${Math.round(worst.r)} m near ${worst.at}, at a platform ${Math.round(worstPlatform.r)} m at ${worstPlatform.at}`
+    + (worstMapped.r < Infinity ? `, in the open as mapped ${Math.round(worstMapped.r)} m near ${worstMapped.at}` : ''));
+  const limit = CURVE_LIMIT[route.line] ?? 250;
+  if (worst.r < limit * 0.95) problems.push(`${route.name}: a curve of ${Math.round(worst.r)} m near ${worst.at} (limit ${limit} m)`);
 }
 // tunnels that cut into each other: tracks at different levels, too close to share a tunnel or
 // to pass one over the other

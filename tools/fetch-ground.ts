@@ -1,29 +1,32 @@
 // Samples the ground height from Lantmäteriet's 1 m elevation model (Markhöjdmodell, RH 2000).
 //
-//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts            under the tracks -> data/ground/red-line.json
-//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts entrances  around the stations' entrances
+//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts tracks green  under the tracks
+//                                                                 -> data/ground/green-line.json
+//   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts entrances    around the stations' entrances
 //                                                                 -> data/ground/entrances.json
 //
 // The login and the way the files are found are in tools/lib/lantmateriet.ts. Here the model's
 // 2.5 × 2.5 km files are read at full resolution, only the blocks under the points. Every piece
-// of track on a traced service is sampled every 10 m, tunnels too: above a tunnel the ground says
-// how deep it must be. Around each subway entrance near a station on a traced service, a square
+// of the track the game draws (tools/lib/graph.ts lineTrack) is sampled every 10 m, tunnels too:
+// above a tunnel the ground says how deep it must be. Each line has its file, which takes the
+// drawn track that the other lines' files don't already have: run it for a line once its
+// services are traced. Around each subway entrance near a station on a traced service, a square
 // of ground is sampled on a grid: the street the station's exits come up to. (The ground of the
 // whole city is tools/fetch-terrain.ts.)
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fromUrl } from 'geotiff';
 import type { GeoTIFFImage } from 'geotiff';
 import { GRID_TM, lonLatToWorld, worldToGrid } from '../src/geo.ts';
 import { authHeaders, findFiles, throttleFetch } from './lib/lantmateriet.ts';
-import { lineTrack } from './lib/graph.ts';
+import { drawnLines, groundFile, lineTrack } from './lib/graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 
-const MODE = process.argv[2] ?? 'tracks';
+const MODE = process.argv[2] ?? 'tracks', LINE = process.argv[3] ?? 'red';
 if (MODE !== 'tracks' && MODE !== 'entrances') {
-  console.error('usage: node tools/fetch-ground.ts [tracks|entrances]');
+  console.error('usage: node tools/fetch-ground.ts [tracks <line>|entrances]');
   process.exit(1);
 }
-const OUT = MODE === 'tracks' ? 'data/ground/red-line.json' : 'data/ground/entrances.json';
+const OUT = MODE === 'tracks' ? groundFile(LINE) : 'data/ground/entrances.json';
 const STEP = 10;
 // around the entrances: a square PATCH × PATCH cells of PATCH_STEP m, centred on the entrance, for
 // the entrances within NEAR of a station
@@ -60,9 +63,22 @@ const point = (x: number, z: number) => {
   return p;
 };
 if (MODE === 'tracks') {
+  if (!drawnLines(graph).includes(LINE)) throw new Error(`no traced service on the ${LINE} line`);
+  // what the other lines' files have
+  const have = new Set<string>();
+  for (const line of drawnLines(graph)) {
+    if (line === LINE || !existsSync(groundFile(line))) continue;
+    for (const [x, z] of JSON.parse(readFileSync(groundFile(line), 'utf8')).samples) have.add(`${Math.round(x / 5)},${Math.round(z / 5)}`);
+  }
+  const had = (x: number, z: number) => {
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) if (have.has(`${Math.round(x / 5) + i},${Math.round(z / 5) + j}`)) return true;
+    return false;
+  };
   for (const p of pieces) {
     const n = Math.max(1, Math.ceil(p.length / STEP));
-    for (let k = 0; k <= n; k++) point(...pointAt(p, (p.length * k) / n));
+    const pts = Array.from({ length: n + 1 }, (_, k) => pointAt(p, (p.length * k) / n));
+    if (pts.every(([x, z]) => had(x, z))) continue;
+    for (const [x, z] of pts) point(x, z);
   }
 }
 
@@ -184,7 +200,7 @@ const samples = points.filter((p) => p.h !== undefined)
   .map((p) => [Math.round(p.x * 10) / 10, Math.round(p.z * 10) / 10, Math.round(p.h! * 100) / 100]);
 writeFileSync(OUT, `{
   "attribution": "Markhöjdmodell © Lantmäteriet, CC BY 4.0",
-  "note": "Ground height (RH 2000) under the red line's track (its services' track, and the crossovers, sidings and depots joined to it), every ${STEP} m: [world x, world z, height].",
+  "note": "Ground height (RH 2000) under the ${LINE} line's track (its services' track, and the crossovers, sidings and depots joined to it) that the other lines' files don't have, every ${STEP} m: [world x, world z, height].",
   "samples": [
 ${samples.map((s) => '    ' + JSON.stringify(s)).join(',\n')}
   ]

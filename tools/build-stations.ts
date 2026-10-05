@@ -38,7 +38,7 @@ type Segment =
   | { lift: number }
   | { gates: true }
   | { mark: string }
-  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string };
+  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number };
 interface RouteDesc { from: SU | string; h?: number; width?: number; go: Segment[] }
 interface Description {
   drawing?: string;
@@ -291,7 +291,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         const by = sg.by ?? 'stairs';
         const dh = ey - y, l = Math.hypot(e.x - x, e.z - z);
         const nx = l > 0.01 ? (e.x - x) / l : hx, nz = l > 0.01 ? (e.z - z) / l : hz;
-        if (by === 'walk') walkTo(e.x, e.z, dh);
+        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling);
         else if (by === 'lift') {
           walkTo(e.x, e.z);
           const yaw = Math.atan2(hx, hz);

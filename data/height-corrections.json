@@ -1,10 +1,60 @@
 {
-  "note": "Fixes to the inputs of tools/build-heights.ts, each with its reason. Positions are world x, z (src/geo.ts); a fix applies within reach metres of the line along the given points.",
+  "note": "Fixes to the inputs of tools/build-heights.ts, each with its reason. Positions are world x, z (src/geo.ts); a fix applies within reach metres of the line along the given points. A station's height is its platform level; a depth is how far its platform is below the ground over its platform tracks (Lantmäteriet's elevation model).",
   "stations": [
     {
       "station": "Gamla stan",
       "height": 7.5,
       "why": "Wikidata's 2.6 m is the street. The ticket hall is under the tracks and platforms (Swedish and English Wikipedia) and is entered from Mälartorget, Munkbroleden and Munkbrohamnen at +3 to +4 m, so the platforms are higher. Lantmäteriet's elevation model shows the station deck as a strip at +7 to +7.5 m, and the bridge on to Slussen (platforms at 8 m) is close to level."
+    },
+    {
+      "station": "Fridhemsplan",
+      "height": 1.3,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the green line's platform is about 18 m under the ground and at 1.3 m above sea level."
+    },
+    {
+      "station": "Sankt Eriksplan",
+      "depth": 8,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is about eight metres under the ground."
+    },
+    {
+      "station": "Odenplan",
+      "depth": 9,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is about 9 m under the ground."
+    },
+    {
+      "station": "Rådmansgatan",
+      "depth": 8,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is 8 m under the ground."
+    },
+    {
+      "station": "Medborgarplatsen",
+      "height": 17,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is 6–18 m under the ground, but 17 m above sea level."
+    },
+    {
+      "station": "Skanstull",
+      "depth": 5,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station (infobox): 5 m deep."
+    },
+    {
+      "station": "Bagarmossen",
+      "depth": 19,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock cavern 19 m under the ground."
+    },
+    {
+      "station": "Skarpnäck",
+      "depth": 25,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock cavern 25 m under the ground."
+    },
+    {
+      "station": "Farsta strand",
+      "depth": 5,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station (infobox): 5 m deep; the platforms are in a short tunnel under the town centre."
+    },
+    {
+      "station": "Hagsätra",
+      "height": 46.2,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: 46.2 m above sea level, the third highest station of the metro."
     }
   ],
   "uncovered": [
@@ -40,6 +90,30 @@
       ],
       "reach": 4,
       "why": "Sätra, the siding beside the running lines north of the station: OSM draws it a few metres into the bank beside them, where the elevation model rises 2–4 m above the track."
+    },
+    {
+      "along": [
+        [-3240, -140],
+        [-3200, -130]
+      ],
+      "reach": 12,
+      "why": "Kristineberg, west of the station: the elevation model dips 5–6 m under the line for about 25 m, where a road passes under it. OSM doesn't map the bridge."
+    },
+    {
+      "along": [
+        [-4035, -202],
+        [-4005, -194]
+      ],
+      "reach": 12,
+      "why": "Alvik, east of the station: the elevation model dips 5 m under the line for about 30 m, where a street passes under it on the way to Tranebergsbron. OSM doesn't map the bridge."
+    },
+    {
+      "along": [
+        [1806, 9070],
+        [1816, 9100]
+      ],
+      "reach": 12,
+      "why": "Farsta, north of the station: the elevation model dips 5 m under the line for about 20 m, where a road passes under it. OSM doesn't map the bridge."
     }
   ]
 }

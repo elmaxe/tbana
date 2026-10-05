@@ -1,18 +1,20 @@
-// Gives the red line's track its heights, and checks them against the design limits.
+// Gives the drawn lines' track its heights (the red and green lines), and checks them against the
+// design limits.
 //
 //   node tools/build-heights.ts
 //
 // Reads public/data/track-graph.json, data/station-heights.json (Wikidata), the T-Centralen
-// model, data/ground/red-line.json (Lantmäteriet's elevation model) when it is there,
+// model, data/ground/<line>-line.json (Lantmäteriet's elevation model) when they are there,
 // data/osm/buildings.json (for the depots), and the fixes to these in data/height-corrections.json; writes
 // public/data/track-heights.json: the height of the top of the rail (RH 2000) at every point of
-// every piece of the red line's track: what its services run on, and the crossovers, sidings and
+// every piece of the lines' track: what their services run on, and the crossovers, sidings and
 // depots joined to that (tools/lib/graph.ts lineTrack).
 //
 // Every piece is cut into points about 10 m apart, joined at the graph's nodes, and the heights
 // are the smoothest line through these, by least squares:
 // - stations: the platform tracks sit 1.0 m below the station's height from Wikidata, which is
-//   taken to be the platform's level (unless data/height-corrections.json fixes it), and are held
+//   taken to be the platform's level (unless data/height-corrections.json fixes it, or gives the
+//   station's depth under the ground instead: Wikidata has none of the green line's), and are held
 //   level along the platform
 // - T-Centralen, which Wikidata lacks: the heights of the model's tracks, which are drawn at
 //   platform level, also 1.0 m above the rail
@@ -22,41 +24,53 @@
 //   platforms (the ground over a covered station such as Gamla stan is its roof), and where the
 //   corrections say the line is in a trough rather than a bored tunnel
 // - the gradient: no steeper than 37‰
-// Then the result is checked against the 1975 limits for the red line: 40‰ at most, 10‰ along
-// platforms, vertical curves of at least 2,000 m radius. The build fails on anything clearly
-// outside them, and lists it.
+// - the services' vertical curves: no tighter than their line's limit
+// Then the result is checked against the 1975 limits: 40‰ at most, 10‰ along platforms, vertical
+// curves of at least 2,000 m radius on the red line and 1,500 m on the green. The build fails on
+// anything clearly outside them, and lists it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
-import { lineTrack, mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
+import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-heights.json';
-const GROUND = 'data/ground/red-line.json';
 const CORRECTIONS = 'data/height-corrections.json';
 const BUILDINGS = 'data/osm/buildings.json';
 const STEP = 10;
 const PLATFORM_ABOVE_RAIL = 1.0;
-const LIMITS = { gradient: 0.040, platformGradient: 0.010, radius: 2000, cover: 6, yardCover: 3 };
+const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 3 };
+// the tightest vertical curve of each line (the 1975 description: the green line was built to
+// 1,500 m, the red to 2,000 m)
+const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, grade: 0.001, level: 50, pinned: 0.01 };
+const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01 };
 // the gradient the line is held to where it would be steeper
 const GRADE_HOLD = 0.037;
 
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const stationHeights: Record<string, { height: number }> = JSON.parse(readFileSync('data/station-heights.json', 'utf8')).stations;
 interface Corrections {
-  stations?: { station: string; height: number; why: string }[];
+  // a station's platform level, or how deep it is under the ground over its platform tracks
+  stations?: { station: string; height?: number; depth?: number; why: string }[];
   uncovered?: Segment[];
   offGround?: Segment[];
 }
 interface Segment { along: [number, number][]; reach: number; why: string }
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
+const ground = groundSamples(graph);
 for (const c of corrections.stations ?? []) {
-  if (!graph.stations.some((s) => s.name === c.station)) throw new Error(`${CORRECTIONS}: no station ${c.station}`);
-  stationHeights[c.station] = { height: c.height };
+  const st = graph.stations.find((s) => s.name === c.station);
+  if (!st) throw new Error(`${CORRECTIONS}: no station ${c.station}`);
+  if (c.height !== undefined) { stationHeights[c.station] = { height: c.height }; continue; }
+  if (c.depth === undefined) throw new Error(`${CORRECTIONS}: ${c.station} has neither a height nor a depth`);
+  // the ground within 30 m of the middle of its platform tracks
+  const mids = st.platforms.flatMap((p) => p.tracks.map((t) => pointAt(graph.pieces[t.piece], (t.s0 + t.s1) / 2)));
+  const over = ground.filter(([x, z]) => mids.some(([mx, mz]) => Math.hypot(x - mx, z - mz) < 30));
+  if (!over.length) { console.warn(`${c.station}: no ground over its platforms, so its depth is not used`); continue; }
+  stationHeights[c.station] = { height: over.reduce((a, g) => a + g[2], 0) / over.length - c.depth };
 }
 // within reach of the line of any of the fixes
 const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixes ?? []).some(({ along, reach }) =>
@@ -67,7 +81,6 @@ const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixe
   }));
 // tunnel that needs no cover, and surface track that isn't on the ground
 const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround);
-const ground: [number, number, number][] = existsSync(GROUND) ? JSON.parse(readFileSync(GROUND, 'utf8')).samples : [];
 // OpenStreetMap's buildings (tools/fetch-city.ts), for the depots' track: under a large building
 // the elevation model may follow the roof
 const buildingRings: number[][] = existsSync(BUILDINGS)
@@ -92,13 +105,16 @@ const inBuilding = (x: number, z: number, margin = 8) => (buildingGrid.get(`${Ma
   }
   return c;
 });
-if (!ground.length) console.warn(`${GROUND} missing: no ground anchors, and tunnel cover is not checked`);
+if (!ground.length) console.warn(`data/ground/<line>-line.json missing: no ground anchors, and tunnel cover is not checked`);
 
 // ------------------------------------------------------------------ the fit
-// The fit is made twice: first the services' track alone, then all of the red line's track with
+// The fit is made twice: first the services' track alone, then all of the lines' track with
 // the services' track pinned where the first fit put it, so that the crossovers, sidings and
 // depots are fitted to the line and don't move it.
 const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+// the line a piece belongs to: as OpenStreetMap names it, or the line of the services on it
+const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
+const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const STACKED = 6.5, CROSS_REACH = 7, JOINED = 250;
 interface Var { x: number; z: number; key: string }
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
@@ -310,6 +326,30 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     const { s, v } = disc.get(p.id)!;
     return v.slice(1).map((b, k) => ({ a: v[k], b, h: s[k + 1] - s[k] }));
   });
+  // - and the vertical curves of the services' track, which the ground may bend tighter than
+  //   its line was built to: held at the line's limit
+  const bends = pieces.filter((p) => run.has(p.id)).flatMap((p) => {
+    const { s, v } = disc.get(p.id)!;
+    const radius = VERTICAL_RADIUS[lineOf(p)] ?? 2000;
+    return v.slice(1, -1).map((b, k) => ({ a: v[k], b, c: v[k + 2], h1: s[k + 1] - s[k], h2: s[k + 2] - s[k + 1], radius }));
+  }).concat(graph.nodes.flatMap((n) => {
+    // ... and across the nodes, between the services' pieces a train runs through
+    if (!nodeVar.has(n.id)) return [];
+    const at = pieces.filter((p) => run.has(p.id) && (p.from === n.id || p.to === n.id));
+    const pairs: [number, number][] = n.through ?? (at.length === 2 ? [[at[0].id, at[1].id]] : []);
+    return pairs.filter(([a, b]) => run.has(a) && run.has(b) && used.has(a) && used.has(b)).map(([a, b]) => {
+      const pa = nextTo(graph.pieces[a], n.id), pb = nextTo(graph.pieces[b], n.id);
+      return { a: pa.v, b: nodeVar.get(n.id)!, c: pb.v, h1: pa.h, h2: pb.h, radius: VERTICAL_RADIUS[lineOf(graph.pieces[a])] ?? 2000 };
+    });
+  }));
+  const bendRow = ({ a, b, c, h1, h2 }: (typeof bends)[number]) => {
+    const k = 2 / (h1 + h2);
+    return { i: [a, b, c], c: [k / h1, -k / h1 - k / h2, k / h2] };
+  };
+  const bendOf = (bend: (typeof bends)[number]) => {
+    const { i, c } = bendRow(bend);
+    return i.reduce((sum, vi, j) => sum + c[j] * y[vi], 0);
+  };
   // Tracks that cross one over the other without joining have their rails at least STACKED apart,
   // so that one structure passes over the other. OpenStreetMap says which is above (its layer, or
   // level); where two points of pieces at different layers are within CROSS_REACH in plan, more
@@ -370,7 +410,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       console.log(`  crossing: pieces ${pa.id} (${pa.service}, layer ${pa.layer}) and ${pb.id} (${pb.service}, layer ${pb.layer}) at x ${Math.round(vars[c.a].x)}, z ${Math.round(vars[c.a].z)}`);
     }
   }
-  const coverHeld = new Set<number>(), gradeHeld = new Map<number, number>(), stackHeld = new Set<number>();
+  const coverHeld = new Set<number>(), gradeHeld = new Map<number, number>(), stackHeld = new Set<number>(), bendHeld = new Map<number, number>();
   const holds = () => [
     ...[...stackHeld].map((k): Row => {
       const { a, b, order, fixed } = crossings[k];
@@ -384,6 +424,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       const { a, b, h } = steps[k];
       return { i: [a, b], c: [-1 / h, 1 / h], b: sign * GRADE_HOLD, w: 1 / SIGMA.grade };
     }),
+    ...[...bendHeld].map(([k, sign]): Row => ({ ...bendRow(bends[k]), b: sign / bends[k].radius, w: 1 / SIGMA.bend })),
   ];
   let y = solve([]);
   for (let round = 0; round < 50; round++) {
@@ -399,6 +440,11 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       if (!gradeHeld.has(k) && Math.abs(g) > GRADE_HOLD) { gradeHeld.set(k, Math.sign(g)); changed++; }
       else if (gradeHeld.has(k) && Math.abs(g) < GRADE_HOLD) { gradeHeld.delete(k); changed++; }
     });
+    bends.forEach((bend, k) => {
+      const g = bendOf(bend);
+      if (!bendHeld.has(k) && Math.abs(g) > 1 / bend.radius) { bendHeld.set(k, Math.sign(g)); changed++; }
+      else if (bendHeld.has(k) && g * bendHeld.get(k)! < 1 / bend.radius) { bendHeld.delete(k); changed++; }
+    });
     crossings.forEach((c, k) => {
       if (!c.order) c.order = Math.sign(y[c.a] - y[c.b]) || 1;
       const dy = (y[c.a] - y[c.b]) * c.order;
@@ -410,13 +456,13 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   }
 
   return {
-    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld,
+    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld, bendHeld,
     groundOf, coverGround, coverAt, onGround,
   };
 }
 const first = fit(run, null);
 const {
-  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld,
+  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld, bendHeld,
   groundOf, coverGround, coverAt, onGround,
 } = fit(lineTrack(graph), new Map(first.vars.map((v, i) => [v.key, first.y[i]])));
 
@@ -436,10 +482,10 @@ for (const p of pieces) {
 writeFileSync(OUT, JSON.stringify({
   attribution: graph.attribution + (ground.length ? '; Markhöjdmodell © Lantmäteriet, CC BY 4.0' : ''),
   osm: graph.osm,
-  note: 'Height of the top of the rail (RH 2000) at each point of each piece of the red line\'s track in public/data/track-graph.json: the pieces its services run on, and the crossovers, sidings and depots joined to them.',
+  note: 'Height of the top of the rail (RH 2000) at each point of each piece of the drawn lines\' track in public/data/track-graph.json: the pieces their services run on, and the crossovers, sidings and depots joined to them.',
   pieces: heights,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check
@@ -471,7 +517,8 @@ for (const route of graph.routes) {
   const line = `${route.name}: steepest ${(worstGrade.g * 1000).toFixed(1)}‰ near ${worstGrade.at}, tightest vertical curve ${Math.round(worstRadius.r)} m near ${worstRadius.at}`;
   console.log(line);
   if (worstGrade.g > LIMITS.gradient * 1.1) problems.push(`${route.name}: ${(worstGrade.g * 1000).toFixed(1)}‰ near ${worstGrade.at} (limit 40‰)`);
-  if (worstRadius.r < LIMITS.radius * 0.75) problems.push(`${route.name}: vertical curve of ${Math.round(worstRadius.r)} m near ${worstRadius.at} (limit 2,000 m)`);
+  const limit = VERTICAL_RADIUS[route.line] ?? 2000;
+  if (worstRadius.r < limit * 0.75) problems.push(`${route.name}: vertical curve of ${Math.round(worstRadius.r)} m near ${worstRadius.at} (limit ${limit.toLocaleString('en')} m)`);
 }
 // platforms: the gradient between neighbouring platform points
 for (const p of pieces) {

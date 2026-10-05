@@ -1,4 +1,5 @@
 // Helpers for reading the track graph (src/track-graph.ts) in the tools.
+import { existsSync, readFileSync } from 'node:fs';
 import { runningWays } from '../../src/track-graph.ts';
 import type { Route, TrackGraph, TrackPiece } from '../../src/track-graph.ts';
 
@@ -88,19 +89,23 @@ export function routeProfile(graph: TrackGraph, route: Route, heights: Record<st
   return out.filter((p, i) => i === 0 || p.s - out[i - 1].s > 0.01);
 }
 
-// The pieces of a line's track the game draws: those its services run on, and the rest of the
-// line's track joined to them (crossovers, sidings, turnback tracks and the depots), as far as
-// the running lines of other lines. Left out:
-// - a piece that touches another line's track, so a connecting track to another line ends short
+// The lines the game draws: those with a traced service.
+export const drawnLines = (graph: TrackGraph) => [...new Set(graph.routes.map((r) => r.line))];
+
+// The pieces of the lines' track the game draws: those their services run on, and the rest of the
+// lines' track joined to them (crossovers, sidings, turnback tracks, the depots, and the tracks
+// joining one of the lines to another), as far as the running lines of other lines. Left out:
+// - a piece that touches the track of a line not drawn, so a connecting track to it ends short
 //   of it
 // - track no service runs on beside a platform (the middle tracks at Alby and Sätra, the third
 //   track at Liljeholmen): the stations are described without them
 // - and then what is left of such a track that leads nowhere
-export function lineTrack(graph: TrackGraph, line = 'red') {
-  const run = new Set([...runningWays(graph), ...graph.routes].filter((r) => r.line === line).flatMap((r) => r.path.map((s) => s.piece)));
+export function lineTrack(graph: TrackGraph, lines: string | string[] = drawnLines(graph)) {
+  const own = typeof lines === 'string' ? [lines] : lines;
+  const run = new Set([...runningWays(graph), ...graph.routes].filter((r) => own.includes(r.line)).flatMap((r) => r.path.map((s) => s.piece)));
   const at = new Map<number, TrackPiece[]>();
   for (const p of graph.pieces) for (const n of new Set([p.from, p.to])) (at.get(n) ?? at.set(n, []).get(n)!).push(p);
-  const foreign = (p: TrackPiece) => p.lines.length > 0 && !p.lines.includes(line);
+  const foreign = (p: TrackPiece) => p.lines.length > 0 && !p.lines.some((l) => own.includes(l));
   const touchesForeign = (p: TrackPiece) => [p.from, p.to].some((n) => at.get(n)!.some(foreign));
   const atPlatform = new Set(graph.stations.flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))));
   const out = new Set(run), queue = [...run];
@@ -128,3 +133,13 @@ export function lineTrack(graph: TrackGraph, line = 'red') {
   }
   return out;
 }
+
+// The ground under the drawn lines' track, from Lantmäteriet's elevation model
+// (tools/fetch-ground.ts): [world x, world z, height], from every line's file.
+export function groundSamples(graph: TrackGraph): [number, number, number][] {
+  return drawnLines(graph).flatMap((line) => {
+    const file = groundFile(line);
+    return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).samples : [];
+  });
+}
+export const groundFile = (line: string) => `data/ground/${line}-line.json`;
