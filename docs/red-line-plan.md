@@ -579,6 +579,8 @@ Each phase ends in a pull request with a playable preview.
      - At Gamla stan the Munkbroleden passage now runs under the green track, so it is lower
        (`ceiling` on an exit's ramp).
      - `build-stations` says where a clash is in the station's frame.
+     - A flood fill in the game, with the player's step rule, from each of the 155 exits of both
+       lines reaches the city's ground from all but Sätra's (as before).
    - City: the tiles within 1 km of either line, 766 (99 → 191 km²); 68,241 buildings; 24 depot
      halls, 12 of them at the green depots. 10.9 MB.
    - Still open:

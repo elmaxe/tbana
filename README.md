@@ -449,13 +449,14 @@ The buildings are blocks with flat roofs:
   12, and the green line's depots at Vällingby, Hammarby and Högdalen 12 more.
 
 The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
-frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground
-has every other point. The ground is paved where buildings are close together and grass where
-they aren't. It can be walked on, except beside open track a service runs on, inside buildings
-and over the stations' openings (so the depot yards and halls can be walked through, but a hall's
-walls only at its doors), and the street around the exits stays walkable as before but isn't drawn. A
-flood fill from each of the 75 exits, with the player's step rule, reaches the city's ground from
-74; Sätra's comes up into a street hemmed in by the shopping centre, the track and higher ground.
+frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground has
+every other point. The ground is paved where buildings are close together and grass where they
+aren't. It can be walked on, except beside open track a service runs on, inside buildings and over
+the stations' openings (so the depot yards and halls can be walked through, but a hall's walls only
+at its doors), and the street around the exits stays walkable as before but isn't drawn. A flood
+fill from each of the 155 exits, with the player's step rule, in the game, reaches the city's ground
+from all but one: Sätra's comes up into a street hemmed in by the shopping centre, the track and
+higher ground.
 
 `?nocity` starts the game without it.
 
