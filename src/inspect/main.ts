@@ -78,6 +78,8 @@ const shownFrom = new THREE.Vector3();
 function go(v: View) {
   fly.set(v.eye, v.yaw, v.pitch);
   map.reveal(v.eye[0], v.eye[2]);
+  // what was double-clicked is out of sight
+  $('pick').hidden = true;
   $('view').focus();
 }
 
