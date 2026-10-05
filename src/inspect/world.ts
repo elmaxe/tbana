@@ -16,8 +16,15 @@ import type { InspectData } from './data';
 
 export interface WorldOptions { city: boolean; trains: boolean; fog: boolean; bright: boolean; wire: boolean }
 
+// A view to draw: a camera into a rectangle of the canvas (CSS pixels from its top left). With
+// `cut`, everything over that height is cut away; `outside` views have no fog, and the sky (or
+// the dark of the earth, when cut).
+export interface Viewport { camera: THREE.PerspectiveCamera; x: number; y: number; w: number; h: number; cut?: number | null; outside?: boolean }
+
 interface StationPlacement { model: string; rotationY: number; position: [number, number, number] }
 
+// the background of a view cut through underground: the earth round the section
+const SECTION = new THREE.Color(0x1e2530);
 const DARK = new THREE.Color(0x0a0c11), SKY = new THREE.Color(0x8193ad), CLEAR_SKY = new THREE.Color(0x9fb3cc);
 const CITY_REACH = 1100;
 
@@ -37,6 +44,7 @@ export class World {
   private headLight = new THREE.PointLight(0xfff1dc, 9, 26, 1.5);
   private background = new THREE.Color();
   private fog = new THREE.FogExp2(DARK, 0.0105);
+  private cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
   private outdoor = 1;
   private wireAt = 0;
 
@@ -61,8 +69,6 @@ export class World {
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     if (!w || !h) return;
     this.renderer.setSize(w, h, false);
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
   }
 
   async load(data: InspectData) {
@@ -141,16 +147,38 @@ export class World {
     }
   }
 
-  render() {
-    this.renderer.render(this.scene, this.camera);
+  // Draws each view into its rectangle, over a background of the panes' dividers.
+  render(views: Viewport[]) {
+    const r = this.renderer, H = this.canvas.clientHeight;
+    const { fog, background } = this.scene;
+    r.setScissorTest(false);
+    r.setClearColor(0x2a3340);
+    r.clear();
+    r.setScissorTest(true);
+    for (const v of views) {
+      if (v.w < 2 || v.h < 2) continue;
+      r.setViewport(v.x, H - v.y - v.h, v.w, v.h);
+      r.setScissor(v.x, H - v.y - v.h, v.w, v.h);
+      v.camera.aspect = v.w / v.h;
+      v.camera.updateProjectionMatrix();
+      r.clippingPlanes = v.cut === null || v.cut === undefined ? [] : [this.cutPlane.set(this.cutPlane.normal, v.cut)];
+      this.scene.fog = v.outside ? null : fog;
+      this.scene.background = !v.outside ? background : v.cut === null || v.cut === undefined ? CLEAR_SKY : SECTION;
+      r.render(this.scene, v.camera);
+    }
+    r.clippingPlanes = [];
+    r.setScissorTest(false);
+    Object.assign(this.scene, { fog, background });
   }
 
-  // What's under a point of the view (-1..1 across and up): where, and what it belongs to.
-  pick(nx: number, ny: number) {
+  // What's under a point of a view (-1..1 across and up) seen with `camera`: where, and what it
+  // belongs to. With `cut`, what's cut away over that height isn't there.
+  pick(camera: THREE.Camera, nx: number, ny: number, cut: number | null = null) {
     const ray = new THREE.Raycaster();
-    ray.setFromCamera(new THREE.Vector2(nx, ny), this.camera);
-    ray.far = 3000;
-    const hit = ray.intersectObjects(this.scene.children, true).find((h) => h.object.visible && isShown(h.object));
+    ray.setFromCamera(new THREE.Vector2(nx, ny), camera);
+    ray.far = 6000;
+    const hit = ray.intersectObjects(this.scene.children, true)
+      .find((h) => h.object.visible && isShown(h.object) && (cut === null || h.point.y <= cut));
     if (!hit) return null;
     const names: string[] = [];
     for (let o: THREE.Object3D | null = hit.object; o && o !== this.scene; o = o.parent) if (o.name) names.unshift(o.name);

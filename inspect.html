@@ -43,9 +43,18 @@
     #mapLegend span:first-child { margin-left: 0; }
 
     /* the 3D view */
+    .viewBox { position: absolute; pointer-events: none; }
+    .viewBox[hidden] { display: none; }
+    #outBox { border: 1px solid rgba(255, 255, 255, .25); }
+    #outBar { position: absolute; left: 6px; top: 6px; right: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+      color: var(--muted); font-size: 11px; }
+    #outBar b { color: var(--text); padding: 2px 6px; border-radius: 4px; background: rgba(13, 17, 23, .8); }
+    #outBar span[hidden] { display: none; }
+    #outBar span { padding: 2px 6px; border-radius: 4px; background: rgba(13, 17, 23, .8); }
+    #outBar select { pointer-events: auto; padding: 1px 4px; font-size: 11px; }
     #hud { position: absolute; left: 8px; top: 8px; padding: 5px 8px; border-radius: 5px; background: rgba(13, 17, 23, .8);
       font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; pointer-events: none; white-space: pre; }
-    #pick { position: absolute; left: 8px; right: 8px; bottom: 8px; cursor: pointer; padding: 5px 8px; border-radius: 5px;
+    #pick { position: absolute; left: 8px; right: 8px; bottom: 8px; cursor: pointer; pointer-events: auto; padding: 5px 8px; border-radius: 5px;
       background: rgba(13, 17, 23, .85); font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; }
     #help { position: absolute; right: 8px; bottom: 8px; padding: 5px 8px; border-radius: 5px; background: rgba(13, 17, 23, .8);
       color: var(--muted); font-size: 11px; line-height: 1.7; pointer-events: none; }
@@ -109,6 +118,11 @@
     <section class="pane" id="viewPane">
       <div class="bar">
         <h1>World</h1>
+        <select id="viewMode" title="The first-person view, and the outside view that follows it">
+          <option value="split">Split</option>
+          <option value="inset">Inset</option>
+          <option value="first">First person only</option>
+        </select>
         <label><input type="checkbox" id="optCity" checked>city</label>
         <label><input type="checkbox" id="optTrains" checked>trains</label>
         <label title="The game's fog and darkness underground"><input type="checkbox" id="optFog">fog</label>
@@ -120,11 +134,23 @@
       </div>
       <div class="stage">
         <canvas id="view" tabindex="0"></canvas>
-        <div id="hud"></div>
-        <div id="pick" title="Click to close" hidden></div>
-        <div id="help">
-          drag: look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>E</kbd>/<kbd>Space</kbd> up · <kbd>Q</kbd>/<kbd>C</kbd> down<br>
-          <kbd>Shift</kbd> fast · wheel: speed · double-click: what's that? · <kbd>T</kbd> to the track below
+        <div class="viewBox" id="fpBox">
+          <div id="hud"></div>
+          <div id="pick" title="Click to close" hidden></div>
+          <div id="help">
+            drag: look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly · <kbd>E</kbd>/<kbd>Space</kbd> up · <kbd>Q</kbd>/<kbd>C</kbd> down<br>
+            <kbd>Shift</kbd> fast · wheel: speed · double-click: what's that? · <kbd>T</kbd> to the track below
+          </div>
+        </div>
+        <div class="viewBox" id="outBox">
+          <div id="outBar">
+            <b>Outside</b> <span>drag: swing round · wheel: closer / further</span>
+            <select id="cutMode" title="Cut away everything over the first-person camera's head in this view, to see into tunnels and stations">
+              <option value="auto">cut: indoors</option>
+              <option value="on">cut: always</option>
+              <option value="off">cut: never</option>
+            </select>
+          </div>
         </div>
         <div id="loading">Loading the world…</div>
       </div>

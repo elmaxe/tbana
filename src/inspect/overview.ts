@@ -33,6 +33,7 @@ export class Overview {
   private base = document.createElement('canvas');
   private dirty = true;
   private cam = { x: 0, z: 0, yaw: 0, fov: 1 };
+  private outside: { x: number; z: number } | null = null;
   private marks: { x: number; z: number; colour: string }[] = [];
   private hover: MapHit | null = null;
   private lines: Layer[] = [];
@@ -129,10 +130,14 @@ export class Overview {
     if (px < m || py < m || px > this.canvas.clientWidth - m || py > this.canvas.clientHeight - m) this.centre(x, z);
   }
 
-  setCamera(x: number, z: number, yaw: number, fov: number) {
-    const c = this.cam;
-    if (Math.abs(c.x - x) * this.scale < 0.5 && Math.abs(c.z - z) * this.scale < 0.5 && Math.abs(c.yaw - yaw) < 0.01) return;
+  // The first-person camera, and the outside camera looking at it (if it's shown).
+  setCamera(x: number, z: number, yaw: number, fov: number, outside: { x: number; z: number } | null = null) {
+    const c = this.cam, o = this.outside;
+    const near = (ax: number, az: number, bx: number, bz: number) => Math.abs(ax - bx) * this.scale < 0.5 && Math.abs(az - bz) * this.scale < 0.5;
+    const outsideSame = o && outside ? near(o.x, o.z, outside.x, outside.z) : o === outside;
+    if (near(c.x, c.z, x, z) && Math.abs(c.yaw - yaw) < 0.01 && outsideSame) return;
     this.cam = { x, z, yaw, fov };
+    this.outside = outside;
     this.draw();
   }
 
@@ -246,9 +251,24 @@ export class Overview {
       g.stroke();
     }
     if (this.hover?.kind === 'track') this.strokePiece(g, this.hover.piece, '#ffffff');
-    // the camera, and the width of its view
+    // the camera, and the width of its view; the outside camera, and the line it looks along
     const { x, z, yaw, fov } = this.cam;
     const [px, py] = this.toScreen(x, z);
+    if (this.outside) {
+      const [ox, oy] = this.toScreen(this.outside.x, this.outside.z);
+      g.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      g.lineWidth = 1;
+      g.setLineDash([4, 3]);
+      g.beginPath();
+      g.moveTo(ox, oy);
+      g.lineTo(px, py);
+      g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ox, oy, 3.5, 0, Math.PI * 2);
+      g.fill();
+    }
     const fx = -Math.sin(yaw), fz = -Math.cos(yaw), r = 40;
     g.fillStyle = 'rgba(255, 255, 255, 0.12)';
     g.beginPath();

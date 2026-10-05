@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 import { TrackIndex, loadData, worldLatLon } from './data';
 import { Fly } from './fly';
+import { Outside } from './outside';
+import type { CutMode } from './outside';
 import { Overview } from './overview';
 import type { MapHit } from './overview';
 import { Reference } from './reference';
@@ -11,6 +13,7 @@ import type { Place } from './reference';
 import { aerial, onPlatform, onTrack } from './views';
 import type { View } from './views';
 import { World } from './world';
+import type { Viewport } from './world';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -165,10 +168,89 @@ addEventListener('keydown', (e) => {
   go({ ...v, yaw: v.yaw + turn });
 });
 
-// double-click: what's that?
+// ------------------------------------------------------------------ the two views
+// The first-person view, and the outside view following it: side by side (or one over the
+// other, in a tall pane), the outside view inset in a corner, or the first-person view alone.
+type Rect = { x: number; y: number; w: number; h: number };
+const outside = new Outside();
+world.scene.add(outside.marker);
+const viewMode = $<HTMLSelectElement>('viewMode'), cutMode = $<HTMLSelectElement>('cutMode');
+let fpRect: Rect = { x: 0, y: 0, w: 1, h: 1 }, outRect: Rect | null = null;
+
+function layout() {
+  const c = $('view'), W = c.clientWidth, H = c.clientHeight, gap = 3;
+  outRect = null;
+  fpRect = { x: 0, y: 0, w: W, h: H };
+  if (viewMode.value === 'split') {
+    if (W >= H) {
+      const w = Math.floor((W - gap) / 2);
+      fpRect = { x: 0, y: 0, w, h: H };
+      outRect = { x: w + gap, y: 0, w: W - w - gap, h: H };
+    } else {
+      const h = Math.floor((H - gap) / 2);
+      fpRect = { x: 0, y: 0, w: W, h };
+      outRect = { x: 0, y: h + gap, w: W, h: H - h - gap };
+    }
+  } else if (viewMode.value === 'inset') {
+    const w = Math.round(Math.max(180, W * 0.36)), h = Math.round(Math.max(130, H * 0.36));
+    outRect = { x: W - w - 8, y: 8, w, h };
+  }
+  const place = (el: HTMLElement, r: Rect | null) => {
+    el.hidden = !r;
+    if (r) Object.assign(el.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
+  };
+  place($('fpBox'), fpRect);
+  place($('outBox'), outRect);
+  // the outside view's hint, where there's room for it
+  $('outBar').querySelector('span')!.hidden = !outRect || outRect.w < 420;
+}
+new ResizeObserver(layout).observe($('view'));
+for (const [el, key] of [[viewMode, 'inspect-views'], [cutMode, 'inspect-cut']] as const) {
+  try { el.value = localStorage.getItem(key) ?? el.value; } catch { /* not kept */ }
+  el.addEventListener('change', () => {
+    try { localStorage.setItem(key, el.value); } catch { /* not kept */ }
+    layout();
+  });
+}
+layout();
+
+// which view a point of the page is in
+const inRect = (r: Rect | null, cx: number, cy: number) => {
+  if (!r) return false;
+  const c = $('view').getBoundingClientRect(), x = cx - c.left, y = cy - c.top;
+  return x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+};
+const inOutside = (cx: number, cy: number) => inRect(outRect, cx, cy);
+fly.accepts = (cx, cy) => !inOutside(cx, cy) && inRect(fpRect, cx, cy);
+
+// the outside view: drag to swing round, the wheel to come closer or go further
+{
+  const c = $('view');
+  let drag: { x: number; y: number } | null = null;
+  c.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !inOutside(e.clientX, e.clientY)) return;
+    c.setPointerCapture(e.pointerId);
+    drag = { x: e.clientX, y: e.clientY };
+  });
+  c.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    outside.orbit(e.clientX - drag.x, e.clientY - drag.y);
+    drag = { x: e.clientX, y: e.clientY };
+  });
+  c.addEventListener('pointerup', () => { drag = null; });
+  c.addEventListener('wheel', (e) => {
+    if (!inOutside(e.clientX, e.clientY)) return;
+    e.preventDefault();
+    outside.zoom(e.deltaY);
+  }, { passive: false });
+}
+
+// double-click: what's that? (in either view)
 $('view').addEventListener('dblclick', (e) => {
+  const out = inOutside(e.clientX, e.clientY), r = out ? outRect! : fpRect;
   const c = $('view').getBoundingClientRect();
-  const hit = world.pick(((e.clientX - c.left) / c.width) * 2 - 1, -((e.clientY - c.top) / c.height) * 2 + 1);
+  const nx = ((e.clientX - c.left - r.x) / r.w) * 2 - 1, ny = -((e.clientY - c.top - r.y) / r.h) * 2 + 1;
+  const hit = out ? world.pick(outside.camera, nx, ny, outside.cutAt(fly, world.outdoorsAt(fly.pos))) : world.pick(world.camera, nx, ny);
   const box = $('pick');
   if (!hit) { box.hidden = true; return; }
   const { x, y, z } = hit.point;
@@ -262,9 +344,18 @@ function frame() {
   const now = performance.now();
   fly.update(dt);
   world.update(dt);
-  world.render();
+  const views: Viewport[] = [{ camera: world.camera, ...fpRect }];
+  world.camera.aspect = fpRect.w / fpRect.h;
+  if (outRect) {
+    outside.cut = cutMode.value as CutMode;
+    outside.update(dt, fly, world.camera);
+    views.push({ camera: outside.camera, ...outRect, cut: outside.cutAt(fly, world.outdoorsAt(fly.pos)), outside: true });
+  }
+  outside.marker.visible = !!outRect;
+  world.render(views);
   const { fov, aspect } = world.camera;
-  map.setCamera(fly.pos.x, fly.pos.z, fly.yaw, 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(fov) / 2) * aspect));
+  const o = outside.camera.position;
+  map.setCamera(fly.pos.x, fly.pos.z, fly.yaw, 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(fov) / 2) * aspect), outRect ? { x: o.x, z: o.z } : null);
   updateHud(now);
   follow(now);
   if (fly.moved && now > keptAt) {

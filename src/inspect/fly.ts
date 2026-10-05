@@ -12,6 +12,8 @@ export class Fly {
   pitch = 0;
   speed = 12; // m/s
   moved = false; // since last asked
+  // whether a pointer at (clientX, clientY) is in this camera's view
+  accepts: (x: number, y: number) => boolean = () => true;
   private down = new Set<string>();
 
   constructor(private canvas: HTMLCanvasElement, private camera: THREE.PerspectiveCamera, private onSpeed: (speed: number) => void = () => {}) {
@@ -27,7 +29,7 @@ export class Fly {
 
     let drag: { x: number; y: number } | null = null;
     canvas.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || !this.accepts(e.clientX, e.clientY)) return;
       canvas.setPointerCapture(e.pointerId);
       canvas.focus();
       drag = { x: e.clientX, y: e.clientY };
@@ -39,6 +41,7 @@ export class Fly {
     });
     canvas.addEventListener('pointerup', () => { drag = null; });
     canvas.addEventListener('wheel', (e) => {
+      if (!this.accepts(e.clientX, e.clientY)) return;
       e.preventDefault();
       this.speed = THREE.MathUtils.clamp(this.speed * Math.pow(1.0015, -e.deltaY), 0.5, 600);
       this.onSpeed(this.speed);

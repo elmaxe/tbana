@@ -42,6 +42,12 @@ and opens a page in three panes:
   the wheel for the speed. `T` drops to the track below, and a double-click says what you are
   looking at: its position, and the track and rail height there. **Open in game** opens the game
   at the same view.
+
+  Beside it (or inset in its corner, or not at all) an outside camera follows from above and to
+  the side, turning with it, and shows where it is and where it looks with a pink marker. Drag
+  in it to swing it round, and the wheel brings it closer or further. While the first-person
+  camera is indoors or underground, the outside view cuts away everything over its head, so you
+  look down into the tunnel or station (**cut:** always or never instead).
 - **Reference:** what the place was built from. For a station: Albert Guillaumes' drawing (fetched
   from his site into `node_modules/.cache/inspect/`, never into the repository), the description,
   its frame (`build-stations --frame`), the heights from Wikidata and as built, the fixes made by
