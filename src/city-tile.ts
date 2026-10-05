@@ -78,6 +78,22 @@ export interface CityIndex {
 
 export const tileName = (i: number, j: number) => `${i}_${j}.bin.gz`;
 
+// ------------------------------------------------------------------ aerial photos
+// The aerial photo over each tile, as tools/fetch-ortho.ts writes it to public/data/ortho/: a JPEG
+// named <i>_<j>.jpg, square, north up, covering the tile and PHOTO_MARGIN beyond each side of it
+// (so a roof that reaches over the tile's edge is still in it), and an index of them in
+// public/data/ortho/index.json. The game lays it on the ground and the roofs.
+export const PHOTO_MARGIN = CITY_TILE / 16;
+
+export interface PhotoIndex {
+  attribution: string[];
+  note: string;
+  margin: number;
+  tiles: [number, number, number][]; // i, j, and the photo's size in pixels
+}
+
+export const photoName = (i: number, j: number) => `${i}_${j}.jpg`;
+
 // ------------------------------------------------------------------ heights
 // An n × n grid of heights (metres) as centimetres, each the difference from the one before it in
 // its row, or for a row's first from the first of the row above, and for the first from `base`.

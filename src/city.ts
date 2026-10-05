@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { CELL_TRACK, CITY_TILE, decodeTile, tileName } from './city-tile.ts';
-import type { Building, CityIndex, CityTile } from './city-tile.ts';
+import { CELL_TRACK, CITY_TILE, decodeTile, photoName, tileName } from './city-tile.ts';
+import type { Building, CityIndex, CityTile, PhotoIndex } from './city-tile.ts';
 import { cutIndexed, insideVolume, prism } from './clip.ts';
 import type { Volume } from './clip.ts';
 import type { SurfaceHit } from './surface-index';
@@ -9,6 +9,10 @@ import * as T from './textures';
 // The city around the line, from public/data/city/ (see src/city-tile.ts and tools/build-city.ts):
 // the ground, and the buildings as blocks with flat roofs. Tiles are fetched and built as the
 // camera comes near, nearest first, and dropped when it leaves. Far tiles get a coarser ground.
+//
+// Where a tile has an aerial photo (public/data/ortho/, see tools/fetch-ortho.ts), it is laid on
+// the ground, with a fine grain over it for up close, and on the roofs from above. Without one, the
+// ground is grass or paving by how built up it is, and the roofs are plain.
 //
 // The ground can be walked on, except beside open track and inside buildings, and the stations'
 // stairs and halls are cut out of it where they come up through it. The depots' halls (sheds) are
@@ -34,6 +38,7 @@ interface Tile {
   walls: Map<number, number[][]> | null; // the sheds' walls (but not their doors), by cell: [ax, az, bx, bz]
   group: THREE.Group | null;
   lod: number;                     // the grid's stride when built
+  photo: { texture: THREE.Texture; ground: THREE.Material; roofs: THREE.Material } | null;
 }
 
 // Facade colours of the city's plastered and brick buildings, and its roofs (tar, copper, tiles).
@@ -41,6 +46,10 @@ const WALLS = [0xe9dcc0, 0xe4c98f, 0xd9a86a, 0xc98d64, 0xb76b4f, 0xd8cfc4, 0xf1e
 const ROOFS = [0x3b3c3e, 0x46484b, 0x2f3134, 0x5b3a2e, 0x7a4636, 0x4f7a68, 0x55585c];
 const CEILING = new THREE.Color(0xc4c2bc);
 const GRASS = new THREE.Color(0x5c6b40), PAVED = new THREE.Color(0x8a8781), BALLAST = new THREE.Color(0x6e6559);
+// the ground texture's average (linear), which its grain over a photo is taken relative to
+const GRAIN_MEAN = 0.67, GRAIN = 0.55;
+// a photo has the sunlight in it already: it's darkened (linear) before the scene's lights fall on it
+const PHOTO_GROUND = 0.6, PHOTO_ROOFS = 0.7;
 
 function hash(n: number) {
   n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
@@ -56,26 +65,60 @@ function materials() {
   };
 }
 
+// A tile's photo on its ground, with the ground texture's grain over it (by world x, z, 8 m to a
+// repeat), and on its roofs.
+function photoMaterials(texture: THREE.Texture, grain: THREE.Texture) {
+  const ground = new THREE.MeshStandardMaterial({ map: texture, color: new THREE.Color(PHOTO_GROUND, PHOTO_GROUND, PHOTO_GROUND), roughness: 1 });
+  ground.onBeforeCompile = (shader) => {
+    shader.uniforms.grainMap = { value: grain };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vGrain;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGrain = position.xz / 8.0;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vGrain;\nuniform sampler2D grainMap;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+diffuseColor.rgb *= mix(1.0, texture2D(grainMap, vGrain).r / ${GRAIN_MEAN.toFixed(2)}, ${GRAIN.toFixed(2)});`);
+  };
+  ground.customProgramCacheKey = () => 'city-photo-ground';
+  const roofs = new THREE.MeshStandardMaterial({ map: texture, color: new THREE.Color(PHOTO_ROOFS, PHOTO_ROOFS, PHOTO_ROOFS), roughness: 0.85 });
+  return { texture, ground, roofs };
+}
+
 export class City {
   group = new THREE.Group();
   private tiles = new Map<string, Tile>();
   private mats = materials();
   private floor: CityFloorData = { kind: 'city', rec: { label: 'Street' } };
   private fetching = 0;
+  // the tiles with a photo, and the photos' margin round the tile; null until their index is in
+  private photos: Map<string, number> | null = null;
+  private photoMargin = 0;
 
   // `cuts`: the volumes cut out of the ground and kept from being walked on: the stations' stairs,
   // lifts and rooms where they come up through it
   // `reach`: how far the city is built round the camera (less on small devices)
-  constructor(index: CityIndex, private cuts: Volume[] = [], private reach = LOAD, private base = 'data/city/') {
+  // `photoBase`: where the aerial photos are, or null for none
+  constructor(index: CityIndex, private cuts: Volume[] = [], private reach = LOAD, private base = 'data/city/', private photoBase: string | null = 'data/ortho/') {
     this.group.name = 'city';
     for (const [i, j] of index.tiles) {
-      this.tiles.set(`${i},${j}`, { i, j, x0: i * CITY_TILE, z0: j * CITY_TILE, state: 'idle', data: null, cuts: [], feet: null, walls: null, group: null, lod: 0 });
+      this.tiles.set(`${i},${j}`, { i, j, x0: i * CITY_TILE, z0: j * CITY_TILE, state: 'idle', data: null, cuts: [], feet: null, walls: null, group: null, lod: 0, photo: null });
     }
+    if (!photoBase) { this.photos = new Map(); return; }
+    fetch(photoBase + 'index.json')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((photos: PhotoIndex | null) => {
+        this.photoMargin = photos?.margin ?? 0;
+        this.photos = new Map((photos?.tiles ?? []).map(([i, j, size]) => [`${i},${j}`, size]));
+      })
+      // none there (a dev server answers with its page)
+      .catch(() => { this.photos = new Map(); });
   }
 
   // ---------------------------------------------------------------- loading
   // Fetches the tiles near `pos`, builds one (nearest first) and drops those far away.
   update(pos: THREE.Vector3) {
+    // which tiles have photos is known before any is fetched
+    if (!this.photos) return;
     let build: { t: Tile; d: number; lod: number } | null = null;
     const want: { t: Tile; d: number }[] = [];
     for (const t of this.tiles.values()) {
@@ -84,7 +127,7 @@ export class City {
       const d = Math.hypot(dx, dz);
       if (d > this.reach + UNLOAD) {
         if (t.group) this.drop(t);
-        if (t.state === 'ready') { t.state = 'idle'; t.data = null; t.feet = null; t.walls = null; t.cuts = []; }
+        if (t.state === 'ready') { t.state = 'idle'; t.data = null; t.feet = null; t.walls = null; t.cuts = []; this.dropPhoto(t); }
         continue;
       }
       if (d > this.reach) continue;
@@ -117,9 +160,40 @@ export class City {
     t.group = null;
   }
 
+  private dropPhoto(t: Tile) {
+    if (!t.photo) return;
+    const { texture, ground, roofs } = t.photo;
+    texture.dispose();
+    (texture.image as ImageBitmap).close?.();
+    ground.dispose();
+    roofs.dispose();
+    t.photo = null;
+  }
+
+  // A tile's photo, or null where it has none or it can't be had.
+  private async fetchPhoto(t: Tile) {
+    if (!this.photoBase || !this.photos?.has(`${t.i},${t.j}`)) return null;
+    try {
+      const res = await fetch(this.photoBase + photoName(t.i, t.j));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const bitmap = await createImageBitmap(await res.blob());
+      const texture = new THREE.Texture(bitmap);
+      // an ImageBitmap is never flipped: its first row (the north) is at v = 0
+      texture.flipY = false;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 8;
+      texture.needsUpdate = true;
+      return photoMaterials(texture, this.mats.ground.map!);
+    } catch (err) {
+      console.warn(`city photo ${t.i},${t.j}:`, err);
+      return null;
+    }
+  }
+
   private async fetch(t: Tile) {
     t.state = 'fetching';
     this.fetching++;
+    const photo = this.fetchPhoto(t);
     try {
       const res = await fetch(this.base + tileName(t.i, t.j));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -131,10 +205,13 @@ export class City {
       }
       t.data = decodeTile(buf);
       this.prepare(t);
+      t.photo = await photo;
       t.state = 'ready';
     } catch (err) {
       console.warn(`city tile ${t.i},${t.j}:`, err);
       t.state = 'failed';
+      t.photo = await photo;
+      this.dropPhoto(t);
     } finally {
       this.fetching--;
     }
@@ -266,11 +343,19 @@ export class City {
     const group = new THREE.Group();
     group.name = `city ${t.i},${t.j}`;
     const d = t.data!;
-    if (d.ground) group.add(new THREE.Mesh(this.groundGeometry(t), this.mats.ground));
-    const { walls, roofs } = buildingGeometry(d.buildings, t);
+    if (d.ground) group.add(new THREE.Mesh(this.groundGeometry(t), t.photo?.ground ?? this.mats.ground));
+    const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null);
     if (walls) group.add(new THREE.Mesh(walls, this.mats.walls));
-    if (roofs) group.add(new THREE.Mesh(roofs, this.mats.roofs));
+    if (roofs) group.add(new THREE.Mesh(roofs, t.photo?.roofs ?? this.mats.roofs));
+    if (plain) group.add(new THREE.Mesh(plain, this.mats.roofs));
     return group;
+  }
+
+  // Where (x, z) is in the tile's photo, or, without one, in the ground texture's repeat.
+  private photoUv(t: Tile): (x: number, z: number) => [number, number] {
+    if (!t.photo) return (x, z) => [x / 8, z / 8];
+    const m = this.photoMargin, span = CITY_TILE + 2 * m;
+    return (x, z) => [(x - t.x0 + m) / span, (z - t.z0 + m) / span];
   }
 
   private groundGeometry(t: Tile) {
@@ -279,12 +364,12 @@ export class City {
     // how much of the ground round each point is built on: paved in town, grass beyond
     const cover = coverage(t.data!.buildings, t, g.step, n);
     const pos: number[] = [], col: number[] = [], uv: number[] = [], idx: number[] = [];
-    const c = new THREE.Color();
+    const c = new THREE.Color(), toUv = this.photoUv(t);
     for (let r = 0; r < n; r += s) {
       for (let k = 0; k < n; k += s) {
         const x = t.x0 + k * g.step, z = t.z0 + r * g.step, y = g.heights[r * n + k];
         pos.push(x, y, z);
-        uv.push(x / 8, z / 8);
+        uv.push(...toUv(x, z));
         // beside open track: the cells round the point
         let track = false;
         for (const [a, b] of [[r - 1, k - 1], [r - 1, k], [r, k - 1], [r, k]]) {
@@ -308,7 +393,7 @@ export class City {
       const first = pos.length / 3;
       for (const v of list) {
         pos.push(pos[3 * v], pos[3 * v + 1] - SKIRT, pos[3 * v + 2]);
-        uv.push(uv[2 * v], uv[2 * v + 1] + SKIRT / 8);
+        uv.push(uv[2 * v], uv[2 * v + 1] + (t.photo ? 0 : SKIRT / 8));
         col.push(col[3 * v], col[3 * v + 1], col[3 * v + 2]);
       }
       for (let k = 0; k + 1 < list.length; k++) {
@@ -360,9 +445,13 @@ export class City {
 // ------------------------------------------------------------------ buildings
 const BAY = 3, STOREY = 3.1;
 
-function buildingGeometry(buildings: Building[], t: Tile) {
+// The walls; the roofs seen from above, with `toUv` placing them in the tile's photo; and, plain,
+// the undersides of roofs and of buildings standing clear of the ground, and the roofs where there
+// is no photo or they reach out of it.
+function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: number) => [number, number]) | null) {
   const w = { pos: [] as number[], uv: [] as number[], col: [] as number[], idx: [] as number[] };
-  const r = { pos: [] as number[], col: [] as number[], idx: [] as number[] };
+  const r = { pos: [] as number[], uv: [] as number[], col: [] as number[], idx: [] as number[] };
+  const pl = { pos: [] as number[], col: [] as number[], idx: [] as number[] };
   const c = new THREE.Color(), roofC = new THREE.Color();
   buildings.forEach((b, k) => {
     const seed = hash(t.i * 92821 + t.j * 68917 + k * 7919);
@@ -424,17 +513,25 @@ function buildingGeometry(buildings: Building[], t: Tile) {
     const under = b.kind === 'part' || b.kind === 'roof';
     // a shed's roof seen from inside it
     const faces2 = under ? [[top, true], [bottom, false]] as const : shed ? [[top, true], [top - 0.05, false]] as const : [[top, true]] as const;
+    const uvs = toUv ? pts.map((p) => toUv(p.x, p.y)) : null;
+    const inPhoto = !!uvs?.every(([a, b]) => a >= 0 && a <= 1 && b >= 0 && b <= 1);
     for (const [y, up] of faces2) {
-      const v0 = r.pos.length / 3;
+      const photo = up && inPhoto;
+      const m = photo ? r : pl;
+      const v0 = m.pos.length / 3;
       // (a shed's ceiling a light grey)
       const rc = shed && !up ? CEILING : roofC;
-      for (const p of pts) { r.pos.push(p.x, y, p.y); r.col.push(rc.r, rc.g, rc.b); }
+      pts.forEach((p, k) => {
+        m.pos.push(p.x, y, p.y);
+        m.col.push(rc.r, rc.g, rc.b);
+        if (photo) r.uv.push(...uvs![k]);
+      });
       for (const f of faces) {
         // wound to face up (or down): the normal's y is dz₁·dx₂ − dx₁·dz₂
         const [a, b2, c2] = f.map((q) => pts[q]);
         const ny = (b2.y - a.y) * (c2.x - a.x) - (b2.x - a.x) * (c2.y - a.y);
-        if ((ny > 0) === up) r.idx.push(v0 + f[0], v0 + f[1], v0 + f[2]);
-        else r.idx.push(v0 + f[0], v0 + f[2], v0 + f[1]);
+        if ((ny > 0) === up) m.idx.push(v0 + f[0], v0 + f[1], v0 + f[2]);
+        else m.idx.push(v0 + f[0], v0 + f[2], v0 + f[1]);
       }
     }
   });
@@ -449,7 +546,7 @@ function buildingGeometry(buildings: Building[], t: Tile) {
     g.computeBoundingSphere();
     return g;
   };
-  return { walls: make(w.pos, w.col, w.idx, w.uv), roofs: make(r.pos, r.col, r.idx) };
+  return { walls: make(w.pos, w.col, w.idx, w.uv), roofs: make(r.pos, r.col, r.idx, r.uv), plain: make(pl.pos, pl.col, pl.idx) };
 }
 
 // A shed's walls as segments [ax, az, bx, bz], leaving out its doors.

@@ -503,7 +503,8 @@ The buildings are blocks with flat roofs:
 
 The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
 frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground has
-every other point. The ground is paved where buildings are close together and grass where they
+every other point. Where a tile has an aerial photo (below) it lies on the ground and the roofs;
+where it hasn't, the ground is paved where buildings are close together and grass where they
 aren't. It can be walked on, except beside open track a service runs on, inside buildings and over
 the stations' openings (so the depot yards and halls can be walked through, but a hall's walls only
 at its doors), and the street around the exits stays walkable as before but isn't drawn. A flood
@@ -512,6 +513,39 @@ from all but one: Sätra's comes up into a street hemmed in by the shopping cent
 higher ground.
 
 `?nocity` starts the game without it.
+
+### Aerial photos
+
+Lantmäteriet's orthophotos (Ortofoto, CC BY 4.0) are laid over the city: on the ground, so the
+streets, squares, parks, quays and water are where they are, and on the roofs from above.
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho               # -> public/data/ortho/
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- 0,-1 1,-1  # only these tiles, fetched again
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- --again     # all of them again
+```
+
+- The photos are their own product on Geotorget, **Ortofoto Nedladdning**: free, but the account
+  that fetches the elevation model must order it too, or every file is refused (403).
+- `fetch-ortho` finds the photos through Lantmäteriet's STAC catalogue for images (`stac-bild`),
+  and takes each pixel from the newest year's photo over it (Stockholm is flown every other year;
+  the newest are from 2025 at 16 cm). It writes one JPEG per city tile, north up on the game's
+  grid, covering the tile and 31 m round it, so a roof over the tile's edge is still in it (format
+  in `src/city-tile.ts`). Tiles within 100 m of a station, where you come up into the street, are
+  1024 px (0.55 m a pixel), the rest 512 px (1.1 m): about 70–80 MB for all 766 (estimated from
+  inner-city samples). It reads only the
+  overview and the blocks under each tile, and keeps the tiles already there, so a run that stops
+  can be started again.
+- The game (`src/city.ts`) loads a tile's photo with the tile. On the ground it puts the ground
+  texture's grain over it for up close; it darkens it a little, since the sunlight is in the
+  photo already. A roof that reaches out of its tile's photo stays plain. Tiles without a photo
+  look as before, so the game runs without them.
+
+The photos aren't true orthophotos: tall buildings lean away from where the plane was, so their
+roofs in the photo are a few metres off their outlines, and the sides of the tallest show on the
+ground beside them. Their shadows are the morning's of the day they were flown.
+
+`?nophoto` starts the game without them.
 
 ## Train models
 
@@ -562,6 +596,8 @@ in `public/data/`).
 
 Heights: Markhöjdmodell © Lantmäteriet, CC BY 4.0 (`data/ground/`, and the track heights and
 geometry, the stations' streets and the city's ground derived from it in `public/data/`).
+
+Aerial photos: Ortofoto © Lantmäteriet, CC BY 4.0 (the city's photos in `public/data/ortho/`).
 
 Buildings: © OpenStreetMap contributors, ODbL (`data/osm/buildings.json`, from the
 openstreetmap.fr extract of Stockholm county, and the city's buildings in `public/data/city/`).

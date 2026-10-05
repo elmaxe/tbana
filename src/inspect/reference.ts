@@ -363,6 +363,7 @@ export class Reference {
     return '<h3>Sources</h3><ul class="note">'
       + `<li>Track: ${a('https://www.openstreetmap.org/copyright', 'OpenStreetMap')} contributors (ODbL)${graph.osm ? `, as of ${esc(graph.osm.slice(0, 10))}` : ''}; <code>data/osm/</code>, fixed by <code>data/track-corrections.json</code></li>`
       + `<li>Heights: ${a('https://www.lantmateriet.se/sv/geodata/vara-produkter/produktlista/markhojdmodell-nedladdning/', 'Lantmäteriet Markhöjdmodell')} (CC BY 4.0); stations from Wikidata P2044${refs ? ` (${esc(refs.heightNote.split('.')[0])})` : ''}</li>`
+      + `<li>Aerial photos: ${a('https://www.lantmateriet.se/sv/geodata/vara-produkter/produktlista/ortofoto-nedladdning/', 'Lantmäteriet Ortofoto')} (CC BY 4.0); <code>public/data/ortho/</code></li>`
       + `<li>Station layouts: read off ${a('http://estacions.albertguillaumes.cat/', "Albert Guillaumes' drawings")} (reference only); T-Centralen is his 3D drawing</li>`
       + `<li>Design limits and sections: the ${a('https://fordonsradio.se/wp-content/uploads/2025/08/Stockholms-Tunnelbanesystem-1952.pdf', '1952')} and ${a('https://fordonsradio.se/wp-content/uploads/2025/08/Stockholms-Tunnelbanor-1975.pdf', '1975')} technical descriptions (reference only)</li>`
       + `<li>Notes: ${a('docs/network-sources.md', 'docs/network-sources.md')}, ${a('docs/red-line-plan.md', 'docs/red-line-plan.md')}</li>`
