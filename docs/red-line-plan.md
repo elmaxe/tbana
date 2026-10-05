@@ -313,10 +313,90 @@ Each phase ends in a pull request with a playable preview.
        buildings.
      - The street is a square of ground 60 m across around the exits, with nothing on it; the
        city is phase 7.
-7. **The surface.**
-   - Ground from the elevation model, with buildings from OpenStreetMap at first, and Lantmäteriet
-     or Stockholm stad later. Start where the red line is above ground.
-   - Done when: the bridges at Gamla stan and Liljeholmen show the city around them.
+7. **The surface.** *Done.*
+   - Settled before starting: the city reaches everywhere in view, not just a few hundred metres
+     round the open stretches; buildings are plain blocks with flat roofs for now, in a format
+     with room for roofs, streets and water later; the other lines' tracks wait for phase 8.
+   - The city covers the 500 m tiles that come within 1 km of the track (`tools/lib/city-area.ts`):
+     396 tiles, 99 km².
+   - `tools/fetch-terrain.ts` samples the elevation model every 5 m on the game's grid, 4 million
+     points, from the 2 m overviews of Lantmäteriet's 10 km files (`dtm-cog` in the STAC
+     catalogue), in four and a half minutes. Within a tile, the game's grid is mapped onto the
+     model's (turned 2.6°) through its corners, to within a millimetre. The heights are stored
+     as centimetre steps along each row, which halves them gzipped (4 MB). The login and the file
+     search moved to `tools/lib/lantmateriet.ts`, shared with `fetch-ground`.
+   - `tools/fetch-city.ts` takes the buildings from OpenStreetMap's extract of Stockholm county
+     (openstreetmap.fr, 80 MB of PBF, read in three passes by `tools/lib/osm-pbf.ts` in 18 s)
+     rather than Overpass, which this many buildings would overload (and which wasn't reachable).
+     29,888 buildings and parts, 228 with courtyards.
+   - `tools/build-city.ts` writes `public/data/city/` (format in `src/city-tile.ts`: gzipped
+     binary, one file a tile, in tagged sections: `GRND` ground, `BLDG` buildings, `HOLE` holes
+     through the ground; a reader skips sections it doesn't know). 5.3 MB in all.
+   - The ground is shaped round the track from `track-geometry.json`, in 3 s for all of it:
+     - Under open track it is lowered 0.4 m below the formation, flat for a metre beyond the
+       structure (formation, platform, deck, cutting walls), then rises at 1:2 (1:1 behind a
+       cutting's walls). 13,571 points are lowered. Those cells aren't walked on.
+     - Over a tunnel it is kept 0.5 m above the crown, falling away at 1:1.5: 172 points are
+       raised, near the mouths and over the troughs under water.
+     - A tunnel whose ground the elevation model has below half its height is taken to be a
+       short covered way, or one under a road bridge that the model leaves out (west of
+       Telefonplan, a 40 m box under a road has the ground at rail level). It stands in the open,
+       and the ground round it is lowered as for open track.
+     - At the 72 mouths the tunnel's space, wall to wall and floor to crown, is cut out of the
+       ground from 6 m inside to 8 m out, where the lowered ground meets the raised.
+   - Buildings:
+     - Walls from 0.5 m below the lowest ground under the outline up to the height above it:
+       OSM's `height` (1,935) or `building:levels` at 3.1 m a storey plus a parapet (9,757). For
+       the other 18,041, the median levels of the tagged blocks (apartments, offices, `yes`…)
+       within 150 m, or a default for the sort: houses 1.7 storeys, sheds and garages 1.
+     - Buildings stand at least 2.5 m above their highest ground.
+     - 359 outlines with `building:part` inside are drawn as their parts.
+     - 21 buildings stand over open track (station buildings at Telefonplan, Hägerstensåsen,
+       Västertorp, Ropsten, Sätra centrum…): the part over the track's space is lifted to 5 m
+       above the rails, or left out if nothing is left above. 3 roofs on posts over the platforms
+       are left out.
+     - 58 of the 75 exits come up inside or against a building in OSM, most of them station
+       buildings. Where a station's stairs, lift or hall reaches the surface, its plan (and 0.6 m)
+       is cut out of the buildings, and so is a way on from the exit, the width of the stairs,
+       until it is outside every building. 75 buildings are cut.
+     - Roof shapes, roof heights and colours from OSM are kept in the tiles. Until roofs are
+       built, a pitched roof is drawn flat halfway up.
+   - `src/city.ts` builds the tiles within 1.1 km of the camera (800 m on phones), nearest first,
+     one a frame, and drops them beyond 1.5 km. About 25 tiles and 400,000 triangles are built at
+     once; a tile takes 10 ms (median), 33 ms at most. Beyond 600 m the ground has every other
+     point, with skirts at the tiles' edges over the cracks.
+     - Facades are one window bay of one storey repeated, tinted per building from a palette of
+       Stockholm's plaster colours, or OSM's colour. The ground is paved where buildings are
+       close together, grass where they aren't, and gravel beside the track.
+     - The stations' stairs, lifts and rooms are cut out of the ground (exactly, `src/clip.ts`),
+       from 0.3 m under their floors.
+     - The ground can be walked on, except beside open track, inside buildings that stand on it,
+       and over the stations' openings. The street round the exits is still walked on, but not
+       drawn, and not inside buildings.
+     - Out in the open the fog thins to show about 1 km, and flying shows the sky.
+   - The network, with the city:
+     - It draws no ground of its own: the bank runs on 3 m down into the city's ground, the
+       cutting's walls go down behind, and piers 3 m into the ground.
+     - Tunnel mouths at the ends of the track graph's pieces (60 of the 72) had no portal; they
+       now have one. Portals are headwalls, a rectangle 3 m beyond the walls and up to the ground.
+   - Checked:
+     - Screenshots at both ends of the Gamla stan–Slussen bridge, Liljeholmen, Hallunda,
+       Mariatorget's and Östermalmstorg's streets, Stockholm C, and inside tunnels near mouths.
+     - A flood fill from each of the 75 exits, with the player's step rule, reaches the city's
+       ground from 74. Sätra's comes up into a street hemmed in by the shopping centre, the
+       track and higher ground.
+   - Done: the bridge from Gamla stan to Slussen shows the city around it, and so does
+     Liljeholmen. In OSM (and so in the game), the line crosses Liljeholmsviken in a tunnel, not
+     on a bridge, so there the city is seen from the station, which is in the open.
+   - Still open:
+     - Water: lakes and bays are flat ground at the water's level, drawn as grass. They are the
+       most visible gap, and the next section to add (OSM's water areas and coastline).
+     - Roof shapes, and streets (OSM's roads, paths and squares) as their own sections.
+     - Building heights are estimated for 60%. Lantmäteriet's or Stockholm stad's building data
+       would do better.
+     - The troughs under Riddarholmskanalen and Liljeholmsviken have their tops above the water
+       in the track heights, and make low mounds across it.
+     - The other lines' tracks above ground, at Gamla stan, Slussen and beyond, are phase 8.
 8. **Depots and later lines.**
    - Add the depots the red line uses, then the green and blue lines.
    - The same tools work for those lines unchanged.

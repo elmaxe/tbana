@@ -4,21 +4,17 @@
 //   LM_USER=… LM_PASSWORD=… node tools/fetch-ground.ts entrances  around the stations' entrances
 //                                                                 -> data/ground/entrances.json
 //
-// The model is free (CC BY 4.0) but its download needs a Geotorget account, sent as HTTP Basic
-// auth from LM_USER and LM_PASSWORD. Without them the requests go out unauthenticated, which
-// works only if the environment adds the login itself. Behind a proxy that adds it, Node's fetch
-// needs NODE_USE_ENV_PROXY=1 to go through the proxy at all.
-//
-// The model comes as Cloud Optimized GeoTIFFs, 2.5 × 2.5 km each on SWEREF 99 TM. The files are
-// found through Lantmäteriet's STAC catalogue for height data, and only the blocks under the
-// tracks are read, not whole files. Every piece of track on a traced service is sampled every
-// 10 m, tunnels too: above a tunnel the ground says how deep it must be. Around each subway
-// entrance near a station on a traced service, a square of ground is sampled on a grid: the street
-// the station's exits come up to.
+// The login and the way the files are found are in tools/lib/lantmateriet.ts. Here the model's
+// 2.5 × 2.5 km files are read at full resolution, only the blocks under the points. Every piece
+// of track on a traced service is sampled every 10 m, tunnels too: above a tunnel the ground says
+// how deep it must be. Around each subway entrance near a station on a traced service, a square
+// of ground is sampled on a grid: the street the station's exits come up to. (The ground of the
+// whole city is tools/fetch-terrain.ts.)
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fromUrl } from 'geotiff';
 import type { GeoTIFFImage } from 'geotiff';
-import { GRID_TM, lonLatToWorld, unproject, worldToGrid } from '../src/geo.ts';
+import { GRID_TM, lonLatToWorld, worldToGrid } from '../src/geo.ts';
+import { authHeaders, findFiles, throttleFetch } from './lib/lantmateriet.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 
 const MODE = process.argv[2] ?? 'tracks';
@@ -33,30 +29,8 @@ const STEP = 10;
 const PATCH = 18, PATCH_STEP = 4, NEAR = 450;
 // around each station: STATION_PATCH × STATION_PATCH cells
 const STATION_PATCH = 50;
-const STAC = 'https://api.lantmateriet.se/stac-hojd/v1/search';
 
-// The download server turns away some requests (403) when too many arrive at once, so geotiff's
-// fetches go out a few at a time and are retried after a pause.
-{
-  const fetch0 = globalThis.fetch;
-  let active = 0;
-  const queue: (() => void)[] = [];
-  globalThis.fetch = async (input, init) => {
-    if (active >= 3) await new Promise<void>((go) => queue.push(go));
-    active++;
-    try {
-      for (let attempt = 0; ; attempt++) {
-        const res = await fetch0(input, init);
-        if (res.ok || attempt === 5 || ![403, 429, 503].includes(res.status)) return res;
-        await res.body?.cancel();
-        await new Promise((go) => setTimeout(go, 500 * 2 ** attempt));
-      }
-    } finally {
-      active--;
-      queue.shift()?.();
-    }
-  };
-}
+throttleFetch();
 
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const used = new Set(graph.routes.flatMap((r) => r.path.map((s) => s.piece)));
@@ -126,13 +100,9 @@ if (MODE === 'entrances') {
   }
 }
 
-const user = process.env.LM_USER, password = process.env.LM_PASSWORD;
-const headers: Record<string, string> = user && password
-  ? { Authorization: 'Basic ' + Buffer.from(`${user}:${password}`).toString('base64') }
-  : {};
-if (!user || !password) console.warn('LM_USER / LM_PASSWORD not set: trying without a login');
+const headers = authHeaders();
 
-// the elevation model's files under the tracks, from the STAC catalogue
+// the elevation model's files under the points
 interface Tile { url: string; bbox: number[]; pts: Point[] }
 const tiles: Tile[] = [];
 {
@@ -141,24 +111,7 @@ const tiles: Tile[] = [];
     lo[0] = Math.min(lo[0], p.e); lo[1] = Math.min(lo[1], p.n);
     hi[0] = Math.max(hi[0], p.e); hi[1] = Math.max(hi[1], p.n);
   }
-  const corners = [lo, hi].map(([e, n]) => unproject(e, n, GRID_TM));
-  let body: object | undefined = {
-    bbox: [corners[0].lon - 0.01, corners[0].lat - 0.01, corners[1].lon + 0.01, corners[1].lat + 0.01],
-    limit: 200,
-  };
-  while (body) {
-    const res = await fetch(STAC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-    if (!res.ok) throw new Error(`${STAC}: ${res.status} ${res.statusText}`);
-    const page = await res.json() as {
-      features: { collection: string; assets: { data: { href: string; 'proj:bbox': number[] } } }[];
-      links: { rel: string; body?: object }[];
-    };
-    for (const f of page.features) {
-      if (!f.collection.startsWith('mhm-')) continue;
-      tiles.push({ url: f.assets.data.href, bbox: f.assets.data['proj:bbox'], pts: [] });
-    }
-    body = page.links.find((l) => l.rel === 'next')?.body;
-  }
+  for (const f of await findFiles([lo[0], lo[1], hi[0], hi[1]], (c) => c.startsWith('mhm-'))) tiles.push({ ...f, pts: [] });
 }
 for (const p of points) {
   // proj:bbox is [min e, min n, max e, max n]

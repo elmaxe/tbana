@@ -20,7 +20,8 @@ const UNLOAD = 850;      // and drop them beyond this
 const BUILD_PER_UPDATE = 2;
 const SHELL_POINTS = 25; // points around a tunnel's outline
 const OVERLAP = 0.15;    // the halves of a shared tunnel or deck overlap by this at the middle
-const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track
+const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track (without a city)
+const SKIRT = 3;         // with a city: a bank's slope goes on this far below the ground
 const POINT_CELL = 20;
 
 type UV = [number, number];
@@ -37,6 +38,7 @@ interface Sample {
   third: 1 | -1;                   // the conductor rail's side
   skip: boolean;                   // the station draws it all
   noTrack: boolean;                // the station draws the track
+  mouth?: boolean;                 // a piece's end where its tunnel meets another piece in the open
 }
 
 // A part of the network the station models draw themselves: a stretch of a piece, in the track
@@ -145,11 +147,27 @@ export class Network {
   // (`solids`).
   private holes: Volume[];
   private solids: Volume[];
+  // With the city's ground (src/city.ts) around the track, the network draws no ground of its own:
+  // banks run on down into the city's ground, and the city's ground is shaped round cuttings.
+  private city: boolean;
 
-  constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = [], { holes = [] as Volume[], solids = [] as Volume[] } = {}) {
+  constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = [], { holes = [] as Volume[], solids = [] as Volume[], city = false } = {}) {
     this.group.name = 'network';
     this.holes = holes;
     this.solids = solids;
+    this.city = city;
+    // where the pieces end, and whether in a tunnel: a tunnel piece meeting one in the open has
+    // its mouth there
+    const tunnelKind = (k: number) => STRUCTURE_KINDS[k] === 'rock' || STRUCTURE_KINDS[k] === 'box';
+    const endKey = (x: number, z: number) => `${Math.round(x)},${Math.round(z)}`;
+    const ends = new Map<string, boolean[]>();
+    for (const piece of Object.values(geometry.pieces)) {
+      for (const k of [0, piece.x.length - 1]) {
+        const key = endKey(piece.x[k], piece.z[k]);
+        (ends.get(key) ?? ends.set(key, []).get(key)!).push(tunnelKind(piece.kind[k]));
+      }
+    }
+    const mouthAt = (piece: GeometryPiece, k: number) => tunnelKind(piece.kind[k]) && ends.get(endKey(piece.x[k], piece.z[k]))!.some((t) => !t);
     this.stations = graph.stations;
     // the direction each piece is run in, where it is only run one way
     const dirs = new Map<number, Set<number>>();
@@ -157,6 +175,10 @@ export class Network {
     for (const [id, piece] of Object.entries(geometry.pieces)) {
       const d = dirs.get(Number(id));
       const samples = densify(piece, d?.size === 1 ? [...d][0] : 0, exclude.filter((e) => e.piece === Number(id)));
+      if (samples.length) {
+        samples[0].mouth = mouthAt(piece, 0);
+        samples[samples.length - 1].mouth = mouthAt(piece, piece.x.length - 1);
+      }
       this.addRuns(samples);
       this.addFloors(samples);
       piece.x.forEach((x, i) => {
@@ -325,6 +347,15 @@ export class Network {
       sweep(b.ground, run, (sm) => {
         if ((sm.kind !== 'grade' && sm.kind !== 'embankment') || !outer(sm)) return null;
         const e = side * S.EMBANKMENT.formation, g = groundV(sm);
+        if (this.city) {
+          // the formation; where the ground is lower, the bank's slope down into it (the city's
+          // ground rises from the formation where it is higher)
+          if (g >= S.FLOOR - 0.05) return { key: 'form', pts: side < 0 ? [[e, S.FLOOR], [-S.BALLAST.toe, S.FLOOR]] : [[S.BALLAST.toe, S.FLOOR], [e, S.FLOOR]] };
+          const foot = e + side * (S.FLOOR - g + SKIRT) * S.EMBANKMENT.slope;
+          return { key: 'bank', pts: side < 0
+            ? [[foot, g - SKIRT], [e, S.FLOOR], [-S.BALLAST.toe, S.FLOOR]]
+            : [[S.BALLAST.toe, S.FLOOR], [e, S.FLOOR], [foot, g - SKIRT]] };
+        }
         const toe = e + side * Math.abs(S.FLOOR - g) * S.EMBANKMENT.slope;
         return { key: 'bank', pts: side < 0
           ? [[side * GROUND_STRIP + toe - e, g], [toe, g], [e, S.FLOOR], [-S.BALLAST.toe, S.FLOOR]]
@@ -334,10 +365,11 @@ export class Network {
       sweep(b.concrete, run, (sm) => {
         if (sm.kind !== 'cutting' || !outer(sm)) return null;
         const u = side * S.CUTTING.wall, t = side * S.CUTTING.thickness, top = Math.max(1, groundV(sm) + S.CUTTING.aboveGround);
-        return { key: 'cut', pts: [[u, S.FLOOR], [u, top], [u + t, top], [u + t, groundV(sm)]] };
+        // with the city, its ground falls away behind the wall: the wall's back goes down to it
+        return { key: 'cut', pts: [[u, S.FLOOR], [u, top], [u + t, top], [u + t, this.city ? S.FLOOR - 0.5 : groundV(sm)]] };
       }, { uScale: 0.25, vScale: 0.25 });
       sweep(b.ground, run, (sm) => {
-        if (sm.kind !== 'cutting' || !outer(sm)) return null;
+        if (sm.kind !== 'cutting' || !outer(sm) || this.city) return null;
         const u = side * (S.CUTTING.wall + S.CUTTING.thickness), g = groundV(sm);
         return { key: 'cg', pts: side < 0 ? [[side * GROUND_STRIP, g], [u, g]] : [[u, g], [side * GROUND_STRIP, g]] };
       }, { uScale: 0.3, vScale: 0.3 });
@@ -363,7 +395,9 @@ export class Network {
       if (sm.ground > bottom - 0.5) continue;
       const [a, c] = sm.pair ? ownSpan(sm, [-S.BRIDGE.deck, S.BRIDGE.deck]) : [-S.BRIDGE.deck, S.BRIDGE.deck];
       const w = (c - a) * 0.8, mid = (a + c) / 2;
-      box(b.concrete, at(sm, mid, 0).setY((bottom + sm.ground) / 2), sm, w, bottom - sm.ground, 1.4);
+      // into the city's ground, which may lie a little lower than the line's
+      const foot = sm.ground - (this.city ? 3 : 0);
+      box(b.concrete, at(sm, mid, 0).setY((bottom + foot) / 2), sm, w, bottom - foot, 1.4);
     }
   }
 
@@ -439,15 +473,25 @@ export class Network {
     const portal = (t: Sample) => {
       const inner = shellOutline(t)!.pts;
       const [sa, sb] = structureSpan(t), mid = (sa + sb) / 2;
-      const top = Math.max(S.ROCK.doubleCrown + 1.5, t.ground === null ? 0 : t.ground - t.y + 0.5);
-      // pushed outwards from the middle of the opening, up to the ground
+      const crown = Math.max(...inner.map((p) => p[1]));
+      const top = Math.max(crown + 2, t.ground === null ? 0 : t.ground - t.y + 0.5);
+      // a headwall: the opening's outline carried out from its middle to a rectangle 3 m beyond
+      // its walls and up to the ground (where two tracks share the tunnel, each draws its half)
+      const x0 = sa - 3, x1 = sb + 3, y0 = S.FLOOR, oy = 1.5;
       ring(t, inner, inner.map(([u, v]) => {
-        const du = u - mid, dv = v - 1.5, l = Math.hypot(du, dv) || 1;
-        return [u + (du / l) * 3, Math.min(top, Math.max(S.FLOOR, v + (dv / l) * 3))];
+        const du = u - mid, dv = v - oy;
+        let k = Infinity;
+        if (du > 1e-6) k = Math.min(k, (x1 - mid) / du);
+        if (du < -1e-6) k = Math.min(k, (x0 - mid) / du);
+        if (dv > 1e-6) k = Math.min(k, (top - oy) / dv);
+        if (dv < -1e-6) k = Math.min(k, (y0 - oy) / dv);
+        return k === Infinity ? [u, v] : [mid + du * k, oy + dv * k];
       }));
     };
-    // a tunnel running into a station the model draws
+    // a tunnel running into a station the model draws, or out into the open at the piece's end
     if (i0 > 0 && samples[i0 - 1].skip && tunnel(samples[i0])) portal(samples[i0]);
+    if (i0 === 0 && samples[0].mouth) portal(samples[0]);
+    if (i1 === samples.length - 1 && samples[i1].mouth) portal(samples[i1]);
     if (i1 + 1 < samples.length && samples[i1 + 1].skip && tunnel(samples[i1])) portal(samples[i1]);
     for (let i = i0 + 1; i <= i1; i++) {
       const p = samples[i - 1], q = samples[i];

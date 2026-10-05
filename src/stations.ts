@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SurfaceIndex } from './surface-index';
 import type { SurfaceHit } from './surface-index';
-import { insideVolume, intersect, subtractAll } from './clip.ts';
+import { insideVolume, intersect, prism, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { LANE, LIFT, floorHeights, inclineCorners, liftCorners, solidOf, spaceOf } from './station-layout.ts';
 import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, SignPart, StationLayout, StationLayouts, StreetPart, XYZ } from './station-layout.ts';
@@ -32,6 +32,7 @@ export interface StationFloorData {
   station: string;
   top: number | null; // the ceiling's height over it, absolute; null in the open
   outdoor: boolean;
+  street: boolean;    // the street around the exits, which buildings stand on
 }
 
 type MaterialName = 'floor' | 'wall' | 'ceiling' | 'stairs' | 'escalator' | 'skirt' | 'steel' | 'rubber' | 'glass' | 'lamp' | 'street' | 'canopy';
@@ -122,7 +123,24 @@ export class Stations {
     return { holes, solids };
   }
 
-  constructor(data: StationLayouts, private platforms: SurfaceIndex<PlatformFloorData> | null) {
+  // The volumes cut out of the city's ground: every part's space where it comes up through it,
+  // from a little under a floor, so the ground doesn't show through the floors at street level.
+  static groundCuts(data: StationLayouts) {
+    const cuts: Volume[] = [];
+    for (const st of data.stations) {
+      for (const p of st.parts) {
+        if (p.kind === 'floor') {
+          const h = p.corners.map((c) => c[1]);
+          cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - 0.3), h.map((y) => y + (p.ceiling ?? 3))));
+        } else if (p.kind === 'incline' || p.kind === 'lift') cuts.push(spaceOf(p)!);
+      }
+    }
+    return cuts;
+  }
+
+  // With `drawStreets` false, the street around the exits can be walked on but isn't drawn: the
+  // city's ground is there.
+  constructor(data: StationLayouts, private platforms: SurfaceIndex<PlatformFloorData> | null, private drawStreets = true) {
     this.group.name = 'stations';
     this.layouts = data.stations;
     for (const st of this.layouts) this.index(st);
@@ -135,7 +153,7 @@ export class Stations {
       if (p.kind === 'incline') cutters.push(spaceOf(p)!, solidOf(p));
       else if (p.kind === 'lift') cutters.push(spaceOf(p)!);
     }
-    const data = (label: string, top: number | null, outdoor = false): StationFloorData => ({ kind: 'station', rec: { label }, station: st.name, top, outdoor });
+    const data = (label: string, top: number | null, outdoor = false, street = false): StationFloorData => ({ kind: 'station', rec: { label }, station: st.name, top, outdoor, street });
     const add = (tri: number[][], d: StationFloorData, cut: Volume[]) => {
       for (const piece of subtractAll(tri, cut)) {
         for (let k = 1; k + 1 < piece.length; k++) {
@@ -155,7 +173,7 @@ export class Stations {
         add([v[0], v[1], v[2]], d, []);
         add([v[0], v[2], v[3]], d, []);
       } else if (p.kind === 'street') {
-        const d = data(`${st.name} · street`, null, true);
+        const d = data(`${st.name} · street`, null, true, true);
         this.streetCells(p, (q) => { add([q[0], q[1], q[2]], d, cutters); add([q[0], q[2], q[3]], d, cutters); });
       } else if (p.kind === 'lift') {
         const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
@@ -245,7 +263,7 @@ export class Stations {
         case 'incline': this.buildIncline(p, m, others(p), [...voids, ...spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol)]); break;
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
-        case 'street': this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
+        case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
         case 'canopy': this.buildCanopy(p, m, spaces.map((s) => s.vol)); break;
         case 'sign': group.add(this.buildSign(p, m)); break;
         default: break;
