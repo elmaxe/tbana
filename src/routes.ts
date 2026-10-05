@@ -41,6 +41,15 @@ export function locateSegment(line: RoutePoint[], piece: number, s: number) {
   return null;
 }
 
+// The segment of the line (from point i - 1 to point i) at distance r along it, and how far along
+// that segment.
+export function segmentAt(line: RoutePoint[], r: number) {
+  let i = 1;
+  while (i < line.length - 1 && line[i].r < r) i++;
+  const a = line[i - 1], b = line[i];
+  return { i, t: Math.max(0, Math.min(1, (r - a.r) / (b.r - a.r || 1))) };
+}
+
 // the distance along the line of a place on a piece
 export function locate(line: RoutePoint[], piece: number, s: number) {
   const at = locateSegment(line, piece, s);

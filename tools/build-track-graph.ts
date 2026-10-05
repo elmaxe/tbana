@@ -619,12 +619,16 @@ const cheapest = (list: Arrival[]) => list.reduce((a, b) => (b.cost < a.cost ? b
 // on the platform track the train the other way leaves from, and reverses there. Either the
 // arriving train crosses over to the track the other leaves from, or the leaving train leaves
 // from the track the other arrived on and crosses over after, or both use a track between the
-// running lines (Åkeshov): at each end, whichever stand costs the two runs least.
+// running lines (Åkeshov): at each end, whichever stand costs the two runs least. Where two
+// services turn at the same station they stand on different tracks, if it has more than one
+// (Hässelby strand): each would stand there longer than the other leaves between its trains.
 const routes: Route[] = [];
 // the services' running lines as first traced, before the ends were turned
 const ways: NonNullable<TrackGraph['ways']> = [];
 type Traced = Route & { cost: number };
 const flip = (pos: Arrival['pos']): Arrival['pos'] => ({ ...pos, dir: -pos.dir as 1 | -1 });
+// the platform tracks services already turn on, by station
+const turnedOn = new Map<string, Set<number>>();
 for (const [name, def] of Object.entries(routeDefs.routes)) {
   const dirs = [[`${name} ${def.stations[0]}–${def.stations.at(-1)}`, def.stations],
     [`${name} ${def.stations.at(-1)}–${def.stations[0]}`, [...def.stations].reverse()]] as const;
@@ -647,11 +651,19 @@ for (const [name, def] of Object.entries(routeDefs.routes)) {
   for (const near of stands(dirs[0][1])) for (const far of stands(dirs[1][1])) {
     const ea = fromNear.get(standKey({ pos: near } as Arrival))!.get(standKey({ pos: flip(far) } as Arrival));
     const eb = fromFar.get(standKey({ pos: far } as Arrival))!.get(standKey({ pos: flip(near) } as Arrival));
-    if (!ea || !eb || ea.cost + eb.cost >= bestCost) continue;
-    bestCost = ea.cost + eb.cost;
+    if (!ea || !eb) continue;
+    const taken = (turnedOn.get(def.stations[0])?.has(near.piece) ? 1 : 0) + (turnedOn.get(def.stations.at(-1)!)?.has(far.piece) ? 1 : 0);
+    const cost = ea.cost + eb.cost + taken * 1e6;
+    if (cost >= bestCost) continue;
+    bestCost = cost;
     best = [routeTo(dirs[0][0], name, def.line, dirs[0][1], ea), routeTo(dirs[1][0], name, def.line, dirs[1][1], eb)];
   }
   if (!best) problems.push(`${name}: its trains can't turn where they stand at the ends`);
+  else {
+    for (const [station, piece] of [[def.stations[0], best[0].stops[0].piece], [def.stations.at(-1)!, best[1].stops[0].piece]] as const) {
+      (turnedOn.get(station) ?? turnedOn.set(station, new Set()).get(station)!).add(piece);
+    }
+  }
   for (const r of best ?? [a, b]) routes.push(r);
 }
 for (const r of routes) delete (r as Partial<Traced>).cost;

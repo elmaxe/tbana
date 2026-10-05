@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { LINES, TRAIN_SPECS } from './lines';
-import type { Destination } from './lines';
+import type { Destination, LineId } from './lines';
 import * as T from './textures';
 import { createTrain, SERVICE_UNITS } from './rolling-stock/index';
 import type { BuildOptions, Train, TrainType } from './rolling-stock/index';
@@ -141,10 +141,18 @@ export class Trains {
     }
 
     if (network) {
-      const type = LINES.red.train!;
-      const first = this.newModel(type);
-      this.pool.set(type, [first]);
-      this.timetable = new Timetable(network.graph, network.geometry, first.length, network.join.stretches, (svc) => this.release(svc));
+      // a model of each line's train, for its length, kept for the first trip near the player
+      const lengths = new Map<TrainType, number>();
+      const lengthOf = (line: LineId) => {
+        const type = LINES[line].train ?? 'C30';
+        if (!lengths.has(type)) {
+          const first = this.newModel(type);
+          this.pool.set(type, [first]);
+          lengths.set(type, first.length);
+        }
+        return lengths.get(type)!;
+      };
+      this.timetable = new Timetable(network.graph, network.geometry, lengthOf, network.join.stretches, (svc) => this.release(svc));
       for (const [tr, list] of network.join.served) {
         if (!hasPlatform(tr)) continue;
         const stops = list.flatMap(({ route }) => {
@@ -154,7 +162,7 @@ export class Trains {
         });
         this.calls.push({ tr, shuttle: null, stops });
       }
-      this.park(network, first.length);
+      this.park(network, lengthOf);
     }
     this.all = [...this.shuttles, ...(this.timetable?.trips ?? []), ...this.parked];
   }
@@ -162,12 +170,18 @@ export class Trains {
   // Trains out of service, standing on about two in three of the depots' stabling tracks (a yard
   // track beside another for most of its length) and of the sidings that end at a buffer stop,
   // where they are long enough. They get a model when the player comes near, like the trips.
-  private park({ graph, geometry }: TrainsNetwork, trainLen: number) {
+  private park({ graph, geometry }: TrainsNetwork, lengthOf: (line: LineId) => number) {
     const run = new Set([...runningWays(graph), ...graph.routes].flatMap((r) => r.path.map((st) => st.piece)));
+    // the line of a depot's track, which its trains belong to (build-track-graph names the
+    // unnamed track after the line round it)
+    const lineOf = (id: number) => graph.pieces[id].lines.find((l): l is LineId => l in LINES) ?? null;
     const ends = new Set(graph.nodes.filter((n) => n.kind === 'end').map((n) => n.id));
     for (const [id, g] of Object.entries(geometry.pieces)) {
       const piece = graph.pieces[Number(id)];
       if (run.has(piece.id) || (piece.service !== 'yard' && piece.service !== 'siding')) continue;
+      const line = lineOf(piece.id);
+      if (!line) continue;
+      const trainLen = lengthOf(line);
       const length = g.s[g.s.length - 1] - g.s[0];
       if (length < trainLen + 10 || (piece.id * 2654435761) % 3 === 0) continue;
       const beside = g.left ? g.s.filter((_, k) => (g.left![k] > 0 && g.left![k] < 8) || (g.right![k] > 0 && g.right![k] < 8)).length / g.s.length : 0;
@@ -176,7 +190,7 @@ export class Trains {
       // at the buffer stop end of a siding, or in the middle of a stabling track
       const head = ends.has(piece.to) ? path.length - 6 : ends.has(piece.from) ? trainLen + 6 : (path.length + trainLen) / 2;
       this.parked.push({
-        id: -1000 - this.parked.length, L: LINES.red, vmax: 0, cars: [], model: null, trainLen, path, shown: [0, path.length],
+        id: -1000 - this.parked.length, L: LINES[line], vmax: 0, cars: [], model: null, trainLen, path, shown: [0, path.length],
         stops: [{ station: '', head, side: 1, until: Infinity }], stop: 0, end: head,
         state: 'dwell', timer: 0, head, speed: 0, limit: 0, doors: 0, dest: ['', 'Ej i trafik'],
       });

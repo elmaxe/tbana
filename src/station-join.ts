@@ -17,10 +17,13 @@ import type { RoutePoint } from './routes';
 const HANDOVER = 6;        // the station draws its platform and walls this far past their ends
 const BLEND = 40;          // over which the track runs from the model's line to the network's
 const SHORT_OF_NEXT = 140; // the track ends this far short of the next stop on either side
+const STOP_REACH = 60;     // the middle of the model's platform is looked for this far from a stop
 
 // A route's line where it runs through a joined platform: from point `from` of its line (see
-// src/routes.ts), the points `pts` at platform level, blended onto the model's track.
-export interface RouteStretch { from: number; pts: THREE.Vector3[] }
+// src/routes.ts), the points `pts` at platform level, blended onto the model's track; and its stop
+// `k` there, at distance `stop` along its line: where the line passes the middle of the model's
+// platform.
+export interface RouteStretch { from: number; pts: THREE.Vector3[]; k: number; stop: number }
 
 export class StationJoin {
   exclusions: Exclusion[] = [];
@@ -47,8 +50,11 @@ export class StationJoin {
       if (k < 0) continue;
       const line = routeLine(this.geometry, route.path);
       if (!line) continue;
-      const stop = locate(line, route.stops[k].piece, route.stops[k].s);
-      if (stop === null) continue;
+      const at = locate(line, route.stops[k].piece, route.stops[k].s);
+      if (at === null) continue;
+      // where the line passes nearest the middle of the model's platform: the graph's stop is
+      // the middle of OpenStreetMap's platform, which may be a few metres off
+      const stop = nearestR(line, p, at - STOP_REACH, at + STOP_REACH);
       const q = pointAt(line, stop), dir = pointAt(line, stop + 5).sub(pointAt(line, stop - 5));
       const d = Math.hypot(q.x - p.x, q.z - p.z);
       if (d > 5 || Math.abs(q.y + RAIL_TOP - p.y) > 3 || dir.x * run.x + dir.z * run.z <= 0) continue;
@@ -76,7 +82,7 @@ export class StationJoin {
     // model's platform
     for (const f of found) {
       if (f.line.length < 2) continue;
-      (this.stretches.get(f.route) ?? this.stretches.set(f.route, []).get(f.route)!).push({ from: f.from, pts: blend(f.line, f.stop) });
+      (this.stretches.get(f.route) ?? this.stretches.set(f.route, []).get(f.route)!).push({ from: f.from, pts: blend(f.line, f.stop), k: f.k, stop: f.stop });
       (this.served.get(tr) ?? this.served.set(tr, []).get(tr)!).push({ route: f.route, stop: f.k });
     }
     const { line, stop } = best;
@@ -108,6 +114,20 @@ export class StationJoin {
     }
     for (const [piece, [s0, s1]] of byPiece) this.exclusions.push({ piece, s0, s1, trackOnly });
   }
+}
+
+// the distance along a route's line, between r0 and r1, of its nearest point to p, in plan
+function nearestR(line: RoutePoint[], p: THREE.Vector3, r0: number, r1: number) {
+  let best = r0, bestD = Infinity;
+  for (let i = 1; i < line.length; i++) {
+    const a = line[i - 1], b = line[i];
+    if (b.r < r0 || a.r > r1) continue;
+    const dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / l2));
+    const d = Math.hypot(a.x + dx * t - p.x, a.z + dz * t - p.z);
+    if (d < bestD) { bestD = d; best = Math.max(r0, Math.min(r1, a.r + (b.r - a.r) * t)); }
+  }
+  return best;
 }
 
 // the distance along a polyline of its nearest point to p, in plan
