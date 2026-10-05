@@ -61,8 +61,9 @@ standing in a doorway when the doors close, you step inside or back onto the pla
 On the red line the trains run the whole line on a timetable (see [Trains on the
 network](#trains-on-the-network)), so you ride on from station to station through the real
 tunnels. Step out at any station and wait there for the next train either way, or walk up to the
-street (see [The stations](#the-stations)). At the end of the line the train turns out of sight: the screen goes
-dark, and you come back in the same spot of the train that leaves from there the other way.
+street (see [The stations](#the-stations)). At the end of the line the train waits at the platform
+with its doors open and turns there: it leaves as the next train the other way, and you can stay
+aboard.
 
 On the other lines the model's tunnels are short, so the screen goes dark soon after you leave, and
 you come back to T-Centralen in the same spot of a train on the other track. Seats don't block you,
@@ -156,7 +157,13 @@ npm run plot-graph -- Slussen 400 slussen.svg   # draw part of it, to check by e
 - It works out which pairs of tracks each switch connects.
 - It matches the platforms to the tracks beside them.
 - It traces T13 and T14 in both directions (`data/routes.json`), stopping at every platform,
-  never reversing, and keeping to the left-hand track.
+  never reversing, and keeping to the left-hand track. These are the running lines (`ways`), which
+  the tools fit and draw.
+- It traces them again so that the trains can turn where they stand at each end: a train arrives
+  on the platform track the train the other way leaves from. Either the arriving train crosses
+  over before the platform, or the leaving one crosses over after it, whichever costs less at that
+  end. These are the routes the trains run.
+- It copies the depots' views (for the game's list of places) from `data/routes.json`.
 - It copies their timetable from `data/routes.json` into the graph: how often each service runs,
   and when its trains are at T-Centralen.
 
@@ -176,7 +183,11 @@ only a reference, because its licence doesn't allow reuse.
 ### Track heights
 
 `public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every
-piece of track the red line services run on.
+piece of the red line's track: what its services run on, and the crossovers, sidings, turnback
+tracks and depots joined to that, as far as other lines' track (`lineTrack` in
+`tools/lib/graph.ts`). Track no service runs on is left out where it passes a platform (the
+middle tracks at Alby and Sätra, Liljeholmen's third track), because the stations are described
+without it.
 
 ```sh
 npm run fetch-station-heights    # Wikidata station heights -> data/station-heights.json
@@ -192,8 +203,13 @@ npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
 - **T-Centralen:** its platforms in the station model.
 - **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
 
-It keeps tunnels at least 6 m under the ground away from their mouths, and the gradient at 37‰ or
-less, the way a real line runs at an even grade between short vertical curves. It then checks the
+It keeps tunnels at least 6 m under the ground away from their mouths (3 m for the track no
+service runs on, which may be in concrete boxes), and the gradient at 37‰ or less, the way a real
+line runs at an even grade between short vertical curves. It fits the running lines first, then
+the rest of the track with the running lines pinned, so the depots don't move the line. Where two
+tracks cross one over the other (OpenStreetMap's layers differ), they are held 6.5 m apart. A
+depot's track through its halls, or inside any building, gets no ground anchor: the elevation
+model there follows the roof. It then checks the
 result against the 1975 limits for the red line: 40‰, 10‰ along platforms, and vertical curves of
 at least 2,000 m. It fails on anything outside them, and says where.
 
@@ -202,6 +218,7 @@ at least 2,000 m. It fails on anything outside them, and says where.
 - Gamla stan's Wikidata height is the street; its platforms are on a deck about 5 m higher.
 - In Riddarholmskanalen the line runs in a trough, not a bored tunnel, so it needs no cover.
 - South of Gamla stan's platforms, OSM's surface track is still on the station deck.
+- At Sätra, OSM draws a siding a few metres into the bank beside the running lines.
 
 `fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
 `LM_PASSWORD`. It finds the files through Lantmäteriet's STAC catalogue for height data. Behind a
@@ -231,7 +248,10 @@ through:
   standard), or a platform's width apart at an island platform
 - tracks at different levels: at least 7.5 m apart, so that their tunnels don't cut into each other
 
-It keeps curves at 250 m radius or more, the red line's limit, and fails if it can't.
+It keeps curves at 250 m radius or more, the red line's limit, and fails if it can't. Track no
+service runs on is fitted afterwards, closely to OpenStreetMap even in the tunnels (the depots and
+sidings are mapped from plans), with the running lines pinned. For every point it also notes the
+nearest track on each side.
 
 **The structure.** Each point is in a rock tunnel, a concrete box (cut and cover, near the
 mouths, and wherever the rock over the tunnel would be less than 12 m), a cutting, on the
@@ -245,12 +265,23 @@ double-track rock tunnel 4.6 m high, a 4.3 m single-track one, and a box 4.2 m h
 stations it draws the platform hall, the platform and its name signs, and the stations' own
 passages and stairs open out of it (see [The stations](#the-stations)).
 
+The crossovers, sidings and depots are drawn too:
+
+- In a depot in rock (Norsborg), the tracks share a flat-roofed hall 6 m high, with a row of
+  lamps over each track. In the open, the formations of tracks side by side meet halfway.
+- Where a siding or crossover comes within 4.5 m of a running line in a tunnel, the running line's
+  tunnel widens to take it in. Where the siding's own tunnel begins, each tunnel is cut out of
+  the other's walls, so the one opens into the other.
+- There is no conductor rail where another track comes closer than the standard spacing (at
+  turnouts). Tracks that end have a buffer stop, and in a tunnel a wall.
+
 The network is cut into 200 m tiles, and only the tiles within about 600 m of the camera are built.
 `src/station-join.ts` joins T-Centralen's red tracks to the network: the station draws its
 platforms, and beyond them the trains run on the network's track.
 
 To fly the tunnel, jump to a red line platform (`2` or `3`), press `F`, and follow the track
-north to Östermalmstorg or south to Gamla stan.
+north to Östermalmstorg or south to Gamla stan. The menu's list of red line stations also has the
+depots (Norsborgsdepån, Nybodadepån), which it flies to; so does `?at=Nybodadepån`.
 
 ### Trains on the network
 
@@ -261,14 +292,22 @@ each run every 5 minutes each way, alternating on the shared trunk, so from Lilj
 
 Each trip runs its route from end to end:
 
-- It comes in from beyond the first station and stands there with its doors open until it is due
-  out.
+- It stands at the first station with its doors open until it is due out.
 - It stops at every station for at least 22 s, opening its doors on the platform side.
-- It runs out beyond the last station, where it turns out of sight. At each end of the red line
-  the trains arrive on one track and leave from the other, and the turnback tracks aren't drawn.
+- At the last station it turns where it stands: it becomes the next trip the other way, and waits
+  with its doors open until that one is due out. Once the game is going, every train leaving the
+  end of the line is one that came in; when the game starts, the trips under way are placed where
+  the timetable has them.
 
 The trips keep at least 30 m apart where they share track. At a junction, the one that would get
-there first goes first.
+there first goes first. A train waiting to leave the end of the line has the track out of the
+station, out to where it leaves the incoming trains' way, so the next train in waits clear of it.
+Simulated for three hours, 31 trains run round, and they turn at the ends in 65 s (Fruängen) to
+236 s (Norsborg). A train held 4 minutes at Slussen makes those behind it late, and the lateness
+dies out at the ends.
+
+25 trains stand out of service on the depots' stabling tracks and on the sidings that end at a
+buffer stop, showing "Ej i trafik".
 
 Only the trips within about 700 m of the player get a train model, from a pool.
 
@@ -371,12 +410,16 @@ The buildings are blocks with flat roofs:
   the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
 - Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
   building, and so is a way from the exit on through the building to the outside.
+- A building the depot's covered track runs through (OSM's `covered=yes`) is a hall: it stands
+  on the ground, open inside, with a door wherever a track passes through its walls. Nyboda has
+  12, with 57 doors.
 
 The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
 frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground
 has every other point. The ground is paved where buildings are close together and grass where
-they aren't. It can be walked on, except beside open track, inside buildings and over the
-stations' openings, and the street around the exits stays walkable as before but isn't drawn. A
+they aren't. It can be walked on, except beside open track a service runs on, inside buildings
+and over the stations' openings (so the depot yards and halls can be walked through, but a hall's
+walls only at its doors), and the street around the exits stays walkable as before but isn't drawn. A
 flood fill from each of the 75 exits, with the player's step rule, reaches the city's ground from
 74; Sätra's comes up into a street hemmed in by the shopping centre, the track and higher ground.
 

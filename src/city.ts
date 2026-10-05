@@ -11,7 +11,8 @@ import * as T from './textures';
 // camera comes near, nearest first, and dropped when it leaves. Far tiles get a coarser ground.
 //
 // The ground can be walked on, except beside open track and inside buildings, and the stations'
-// stairs and halls are cut out of it where they come up through it.
+// stairs and halls are cut out of it where they come up through it. The depots' halls (sheds) are
+// open inside: their ground is walked on, and their walls can be walked through only at the doors.
 
 const LOAD = 1100;      // fetch and build tiles whose nearest point is this close
 const UNLOAD = 400;     // and drop them this much further away
@@ -19,6 +20,7 @@ const FINE = 0.55;      // the full grid within this share of LOAD; every other 
 const SKIRT = 4;        // the ground's edges hang down this far, over the seams between tiles
 const FETCHES = 3;      // tiles fetched at once
 const FOOT_CELL = 10;   // buildings by cell, for walking
+const WALL_REACH = 0.45; // a shed's wall keeps the player this far off
 
 export interface CityFloorData { kind: 'city'; rec: { label: string } }
 
@@ -29,6 +31,7 @@ interface Tile {
   data: CityTile | null;
   cuts: Volume[];                  // the holes and the stations' spaces reaching into it
   feet: Map<number, number[]> | null; // buildings standing on the ground, by cell
+  walls: Map<number, number[][]> | null; // the sheds' walls (but not their doors), by cell: [ax, az, bx, bz]
   group: THREE.Group | null;
   lod: number;                     // the grid's stride when built
 }
@@ -36,6 +39,7 @@ interface Tile {
 // Facade colours of the city's plastered and brick buildings, and its roofs (tar, copper, tiles).
 const WALLS = [0xe9dcc0, 0xe4c98f, 0xd9a86a, 0xc98d64, 0xb76b4f, 0xd8cfc4, 0xf1ece2, 0xcbc3b6, 0xe8c9b8, 0xa86450, 0xbfb2a0, 0xdcd3a6];
 const ROOFS = [0x3b3c3e, 0x46484b, 0x2f3134, 0x5b3a2e, 0x7a4636, 0x4f7a68, 0x55585c];
+const CEILING = new THREE.Color(0xc4c2bc);
 const GRASS = new THREE.Color(0x5c6b40), PAVED = new THREE.Color(0x8a8781), BALLAST = new THREE.Color(0x6e6559);
 
 function hash(n: number) {
@@ -65,7 +69,7 @@ export class City {
   constructor(index: CityIndex, private cuts: Volume[] = [], private reach = LOAD, private base = 'data/city/') {
     this.group.name = 'city';
     for (const [i, j] of index.tiles) {
-      this.tiles.set(`${i},${j}`, { i, j, x0: i * CITY_TILE, z0: j * CITY_TILE, state: 'idle', data: null, cuts: [], feet: null, group: null, lod: 0 });
+      this.tiles.set(`${i},${j}`, { i, j, x0: i * CITY_TILE, z0: j * CITY_TILE, state: 'idle', data: null, cuts: [], feet: null, walls: null, group: null, lod: 0 });
     }
   }
 
@@ -80,7 +84,7 @@ export class City {
       const d = Math.hypot(dx, dz);
       if (d > this.reach + UNLOAD) {
         if (t.group) this.drop(t);
-        if (t.state === 'ready') { t.state = 'idle'; t.data = null; t.feet = null; t.cuts = []; }
+        if (t.state === 'ready') { t.state = 'idle'; t.data = null; t.feet = null; t.walls = null; t.cuts = []; }
         continue;
       }
       if (d > this.reach) continue;
@@ -146,8 +150,20 @@ export class City {
       ...this.cuts.filter((v) => v.max[0] > t.x0 - m && v.min[0] < x1 + m && v.max[2] > t.z0 - m && v.min[2] < z1 + m),
     ];
     t.feet = new Map();
+    t.walls = new Map();
     d.buildings.forEach((b, k) => {
       if (b.kind === 'roof') return;
+      if (b.kind === 'shed') {
+        for (const [ax, az, bx, bz] of shedWalls(b)) {
+          for (let i = Math.floor(Math.min(ax, bx) / FOOT_CELL); i <= Math.floor(Math.max(ax, bx) / FOOT_CELL); i++) {
+            for (let j = Math.floor(Math.min(az, bz) / FOOT_CELL); j <= Math.floor(Math.max(az, bz) / FOOT_CELL); j++) {
+              const key = cellKey(i, j);
+              (t.walls!.get(key) ?? t.walls!.set(key, []).get(key)!).push([ax, az, bx, bz]);
+            }
+          }
+        }
+        return;
+      }
       const g = this.heightIn(t, ...centre(b.rings[0]));
       if (g !== null && b.bottom > g + 2.2) return; // lifted clear: walked under
       const [x0, z0, x1, z1] = bounds(b.rings[0]);
@@ -200,6 +216,21 @@ export class City {
     return false;
   }
 
+  // Whether (x, z) is in a shed's wall, which can't be walked through but at its doors.
+  private atShedWall(x: number, z: number) {
+    const t = this.tileAt(x, z);
+    if (!t) return false;
+    const key = cellKey(Math.floor(x / FOOT_CELL), Math.floor(z / FOOT_CELL));
+    for (const n of [t, ...this.neighbours(t)]) {
+      for (const [ax, az, bx, bz] of n.walls?.get(key) ?? []) {
+        const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+        const u = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2));
+        if (Math.hypot(x - ax - dx * u, z - az - dz * u) < WALL_REACH) return true;
+      }
+    }
+    return false;
+  }
+
   private neighbours(t: Tile) {
     const out: Tile[] = [];
     for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
@@ -219,7 +250,7 @@ export class City {
     if (g.flags[r * (g.n - 1) + c] & CELL_TRACK) return out;
     const y = this.heightIn(t, x, z)!;
     if (t.cuts.some((v) => insideVolume(v, x, y + 0.05, z))) return out;
-    if (this.insideBuilding(x, z)) return out;
+    if (this.insideBuilding(x, z) || this.atShedWall(x, z)) return out;
     out.push({ y, data: this.floor });
     return out;
   }
@@ -342,26 +373,45 @@ function buildingGeometry(buildings: Building[], t: Tile) {
     // other roof shapes aren't built yet: a flat roof halfway up the roof
     const top = b.top + b.roofHeight / 2;
     const bottom = b.kind === 'roof' ? top - 0.4 : b.bottom;
-    // the walls, facing out from the outline and into the courtyards
-    for (const ring of b.rings) {
+    // the walls, facing out from the outline and into the courtyards (a shed's also facing in,
+    // and with its doors left open up to their tops)
+    const shed = b.kind === 'shed';
+    for (const [ri, ring] of b.rings.entries()) {
       let along = 0;
       for (let e = 0; e < ring.length; e++) {
         const [ax, az] = ring[e], [bx, bz] = ring[(e + 1) % ring.length];
         const len = Math.hypot(bx - ax, bz - az);
         if (len < 0.01) continue;
-        const v0 = w.pos.length / 3;
-        // u in bays along the wall, v in storeys down from the top
-        const u0 = Math.round(along / BAY * 4) / 4, u1 = u0 + len / BAY;
+        // the stretches of wall: [from, to, bottom] along the edge
+        const parts: [number, number, number][] = [];
+        const doors = shed && ri === 0 ? (b.doors ?? []).filter((d) => d.edge === e) : [];
+        let at = 0;
+        for (const d of doors) {
+          if (d.from > at) parts.push([at, d.from, bottom]);
+          if (d.top < top) parts.push([d.from, d.to, d.top]);
+          at = d.to;
+        }
+        if (at < len) parts.push([at, len, bottom]);
         const roofLike = b.kind === 'roof';
         const shade = roofLike ? roofC : c;
-        for (const [x, y, z, u, v] of [[ax, bottom, az, u0, (top - bottom) / STOREY], [bx, bottom, bz, u1, (top - bottom) / STOREY], [bx, top, bz, u1, 0], [ax, top, az, u0, 0]]) {
-          w.pos.push(x, y, z);
-          w.uv.push(roofLike ? 0.02 : u, roofLike ? 0.02 : -v);
-          w.col.push(shade.r, shade.g, shade.b);
+        for (const [f0, f1, y0] of parts) {
+          const x0 = ax + ((bx - ax) * f0) / len, z0 = az + ((bz - az) * f0) / len, x1 = ax + ((bx - ax) * f1) / len, z1 = az + ((bz - az) * f1) / len;
+          // u in bays along the wall, v in storeys down from the top
+          const u0 = Math.round(along / BAY * 4) / 4 + f0 / BAY, u1 = Math.round(along / BAY * 4) / 4 + f1 / BAY;
+          for (const inner of shed ? [false, true] : [false]) {
+            const v0 = w.pos.length / 3;
+            const k = inner ? 0.75 : 1;
+            for (const [x, y, z, u, v] of [[x0, y0, z0, u0, (top - y0) / STOREY], [x1, y0, z1, u1, (top - y0) / STOREY], [x1, top, z1, u1, 0], [x0, top, z0, u0, 0]]) {
+              w.pos.push(x, y, z);
+              w.uv.push(roofLike ? 0.02 : u, roofLike ? 0.02 : -v);
+              w.col.push(shade.r * k, shade.g * k, shade.b * k);
+            }
+            // outward is to the left of a → b for a positive shoelace outline: (dz, −dx); the
+            // quad is wound to face it (or, inside a shed, the other way)
+            if (inner) w.idx.push(v0, v0 + 1, v0 + 2, v0, v0 + 2, v0 + 3);
+            else w.idx.push(v0, v0 + 2, v0 + 1, v0, v0 + 3, v0 + 2);
+          }
         }
-        // outward is to the left of a → b for a positive shoelace outline: (dz, −dx); the quad
-        // is wound to face it
-        w.idx.push(v0, v0 + 2, v0 + 1, v0, v0 + 3, v0 + 2);
         along += len;
       }
     }
@@ -371,10 +421,14 @@ function buildingGeometry(buildings: Building[], t: Tile) {
     let faces: number[][];
     try { faces = THREE.ShapeUtils.triangulateShape(contour, holes); } catch { return; }
     const pts = [...contour, ...holes.flat()];
-    const under = b.kind !== 'building';
-    for (const [y, up] of under ? [[top, true], [bottom, false]] as const : [[top, true]] as const) {
+    const under = b.kind === 'part' || b.kind === 'roof';
+    // a shed's roof seen from inside it
+    const faces2 = under ? [[top, true], [bottom, false]] as const : shed ? [[top, true], [top - 0.05, false]] as const : [[top, true]] as const;
+    for (const [y, up] of faces2) {
       const v0 = r.pos.length / 3;
-      for (const p of pts) { r.pos.push(p.x, y, p.y); r.col.push(roofC.r, roofC.g, roofC.b); }
+      // (a shed's ceiling a light grey)
+      const rc = shed && !up ? CEILING : roofC;
+      for (const p of pts) { r.pos.push(p.x, y, p.y); r.col.push(rc.r, rc.g, rc.b); }
       for (const f of faces) {
         // wound to face up (or down): the normal's y is dz₁·dx₂ − dx₁·dz₂
         const [a, b2, c2] = f.map((q) => pts[q]);
@@ -396,6 +450,28 @@ function buildingGeometry(buildings: Building[], t: Tile) {
     return g;
   };
   return { walls: make(w.pos, w.col, w.idx, w.uv), roofs: make(r.pos, r.col, r.idx) };
+}
+
+// A shed's walls as segments [ax, az, bx, bz], leaving out its doors.
+function shedWalls(b: Building) {
+  const out: number[][] = [];
+  const ring = b.rings[0];
+  for (let e = 0; e < ring.length; e++) {
+    const [ax, az] = ring[e], [bx, bz] = ring[(e + 1) % ring.length];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 0.01) continue;
+    const at = (f: number) => [ax + ((bx - ax) * f) / len, az + ((bz - az) * f) / len];
+    let from = 0;
+    for (const d of (b.doors ?? []).filter((q) => q.edge === e).sort((p, q) => p.from - q.from)) {
+      if (d.from > from) out.push([...at(from), ...at(d.from)]);
+      from = d.to;
+    }
+    if (from < len) out.push([...at(from), ...at(len)]);
+  }
+  for (const ring2 of b.rings.slice(1)) {
+    for (let e = 0; e < ring2.length; e++) out.push([...ring2[e], ...ring2[(e + 1) % ring2.length]]);
+  }
+  return out;
 }
 
 // For each point of the tile's grid, the share of the ground within about 35 m that is built on.

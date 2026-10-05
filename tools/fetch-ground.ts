@@ -15,6 +15,7 @@ import { fromUrl } from 'geotiff';
 import type { GeoTIFFImage } from 'geotiff';
 import { GRID_TM, lonLatToWorld, worldToGrid } from '../src/geo.ts';
 import { authHeaders, findFiles, throttleFetch } from './lib/lantmateriet.ts';
+import { lineTrack } from './lib/graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 
 const MODE = process.argv[2] ?? 'tracks';
@@ -33,7 +34,7 @@ const STATION_PATCH = 50;
 throttleFetch();
 
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
-const used = new Set(graph.routes.flatMap((r) => r.path.map((s) => s.piece)));
+const used = lineTrack(graph);
 const pieces = graph.pieces.filter((p) => used.has(p.id));
 
 function pointAt(p: TrackPiece, s: number): [number, number] {
@@ -183,7 +184,7 @@ const samples = points.filter((p) => p.h !== undefined)
   .map((p) => [Math.round(p.x * 10) / 10, Math.round(p.z * 10) / 10, Math.round(p.h! * 100) / 100]);
 writeFileSync(OUT, `{
   "attribution": "Markhöjdmodell © Lantmäteriet, CC BY 4.0",
-  "note": "Ground height (RH 2000) under the tracks of the traced services, every ${STEP} m: [world x, world z, height].",
+  "note": "Ground height (RH 2000) under the red line's track (its services' track, and the crossovers, sidings and depots joined to it), every ${STEP} m: [world x, world z, height].",
   "samples": [
 ${samples.map((s) => '    ' + JSON.stringify(s)).join(',\n')}
   ]

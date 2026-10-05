@@ -35,6 +35,8 @@ export interface TrackPiece {
   service: Service;
   lines: string[]; // 'red', 'green', 'blue' as named in OpenStreetMap; empty when unnamed
   ways: number[];  // the OpenStreetMap ways it comes from
+  covered?: true;  // a depot's track under cover (OpenStreetMap's covered=yes): through a hall
+  layer?: number;  // OpenStreetMap's layer (or level), where tagged: which is above where tracks cross
 }
 
 // A stretch of track beside a platform. s0 < s1 are distances along the piece from its `from`
@@ -70,6 +72,19 @@ export interface TrackGraph {
   nodes: TrackNode[];
   pieces: TrackPiece[];
   stations: Station[];
+  // The routes the trains run. At each end of a service they turn where they stand, so they
+  // arrive on the platform track the trains the other way leave from (crossing over to it, or
+  // the leaving train crossing over after).
   routes: Route[];
+  // The services' running lines: each way as traced before the ends were turned, keeping left
+  // all the way. The tools fit and draw the track from these: a terminus keeps both its tracks.
+  ways?: { service: string; line: string; path: { piece: number; dir: 1 | -1 }[] }[];
+  // the depots, each with a view of it: world x, y, z, heading and pitch (as the game's ?cam=)
+  depots?: { name: string; view: [number, number, number, number, number] }[];
   timetable?: Timetable;
+}
+
+// The services' running lines (the graph's `ways`, or its routes where it has none).
+export function runningWays(graph: TrackGraph) {
+  return graph.ways ?? graph.routes.map((r) => ({ service: r.service, line: r.line, path: r.path }));
 }

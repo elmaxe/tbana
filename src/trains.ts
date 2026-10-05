@@ -11,6 +11,7 @@ import type { Platform, SurfaceRecord, Track } from './station';
 import type { Sound } from './sound';
 import type { SurfaceHit } from './surface-index';
 import type { StationJoin } from './station-join';
+import { runningWays } from './track-graph';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
 import { ACC, DWELL, RAIL_TOP, advance, nextStation } from './service';
@@ -52,6 +53,8 @@ export interface Departure { line: string; dest: string; when: string; color: st
 export class Trains {
   shuttles: Service[] = [];
   timetable: Timetable | null = null;
+  // trains standing out of service in the depots and on the sidings
+  parked: Service[] = [];
   clock = 0;
   private all: Service[] = [];
   private calls: Calls[] = [];
@@ -151,8 +154,33 @@ export class Trains {
         });
         this.calls.push({ tr, shuttle: null, stops });
       }
+      this.park(network, first.length);
     }
-    this.all = [...this.shuttles, ...(this.timetable?.trips ?? [])];
+    this.all = [...this.shuttles, ...(this.timetable?.trips ?? []), ...this.parked];
+  }
+
+  // Trains out of service, standing on about two in three of the depots' stabling tracks (a yard
+  // track beside another for most of its length) and of the sidings that end at a buffer stop,
+  // where they are long enough. They get a model when the player comes near, like the trips.
+  private park({ graph, geometry }: TrainsNetwork, trainLen: number) {
+    const run = new Set([...runningWays(graph), ...graph.routes].flatMap((r) => r.path.map((st) => st.piece)));
+    const ends = new Set(graph.nodes.filter((n) => n.kind === 'end').map((n) => n.id));
+    for (const [id, g] of Object.entries(geometry.pieces)) {
+      const piece = graph.pieces[Number(id)];
+      if (run.has(piece.id) || (piece.service !== 'yard' && piece.service !== 'siding')) continue;
+      const length = g.s[g.s.length - 1] - g.s[0];
+      if (length < trainLen + 10 || (piece.id * 2654435761) % 3 === 0) continue;
+      const beside = g.left ? g.s.filter((_, k) => (g.left![k] > 0 && g.left![k] < 8) || (g.right![k] > 0 && g.right![k] < 8)).length / g.s.length : 0;
+      if (beside < 0.6 && !ends.has(piece.from) && !ends.has(piece.to)) continue;
+      const path = new Polyline(g.x.map((x, k) => new THREE.Vector3(x, g.y[k] + RAIL_TOP, g.z[k])));
+      // at the buffer stop end of a siding, or in the middle of a stabling track
+      const head = ends.has(piece.to) ? path.length - 6 : ends.has(piece.from) ? trainLen + 6 : (path.length + trainLen) / 2;
+      this.parked.push({
+        id: -1000 - this.parked.length, L: LINES.red, vmax: 0, cars: [], model: null, trainLen, path, shown: [0, path.length],
+        stops: [{ station: '', head, side: 1, until: Infinity }], stop: 0, end: head,
+        state: 'dwell', timer: 0, head, speed: 0, limit: 0, doors: 0, dest: ['', 'Ej i trafik'],
+      });
+    }
   }
 
   private newModel(type: TrainType) {
@@ -230,7 +258,12 @@ export class Trains {
         else if (svc.model && d > MODEL_FAR && ride?.svc !== svc) this.release(svc);
       }
     }
-    this.all = [...this.shuttles, ...(this.timetable?.trips ?? [])];
+    for (const svc of this.parked) {
+      const d = playerPos ? this.trainDistance(svc, playerPos) : Infinity;
+      if (!svc.model && d < MODEL_NEAR) this.attach(svc);
+      else if (svc.model && d > MODEL_FAR) this.release(svc);
+    }
+    this.all = [...this.shuttles, ...(this.timetable?.trips ?? []), ...this.parked];
     let rumble = 0;
     for (const svc of this.all) {
       this.place(svc, playerPos, ride?.svc === svc);
@@ -249,7 +282,16 @@ export class Trains {
   private event(svc: Service, ev: ServiceEvent, playerPos: THREE.Vector3 | null) {
     if (ev === 'arrived') this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
     else if (ev === 'closing') this.sound?.chime(this.distanceTo(svc, playerPos), 'close');
-    else if (ev === 'done' && svc.shuttle) {
+    else if (ev === 'turned') {
+      // the train is the same, standing where it stood, but now runs the other way: its last car
+      // leads (each car keeps its place and heading, so someone inside stays put)
+      svc.cars.reverse();
+      for (const c of svc.cars) {
+        c.offset = svc.trainLen - c.offset;
+        c.yaw = c.yaw ? 0 : Math.PI;
+      }
+      this.setDest(svc, svc.dest);
+    } else if (ev === 'done' && svc.shuttle) {
       svc.state = 'wait'; svc.timer = 35 + Math.random() * 60; svc.head = 0; svc.stop = 0;
       this.setDest(svc, pick(svc.shuttle.destSet));
     }

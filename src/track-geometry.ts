@@ -1,7 +1,9 @@
 // The track as the game draws it, as written by tools/build-track-geometry.ts to
-// public/data/track-geometry.json: every piece of public/data/track-graph.json that a traced
-// service runs on, with its plan smoothed and the two tracks of a line spaced as built, its
-// heights from public/data/track-heights.json, and the kind of structure it runs in.
+// public/data/track-geometry.json: every piece of the red line's track in
+// public/data/track-graph.json (what its services run on, and the crossovers, sidings and depots
+// joined to that; tools/lib/graph.ts lineTrack), with its plan smoothed and the two tracks of a
+// line spaced as built, its heights from public/data/track-heights.json, and the kind of
+// structure it runs in.
 
 // rock: a tunnel blasted in rock; box: a concrete tunnel built in a trench (cut and cover), and
 // the troughs that carry the line under water; cutting: open track below the ground, between
@@ -29,6 +31,12 @@ export interface GeometryPiece {
   pair: number[];
   pairDy: number[];
   platforms: GeometryPlatform[];
+  // The nearest other track on each side, square to this one, at about the same level and either
+  // both in a tunnel or both out of one: how far it is (negative for a track a service runs on,
+  // 0 where there is none within 12 m). Where any is near; track no service runs on shares its
+  // hall, formation or deck with the tracks beside it, and turnouts have no conductor rail.
+  left?: number[];
+  right?: number[];
 }
 
 export interface TrackGeometry {

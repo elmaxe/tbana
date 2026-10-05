@@ -19,14 +19,17 @@
 //            from above, north up), the rest are courtyards, the other way round.
 //   'HOLE'   holes through the ground: u32 count, then for each: four corners as f32 x, z in
 //            metres from the tile's corner, f32 bottom, f32 top. The ground is cut away inside.
+//   'DOOR'   the doors of the depots' halls (buildings of kind shed): u32 count, then for each
+//            door: u32 building (its index in BLDG), u16 edge (from the outline's point of that
+//            index to the next), u16 0, f32 from, f32 to (metres along the edge), f32 top (RH 2000).
 //
 // It imports nothing, so the tools can use it on Node too.
 
 export const CITY_TILE = 500;
 export const CITY_VERSION = 1;
 
-// Cell flags in the ground: where the ground has been shaped for the track (lowered under open
-// track, raised over shallow tunnels), which isn't walked on.
+// Cell flags in the ground: where the ground has been shaped for a service's track (lowered under
+// open track, raised over shallow tunnels), which isn't walked on. (A depot's isn't flagged.)
 export const CELL_TRACK = 1;
 
 export interface Ground {
@@ -37,8 +40,9 @@ export interface Ground {
 }
 
 // kind: a building; a part of one (OpenStreetMap's building:part, drawn instead of the outline it
-// lies in); a roof on posts (building=roof: no walls)
-export const BUILDING_KINDS = ['building', 'part', 'roof'] as const;
+// lies in); a roof on posts (building=roof: no walls); a depot's hall the tracks run into (a shed:
+// open inside, with doors where the tracks pass through its walls)
+export const BUILDING_KINDS = ['building', 'part', 'roof', 'shed'] as const;
 export type BuildingKind = typeof BUILDING_KINDS[number];
 // roof shapes: only flat ones are built so far; the others are kept for later
 export const ROOF_SHAPES = ['flat', 'gabled', 'hipped', 'pyramidal', 'skillion', 'dome', 'onion', 'round', 'gambrel', 'mansard', 'half-hipped'] as const;
@@ -52,7 +56,12 @@ export interface Building {
   roofHeight: number; // the roof's height above `top`, for other shapes (0 for flat)
   colour: number | null;
   rings: [number, number][][]; // world x, z: the outline anticlockwise, then courtyards
+  doors?: Door[];  // a shed's doors
 }
+
+// A door in a shed's outline, from its corner `edge` to the next: `from` to `to` metres along that
+// wall, from the bottom of the wall up to `top`.
+export interface Door { edge: number; from: number; to: number; top: number }
 
 // A hole through the ground: between four corners in plan (in order around it) and two heights,
 // such as at a tunnel mouth, where the portal stands.
@@ -147,6 +156,12 @@ export function decodeTile(buf: ArrayBuffer): CityTile {
         }
         tile.buildings.push({ kind, roof, bottom, top, roofHeight, colour: c ? c : null, rings });
       }
+    } else if (tag === 'DOOR') {
+      const count = v.getUint32(s, true);
+      for (let d = 0, q = s + 4; d < count; d++, q += 20) {
+        const b = tile.buildings[v.getUint32(q, true)];
+        if (b) (b.doors ??= []).push({ edge: v.getUint16(q + 4, true), from: v.getFloat32(q + 8, true), to: v.getFloat32(q + 12, true), top: v.getFloat32(q + 16, true) });
+      }
     } else if (tag === 'HOLE') {
       const count = v.getUint32(s, true);
       for (let h = 0, q = s + 4; h < count; h++, q += 40) {
@@ -206,6 +221,21 @@ export function encodeTile(tile: CityTile): Uint8Array {
       }
     }
     sections.push({ tag: 'BLDG', data });
+  }
+  const doors = tile.buildings.flatMap((b, k) => (b.doors ?? []).map((d) => ({ k, d })));
+  if (doors.length) {
+    const data = new Uint8Array(4 + 20 * doors.length);
+    const v = new DataView(data.buffer);
+    v.setUint32(0, doors.length, true);
+    doors.forEach(({ k, d }, n) => {
+      const q = 4 + 20 * n;
+      v.setUint32(q, k, true);
+      v.setUint16(q + 4, d.edge, true);
+      v.setFloat32(q + 8, d.from, true);
+      v.setFloat32(q + 12, d.to, true);
+      v.setFloat32(q + 16, d.top, true);
+    });
+    sections.push({ tag: 'DOOR', data });
   }
   if (tile.holes.length) {
     const data = new Uint8Array(4 + 40 * tile.holes.length);

@@ -1,4 +1,5 @@
 // Helpers for reading the track graph (src/track-graph.ts) in the tools.
+import { runningWays } from '../../src/track-graph.ts';
 import type { Route, TrackGraph, TrackPiece } from '../../src/track-graph.ts';
 
 // distance along a piece of each of its points
@@ -85,4 +86,45 @@ export function routeProfile(graph: TrackGraph, route: Route, heights: Record<st
   });
   // drop repeated points where pieces meet
   return out.filter((p, i) => i === 0 || p.s - out[i - 1].s > 0.01);
+}
+
+// The pieces of a line's track the game draws: those its services run on, and the rest of the
+// line's track joined to them (crossovers, sidings, turnback tracks and the depots), as far as
+// the running lines of other lines. Left out:
+// - a piece that touches another line's track, so a connecting track to another line ends short
+//   of it
+// - track no service runs on beside a platform (the middle tracks at Alby and Sätra, the third
+//   track at Liljeholmen): the stations are described without them
+// - and then what is left of such a track that leads nowhere
+export function lineTrack(graph: TrackGraph, line = 'red') {
+  const run = new Set([...runningWays(graph), ...graph.routes].filter((r) => r.line === line).flatMap((r) => r.path.map((s) => s.piece)));
+  const at = new Map<number, TrackPiece[]>();
+  for (const p of graph.pieces) for (const n of new Set([p.from, p.to])) (at.get(n) ?? at.set(n, []).get(n)!).push(p);
+  const foreign = (p: TrackPiece) => p.lines.length > 0 && !p.lines.includes(line);
+  const touchesForeign = (p: TrackPiece) => [p.from, p.to].some((n) => at.get(n)!.some(foreign));
+  const atPlatform = new Set(graph.stations.flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))));
+  const out = new Set(run), queue = [...run];
+  while (queue.length) {
+    const p = graph.pieces[queue.pop()!];
+    for (const n of [p.from, p.to]) {
+      for (const q of at.get(n)!) {
+        if (out.has(q.id) || foreign(q) || touchesForeign(q) || atPlatform.has(q.id)) continue;
+        out.add(q.id);
+        queue.push(q.id);
+      }
+    }
+  }
+  // a piece whose end was joined only to track left out
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const id of out) {
+      if (run.has(id)) continue;
+      const p = graph.pieces[id];
+      if ([p.from, p.to].some((n) => at.get(n)!.length > 1 && !at.get(n)!.some((q) => q !== p && out.has(q.id)))) {
+        out.delete(id);
+        changed = true;
+      }
+    }
+  }
+  return out;
 }
