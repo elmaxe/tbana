@@ -35,6 +35,8 @@ export interface TrackPiece {
   service: Service;
   lines: string[]; // 'red', 'green', 'blue' as named in OpenStreetMap; empty when unnamed
   ways: number[];  // the OpenStreetMap ways it comes from
+  covered?: true;  // a depot's track under cover (OpenStreetMap's covered=yes): through a hall
+  layer?: number;  // OpenStreetMap's layer (or level), where tagged: which is above where tracks cross
 }
 
 // A stretch of track beside a platform. s0 < s1 are distances along the piece from its `from`

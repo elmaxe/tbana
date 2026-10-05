@@ -61,14 +61,16 @@ const round = (v: number) => Math.round(v * 100) / 100;
 const LINE_NAMES: Record<string, string> = { 'röda linjen': 'red', 'gröna linjen': 'green', 'blå linjen': 'blue' };
 
 // ------------------------------------------------------------------ 1. links between OSM nodes
-interface Link { a: number; b: number; structure: Structure; service: Service; line: string | null; way: number }
+interface Link { a: number; b: number; structure: Structure; service: Service; line: string | null; way: number; covered: boolean; layer: number | null }
 
 const pos = new Map<number, { x: number; z: number }>();
 const osmNodeTags = new Map<number, Record<string, string>>();
 const links: Link[] = [];
 
 function structureOf(t: Record<string, string>): Structure {
-  if ((t.tunnel && t.tunnel !== 'no') || t.covered === 'yes') return 'tunnel';
+  if (t.tunnel && t.tunnel !== 'no') return 'tunnel';
+  // a depot's tracks under cover run through its halls, on the ground
+  if (t.covered === 'yes') return serviceOf(t) === 'yard' || serviceOf(t) === 'siding' ? 'surface' : 'tunnel';
   if (t.bridge && t.bridge !== 'no') return 'bridge';
   return 'surface';
 }
@@ -83,8 +85,11 @@ for (const el of osm.elements) {
   el.nodes.forEach((id, i) => pos.set(id, lonLatToWorld(el.geometry![i].lon, el.geometry![i].lat)));
   const structure = structureOf(el.tags), service = serviceOf(el.tags);
   const line = LINE_NAMES[(el.tags.name || '').toLowerCase()] ?? null;
+  const covered = structure === 'surface' && el.tags.covered === 'yes';
+  const layerTag = el.tags.layer ?? el.tags.level;
+  const layer = layerTag !== undefined && Number.isFinite(parseFloat(layerTag)) ? parseFloat(layerTag) : null;
   for (let i = 1; i < el.nodes.length; i++) {
-    if (el.nodes[i] !== el.nodes[i - 1]) links.push({ a: el.nodes[i - 1], b: el.nodes[i], structure, service, line, way: el.id });
+    if (el.nodes[i] !== el.nodes[i - 1]) links.push({ a: el.nodes[i - 1], b: el.nodes[i], structure, service, line, way: el.id, covered, layer });
   }
 }
 
@@ -96,7 +101,7 @@ for (const c of corrections.links ?? []) {
     links.splice(i, 1);
   } else {
     if (!pos.has(a) || !pos.has(b)) throw new Error(`correction: node ${pos.has(a) ? b : a} is not on a track (${c.why})`);
-    links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0 });
+    links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0, covered: false, layer: null });
   }
 }
 
@@ -121,7 +126,7 @@ function splitAt(e: number, n: number, why: string) {
 }
 for (const c of corrections.crossovers ?? []) {
   const a = splitAt(c.a[0], c.a[1], c.why), b = splitAt(c.b[0], c.b[1], c.why);
-  links.push({ a: a.id, b: b.id, structure: a.link.structure, service: 'crossover', line: a.link.line, way: 0 });
+  links.push({ a: a.id, b: b.id, structure: a.link.structure, service: 'crossover', line: a.link.line, way: 0, covered: false, layer: null });
 }
 
 const linksAt = new Map<number, Link[]>();
@@ -142,7 +147,7 @@ function nodeKind(n: number): NodeKind | null {
   if (ls.length > 3) return 'crossing';
   const [p, q] = ls;
   if (p.structure !== q.structure) return 'portal';
-  if (p.service !== q.service || p.line !== q.line) return 'join';
+  if (p.service !== q.service || p.line !== q.line || p.covered !== q.covered) return 'join';
   return null;
 }
 
@@ -176,6 +181,8 @@ function walk(start: number, first: Link) {
   pieces.push({
     id: pieces.length, from: start, to: n, points, length: round(length),
     structure: first.structure, service: first.service, lines: first.line ? [first.line] : [], ways: [...ways],
+    ...(first.covered ? { covered: true } : {}),
+    ...(first.layer !== null ? { layer: first.layer } : {}),
   });
 }
 for (const n of nodes.keys()) for (const l of linksAt.get(n)!) if (!used.has(l)) walk(n, l);

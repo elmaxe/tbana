@@ -32,6 +32,14 @@
       ],
       "reach": 15,
       "why": "Gamla stan, south of the platforms: OSM has the tracks in the open here, but they are still on the station deck, at its level, until the bridge to Slussen. The ground below is the quay and the water."
+    },
+    {
+      "along": [
+        [-7798, 4998],
+        [-7816, 5052]
+      ],
+      "reach": 4,
+      "why": "Sätra, the siding beside the running lines north of the station: OSM draws it a few metres into the bank beside them, where the elevation model rises 2–4 m above the track."
     }
   ]
 }
