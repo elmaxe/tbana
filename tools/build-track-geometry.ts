@@ -12,7 +12,8 @@
 // both in one tunnel at 3.15 m centres. Every piece of the red line's track (tools/lib/graph.ts
 // lineTrack: what its services run on, and the crossovers, sidings and depots joined to that) is cut into points about
 // 10 m apart, joined at the nodes, and the plan is the smoothest line, by least squares, through:
-// - OpenStreetMap's track: closely in the open and along platforms, loosely in tunnels
+// - OpenStreetMap's track: closely in the open and along platforms, loosely in tunnels (but
+//   closely for track no service runs on, which OSM maps from depot and track plans)
 // - T-Centralen's platform tracks: the station model's tracks, which the game draws
 // - the two tracks of a line in a tunnel, at the same level: 3.15 m apart, beside each other;
 //   at different levels, at least 7.5 m apart, so that their tunnels don't cut into each other;
@@ -42,11 +43,11 @@ const OUT = 'public/data/track-geometry.json';
 const GROUND = 'data/ground/red-line.json';
 const STEP = 10;
 // how far each kind of anchor may be off, in metres (1/m for curvature)
-const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002 };
+const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3 };
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
 // 250 m, and measured over 20 m this keeps above it. Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
-const CURVE_HOLD = 310, YARD_CURVE_HOLD = 80;
+const CURVE_HOLD = 310, YARD_CURVE_HOLD = 50;
 const CURVE_LIMIT = 250;
 // the two tracks are pulled together where they are within this of each other in plan, and in
 // height (fully within the second figure)
@@ -300,6 +301,9 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       if (m) { anchor(vi, m[0], m[1], SIGMA.model); return; }
       const pl = platformAt(p.id, s[k]) !== null;
       const tunnel = vars[vi].tunnel;
+      // track no service runs on is mapped from depot and track plans, not sketched: closely
+      // even in tunnels
+      if (!services.has(p.id)) { anchor(vi, vars[vi].x0, vars[vi].z0, SIGMA.yard); return; }
       anchor(vi, vars[vi].x0, vars[vi].z0, tunnel ? (pl ? SIGMA.platformTunnel : SIGMA.tunnel) : (pl ? SIGMA.platformOpen : SIGMA.open));
     });
   }
@@ -539,6 +543,50 @@ function nearestPoint(x: number, z: number, not: number) {
   return best;
 }
 
+// The nearest other track on each side of every point, square to it, at about the same level and
+// in the same kind of place (in a tunnel or out of one): where track no service runs on lies
+// beside other track, they share a hall, a formation or a deck, and at turnouts there is no
+// conductor rail.
+const NEIGHBOUR_REACH = 12, NEIGHBOUR_DY = 1.5;
+const isTunnel = (kind: number) => STRUCTURE_KINDS[kind] === 'rock' || STRUCTURE_KINDS[kind] === 'box';
+let besideCount = 0;
+for (const p of pieces) {
+  const g = out[p.id];
+  const left: number[] = [], right: number[] = [];
+  g.s.forEach((_, k) => {
+    const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
+    const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
+    const tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
+    let bestL = 0, bestR = 0;
+    const r = Math.ceil(NEIGHBOUR_REACH / CELL);
+    const seen = new Set<Seg>();
+    for (let i = Math.floor(g.x[k] / CELL) - r; i <= Math.floor(g.x[k] / CELL) + r; i++) for (let j = Math.floor(g.z[k] / CELL) - r; j <= Math.floor(g.z[k] / CELL) + r; j++) {
+      for (const sg of alignedGrid.get(`${i},${j}`) ?? []) {
+        if (sg.piece.id === p.id || seen.has(sg)) continue;
+        seen.add(sg);
+        const o = out[sg.piece.id], m = sg.k;
+        // where the line square to this track crosses the other track's segment
+        const ax = o.x[m] - g.x[k], az = o.z[m] - g.z[k], bx = o.x[m + 1] - g.x[k], bz = o.z[m + 1] - g.z[k];
+        const da = ax * tx + az * tz, db = bx * tx + bz * tz;
+        if (da * db > 0 || da === db) continue;
+        const t = da / (da - db);
+        const lat = -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t);
+        const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k];
+        const kind = t < 0.5 ? o.kind[m] : o.kind[m + 1];
+        if (Math.abs(lat) < 0.5 || Math.abs(lat) > NEIGHBOUR_REACH || Math.abs(dy) > NEIGHBOUR_DY || isTunnel(kind) !== isTunnel(g.kind[k])) continue;
+        // a service's track is given as a negative distance
+        const d = run.has(sg.piece.id) ? -Math.abs(lat) : Math.abs(lat);
+        if (lat > 0 && (!bestR || Math.abs(lat) < Math.abs(bestR))) bestR = d;
+        if (lat < 0 && (!bestL || Math.abs(lat) < Math.abs(bestL))) bestL = d;
+      }
+    }
+    left.push(bestL); right.push(bestR);
+    if (bestL || bestR) besideCount++;
+  });
+  if (left.some((v) => v) || right.some((v) => v)) { g.left = left; g.right = right; }
+}
+console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH} m`);
+
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
 // T-Centralen's are in the station model.
@@ -592,6 +640,7 @@ if (dropped.length) console.warn(`platforms with no room beside their track, not
 const r2 = (n: number) => Math.round(n * 100) / 100;
 for (const g of Object.values(out)) {
   for (const k of ['s', 'x', 'z', 'y', 'pair', 'pairDy'] as const) g[k] = g[k].map(r2);
+  if (g.left) { g.left = g.left.map(r2); g.right = g.right!.map(r2); }
   g.ground = g.ground.map((n) => (n === null ? null : r2(n)));
 }
 const result: TrackGeometry = {

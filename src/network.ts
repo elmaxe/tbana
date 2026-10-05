@@ -5,7 +5,7 @@ import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } fr
 import * as S from './sections';
 import * as T from './textures';
 import { SurfaceIndex } from './surface-index';
-import { cutIndexed, subtractAll } from './clip.ts';
+import { cutIndexed, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
@@ -33,12 +33,16 @@ interface Sample {
   s: number;                       // distance along the piece in the track graph
   kind: StructureKind;
   pair: number; pairDy: number;
+  // the nearest other track on each side, as in src/track-geometry.ts (negative for a service's)
+  left: number; right: number;
+  yard: boolean;                   // track no service runs on: crossovers, sidings, depots
   ground: number | null;
   plat: GeometryPlatform | null;
   third: 1 | -1;                   // the conductor rail's side
   skip: boolean;                   // the station draws it all
   noTrack: boolean;                // the station draws the track
   mouth?: boolean;                 // a piece's end where its tunnel meets another piece in the open
+  deadEnd?: boolean;               // a piece's end that meets no other piece: a buffer stop
 }
 
 // A part of the network the station models draw themselves: a stretch of a piece, in the track
@@ -110,7 +114,7 @@ class MeshBuilder {
   }
 }
 
-type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel';
+type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer';
 
 function materials() {
   const rock = T.tunnelRock(), concrete = T.concrete(9, 168), bed = T.trackBed(), platform = T.floorTiles();
@@ -127,6 +131,7 @@ function materials() {
     yellow: new THREE.MeshStandardMaterial({ color: 0xffd21f, roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 }),
     ground: new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 1, side: THREE.DoubleSide }),
     steel: new THREE.MeshStandardMaterial({ color: 0x5d6670, roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }),
+    buffer: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.6 }),
   } satisfies Record<MaterialName, THREE.Material>;
 }
 
@@ -147,6 +152,10 @@ export class Network {
   // (`solids`).
   private holes: Volume[];
   private solids: Volume[];
+  // Where a track no service runs on leaves a service's tunnel, each one's space is cut out of the
+  // other's walls and roof, so that the one opens into the other.
+  private shellCuts: Volume[] = [];
+  private samples: Sample[][] = [];
   // With the city's ground (src/city.ts) around the track, the network draws no ground of its own:
   // banks run on down into the city's ground, and the city's ground is shaped round cuttings.
   private city: boolean;
@@ -168,23 +177,57 @@ export class Network {
       }
     }
     const mouthAt = (piece: GeometryPiece, k: number) => tunnelKind(piece.kind[k]) && ends.get(endKey(piece.x[k], piece.z[k]))!.some((t) => !t);
+    const deadEnd = (piece: GeometryPiece, k: number) => ends.get(endKey(piece.x[k], piece.z[k]))!.length === 1;
     this.stations = graph.stations;
     // the direction each piece is run in, where it is only run one way
     const dirs = new Map<number, Set<number>>();
     for (const r of graph.routes) for (const st of r.path) (dirs.get(st.piece) ?? dirs.set(st.piece, new Set()).get(st.piece)!).add(st.dir);
     for (const [id, piece] of Object.entries(geometry.pieces)) {
       const d = dirs.get(Number(id));
-      const samples = densify(piece, d?.size === 1 ? [...d][0] : 0, exclude.filter((e) => e.piece === Number(id)));
+      const samples = densify(piece, d?.size === 1 ? [...d][0] : 0, exclude.filter((e) => e.piece === Number(id)), !d);
       if (samples.length) {
         samples[0].mouth = mouthAt(piece, 0);
         samples[samples.length - 1].mouth = mouthAt(piece, piece.x.length - 1);
+        samples[0].deadEnd = deadEnd(piece, 0);
+        samples[samples.length - 1].deadEnd = deadEnd(piece, piece.x.length - 1);
       }
+      this.samples.push(samples);
       this.addRuns(samples);
       this.addFloors(samples);
       piece.x.forEach((x, i) => {
         const key = `${Math.floor(x / POINT_CELL)},${Math.floor(piece.z[i] / POINT_CELL)}`;
         (this.points.get(key) ?? this.points.set(key, []).get(key)!).push({ x, y: piece.y[i], z: piece.z[i], kind: STRUCTURE_KINDS[piece.kind[i]] });
       });
+    }
+    this.junctionCuts();
+  }
+
+  // Where a tunnel of track no service runs on meets a service's tunnel (each has the other within
+  // JUNCTION_REACH beside it), each one's inside, a short length at a time, is cut out of the
+  // other's walls and roof.
+  private junctionCuts() {
+    const JUNCTION_REACH = 7;
+    const tunnel = (sm: Sample) => (sm.kind === 'rock' || sm.kind === 'box') && !bare(sm);
+    // where the other one's tunnel reaches into this one's (taking it to be no wider than a
+    // single-track tunnel on that side)
+    const meets = (sm: Sample) => {
+      const span = structureSpan(sm);
+      return ([[-1, sm.left], [1, sm.right]] as const).some(([side, v]) => v !== 0 && Math.abs(v) < JUNCTION_REACH && (sm.yard ? v < 0 : v > 0)
+        && !widened(sm, side) && Math.abs(v) < (side < 0 ? -span[0] : span[1]) + S.ROCK.singleFar + 0.3);
+    };
+    const section = (sm: Sample) => {
+      const o = closedOutline(sm);
+      // every third corner, and the last: still inside the outline
+      const pick = o.filter((_, i) => i % 3 === 0 || i === o.length - 1);
+      return pick.map(([u, v]) => { const p = at(sm, u, v); return [p.x, p.y, p.z] as [number, number, number]; });
+    };
+    for (const samples of this.samples) {
+      for (let i = 0; i + 1 < samples.length; i++) {
+        const a = samples[i], c = samples[i + 1];
+        if (!tunnel(a) || !tunnel(c) || a.skip || c.skip || (!meets(a) && !meets(c)) || c.along - a.along < 0.05) continue;
+        const sa = section(a), sc = section(c);
+        if (sa.length === sc.length) this.shellCuts.push(loft(sa, sc));
+      }
     }
   }
 
@@ -289,9 +332,10 @@ export class Network {
     for (const run of tile.runs) this.buildRun(run, b, group);
     // the holes reaching into the tile (its runs reach a little beyond it)
     const m = 60, x0 = tile.cx - TILE / 2 - m, x1 = tile.cx + TILE / 2 + m, z0 = tile.cz - TILE / 2 - m, z1 = tile.cz + TILE / 2 + m;
-    const holes = this.holes.filter((h) => h.max[0] > x0 && h.min[0] < x1 && h.max[2] > z0 && h.min[2] < z1);
+    const near = (h: Volume) => h.max[0] > x0 && h.min[0] < x1 && h.max[2] > z0 && h.min[2] < z1;
+    const holes = this.holes.filter(near), shellHoles = [...holes, ...this.shellCuts.filter(near)];
     for (const [name, builder] of Object.entries(b) as [MaterialName, MeshBuilder][]) {
-      if (!builder.empty) group.add(new THREE.Mesh(builder.build(holes), this.mats[name]));
+      if (!builder.empty) group.add(new THREE.Mesh(builder.build(name === 'rock' || name === 'concrete' ? shellHoles : holes), this.mats[name]));
     }
     return group;
   }
@@ -299,7 +343,12 @@ export class Network {
   private buildRun({ samples, i0, i1 }: Run, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
     const run = samples.slice(i0, i1 + 1);
     // the track itself
-    sweep(b.bed, run, (sm) => (sm.noTrack ? null : { key: 'bed', pts: [[-S.BALLAST.toe, S.FLOOR], [-S.BALLAST.halfWidth, S.BALLAST.top], [S.BALLAST.halfWidth, S.BALLAST.top], [S.BALLAST.toe, S.FLOOR]] }),
+    // (track no service runs on a little lower, where its ballast meets another track's at a turnout)
+    sweep(b.bed, run, (sm) => {
+      if (sm.noTrack) return null;
+      const d = sm.yard ? -0.015 : 0;
+      return { key: 'bed', pts: [[-S.BALLAST.toe, S.FLOOR + d], [-S.BALLAST.halfWidth, S.BALLAST.top + d], [S.BALLAST.halfWidth, S.BALLAST.top + d], [S.BALLAST.toe, S.FLOOR + d]] };
+    },
       { u: (u) => (u + S.BALLAST.halfWidth) / (2 * S.BALLAST.halfWidth), vScale: 1 / (4 * S.SLEEPER.spacing) });
     for (const side of [-1, 1]) {
       const g = side * (S.GAUGE / 2 + S.RAIL.head / 2), w = S.RAIL.head / 2;
@@ -307,12 +356,12 @@ export class Network {
     }
     const C = S.THIRD_RAIL;
     sweep(b.conductor, run, (sm) => {
-      if (sm.noTrack) return null;
+      if (sm.noTrack || conductorGap(sm)) return null;
       const u = sm.third * C.offset, w = C.width / 2;
       return { key: `c${sm.third}`, pts: [[u - w, C.top - C.height], [u - w, C.top], [u + w, C.top], [u + w, C.top - C.height]] };
     });
     sweep(b.cover, run, (sm) => {
-      if (sm.noTrack) return null;
+      if (sm.noTrack || conductorGap(sm)) return null;
       const u0 = sm.third * (C.offset - 0.12), u1 = sm.third * (C.offset - 0.12 + C.coverWidth), v = C.top + C.coverAbove;
       return { key: `c${sm.third}`, pts: [[u0, v], [u1, v], [u1, v - 0.25]] };
     });
@@ -324,11 +373,12 @@ export class Network {
     for (const side of [-1, 1]) {
       sweep(b.floor, run, (sm) => {
         const bank = sm.kind === 'grade' || sm.kind === 'embankment';
-        if (bank && Math.sign(sm.pair) !== side) return null;
+        if (bank && !continues(sm, side)) return null;
         const [a, c] = ownSpan(sm, structureSpan(sm));
         const edge = side < 0 ? a : c;
         if (edge * side <= S.BALLAST.toe) return null;
-        return { key: 'floor', pts: side < 0 ? [[a, S.FLOOR], [-S.BALLAST.toe, S.FLOOR]] : [[S.BALLAST.toe, S.FLOOR], [c, S.FLOOR]] };
+        const f = S.FLOOR - (sm.yard ? 0.015 : 0);
+        return { key: 'floor', pts: side < 0 ? [[a, f], [-S.BALLAST.toe, f]] : [[S.BALLAST.toe, f], [c, f]] };
       }, { uScale: 0.25, vScale: 0.25 });
     }
     this.openStructure(run, b);
@@ -342,7 +392,7 @@ export class Network {
     const groundV = (sm: Sample) => (sm.ground === null ? S.FLOOR - 0.4 : sm.ground - sm.y);
     for (const side of [-1, 1] as const) {
       // is this the outer side of the track (not towards the other track it shares with)?
-      const outer = (sm: Sample) => !sm.pair || Math.sign(sm.pair) !== side;
+      const outer = (sm: Sample) => !continues(sm, side);
       // formation and bank slope, then the ground
       sweep(b.ground, run, (sm) => {
         if ((sm.kind !== 'grade' && sm.kind !== 'embankment') || !outer(sm)) return null;
@@ -448,7 +498,13 @@ export class Network {
   private lights(run: Sample[], b: Record<MaterialName, MeshBuilder>) {
     let next = -Infinity;
     for (const sm of run) {
-      if ((sm.kind !== 'rock' && sm.kind !== 'box') || sm.plat || sm.along < next) continue;
+      if ((sm.kind !== 'rock' && sm.kind !== 'box') || sm.plat || sm.along < next || bare(sm)) continue;
+      if (inHall(sm)) {
+        // a row of lamps under a depot hall's roof, over each track
+        next = sm.along + S.DEPOT_HALL.lights;
+        box(b.lamp, at(sm, 0, S.DEPOT_HALL.height - 0.05), sm, 0.3, 0.08, 1.4);
+        continue;
+      }
       const single = !sm.pair;
       next = sm.along + (single ? S.TUNNEL_LIGHT.single : 2 * S.TUNNEL_LIGHT.double);
       const span = structureSpan(sm);
@@ -464,14 +520,16 @@ export class Network {
   // changes at once (one kind of tunnel meets another, the line runs into a station hall, or a
   // single-track tunnel joins the other track's), a wall between the two outlines.
   private ends(samples: Sample[], i0: number, i1: number, b: Record<MaterialName, MeshBuilder>) {
-    const tunnel = (sm: Sample) => sm.kind === 'rock' || sm.kind === 'box';
+    const tunnel = (sm: Sample) => (sm.kind === 'rock' || sm.kind === 'box') && !bare(sm);
     const ring = (sm: Sample, inner: [number, number][], outer: [number, number][]) => {
       const first = b.concrete.pos.length / 3;
       for (const outline of [inner, outer]) for (const [u, v] of outline) { at(sm, u, v, _w); b.concrete.vertex(_w.x, _w.y, _w.z, u * 0.25, v * 0.25); }
       b.concrete.grid(2, inner.length, first);
     };
     const portal = (t: Sample) => {
-      const inner = shellOutline(t)!.pts;
+      const shell = shellOutline(t);
+      if (!shell) return;
+      const inner = shell.pts;
       const [sa, sb] = structureSpan(t), mid = (sa + sb) / 2;
       const crown = Math.max(...inner.map((p) => p[1]));
       const top = Math.max(crown + 2, t.ground === null ? 0 : t.ground - t.y + 0.5);
@@ -488,6 +546,25 @@ export class Network {
         return k === Infinity ? [u, v] : [mid + du * k, oy + dv * k];
       }));
     };
+    // the end of a track that goes no further: a buffer stop, and in a tunnel a wall beyond it
+    const deadEnd = (k: number, inward: 1 | -1) => {
+      const end = samples[k];
+      if (end.skip) return;
+      if (tunnel(end)) {
+        const o = closedOutline(end), c = o.reduce((m, [u, v]) => [m[0] + u / o.length, m[1] + v / o.length], [0, 0]);
+        for (let j = 0; j < o.length; j++) {
+          const p = o[j], q = o[(j + 1) % o.length];
+          b.concrete.quad(at(end, c[0], c[1]), at(end, p[0], p[1]), at(end, q[0], q[1]), at(end, c[0], c[1]));
+        }
+      }
+      let j = k;
+      while (j + inward >= 0 && j + inward < samples.length && Math.abs(samples[j].along - end.along) < S.BUFFER.from) j += inward;
+      const sm = samples[j];
+      box(b.buffer, at(sm, 0, S.BUFFER.height), sm, S.BUFFER.width, 0.35, 0.3);
+      for (const u of [-0.75, 0.75]) box(b.steel, at(sm, u, (S.BUFFER.height + S.BALLAST.top) / 2), sm, 0.2, S.BUFFER.height - S.BALLAST.top, 0.6);
+    };
+    if (i0 === 0 && samples[0].deadEnd) deadEnd(0, 1);
+    if (i1 === samples.length - 1 && samples[i1].deadEnd) deadEnd(i1, -1);
     // a tunnel running into a station the model draws, or out into the open at the piece's end
     if (i0 > 0 && samples[i0 - 1].skip && tunnel(samples[i0])) portal(samples[i0]);
     if (i0 === 0 && samples[0].mouth) portal(samples[0]);
@@ -502,7 +579,7 @@ export class Network {
           const [ra, rc] = rays(a, c);
           ring(p, ra, rc);
         }
-      } else if (tunnel(p) !== tunnel(q)) portal(tunnel(p) ? p : q);
+      } else if (tunnel(p) !== tunnel(q) && !bare(p) && !bare(q)) portal(tunnel(p) ? p : q);
     }
   }
 }
@@ -510,7 +587,7 @@ export class Network {
 // ------------------------------------------------------------------ cross-sections
 // The structure's full inner span at a sample, from wall to wall (or edge to edge), lateral from
 // the track's centre.
-function structureSpan(sm: Sample): [number, number] {
+function structureSpan(sm: Sample, widen = true): [number, number] {
   let a: number, b: number;
   if (sm.kind === 'bridge') [a, b] = [-S.BRIDGE.deck, S.BRIDGE.deck];
   else if (sm.kind === 'cutting') [a, b] = [-S.CUTTING.wall, S.CUTTING.wall];
@@ -518,6 +595,16 @@ function structureSpan(sm: Sample): [number, number] {
   else if (sm.pair) [a, b] = [-S.ROCK.doubleWall, S.ROCK.doubleWall];
   else [a, b] = sm.third < 0 ? [-S.ROCK.singleNear, S.ROCK.singleFar] : [-S.ROCK.singleFar, S.ROCK.singleNear];
   if (sm.pair > 0) b += sm.pair; else if (sm.pair < 0) a += sm.pair;
+  // a service's tunnel round a turnout
+  if (widen) {
+    const wl = widened(sm, -1), wr = widened(sm, 1);
+    if (wl) a = Math.min(a, -wl - S.ROCK.singleFar);
+    if (wr) b = Math.max(b, wr + S.ROCK.singleFar);
+  }
+  // track no service runs on: to the middle between it and the track it shares with
+  const l = shares(sm, -1), r = shares(sm, 1);
+  if (l) a = -l / 2 - OVERLAP;
+  if (r) b = r / 2 + OVERLAP;
   // a hall wide enough for a platform beside the track
   const p = sm.plat;
   if (p && (sm.kind === 'rock' || sm.kind === 'box') && !(p.island && sm.pair)) {
@@ -535,6 +622,38 @@ function ownSpan(sm: Sample, [a, b]: [number, number]): [number, number] {
   return sm.pair > 0 ? [a, mid + OVERLAP] : [mid - OVERLAP, b];
 }
 
+// Track no service runs on shares its structure with the track beside it: a depot's tracks in rock
+// or concrete share a flat-roofed hall with each other, and in the open the formation or deck of
+// any track beside them. How far that track is on the given side (-1 left, +1 right), or 0.
+const HALL_REACH = 10, OPEN_REACH = 12;
+function shares(sm: Sample, side: number) {
+  if (!sm.yard) return 0;
+  const v = side < 0 ? sm.left : sm.right;
+  if (!v) return 0;
+  if (sm.kind === 'rock' || sm.kind === 'box') return v > 0 && v < HALL_REACH ? v : 0;
+  return Math.abs(v) < OPEN_REACH ? Math.abs(v) : 0;
+}
+// whether the structure goes on beyond this track on that side, into the other track's part
+const continues = (sm: Sample, side: number) => (sm.yard ? shares(sm, side) > 0 : !!sm.pair && Math.sign(sm.pair) === side);
+// a depot hall: in rock or concrete, beside another of the depot's tracks
+const inHall = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && (shares(sm, -1) > 0 || shares(sm, 1) > 0);
+// A turnout in a tunnel: where track no service runs on comes within WIDEN of a service's track,
+// the service's tunnel is widened to take it in (`widened`: how far, beyond the other track's
+// centre), and the other track has no tunnel of its own there (`bare`).
+const WIDEN = 4.5;
+const bare = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box')
+  && ((sm.left < 0 && -sm.left < WIDEN) || (sm.right < 0 && -sm.right < WIDEN));
+const widened = (sm: Sample, side: number) => {
+  const v = side < 0 ? sm.left : sm.right;
+  return !sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && v > 0 && v < WIDEN ? v : 0;
+};
+// No conductor rail where another track comes closer than the standard spacing on its side: at
+// turnouts (a service's track gives way only to track no service runs on).
+function conductorGap(sm: Sample) {
+  const v = sm.third > 0 ? sm.right : sm.left;
+  return (sm.yard || v > 0) && v !== 0 && Math.abs(v) < S.TRACK_CENTRES - 0.25;
+}
+
 function platformOuter(sm: Sample) {
   const p = sm.plat!;
   if (p.island && sm.pair && Math.sign(sm.pair) === p.side) return sm.pair / 2 + p.side * OVERLAP;
@@ -545,8 +664,26 @@ function platformOuter(sm: Sample) {
 // floor at the other, resampled to SHELL_POINTS points; where two tracks share it, only this
 // track's half.
 function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | null {
-  if (sm.kind !== 'rock' && sm.kind !== 'box') return null;
+  if ((sm.kind !== 'rock' && sm.kind !== 'box') || bare(sm)) return null;
   const [a, b] = structureSpan(sm);
+  if (inHall(sm)) {
+    // a depot hall: walls where no track is beside, a flat roof with haunched corners
+    const H = S.DEPOT_HALL.height, k = S.DEPOT_HALL.haunch, l = shares(sm, -1) > 0, r = shares(sm, 1) > 0;
+    const pts: [number, number][] = [...(l ? [[a, H]] : [[a, S.FLOOR], [a, H - k], [a + k, H]]),
+      ...(r ? [[b, H]] : [[b - k, H], [b, H - k], [b, S.FLOOR]])] as [number, number][];
+    return { key: `hall${sm.kind}${+l}${+r}`, pts };
+  }
+  if (sm.kind === 'rock' && (widened(sm, -1) || widened(sm, 1))) {
+    // a turnout in rock: a flat roof at the crown's height, haunched at the walls (where two
+    // tracks share the tunnel, this track's half, meeting the other half's arch at its crown)
+    const [a0, b0] = structureSpan(sm, false);
+    const H = sm.pair ? S.ROCK.doubleSpring + ((S.ROCK.doubleCrown - S.ROCK.doubleSpring) * (b0 - a0)) / (2 * S.ROCK.doubleWall + S.TRACK_CENTRES) + sm.pairDy / 2
+      : S.ROCK.singleCrown;
+    const k = S.DEPOT_HALL.haunch, mid = sm.pair / 2;
+    const left: [number, number][] = [[a, S.FLOOR], [a, H - k], [a + k, H]], right: [number, number][] = [[b - k, H], [b, H - k], [b, S.FLOOR]];
+    const pts = sm.pair > 0 ? [...left, [mid + OVERLAP, H] as [number, number]] : sm.pair < 0 ? [[mid - OVERLAP, H] as [number, number], ...right] : [...left, ...right];
+    return { key: `turnout${Math.sign(sm.pair)}`, pts };
+  }
   const width = b - a;
   const full: [number, number][] = [[a, S.FLOOR]];
   if (sm.kind === 'box') {
@@ -602,6 +739,13 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
 // closed down the middle.
 function closedOutline(sm: Sample): [number, number][] {
   const o = shellOutline(sm)!.pts;
+  if (inHall(sm)) {
+    // closed down the middle between it and the tracks beside it
+    const out = [...o];
+    if (shares(sm, -1) > 0) out.unshift([o[0][0], S.FLOOR]);
+    if (shares(sm, 1) > 0) out.push([o[o.length - 1][0], S.FLOOR]);
+    return out;
+  }
   if (!sm.pair) return o;
   return sm.pair > 0 ? [...o, [o[o.length - 1][0], S.FLOOR]] : [[o[0][0], S.FLOOR], ...o];
 }
@@ -688,7 +832,7 @@ function box(b: MeshBuilder, c: THREE.Vector3, sm: Sample, sx: number, sy: numbe
 // every STEP metres. Where the structure, the sharing of it, a platform or an exclusion starts
 // or stops, there are two samples at the same place, one with each, so that the surfaces on
 // either side meet.
-function densify(g: GeometryPiece, dir: number, exclude: Exclusion[]): Sample[] {
+function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: boolean): Sample[] {
   const n = g.s.length;
   const P = (i: number, k: 'x' | 'y' | 'z') => {
     if (i < 0) return 2 * g[k][0] - g[k][1];
@@ -721,17 +865,36 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[]): Sample[] 
     const pairDy = pair ? (g.pairDy[i] && g.pairDy[i + 1] ? lerp(g.pairDy, q) : g.pairDy[near]) : 0;
     const ga = g.ground[i], gb = g.ground[i + 1];
     const ground = ga !== null && gb !== null ? ga + (gb - ga) * t : g.ground[near];
+    // the tracks beside it: where both points have one, in between; otherwise the nearer point's
+    const beside = (arr: number[] | undefined) => {
+      if (!arr) return 0;
+      const a = arr[i], b = arr[i + 1];
+      return a && b && Math.sign(a) === Math.sign(b) ? a + (b - a) * t : arr[near];
+    };
+    const left = beside(g.left), right = beside(g.right);
     const se = lerp(g.s, e);
     const plat = g.platforms.find((p) => se >= p.s0 && se <= p.s1) ?? null;
     const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
     const skip = exclude.some((x) => !x.trackOnly && se >= x.s0 && se <= x.s1);
     const noTrack = skip || exclude.some((x) => se >= x.s0 && se <= x.s1);
-    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, ground, plat, third, skip, noTrack };
+    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, left, right, yard, ground, plat, third, skip, noTrack };
   };
   // where something changes
   const breaks = new Set<number>();
   for (let i = 0; i + 1 < n; i++) {
     if (g.kind[i] !== g.kind[i + 1] || !g.pair[i] !== !g.pair[i + 1]) breaks.add(i + 0.5);
+    // where a turnout's tunnel starts or ends
+    if (g.left && g.right) {
+      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i] } as Sample;
+      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1] } as Sample;
+      if (bare(k0) !== bare(k1) || !widened(k0, -1) !== !widened(k1, -1) || !widened(k0, 1) !== !widened(k1, 1)) breaks.add(i + 0.5);
+    }
+    // where track no service runs on starts or stops sharing with a track beside it
+    if (yard && g.left && g.right) {
+      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i] } as Sample;
+      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1] } as Sample;
+      if (!shares(k0, -1) !== !shares(k1, -1) || !shares(k0, 1) !== !shares(k1, 1)) breaks.add(i + 0.5);
+    }
   }
   for (const p of g.platforms) for (const s of [p.s0, p.s1]) if (s > g.s[0] && s < g.s[n - 1]) breaks.add(qAt(s));
   for (const x of exclude) for (const s of [x.s0, x.s1]) if (s > g.s[0] && s < g.s[n - 1]) breaks.add(qAt(s));
@@ -761,5 +924,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[]): Sample[] 
   }
   // drop repeated places that aren't changes
   return out.filter((sm, i) => i === 0 || sm.along - out[i - 1].along > 0.05 || sm.kind !== out[i - 1].kind
-    || !sm.pair !== !out[i - 1].pair || sm.plat !== out[i - 1].plat || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack);
+    || !sm.pair !== !out[i - 1].pair || sm.plat !== out[i - 1].plat || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack
+    || !shares(sm, -1) !== !shares(out[i - 1], -1) || !shares(sm, 1) !== !shares(out[i - 1], 1)
+    || bare(sm) !== bare(out[i - 1]) || !widened(sm, -1) !== !widened(out[i - 1], -1) || !widened(sm, 1) !== !widened(out[i - 1], 1));
 }

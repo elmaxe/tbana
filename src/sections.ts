@@ -46,6 +46,12 @@ export const EMBANKMENT = { formation: 3.8, slope: 2 };
 // Bridge deck: about 8.4 m wide for two tracks (the 1952 viaduct), girders 0.8–1.0 m deep,
 // a railing at the edge.
 export const BRIDGE = { deck: 2.6, depth: 1.0, railing: 1.1 };
+// A depot's tracks in rock or concrete (Norsborg) share a hall with a flat roof this high above
+// the rails, with haunched corners, and a lamp over each track every 8 m. (A guess: the 1975
+// description has no section of the depot.)
+export const DEPOT_HALL = { height: 6.0, haunch: 1.0, lights: 8 };
+// A buffer stop at the end of a track: a beam across it, this high and this far from the end.
+export const BUFFER = { height: 0.95, from: 2.5, width: 2.2 };
 // Lights: every 10 m on alternate walls in double-track tunnels, every 7 m on one wall in
 // single-track ones (1975), at about 2.6 m.
 export const TUNNEL_LIGHT = { double: 10, single: 7, height: 2.6 };
