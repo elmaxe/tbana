@@ -7,17 +7,17 @@
 // The first argument picks the first route whose name starts with it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { TrackGraph } from '../src/track-graph.ts';
-import { routeProfile } from './lib/graph.ts';
+import { groundSamples, routeProfile } from './lib/graph.ts';
 
 const [which = 'T13', out = 'profile.svg', fromKm, toKm] = process.argv.slice(2);
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const stationHeights: Record<string, { height: number }> = JSON.parse(readFileSync('data/station-heights.json', 'utf8')).stations;
 if (existsSync('data/height-corrections.json')) {
-  for (const c of JSON.parse(readFileSync('data/height-corrections.json', 'utf8')).stations ?? []) stationHeights[c.station] = { height: c.height };
+  // (a station given by its depth is drawn without its height)
+  for (const c of JSON.parse(readFileSync('data/height-corrections.json', 'utf8')).stations ?? []) if (c.height !== undefined) stationHeights[c.station] = { height: c.height };
 }
-const ground: [number, number, number][] = existsSync('data/ground/red-line.json')
-  ? JSON.parse(readFileSync('data/ground/red-line.json', 'utf8')).samples : [];
+const ground = groundSamples(graph);
 
 const route = graph.routes.find((r) => r.name.startsWith(which));
 if (!route) throw new Error(`no route starting with "${which}": ${graph.routes.map((r) => r.name).join(', ')}`);

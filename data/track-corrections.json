@@ -12,6 +12,28 @@
         6587004.4
       ],
       "why": "Mörby centrum: the crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: it leaves the western track nearer the platform."
+    },
+    {
+      "a": [
+        157643.5,
+        6572497
+      ],
+      "b": [
+        157627.4,
+        6572547
+      ],
+      "why": "Skarpnäck: the scissors crossover just north of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's north end and the tunnel."
+    },
+    {
+      "a": [
+        157626.6,
+        6572497
+      ],
+      "b": [
+        157645.1,
+        6572547
+      ],
+      "why": "Skarpnäck: the scissors crossover just north of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's north end and the tunnel."
     }
   ],
   "platforms": [
@@ -29,6 +51,63 @@
       "reach": 30,
       "why": "OSM draws the island platform south of the southern track, and the northern track about 25 m away from it. Both tracks are placed from the station's node, which lies between them.",
       "replace": true
+    },
+    {
+      "station": "Gubbängen",
+      "why": "No platform is mapped at Gubbängen in OSM (October 2026). The station's node lies between the two tracks, at the island platform."
+    },
+    {
+      "station": "Skarpnäck",
+      "at": [
+        157634,
+        6572400
+      ],
+      "why": "No platform is mapped at Skarpnäck in OSM (October 2026), and the station's node is 50 m west of the tracks. The island platform is placed between the tracks, its south end near the buffer stops."
+    },
+    {
+      "station": "Medborgarplatsen",
+      "replace": true,
+      "why": "OSM's island platform is drawn across the tracks (its fixme says it is in quite the wrong place). Both tracks are placed from the station's node."
+    },
+    {
+      "station": "Skanstull",
+      "replace": true,
+      "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place). Both tracks are placed from the station's node, which lies between them."
+    },
+    {
+      "station": "Svedmyra",
+      "replace": true,
+      "why": "OSM draws the island platform across the southbound track, so it reads as being on that track's far side. Both tracks are placed from the station's node, which lies between them."
+    },
+    {
+      "station": "Sankt Eriksplan",
+      "replace": true,
+      "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it. Both tracks are placed from the station's node, which lies between them."
+    },
+    {
+      "station": "Bagarmossen",
+      "extend": true,
+      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Bandhagen",
+      "extend": true,
+      "why": "OSM draws the island platform 90 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Blackeberg",
+      "extend": true,
+      "why": "OSM draws the island platform about 60 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Rågsved",
+      "extend": true,
+      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Stureby",
+      "extend": true,
+      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
     }
   ]
 }

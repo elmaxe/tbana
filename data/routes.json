@@ -1,18 +1,24 @@
 {
-  "note": "The services traced through the track graph by tools/build-track-graph.ts, each in one direction of travel; the reverse is traced too. Station names as in OpenStreetMap.",
+  "note": "The services traced through the track graph by tools/build-track-graph.ts, each in one direction of travel; the reverse is traced too. Station names as in OpenStreetMap. T18 runs to Hässelby strand, as in the rush hours: off-peak it turns at Alvik, on a platform the other trains run through, which the game's timetable can't do yet.",
   "timetable": {
-    "note": "Each service runs a train every `headway` seconds each way, timed to be at `station` `offset` seconds into each headway. T13 and T14 alternate on the shared trunk, so it has a train every 2.5 minutes each way.",
+    "note": "Each service runs a train every `headway` seconds each way, timed to be at `station` `offset` seconds into each headway. T13 and T14 alternate on the red line's shared trunk, so it has a train every 2.5 minutes each way; T17, T18 and T19 take turns on the green line's, a train every 200 s.",
     "station": "T-Centralen",
     "services": {
       "T13": { "headway": 300, "offset": 0 },
-      "T14": { "headway": 300, "offset": 150 }
+      "T14": { "headway": 300, "offset": 150 },
+      "T17": { "headway": 600, "offset": 0 },
+      "T18": { "headway": 600, "offset": 200 },
+      "T19": { "headway": 600, "offset": 400 }
     }
   },
   "depots": {
-    "note": "The depots the red line uses, for the game's list of places to go: a view of each, as world x, y, z (src/geo.ts), the heading and the pitch (radians, as the game's ?cam=). The game flies there.",
+    "note": "The depots the lines use, for the game's list of places to go: a view of each, as world x, y, z (src/geo.ts), the heading and the pitch (radians, as the game's ?cam=). The game flies there.",
     "places": [
       { "name": "Norsborgsdepån", "view": [-14457.0, 16.0, 9817.2, -1.77, -0.05] },
-      { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] }
+      { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] },
+      { "name": "Vällingbydepån", "view": [-10050, 70, -2900, 0.99, -0.19] },
+      { "name": "Hammarbydepån", "view": [2100, 95, 4100, 2.12, -0.2] },
+      { "name": "Högdalsdepån", "view": [-100, 95, 7950, 2.19, -0.2] }
     ]
   },
   "routes": {
@@ -30,6 +36,35 @@
         "Fruängen", "Västertorp", "Hägerstensåsen", "Telefonplan", "Midsommarkransen", "Liljeholmen", "Hornstull",
         "Zinkensdamm", "Mariatorget", "Slussen", "Gamla stan", "T-Centralen", "Östermalmstorg", "Stadion",
         "Tekniska högskolan", "Universitetet", "Bergshamra", "Danderyds sjukhus", "Mörby centrum"
+      ]
+    },
+    "T17": {
+      "line": "green",
+      "stations": [
+        "Åkeshov", "Brommaplan", "Abrahamsberg", "Stora mossen", "Alvik", "Kristineberg", "Thorildsplan",
+        "Fridhemsplan", "Sankt Eriksplan", "Odenplan", "Rådmansgatan", "Hötorget", "T-Centralen", "Gamla stan",
+        "Slussen", "Medborgarplatsen", "Skanstull", "Gullmarsplan", "Skärmarbrink", "Hammarbyhöjden", "Björkhagen",
+        "Kärrtorp", "Bagarmossen", "Skarpnäck"
+      ]
+    },
+    "T18": {
+      "line": "green",
+      "stations": [
+        "Hässelby strand", "Hässelby gård", "Johannelund", "Vällingby", "Råcksta", "Blackeberg", "Islandstorget",
+        "Ängbyplan", "Åkeshov", "Brommaplan", "Abrahamsberg", "Stora mossen", "Alvik", "Kristineberg", "Thorildsplan",
+        "Fridhemsplan", "Sankt Eriksplan", "Odenplan", "Rådmansgatan", "Hötorget", "T-Centralen", "Gamla stan",
+        "Slussen", "Medborgarplatsen", "Skanstull", "Gullmarsplan", "Skärmarbrink", "Blåsut", "Sandsborg",
+        "Skogskyrkogården", "Tallkrogen", "Gubbängen", "Hökarängen", "Farsta", "Farsta strand"
+      ]
+    },
+    "T19": {
+      "line": "green",
+      "stations": [
+        "Hässelby strand", "Hässelby gård", "Johannelund", "Vällingby", "Råcksta", "Blackeberg", "Islandstorget",
+        "Ängbyplan", "Åkeshov", "Brommaplan", "Abrahamsberg", "Stora mossen", "Alvik", "Kristineberg", "Thorildsplan",
+        "Fridhemsplan", "Sankt Eriksplan", "Odenplan", "Rådmansgatan", "Hötorget", "T-Centralen", "Gamla stan",
+        "Slussen", "Medborgarplatsen", "Skanstull", "Gullmarsplan", "Globen", "Enskede gård", "Sockenplan", "Svedmyra",
+        "Stureby", "Bandhagen", "Högdalen", "Rågsved", "Hagsätra"
       ]
     }
   }

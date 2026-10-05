@@ -60,7 +60,7 @@ export const LINES: Record<LineId, Line> = {
     next: { pos: 'Gamla stan', neg: 'Hötorget' },
     dest: {
       pos: [['17', 'Skarpnäck'], ['18', 'Farsta strand'], ['19', 'Hagsätra']],
-      neg: [['17', 'Åkeshov'], ['18', 'Alvik'], ['19', 'Hässelby strand']],
+      neg: [['17', 'Åkeshov'], ['18', 'Hässelby strand'], ['19', 'Hässelby strand']],
     },
   },
   pink: {

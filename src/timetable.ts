@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { LINES } from './lines';
 import type { Destination, LineId } from './lines';
 import { Polyline } from './polyline';
-import { routeLine, locateSegment } from './routes';
+import { routeLine, locateSegment, segmentAt } from './routes';
 import type { RouteStretch } from './station-join';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
@@ -68,9 +68,9 @@ export class Timetable {
   private ids = 0;
   private started = false;
 
-  // `trainLen`: the length of the trains; `stretches`: where the station models replace the
+  // `trainLens`: the length of each line's trains; `stretches`: where the station models replace the
   // routes' lines (src/station-join.ts)
-  constructor(graph: TrackGraph, geometry: TrackGeometry, trainLen: number, stretches: Map<string, RouteStretch[]>,
+  constructor(graph: TrackGraph, geometry: TrackGeometry, trainLens: (line: LineId) => number, stretches: Map<string, RouteStretch[]>,
     private onRemove: (svc: Service) => void = () => {}) {
     const tt = graph.timetable;
     if (!tt) return;
@@ -79,6 +79,7 @@ export class Timetable {
       if (!timing || !(route.line in LINES)) continue;
       const line = routeLine(geometry, route.path);
       if (!line || line.length < 2) continue;
+      const trainLen = trainLens(route.line as LineId);
       // the line at platform level, through the station models' platforms, and run on at each end
       const pts = line.map((p) => new THREE.Vector3(p.x, p.y + RAIL_TOP, p.z));
       for (const st of stretches.get(route.name) ?? []) st.pts.forEach((p, i) => pts[st.from + i].copy(p));
@@ -101,9 +102,11 @@ export class Timetable {
         }
         return 1;
       };
+      // where a station model's platform replaces the line, the stop there is at its middle
+      const joined = new Map((stretches.get(route.name) ?? []).map((st) => [st.k, st.stop]));
       const stops: Stop[] = [];
-      for (const st of route.stops) {
-        const at = locateSegment(line, st.piece, st.s);
+      for (const [k, st] of route.stops.entries()) {
+        const at = joined.has(k) ? segmentAt(line, joined.get(k)!) : locateSegment(line, st.piece, st.s);
         if (!at) continue;
         const r = rAt(at.i, at.t);
         const dir = line[at.i].dir;
@@ -149,6 +152,20 @@ export class Timetable {
     for (const svc of [...this.trips]) {
       if (this.route(svc).turns && svc.stop >= svc.stops.length - 1 && svc.state !== 'run') this.remove(svc);
     }
+    // ... and the trains that came in before the game started stand at the first stop as the next
+    // trips, until those are due out: as long after each arrival as the ends' layover
+    for (const r of this.routes) {
+      const from = this.routes.find((o) => o.reverse === r && o.turns);
+      if (!from) continue;
+      const layover = mod(r.base + r.sched.close[0] - from.base - from.sched.arrive[from.stops.length - 1], r.headway);
+      for (; this.spawnTime(r, r.nextK) + r.sched.close[0] - layover < this.clock; r.nextK++) {
+        const svc = this.trip(r, r.nextK, this.spawnTime(r, r.nextK));
+        svc.head = svc.stops[0].head;
+        svc.state = 'dwell';
+        svc.doors = 1;
+        this.trips.push(svc);
+      }
+    }
     this.started = true;
   }
 
@@ -184,6 +201,7 @@ export class Timetable {
   }
 
   private spawnTime(route: NetRoute, k: number) { return route.base + k * route.headway; }
+
 
   // Sets off the trips whose time has come; a trip that set off a while ago is run on, on its
   // own, to where it is now.
@@ -377,6 +395,7 @@ export class Timetable {
 }
 
 const braking = (v: number) => (v * v) / (2 * ACC);
+const mod = (a: number, n: number) => ((a % n) + n) % n;
 // a trip at the start of a route fed by trains turning there, until it is out of their way
 const leaving = (svc: Service, route: NetRoute) => route.fed && svc.stop <= 1 && svc.head < route.stops[0].head + route.startClaim;
 const sOn = (sg: NetRoute['segs'][number], r: number) => sg.s0 + ((sg.s1 - sg.s0) * (r - sg.r0)) / (sg.r1 - sg.r0 || 1);

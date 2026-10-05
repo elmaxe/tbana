@@ -50,8 +50,10 @@ interface Corrections {
   // stations whose platform OSM doesn't put beside every track: each running line passing within
   // `reach` m (default 12) of the station's node gets a 145 m platform track centred on its
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
-  // first (for a platform drawn on the wrong side of a track).
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean }[];
+  // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
+  // north), the platform is placed from that point instead of the station's node. With `extend`,
+  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
@@ -85,7 +87,10 @@ for (const el of osm.elements) {
   if (el.type !== 'way' || el.tags?.railway !== 'subway' || !el.nodes || !el.geometry) continue;
   el.nodes.forEach((id, i) => pos.set(id, lonLatToWorld(el.geometry![i].lon, el.geometry![i].lat)));
   const structure = structureOf(el.tags), service = serviceOf(el.tags);
-  const line = LINE_NAMES[(el.tags.name || '').toLowerCase()] ?? null;
+  // Yard track wired only overhead is a tram depot's, joined to the metro to bring the trams in
+  // (the Nockebybanan's at Alvik): the metro's third rail ends where it begins.
+  const tramYard = service === 'yard' && el.tags.electrified === 'contact_line';
+  const line = tramYard ? 'tram' : LINE_NAMES[(el.tags.name || '').toLowerCase()] ?? null;
   const covered = structure === 'surface' && el.tags.covered === 'yes';
   const layerTag = el.tags.layer ?? el.tags.level;
   const layer = layerTag !== undefined && Number.isFinite(parseFloat(layerTag)) ? parseFloat(layerTag) : null;
@@ -128,6 +133,28 @@ function splitAt(e: number, n: number, why: string) {
 for (const c of corrections.crossovers ?? []) {
   const a = splitAt(c.a[0], c.a[1], c.why), b = splitAt(c.b[0], c.b[1], c.why);
   links.push({ a: a.id, b: b.id, structure: a.link.structure, service: 'crossover', line: a.link.line, way: 0, covered: false, layer: null });
+}
+
+// Two lines' running tracks that share a node, each passing straight through it, cross there
+// one over the other: OpenStreetMap glues the red and green lines' tracks together where they run
+// one above the other at T-Centralen. Each line gets its own node there.
+{
+  const at = new Map<number, Link[]>();
+  for (const l of links) for (const n of [l.a, l.b]) (at.get(n) ?? at.set(n, []).get(n)!).push(l);
+  let split = 0;
+  for (const [n, ls] of at) {
+    const byLine = new Map<string | null, Link[]>();
+    for (const l of ls) (byLine.get(l.line) ?? byLine.set(l.line, []).get(l.line)!).push(l);
+    if (byLine.size < 2 || byLine.has(null) || [...byLine.values()].some((g) => g.length !== 2)) continue;
+    for (const [line, group] of [...byLine].slice(1)) {
+      const id = synthetic--;
+      pos.set(id, pos.get(n)!);
+      for (const l of group) { if (l.a === n) l.a = id; else l.b = id; }
+      split++;
+      void line;
+    }
+  }
+  if (split) console.log(`${split} nodes where two lines' tracks cross one over the other, split`);
 }
 
 const linksAt = new Map<number, Link[]>();
@@ -300,6 +327,7 @@ for (const e of stationEls) {
 }
 
 const MIN_RUN = 30;
+const shortPlatforms: number[] = [];
 const toXZ = (g: { lat: number; lon: number }): XZ => { const w = lonLatToWorld(g.lon, g.lat); return [w.x, w.z]; };
 const lineSegs = (pts: XZ[]) => pts.slice(1).map((p, i) => [pts[i], p] as [XZ, XZ]);
 
@@ -354,7 +382,12 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
     }
     flush();
   }
-  if (!tracks.length) return;
+  // A platform beside less than 50 m of track all told is another's, passing under or over the
+  // metro's (the commuter trains' at Odenplan, 15 m below), or only touches the end of a track.
+  if (tracks.reduce((a, t) => a + t.s1 - t.s0, 0) < 50) {
+    if (tracks.length) shortPlatforms.push(id);
+    return;
+  }
   // the nearest station within 400 m
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
   let station: Station | null = null, bestD = 400;
@@ -381,28 +414,43 @@ for (const e of osm.elements) {
 for (const c of corrections.platforms ?? []) {
   const st = stations.get(c.station);
   if (!st) throw new Error(`correction: no station called ${c.station}`);
+  if (c.extend) {
+    // OSM's platform is drawn short of the 145 m it is: each of its tracks is lengthened about
+    // its middle
+    let grown = 0;
+    for (const t of st.platforms.flatMap((p) => p.tracks)) {
+      if (t.s1 - t.s0 >= 140) continue;
+      const len = pieces[t.piece].length, mid = Math.min(len - 72.5, Math.max(72.5, (t.s0 + t.s1) / 2));
+      t.s0 = round(Math.max(0, mid - 72.5));
+      t.s1 = round(Math.min(len, mid + 72.5));
+      grown++;
+    }
+    if (!grown) throw new Error(`correction: ${c.station}'s platforms are long enough already (${c.why})`);
+    continue;
+  }
   const reach = c.reach ?? 12;
   if (c.replace) st.platforms = [];
+  const at = c.at ? { x: c.at[0] - ORIGIN.e, z: ORIGIN.n - c.at[1] } : st;
   const have = new Set(st.platforms.flatMap((p) => p.tracks.map((t) => t.piece)));
   const tracks: PlatformTrack[] = [];
   for (const p of pieces) {
     if (p.service !== 'main' || have.has(p.id)) continue;
     let best = { d: Infinity, s: 0 }, s = 0;
     for (let i = 1; i < p.points.length; i++) {
-      const r = distToSegment(st.x, st.z, p.points[i - 1], p.points[i]);
+      const r = distToSegment(at.x, at.z, p.points[i - 1], p.points[i]);
       const len = Math.hypot(p.points[i][0] - p.points[i - 1][0], p.points[i][1] - p.points[i - 1][1]);
       if (r.d < best.d) best = { d: r.d, s: s + Math.hypot(r.px - p.points[i - 1][0], r.pz - p.points[i - 1][1]) };
       s += len;
     }
     if (best.d > reach) continue;
-    // the platform is on the side of the track facing the station's node
+    // the platform is on the side of the track facing the station's node (or `at`)
     const s0 = Math.max(0, best.s - 72.5), s1 = Math.min(p.length, best.s + 72.5);
     const smp = pointAt(p, best.s), ahead = pointAt(p, Math.min(p.length, best.s + 1)), back = pointAt(p, Math.max(0, best.s - 1));
     const tx = ahead[0] - back[0], tz = ahead[1] - back[1];
-    const side = tx * (st.z - smp[1]) - tz * (st.x - smp[0]) >= 0 ? 'right' : 'left';
+    const side = tx * (at.z - smp[1]) - tz * (at.x - smp[0]) >= 0 ? 'right' : 'left';
     tracks.push({ piece: p.id, s0: round(s0), s1: round(s1), side });
   }
-  if (!tracks.length) throw new Error(`correction: no running line without a platform within ${reach} m of ${c.station} (${c.why})`);
+  if (!tracks.length) throw new Error(`correction: no running line without a platform within ${reach} m of ${c.at ? c.at.join(', ') : c.station} (${c.why})`);
   st.platforms.push({ osm: 0, tracks });
 }
 
@@ -523,29 +571,43 @@ const problems: string[] = [];
 const platformTracks = (name: string) => {
   const st = stations.get(name);
   if (!st) { problems.push(`no station called ${name}`); return []; }
-  const ts = st.platforms.flatMap((p) => p.tracks);
+  // Where platforms overlap along a track (drawn one over another, as at T-Centralen), the train
+  // stands at the middle of them together.
+  const ts: PlatformTrack[] = [];
+  for (const t of [...st.platforms.flatMap((p) => p.tracks)].sort((a, b) => a.piece - b.piece || a.s0 - b.s0)) {
+    const last = ts.at(-1);
+    if (last && last.piece === t.piece && t.s0 < last.s1) {
+      if (t.s1 - t.s0 > last.s1 - last.s0) last.side = t.side;
+      last.s1 = Math.max(last.s1, t.s1);
+    } else ts.push({ ...t });
+  }
   if (!ts.length) problems.push(`${name}: no platform beside a track`);
   return ts;
 };
 
-// The cheapest run from the first station to the last, stopping at every station in turn and
-// never reversing. Every way of standing at each station is kept, so a cheap arrival that
-// leads nowhere can't block the route.
-// `start` and `finish`, where given, are where the train must stand at the first and last station.
+// The cheapest runs from the first station to the last, stopping at every station in turn and
+// never reversing: the ways of standing at the last station, each with the cheapest way there.
+// Every way of standing at each station is kept, so a cheap arrival that leads nowhere can't
+// block the route. `start`, where given, is where the train must stand at the first station.
 type Stand = { piece: number; dir: 1 | -1 };
-function trace(name: string, service: string, line: string, names: string[], start?: Stand, finish?: Stand): Route | null {
+const standKey = (a: Arrival) => `${a.pos.piece}:${a.pos.dir}:${round(a.pos.s)}`;
+function arrive(name: string, line: string, names: readonly string[], start?: Arrival['pos']): Arrival[] | null {
+  // a train standing the wrong way at the first station may simply not get anywhere
+  const report = !start;
   let arrivals: Arrival[] = platformTracks(names[0]).flatMap((t) => ([1, -1] as const).map((dir) => (
     { pos: { piece: t.piece, dir, s: (t.s0 + t.s1) / 2 }, cost: 0, path: [], prev: null })));
-  if (start) arrivals = arrivals.filter((a) => a.pos.piece === start.piece && a.pos.dir === start.dir);
+  if (start) arrivals = arrivals.filter((a) => a.pos.piece === start.piece && a.pos.dir === start.dir && Math.abs(a.pos.s - start.s) < 0.01);
   for (const next of names.slice(1)) {
     arrivals = nextArrivals(arrivals, platformTracks(next), line);
-    if (!arrivals.length) { problems.push(`${name}: could not get from ${names[names.indexOf(next) - 1]} to ${next}`); return null; }
+    if (!arrivals.length) {
+      if (report) problems.push(`${name}: could not get from ${names[names.indexOf(next) - 1]} to ${next}`);
+      return null;
+    }
   }
-  if (finish) {
-    arrivals = arrivals.filter((a) => a.pos.piece === finish.piece && a.pos.dir === finish.dir);
-    if (!arrivals.length) return null;
-  }
-  const end = arrivals.reduce((a, b) => (b.cost < a.cost ? b : a));
+  return arrivals;
+}
+// the route that ends with the arrival `end`
+function routeTo(name: string, service: string, line: string, names: readonly string[], end: Arrival): Route & { cost: number } {
   const chain: Arrival[] = [];
   for (let a: Arrival | null = end; a; a = a.prev) chain.unshift(a);
   const path: Route['path'] = [];
@@ -564,40 +626,59 @@ function trace(name: string, service: string, line: string, names: string[], sta
     const leave = i === path.length - 1 ? stops[stops.length - 1].s : st.dir === 1 ? p.length : 0;
     length += Math.abs(leave - enter);
   });
-  return { name, service, line, stops, path, length: round(length), cost: end.cost } as Route & { cost: number };
+  return { name, service, line, stops, path, length: round(length), cost: end.cost };
 }
+const cheapest = (list: Arrival[]) => list.reduce((a, b) => (b.cost < a.cost ? b : a));
 
 // Each service is traced both ways. At each end the trains turn where they stand: a train arrives
 // on the platform track the train the other way leaves from, and reverses there. Either the
 // arriving train crosses over to the track the other leaves from, or the leaving train leaves
-// from the track the other arrived on and crosses over after: at each end, whichever costs less
-// (the crossovers by a terminus may suit only one of them).
+// from the track the other arrived on and crosses over after, or both use a track between the
+// running lines (Åkeshov): at each end, whichever stand costs the two runs least. Where two
+// services turn at the same station they stand on different tracks, if it has more than one
+// (Hässelby strand): each would stand there longer than the other leaves between its trains.
 const routes: Route[] = [];
 // the services' running lines as first traced, before the ends were turned
 const ways: NonNullable<TrackGraph['ways']> = [];
 type Traced = Route & { cost: number };
-const flip = (st: Stand): Stand => ({ piece: st.piece, dir: -st.dir as 1 | -1 });
-const standAt = (r: Route, k: 0 | -1): Stand => {
-  const stop = r.stops.at(k)!, step = k === 0 ? r.path[0] : r.path.at(-1)!;
-  return { piece: stop.piece, dir: step.dir };
-};
+const flip = (pos: Arrival['pos']): Arrival['pos'] => ({ ...pos, dir: -pos.dir as 1 | -1 });
+// the platform tracks services already turn on, by station
+const turnedOn = new Map<string, Set<number>>();
 for (const [name, def] of Object.entries(routeDefs.routes)) {
   const dirs = [[`${name} ${def.stations[0]}–${def.stations.at(-1)}`, def.stations],
     [`${name} ${def.stations.at(-1)}–${def.stations[0]}`, [...def.stations].reverse()]] as const;
-  const [a, b] = dirs.map(([label, names]) => trace(label, name, def.line, names) as Traced | null);
+  const free = dirs.map(([label, names]) => arrive(label, def.line, names));
+  const [a, b] = free.map((list, i) => (list ? routeTo(dirs[i][0], name, def.line, dirs[i][1], cheapest(list)) : null));
   for (const r of [a, b]) if (r) ways.push({ service: name, line: def.line, path: r.path });
   if (!a || !b) { for (const r of [a, b]) if (r) routes.push(r); continue; }
-  // at the far end of a (where b starts), and at the far end of b (where a starts): true when the
-  // arriving train crosses over, false when the leaving one does
-  let best: [Traced, Traced] | null = null;
-  for (const arriveFar of [true, false]) for (const arriveNear of [true, false]) {
-    const aStart = arriveNear ? standAt(a, 0) : flip(standAt(b, -1)), aEnd = arriveFar ? flip(standAt(b, 0)) : standAt(a, -1);
-    const bStart = arriveFar ? standAt(b, 0) : flip(standAt(a, -1)), bEnd = arriveNear ? flip(standAt(a, 0)) : standAt(b, -1);
-    const ra = trace(dirs[0][0], name, def.line, dirs[0][1], aStart, aEnd) as Traced | null;
-    const rb = trace(dirs[1][0], name, def.line, dirs[1][1], bStart, bEnd) as Traced | null;
-    if (ra && rb && (!best || ra.cost + rb.cost < best[0].cost + best[1].cost)) best = [ra, rb];
+  // from each way of standing at the first station (a's start), and at the last (b's start), the
+  // cheapest runs to each way of standing at the other end
+  const fromNear = new Map<string, Map<string, Arrival>>(), fromFar = new Map<string, Map<string, Arrival>>();
+  const stands = (names: readonly string[]) => platformTracks(names[0]).flatMap((t) => ([1, -1] as const).map((dir) => ({ piece: t.piece, dir, s: (t.s0 + t.s1) / 2 })));
+  for (const [k, by] of [[0, fromNear], [1, fromFar]] as const) {
+    for (const st of stands(dirs[k][1])) {
+      const list = arrive(dirs[k][0], def.line, dirs[k][1], st) ?? [];
+      by.set(standKey({ pos: st } as Arrival), new Map(list.map((x) => [standKey(x), x])));
+    }
+  }
+  // a starts where b arrives, turned round, and b starts where a arrives
+  let best: [Traced, Traced] | null = null, bestCost = Infinity;
+  for (const near of stands(dirs[0][1])) for (const far of stands(dirs[1][1])) {
+    const ea = fromNear.get(standKey({ pos: near } as Arrival))!.get(standKey({ pos: flip(far) } as Arrival));
+    const eb = fromFar.get(standKey({ pos: far } as Arrival))!.get(standKey({ pos: flip(near) } as Arrival));
+    if (!ea || !eb) continue;
+    const taken = (turnedOn.get(def.stations[0])?.has(near.piece) ? 1 : 0) + (turnedOn.get(def.stations.at(-1)!)?.has(far.piece) ? 1 : 0);
+    const cost = ea.cost + eb.cost + taken * 1e6;
+    if (cost >= bestCost) continue;
+    bestCost = cost;
+    best = [routeTo(dirs[0][0], name, def.line, dirs[0][1], ea), routeTo(dirs[1][0], name, def.line, dirs[1][1], eb)];
   }
   if (!best) problems.push(`${name}: its trains can't turn where they stand at the ends`);
+  else {
+    for (const [station, piece] of [[def.stations[0], best[0].stops[0].piece], [def.stations.at(-1)!, best[1].stops[0].piece]] as const) {
+      (turnedOn.get(station) ?? turnedOn.set(station, new Set()).get(station)!).add(piece);
+    }
+  }
   for (const r of best ?? [a, b]) routes.push(r);
 }
 for (const r of routes) delete (r as Partial<Traced>).cost;
@@ -621,6 +702,7 @@ for (const r of routes) {
   console.log(`${r.name}: ${(r.length / 1000).toFixed(2)} km, ${r.stops.length} stops, ${r.path.length} pieces (${crossovers} not running line), platform side ${sides.join('')}`);
 }
 if (process.env.DEBUG) {
+  console.log(`platforms beside too little track, left out: ${shortPlatforms.join(', ')}`);
   // stations of the traced services with fewer than two platform tracks
   for (const name of new Set(Object.values(routeDefs.routes).flatMap((r) => r.stations))) {
     const ts = stations.get(name)?.platforms.flatMap((p) => p.tracks) ?? [];
