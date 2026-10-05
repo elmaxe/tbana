@@ -1,9 +1,10 @@
-// The game's world, built as src/main.ts builds it (T-Centralen, the network's track and
+// The game's world, built as src/main.ts builds it (the station models, the network's track and
 // stations, the city, the trains), for the inspector to fly through. There is no player: the
 // camera goes anywhere, and the tiles are built round it.
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildStation } from '../station';
+import { buildStation, modelGroundCuts } from '../station';
+import { HOME_STATION, loadStationModels } from '../station-models';
+import type { StationPlacement } from '../station-models';
 import type { Station } from '../station';
 import { Trains } from '../trains';
 import { setOutsideLight } from '../rolling-stock/index';
@@ -20,8 +21,6 @@ export interface WorldOptions { city: boolean; trains: boolean; fog: boolean; br
 // `cut`, everything over that height is cut away; `outside` views have no fog, and the sky (or
 // the dark of the earth, when cut).
 export interface Viewport { camera: THREE.PerspectiveCamera; x: number; y: number; w: number; h: number; cut?: number | null; outside?: boolean }
-
-interface StationPlacement { model: string; rotationY: number; position: [number, number, number] }
 
 // the background of a view cut through underground: the earth round the section
 const SECTION = new THREE.Color(0x1e2530);
@@ -72,17 +71,14 @@ export class World {
   }
 
   async load(data: InspectData) {
-    const place = (await getJson<Record<string, StationPlacement>>('data/stations.json'))['t-centralen'];
-    const gltf = await new GLTFLoader().loadAsync(place.model);
-    gltf.scene.rotation.y = THREE.MathUtils.degToRad(place.rotationY);
-    gltf.scene.position.fromArray(place.position);
+    const root = await loadStationModels(await getJson<Record<string, StationPlacement>>('data/stations.json'));
 
     const { graph, geometry, layouts } = data;
-    const join = new StationJoin(graph, geometry, 'T-Centralen');
-    const station = buildStation(gltf.scene, { join: (tracks) => join.join(tracks) });
+    const join = new StationJoin(graph, geometry);
+    const station = buildStation(root, { join: (tracks) => join.join(tracks) });
     this.scene.add(station.group);
     const cuts = layouts ? Stations.volumes(layouts) : undefined;
-    const city = data.city ? new City(data.city, layouts ? Stations.groundCuts(layouts) : [], CITY_REACH) : null;
+    const city = data.city ? new City(data.city, [...(layouts ? Stations.groundCuts(layouts) : []), ...modelGroundCuts(station)], CITY_REACH) : null;
     if (city) this.scene.add(city.group);
     const network = new Network(graph, geometry, join.exclusions, { ...cuts, city: !!city });
     this.scene.add(network.group);
@@ -112,11 +108,10 @@ export class World {
 
   // Whether (x, y, z) is out in the open, as the game works it out for someone walking there.
   outdoorsAt({ x, y, z }: THREE.Vector3) {
-    const b = this.station?.bounds;
-    const inStation = !!b && x > b.min.x && x < b.max.x && z > b.min.z && z < b.max.z;
+    const model = this.station?.areas.find(({ bounds: b }) => x > b.min.x && x < b.max.x && z > b.min.z && z < b.max.z);
     const ground = this.city?.heightAt(x, z);
     return this.stations?.outdoorsAt(x, y, z)
-      ?? (inStation ? THREE.MathUtils.smoothstep(y, 3.5, 5.8) : null)
+      ?? (model ? (model.name === HOME_STATION ? THREE.MathUtils.smoothstep(y, 3.5, 5.8) : this.city?.outdoorsAt(x, y, z) ?? 0) : null)
       ?? this.network?.outdoorsAt(x, y, z)
       ?? (ground !== null && ground !== undefined ? (y > ground - 0.5 ? 1 : 0) : 1);
   }

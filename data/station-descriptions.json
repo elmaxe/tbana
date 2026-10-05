@@ -1,5 +1,5 @@
 {
-  "note": "How the red and green lines' stations are laid out, for tools/build-stations.ts (see there for the format). Each is read from Albert Guillaumes' drawing of the station (estacions.albertguillaumes.cat, used as a reference only), with its exits at OpenStreetMap's subway entrances.",
+  "note": "How the red and green lines' stations are laid out, for tools/build-stations.ts (see there for the format). Each is read from Albert Guillaumes' drawing of the station (estacions.albertguillaumes.cat, used as a reference only), with its exits at OpenStreetMap's subway entrances. T-Centralen, Odenplan and Fridhemsplan aren't here: they are his 3D models (public/data/stations.json).",
   "stations": {
     "Östermalmstorg": {
       "drawing": "ostermalmstorg.png",
@@ -775,31 +775,6 @@
         ] }
       ]
     },
-    "Odenplan": {
-      "drawing": "odenplan.png",
-      "note": "An island platform under Karlbergsvägen. Escalators climb from each end to a ticket hall: at Västmannagatan to the west, and at Odenplan to the east.",
-      "routes": [
-        { "from": [-40, 0], "width": 5, "go": [
-          {"escalators": 11, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
-          {"gates": true},
-          {"exit": 222155657, "by": "walk"}
-        ] },
-        { "from": [46, 0], "width": 5, "go": [
-          {"escalators": 8, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
-          {"gates": true},
-          {"mark": "east"},
-          {"exit": 2554667703, "by": "walk"}
-        ] },
-        { "from": "east", "width": 4, "go": [
-          {"exit": 29827007, "by": "walk"}
-        ] },
-        { "from": "east", "width": 4, "go": [
-          {"exit": 222155120, "by": "walk"}
-        ] }
-      ]
-    },
     "Sankt Eriksplan": {
       "drawing": "st_eriksplan.png",
       "note": "An island platform in a concrete box under Sankt Eriksgatan. Escalators climb from each end to a ticket hall: three exits round Sankt Eriksplan to the south, one to the north.",
@@ -823,52 +798,6 @@
           {"walk": 10, "width": 8},
           {"gates": true},
           {"exit": 29828241, "by": "walk"}
-        ] }
-      ]
-    },
-    "Fridhemsplan": {
-      "drawing": "fridhemsplan.png",
-      "note": "The green line's platform hall, deep in the rock: the two tracks far apart round a wide platform. Escalators climb from each end to ticket halls: at Fridhemsplan to the south-west, and at Sankt Eriksgatan and Fleminggatan to the north-east.",
-      "routes": [
-        { "from": [0, -6.5], "width": 8, "go": [
-          {"walk": [0, 6.5]}
-        ] },
-        { "from": [-30, -7.5], "width": 8, "go": [
-          {"walk": [-30, 6.5]}
-        ] },
-        { "from": [30, -6.5], "width": 8, "go": [
-          {"walk": [30, 6.5]}
-        ] },
-        { "from": [-50, -10.5], "width": 8, "go": [
-          {"walk": [-50, 2.5]}
-        ] },
-        { "from": [50, -8], "width": 8, "go": [
-          {"walk": [50, 1]}
-        ] },
-        { "from": [-50, -4], "width": 5, "go": [
-          {"escalators": 18, "toward": [-150, -40], "lanes": "EES"},
-          {"walk": 6, "width": 8},
-          {"gates": true},
-          {"walk": 3},
-          {"mark": "sw"},
-          {"exit": 2292768968}
-        ] },
-        { "from": "sw", "width": 4, "go": [
-          {"exit": 271665322}
-        ] },
-        { "from": [50, -3.5], "width": 5, "go": [
-          {"escalators": 16, "toward": [150, -30], "lanes": "EES"},
-          {"walk": 6, "width": 8},
-          {"gates": true},
-          {"walk": 3},
-          {"mark": "ne"},
-          {"exit": 271665458}
-        ] },
-        { "from": "ne", "width": 4, "go": [
-          {"exit": 3964503259}
-        ] },
-        { "from": "ne", "width": 4, "go": [
-          {"exit": 13748279786}
         ] }
       ]
     },

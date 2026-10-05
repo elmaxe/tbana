@@ -8,7 +8,7 @@ import { RAIL_TOP } from './service';
 import { locate, pointAt, routeLine } from './routes';
 import type { RoutePoint } from './routes';
 
-// Joins a station model's tracks to the track network. The model's tracks end a little way into
+// Joins the station models' tracks to the track network. The model's tracks end a little way into
 // the tunnels, on lines it only sketches; where the network has a track that runs through one of
 // its platforms, the model's track is replaced by the network's beyond the platform, out to near
 // the stations on either side, so that trains run in the network's tunnels. The station still
@@ -32,7 +32,7 @@ export class StationJoin {
   // where the routes run through the joined platforms, by route name
   stretches = new Map<string, RouteStretch[]>();
 
-  constructor(private graph: TrackGraph, private geometry: TrackGeometry, readonly station: string) {}
+  constructor(private graph: TrackGraph, private geometry: TrackGeometry) {}
 
   join(tracks: Track[]) {
     for (const tr of tracks) if (tr.platform) this.joinTrack(tr);
@@ -46,7 +46,7 @@ export class StationJoin {
     // the routes through the network that stop here, at this platform, in this direction
     const found: { route: string; k: number; line: RoutePoint[]; from: number; stop: number; d: number }[] = [];
     for (const route of this.graph.routes) {
-      const k = route.stops.findIndex((st) => st.station === this.station);
+      const k = route.stops.findIndex((st) => st.station === tr.station);
       if (k < 0) continue;
       const line = routeLine(this.geometry, route.path);
       if (!line) continue;

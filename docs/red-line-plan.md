@@ -585,13 +585,48 @@ Each phase ends in a pull request with a playable preview.
      halls, 12 of them at the green depots. 10.9 MB.
    - Still open:
      - T18 off-peak to Alvik, which needs trains to turn on a through platform.
-     - Fridhemsplan and Odenplan have 3D files of their own from Albert Guillaumes; they could
-       replace their descriptions, as T-Centralen's model does.
      - The green line at Gamla stan and Slussen shares the red line's stations; Slussen's and
        Gamla stan's green tracks are now drawn, but the stations were described for the red line.
      - Where the Skärmarbrink and Gullmarsplan halls meet the street, OSM's entrances are over the
        tracks (on a deck or a bridge); the exits are placed beside them.
      - The blue line.
+   - Odenplan and Fridhemsplan from Albert Guillaumes' 3D models, in place of their descriptions:
+     - `tools/fetch-model.ts` converts his glTF to `public/assets/*.glb` unchanged.
+       `tools/fetch-osm.ts` reads the tracks round a station from the OSM extract (`--pbf`) when
+       Overpass can't be reached.
+     - `fit-station` searches all the way round for the model's turn (Fridhemsplan's is drawn
+       turned 49°), centred on the area fetched. Fridhemsplan is placed by its green line alone:
+       the drawing has the blue line crossing it some degrees off the map's angle. Along the
+       platforms the tracks are 0.2 m (pendeltåg) and 2 m (green, which OSM sketches in the
+       tunnel) from OSM at Odenplan, 0.5 m at Fridhemsplan.
+     - The models are drawn round a level of their own: they are lifted to the track's rail at
+       their platforms (13.9 m and 0.4 m), so the network's heights stay as they were.
+     - The game loads every model in `stations.json` into one station (`src/station-models.ts`);
+       each piece knows its station, for the joins, the signs, the platform list and the shuttles
+       (the pendeltåg at Odenplan, the blue line at Fridhemsplan). `build-track-geometry` anchors
+       the track to every model's platform tracks, and leaves their platforms to the models.
+     - Their stairs, escalators and lifts are cut out of the city's ground where they reach it.
+       From below, the ground is dark, and the buildings are hidden from well under it, so they
+       don't show over the models' open-topped halls (T-Centralen's too).
+   - The inspector's first reports (45, from T-Centralen to Thorildsplan), all holes:
+     - Where a tunnel's section changed halfway between two points, the change fell on a sample
+       already there, and every surface left out the 2.5 m before it. Most of the reports.
+     - The two tracks of a shared tunnel change outline (rock to box, shared to their own) at
+       their own points, up to 10 m apart: each change now moves halfway to the other's.
+     - The wall between two outlines is closed along the floor and stops at the middle of a
+       shared tunnel; between rock tunnels it is rock.
+     - A portal into a station model stopped at the ground, through the station's other level
+       (T-Centralen's green line).
+     - West of Odenplan the turnback siding runs between the running lines, which the plan had
+       pulled 3.15 m apart, round it; and it stood a metre above them. The running lines are now
+       two spacings apart there, the siding in the middle and at their height, and the tunnel is
+       widened round it for both.
+     - Near Thorildsplan the open track beside the box tunnel lowered the ground into it; the
+       segment into a mouth counted as open; and tile skirts hung 4 m down into the box.
+   - Still open:
+     - The models' upper levels lie under the city's ground at T-Centralen; at Odenplan and
+       Fridhemsplan the exits come out only roughly where the street is, and buildings stand over
+       some.
 
 The game reads only the files the tools write, so new lines and corrections need no change to the
 game's code.

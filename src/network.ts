@@ -644,14 +644,16 @@ const continues = (sm: Sample, side: number) => (sm.yard ? shares(sm, side) > 0 
 // a depot hall: in rock or concrete, beside another of the depot's tracks
 const inHall = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && (shares(sm, -1) > 0 || shares(sm, 1) > 0);
 // A turnout in a tunnel: where track no service runs on comes within WIDEN of a service's track,
-// the service's tunnel is widened to take it in (`widened`: how far, beyond the other track's
-// centre), and the other track has no tunnel of its own there (`bare`).
+// or runs between it and the other track of its tunnel (a turnback siding), the service's tunnel
+// is widened to take it in (`widened`: how far, beyond the other track's centre), and the other
+// track has no tunnel of its own there (`bare`).
 const WIDEN = 4.5;
 const bare = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box')
   && ((sm.left < 0 && -sm.left < WIDEN) || (sm.right < 0 && -sm.right < WIDEN));
 const widened = (sm: Sample, side: number) => {
   const v = side < 0 ? sm.left : sm.right;
-  return !sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && v > 0 && v < WIDEN ? v : 0;
+  const between = !!sm.pair && Math.sign(sm.pair) === side && v < Math.abs(sm.pair);
+  return !sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && v > 0 && (v < WIDEN || between) ? v : 0;
 };
 // No conductor rail where another track comes closer than the standard spacing on its side: at
 // turnouts (a service's track gives way only to track no service runs on).
@@ -856,7 +858,7 @@ function box(b: MeshBuilder, c: THREE.Vector3, sm: Sample, sx: number, sy: numbe
 // to halfway between it and the other track's same change, and the two meet there.
 const ALIGN_REACH = 15; // the other track's change is looked for this far from beside this one's
 function alignChanges(all: Sample[][]) {
-  const state = (sm: Sample) => `${sm.kind}${sm.pair ? '+' : ''}`;
+  const state = (sm: Sample) => `${sm.kind}${sm.pair ? '+' : ''}${widened(sm, -1) || widened(sm, 1) ? 'w' : ''}`;
   interface Change { list: Sample[]; i: number; x: number; z: number; a: string; b: string }
   const changes: Change[] = [];
   for (const list of all) {
@@ -1000,8 +1002,8 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     if (g.kind[i] !== g.kind[i + 1] || !g.pair[i] !== !g.pair[i + 1]) breaks.add(i + 0.5);
     // where a turnout's tunnel starts or ends
     if (g.left && g.right) {
-      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i] } as Sample;
-      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1] } as Sample;
+      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i], pair: g.pair[i] } as Sample;
+      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1], pair: g.pair[i + 1] } as Sample;
       if (bare(k0) !== bare(k1) || !widened(k0, -1) !== !widened(k1, -1) || !widened(k0, 1) !== !widened(k1, 1)) breaks.add(i + 0.5);
     }
     // where track no service runs on starts or stops sharing with a track beside it

@@ -4,7 +4,7 @@
 //   node tools/build-track-geometry.ts
 //
 // Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json,
-// data/height-corrections.json and the T-Centralen model; writes public/data/track-geometry.json
+// data/height-corrections.json and the station models; writes public/data/track-geometry.json
 // (format in src/track-geometry.ts).
 //
 // The plan. OpenStreetMap's track is traced from aerial photos in the open, but sketched in the
@@ -15,7 +15,8 @@
 // least squares, through:
 // - OpenStreetMap's track: closely in the open and along platforms, loosely in tunnels (but
 //   closely for track no service runs on, which OSM maps from depot and track plans)
-// - T-Centralen's platform tracks: the station model's tracks, which the game draws
+// - the platform tracks of the stations drawn from a model (T-Centralen, Odenplan, Fridhemsplan):
+//   the model's tracks, which the game draws
 // - the two tracks of a line in a tunnel, at the same level: 3.15 m apart, beside each other;
 //   at different levels, at least 7.5 m apart, so that their tunnels don't cut into each other;
 //   and at an island platform in a tunnel, the platform's width apart. Not near the tunnel's
@@ -124,7 +125,10 @@ function sidingBetween(ax: number, az: number, bx: number, bz: number) {
   return false;
 }
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
-const model = (await loadStationModel('t-centralen')).samples.map((s) => placeSample(s, placements['t-centralen']));
+// the stations drawn from a model (public/data/stations.json), with their tracks placed
+const models = await Promise.all(Object.entries(placements as Record<string, { name: string; rotationY: number; position: [number, number, number] }>)
+  .map(async ([file, place]) => ({ station: place.name, samples: (await loadStationModel(file)).samples.map((s) => placeSample(s, place)) })));
+const modelStations = new Set(models.map((m) => m.station));
 
 function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, log: (...a: unknown[]) => void) {
   // ------------------------------------------------------------------ the pieces and their points
@@ -308,24 +312,27 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
 
-  // T-Centralen: the model's tracks along its platforms, as in build-heights
-  const tcPlatforms = graph.stations.find((s) => s.name === 'T-Centralen')!.platforms.flatMap((p) => p.tracks);
+  // the stations drawn from a model: the model's tracks along their platforms (as in build-heights
+  // for T-Centralen)
   const onModel = new Map<number, [number, number]>();
-  for (const p of pieces) {
-    const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
-    const ranges = tcPlatforms.filter((t) => t.piece === p.id);
-    if (!lines.length || !ranges.length) continue;
-    const { s, v } = disc.get(p.id)!;
-    v.forEach((vi, k) => {
-      if (!ranges.some((t) => s[k] >= t.s0 && s[k] <= t.s1)) return;
-      let best: [number, number] | null = null, bestD = 3;
-      for (const m of model) {
-        if (!lines.includes(m.kind)) continue;
-        const d = Math.hypot(m.x - vars[vi].x0, m.z - vars[vi].z0);
-        if (d < bestD) { bestD = d; best = [m.x, m.z]; }
-      }
-      if (best) onModel.set(vi, best);
-    });
+  for (const { station, samples: model } of models) {
+    const platforms = graph.stations.find((st) => st.name === station)!.platforms.flatMap((p) => p.tracks);
+    for (const p of pieces) {
+      const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
+      const ranges = platforms.filter((t) => t.piece === p.id);
+      if (!lines.length || !ranges.length) continue;
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => {
+        if (!ranges.some((t) => s[k] >= t.s0 && s[k] <= t.s1)) return;
+        let best: [number, number] | null = null, bestD = 3;
+        for (const m of model) {
+          if (!lines.includes(m.kind)) continue;
+          const d = Math.hypot(m.x - vars[vi].x0, m.z - vars[vi].z0);
+          if (d < bestD) { bestD = d; best = [m.x, m.z]; }
+        }
+        if (best) onModel.set(vi, best);
+      });
+    }
   }
 
   // OpenStreetMap
@@ -494,7 +501,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   log(`${held.size} points held to a ${CURVE_HOLD} m radius (${YARD_CURVE_HOLD} m off the running lines), ${heldApart.size} held ${APART.centres} m from a track at another level`);
   const pos = (v: number): [number, number] => [sol[X(v)], sol[Z(v)]];
   const moved = vars.map((a, v) => Math.hypot(sol[X(v)] - a.x0, sol[Z(v)] - a.z0));
-  log(`${vars.length} points, ${onModel.size} on the T-Centralen model, ${pairRows} pulling the two tracks together, ${islandRows} at island platforms`);
+  log(`${vars.length} points, ${onModel.size} on the station models, ${pairRows} pulling the two tracks together, ${islandRows} at island platforms`);
   const pct = (list: number[], q: number) => { const s = [...list].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))] ?? 0; };
   for (const [name, test] of [['open', (a: Var) => !a.tunnel], ['tunnel', (a: Var) => a.tunnel]] as const) {
     const d = moved.filter((_, v) => test(vars[v]));
@@ -671,12 +678,12 @@ console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
-// T-Centralen's are in the station model.
+// The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
 for (const p of pieces) {
   for (const r of platformsOn.get(p.id) ?? []) {
-    if (r.station === 'T-Centralen') continue;
+    if (modelStations.has(r.station)) continue;
     const st = graph.stations.find((s) => s.name === r.station)!;
     const pl = st.platforms.find((q) => q.osm === r.osm)!;
     const g = out[p.id];
