@@ -79,6 +79,8 @@ export interface TrackGraph {
   // The services' running lines: each way as traced before the ends were turned, keeping left
   // all the way. The tools fit and draw the track from these: a terminus keeps both its tracks.
   ways?: { service: string; line: string; path: { piece: number; dir: 1 | -1 }[] }[];
+  // the depots, each with a view of it: world x, y, z, heading and pitch (as the game's ?cam=)
+  depots?: { name: string; view: [number, number, number, number, number] }[];
   timetable?: Timetable;
 }
 

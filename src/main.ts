@@ -138,7 +138,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   game = { station, network, stations, city, player, trains, minimap };
   sizeBigMap();
   buildTeleportList(station);
-  buildStationList(stations);
+  buildStationList(stations, net?.graph.depots ?? []);
 
   const cam = params.get('cam');
   if (cam) {
@@ -150,6 +150,8 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
     player.teleport(station.spawn.pos, station.spawn.yaw);
     const at = params.get('at') && stations?.spot(params.get('at')!);
     if (at) player.teleport(at.pos, at.yaw);
+    const depot = net?.graph.depots?.find((d) => d.name === params.get('at'));
+    if (depot) flyTo(player, depot.view);
   }
   $('loading').hidden = true;
   $('start').hidden = false;
@@ -339,7 +341,15 @@ function buildTeleportList(station: Station) {
 }
 
 // The network's stations, to jump to from the menu.
-function buildStationList(stations: Stations | null) {
+// A view from the air: world x, y, z, heading and pitch, in free flight.
+function flyTo(player: Player<Floor>, [x, y, z, yaw, pitch]: number[]) {
+  player.teleport(new THREE.Vector3(x, y, z), yaw);
+  player.pitch = pitch;
+  player.fly = true;
+  document.body.classList.add('flying');
+}
+
+function buildStationList(stations: Stations | null, depots: NonNullable<TrackGraph['depots']>) {
   if (!stations) return;
   const select = $<HTMLSelectElement>('lineStations');
   for (const st of [...stations.layouts].sort((a, b) => a.name.localeCompare(b.name, 'sv'))) {
@@ -347,10 +357,32 @@ function buildStationList(stations: Stations | null) {
     o.value = o.textContent = st.name;
     select.appendChild(o);
   }
+  if (depots.length) {
+    const group = document.createElement('optgroup');
+    group.label = 'Depots';
+    for (const d of depots) {
+      const o = document.createElement('option');
+      o.value = `depot:${d.name}`;
+      o.textContent = d.name;
+      group.appendChild(o);
+    }
+    select.appendChild(group);
+  }
   $('lineJump').hidden = false;
   select.addEventListener('change', () => {
     const name = select.value;
     select.value = '';
+    const depot = depots.find((d) => `depot:${d.name}` === name);
+    if (depot && game) {
+      const { player } = game;
+      start();
+      fadeTo(() => {
+        endJourney();
+        flyTo(player, depot.view);
+        toast(`${depot.name} · free flight`);
+      });
+      return;
+    }
     const spot = name ? stations.spot(name) : null;
     if (!spot || !game) return;
     start();

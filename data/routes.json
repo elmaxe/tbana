@@ -8,6 +8,13 @@
       "T14": { "headway": 300, "offset": 150 }
     }
   },
+  "depots": {
+    "note": "The depots the red line uses, for the game's list of places to go: a view of each, as world x, y, z (src/geo.ts), the heading and the pitch (radians, as the game's ?cam=). The game flies there.",
+    "places": [
+      { "name": "Norsborgsdepån", "view": [-14457.0, 16.0, 9817.2, -1.77, -0.05] },
+      { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] }
+    ]
+  },
   "routes": {
     "T13": {
       "line": "red",

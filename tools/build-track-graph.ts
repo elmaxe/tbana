@@ -55,7 +55,7 @@ interface Corrections {
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
-const routeDefs: { timetable?: TrackGraph['timetable']; routes: Record<string, { line: string; stations: string[] }> } = JSON.parse(readFileSync(ROUTES, 'utf8'));
+const routeDefs: { timetable?: TrackGraph['timetable']; depots?: { places: NonNullable<TrackGraph['depots']> }; routes: Record<string, { line: string; stations: string[] }> } = JSON.parse(readFileSync(ROUTES, 'utf8'));
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
 
 const round = (v: number) => Math.round(v * 100) / 100;
@@ -651,6 +651,7 @@ const graph: TrackGraph = {
   stations: [...stations.values()].filter((s) => s.platforms.length),
   routes,
   ways,
+  depots: routeDefs.depots?.places,
 };
 if (routeDefs.timetable) {
   const { station, services } = routeDefs.timetable;
