@@ -255,18 +255,91 @@ export function facade() {
   x.fillStyle = '#f4f2ee';
   x.fillRect(0, 0, 128, 128);
   speckle(x, 128, 128, 500, 0.1, 21);
-  // the window: dark glass, a lighter frame and a sill under it
-  x.fillStyle = '#8c8a86';
+  drawWindow(x, '#8c8a86');
+  return toTexture(c, { aniso: 4 });
+}
+
+// The facade's other styles, also one bay by one storey, light so vertex colours tint them.
+// Brick: courses of bricks with darker joints, and the window.
+export function facadeBrick() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#e2ddd6';
+  x.fillRect(0, 0, 128, 128);
+  const r = rng(41);
+  // courses 5 px high, bricks 14 px long, every other course offset by half
+  for (let y = 0; y < 128; y += 5) {
+    for (let k = -1; k < 10; k++) {
+      const x0 = k * 14 + ((y / 5) % 2 ? 7 : 0);
+      const v = 205 + Math.floor(r() * 50);
+      x.fillStyle = `rgb(${v},${v - 4},${v - 8})`;
+      x.fillRect(x0 + 1, y + 1, 12, 3);
+    }
+  }
+  drawWindow(x, '#bdb7ae');
+  return toTexture(c, { aniso: 4 });
+}
+
+// Glass: a curtain wall, panes between mullions, with a band at each floor.
+export function facadeGlass() {
+  const [c, x] = canvas(128);
+  const g = x.createLinearGradient(0, 0, 128, 128);
+  g.addColorStop(0, '#9fb2bf');
+  g.addColorStop(1, '#6f8392');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 128, 128);
+  x.fillStyle = '#d4d8da';
+  x.fillRect(0, 0, 128, 14);
+  for (const m of [0, 63]) x.fillRect(m, 0, 3, 128);
+  return toTexture(c, { aniso: 4 });
+}
+
+// Wood: vertical boards, and a smaller window with a white frame.
+export function facadeWood() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#efebe4';
+  x.fillRect(0, 0, 128, 128);
+  for (let k = 0; k < 128; k += 8) {
+    x.fillStyle = 'rgba(0,0,0,0.16)';
+    x.fillRect(k, 0, 1, 128);
+    x.fillStyle = 'rgba(255,255,255,0.18)';
+    x.fillRect(k + 1, 0, 1, 128);
+  }
+  speckle(x, 128, 128, 300, 0.08, 43);
+  x.fillStyle = '#fbfbf8';
+  x.fillRect(42, 36, 44, 54);
+  x.fillStyle = '#3a4048';
+  x.fillRect(46, 40, 36, 46);
+  x.fillStyle = '#fbfbf8';
+  x.fillRect(62, 40, 4, 46);
+  x.fillRect(46, 60, 36, 3);
+  return toTexture(c, { aniso: 4 });
+}
+
+// Plain: sheet metal or concrete, ribbed, without windows.
+export function facadePlain() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#e4e4e2';
+  x.fillRect(0, 0, 128, 128);
+  for (let k = 0; k < 128; k += 6) {
+    x.fillStyle = 'rgba(0,0,0,0.1)';
+    x.fillRect(k, 0, 2, 128);
+  }
+  speckle(x, 128, 128, 400, 0.07, 47);
+  return toTexture(c, { aniso: 4 });
+}
+
+// the facades' window: dark glass, a frame round it and a sill under it
+function drawWindow(x: CanvasRenderingContext2D, frame: string) {
+  x.fillStyle = frame;
   x.fillRect(36, 30, 56, 64);
   x.fillStyle = '#3a4048';
   x.fillRect(40, 34, 48, 56);
   x.fillStyle = '#56606b';
   x.fillRect(40, 34, 48, 22);
-  x.fillStyle = '#8c8a86';
+  x.fillStyle = frame;
   x.fillRect(62, 34, 4, 56);
   x.fillStyle = '#d8d6d2';
   x.fillRect(32, 94, 64, 5);
-  return toTexture(c, { aniso: 4 });
 }
 
 // Ground: rough, light grey, so vertex colours give it grass or paving. Covers 8 × 8 m.

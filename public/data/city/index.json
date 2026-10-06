@@ -3,7 +3,7 @@
   "Markhöjdmodell © Lantmäteriet, CC BY 4.0",
   "© OpenStreetMap contributors, ODbL 1.0, https://www.openstreetmap.org/copyright"
  ],
- "note": "The city around the line, in 500 m tiles (format 1, src/city-tile.ts): the ground every 5 m from Lantmäteriet's elevation model, shaped where the track runs, and OpenStreetMap's buildings (extract of 2026-10-05) as flat-roofed blocks.",
+ "note": "The city around the line, in 500 m tiles (format 1, src/city-tile.ts): the ground every 5 m from Lantmäteriet's elevation model, shaped where the track runs, and OpenStreetMap's buildings (extract of 2026-10-06) as flat-roofed blocks.",
  "tile": 500,
  "tiles": [
   [

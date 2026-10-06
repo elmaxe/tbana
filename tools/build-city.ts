@@ -24,11 +24,15 @@
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
 //
-// The buildings are OpenStreetMap's, as blocks with flat roofs:
+// The buildings are OpenStreetMap's, as blocks with their roofs:
 // - The walls stand from below the lowest ground under the outline to the building's height above
 //   it: OSM's height, or its levels, or (for most) an estimate: the median levels of the tagged
 //   buildings of the same sort within 150 m, or a default for its sort and size.
 // - A building with building:part inside is drawn as its parts.
+// - Its roof is of its shape (roof:shape, roof:height or roof:levels, roof:orientation,
+//   roof:direction; tools/lib/roofs.ts) where one can be built over its outline, else flat; its
+//   colour is roof:colour, or by roof:material. Its walls' style is by building:material, or for
+//   houses wood and for sheds and warehouses plain.
 // - Where a building stands over open track, the part over the track's space is lifted to clear
 //   the trains (or left out if there is nothing above), and roofs on posts over the platforms are
 //   left out: the stations draw their own.
@@ -41,7 +45,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import polygonClipping from 'polygon-clipping';
 import type { MultiPolygon, Polygon } from 'polygon-clipping';
 import { CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName } from '../src/city-tile.ts';
-import type { Building, CityIndex, Door, RoofShape } from '../src/city-tile.ts';
+import type { Building, CityIndex, Door, RoofShape, WallStyle } from '../src/city-tile.ts';
 import { ROOF_SHAPES } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
@@ -50,6 +54,7 @@ import type { StationLayouts } from '../src/station-layout.ts';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
 import * as S from '../src/sections.ts';
+import { buildRoof } from './lib/roofs.ts';
 
 const OUT = 'public/data/city';
 // over tunnels: the ground at least this far above the crown
@@ -356,7 +361,52 @@ const NAMED: Record<string, number> = {
   antiquewhite: 0xfaebd7, bisque: 0xffe4c4, yellow: 0xffff00, gold: 0xffd700, khaki: 0xf0e68c, orange: 0xffa500,
   salmon: 0xfa8072, pink: 0xffc0cb, green: 0x008000, darkgreen: 0x006400, olive: 0x808000, blue: 0x0000ff,
   navy: 0x000080, lightblue: 0xadd8e6, teal: 0x008080, purple: 0x800080, coral: 0xff7f50, rosybrown: 0xbc8f8f,
+  firebrick: 0xb22222, indianred: 0xcd5c5c, darkslategray: 0x2f4f4f, darkslategrey: 0x2f4f4f, slategray: 0x708090,
+  slategrey: 0x708090, lightslategray: 0x778899, darkolivegreen: 0x556b2f, seagreen: 0x2e8b57, cadetblue: 0x5f9ea0,
+  steelblue: 0x4682b4, lightsalmon: 0xffa07a, darksalmon: 0xe9967a, lightyellow: 0xffffe0, lightgreen: 0x90ee90,
+  darkkhaki: 0xbdb76b, goldenrod: 0xdaa520, darkgoldenrod: 0xb8860b, sandybrown: 0xf4a460, orangered: 0xff4500,
+  tomato: 0xff6347, crimson: 0xdc143c, gainsboro: 0xdcdcdc, whitesmoke: 0xf5f5f5, snow: 0xfffafa, oldlace: 0xfdf5e6,
+  mintcream: 0xf5fffa, honeydew: 0xf0fff0, lavender: 0xe6e6fa, mistyrose: 0xffe4e1, peachpuff: 0xffdab9,
+  navajowhite: 0xffdead, moccasin: 0xffe4b5, palegoldenrod: 0xeee8aa, lemonchiffon: 0xfffacd, seashell: 0xfff5ee,
+  floralwhite: 0xfffaf0, cornsilk: 0xfff8dc, blanchedalmond: 0xffebcd, darkblue: 0x00008b,
+  lime: 0x00ff00, aqua: 0x00ffff, cyan: 0x00ffff, magenta: 0xff00ff, fuchsia: 0xff00ff,
 };
+
+// Roofs without a colour given, by what they're made of.
+const ROOF_MATERIALS: Record<string, number> = {
+  roof_tiles: 0xa4553d, tile: 0xa4553d, tiles: 0xa4553d, brick: 0xa4553d, copper: 0x6f9c86, metal: 0x3d3f42,
+  metal_sheet: 0x3d3f42, tin: 0x3d3f42, zinc: 0x8a8e91, slate: 0x4a4d52, glass: 0x9fb4c0, grass: 0x6b7a45,
+  tar_paper: 0x333436, asphalt: 0x333436, concrete: 0x8c8a86, wood: 0x6b5a48, gold: 0xc9a645,
+};
+function roofColour(t: Record<string, string>) {
+  return colour(t['roof:colour']) ?? ROOF_MATERIALS[(t['roof:material'] ?? '').toLowerCase()] ?? null;
+}
+
+// The walls' style: from building:material, or for houses wood, and for sheds and warehouses plain.
+const WOODEN = new Set(['house', 'detached', 'semidetached_house', 'bungalow', 'cabin', 'hut', 'farm', 'farm_auxiliary', 'barn', 'villa']);
+const PLAIN = new Set(['industrial', 'warehouse', 'garage', 'garages', 'shed', 'service', 'hangar', 'transformer_tower', 'carport', 'container', 'storage_tank', 'silo']);
+function wallStyle(t: Record<string, string>): WallStyle {
+  const m = (t['building:material'] ?? '').toLowerCase();
+  if (/brick|bric/.test(m)) return 'brick';
+  if (/glass/.test(m)) return 'glass';
+  if (/wood/.test(m)) return 'wood';
+  if (/metal|steel|aluminium/.test(m)) return 'plain';
+  if (m) return 'plaster';
+  const type = t.building ?? t['building:part'] ?? '';
+  if (WOODEN.has(type)) return 'wood';
+  if (PLAIN.has(type)) return 'plain';
+  return 'plaster';
+}
+
+// roof:direction as a compass bearing in degrees: a number, or N, NNE, … NW
+const COMPASS = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
+function bearing(v: string | undefined) {
+  if (!v) return null;
+  const n = num(v);
+  if (n !== null) return n;
+  const k = COMPASS.indexOf(v.trim().toLowerCase());
+  return k >= 0 ? k * 22.5 : null;
+}
 function colour(v: string | undefined) {
   if (!v) return null;
   const s = v.trim().toLowerCase();
@@ -452,7 +502,9 @@ function heights(s: Source) {
   const t = s.tags;
   const shapeTag = (t['roof:shape'] ?? 'flat').toLowerCase().replace('_', '-');
   const roof: RoofShape = (ROOF_SHAPES as readonly string[]).includes(shapeTag) ? shapeTag as RoofShape : 'flat';
-  let roofHeight = num(t['roof:height']) ?? (num(t['roof:levels']) !== null ? num(t['roof:levels'])! * 2.8 : roof === 'flat' ? 0 : 3);
+  // (roof:levels=0, common, says the roof is in the top storey: not how high it is)
+  const roofLevels = num(t['roof:levels']) || null;
+  let roofHeight = num(t['roof:height']) ?? (roofLevels !== null ? roofLevels * 2.8 : roof === 'flat' ? 0 : 3);
   let total = num(t.height);
   let walls: number;
   if (total !== null) {
@@ -571,6 +623,7 @@ function doorsOf(ring: Ring): Door[] {
 
 const tiles = new Map<string, Building[]>();
 let overTrack = 0, sheds = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
+let shaped = 0, unshaped = 0;
 for (const s of sources) {
   if (s.hasParts) continue;
   const ti = Math.floor(s.c[0] / CITY_TILE), tj = Math.floor(s.c[1] / CITY_TILE);
@@ -591,8 +644,9 @@ for (const s of sources) {
   const bottom = roofOnly ? top - 0.4 : min ? g0 + min : g0 - SINK;
   const base: Omit<Building, 'rings'> = {
     kind: roofOnly ? 'roof' : shed ? 'shed' : s.part ? 'part' : 'building', roof, bottom, top, roofHeight,
-    colour: colour(s.tags['building:colour']),
+    colour: colour(s.tags['building:colour']), roofColour: roofColour(s.tags), wall: wallStyle(s.tags),
   };
+  const roofOpts = { direction: bearing(s.tags['roof:direction']), across: s.tags['roof:orientation'] === 'across' };
   let shape: MultiPolygon = [toPoly(s.rings)];
 
   const [bx0, bz0, bx1, bz1] = bbox(outline);
@@ -631,19 +685,25 @@ for (const s of sources) {
     shape = polygonClipping.difference(shape, union);
     // the part over the track, lifted clear of the trains
     const clear = Math.max(...hits.map((h) => h.y)) + CLEARANCE;
-    if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) });
+    if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
   }
-  emit(list, shape, base);
+  emit(list, shape, base, roofOpts);
 }
 
 // Polygons as buildings: the outline with a positive shoelace area in x, z, courtyards negative.
-function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>) {
+// The pieces of a building, each with its roof of its shape (where one can be built: else flat).
+function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>, roofOpts?: { direction: number | null; across: boolean }) {
   for (const p of shape) {
     const rings = fromPoly(p).filter((r) => r.length >= 3 && Math.abs(ringArea(r)) > 1);
     if (!rings.length) continue;
     if (ringArea(rings[0]) < 0) rings[0].reverse();
     for (const r of rings.slice(1)) if (ringArea(r) > 0) r.reverse();
-    list.push({ ...base, rings });
+    const b: Building = { ...base, rings };
+    if (roofOpts && b.roof !== 'flat' && (b.kind === 'building' || b.kind === 'part')) {
+      const roof = buildRoof(rings, b.roof, b.roofHeight, roofOpts);
+      if (roof) { b.roofMesh = roof; shaped++; } else unshaped++;
+    }
+    list.push(b);
   }
 }
 
@@ -702,5 +762,6 @@ writeFileSync(`${OUT}/index.json`, JSON.stringify(index, null, 1) + '\n');
 if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toFixed(0)}, ${m.z.toFixed(0)}, rail ${m.y.toFixed(1)}, out towards ${m.tx.toFixed(2)}, ${m.tz.toFixed(2)}`);
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
+console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
 console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);

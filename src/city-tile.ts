@@ -5,7 +5,7 @@
 //
 // A tile is gzip-compressed binary, little-endian: a header, then sections, each a four-letter
 // tag, its length in bytes and its contents (padded to 4 bytes). A reader skips the sections it
-// doesn't know, so later layers (roof shapes, streets, water) can be added as new sections
+// doesn't know, so later layers (streets, water) can be added as new sections
 // without breaking the game, and new fields as new sections or a new version.
 //
 //   header   'TBCT', u16 version, u16 0, i32 i, i32 j
@@ -22,6 +22,14 @@
 //   'DOOR'   the doors of the depots' halls (buildings of kind shed): u32 count, then for each
 //            door: u32 building (its index in BLDG), u16 edge (from the outline's point of that
 //            index to the next), u16 0, f32 from, f32 to (metres along the edge), f32 top (RH 2000).
+//   'LOOK'   how the buildings look, one for each in BLDG: u32 roof colour (0xRRGGBB, 0: none
+//            given), u8 wall style (WALL_STYLES), u8 0, u16 0.
+//   'ROOF'   roofs of their shapes (tools/lib/roofs.ts): u32 count, then for each: u32 building,
+//            u16 points, u16 triangles, u16 rings, u16 0; the points as i16 x, z in decimetres from
+//            the tile's corner and u16 y in centimetres above the building's top (the eaves); the
+//            triangles as u16 × 3, wound to face up; then the walls' tops under the roof, each ring
+//            of the outline as u16 points and its points as the roof's. A building with no roof here
+//            has a flat one.
 //
 // It imports nothing, so the tools can use it on Node too.
 
@@ -48,6 +56,11 @@ export type BuildingKind = typeof BUILDING_KINDS[number];
 export const ROOF_SHAPES = ['flat', 'gabled', 'hipped', 'pyramidal', 'skillion', 'dome', 'onion', 'round', 'gambrel', 'mansard', 'half-hipped'] as const;
 export type RoofShape = typeof ROOF_SHAPES[number];
 
+// how the walls are drawn: plastered (the default), brick, glass, wooden boards, or plain (sheds,
+// warehouses)
+export const WALL_STYLES = ['plaster', 'brick', 'glass', 'wood', 'plain'] as const;
+export type WallStyle = typeof WALL_STYLES[number];
+
 export interface Building {
   kind: BuildingKind;
   roof: RoofShape;
@@ -57,6 +70,18 @@ export interface Building {
   colour: number | null;
   rings: [number, number][][]; // world x, z: the outline anticlockwise, then courtyards
   doors?: Door[];  // a shed's doors
+  roofColour?: number | null;
+  wall?: WallStyle;
+  roofMesh?: RoofMesh; // a roof of its shape; without one, the roof is flat
+}
+
+// A roof over a building, from its top (the eaves) up: points in world x, z and y above the top,
+// triangles of them wound to face up, and the tops of the walls under it, ring by ring of the
+// outline: level at the eaves and rising into the gables.
+export interface RoofMesh {
+  points: [number, number, number][];
+  triangles: number[];
+  tops: [number, number, number][][];
 }
 
 // A door in a shed's outline, from its corner `edge` to the next: `from` to `to` metres along that
@@ -178,6 +203,37 @@ export function decodeTile(buf: ArrayBuffer): CityTile {
         const b = tile.buildings[v.getUint32(q, true)];
         if (b) (b.doors ??= []).push({ edge: v.getUint16(q + 4, true), from: v.getFloat32(q + 8, true), to: v.getFloat32(q + 12, true), top: v.getFloat32(q + 16, true) });
       }
+    } else if (tag === 'LOOK') {
+      tile.buildings.forEach((b, k) => {
+        if (8 * k + 8 > len) return;
+        const c = v.getUint32(s + 8 * k, true);
+        b.roofColour = c ? c : null;
+        b.wall = WALL_STYLES[v.getUint8(s + 8 * k + 4)] ?? 'plaster';
+      });
+    } else if (tag === 'ROOF') {
+      const count = v.getUint32(s, true);
+      let q = s + 4;
+      const point = (): [number, number, number] => {
+        const pt: [number, number, number] = [x0 + v.getInt16(q, true) / 10, z0 + v.getInt16(q + 2, true) / 10, v.getUint16(q + 4, true) / 100];
+        q += 6;
+        return pt;
+      };
+      for (let r = 0; r < count; r++) {
+        const b = tile.buildings[v.getUint32(q, true)];
+        const np = v.getUint16(q + 4, true), nt = v.getUint16(q + 6, true), nr = v.getUint16(q + 8, true);
+        q += 12;
+        const mesh: RoofMesh = { points: [], triangles: [], tops: [] };
+        for (let k = 0; k < np; k++) mesh.points.push(point());
+        for (let k = 0; k < 3 * nt; k++, q += 2) mesh.triangles.push(v.getUint16(q, true));
+        for (let k = 0; k < nr; k++) {
+          const n = v.getUint16(q, true);
+          q += 2;
+          const ring: [number, number, number][] = [];
+          for (let m = 0; m < n; m++) ring.push(point());
+          mesh.tops.push(ring);
+        }
+        if (b) b.roofMesh = mesh;
+      }
     } else if (tag === 'HOLE') {
       const count = v.getUint32(s, true);
       for (let h = 0, q = s + 4; h < count; h++, q += 40) {
@@ -252,6 +308,45 @@ export function encodeTile(tile: CityTile): Uint8Array {
       v.setFloat32(q + 16, d.top, true);
     });
     sections.push({ tag: 'DOOR', data });
+  }
+  if (tile.buildings.some((b) => b.roofColour || (b.wall && b.wall !== 'plaster'))) {
+    const data = new Uint8Array(8 * tile.buildings.length);
+    const v = new DataView(data.buffer);
+    tile.buildings.forEach((b, k) => {
+      v.setUint32(8 * k, b.roofColour ?? 0, true);
+      v.setUint8(8 * k + 4, Math.max(0, WALL_STYLES.indexOf(b.wall ?? 'plaster')));
+    });
+    sections.push({ tag: 'LOOK', data });
+  }
+  const roofs = tile.buildings.flatMap((b, k) => (b.roofMesh ? [{ k, m: b.roofMesh }] : []));
+  if (roofs.length) {
+    let size = 4;
+    for (const { m } of roofs) size += 12 + 6 * m.points.length + 6 * (m.triangles.length / 3) + m.tops.reduce((t, r) => t + 2 + 6 * r.length, 0);
+    const data = new Uint8Array(size);
+    const v = new DataView(data.buffer);
+    const dm = (u: number) => Math.max(-32767, Math.min(32767, Math.round(u * 10)));
+    let q = 0;
+    const point = ([x, z, y]: [number, number, number]) => {
+      v.setInt16(q, dm(x - x0), true);
+      v.setInt16(q + 2, dm(z - z0), true);
+      v.setUint16(q + 4, Math.max(0, Math.min(65535, Math.round(y * 100))), true);
+      q += 6;
+    };
+    v.setUint32(q, roofs.length, true); q += 4;
+    for (const { k, m } of roofs) {
+      v.setUint32(q, k, true);
+      v.setUint16(q + 4, m.points.length, true);
+      v.setUint16(q + 6, m.triangles.length / 3, true);
+      v.setUint16(q + 8, m.tops.length, true);
+      q += 12;
+      m.points.forEach(point);
+      for (const t of m.triangles) { v.setUint16(q, t, true); q += 2; }
+      for (const r of m.tops) {
+        v.setUint16(q, r.length, true); q += 2;
+        r.forEach(point);
+      }
+    }
+    sections.push({ tag: 'ROOF', data });
   }
   if (tile.holes.length) {
     const data = new Uint8Array(4 + 40 * tile.holes.length);

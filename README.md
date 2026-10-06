@@ -496,8 +496,8 @@ npm run build-city                             # -> public/data/city/
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
   parts in those tiles, with their courtyards: about 69,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 10.9 MB in all. The format is in tagged sections, so roof shapes,
-  streets and water can be added later as new sections without breaking the game.
+  (format in `src/city-tile.ts`), 12.0 MB in all. The format is in tagged sections, so streets and
+  water can be added later as new sections without breaking the game, as the roofs were.
 
 How the ground meets the track:
 
@@ -511,13 +511,26 @@ How the ground meets the track:
 - At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
   round the opening.
 
-The buildings are blocks with flat roofs:
+The buildings are blocks with their roofs:
 
 - They stand from below the lowest ground under them to their height above it: OSM's `height`,
   or its levels at 3.1 m, or for the 60% with neither, the median levels of the tagged buildings
   of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
-- A building with parts is drawn as its parts. Roof shapes are kept for later; for now a pitched
-  roof is a flat one halfway up it.
+- A building with parts is drawn as its parts.
+- Roofs are of their shapes, from OSM's [Simple 3D Buildings](https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings)
+  tags (`roof:shape`, `roof:height` or `roof:levels`, `roof:orientation`, `roof:direction`), built
+  by `build-city` (`tools/lib/roofs.ts`) and stored with the tile: gabled, hipped, pyramidal and
+  skillion, with gambrel, half-hipped and round roofs built gabled, mansard and dome roofs hipped
+  and onion roofs pyramidal. A hipped or gabled roof is the lowest of the planes rising from the
+  outline's edges, each reaching only as far as where it meets its neighbours': over a convex
+  outline that is the straight skeleton's roof, and over an L, T or U the same in nearly every
+  case. A gabled roof's gables are its wings' ends (shorter than their neighbours, or with
+  `roof:orientation=across` longer), and the walls rise into them. A roof with no height given
+  (or `roof:levels=0`) is 3 m. 7,253 roofs are built; the 10 left, where no faces covering the
+  outline were found, are flat halfway up, as all were before.
+- A roof's colour is `roof:colour`, or by `roof:material` (red tiles, black tin, green copper…).
+  The walls are plastered, brick, glass, wooden boards or plain, by `building:material`, or for
+  houses wood and for sheds and warehouses plain, each with its own texture and colours.
 - Where a building stands over open track, the part over the track's space is lifted 5 m above
   the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
 - Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
