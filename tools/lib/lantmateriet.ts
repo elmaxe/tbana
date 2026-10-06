@@ -15,8 +15,8 @@ export const STAC_IMAGES = 'https://api.lantmateriet.se/stac-bild/v1/search';
 export const ATTRIBUTION = 'Markhöjdmodell © Lantmäteriet, CC BY 4.0';
 export const ORTHO_ATTRIBUTION = 'Ortofoto © Lantmäteriet, CC BY 4.0';
 
-// The download server turns away some requests (403) when too many arrive at once, so fetches go
-// out a few at a time and are retried after a pause.
+// The download server turns away some requests (403) when too many arrive at once, and now and
+// then fails one (502) or drops it, so fetches go out a few at a time and are retried after a pause.
 let throttled = false;
 export function throttleFetch() {
   if (throttled) return;
@@ -29,8 +29,16 @@ export function throttleFetch() {
     active++;
     try {
       for (let attempt = 0; ; attempt++) {
-        const res = await fetch0(input, init);
-        if (res.ok || attempt === 5 || ![403, 429, 503].includes(res.status)) return res;
+        let res: Response;
+        try {
+          res = await fetch0(input, init);
+        } catch (err) {
+          // a connection dropped
+          if (attempt === 5) throw err;
+          await new Promise((go) => setTimeout(go, 500 * 2 ** attempt));
+          continue;
+        }
+        if (res.ok || attempt === 5 || ![403, 429, 500, 502, 503, 504].includes(res.status)) return res;
         await res.body?.cancel();
         await new Promise((go) => setTimeout(go, 500 * 2 ** attempt));
       }

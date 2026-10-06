@@ -137,7 +137,7 @@ function points(file: CopcFile, key: string) {
 
 // ------------------------------------------------------------------ a block
 type Measure = [number, number, string, number];   // eaves, top, shape, points
-interface Done { key: string; measured: number; of: number; read: number; unbuilt: number; few: number }
+interface Done { key: string; measured: number; of: number; read: number; unbuilt: number; few: number; error?: string }
 const cacheOf = (key: string) => `${CACHE}/${key.replace(',', '_')}.json`;
 
 // Measures a block's buildings from the scan's files, and keeps the measures in the cache.
@@ -209,7 +209,13 @@ async function measure(key: string, files: StacFile[]): Promise<Done> {
 if (!isMainThread) {
   // a worker: measures the blocks it is sent
   const files = workerData.files as StacFile[];
-  parentPort!.on('message', async (key: string) => parentPort!.postMessage(await measure(key, files)));
+  parentPort!.on('message', async (key: string) => {
+    try {
+      parentPort!.postMessage(await measure(key, files));
+    } catch (err) {
+      parentPort!.postMessage({ key, error: String((err as Error).message ?? err) });
+    }
+  });
 } else {
   // ------------------------------------------------------------------ the scan's files
   let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
@@ -237,6 +243,7 @@ if (!isMainThread) {
   const todo = [...blocks.keys()].sort().filter((key) => only.size ? only.has(key) : again || !existsSync(cacheOf(key)));
   console.log(`${todo.length} of ${blocks.size} blocks to measure`);
   let done = 0, read = 0, unbuilt = 0, few = 0;
+  const failed: string[] = [];
   const t0 = Date.now();
   const jobs = Math.min(JOBS, availableParallelism(), todo.length);
   await Promise.all(Array.from({ length: jobs }, () => new Promise<void>((finish, fail) => {
@@ -246,6 +253,12 @@ if (!isMainThread) {
       if (key) worker.postMessage(key); else worker.terminate().then(() => finish());
     };
     worker.on('message', (d: Done) => {
+      if (d.error) {
+        // (left for the next run)
+        failed.push(d.key);
+        console.warn(`block ${d.key} failed: ${d.error}`);
+        return next();
+      }
       done++; read += d.read; unbuilt += d.unbuilt; few += d.few;
       console.log(`block ${d.key}: ${d.measured} of ${d.of} buildings measured (${done} done, ${todo.length} to go, ${(read / 1e6).toFixed(0)} M points read, ${((Date.now() - t0) / 1000).toFixed(0)} s)`);
       next();
@@ -253,6 +266,8 @@ if (!isMainThread) {
     worker.on('error', fail);
     next();
   })));
+
+  if (failed.length) console.warn(`${failed.length} blocks failed (${failed.join(' ')}): run it again to measure them`);
 
   // ------------------------------------------------------------------ the measures
   const results = new Map<string, Measure>();
