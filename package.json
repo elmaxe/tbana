@@ -23,7 +23,8 @@
     "fetch-city": "node tools/fetch-city.ts",
     "build-city": "node tools/build-city.ts",
     "fetch-ortho": "node tools/fetch-ortho.ts",
-    "fetch-laser": "node tools/fetch-laser.ts"
+    "fetch-laser": "node tools/fetch-laser.ts",
+    "fetch-mapillary": "node tools/fetch-mapillary.ts"
   },
   "dependencies": {
     "three": "0.170.0"

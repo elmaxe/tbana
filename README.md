@@ -671,9 +671,38 @@ npm run build-city
   skillion roofs: a single slope fitted to one side of a gabled roof, where the other side's
   points are few, can fit better: a third of the sloping roofs it finds are skillion.
 
-The walls are still drawn from OSM's tags or guessed. Notes on taking their colours and materials
-from Mapillary's street-level photos (CC BY-SA 4.0, unlike Google Street View) are in
-[`docs/mapillary.md`](docs/mapillary.md).
+### Wall colours from street-level photos
+
+The walls' colours, where OSM gives none, are measured from [Mapillary](https://www.mapillary.com)'s
+street-level photos (CC BY-SA 4.0; Google Street View's terms forbid this).
+
+```sh
+MAPILLARY_TOKEN='MLY|…' npm run fetch-mapillary              # -> data/mapillary/walls.json
+MAPILLARY_TOKEN='MLY|…' npm run fetch-mapillary -- 0,0 1,0   # only these 1 km blocks, measured again
+MAPILLARY_TOKEN='MLY|…' npm run fetch-mapillary -- --again    # all of them again
+npm run build-city
+```
+
+- The token is a Mapillary application's client token: register an application (read access) at
+  https://www.mapillary.com/dashboard/developers. In the cloud environment it is the environment
+  variable `MAPILLARY_TOKEN`. Behind a proxy, Node needs `NODE_USE_ENV_PROXY=1`.
+- For each building, `fetch-mapillary` finds the photos taken in front of its walls (from
+  Mapillary's coverage tiles: the API's search by box misses photos where there are many), and
+  their cameras' positions, rotations and lenses as Mapillary reconstructed them. A grid of
+  points on the wall, from above the shop fronts to under the eaves, is found in each photo where
+  no other building, shelter or rise of the ground stands between, and the pixels there are read,
+  only those Mapillary's segmentation of the photo calls building: not the trees, cars, people,
+  signs and sky in front of it. A photo's colour for the wall is the commonest of them, and a
+  building's the median of at least two photos that agree. It works a 1 km block at a time and
+  keeps each block's colours in `node_modules/.cache/mapillary/`, so a run that stops can be
+  started again.
+- `build-city` takes the colour for a building without OSM's `building:colour`, and the game
+  draws it as measured (OSM's colours, names or bright swatches, it tones down). Without
+  `data/mapillary/walls.json` the walls are coloured as before: by OSM's tag, or from a palette
+  by their style.
+
+How it was arrived at, how well the colours agree with OSM's, and what could be done next (the
+walls' materials, their windows) are in [`docs/mapillary.md`](docs/mapillary.md).
 
 ## Train models
 

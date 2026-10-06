@@ -35,7 +35,9 @@
 //   roof:direction, or where OSM gives no shape the one the laser scan found; tools/lib/roofs.ts)
 //   where one can be built over its outline, else flat; its
 //   colour is roof:colour, or by roof:material. Its walls' style is by building:material, or for
-//   houses wood and for sheds and warehouses plain.
+//   houses wood and for sheds and warehouses plain. Their colour is building:colour, or where OSM
+//   gives none, as street-level photos show it (data/mapillary/walls.json, from
+//   tools/fetch-mapillary.ts), if they do.
 // - Where a building stands over open track, the part over the track's space is lifted to clear
 //   the trains (or left out if there is nothing above), and roofs on posts over the platforms are
 //   left out: the stations draw their own.
@@ -89,6 +91,10 @@ const osm: { attribution: string; extract: string; buildings: { osm: string; tag
 // top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
 const laser: { attribution: string; buildings: Record<string, [number, number, string, number]> } | null =
   existsSync('data/laser/buildings.json') ? JSON.parse(readFileSync('data/laser/buildings.json', 'utf8')) : null;
+// the walls' colours as Mapillary's street-level photos show them, where they have
+// (tools/fetch-mapillary.ts): "#rrggbb", photos
+const photos: { attribution: string; buildings: Record<string, [string, number]> } | null =
+  existsSync('data/mapillary/walls.json') ? JSON.parse(readFileSync('data/mapillary/walls.json', 'utf8')) : null;
 if (groundMeta.tile !== CITY_TILE) throw new Error(`data/ground/city.json has ${groundMeta.tile} m tiles, the game ${CITY_TILE} m`);
 const N = groundMeta.n, STEP = groundMeta.step;
 
@@ -405,6 +411,18 @@ function wallStyle(t: Record<string, string>): WallStyle {
   return 'plaster';
 }
 
+// The walls' colour: building:colour, or as the street-level photos show it.
+let photoColoured = 0;
+function wallColour(s: Source) {
+  const given = colour(s.tags['building:colour']);
+  if (given !== null) return { colour: given };
+  const m = photos?.buildings[s.osm];
+  const c = m ? colour(m[0]) : null;
+  if (c === null) return { colour: null };
+  photoColoured++;
+  return { colour: c, photoColour: true };
+}
+
 // roof:direction as a compass bearing in degrees: a number, or N, NNE, … NW
 const COMPASS = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse', 's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
 function bearing(v: string | undefined) {
@@ -692,7 +710,7 @@ for (const s of sources) {
   const bottom = roofOnly ? top - 0.4 : min ? g0 + min : g0 - SINK;
   const base: Omit<Building, 'rings'> = {
     kind: roofOnly ? 'roof' : shed ? 'shed' : s.part ? 'part' : 'building', roof, bottom, top, roofHeight,
-    colour: colour(s.tags['building:colour']), roofColour: roofColour(s.tags), wall: wallStyle(s.tags),
+    ...wallColour(s), roofColour: roofColour(s.tags), wall: wallStyle(s.tags),
   };
   let shape: MultiPolygon = [toPoly(s.rings)];
 
@@ -799,7 +817,7 @@ for (const [i, j] of groundMeta.tiles) {
 for (const f of readdirSync(OUT)) if (!written.has(f)) rmSync(`${OUT}/${f}`);
 
 const index: CityIndex = {
-  attribution: [groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : [])],
+  attribution: [groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : []), ...(photos ? [photos.attribution] : [])],
   note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks.`,
   tile: CITY_TILE,
   tiles: groundMeta.tiles.map(([i, j]) => [i, j]),
@@ -810,6 +828,7 @@ if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toF
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
 if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found; left out: ${[...laserDoubted].map(([k, n]) => `${n} ${k}`).join(', ')}`);
+if (photos) console.log(`  walls coloured from street-level photos: ${photoColoured} (of ${Object.keys(photos.buildings).length} the photos measure; OSM's building:colour where it gives one)`);
 console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
 console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);

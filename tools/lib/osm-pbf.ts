@@ -18,7 +18,8 @@ export interface PbfHandlers {
 }
 
 // ------------------------------------------------------------------ protobuf
-class Reader {
+// (tools/lib/mapillary.ts reads Mapillary's vector tiles with it too)
+export class Reader {
   buf: Uint8Array;
   pos: number;
   end: number;
