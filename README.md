@@ -112,6 +112,10 @@ after a chime before they leave. Walk in through an open door and you ride along
 through the car and, on the C30 and between the sections of a C20, into the next car. If you are
 standing in a doorway when the doors close, you step inside or back onto the platform.
 
+A chime sounds on the platform just before a train comes in, and inside the train just before it
+comes into the next station. The C30 has its own door warning instead of the chime, and its doors
+shut as the warning drops at the end. The recordings are in `public/sounds/`.
+
 On the red and green lines the trains run the whole line on a timetable (see [Trains on the
 network](#trains-on-the-network)), so you ride on from station to station through the real tunnels
 and over the bridges. Step out at any station and wait there for the next train either way, or walk
