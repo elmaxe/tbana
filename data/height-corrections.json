@@ -55,6 +55,26 @@
       "station": "Hagsätra",
       "height": 46.2,
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: 46.2 m above sea level, the third highest station of the metro."
+    },
+    {
+      "station": "Näckrosen",
+      "depth": 21,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock cavern 21 m under the ground, under the old film studios."
+    },
+    {
+      "station": "Hallonbergen",
+      "depth": 28,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock cavern 28 m under the ground at Hallonbergen's centre."
+    },
+    {
+      "station": "Akalla",
+      "depth": 20,
+      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock tunnel 20 m under the ground."
+    },
+    {
+      "station": "Kista",
+      "depth": -7.5,
+      "why": "Wikidata's 10 m is below the viaduct the station stands on, the only one of the blue line's in the open (Swedish Wikipedia), over the bus terminal and the streets around it, which are at 12–15 m. The platform is taken to be a storey and a half above the ground under it."
     }
   ],
   "uncovered": [
@@ -131,6 +151,39 @@
       ],
       "reach": 12,
       "why": "Svedmyra, the platform's north-east half: the ground falls away under it towards the street that passes under the line there, and the platform stands on a bank, level."
+    }
+  ],
+  "raised": [
+    {
+      "along": [
+        [-6036, -7566],
+        [-6137, -7590],
+        [-6239, -7614],
+        [-6337, -7649],
+        [-6427, -7701],
+        [-6505, -7770]
+      ],
+      "reach": 15,
+      "clearance": 6.5,
+      "why": "Kistaviadukten, 1,120 m long (Swedish Wikipedia): the line crosses Kista on it, over streets and the bus terminal. Bridges get no anchor of their own, so without this it sagged below the valley's floor south of the station. North of the station the ground rises to the line by itself."
+    },
+    {
+      "along": [
+        [-5347, -7046],
+        [-5319, -7007],
+        [-5291, -6969],
+        [-5263, -6931],
+        [-5235, -6893],
+        [-5209, -6853],
+        [-5185, -6813],
+        [-5163, -6771],
+        [-5146, -6727],
+        [-5129, -6683],
+        [-5120, -6636]
+      ],
+      "reach": 15,
+      "clearance": 6.5,
+      "why": "Kymlinge, between Hallonbergen and Kista: the line crosses the valley of Igelbäcken and the E18 on a bridge, where the elevation model is 7 m under the tunnels at either end. Without this it sagged below the ground; the road under it needs the clearance."
     }
   ]
 }

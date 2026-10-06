@@ -126,7 +126,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   if (network) scene.add(network.group);
   const stations = network && net?.layouts ? new Stations(net.layouts, network.floors, !city) : null;
   if (stations) scene.add(stations.group);
-  // the red and green lines' trains run on the network's timetable, through the station and on
+  // the metro's trains run on the network's timetable, through the station and on
   const trains = new Trains(scene, station.tracks, sound, {
     renderer, quality: coarse ? 0.5 : 0.8, network: net && join ? { ...net, join } : null,
   });
@@ -450,10 +450,10 @@ function toast(text: string, ms = 1800) {
 }
 
 // ------------------------------------------------------------------ riding
-// On the red and green lines the trains run on through the network, and a ride goes on from station to
+// On the metro the trains run on through the network, and a ride goes on from station to
 // station. Beyond the last station, the train turns out of sight: the screen goes dark, and the
 // player comes back in the same spot of the train that leaves from there the other way. On the
-// other lines a ride ends where the model's tunnel does: the screen goes dark for the rest of the
+// pendeltåg a ride ends where the model's tunnel does: the screen goes dark for the rest of the
 // trip and back, and the player comes back into the station they left standing in the same spot of a train
 // on the other track (see Trains.transfer).
 interface Journey {

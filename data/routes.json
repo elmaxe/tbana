@@ -1,14 +1,16 @@
 {
   "note": "The services traced through the track graph by tools/build-track-graph.ts, each in one direction of travel; the reverse is traced too. Station names as in OpenStreetMap. T18 runs to Hässelby strand, as in the rush hours: off-peak it turns at Alvik, on a platform the other trains run through, which the game's timetable can't do yet.",
   "timetable": {
-    "note": "Each service runs a train every `headway` seconds each way, timed to be at `station` `offset` seconds into each headway. T13 and T14 alternate on the red line's shared trunk, so it has a train every 2.5 minutes each way; T17, T18 and T19 take turns on the green line's, a train every 200 s.",
+    "note": "Each service runs a train every `headway` seconds each way, timed to be at `station` `offset` seconds into each headway. T13 and T14 alternate on the red line's shared trunk, so it has a train every 2.5 minutes each way; T17, T18 and T19 take turns on the green line's, a train every 200 s; T10 and T11 on the blue line's, a train every 5 minutes.",
     "station": "T-Centralen",
     "services": {
       "T13": { "headway": 300, "offset": 0 },
       "T14": { "headway": 300, "offset": 150 },
       "T17": { "headway": 600, "offset": 0 },
       "T18": { "headway": 600, "offset": 200 },
-      "T19": { "headway": 600, "offset": 400 }
+      "T19": { "headway": 600, "offset": 400 },
+      "T10": { "headway": 600, "offset": 0 },
+      "T11": { "headway": 600, "offset": 300 }
     }
   },
   "depots": {
@@ -18,10 +20,25 @@
       { "name": "Nybodadepån", "view": [-2300, 45, 2850, 2.3, -0.45] },
       { "name": "Vällingbydepån", "view": [-10050, 70, -2900, 0.99, -0.19] },
       { "name": "Hammarbydepån", "view": [2100, 95, 4100, 2.12, -0.2] },
-      { "name": "Högdalsdepån", "view": [-100, 95, 7950, 2.19, -0.2] }
+      { "name": "Högdalsdepån", "view": [-100, 95, 7950, 2.19, -0.2] },
+      { "name": "Rissnedepån", "view": [-6450, 6.8, -5180, -1.82, -0.08] }
     ]
   },
   "routes": {
+    "T10": {
+      "line": "blue",
+      "stations": [
+        "Hjulsta", "Tensta", "Rinkeby", "Rissne", "Duvbo", "Sundbybergs centrum", "Solna strand", "Huvudsta",
+        "Västra skogen", "Stadshagen", "Fridhemsplan", "Rådhuset", "T-Centralen", "Kungsträdgården"
+      ]
+    },
+    "T11": {
+      "line": "blue",
+      "stations": [
+        "Akalla", "Husby", "Kista", "Hallonbergen", "Näckrosen", "Solna centrum", "Västra skogen", "Stadshagen",
+        "Fridhemsplan", "Rådhuset", "T-Centralen", "Kungsträdgården"
+      ]
+    },
     "T13": {
       "line": "red",
       "stations": [

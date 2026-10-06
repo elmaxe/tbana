@@ -1,4 +1,4 @@
-// Builds the red and green lines' stations from their descriptions: data/station-descriptions.json
+// Builds the metro's stations from their descriptions: data/station-descriptions.json
 // -> public/data/station-layouts.json (format in src/station-layout.ts), which the game builds
 // (src/stations.ts).
 //

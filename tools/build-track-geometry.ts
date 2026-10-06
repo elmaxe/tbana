@@ -23,7 +23,8 @@
 //   mouths, nor near the other platforms, where the tracks part to pass a platform or a station
 //   hall, so that they part and meet again in long, gentle curves.
 // Its curves are held to the line's limit: 250 m on the red line, 200 m on the green, where the
-// green line in the open keeps OpenStreetMap's curves, traced from aerial photos.
+// green line in the open keeps OpenStreetMap's curves, traced from aerial photos, and 350 m on the
+// blue (see CURVE_LIMIT). Near a switch no line is held to more than the red line's limit.
 //
 // The structure, at every point:
 // - tunnel: in a concrete box where the rock would be thin (less than 12 m from the rail to the
@@ -42,7 +43,7 @@ import { ISLAND_WIDTH, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES } from 
 import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
-import { loadStationModel, placeSample } from './lib/station-model.ts';
+import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-geometry.json';
 const STEP = 10;
@@ -51,10 +52,12 @@ const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, mo
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
 // 250 m, and measured over 20 m this keeps above it (and in proportion on the other lines). Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
-const CURVE_HOLD = 310, YARD_CURVE_HOLD = 50;
+const CURVE_HOLD = 310, YARD_CURVE_HOLD = 50, SWITCH_REACH = 40;
 // the tightest curve of each line (the 1975 description: the green line was built to 200 m, the
-// red to 250 m)
-const CURVE_LIMIT: Record<string, number> = { green: 200, red: 250 };
+// red to 250 m). The blue line was built to 600 m, but held to that the plan kinks where it meets
+// OpenStreetMap's junctions near Hallonbergen and Västra skogen, and T-Centralen's model: it is
+// held to 350 m, which it keeps everywhere.
+const CURVE_LIMIT: Record<string, number> = { green: 200, red: 250, blue: 350 };
 // Lines whose curves in the open are kept as OpenStreetMap traces them from aerial photos, held
 // only against kinks: the green line turns at 115–150 m between Alvik and Stora mossen, tighter
 // than its limit. (The red line's are held to its limit everywhere, as they always were.)
@@ -312,25 +315,15 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
 
-  // the stations drawn from a model: the model's tracks along their platforms (as in build-heights
-  // for T-Centralen)
+  // the stations drawn from a model: the model's tracks along their platforms (as in build-heights)
   const onModel = new Map<number, [number, number]>();
-  for (const { station, samples: model } of models) {
-    const platforms = graph.stations.find((st) => st.name === station)!.platforms.flatMap((p) => p.tracks);
+  for (const { station, samples } of models) {
+    const under = modelPlatforms(graph, station, samples);
     for (const p of pieces) {
-      const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
-      const ranges = platforms.filter((t) => t.piece === p.id);
-      if (!lines.length || !ranges.length) continue;
       const { s, v } = disc.get(p.id)!;
       v.forEach((vi, k) => {
-        if (!ranges.some((t) => s[k] >= t.s0 && s[k] <= t.s1)) return;
-        let best: [number, number] | null = null, bestD = 3;
-        for (const m of model) {
-          if (!lines.includes(m.kind)) continue;
-          const d = Math.hypot(m.x - vars[vi].x0, m.z - vars[vi].z0);
-          if (d < bestD) { bestD = d; best = [m.x, m.z]; }
-        }
-        if (best) onModel.set(vi, best);
+        const m = under(p.id, s[k], vars[vi].x0, vars[vi].z0);
+        if (m) onModel.set(vi, [m.x, m.z]);
       });
     }
   }
@@ -452,9 +445,14 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   // where it no longer pushes, until nothing changes (as build-heights does for gradients).
   const lsq = new LeastSquares(2 * vars.length, rows);
   // the radius a point of a piece is held to
+  // Within SWITCH_REACH of a switch, where a branch leaves the line, no line is held to more than
+  // the red line's limit: a longer one can't be kept by both tracks leaving a junction.
+  const switchNodes = graph.nodes.filter((n) => n.kind === 'switch' || n.kind === 'crossing');
+  const nearSwitch = vars.map((a) => switchNodes.some((n) => Math.abs(n.x - a.x0) < SWITCH_REACH && Math.hypot(n.x - a.x0, n.z - a.z0) < SWITCH_REACH));
   const holdAt = (p: TrackPiece, v: number) => {
     if (!services.has(p.id) || (!vars[v].tunnel && OPEN_AS_MAPPED.has(lineOf(p)))) return YARD_CURVE_HOLD;
-    return CURVE_HOLD * (CURVE_LIMIT[lineOf(p)] ?? 250) / 250;
+    const hold = CURVE_HOLD * (CURVE_LIMIT[lineOf(p)] ?? 250) / 250;
+    return nearSwitch[v] ? Math.min(hold, CURVE_HOLD) : hold;
   };
   const bends = pieces.flatMap((p) => {
     const { s, v } = disc.get(p.id)!;
@@ -758,6 +756,9 @@ console.log(`track centres in shared rock tunnels: median ${pct(centres, 0.5).to
 const problems: string[] = [];
 const switches = graph.nodes.filter((n) => n.kind === 'switch' || n.kind === 'crossing');
 const tc = graph.stations.find((s) => s.name === 'T-Centralen')!, TC_TWISTS = 350;
+// the ends of the platforms a model draws off the map, where the line turns onto them
+const offMap = models.flatMap(({ station, samples }) => modelPlatforms(graph, station, samples).paired
+  .flatMap((t) => [pointAt(graph.pieces[t.piece], t.s0), pointAt(graph.pieces[t.piece], t.s1)])), OFF_MAP_REACH = 150;
 const near = (x: number, z: number) => graph.stations.reduce((a, b) => (Math.hypot(b.x - x, b.z - z) < Math.hypot(a.x - x, a.z - z) ? b : a)).name;
 for (const route of graph.routes) {
   const pts: { x: number; z: number; platform: boolean; mapped: boolean }[] = [];
@@ -773,7 +774,7 @@ for (const route of graph.routes) {
       if (!last || Math.hypot(last.x - q.x, last.z - q.z) > 0.5) pts.push(q);
     }
   }
-  let worst = { r: Infinity, at: '' }, worstPlatform = { r: Infinity, at: '' }, worstMapped = { r: Infinity, at: '' };
+  let worst = { r: Infinity, at: '' }, worstPlatform = { r: Infinity, at: '' }, worstMapped = { r: Infinity, at: '' }, worstOff = { r: Infinity, at: '' };
   for (let i = 2; i + 2 < pts.length; i++) {
     const a = pts[i - 2], b = pts[i], c = pts[i + 2];
     if (switches.some((n) => Math.hypot(n.x - b.x, n.z - b.z) < 40)) continue;
@@ -786,10 +787,12 @@ for (const route of graph.routes) {
     const r = cross > 1e-9 ? (ab * bc * ac) / (2 * cross) : Infinity;
     if (b.platform && r < worstPlatform.r) worstPlatform = { r, at: near(b.x, b.z) };
     if (b.mapped) { if (r < worstMapped.r) worstMapped = { r, at: near(b.x, b.z) }; continue; }
+    if (offMap.some(([x, z]) => Math.hypot(x - b.x, z - b.z) < OFF_MAP_REACH)) { if (r < worstOff.r) worstOff = { r, at: near(b.x, b.z) }; continue; }
     if (r < worst.r) worst = { r, at: near(b.x, b.z) };
   }
   console.log(`${route.name}: tightest curve ${Math.round(worst.r)} m near ${worst.at}, at a platform ${Math.round(worstPlatform.r)} m at ${worstPlatform.at}`
-    + (worstMapped.r < Infinity ? `, in the open as mapped ${Math.round(worstMapped.r)} m near ${worstMapped.at}` : ''));
+    + (worstMapped.r < Infinity ? `, in the open as mapped ${Math.round(worstMapped.r)} m near ${worstMapped.at}` : '')
+    + (worstOff.r < Infinity ? `, onto a model's platform drawn off the map ${Math.round(worstOff.r)} m at ${worstOff.at}` : ''));
   const limit = CURVE_LIMIT[route.line] ?? 250;
   if (worst.r < limit * 0.95) problems.push(`${route.name}: a curve of ${Math.round(worst.r)} m near ${worst.at} (limit ${limit} m)`);
 }
