@@ -1,4 +1,4 @@
-// Gives the drawn lines' track its heights (the red and green lines), and checks them against the
+// Gives the drawn lines' track its heights (the red, green and blue lines), and checks them against the
 // design limits.
 //
 //   node tools/build-heights.ts
@@ -16,25 +16,27 @@
 //   taken to be the platform's level (unless data/height-corrections.json fixes it, or gives the
 //   station's depth under the ground instead: Wikidata has none of the green line's), and are held
 //   level along the platform
-// - T-Centralen, which Wikidata lacks: the heights of the model's tracks, which are drawn at
-//   platform level, also 1.0 m above the rail
+// - the stations drawn from a model (T-Centralen, which Wikidata lacks, Odenplan and Fridhemsplan):
+//   the heights of the model's tracks along their platforms instead, which are drawn at platform
+//   level, also 1.0 m above the rail
 // - surface track: 0.2 m above the ground, except on the last 30 m to a bridge, and a depot's
-//   track through its halls and other buildings; bridges: no anchor, the line is carried across
+//   track through its halls and other buildings; bridges: no anchor, the line is carried across,
+//   but held a clearance above the ground where the corrections say a street passes under
 // - tunnels: below the ground with at least 6 m of cover, except near their mouths and along
 //   platforms (the ground over a covered station such as Gamla stan is its roof), and where the
 //   corrections say the line is in a trough rather than a bored tunnel
 // - the gradient: no steeper than 37‰
 // - the services' vertical curves: no tighter than their line's limit
 // Then the result is checked against the 1975 limits: 40‰ at most, 10‰ along platforms, vertical
-// curves of at least 2,000 m radius on the red line and 1,500 m on the green. The build fails on
-// anything clearly outside them, and lists it.
+// curves of at least 2,000 m radius on the red line, 1,500 m on the green and 4,000 m on the blue.
+// The build fails on anything clearly outside them, and lists it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
-import { loadStationModel, placeSample } from './lib/station-model.ts';
+import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-heights.json';
 const CORRECTIONS = 'data/height-corrections.json';
@@ -43,8 +45,8 @@ const STEP = 10;
 const PLATFORM_ABOVE_RAIL = 1.0;
 const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 3 };
 // the tightest vertical curve of each line (the 1975 description: the green line was built to
-// 1,500 m, the red to 2,000 m)
-const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000 };
+// 1,500 m, the red to 2,000 m, the blue to 4,000 m)
+const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000, blue: 4000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
 const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05 };
 // a siding is laid at the height of a running line this close beside it in a tunnel
@@ -60,6 +62,8 @@ interface Corrections {
   stations?: { station: string; height?: number; depth?: number; why: string }[];
   uncovered?: Segment[];
   offGround?: Segment[];
+  // bridges with a road or a valley under them: the rail at least `clearance` above the ground
+  raised?: (Segment & { clearance: number })[];
 }
 interface Segment { along: [number, number][]; reach: number; why: string }
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
@@ -84,6 +88,10 @@ const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixe
   }));
 // tunnel that needs no cover, and surface track that isn't on the ground
 const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround);
+const clearanceAt = (x: number, z: number) => {
+  const fix = (corrections.raised ?? []).find((f) => within([f])(x, z));
+  return fix ? fix.clearance : null;
+};
 // OpenStreetMap's buildings (tools/fetch-city.ts), for the depots' track: under a large building
 // the elevation model may follow the roof
 const buildingRings: number[][] = existsSync(BUILDINGS)
@@ -121,13 +129,18 @@ const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const STACKED = 6.5, CROSS_REACH = 7, JOINED = 250;
 interface Var { x: number; z: number; key: string }
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
-const model = (await loadStationModel('t-centralen')).samples.map((s) => placeSample(s, placements['t-centralen']));
-const modelGrid = new Map<string, typeof model>();
-for (const m of model) {
-  const key = `${Math.floor(m.x / 10)},${Math.floor(m.z / 10)}`;
-  const list = modelGrid.get(key);
-  if (list) list.push(m); else modelGrid.set(key, [m]);
-}
+// the stations drawn from a model, with their tracks placed
+const models = await Promise.all(Object.entries(placements as Record<string, { name: string; rotationY: number; position: [number, number, number] }>)
+  .map(async ([file, place]) => ({ station: place.name, samples: (await loadStationModel(file)).samples.map((s) => placeSample(s, place)) })));
+// the model's track under a point of a platform track there (tools/lib/station-model.ts)
+const unders = models.map(({ station, samples }) => modelPlatforms(graph, station, samples));
+const modelUnder = (piece: number, s: number, x: number, z: number) => {
+  for (const under of unders) {
+    const m = under(piece, s, x, z);
+    if (m) return m;
+  }
+  return null;
+};
 
 function fit(used: Set<number>, pinned: Map<string, number> | null) {
   // ------------------------------------------------------------------ the unknowns
@@ -226,7 +239,8 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
         const d = disc.get(t.piece);
         if (!d) continue;
         d.s.forEach((s, k) => {
-          if (s < t.s0 || s > t.s1) return;
+          // where a model draws the platform, its track's height is taken instead (below)
+          if (s < t.s0 || s > t.s1 || modelUnder(t.piece, s, vars[d.v[k]].x, vars[d.v[k]].z)) return;
           addAnchor(d.v[k], h - PLATFORM_ABOVE_RAIL, SIGMA.station);
           stationRows.push({ name: st.name, v: d.v[k], b: h - PLATFORM_ABOVE_RAIL });
         });
@@ -265,30 +279,16 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     }
   }
 
-  // T-Centralen: the model's tracks along its platforms, where a graph point lies within 3 m of one
-  // of the same line. Beyond the platforms the model only sketches where the tunnels go: its
-  // tunnel ends drop at up to 70‰, so they are left out.
+  // The stations drawn from a model: the model's tracks along their platforms (tools/lib/
+  // station-model.ts). Beyond the platforms the models only sketch where the tunnels go:
+  // T-Centralen's tunnel ends drop at up to 70‰, so they are left out.
   let modelAnchors = 0;
-  const tcPlatforms = graph.stations.find((s) => s.name === 'T-Centralen')!.platforms.flatMap((p) => p.tracks);
   for (const p of pieces) {
-    const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
-    const ranges = tcPlatforms.filter((t) => t.piece === p.id);
-    if (!lines.length || !ranges.length) continue;
     const { s: ss, v } = disc.get(p.id)!;
-    for (let k = 0; k < v.length; k++) {
-      if (!ranges.some((t) => ss[k] >= t.s0 && ss[k] <= t.s1)) continue;
-      const vi = v[k];
-      const { x, z } = vars[vi];
-      let best: (typeof model)[number] | null = null, bestD = 3;
-      for (let i = Math.floor(x / 10) - 1; i <= Math.floor(x / 10) + 1; i++) for (let j = Math.floor(z / 10) - 1; j <= Math.floor(z / 10) + 1; j++) {
-        for (const m of modelGrid.get(`${i},${j}`) ?? []) {
-          if (!lines.includes(m.kind)) continue;
-          const d = Math.hypot(m.x - x, m.z - z);
-          if (d < bestD) { bestD = d; best = m; }
-        }
-      }
-      if (best) { addAnchor(vi, best.y - PLATFORM_ABOVE_RAIL, SIGMA.model); modelAnchors++; }
-    }
+    v.forEach((vi, k) => {
+      const m = modelUnder(p.id, ss[k], vars[vi].x, vars[vi].z);
+      if (m) { addAnchor(vi, m.y - PLATFORM_ABOVE_RAIL, SIGMA.model); modelAnchors++; }
+    });
   }
 
   // the ground under every point, if known (nearest sample within 6 m)
@@ -371,6 +371,12 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     if (g === null || structureOf.get(vi) !== 'tunnel' || (mouthDistance.get(vi) ?? Infinity) < 120 || onPlatform.has(vi)
       || uncovered(vars[vi].x, vars[vi].z)) return null;
     return g - (onRun.has(vi) ? LIMITS.cover : LIMITS.yardCover);
+  };
+  // - bridges the corrections raise: at least their clearance above the ground under them, but
+  //   for a station on them
+  const floorAt = (vi: number) => {
+    const g = groundOf[vi], c = structureOf.get(vi) === 'bridge' && !onPlatform.has(vi) ? clearanceAt(vars[vi].x, vars[vi].z) : null;
+    return g === null || c === null ? null : g + c;
   };
   const steps = pieces.flatMap((p) => {
     const { s, v } = disc.get(p.id)!;
@@ -460,7 +466,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       console.log(`  crossing: pieces ${pa.id} (${pa.service}, layer ${pa.layer}) and ${pb.id} (${pb.service}, layer ${pb.layer}) at x ${Math.round(vars[c.a].x)}, z ${Math.round(vars[c.a].z)}`);
     }
   }
-  const coverHeld = new Set<number>(), gradeHeld = new Map<number, number>(), stackHeld = new Set<number>(), bendHeld = new Map<number, number>();
+  const coverHeld = new Set<number>(), floorHeld = new Set<number>(), gradeHeld = new Map<number, number>(), stackHeld = new Set<number>(), bendHeld = new Map<number, number>();
   const holds = () => [
     ...[...stackHeld].map((k): Row => {
       const { a, b, order, fixed } = crossings[k];
@@ -470,6 +476,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       return { i: [a, b], c: [order, -order], b: STACKED, w: 1 / SIGMA.cover };
     }),
     ...[...coverHeld].map((vi): Row => ({ i: [vi], c: [1], b: coverAt(vi)!, w: 1 / SIGMA.cover })),
+    ...[...floorHeld].map((vi): Row => ({ i: [vi], c: [1], b: floorAt(vi)!, w: 1 / SIGMA.cover })),
     ...[...gradeHeld].map(([k, sign]): Row => {
       const { a, b, h } = steps[k];
       return { i: [a, b], c: [-1 / h, 1 / h], b: sign * GRADE_HOLD, w: 1 / SIGMA.grade };
@@ -484,6 +491,12 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       if (top === null) return;
       if (!coverHeld.has(vi) && y[vi] > top) { coverHeld.add(vi); changed++; }
       else if (coverHeld.has(vi) && y[vi] < top) { coverHeld.delete(vi); changed++; }
+    });
+    if (ground.length) vars.forEach((_, vi) => {
+      const floor = floorAt(vi);
+      if (floor === null) return;
+      if (!floorHeld.has(vi) && y[vi] < floor) { floorHeld.add(vi); changed++; }
+      else if (floorHeld.has(vi) && y[vi] > floor) { floorHeld.delete(vi); changed++; }
     });
     steps.forEach(({ a, b, h }, k) => {
       const g = (y[b] - y[a]) / h;
@@ -506,13 +519,13 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   }
 
   return {
-    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld, bendHeld,
+    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
     groundOf, coverGround, coverAt, onGround,
   };
 }
 const first = fit(run, null);
 const {
-  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, gradeHeld, stackHeld, bendHeld,
+  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
   groundOf, coverGround, coverAt, onGround,
 } = fit(lineTrack(graph), new Map(first.vars.map((v, i) => [v.key, first.y[i]])));
 
@@ -535,7 +548,7 @@ writeFileSync(OUT, JSON.stringify({
   note: 'Height of the top of the rail (RH 2000) at each point of each piece of the drawn lines\' track in public/data/track-graph.json: the pieces their services run on, and the crossovers, sidings and depots joined to them.',
   pieces: heights,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the station models, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${floorHeld.size} held over it on bridges, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check

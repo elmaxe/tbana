@@ -1,6 +1,27 @@
 {
   "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts, checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
-  "links": [],
+  "links": [
+    {
+      "op": "retag",
+      "nodes": [
+        9102281060,
+        7259293614
+      ],
+      "service": "main",
+      "line": "blue",
+      "why": "Kungsträdgården: OSM tags the platform tracks as sidings from halfway along the platform, where they run on as the tail tracks. The stretch along the platform, to the first switch beyond it, is the running line."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        9102281061,
+        9102281034
+      ],
+      "service": "main",
+      "line": "blue",
+      "why": "Kungsträdgården: OSM tags the platform tracks as sidings from halfway along the platform, where they run on as the tail tracks. The stretch along the platform, to the first switch beyond it, is the running line."
+    }
+  ],
   "crossovers": [
     {
       "a": [
@@ -34,6 +55,28 @@
         6572547
       ],
       "why": "Skarpnäck: the scissors crossover just north of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's north end and the tunnel."
+    },
+    {
+      "a": [
+        145261.8,
+        6588835.6
+      ],
+      "b": [
+        145279.9,
+        6588779.7
+      ],
+      "why": "Akalla: the scissors crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's south end and Husby."
+    },
+    {
+      "a": [
+        145238.9,
+        6588808.4
+      ],
+      "b": [
+        145295.0,
+        6588798.2
+      ],
+      "why": "Akalla: the scissors crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's south end and Husby."
     }
   ],
   "platforms": [
@@ -108,6 +151,49 @@
       "station": "Stureby",
       "extend": true,
       "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Hjulsta",
+      "replace": true,
+      "reach": 30,
+      "at": [
+        143601,
+        6586902
+      ],
+      "why": "OSM draws the island platform 25 m wide, beside the northern track only. Both tracks are placed from the platform's middle, which lies between them."
+    },
+    {
+      "station": "Huvudsta",
+      "at": [
+        149356,
+        6581632
+      ],
+      "why": "OSM maps the island platform as a station area (public_transport=station), so no platform is matched. Both tracks are placed from its middle, which lies between them."
+    },
+    {
+      "station": "Akalla",
+      "replace": true,
+      "reach": 25,
+      "at": [
+        145191,
+        6588876
+      ],
+      "why": "OSM draws the island platform as the whole 31 m wide hall, with the tracks sketched 40 m apart on either side of it, outside its edges. Both tracks are placed from its middle."
+    },
+    {
+      "station": "Hallonbergen",
+      "reach": 30,
+      "why": "OSM draws the platforms beside the middle turnback track only, with the running lines sketched up to 25 m away from them. The running lines are given platforms from the station's node, which lies between them; the middle track isn't drawn."
+    },
+    {
+      "station": "Duvbo",
+      "extend": true,
+      "why": "OSM draws the island platform about 60 m long, short of the 145 m of the blue line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+    },
+    {
+      "station": "Rissne",
+      "extend": true,
+      "why": "OSM draws the platforms about 60 m long, short of the 145 m of the blue line's platforms (Albert Guillaumes' drawing shows them the full length of a train)."
     }
   ]
 }

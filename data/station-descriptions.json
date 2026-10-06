@@ -1451,6 +1451,446 @@
           {"exit": 2623384628}
         ] }
       ]
+    },
+    "Kungsträdgården": {
+      "drawing": "kungstradgarden.png",
+      "note": "The end of the blue line, 34 m down: two platform halls in one great cavern, one for each track, joined at both ends and in the middle. From the west end, escalators climb in two flights to the ticket hall under Jakobsgatan; from the east end, two flights to the hall in Kungsträdgården park.",
+      "routes": [
+        { "from": [0, -10], "width": 8, "go": [
+          {"walk": [0, 10]}
+        ] },
+        { "from": [-80, -10], "width": 6, "go": [
+          {"walk": [-80, 10]}
+        ] },
+        { "from": [80, -10], "width": 6, "go": [
+          {"walk": [80, 10]}
+        ] },
+        { "from": [-80, 0], "width": 6, "go": [
+          {"walk": [-100, 0]},
+          {"escalators": 18, "toward": [-160, 0], "lanes": "EEE"},
+          {"walk": 5},
+          {"escalators": 14, "toward": [-136, 60], "lanes": "EEE"},
+          {"walk": 6, "width": 8},
+          {"gates": true},
+          {"walk": [-110, 45]},
+          {"mark": "west"},
+          {"exit": 6429119495}
+        ] },
+        { "from": "west", "width": 4, "go": [
+          {"exit": 333258178}
+        ] },
+        { "from": [80, 0], "width": 6, "go": [
+          {"walk": [100, 0]},
+          {"escalators": 16, "toward": [140, -20], "lanes": "EEE"},
+          {"walk": 4},
+          {"escalators": 14, "toward": [170, -40], "lanes": "EEE"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"exit": 1984747406}
+        ] }
+      ]
+    },
+    "Rådhuset": {
+      "drawing": "radhuset.png",
+      "note": "Two platform halls in the rock under Kungsholmen, one for each track, joined at both ends and in the middle. From the west end, escalators climb in two flights to a ticket hall with exits on Hantverkargatan and Kungsholmsgatan; from the east end, two flights and a long passage to Kungsholmsgatan.",
+      "routes": [
+        { "from": [0, -9], "width": 8, "go": [
+          {"walk": [0, 9]}
+        ] },
+        { "from": [-50, -7], "width": 6, "go": [
+          {"walk": [-50, 4]}
+        ] },
+        { "from": [85, -5], "width": 6, "go": [
+          {"walk": [85, 9.5]}
+        ] },
+        { "from": [-50, 0], "width": 6, "go": [
+          {"escalators": 16, "toward": [-160, 0], "lanes": "EEE"},
+          {"walk": 4},
+          {"escalators": 9, "toward": [-160, 0], "lanes": "EES"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"mark": "west"},
+          {"exit": 332576338}
+        ] },
+        { "from": "west", "width": 4, "go": [
+          {"exit": 413530869}
+        ] },
+        { "from": [85, 0], "width": 6, "go": [
+          {"walk": [100, 0]},
+          {"escalators": 16, "toward": [160, 0], "lanes": "EEE"},
+          {"walk": 4},
+          {"walk": [131, -80], "width": 4},
+          {"escalators": 8, "toward": [116, -110], "lanes": "EE"},
+          {"walk": 3, "width": 6},
+          {"gates": true},
+          {"exit": 312618472}
+        ] }
+      ]
+    },
+    "Stadshagen": {
+      "drawing": "stadshagen.png",
+      "note": "Two platform halls, one for each track, joined at both ends and in the middle. From the south-east end, escalators climb to the ticket hall at Kellgrensgatan and the sports ground; from the north-west end, to Mariedalsvägen.",
+      "routes": [
+        { "from": [0, -8.8], "width": 8, "go": [
+          {"walk": [0, 8.8]}
+        ] },
+        { "from": [-85, -8.8], "width": 6, "go": [
+          {"walk": [-85, 8.8]}
+        ] },
+        { "from": [85, -8.8], "width": 6, "go": [
+          {"walk": [85, 8.8]}
+        ] },
+        { "from": [-85, 0], "width": 6, "go": [
+          {"walk": [-95, 0]},
+          {"escalators": 20, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 729858226}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 332572924}
+        ] },
+        { "from": [85, 0], "width": 6, "go": [
+          {"walk": [95, 0]},
+          {"escalators": 14, "toward": [140, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 332572923}
+        ] }
+      ]
+    },
+    "Västra skogen": {
+      "drawing": "vastra_skogen.png",
+      "note": "Where the line splits for Hjulsta and Akalla: three tracks in the rock, the trains into town on the two eastern ones, beside two platform halls joined at both ends and in the middle; the trains out of town on the western track, beside its own platform, reached by stairs and a footbridge over the tracks. From the south end, escalators climb 7 m, then the metro's longest, 66 m and 33 m high, to the one exit.",
+      "routes": [
+        { "from": [0, 1.1], "width": 8, "go": [
+          {"walk": [0, 18.1]}
+        ] },
+        { "from": [-70, 1.1], "width": 6, "go": [
+          {"walk": [-70, 18.1]}
+        ] },
+        { "from": [60, 1.1], "width": 6, "go": [
+          {"walk": [60, 18.1]}
+        ] },
+        { "from": [-20, -1], "width": 3, "go": [
+          {"stairs": 5.6, "toward": [-60, -1]},
+          {"walk": [-31, -23]},
+          {"stairs": -5.6, "toward": [10, -23]}
+        ] },
+        { "from": [-70, 8], "width": 5, "go": [
+          {"escalators": 7, "toward": [-120, 8], "lanes": "EE"},
+          {"walk": 3},
+          {"walk": [-85, 14]},
+          {"escalators": 30, "toward": [40, 14], "lanes": "EEE"},
+          {"walk": [8, 14], "width": 6},
+          {"gates": true},
+          {"exit": 1693165067}
+        ] }
+      ]
+    },
+    "Huvudsta": {
+      "drawing": "huvudsta.png",
+      "note": "An island platform in the rock, 25 m down. Escalators climb in two flights from its west end to the ticket hall at Huvudsta centrum.",
+      "routes": [
+        { "from": [-40, 0], "width": 5, "go": [
+          {"escalators": 12, "toward": [-100, 0], "lanes": "EES"},
+          {"walk": 3},
+          {"escalators": 9, "toward": [-100, 0], "lanes": "EES"},
+          {"walk": 2, "width": 7},
+          {"gates": true},
+          {"exit": 1097829053}
+        ] }
+      ]
+    },
+    "Solna strand": {
+      "drawing": "solna_strand.png",
+      "note": "An island platform in the rock, 28 m down. Escalators climb from its north end to the ticket hall at Solna strand.",
+      "routes": [
+        { "from": [20, 0], "width": 5, "go": [
+          {"escalators": 18, "toward": [100, 0], "lanes": "EES"},
+          {"walk": 3, "width": 7},
+          {"gates": true},
+          {"exit": 5257232202}
+        ] }
+      ]
+    },
+    "Sundbybergs centrum": {
+      "drawing": "sundbyberg_centrum.png",
+      "note": "An island platform in the rock, 26 m down. From its south end escalators climb to a ticket hall with exits round Sundbyberg's centre; from the north end, to Prästgårdsgatan.",
+      "routes": [
+        { "from": [-65, 0], "width": 5, "go": [
+          {"walk": [-80, 0]},
+          {"escalators": 18, "toward": [-140, 0], "lanes": "EES"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 1697301262}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 13903958592}
+        ] },
+        { "from": [65, 0], "width": 5, "go": [
+          {"walk": [80, 0]},
+          {"escalators": 20, "toward": [140, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 729555647}
+        ] }
+      ]
+    },
+    "Duvbo": {
+      "drawing": "dubvo.png",
+      "note": "An island platform in the rock, 20–35 m down. From its south-east end escalators climb in two flights to the ticket hall at Duvbo.",
+      "routes": [
+        { "from": [45, 0], "width": 5, "go": [
+          {"escalators": 16, "toward": [140, 0], "lanes": "EES"},
+          {"walk": 4},
+          {"escalators": 6, "toward": [140, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 10057981237}
+        ] }
+      ]
+    },
+    "Rissne": {
+      "drawing": "rissne.png",
+      "note": "Two platforms in the rock, side by side between the tracks, joined along their middle. Escalators climb between them to the ticket hall at Rissne's centre.",
+      "routes": [
+        { "from": [0, -1.8], "width": 8, "go": [
+          {"walk": [0, 1.8]}
+        ] },
+        { "from": [-60, -1.8], "width": 6, "go": [
+          {"walk": [-60, 1.8]}
+        ] },
+        { "from": [60, -1.8], "width": 6, "go": [
+          {"walk": [60, 1.8]}
+        ] },
+        { "from": [60, 0], "width": 3.6, "go": [
+          {"walk": [10, 0]},
+          {"escalators": 22, "toward": [-100, 0], "lanes": "EE"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 1832074751}
+        ] }
+      ]
+    },
+    "Rinkeby": {
+      "drawing": "rinkeby.png",
+      "note": "Two platforms in the rock, each outside its track, with the link to Rissnedepån between them (not drawn). From the south-east end of each, escalators climb over the tracks to a landing, and on to the ticket hall at Rinkebytorget.",
+      "routes": [
+        { "from": [40, 12], "width": 4, "go": [
+          {"escalators": 12, "toward": [120, 12], "lanes": "EE"},
+          {"walk": [80, 12]},
+          {"walk": [80, 0], "width": 5},
+          {"mark": "landing"},
+          {"escalators": 14, "toward": [160, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"mark": "hall"},
+          {"exit": 297945714}
+        ] },
+        { "from": [20, -12], "width": 4, "go": [
+          {"escalators": 12, "toward": [120, -12], "lanes": "EE"},
+          {"walk": [80, -12]},
+          {"walk": [80, -2]}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 297945687}
+        ] }
+      ]
+    },
+    "Tensta": {
+      "drawing": "tensta.png",
+      "note": "An island platform in the rock, 20–22 m down. Escalators climb from both ends: to the ticket hall at Tensta centrum in the east, and to Hjulstavägen in the west.",
+      "routes": [
+        { "from": [60, 0], "width": 5, "go": [
+          {"escalators": 20, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 3124351987}
+        ] },
+        { "from": [-70, 0], "width": 5, "go": [
+          {"escalators": 22, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 3124351988}
+        ] }
+      ]
+    },
+    "Hjulsta": {
+      "drawing": "hjulsta.png",
+      "note": "The end of T10: an island platform in the rock under Hjulstaskolan, the tracks running on beyond it. From its south-east end escalators climb to a landing, and a passage leads over the tracks to the ticket hall at Hjulsta torg.",
+      "routes": [
+        { "from": [55, 0], "width": 5, "go": [
+          {"escalators": 18, "toward": [150, 0], "lanes": "EES"},
+          {"walk": [92, 0]},
+          {"walk": [92, 26], "width": 6},
+          {"gates": true},
+          {"exit": 8243825649}
+        ] }
+      ]
+    },
+    "Solna centrum": {
+      "drawing": "solna_centrum.png",
+      "note": "Two platform halls in the rock under Skytteholmsparken, 27–36 m down, one for each track, joined at both ends and in the middle. From the middle, escalators climb south to the ticket hall at Centralvägen and the bus terminal; from the north end, to the hall at the shopping centre.",
+      "routes": [
+        { "from": [0, -11.3], "width": 8, "go": [
+          {"walk": [0, 11.3]}
+        ] },
+        { "from": [-80, -11.3], "width": 6, "go": [
+          {"walk": [-80, 11.3]}
+        ] },
+        { "from": [80, -11.3], "width": 6, "go": [
+          {"walk": [80, 11.3]}
+        ] },
+        { "from": [0, 0], "width": 6, "go": [
+          {"walk": [-40, 0]},
+          {"escalators": 22, "toward": [-150, 0], "lanes": "EEE"},
+          {"walk": [-90, 0], "width": 8},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 6314590166}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 6314590164}
+        ] },
+        { "from": [80, 0], "width": 6, "go": [
+          {"walk": [100, 0]},
+          {"escalators": 22, "toward": [200, 30], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"mark": "north"},
+          {"exit": 981746861}
+        ] },
+        { "from": "north", "width": 4, "go": [
+          {"exit": 422549839}
+        ] }
+      ]
+    },
+    "Näckrosen": {
+      "drawing": "nackrosen.png",
+      "note": "Two platform halls in the rock under the old film studios, 21 m down, one for each track, joined at both ends and in the middle. Escalators climb from both ends: to Storskogstorget in Sundbyberg in the north, and to Råsundavägen in Solna in the south.",
+      "routes": [
+        { "from": [0, -5.2], "width": 8, "go": [
+          {"walk": [0, 5.2]}
+        ] },
+        { "from": [-85, -5.2], "width": 6, "go": [
+          {"walk": [-85, 5.2]}
+        ] },
+        { "from": [85, -5.2], "width": 6, "go": [
+          {"walk": [85, 5.2]}
+        ] },
+        { "from": [85, 0], "width": 6, "go": [
+          {"walk": [100, 0]},
+          {"escalators": 18, "toward": [160, 0], "lanes": "EES"},
+          {"walk": 3, "width": 7},
+          {"gates": true},
+          {"exit": 2430541080}
+        ] },
+        { "from": [-85, 0], "width": 6, "go": [
+          {"walk": [-100, 0]},
+          {"escalators": 18, "toward": [-160, 0], "lanes": "EES"},
+          {"walk": 3, "width": 7},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 1697395613}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 1697395634}
+        ] }
+      ]
+    },
+    "Hallonbergen": {
+      "drawing": "hallonbergen.png",
+      "note": "An island platform in the rock, 28 m down; a third track beside it, which the trains use only to and from Rissnedepån, isn't drawn. From its north-west end escalators climb to the ticket hall at Hallonbergen's centre.",
+      "routes": [
+        { "from": [-15, 0], "width": 4, "go": [
+          {"escalators": 16, "toward": [-100, 0], "lanes": "EES"},
+          {"walk": 4},
+          {"walk": [-60, -30], "width": 6},
+          {"gates": true},
+          {"mark": "hall"},
+          {"exit": 10683412361}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 533610116}
+        ] }
+      ]
+    },
+    "Kista": {
+      "drawing": "kista.png",
+      "note": "The only station of the blue line in the open: a wide island platform on Kistaviadukten. From its north end stairs go down to the ticket hall under the viaduct, at the bus terminal.",
+      "routes": [
+        { "from": [70, 0], "width": 5, "go": [
+          {"stairs": -6.5, "toward": [110, 0]},
+          {"walk": [100, 0], "width": 6},
+          {"gates": true},
+          {"mark": "hall"},
+          {"exit": 1814905594}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 13737050201}
+        ] }
+      ]
+    },
+    "Husby": {
+      "drawing": "husby.png",
+      "note": "An island platform in the rock under Husby centrum. Escalators climb in two flights from both ends, to the ticket halls at Trondheimsgatan in the south and Bergengatan in the north.",
+      "routes": [
+        { "from": [-40, 0], "width": 5, "go": [
+          {"escalators": 20, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 4},
+          {"escalators": 9, "toward": [-150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"mark": "south"},
+          {"exit": 13731902316}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"exit": 2750867627}
+        ] },
+        { "from": [40, 0], "width": 5, "go": [
+          {"escalators": 20, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 4},
+          {"escalators": 6, "toward": [150, 0], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"mark": "north"},
+          {"exit": 13731858695}
+        ] },
+        { "from": "north", "width": 4, "go": [
+          {"exit": 6710933248}
+        ] }
+      ]
+    },
+    "Akalla": {
+      "drawing": "akalla.png",
+      "note": "The end of T11: two platform halls in the rock, 20 m down, one for each track, joined at both ends and in the middle. From the north-west end, escalators climb to the ticket hall at Akalla torg and its underground bus terminal; from the south-east end, to Sibeliusgången.",
+      "routes": [
+        { "from": [0, -15], "width": 8, "go": [
+          {"walk": [0, 15]}
+        ] },
+        { "from": [-65, -13.5], "width": 6, "go": [
+          {"walk": [-65, 22]}
+        ] },
+        { "from": [50, -13], "width": 6, "go": [
+          {"walk": [50, 6.5]}
+        ] },
+        { "from": [-65, 0], "width": 6, "go": [
+          {"walk": [-85, 0]},
+          {"escalators": 16, "toward": [-140, 20], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 2171189585}
+        ] },
+        { "from": [50, 0], "width": 6, "go": [
+          {"escalators": 12, "toward": [150, -30], "lanes": "EES"},
+          {"walk": 4, "width": 7},
+          {"gates": true},
+          {"exit": 772287128}
+        ] }
+      ]
     }
   }
 }
