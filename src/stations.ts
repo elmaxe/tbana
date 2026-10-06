@@ -9,7 +9,7 @@ import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
 
-// The red and green lines' stations on the network, built from public/data/station-layouts.json (see
+// The metro's stations on the network, built from public/data/station-layouts.json (see
 // src/station-layout.ts and tools/build-stations.ts): their passages, halls, stairs, escalators
 // and lifts between the platforms the network draws and the street. Everything that can be
 // walked on is indexed at once; the rest is built as the camera comes near a station and dropped

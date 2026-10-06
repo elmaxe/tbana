@@ -487,7 +487,7 @@ Each phase ends in a pull request with a playable preview.
        each; a real terminus alternates.
      - Nyboda's halls have the city's facade and windows, and the depot's other buildings are
        blocks.
-9. **The green and blue lines.** *Green line done; the blue line is next.*
+9. **The green and blue lines.** *Done.*
    - The green line first, before the blue. The same tools, made to take any number of lines
      rather than copied; the services follow SL's pattern where the timetable allows it.
    - Services (`data/routes.json`): T17 Åkeshov–Skarpnäck, T18 Hässelby strand–Farsta strand and
@@ -589,7 +589,6 @@ Each phase ends in a pull request with a playable preview.
        Gamla stan's green tracks are now drawn, but the stations were described for the red line.
      - Where the Skärmarbrink and Gullmarsplan halls meet the street, OSM's entrances are over the
        tracks (on a deck or a bridge); the exits are placed beside them.
-     - The blue line.
    - Odenplan and Fridhemsplan from Albert Guillaumes' 3D models, in place of their descriptions:
      - `tools/fetch-model.ts` converts his glTF to `public/assets/*.glb` unchanged.
        `tools/fetch-osm.ts` reads the tracks round a station from the OSM extract (`--pbf`) when
@@ -627,6 +626,63 @@ Each phase ends in a pull request with a playable preview.
      - The models' upper levels lie under the city's ground at T-Centralen; at Odenplan and
        Fridhemsplan the exits come out only roughly where the street is, and buildings stand over
        some.
+   - The blue line, with the same tools:
+     - Services: T10 Hjulsta–Kungsträdgården and T11 Akalla–Kungsträdgården, each every 10
+       minutes, taking turns from Västra skogen to Kungsträdgården (a train every 5 minutes). T10 is
+       14.3 km, T11 14.9 km.
+     - Track graph fixes, checked against Gleisplanweb and Swedish Wikipedia:
+       - Huvudsta's island platform is mapped as a station area, Akalla's as the whole 31 m hall
+         with the tracks sketched 40 m apart outside it, Hjulsta's 25 m wide beside one track, and
+         Hallonbergen's beside its middle turnback track: their platform tracks are placed from
+         the platform's middle (Hallonbergen's middle track isn't drawn). Duvbo's and Rissne's are
+         lengthened to 145 m.
+       - Akalla's scissors crossover, which the turning trains use, is missing.
+       - At Kungsträdgården OSM tags the platform tracks as sidings from halfway along the
+         platform; a new `retag` link correction makes them running line out to the first switch.
+       - The blue line's two tracks run up to 40 m apart through T-Centralen, so the other track a
+         train keeps left of is looked for out to 50 m (it was 30). The red and green lines'
+         routes come out the same.
+       - At a scissors crossover's diamond (OSM maps it with a node where the diagonals cross)
+         each track now goes on only to the one leaving most nearly opposite. The diagonals cross
+         at a shallow angle, so before, a train could turn from one onto the other. This moved
+         some depot and crossover track by up to 2.5 m; no running line moved.
+     - Heights: Wikidata has 14 of the 20 stations; Swedish Wikipedia gives the depth of Näckrosen
+       (21 m), Hallonbergen (28 m) and Akalla (20 m), and nothing for Husby. Kista, the only station in the open, is on
+       Kistaviadukten: Wikidata's 10 m is below the viaduct, so its platform is taken as 7.5 m over
+       the ground under it. Bridges get no anchor, so the viaduct and the bridge at Kymlinge sagged
+       below the ground between their ends: a new correction (`raised`) holds a bridge's rail a
+       clearance above the ground under it. Vertical curves are held at the blue line's 4,000 m.
+       Steepest 37.0‰ near Kista.
+     - Plan: the blue line was built to curves of 600 m (1975), but held to that the plan kinks
+       where it must meet OSM's junctions at Hallonbergen and Västra skogen and the T-Centralen
+       model's platforms. It is held to 350 m, which it keeps everywhere; within 40 m of a switch
+       no line is held to more than the red line's 310 m, since both tracks leaving a junction
+       can't keep a longer one.
+     - The station models' platforms: Fridhemsplan's drawing has the blue line some degrees off
+       the map, its platforms 13–34 m from OSM's. Where most of a platform track is more than 3 m
+       from the model's, it is paired with the model's track on the same side and laid onto it
+       (`tools/lib/station-model.ts`), in plan and in height. The heights now take every model's
+       platforms, not only T-Centralen's: Fridhemsplan's blue platform is 8 m below its green one,
+       which the station's single height had put them level with. Turning onto the off-map
+       platforms takes curves down to 221 m, which the check reports apart.
+     - Trains: the blue line runs C20s through T-Centralen and Fridhemsplan on the network, so
+       neither model has a blue shuttle any more. Simulated for three hours: 76 trains out, all on
+       time; the blue line's turn in 458–558 s. Rissnedepån, mostly in the rock, is the blue line's
+       depot: 8.5 km of yard, with C20s parked in its halls.
+     - The blue line's drawn track is 69 km: 57.8 km in rock, 4.4 km of box, 3.4 km of bridge and
+       3.5 km on the ground.
+     - Stations: the 18 of the blue line's own, described from Albert Guillaumes' drawings, 39
+       exits. Most are two platform halls in the rock, one for each track, joined at both ends and
+       in the middle, with long escalators from their ends; Västra skogen has three tracks, its
+       outbound platform reached by a footbridge, and the metro's longest escalator. Kista is an
+       island on the viaduct with stairs down to the bus terminal.
+     - Still open:
+       - Hallonbergen's middle track, and the link to Rissnedepån between Rinkeby's platforms,
+         aren't drawn.
+       - Near Hallonbergen and Kista the depot links' tunnels cut into the running lines' (the
+         build lists them).
+       - Most stations have one or two of their ways out; Kista's southern exits into Kista
+         Galleria and Rådhuset's lifts up to Kungsklippan are left out.
 
 The game reads only the files the tools write, so new lines and corrections need no change to the
 game's code.

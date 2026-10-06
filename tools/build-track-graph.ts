@@ -42,8 +42,9 @@ interface OsmElement {
   tags?: Record<string, string>;
 }
 interface Corrections {
-  // links between OSM nodes to add or remove before the graph is built
-  links?: { op: 'add' | 'remove'; nodes: [number, number]; why: string; structure?: Structure; service?: Service }[];
+  // links between OSM nodes to add or remove before the graph is built, or to retag (`service`,
+  // `line`) where OSM's tags change halfway along a platform
+  links?: { op: 'add' | 'remove' | 'retag'; nodes: [number, number]; why: string; structure?: Structure; service?: Service; line?: string }[];
   // crossovers missing from OSM, between two points given in SWEREF 99 18 00 (east, north); each
   // point is snapped onto the nearest track within 5 m
   crossovers?: { a: [number, number]; b: [number, number]; why: string }[];
@@ -101,10 +102,11 @@ for (const el of osm.elements) {
 
 for (const c of corrections.links ?? []) {
   const [a, b] = c.nodes;
-  if (c.op === 'remove') {
+  if (c.op === 'remove' || c.op === 'retag') {
     const i = links.findIndex((l) => (l.a === a && l.b === b) || (l.a === b && l.b === a));
-    if (i < 0) throw new Error(`correction: no link ${a}–${b} to remove (${c.why})`);
-    links.splice(i, 1);
+    if (i < 0) throw new Error(`correction: no link ${a}–${b} to ${c.op} (${c.why})`);
+    if (c.op === 'remove') links.splice(i, 1);
+    else links[i] = { ...links[i], service: c.service ?? links[i].service, line: c.line ?? links[i].line };
   } else {
     if (!pos.has(a) || !pos.has(b)) throw new Error(`correction: node ${pos.has(a) ? b : a} is not on a track (${c.why})`);
     links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0, covered: false, layer: null });
@@ -255,9 +257,18 @@ for (const node of nodes.values()) {
   if (node.kind !== 'switch' && node.kind !== 'crossing') continue;
   const at = piecesAt.get(node.id)!;
   const through: [number, number][] = [];
-  for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) {
+  const cos = (i: number, j: number) => {
     const a = leaving(at[i], node.id), b = leaving(at[j], node.id);
-    if (a.x * b.x + a.z * b.z < THROUGH_COS) through.push([at[i].id, at[j].id]);
+    return a.x * b.x + a.z * b.z;
+  };
+  // At a crossing (a scissors crossover's diamond) each track goes on only to the one leaving
+  // most nearly opposite: the two diagonals cross at a shallow angle, so one would otherwise lead
+  // on to the other.
+  const partner = (i: number) => at.reduce((best, _, j) => (j !== i && (best < 0 || cos(i, j) < cos(i, best)) ? j : best), -1);
+  for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) {
+    if (cos(i, j) >= THROUGH_COS) continue;
+    if (node.kind === 'crossing' && (partner(i) !== j || partner(j) !== i)) continue;
+    through.push([at[i].id, at[j].id]);
   }
   node.through = through;
 }
@@ -459,9 +470,9 @@ for (const c of corrections.platforms ?? []) {
 // its right, so for each running-line piece, find which side the nearest parallel running line
 // of the same colour is on when the piece is run from `from` to `to`: +1 right, -1 left, 0
 // single track or unclear. In rock tunnels the two tracks are often in separate bores up to
-// ~25 m apart.
+// ~25 m apart, and the blue line's run up to 40 m apart through T-Centralen.
 const handed = new Map<number, number>();
-const NEIGHBOUR = 30;
+const NEIGHBOUR = 50;
 for (const p of pieces) {
   if (p.service !== 'main') continue;
   let right = 0, left = 0, n = 0;
