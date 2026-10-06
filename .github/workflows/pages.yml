@@ -44,6 +44,9 @@ jobs:
       - name: Assemble site
         env:
           GH_TOKEN: ${{ github.token }}
+          # Cesium ion token for the Google 3D city (src/google-city.ts). It ends up in the page, so
+          # it should be one limited to asset 2275207 and this site's URL. Without it the mode is off.
+          VITE_CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_PUBLIC_TOKEN }}
         run: |
           gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 \
             --json number,title,isCrossRepository,url > "$RUNNER_TEMP/prs.json"

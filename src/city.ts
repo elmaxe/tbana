@@ -120,7 +120,7 @@ export class City {
   // the tiles with a photo, and the photos' margin round the tile; null until their index is in
   private photos: Map<string, number> | null = null;
   private photoMargin = 0;
-  private buildingsShown = true;
+  buildingsShown = true;
 
   // `cuts`: the volumes cut out of the ground and kept from being walked on: the stations' stairs,
   // lifts and rooms where they come up through it

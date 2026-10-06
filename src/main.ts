@@ -25,6 +25,7 @@ import type { StationLayouts } from './station-layout';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
 import type { SurfaceHit } from './surface-index';
+import type { GoogleCity } from './google-city';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const params = new URLSearchParams(location.search);
@@ -94,6 +95,10 @@ interface Game {
 
 const sound = new Sound();
 let game: Game | null = null;
+// Google's 3D city in place of our own (src/google-city.ts), made when first turned on
+let google: GoogleCity | null = null;
+let googleOn = false;
+const ionToken: string | undefined = import.meta.env.VITE_CESIUM_ION_TOKEN || undefined;
 let running = false;
 let showMap = false;
 
@@ -152,6 +157,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
     const depot = net?.graph.depots?.find((d) => d.name === params.get('at'));
     if (depot) flyTo(player, depot.view);
   }
+  if (params.has('google')) setGoogle(true);
   $('loading').hidden = true;
   $('start').hidden = false;
   (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
@@ -277,6 +283,10 @@ function handleKey(code: string) {
       break;
     case 'KeyE': useLift(+1); break;
     case 'KeyQ': useLift(-1); break;
+    case 'KeyG':
+      setGoogle(!googleOn);
+      toast(googleOn ? 'Google 3D city' : ionToken ? 'Our own city' : 'The Google city needs a Cesium ion token');
+      break;
     case 'KeyN':
       sound.setMuted(!sound.muted);
       toast(sound.muted ? 'Sound off' : 'Sound on');
@@ -617,6 +627,34 @@ function adaptResolution(rawDt: number) {
 }
 
 // One step of the game: trains, riding, the player.
+// Loaded only when first turned on, so the game without it doesn't carry the tile loader.
+let googleLoading = false;
+function setGoogle(on: boolean) {
+  googleOn = on && !!ionToken;
+  if (googleOn && !google && !googleLoading) {
+    googleLoading = true;
+    import('./google-city').then(({ GoogleCity }) => {
+      google = new GoogleCity(ionToken!, camera, renderer);
+      scene.add(google.group);
+      showGoogle();
+    }, (err) => console.warn('no Google city:', err));
+  }
+  showGoogle();
+}
+
+// Google's city stands in for ours above the ground. Under it, ours is shown: it hides its own
+// buildings there, and its ground's dark underside closes the stations' open-topped halls.
+function showGoogle() {
+  const above = game?.city?.buildingsShown ?? true;
+  if (game?.city) game.city.group.visible = !(googleOn && above);
+  if (!google) return;
+  google.visible = googleOn && above;
+  google.update(camera, renderer);
+  const credits = $('credits');
+  credits.hidden = !google.visible;
+  if (google.visible) credits.textContent = google.credits;
+}
+
 function simulate(dt: number) {
   if (game) {
     const { player, trains } = game;
@@ -642,6 +680,7 @@ function simulate(dt: number) {
     game.network?.update(camera.position);
     game.stations?.update(camera.position);
     game.city?.update(camera.position);
+    showGoogle();
     updateAtmosphere(player, dt);
   }
 }
