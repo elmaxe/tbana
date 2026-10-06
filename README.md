@@ -536,7 +536,8 @@ How the ground meets the track:
 The buildings are blocks with their roofs:
 
 - They stand from below the lowest ground under them to their height above it: OSM's `height`,
-  or its levels at 3.1 m, or for the 60% with neither, the median levels of the tagged buildings
+  or where Lantmäteriet's laser scan has measured them (below) their eaves and roof, or their
+  levels at 3.1 m, or for the 60% with none of these, the median levels of the tagged buildings
   of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
 - A building with parts is drawn as its parts.
 - Roofs are of their shapes, from OSM's [Simple 3D Buildings](https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings)
@@ -611,6 +612,41 @@ roofs in the photo are a few metres off their outlines, and the sides of the tal
 ground beside them. Their shadows are the morning's of the day they were flown.
 
 `?nophoto` starts the game without them.
+
+### Buildings measured by laser
+
+Lantmäteriet's airborne laser scan (Laserdata Nedladdning, skog, CC BY 4.0) measures the
+buildings OpenStreetMap only outlines: how high each one's eaves and roof are, and its roof's shape.
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-laser              # -> data/laser/buildings.json
+LM_USER=… LM_PASSWORD=… npm run fetch-laser -- 0,0 1,0   # only these 1 km blocks, measured again
+LM_USER=… LM_PASSWORD=… npm run fetch-laser -- --again    # all of them again
+npm run build-city
+```
+
+- The scan is a point cloud of the ground and everything on it: about 1.4 points a square metre,
+  flown in the spring of 2020 and 2021 over the city, with heights in RH 2000 like the elevation model.
+  Like the photos it is its own product on Geotorget, free, which the account must have ordered or every
+  file is refused (403).
+- `fetch-laser` finds the scan's 10 km squares through the same STAC catalogue as the elevation
+  model (collection `dsm-skoglig-copc`). They are [COPC](https://copc.io/) files (LAZ with an
+  octree index), so only the parts under the city are read (`tools/lib/copc.ts`), about 6 bytes a
+  point. It works through the city a 1 km block at a time, and keeps each block's measures in
+  `node_modules/.cache/laser/`, so a run that stops can be started again.
+- A building's points are those inside its outline, more than 0.5 m from its walls, and not
+  noise. `tools/lib/laser-roofs.ts` fits each roof `build-city` can build to them: flat, gabled
+  (either way round), hipped, pyramidal, and skillion facing each of four ways. Each shape over an
+  outline is one surface scaled by its height, so for each the eaves and the roof's height are
+  fitted by least squares, twice more without the sixth of the points furthest off (trees over the
+  roof, chimneys). A shape that isn't flat wins if its roof is at least 1.2 m high and its points
+  are within two thirds of flat's distance. Tried on simulated scans over the city's outlines, with
+  the noise, trees and chimneys of a real one, the eaves and tops mostly come out within 0.2 m.
+- A building with mostly ground under it in the scan, built since, is left out.
+- `build-city` takes the scan's eaves for a building without OSM's `height`, and its roof's shape
+  and height where OSM gives no `roof:shape`. Where OSM gives the shape, the walls rise to the
+  scan's top less the roof. A building the scan has less than 2.5 m above its ground keeps OSM's.
+  Without `data/laser/buildings.json` the city is built as before.
 
 ## Train models
 

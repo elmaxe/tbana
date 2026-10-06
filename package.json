@@ -22,7 +22,8 @@
     "fetch-terrain": "node tools/fetch-terrain.ts",
     "fetch-city": "node tools/fetch-city.ts",
     "build-city": "node tools/build-city.ts",
-    "fetch-ortho": "node tools/fetch-ortho.ts"
+    "fetch-ortho": "node tools/fetch-ortho.ts",
+    "fetch-laser": "node tools/fetch-laser.ts"
   },
   "dependencies": {
     "three": "0.170.0"
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/three": "0.170.0",
+    "copc": "^0.0.9",
     "geotiff": "^3.0.5",
     "jpeg-js": "^0.4.4",
     "polygon-clipping": "^0.15.7",
