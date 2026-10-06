@@ -518,8 +518,8 @@ npm run build-city                             # -> public/data/city/
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
   parts in those tiles, with their courtyards: about 83,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 13.7 MB in all. The format is in tagged sections, so roof shapes,
-  streets and water can be added later as new sections without breaking the game.
+  (format in `src/city-tile.ts`), 14.8 MB in all. The format is in tagged sections, so streets and
+  water can be added later as new sections without breaking the game, as the roofs were.
 
 How the ground meets the track:
 
@@ -533,13 +533,26 @@ How the ground meets the track:
 - At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
   round the opening.
 
-The buildings are blocks with flat roofs:
+The buildings are blocks with their roofs:
 
 - They stand from below the lowest ground under them to their height above it: OSM's `height`,
   or its levels at 3.1 m, or for the 60% with neither, the median levels of the tagged buildings
   of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
-- A building with parts is drawn as its parts. Roof shapes are kept for later; for now a pitched
-  roof is a flat one halfway up it.
+- A building with parts is drawn as its parts.
+- Roofs are of their shapes, from OSM's [Simple 3D Buildings](https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings)
+  tags (`roof:shape`, `roof:height` or `roof:levels`, `roof:orientation`, `roof:direction`), built
+  by `build-city` (`tools/lib/roofs.ts`) and stored with the tile: gabled, hipped, pyramidal and
+  skillion, with gambrel, half-hipped and round roofs built gabled, mansard and dome roofs hipped
+  and onion roofs pyramidal. A hipped or gabled roof is the lowest of the planes rising from the
+  outline's edges, each reaching only as far as where it meets its neighbours': over a convex
+  outline that is the straight skeleton's roof, and over an L, T or U the same in nearly every
+  case. A gabled roof's gables are its wings' ends (shorter than their neighbours, or with
+  `roof:orientation=across` longer), and the walls rise into them. A roof with no height given
+  (or `roof:levels=0`) is 3 m. 7,864 roofs are built; the 11 left, where no faces covering the
+  outline were found, are flat halfway up, as all were before.
+- A roof's colour is `roof:colour`, or by `roof:material` (red tiles, black tin, green copper…).
+  The walls are plastered, brick, glass, wooden boards or plain, by `building:material`, or for
+  houses wood and for sheds and warehouses plain, each with its own texture and colours.
 - Where a building stands over open track, the part over the track's space is lifted 5 m above
   the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
 - Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
@@ -550,7 +563,8 @@ The buildings are blocks with flat roofs:
 
 The game (`src/city.ts`) builds the tiles within 1.1 km of the camera (800 m on phones), one a
 frame, nearest first: about 400,000 triangles, a tile in 10 ms (median). Beyond 600 m the ground has
-every other point. The ground is paved where buildings are close together and grass where they
+every other point. Where a tile has an aerial photo (below) it lies on the ground and the roofs;
+where it hasn't, the ground is paved where buildings are close together and grass where they
 aren't. It can be walked on, except beside open track a service runs on, inside buildings and over
 the stations' openings (so the depot yards and halls can be walked through, but a hall's walls only
 at its doors), and the street around the exits stays walkable as before but isn't drawn. A flood
@@ -564,6 +578,39 @@ buildings are hidden, so they don't show through the stations' open-topped halls
 along the edge, so they don't hang into a shallow tunnel.
 
 `?nocity` starts the game without it.
+
+### Aerial photos
+
+Lantmäteriet's orthophotos (Ortofoto, CC BY 4.0) are laid over the city: on the ground, so the
+streets, squares, parks, quays and water are where they are, and on the roofs from above.
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho               # -> public/data/ortho/
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- 0,-1 1,-1  # only these tiles, fetched again
+LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- --again     # all of them again
+```
+
+- The photos are their own product on Geotorget, **Ortofoto Nedladdning**: free, but the account
+  that fetches the elevation model must order it too, or every file is refused (403).
+- `fetch-ortho` finds the photos through Lantmäteriet's STAC catalogue for images (`stac-bild`),
+  and takes each pixel from the newest year's photo over it (Stockholm is flown every other year;
+  the newest are from 2025 at 16 cm). It writes one JPEG per city tile, north up on the game's
+  grid, covering the tile and 31 m round it, so a roof over the tile's edge is still in it (format
+  in `src/city-tile.ts`). Tiles within 100 m of a station, where you come up into the street, are
+  1024 px (0.55 m a pixel), the rest 512 px (1.1 m): about 90–100 MB for all 950 (estimated from
+  inner-city samples). It reads only the
+  overview and the blocks under each tile, and keeps the tiles already there, so a run that stops
+  can be started again.
+- The game (`src/city.ts`) loads a tile's photo with the tile. On the ground it puts the ground
+  texture's grain over it for up close; it darkens it a little, since the sunlight is in the
+  photo already. A roof that reaches out of its tile's photo stays plain. Tiles without a photo
+  look as before, so the game runs without them.
+
+The photos aren't true orthophotos: tall buildings lean away from where the plane was, so their
+roofs in the photo are a few metres off their outlines, and the sides of the tallest show on the
+ground beside them. Their shadows are the morning's of the day they were flown.
+
+`?nophoto` starts the game without them.
 
 ## Train models
 
@@ -614,6 +661,8 @@ in `public/data/`).
 
 Heights: Markhöjdmodell © Lantmäteriet, CC BY 4.0 (`data/ground/`, and the track heights and
 geometry, the stations' streets and the city's ground derived from it in `public/data/`).
+
+Aerial photos: Ortofoto © Lantmäteriet, CC BY 4.0 (the city's photos in `public/data/ortho/`).
 
 Buildings: © OpenStreetMap contributors, ODbL (`data/osm/buildings.json`, from the
 openstreetmap.fr extract of Stockholm county, and the city's buildings in `public/data/city/`).

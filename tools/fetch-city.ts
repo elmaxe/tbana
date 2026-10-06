@@ -26,7 +26,8 @@ import { cityArea } from './lib/city-area.ts';
 const EXTRACT = 'https://download.openstreetmap.fr/extracts/europe/sweden/stockholm.osm.pbf';
 const OUT = 'data/osm/buildings.json';
 const KEEP = ['building', 'building:part', 'height', 'min_height', 'building:levels', 'building:min_level',
-  'roof:shape', 'roof:height', 'roof:levels', 'roof:colour', 'building:colour', 'building:material', 'name'];
+  'roof:shape', 'roof:height', 'roof:levels', 'roof:angle', 'roof:direction', 'roof:orientation', 'roof:colour',
+  'roof:material', 'building:colour', 'building:material', 'name'];
 
 let path = process.argv[2];
 if (!path) {
