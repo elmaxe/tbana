@@ -46,7 +46,10 @@ const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 
 // 1,500 m, the red to 2,000 m)
 const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01 };
+const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05 };
+// a siding is laid at the height of a running line this close beside it in a tunnel
+const SIDING_REACH = 9;
+let sidingAnchors = 0;
 // the gradient the line is held to where it would be steeper
 const GRADE_HOLD = 0.037;
 
@@ -184,6 +187,34 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   for (let v = 0; v < vars.length; v++) addAnchor(v, 0, SIGMA.level);
   // the services' track, where it is already fitted
   vars.forEach((vv, vi) => { const h = pinned?.get(vv.key); if (h !== undefined) addAnchor(vi, h, SIGMA.pinned); });
+  // A siding in a tunnel beside a running line, or between the two (a turnback track), at the
+  // running line's height: they are laid on one floor. (On its own, it would be fitted only to
+  // its ends, and could stand a metre above the track beside it.)
+  if (pinned) {
+    const dirOf = (p: TrackPiece, k: number) => {
+      const { v } = disc.get(p.id)!, a = vars[v[Math.max(0, k - 1)]], b = vars[v[Math.min(v.length - 1, k + 1)]];
+      const l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      return [(b.x - a.x) / l, (b.z - a.z) / l];
+    };
+    const beside: { x: number; z: number; h: number; d: number[] }[] = [];
+    for (const p of pieces) {
+      if (!run.has(p.id) || p.structure !== 'tunnel') continue;
+      disc.get(p.id)!.v.forEach((vi, k) => { const h = pinned.get(vars[vi].key); if (h !== undefined) beside.push({ x: vars[vi].x, z: vars[vi].z, h, d: dirOf(p, k) }); });
+    }
+    for (const p of pieces) {
+      if (run.has(p.id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+      disc.get(p.id)!.v.forEach((vi, k) => {
+        if (pinned.has(vars[vi].key)) return;
+        const d = dirOf(p, k);
+        let best: { h: number; dist: number } | null = null;
+        for (const b of beside) {
+          const dist = Math.hypot(b.x - vars[vi].x, b.z - vars[vi].z);
+          if (dist < SIDING_REACH && Math.abs(b.d[0] * d[0] + b.d[1] * d[1]) > 0.95 && (!best || dist < best.dist)) best = { h: b.h, dist };
+        }
+        if (best) { addAnchor(vi, best.h, SIGMA.siding); sidingAnchors++; }
+      });
+    }
+  }
 
   // stations: their platform tracks
   const stationRows: { name: string; v: number; b: number }[] = [];
@@ -504,7 +535,7 @@ writeFileSync(OUT, JSON.stringify({
   note: 'Height of the top of the rail (RH 2000) at each point of each piece of the drawn lines\' track in public/data/track-graph.json: the pieces their services run on, and the crossovers, sidings and depots joined to them.',
   pieces: heights,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the T-Centralen model, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check

@@ -6,9 +6,12 @@
 //
 // The model's track ribbons are reduced to centre lines and sampled every 2 m. Each line's samples
 // are matched only against OSM tracks of the same kind (the red line against the red line, and so
-// on). The fit is a rotation and a shift in plan; heights are kept, since the models are already
-// drawn in metres above sea level.
+// on). The fit is a rotation and a shift in plan. T-Centralen's heights are kept: it is drawn in
+// metres above sea level, and the track's heights are fitted to it (tools/build-heights.ts). The
+// other models are drawn round a level of their own, and are lifted to the track's height at their
+// platforms (public/data/track-geometry.json): the median over their metro tracks beside a platform.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import type { TrackGeometry } from '../src/track-geometry.ts';
 import type { Tri } from '../src/polyline.ts';
 import { lonLatToWorld, ORIGIN } from '../src/geo.ts';
 import { loadStationModel } from './lib/station-model.ts';
@@ -20,6 +23,18 @@ interface Seg { ax: number; az: number; bx: number; bz: number; way: number }
 const name = process.argv[2] || 't-centralen';
 const OSM = `data/osm/${name}.json`;
 const OUT = 'public/data/stations.json';
+// the station each model is of, as the track graph names it
+const STATIONS: Record<string, string> = { 't-centralen': 'T-Centralen', odenplan: 'Odenplan', fridhemsplan: 'Fridhemsplan' };
+if (!STATIONS[name]) throw new Error(`no station for the model ${name}: add it to STATIONS`);
+// T-Centralen's heights are as drawn; the others are lifted to the track
+const HEIGHTS_AS_DRAWN = new Set(['t-centralen']);
+// The lines a model is fitted by, where not all of them: Fridhemsplan's drawing has the blue line
+// crossing the green at an angle some degrees off the map's, and the green line, which runs on
+// through the network, decides.
+const FIT_BY: Record<string, string[]> = { fridhemsplan: ['green'] };
+// the rail head is this far below a model's track ribbon, which is drawn at platform level
+// (src/service.ts RAIL_TOP)
+const RAIL_TOP = 0.99;
 
 // ------------------------------------------------------------------ model track samples
 const { samples, floors }: { samples: { kind: Kind; x: number; y: number; z: number }[]; floors: Tri[] } = await loadStationModel(name);
@@ -35,7 +50,7 @@ function osmKind(t: Record<string, string>): Kind | 'metro' | null {
   return null;
 }
 
-const osm: { timestamp?: string; elements: OsmWay[] } = JSON.parse(readFileSync(OSM, 'utf8'));
+const osm: { timestamp?: string; bbox?: [number, number, number, number]; elements: OsmWay[] } = JSON.parse(readFileSync(OSM, 'utf8'));
 const segs = new Map<Kind | 'metro', Seg[]>();
 for (const w of osm.elements) {
   const k = osmKind(w.tags);
@@ -88,6 +103,7 @@ class SegIndex {
 const kinds = [...new Set(samples.map((s) => s.kind))].filter((k) => candidates(k).length);
 const index = new Map(kinds.map((k) => [k, new SegIndex(candidates(k))]));
 const used = samples.filter((s) => index.has(s.kind));
+const fitBy = used.filter((s) => !FIT_BY[name] || FIT_BY[name].includes(s.kind));
 
 // ------------------------------------------------------------------ fit
 interface Pose { rot: number; tx: number; tz: number }
@@ -96,7 +112,8 @@ const apply = (p: Pose, x: number, z: number) => {
   return { x: c * x - s * z + p.tx, z: s * x + c * z + p.tz };
 };
 const CAP = 24;
-const centre = lonLatToWorld(18.0597, 59.3313); // T-Centralen, roughly
+// the middle of the area fetched round the station
+const centre = osm.bbox ? lonLatToWorld((osm.bbox[1] + osm.bbox[3]) / 2, (osm.bbox[0] + osm.bbox[2]) / 2) : lonLatToWorld(18.0597, 59.3313);
 
 // For the coarse search, a 2 m grid per line holding the (chamfer) distance to its nearest
 // OSM track, so a pose is scored with one lookup per sample.
@@ -139,10 +156,11 @@ function score(p: Pose, pts: typeof used) {
   return sum / pts.length;
 }
 
-// 1. coarse search: rotation in 1° steps, shift in 6 m steps, on every 4th sample
-const sparse = used.filter((_, i) => i % 4 === 0);
+// 1. coarse search: rotation in 1° steps (all the way round: the models are drawn turned any
+// way), shift in 6 m steps, on every 4th sample
+const sparse = fitBy.filter((_, i) => i % 4 === 0);
 let best: Pose = { rot: 0, tx: centre.x, tz: centre.z }, bestScore = Infinity;
-for (let deg = -25; deg <= 25; deg += 1) {
+for (let deg = -179; deg <= 180; deg += 1) {
   for (let dx = -240; dx <= 240; dx += 6) for (let dz = -240; dz <= 240; dz += 6) {
     const p = { rot: deg * Math.PI / 180, tx: centre.x + dx, tz: centre.z + dz };
     const sc = score(p, sparse);
@@ -155,7 +173,7 @@ console.log(`coarse: ${(best.rot * 180 / Math.PI).toFixed(1)}°, rms ${Math.sqrt
 let cutoff = 12;
 for (let iter = 0; iter < 60; iter++) {
   const pairs: { x: number; z: number; px: number; pz: number }[] = [];
-  for (const s of used) {
+  for (const s of fitBy) {
     const w = apply(best, s.x, s.z);
     const n = index.get(s.kind)!.nearest(w.x, w.z);
     if (n && n.d < cutoff) pairs.push({ x: s.x, z: s.z, px: n.px, pz: n.pz });
@@ -245,6 +263,29 @@ let num = 0, den = 0;
 }
 const scale = num / den;
 
+// The height: the track's rail beside the model's metro tracks at its platforms, within 3 m in plan.
+let lift = 0, liftN = 0;
+if (!HEIGHTS_AS_DRAWN.has(name)) {
+  const geometry: TrackGeometry = JSON.parse(readFileSync('public/data/track-geometry.json', 'utf8'));
+  const rails: [number, number, number][] = [];
+  for (const g of Object.values(geometry.pieces)) g.x.forEach((x, k) => rails.push([x, g.z[k], g.y[k]]));
+  const dys: number[] = [];
+  placed.forEach((p, i) => {
+    if (!p.atPlatform || !['red', 'green', 'blue'].includes(p.kind)) return;
+    let best: number | null = null, bestD = 3;
+    for (const [x, z, y] of rails) {
+      const d = Math.hypot(x - p.w.x, z - p.w.z);
+      if (d < bestD) { bestD = d; best = y; }
+    }
+    if (best !== null) dys.push(best - (used[i].y - RAIL_TOP));
+  });
+  if (!dys.length) throw new Error('no metro track at the platforms beside the drawn track: run build-track-geometry first');
+  dys.sort((a, b) => a - b);
+  lift = dys[dys.length >> 1];
+  liftN = dys.length;
+  console.log(`lifted ${lift.toFixed(2)} m to the track's rail (${liftN} points, ${(dys[Math.floor(dys.length * 0.1)] - lift).toFixed(2)} to +${(dys[Math.floor(dys.length * 0.9)] - lift).toFixed(2)} m about it)`);
+}
+
 // three.js turns +x towards -z for a positive rotation about +y, the opposite of `rot` here
 const rotationY = -best.rot * 180 / Math.PI;
 console.log(`rotation about +y ${rotationY.toFixed(3)}°, model origin at world x ${best.tx.toFixed(2)}, z ${best.tz.toFixed(2)}`
@@ -262,11 +303,12 @@ if (process.env.DUMP) {
 // ------------------------------------------------------------------ write
 const stations = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {};
 stations[name] = {
+  name: STATIONS[name],
   model: `assets/${name}.glb`,
   // world = the model turned by `rotationY` degrees about the vertical axis (three.js
-  // convention), then moved by `position`; heights are kept as drawn
+  // convention), then moved by `position` (src/station-models.ts)
   rotationY: +rotationY.toFixed(4),
-  position: [+best.tx.toFixed(3), 0, +best.tz.toFixed(3)],
+  position: [+best.tx.toFixed(3), +lift.toFixed(3), +best.tz.toFixed(3)],
   // distance from the model's tracks to the OSM tracks, [median, 90th percentile] in metres
   fit: { osm: osm.timestamp ?? null, scaleCheck: +scale.toFixed(4), atPlatforms, everywhere },
 };

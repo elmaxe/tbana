@@ -643,7 +643,9 @@ for (const [name, d] of Object.entries(descriptions)) {
   }
 }
 const served = new Set(graph.routes.flatMap((r) => r.stops.map((s) => s.station)));
-const missing = [...served].filter((s) => s !== 'T-Centralen' && !descriptions[s]);
+// the stations drawn from a model (src/station-models.ts) need no description
+const modelled = new Set(Object.values(JSON.parse(readFileSync('public/data/stations.json', 'utf8')) as Record<string, { name: string }>).map((m) => m.name));
+const missing = [...served].filter((s) => !modelled.has(s) && !descriptions[s]);
 if (missing.length) console.log(`not described yet: ${missing.join(', ')}`);
 
 writeFileSync(OUT, JSON.stringify({

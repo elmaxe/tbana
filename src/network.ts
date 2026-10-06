@@ -193,8 +193,11 @@ export class Network {
         samples[samples.length - 1].deadEnd = deadEnd(piece, piece.x.length - 1);
       }
       this.samples.push(samples);
-      this.addRuns(samples);
-      this.addFloors(samples);
+    }
+    alignChanges(this.samples);
+    for (const [k, piece] of Object.values(geometry.pieces).entries()) {
+      this.addRuns(this.samples[k]);
+      this.addFloors(this.samples[k]);
       piece.x.forEach((x, i) => {
         const key = `${Math.floor(x / POINT_CELL)},${Math.floor(piece.z[i] / POINT_CELL)}`;
         (this.points.get(key) ?? this.points.set(key, []).get(key)!).push({ x, y: piece.y[i], z: piece.z[i], kind: STRUCTURE_KINDS[piece.kind[i]] });
@@ -522,18 +525,19 @@ export class Network {
   // single-track tunnel joins the other track's), a wall between the two outlines.
   private ends(samples: Sample[], i0: number, i1: number, b: Record<MaterialName, MeshBuilder>) {
     const tunnel = (sm: Sample) => (sm.kind === 'rock' || sm.kind === 'box') && !bare(sm);
-    const ring = (sm: Sample, inner: [number, number][], outer: [number, number][]) => {
-      const first = b.concrete.pos.length / 3;
-      for (const outline of [inner, outer]) for (const [u, v] of outline) { at(sm, u, v, _w); b.concrete.vertex(_w.x, _w.y, _w.z, u * 0.25, v * 0.25); }
-      b.concrete.grid(2, inner.length, first);
+    const ring = (sm: Sample, inner: [number, number][], outer: [number, number][], mb = b.concrete) => {
+      const first = mb.pos.length / 3;
+      for (const outline of [inner, outer]) for (const [u, v] of outline) { at(sm, u, v, _w); mb.vertex(_w.x, _w.y, _w.z, u * 0.25, v * 0.25); }
+      mb.grid(2, inner.length, first);
     };
-    const portal = (t: Sample) => {
+    // (into a station, only a little over the crown: the station's other levels may be over it)
+    const portal = (t: Sample, station = false) => {
       const shell = shellOutline(t);
       if (!shell) return;
       const inner = shell.pts;
       const [sa, sb] = structureSpan(t), mid = (sa + sb) / 2;
       const crown = Math.max(...inner.map((p) => p[1]));
-      const top = Math.max(crown + 2, t.ground === null ? 0 : t.ground - t.y + 0.5);
+      const top = station ? crown + 1 : Math.max(crown + 2, t.ground === null ? 0 : t.ground - t.y + 0.5);
       // a headwall: the opening's outline carried out from its middle to a rectangle 3 m beyond
       // its walls and up to the ground (where two tracks share the tunnel, each draws its half)
       const x0 = sa - 3, x1 = sb + 3, y0 = S.FLOOR, oy = 1.5;
@@ -567,18 +571,19 @@ export class Network {
     if (i0 === 0 && samples[0].deadEnd) deadEnd(0, 1);
     if (i1 === samples.length - 1 && samples[i1].deadEnd) deadEnd(i1, -1);
     // a tunnel running into a station the model draws, or out into the open at the piece's end
-    if (i0 > 0 && samples[i0 - 1].skip && tunnel(samples[i0])) portal(samples[i0]);
+    if (i0 > 0 && samples[i0 - 1].skip && tunnel(samples[i0])) portal(samples[i0], true);
     if (i0 === 0 && samples[0].mouth) portal(samples[0]);
     if (i1 === samples.length - 1 && samples[i1].mouth) portal(samples[i1]);
-    if (i1 + 1 < samples.length && samples[i1 + 1].skip && tunnel(samples[i1])) portal(samples[i1]);
+    if (i1 + 1 < samples.length && samples[i1 + 1].skip && tunnel(samples[i1])) portal(samples[i1], true);
     for (let i = i0 + 1; i <= i1; i++) {
       const p = samples[i - 1], q = samples[i];
       if (q.along - p.along > 0.05) continue;
       if (tunnel(p) && tunnel(q)) {
         const a = closedOutline(p), c = closedOutline(q);
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {
-          const [ra, rc] = rays(a, c);
-          ring(p, ra, rc);
+          const [ra, rc] = rays(a, c, middle(p), middle(q));
+          // in rock, of rock
+          ring(p, ra, rc, p.kind === 'rock' && q.kind === 'rock' ? b.rock : b.concrete);
         }
       } else if (tunnel(p) !== tunnel(q) && !bare(p) && !bare(q)) portal(tunnel(p) ? p : q);
     }
@@ -639,14 +644,16 @@ const continues = (sm: Sample, side: number) => (sm.yard ? shares(sm, side) > 0 
 // a depot hall: in rock or concrete, beside another of the depot's tracks
 const inHall = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && (shares(sm, -1) > 0 || shares(sm, 1) > 0);
 // A turnout in a tunnel: where track no service runs on comes within WIDEN of a service's track,
-// the service's tunnel is widened to take it in (`widened`: how far, beyond the other track's
-// centre), and the other track has no tunnel of its own there (`bare`).
+// or runs between it and the other track of its tunnel (a turnback siding), the service's tunnel
+// is widened to take it in (`widened`: how far, beyond the other track's centre), and the other
+// track has no tunnel of its own there (`bare`).
 const WIDEN = 4.5;
 const bare = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box')
   && ((sm.left < 0 && -sm.left < WIDEN) || (sm.right < 0 && -sm.right < WIDEN));
 const widened = (sm: Sample, side: number) => {
   const v = side < 0 ? sm.left : sm.right;
-  return !sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && v > 0 && v < WIDEN ? v : 0;
+  const between = !!sm.pair && Math.sign(sm.pair) === side && v < Math.abs(sm.pair);
+  return !sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && v > 0 && (v < WIDEN || between) ? v : 0;
 };
 // No conductor rail where another track comes closer than the standard spacing on its side: at
 // turnouts (a service's track gives way only to track no service runs on).
@@ -751,31 +758,46 @@ function closedOutline(sm: Sample): [number, number][] {
   return sm.pair > 0 ? [...o, [o[o.length - 1][0], S.FLOOR]] : [[o[0][0], S.FLOOR], ...o];
 }
 
-// Two outlines met by the same rays from a point over the track, from one floor over the roof to
-// the other: the edges of the wall between two tunnels of different shapes.
-function rays(a: [number, number][], b: [number, number][], n = 33): [[number, number][], [number, number][]] {
+// Where a track shares its tunnel, the middle its half is closed down: [u, side] (side +1 where the
+// other track is to the right), or null.
+function middle(sm: Sample): [number, number] | null {
+  if (!sm.pair || inHall(sm)) return null;
+  const o = shellOutline(sm)!.pts;
+  return sm.pair > 0 ? [o[o.length - 1][0], 1] : [o[0][0], -1];
+}
+
+// Two outlines, each closed along its floor, met by the same rays from a point over the track, all
+// the way round: the edges of the wall between two tunnels of different shapes. There is a ray
+// through every corner of either, and the last ray is the first again. Where one is the half of a
+// shared tunnel (`ma`, `mb`: its middle), the other is cut off at that middle: beyond it is the
+// other track's half, or its own tunnel, which this one opens into.
+function rays(a: [number, number][], b: [number, number][], ma: [number, number] | null = null, mb: [number, number] | null = null, n = 48): [[number, number][], [number, number][]] {
   const O: [number, number] = [0, 1.8];
   const angle = ([u, v]: [number, number]) => Math.atan2(v - O[1], u - O[0]);
-  // from the lower left (as an angle above π) round over the top to the lower right
-  const left = (p: [number, number]) => { const t = angle(p); return t < -Math.PI / 2 ? t + 2 * Math.PI : t; };
-  const t0 = Math.min(left(a[0]), left(b[0])), t1 = Math.max(angle(a[a.length - 1]), angle(b[b.length - 1]));
-  const hit = (poly: [number, number][], du: number, dv: number): [number, number] | null => {
+  const hit = (poly: [number, number][], du: number, dv: number): [number, number] => {
     let best = Infinity;
-    for (let i = 1; i < poly.length; i++) {
-      const [pu, pv] = poly[i - 1], eu = poly[i][0] - pu, ev = poly[i][1] - pv;
+    for (let i = 0; i < poly.length; i++) {
+      const [pu, pv] = poly[i], q = poly[(i + 1) % poly.length], eu = q[0] - pu, ev = q[1] - pv;
       const den = du * ev - dv * eu;
       if (Math.abs(den) < 1e-9) continue;
       const t = ((pu - O[0]) * ev - (pv - O[1]) * eu) / den, s = ((pu - O[0]) * dv - (pv - O[1]) * du) / den;
-      if (t > 0 && s >= 0 && s <= 1 && t < best) best = t;
+      if (t > 0 && s >= -1e-9 && s <= 1 + 1e-9 && t < best) best = t;
     }
-    return best < Infinity ? [O[0] + du * best, O[1] + dv * best] : null;
+    return best < Infinity ? [O[0] + du * best, O[1] + dv * best] : [O[0], O[1]];
   };
+  const ts = [...a, ...b].map(angle);
+  for (let j = 0; j < n; j++) ts.push(-Math.PI + (2 * Math.PI * j) / n);
+  ts.sort((x, y) => x - y);
   const ra: [number, number][] = [], rb: [number, number][] = [];
-  for (let j = 0; j < n; j++) {
-    const t = t0 + ((t1 - t0) * j) / (n - 1), du = Math.cos(t), dv = Math.sin(t);
-    const ha = hit(a, du, dv), hb = hit(b, du, dv);
-    if (ha && hb) { ra.push(ha); rb.push(hb); }
+  for (const [j, t] of ts.entries()) {
+    if (j && t - ts[j - 1] < 1e-6) continue;
+    const du = Math.cos(t), dv = Math.sin(t);
+    let ha = hit(a, du, dv), hb = hit(b, du, dv);
+    if (ma && Math.abs(ha[0] - ma[0]) < 1e-6 && (hb[0] - ma[0]) * ma[1] > 0) hb = ha;
+    if (mb && Math.abs(hb[0] - mb[0]) < 1e-6 && (ha[0] - mb[0]) * mb[1] > 0) ha = hb;
+    ra.push(ha); rb.push(hb);
   }
+  ra.push(ra[0]); rb.push(rb[0]);
   return [ra, rb];
 }
 
@@ -826,6 +848,100 @@ function box(b: MeshBuilder, c: THREE.Vector3, sm: Sample, sx: number, sy: numbe
     [[-1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, 1]], [[1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, -1]],
   ];
   for (const f of faces) b.quad(...(f.map(([i, j, k]) => corner(i, j, k)) as [THREE.Vector3, THREE.Vector3, THREE.Vector3, THREE.Vector3]));
+}
+
+// ------------------------------------------------------------------ the two halves of a tunnel
+// Where the two tracks of a line share a tunnel, each draws its half, and each changes its outline
+// (from rock to box, or from sharing the tunnel to a tunnel of its own) at its own points, which
+// can be several metres from where the other track changes. In between, the two halves have
+// different outlines, and the tunnel is open where they should meet. So each such change is moved
+// to halfway between it and the other track's same change, and the two meet there.
+const ALIGN_REACH = 15; // the other track's change is looked for this far from beside this one's
+function alignChanges(all: Sample[][]) {
+  const state = (sm: Sample) => `${sm.kind}${sm.pair ? '+' : ''}${widened(sm, -1) || widened(sm, 1) ? 'w' : ''}`;
+  interface Change { list: Sample[]; i: number; x: number; z: number; a: string; b: string }
+  const changes: Change[] = [];
+  for (const list of all) {
+    for (let i = 1; i < list.length; i++) {
+      const p = list[i - 1], q = list[i];
+      if (q.along - p.along > 0.05 || p.skip || q.skip || p.yard || (!p.pair && !q.pair) || state(p) === state(q)) continue;
+      changes.push({ list, i, x: q.x, z: q.z, a: state(p), b: state(q) });
+    }
+  }
+  const moves: { c: Change; other: Sample[]; by: number }[] = [];
+  for (const c of changes) {
+    // beside it, where the other track is
+    const p = c.list[c.i - 1], q = c.list[c.i], paired = p.pair ? p : q;
+    const ox = c.x + paired.rx * paired.pair, oz = c.z + paired.rz * paired.pair;
+    let best: Change | null = null, bestD = ALIGN_REACH;
+    for (const o of changes) {
+      if (o.list === c.list || !((o.a === c.a && o.b === c.b) || (o.a === c.b && o.b === c.a))) continue;
+      const d = Math.hypot(o.x - ox, o.z - oz);
+      if (d < bestD) { bestD = d; best = o; }
+    }
+    // along this track (its direction is to the left of its right)
+    if (best) moves.push({ c, other: best.list, by: ((best.x - c.x) * q.rz - (best.z - c.z) * q.rx) / 2 });
+  }
+  // from the last in each list, so that the samples put in don't move the changes still to do
+  moves.sort((m, n) => n.c.i - m.c.i);
+  for (const { c, other, by } of moves) {
+    if (Math.abs(by) < 0.1) continue;
+    // (copies: the samples themselves take the other side's state)
+    const list = c.list, before = { ...list[c.i - 1] }, after = { ...list[c.i] };
+    const to = after.along + by;
+    // the samples the change passes over take the state from its other side, as far as `to` or
+    // another change, whichever comes first
+    const take = (sm: Sample, from: Sample) => {
+      sm.kind = from.kind;
+      if (from.pair) {
+        // the other track's offset from it, as it is there
+        const o = nearestSample(other, sm.x, sm.z);
+        sm.pair = (o.x - sm.x) * sm.rx + (o.z - sm.z) * sm.rz;
+        sm.pairDy = o.y - sm.y;
+      } else { sm.pair = 0; sm.pairDy = 0; }
+      if (!sm.plat) sm.third = sm.pair ? (sm.pair > 0 ? -1 : 1) : from.third;
+    };
+    let k: number;
+    if (by > 0) {
+      k = c.i;
+      while (k + 1 < list.length && list[k + 1].along < to && list[k + 1].along - list[k].along > 0.05) take(list[k++], before);
+      if (k + 1 >= list.length || list[k + 1].along - list[k].along <= 0.05) { take(list[k], before); continue; }
+      take(list[k], before);
+      // the change, between k and k + 1
+      const a = list[k], b = list[k + 1], t = (to - a.along) / (b.along - a.along);
+      const left = { ...lerpSample(a, b, t) }, right = { ...lerpSample(a, b, t) };
+      take(left, before); take(right, after);
+      list.splice(k + 1, 0, left, right);
+    } else {
+      k = c.i - 1;
+      while (k - 1 >= 0 && list[k - 1].along > to && list[k].along - list[k - 1].along > 0.05) take(list[k--], after);
+      if (k - 1 < 0 || list[k].along - list[k - 1].along <= 0.05) { take(list[k], after); continue; }
+      take(list[k], after);
+      const a = list[k - 1], b = list[k], t = (to - a.along) / (b.along - a.along);
+      const left = { ...lerpSample(a, b, t) }, right = { ...lerpSample(a, b, t) };
+      take(left, before); take(right, after);
+      list.splice(k, 0, left, right);
+    }
+  }
+}
+
+// the sample a fraction t of the way from a to b, with a's attributes
+function lerpSample(a: Sample, b: Sample, t: number): Sample {
+  const l = (u: number, v: number) => u + (v - u) * t;
+  let rx = l(a.rx, b.rx), rz = l(a.rz, b.rz);
+  const n = Math.hypot(rx, rz) || 1;
+  rx /= n; rz /= n;
+  const ground = a.ground !== null && b.ground !== null ? l(a.ground, b.ground) : a.ground;
+  return { ...a, x: l(a.x, b.x), y: l(a.y, b.y), z: l(a.z, b.z), rx, rz, along: l(a.along, b.along), s: l(a.s, b.s), ground, mouth: false, deadEnd: false };
+}
+
+function nearestSample(list: Sample[], x: number, z: number) {
+  let best = list[0], bestD = Infinity;
+  for (const sm of list) {
+    const d = (sm.x - x) ** 2 + (sm.z - z) ** 2;
+    if (d < bestD) { bestD = d; best = sm; }
+  }
+  return best;
 }
 
 // ------------------------------------------------------------------ samples along a piece
@@ -886,8 +1002,8 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     if (g.kind[i] !== g.kind[i + 1] || !g.pair[i] !== !g.pair[i + 1]) breaks.add(i + 0.5);
     // where a turnout's tunnel starts or ends
     if (g.left && g.right) {
-      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i] } as Sample;
-      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1] } as Sample;
+      const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i], pair: g.pair[i] } as Sample;
+      const k1 = { yard, kind: STRUCTURE_KINDS[g.kind[i + 1]], left: g.left[i + 1], right: g.right[i + 1], pair: g.pair[i + 1] } as Sample;
       if (bare(k0) !== bare(k1) || !widened(k0, -1) !== !widened(k1, -1) || !widened(k0, 1) !== !widened(k1, 1)) breaks.add(i + 0.5);
     }
     // where track no service runs on starts or stops sharing with a track beside it
@@ -906,7 +1022,14 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     for (let j = 0; j < m; j++) qs.push({ q: i + j / m, twice: false });
   }
   qs.push({ q: n - 1, twice: false });
-  for (const q of breaks) qs.push({ q, twice: true });
+  // a change takes the place of a sample already there (halfway between two points, it often
+  // falls on one): with both, the samples there would go after, before, after the change, and
+  // every surface would leave a gap up to the one before
+  for (const q of breaks) {
+    const k = qs.findIndex((e) => !e.twice && Math.abs(e.q - q) < 1e-6);
+    if (k >= 0) qs.splice(k, 1);
+    qs.push({ q, twice: true });
+  }
   qs.sort((a, b) => a.q - b.q);
   const out: Sample[] = [];
   let along = 0, last: { x: number; z: number } | null = null;

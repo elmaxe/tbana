@@ -88,3 +88,16 @@ export const TRAIN_SPECS: { metro: ServiceSpec; commuter: ServiceSpec; tram: Gau
   tram: { halfWidth: 1.3 },
   mainline: { halfWidth: 1.6 },
 };
+
+// A line at a station drawn from a model: the name on its platform's signs, and the next stations
+// each way for a ride on its shuttle (src/trains.ts). LINES has them for T-Centralen; at the other
+// stations the signs give the station's own name.
+export interface LineAtStation { sign: string; next?: { pos: string; neg: string } }
+const AT_STATION: Record<string, Partial<Record<LineId, LineAtStation>>> = {
+  Odenplan: { pink: { sign: 'Stockholm Odenplan', next: { pos: 'Stockholm City', neg: 'Solna' } } },
+  Fridhemsplan: { blue: { sign: 'Fridhemsplan', next: { pos: 'Rådhuset', neg: 'Stadshagen' } } },
+};
+export function lineAt(station: string, line: LineId): LineAtStation {
+  if (station === 'T-Centralen') return { sign: LINES[line].sign, next: LINES[line].next };
+  return AT_STATION[station]?.[line] ?? { sign: station };
+}

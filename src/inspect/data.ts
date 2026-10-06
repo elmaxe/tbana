@@ -6,6 +6,7 @@ import type { StructureKind, TrackGeometry } from '../track-geometry';
 import type { TrackGraph } from '../track-graph';
 import type { StationLayouts } from '../station-layout';
 import type { CityIndex } from '../city-tile';
+import type { StationPlacement } from '../station-models';
 
 export const getJson = <T>(url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
@@ -33,8 +34,16 @@ export interface Refs {
 // published one.
 export interface GuillaumesStation { name: string; drawing: string; model: string | null }
 
+// A station model (public/data/stations.json), with its file's name and how well it fits.
+export interface StationModel extends StationPlacement {
+  file: string;
+  fit?: { scaleCheck: number; atPlatforms: Record<string, [number, number]> };
+}
+
 export interface InspectData {
   graph: TrackGraph;
+  // the stations drawn from a model, by name
+  models: Map<string, StationModel>;
   geometry: TrackGeometry;
   layouts: StationLayouts | null;
   city: CityIndex | null;
@@ -62,8 +71,9 @@ async function loadRefs(): Promise<Refs> {
 }
 
 export async function loadData(): Promise<InspectData> {
-  const [graph, geometry, layouts, city, refs, guillaumes] = await Promise.all([
+  const [graph, models, geometry, layouts, city, refs, guillaumes] = await Promise.all([
     getJson<TrackGraph>('data/track-graph.json'),
+    getJson<Record<string, StationModel>>('data/stations.json').then((m) => new Map(Object.entries(m).map(([file, s]) => [s.name, { ...s, file }]))),
     getJson<TrackGeometry>('data/track-geometry.json'),
     getJson<StationLayouts>('data/station-layouts.json').catch(() => null),
     getJson<CityIndex>('data/city/index.json').catch(() => null),
@@ -71,7 +81,7 @@ export async function loadData(): Promise<InspectData> {
     getJson<GuillaumesStation[]>('__inspect/guillaumes').then((list) => new Map(list.map((s) => [s.name, s])))
       .catch((err) => { console.warn("no index of Albert Guillaumes' stations:", err); return null; }),
   ]);
-  return { graph, geometry, layouts, city, refs, guillaumes };
+  return { graph, models, geometry, layouts, city, refs, guillaumes };
 }
 
 // ------------------------------------------------------------------ places

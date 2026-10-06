@@ -1,5 +1,6 @@
 {
   "t-centralen": {
+    "name": "T-Centralen",
     "model": "assets/t-centralen.glb",
     "rotationY": 0.1443,
     "position": [0.183, 0, -0.275],
@@ -23,6 +24,46 @@
         "red": [2.39, 18.94],
         "green": [1.66, 15.9],
         "all": [1.19, 6.84]
+      }
+    }
+  },
+  "odenplan": {
+    "name": "Odenplan",
+    "model": "assets/odenplan.glb",
+    "rotationY": 1.0011,
+    "position": [-713.403, 13.866, -1374.929],
+    "fit": {
+      "osm": "2026-10-05T20:35:13Z",
+      "scaleCheck": 0.9999,
+      "atPlatforms": {
+        "green": [2.05, 3.94],
+        "pink": [0.23, 0.39],
+        "all": [0.32, 3.08]
+      },
+      "everywhere": {
+        "green": [3.33, 7.19],
+        "pink": [0.27, 0.71],
+        "all": [0.59, 5.23]
+      }
+    }
+  },
+  "fridhemsplan": {
+    "name": "Fridhemsplan",
+    "model": "assets/fridhemsplan.glb",
+    "rotationY": 48.8847,
+    "position": [-1715.204, 0.386, -265.764],
+    "fit": {
+      "osm": "2026-10-05T20:35:13Z",
+      "scaleCheck": 0.9999,
+      "atPlatforms": {
+        "green": [0.46, 0.89],
+        "blue": [13.34, 33.91],
+        "all": [1.16, 27.35]
+      },
+      "everywhere": {
+        "green": [0.48, 1.06],
+        "blue": [13.5, 47.62],
+        "all": [3.18, 38.22]
       }
     }
   }

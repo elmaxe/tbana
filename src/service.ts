@@ -14,8 +14,15 @@ export const DWELL = 22;     // seconds at least at a stop, from stopping to the
 export const DOORS_OPEN = 2.2, DOORS_SHUT = 2.8;     // seconds for the doors to open / close
 export const OPEN_DELAY = 0.8, SHUT_DELAY = 1.2;     // after stopping / after the closing chime
 export const LEAVE_DELAY = 1.0;                      // from closed doors to pulling away
-// from the closing chime to pulling away
-export const CLOSING = SHUT_DELAY + DOORS_SHUT + LEAVE_DELAY;
+// The C30's doors shut this long after the closing chime: at the end of its warning, when the
+// warning drops in level (the closing clip of src/sound.ts).
+export const C30_SHUT = 6.6;
+
+// Seconds from the closing chime to the doors starting to close, and to pulling away.
+export function closingTimes(svc: Service) {
+  const shut = svc.L.train === 'C30' ? C30_SHUT - DOORS_SHUT : SHUT_DELAY;
+  return { shut, leave: shut + DOORS_SHUT + LEAVE_DELAY };
+}
 
 export const RAIL_TOP = 0.99; // the rail head sits this far below the track path (platform level)
 
@@ -82,8 +89,9 @@ export interface Service {
   trip?: TripInfo;
 }
 
-// turned: a timetabled trip at the end of its route has become the next trip the other way
-export type ServiceEvent = 'arrived' | 'closing' | 'departed' | 'done' | 'turned' | null;
+// shutting: the doors start to close; turned: a timetabled trip at the end of its route has become
+// the next trip the other way
+export type ServiceEvent = 'arrived' | 'closing' | 'shutting' | 'departed' | 'done' | 'turned' | null;
 
 // One step of a train's run, at `clock` on the trains' clock; returns what happened.
 export function advance(svc: Service, dt: number, clock: number): ServiceEvent {
@@ -111,14 +119,17 @@ export function advance(svc: Service, dt: number, clock: number): ServiceEvent {
         return 'closing';
       }
       return null;
-    case 'closing':
+    case 'closing': {
+      const { shut, leave } = closingTimes(svc);
+      const was = svc.timer;
       svc.timer += dt;
-      if (svc.timer > SHUT_DELAY) svc.doors = Math.max(0, svc.doors - dt / DOORS_SHUT);
-      if (svc.doors === 0 && svc.timer > CLOSING) {
+      if (svc.timer > shut) svc.doors = Math.max(0, svc.doors - dt / DOORS_SHUT);
+      if (svc.doors === 0 && svc.timer > leave) {
         svc.state = 'run'; svc.speed = 0; svc.stop++;
         return 'departed';
       }
-      return null;
+      return was <= shut && svc.timer > shut ? 'shutting' : null;
+    }
   }
 }
 
