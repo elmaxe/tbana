@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { LINES, TRAIN_SPECS } from './lines';
+import { LINES, TRAIN_SPECS, lineAt } from './lines';
 import type { Destination, LineId } from './lines';
 import * as T from './textures';
 import { createTrain, SERVICE_UNITS } from './rolling-stock/index';
@@ -125,12 +125,13 @@ export class Trains {
       const t = path.tangentAt(mid);
       const pos = (L.axis === 'x' ? t.x : t.z) > 0;
       const destSet = pos ? L.dest.pos : L.dest.neg;
+      const here = lineAt(tr.station, tr.line);
       const svc: Service = {
         id: -1 - this.shuttles.length, L, vmax: spec.vmax, cars, model, trainLen, path, shown: [0, path.length],
-        stops: [{ station: L.sign, head: mid + trainLen / 2, side: (tr.platform.side * tr.dir > 0 ? 1 : -1), until: -Infinity }],
+        stops: [{ station: here.sign, head: mid + trainLen / 2, side: (tr.platform.side * tr.dir > 0 ? 1 : -1), until: -Infinity }],
         stop: 0, end: path.length + trainLen,
         state: 'wait', timer: 4 + Math.random() * 50, head: 0, speed: 0, limit: Infinity, doors: 0,
-        dest: destSet[0], shuttle: { tr, destSet, next: L.next ? (pos ? L.next.pos : L.next.neg) : '' },
+        dest: destSet[0], shuttle: { tr, destSet, next: here.next ? (pos ? here.next.pos : here.next.neg) : '' },
       };
       this.floors(svc);
       this.setDest(svc, pick(destSet));
@@ -157,7 +158,7 @@ export class Trains {
         if (!hasPlatform(tr)) continue;
         const stops = list.flatMap(({ route }) => {
           const r = this.timetable!.routes.find((x) => x.name === route);
-          const k = r ? r.stops.findIndex((st) => st.station === network.join.station) : -1;
+          const k = r ? r.stops.findIndex((st) => st.station === tr.station) : -1;
           return r && k >= 0 ? [{ route: r, k }] : [];
         });
         this.calls.push({ tr, shuttle: null, stops });
@@ -435,7 +436,7 @@ export class Trains {
       const car = to.cars[index] ?? to.cars[0];
       return { svc: to, car, local: ride.local.clone(), yaw: car.object.rotation.y };
     }
-    const to = this.shuttles.find((s) => s !== from && s.L === from.L && s.shuttle!.destSet !== from.shuttle!.destSet
+    const to = this.shuttles.find((s) => s !== from && s.L === from.L && s.shuttle!.tr.station === from.shuttle!.tr.station && s.shuttle!.destSet !== from.shuttle!.destSet
       && s.model?.type === from.model?.type && s.cars.length === from.cars.length) ?? from;
     to.state = 'run';
     to.stop = 0;

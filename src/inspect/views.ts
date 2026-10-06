@@ -41,8 +41,9 @@ export function onTrack(track: TrackIndex, sm: Sample, dir: 1 | -1 = 1): View {
 export function onPlatform(world: World, name: string): View | null {
   const spot = world.stations?.spot(name);
   if (spot) return { eye: [spot.pos.x, spot.pos.y + EYE, spot.pos.z], yaw: spot.yaw, pitch: 0 };
-  // T-Centralen: its red line platform in the station model
-  const t = name === 'T-Centralen' ? world.station?.teleports.find((p) => p.line === 'red') : null;
+  // a station drawn from a model: its red line platform (T-Centralen's), or its green line one
+  const t = world.station?.teleports.find((p) => p.station === name && p.line === 'red')
+    ?? world.station?.teleports.find((p) => p.station === name && p.line === 'green');
   return t ? { eye: [t.pos.x, t.pos.y + EYE, t.pos.z], yaw: t.yaw, pitch: 0 } : null;
 }
 

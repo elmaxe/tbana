@@ -17,7 +17,9 @@ import * as T from './textures';
 const LOAD = 1100;      // fetch and build tiles whose nearest point is this close
 const UNLOAD = 400;     // and drop them this much further away
 const FINE = 0.55;      // the full grid within this share of LOAD; every other point beyond
-const SKIRT = 4;        // the ground's edges hang down this far, over the seams between tiles
+const UNDERGROUND = 3;   // the buildings are hidden with the camera this far under the ground
+const SKIRT = 4;        // the ground's edges hang down at most this far, over the seams between tiles
+const SKIRT_MARGIN = 0.3;
 const FETCHES = 3;      // tiles fetched at once
 const FOOT_CELL = 10;   // buildings by cell, for walking
 const WALL_REACH = 0.45; // a shed's wall keeps the player this far off
@@ -48,9 +50,18 @@ function hash(n: number) {
   return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
 
+// The ground's underside, seen from the stations and tunnels under it, is as dark as the rock round
+// them: it hides the buildings standing on the ground over a station's open-topped halls.
+const UNDERSIDE = 0.06;
+
 function materials() {
+  const ground = new THREE.MeshStandardMaterial({ map: T.ground(), vertexColors: true, roughness: 1, side: THREE.DoubleSide });
+  ground.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace('#include <dithering_fragment>',
+      `#include <dithering_fragment>\n  if (!gl_FrontFacing) gl_FragColor.rgb *= ${UNDERSIDE.toFixed(2)};`);
+  };
   return {
-    ground: new THREE.MeshStandardMaterial({ map: T.ground(), vertexColors: true, roughness: 1 }),
+    ground,
     walls: new THREE.MeshStandardMaterial({ map: T.facade(), vertexColors: true, roughness: 0.9 }),
     roofs: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }),
   };
@@ -62,6 +73,7 @@ export class City {
   private mats = materials();
   private floor: CityFloorData = { kind: 'city', rec: { label: 'Street' } };
   private fetching = 0;
+  private buildingsShown = true;
 
   // `cuts`: the volumes cut out of the ground and kept from being walked on: the stations' stairs,
   // lifts and rooms where they come up through it
@@ -105,6 +117,14 @@ export class City {
       build.t.lod = build.lod;
       build.t.group = this.build(build.t);
       this.group.add(build.t.group);
+    }
+    // Well under the ground, the buildings are hidden: the ground hides them anyway, except for
+    // their walls' feet, which reach a little below it, and would show through the stations'
+    // open-topped halls.
+    const ground = this.heightAt(pos.x, pos.z);
+    this.buildingsShown = ground === null || pos.y > ground - UNDERGROUND;
+    for (const t of this.tiles.values()) {
+      for (const m of t.group?.children ?? []) if (m.userData.building) m.visible = this.buildingsShown;
     }
   }
 
@@ -268,8 +288,13 @@ export class City {
     const d = t.data!;
     if (d.ground) group.add(new THREE.Mesh(this.groundGeometry(t), this.mats.ground));
     const { walls, roofs } = buildingGeometry(d.buildings, t);
-    if (walls) group.add(new THREE.Mesh(walls, this.mats.walls));
-    if (roofs) group.add(new THREE.Mesh(roofs, this.mats.roofs));
+    for (const [geom, mat] of [[walls, this.mats.walls], [roofs, this.mats.roofs]] as const) {
+      if (!geom) continue;
+      const m = new THREE.Mesh(geom, mat);
+      m.userData.building = true;
+      m.visible = this.buildingsShown;
+      group.add(m);
+    }
     return group;
   }
 
@@ -303,12 +328,18 @@ export class City {
         idx.push(a, dd, cc, a, cc, b);
       }
     }
-    // skirts down from the edges, over any crack against a neighbour built at another stride
+    // skirts down from the edges, over any crack against a neighbour built at another stride: as
+    // deep as the ground changes from one point to the next along the edge, which is as far as a
+    // crack can open (and no deeper, so they don't hang down into a shallow tunnel)
     const edge = (list: number[], outward: boolean) => {
       const first = pos.length / 3;
-      for (const v of list) {
-        pos.push(pos[3 * v], pos[3 * v + 1] - SKIRT, pos[3 * v + 2]);
-        uv.push(uv[2 * v], uv[2 * v + 1] + SKIRT / 8);
+      for (const [k, v] of list.entries()) {
+        const y = pos[3 * v + 1];
+        let drop = 0;
+        for (const w of [list[k - 1], list[k + 1]]) if (w !== undefined) drop = Math.max(drop, Math.abs(pos[3 * w + 1] - y));
+        const depth = Math.min(SKIRT, drop + SKIRT_MARGIN);
+        pos.push(pos[3 * v], y - depth, pos[3 * v + 2]);
+        uv.push(uv[2 * v], uv[2 * v + 1] + depth / 8);
         col.push(col[3 * v], col[3 * v + 1], col[3 * v + 2]);
       }
       for (let k = 0; k + 1 < list.length; k++) {

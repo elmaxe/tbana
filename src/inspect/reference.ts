@@ -101,7 +101,8 @@ export class Reference {
     const routes = graph.routes.filter((r) => r.stops.some((s) => s.station === name));
     const services = [...new Set(routes.map((r) => r.service))];
     const lines = [...new Set(st.platforms.flatMap((p) => p.tracks.flatMap((t) => graph.pieces[t.piece].lines)))];
-    const built = !!layout || name === 'T-Centralen';
+    const model = this.data.models.get(name);
+    const built = !!layout || !!model;
     const sm = this.track.nearest(st.x, st.z, 80);
     const desc = refs?.descriptions[name];
     let h = `<h2>${lines.map((l) => `<span class="dot" style="background:${LINES[l as LineId]?.color ?? '#888'}"></span>`).join('')}${esc(name)}</h2>`;
@@ -137,11 +138,14 @@ export class Reference {
     h += this.fixes(st.x, st.z, 250, name);
 
     // what it was built from
-    if (name === 'T-Centralen') {
+    if (model) {
+      const fit = model.fit ? Object.entries(model.fit.atPlatforms).filter(([l]) => l !== 'all').map(([l, [m]]) => `${l} ${m} m`).join(', ') : '';
       h += '<h3>Built from</h3>';
       h += `<p>Albert Guillaumes' 3D drawing of the station (${a('http://stations.albertguillaumes.cat/', 'Stations and transfers')}), `
-        + 'converted unchanged to <code>public/assets/t-centralen.glb</code> and fitted onto OpenStreetMap\'s tracks by <code>tools/fit-station.ts</code> '
-        + '(see <code>public/data/stations.json</code> for how well it fits).</p>';
+        + `converted unchanged to <code>public/${esc(model.model)}</code> (<code>tools/fetch-model.ts</code>) and fitted onto OpenStreetMap's tracks by <code>tools/fit-station.ts</code>`
+        + `${fit ? `: along the platforms its tracks are a median ${esc(fit)} from them` : ''}`
+        + `${model.position[1] ? `, and lifted ${model.position[1].toFixed(2)} m to the track's height at its platforms` : ''} `
+        + '(see <code>public/data/stations.json</code>).</p>';
     } else if (desc) {
       h += '<h3>Description</h3>';
       if (desc.note) h += `<p>${esc(desc.note)}</p>`;
@@ -173,23 +177,28 @@ export class Reference {
     return h;
   }
 
-  // Albert Guillaumes' 3D model of the station, where he has published one (T-Centralen's is the
-  // one the game is built on), and his drawing of it.
+  // Albert Guillaumes' 3D model of the station, where he has published one (the game is built on
+  // those of T-Centralen, Odenplan and Fridhemsplan), and his drawing of it.
   private guillaumes(name: string, described?: string) {
     const g = this.data.guillaumes?.get(name);
     const drawing = this.data.refs ? g?.drawing ?? described : undefined;
-    const model = name === 'T-Centralen' ? 'assets/t-centralen.glb' : this.data.refs && g?.model ? `__inspect/model/${g.model}.gltf` : null;
+    const own = this.data.models.get(name);
+    const model = own ? own.model : this.data.refs && g?.model ? `__inspect/model/${g.model}.gltf` : null;
     let h = '';
     if (model) {
       h += `<div class="model" data-model="${esc(model)}"><div class="model-bar"><span class="model-status"></span>`
         + '<button data-model-act="reset">Reset</button><button data-model-act="wire">Wireframe</button><button data-model-act="big" title="Fill the window (Esc to shrink)">Enlarge</button></div></div>';
-      h += `<p class="note">His 3D model${name === 'T-Centralen' ? ', which the game is built on (<code>public/assets/t-centralen.glb</code>)' : ''}: drag to turn it, the wheel to zoom, right-drag to pan.</p>`;
+      h += `<p class="note">His 3D model${own ? `, which the game is built on (<code>public/${esc(own.model)}</code>)` : ''}: drag to turn it, the wheel to zoom, right-drag to pan.</p>`;
     }
     if (drawing) {
       h += `<div class="figure drawing" title="Click to see it full size"><img src="__inspect/drawing/${esc(drawing)}" alt="Drawing of ${esc(name)}"></div>`;
       h += `<p class="note">His drawing${described ? ', which the description is read from' : ''}: ${a(`${SITE}img/estocolm/${drawing}`, drawing)}</p>`;
     }
-    if (h) return `<h3>Albert Guillaumes</h3>${h}<p class="note">© Albert Guillaumes, ${a(SITE, 'estacions.albertguillaumes.cat')}: used as a reference only, and kept out of the repository.</p>`;
+    if (h) {
+      const use = own ? 'the game is built on his model of this station; his drawing is used as a reference only, and kept out of the repository'
+        : 'used as a reference only, and kept out of the repository';
+      return `<h3>Albert Guillaumes</h3>${h}<p class="note">© Albert Guillaumes, ${a(SITE, 'estacions.albertguillaumes.cat')}: ${use}.</p>`;
+    }
     if (this.data.refs && !this.data.guillaumes) return `<p class="note">Albert Guillaumes' site couldn't be reached for his drawings: reload to try again.</p>`;
     return '';
   }
@@ -363,7 +372,7 @@ export class Reference {
     return '<h3>Sources</h3><ul class="note">'
       + `<li>Track: ${a('https://www.openstreetmap.org/copyright', 'OpenStreetMap')} contributors (ODbL)${graph.osm ? `, as of ${esc(graph.osm.slice(0, 10))}` : ''}; <code>data/osm/</code>, fixed by <code>data/track-corrections.json</code></li>`
       + `<li>Heights: ${a('https://www.lantmateriet.se/sv/geodata/vara-produkter/produktlista/markhojdmodell-nedladdning/', 'Lantmäteriet Markhöjdmodell')} (CC BY 4.0); stations from Wikidata P2044${refs ? ` (${esc(refs.heightNote.split('.')[0])})` : ''}</li>`
-      + `<li>Station layouts: read off ${a('http://estacions.albertguillaumes.cat/', "Albert Guillaumes' drawings")} (reference only); T-Centralen is his 3D drawing</li>`
+      + `<li>Station layouts: read off ${a('http://estacions.albertguillaumes.cat/', "Albert Guillaumes' drawings")} (reference only); T-Centralen, Odenplan and Fridhemsplan are his 3D drawings</li>`
       + `<li>Design limits and sections: the ${a('https://fordonsradio.se/wp-content/uploads/2025/08/Stockholms-Tunnelbanesystem-1952.pdf', '1952')} and ${a('https://fordonsradio.se/wp-content/uploads/2025/08/Stockholms-Tunnelbanor-1975.pdf', '1975')} technical descriptions (reference only)</li>`
       + `<li>Notes: ${a('docs/network-sources.md', 'docs/network-sources.md')}, ${a('docs/red-line-plan.md', 'docs/red-line-plan.md')}</li>`
       + '</ul>';

@@ -5,9 +5,12 @@ import { extractCenterlines, splitComponents, sweep, vkey } from './polyline';
 import { classifyColor } from './model-colors';
 import type { RecordKind } from './model-colors';
 import type { Polyline, Tri } from './polyline';
-import { LINES, TRAIN_SPECS } from './lines';
+import { LINES, TRAIN_SPECS, lineAt } from './lines';
+import { HOME_STATION, stationOf } from './station-models';
 import type { GaugeSpec, LineId } from './lines';
 import * as T from './textures';
+import { prism } from './clip';
+import type { Volume } from './clip';
 
 // The source model is an extruded 2D drawing: floor slabs, stair ramps, escalator tubes,
 // lift shafts, ticket gates and tracks, each identified only by its colour. This module turns
@@ -16,6 +19,7 @@ import * as T from './textures';
 
 export interface SurfaceRecord {
   name: string;
+  station: string; // the model it is in (src/station-models.ts)
   kind: RecordKind;
   color: THREE.Color;
   box: THREE.Box3;
@@ -39,7 +43,7 @@ export interface Board { canvas: HTMLCanvasElement; texture: THREE.CanvasTexture
 // `drawn` is the stretch of the path the station draws track along, with no tunnels of its own:
 // the track network (src/network.ts) draws the rest. Without it, the station draws the whole
 // path, and tunnels beyond the platform.
-export interface Track { line: LineId; path: Polyline; platform: Platform | null; dir: number; board?: Board; drawn?: [number, number] }
+export interface Track { line: LineId; station: string; path: Polyline; platform: Platform | null; dir: number; board?: Board; drawn?: [number, number] }
 
 export interface StationOptions {
   // called once the tracks and their platforms are found, before anything is built along them:
@@ -49,7 +53,9 @@ export interface StationOptions {
 
 export interface LiftLevel { y: number; pos: THREE.Vector3; yaw: number }
 export interface Lift { center: THREE.Vector3; radius: number; minY: number; maxY: number; levels: LiftLevel[] }
-export interface Teleport { label: string; line: LineId; pos: THREE.Vector3; yaw: number }
+export interface Teleport { label: string; line: LineId; station: string; pos: THREE.Vector3; yaw: number }
+// The box round each model's floors, by station.
+export interface StationArea { name: string; bounds: THREE.Box3 }
 
 export interface Station {
   group: THREE.Group;
@@ -60,7 +66,8 @@ export interface Station {
   lifts: Lift[];
   teleports: Teleport[];
   spawn: Teleport;
-  bounds: THREE.Box3;
+  bounds: THREE.Box3; // the home station's (src/station-models.ts), for the minimap
+  areas: StationArea[];
   records: SurfaceRecord[];
 }
 
@@ -121,7 +128,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     const box = g.boundingBox!.clone();
     const size = box.getSize(new THREE.Vector3());
     if (kind === 'lightblue') kind = Math.max(size.x, size.z) < 5.5 && size.y > 5 ? 'elevator' : 'tube';
-    const rec: SurfaceRecord = { name: o.name, kind, color, box, size, top: [], side: [], bottom: [], all: [] };
+    const rec: SurfaceRecord = { name: o.name, station: stationOf(o), kind, color, box, size, top: [], side: [], bottom: [], all: [] };
     const p = g.attributes.position, n = g.attributes.normal;
     for (let i = 0; i < p.count; i += 3) {
       const tri = [0, 1, 2].map((k) => V(p.getX(i + k), p.getY(i + k), p.getZ(i + k))) as Tri;
@@ -161,7 +168,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     return (p: THREE.Vector3): UV => [(p.x * -d.y + p.z * d.x) / 2, (p.x * d.x + p.z * d.y) * stepsPerMetre];
   };
 
-  const trackComponents: { line: LineId; tris: Tri[] }[] = [];
+  const trackComponents: { line: LineId; station: string; tris: Tri[] }[] = [];
   const elevators: SurfaceRecord[] = [];
 
   for (const rec of records) {
@@ -214,7 +221,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
           trackIdx.add(t[0], t[1], t[2], { line });
           lineMap[line].tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0]);
         }
-        for (const comp of splitComponents(rec.top)) trackComponents.push({ line, tris: comp });
+        for (const comp of splitComponents(rec.top)) trackComponents.push({ line, station: rec.station, tris: comp });
       }
     }
   }
@@ -279,7 +286,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
   const hits: WalkHit[] = [];
   for (const comp of trackComponents) {
     for (const pl of extractCenterlines(comp.tris)) {
-      tracks.push(analyseTrack(pl, comp.line, walk, hits));
+      tracks.push(analyseTrack(pl, comp.line, comp.station, walk, hits));
     }
   }
   assignDirections(tracks);
@@ -360,7 +367,8 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
       const ls = [...rec.platformLines].sort((a, b) => Object.keys(LABEL).indexOf(a) - Object.keys(LABEL).indexOf(b));
       const nums = ls.flatMap((l) => LINES[l].numbers);
       const names = ls.map((l) => LABEL[l]);
-      rec.label = (names.length > 1 ? names.map((n) => n.replace(' line', '')).join('/') + ' line' : names[0]) + ' platform'
+      rec.label = (rec.station === HOME_STATION ? '' : `${rec.station} · `)
+        + (names.length > 1 ? names.map((n) => n.replace(' line', '')).join('/') + ' line' : names[0]) + ' platform'
         + (nums.length ? ` · ${nums.join(' ')}` : '');
     } else if (rec.kind === 'stairs') rec.label = 'Stairs';
     else if (rec.kind === 'tube') rec.label = 'Escalator';
@@ -373,10 +381,13 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     if (!tr.platform || seen.has(tr.platform.rec)) continue;
     seen.add(tr.platform.rec);
     const spot = platformSpot(tr, walk, hits, lifts);
-    if (spot) teleports.push({ label: tr.platform.rec.label!, line: tr.line, ...spot });
+    if (spot) teleports.push({ label: tr.platform.rec.label!, line: tr.line, station: tr.station, ...spot });
   }
+  // the home station's first, then the others' in the order they were loaded
   const order = ['blue', 'red', 'green', 'pink', 'main', 'tram'];
-  teleports.sort((a, b) => order.indexOf(a.line) - order.indexOf(b.line) || b.pos.y - a.pos.y);
+  const stationOrder = [...new Set(records.map((r) => r.station))];
+  teleports.sort((a, b) => stationOrder.indexOf(a.station) - stationOrder.indexOf(b.station)
+    || order.indexOf(a.line) - order.indexOf(b.line) || b.pos.y - a.pos.y);
   const dupes = new Map<string, Teleport[]>();
   for (const t of teleports) dupes.set(t.label, [...(dupes.get(t.label) || []), t]);
   for (const list of dupes.values()) {
@@ -389,12 +400,42 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     else names = dz < 0 ? ['north', 'south'] : ['south', 'north'];
     a.label += ` (${names[0]})`; b.label += ` (${names[1]})`;
   }
-  const spawn = teleports.find((t) => t.line === 'blue') || teleports[0];
+  const spawn = teleports.find((t) => t.line === 'blue' && t.station === HOME_STATION) || teleports[0];
 
-  const bounds = new THREE.Box3();
-  for (const r of records) bounds.union(r.box);
+  const areas: StationArea[] = [];
+  for (const r of records) {
+    let a = areas.find((q) => q.name === r.station);
+    if (!a) areas.push(a = { name: r.station, bounds: new THREE.Box3() });
+    a.bounds.union(r.box);
+  }
+  const bounds = (areas.find((a) => a.name === HOME_STATION) ?? areas[0]).bounds;
 
-  return { group, mapGroup, walk, trackIdx, tracks, lifts, teleports, spawn, bounds, records };
+  return { group, mapGroup, walk, trackIdx, tracks, lifts, teleports, spawn, bounds, areas, records };
+}
+
+// The spaces of a model's floors, stairs, escalators and lifts, to be cut out of the city's ground
+// where they come up through it (src/city.ts): from a little under each floor to a storey over it,
+// so the ground opens over a stairwell where it reaches the street. Not the home station's:
+// T-Centralen's upper levels lie under the streets and squares the city draws over them.
+export function modelGroundCuts(station: Station): Volume[] {
+  const cuts: Volume[] = [];
+  const HEADROOM = 3;
+  const tri = (t: Tri, lift = 0) => {
+    // (not a sliver, which has no plane through it)
+    if (Math.abs((t[1].x - t[0].x) * (t[2].z - t[0].z) - (t[1].z - t[0].z) * (t[2].x - t[0].x)) < 0.02) return;
+    cuts.push(prism(t.map((v) => [v.x, v.z] as [number, number]), t.map((v) => v.y + lift - 0.3), t.map((v) => v.y + lift + HEADROOM)));
+  };
+  for (const r of station.records) {
+    if (r.station === HOME_STATION) continue;
+    if (r.kind === 'floor' || r.kind === 'stairs') for (const t of r.top) tri(t);
+    else if (r.kind === 'tube') for (const t of r.bottom) tri(t, 1);
+    else if (r.kind === 'elevator') {
+      const { min, max } = r.box;
+      const plan: [number, number][] = [[min.x, min.z], [max.x, min.z], [max.x, max.z], [min.x, max.z]];
+      cuts.push(prism(plan, plan.map(() => min.y), plan.map(() => max.y + 1)));
+    }
+  }
+  return cuts;
 }
 
 // ------------------------------------------------------------------ helpers
@@ -416,7 +457,7 @@ interface Sample { s: number; side: number; d: number; rec: SurfaceRecord }
 interface SampleRun { i0: number; i1: number; items: Sample[] }
 
 // Finds the platform alongside a track and shifts the track so a train's side meets the platform edge.
-function analyseTrack(path: Polyline, line: LineId, walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
+function analyseTrack(path: Polyline, line: LineId, station: string, walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
   const spec = TRAIN_SPECS[LINES[line].kind];
   const step = 2;
   const samples: (Sample | null)[] = [];
@@ -450,7 +491,7 @@ function analyseTrack(path: Polyline, line: LineId, walk: SurfaceIndex<SurfaceDa
   });
   if (cur && (!best || cur.items.length > best.items.length)) best = cur;
 
-  const track: Track = { line, path, platform: null, dir: 1 };
+  const track: Track = { line, station, path, platform: null, dir: 1 };
   if (best && (best.i1 - best.i0) * step >= 40) {
     const ds = best.items.map((f) => f.d).sort((a, b) => a - b);
     const edge = ds[ds.length >> 1] - 0.15;
@@ -515,7 +556,7 @@ function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs:
   }
 
   // Station name signs facing the track.
-  const signTex = T.nameSign(L.sign, L.signBg);
+  const signTex = T.nameSign(lineAt(tr.station, tr.line).sign, L.signBg);
   const signMat = new THREE.MeshBasicMaterial({ map: signTex });
   const signGeo = new THREE.PlaneGeometry(3.6, 0.68);
   const backGeo = signGeo.clone().rotateY(Math.PI);

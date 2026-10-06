@@ -4,7 +4,8 @@
 
 A first-person walk through **T-Centralen / Stockholm City / Stockholm C**, running in the browser
 with [three.js](https://threejs.org/). It is built on Albert Guillaumes' 3D drawing of the station
-from [Stations and transfers](http://stations.albertguillaumes.cat/).
+from [Stations and transfers](http://stations.albertguillaumes.cat/), and so are Odenplan and
+Fridhemsplan on the green line, the two other Stockholm stations he has drawn in 3D.
 
 **Play it online:** https://elmaxe.github.io/tbana/
 
@@ -49,10 +50,10 @@ and opens a page in three panes:
   camera is indoors or underground, the outside view cuts away everything over its head, so you
   look down into the tunnel or station (**cut:** always or never instead).
 - **Reference:** what the place was built from. For a station: Albert Guillaumes' 3D model of it
-  where he has published one (T-Centralen, Odenplan, Fridhemsplan), to turn round and enlarge, and
-  his drawing of it (all 105 of his Stockholm stations, on any line). Both are fetched from his site
-  the first time they're shown and kept in `node_modules/.cache/inspect/`, never in the repository
-  (delete that folder to fetch them again). Then the description,
+  where he has published one (T-Centralen, Odenplan, Fridhemsplan: the game's own), to turn round
+  and enlarge, and his drawing of it (all 105 of his Stockholm stations, on any line). The drawings
+  are fetched from his site the first time they're shown and kept in `node_modules/.cache/inspect/`,
+  never in the repository (delete that folder to fetch them again). Then the description,
   its frame (`build-stations --frame`), the heights from Wikidata and as built, the fixes made by
   hand with their reasons, OpenStreetMap's entrances, and the track plan and profile round it
   (`plot-graph`, `plot-profile`). For a track: its OpenStreetMap nodes and ways, its height,
@@ -118,8 +119,9 @@ up to the street (see [The stations](#the-stations)). At the end of the line the
 platform with its doors open and turns there: it leaves as the next train the other way, and you can
 stay aboard.
 
-On the blue line and the pendeltåg the model's tunnels are short, so the screen goes dark soon after
-you leave, and you come back to T-Centralen in the same spot of a train on the other track. Seats
+On the blue line and the pendeltåg the models' tunnels are short, so the screen goes dark soon after
+you leave, and you come back to the station you left (T-Centralen, or Fridhemsplan on the blue line
+and Odenplan on the pendeltåg) in the same spot of a train on the other track. Seats
 don't block you, and the pendeltåg can't be boarded.
 
 ## Deployment
@@ -178,18 +180,30 @@ SWEREF 99 18 00, the Stockholm zone of Sweden's national grid, around an origin 
 - y is the height above sea level in RH 2000. The station drawing is already drawn in those heights:
   the blue line platform is at −24 m, and the Stockholm C tracks are at +6 m.
 
-`public/data/stations.json` says where each station model sits on that grid. The tools that make
-it run on Node's built-in TypeScript support:
+`public/data/stations.json` says where each station model sits on that grid: T-Centralen,
+Odenplan and Fridhemsplan (`src/station-models.ts` loads them). The tools that make it run on
+Node's built-in TypeScript support:
 
 ```sh
+npm run fetch-model -- odenplan     # his glTF -> public/assets/odenplan.glb
 npm run fetch-osm -- t-centralen    # OpenStreetMap tracks and platforms -> data/osm/t-centralen.json
+npm run fetch-osm -- odenplan --pbf stockholm.osm.pbf   # ... from an extract, without Overpass
 npm run fit-station -- t-centralen  # fit the model's tracks onto them -> public/data/stations.json
 ```
 
 `fit-station` turns and moves the model in plan until its tracks lie on the OpenStreetMap tracks,
-matching each line only to the same line. It prints how far apart they are: for T-Centralen the
-median along the platforms is 0.8 m, and 90% are within 2 m. The tunnel ends of the drawing are
-sketched, so they can be 20–40 m off.
+matching each line only to the same line. It prints how far apart they are. Along the platforms
+the median is:
+
+- T-Centralen: 0.8 m, and 90% are within 2 m. The tunnel ends of the drawing are sketched, so they
+  can be 20–40 m off.
+- Odenplan: 0.2 m for the pendeltåg and 2 m for the green line, whose tunnel OSM only sketches.
+- Fridhemsplan: 0.5 m for the green line, which alone places it. The drawing has the blue line
+  crossing it at an angle some degrees off the map's, so the blue line's platform is 13 m out.
+
+T-Centralen is drawn in heights above sea level, and the track's heights are fitted to it. The
+other two are drawn round a level of their own: `fit-station` lifts them to the track's rail at
+their platforms (by 13.9 m and 0.4 m).
 
 ### The track graph
 
@@ -398,8 +412,14 @@ station halls.
 
 ### The stations
 
-Every red and green line station beyond T-Centralen can be walked from its platform up (or down)
-to the street: through passages, stairs, escalators and ticket halls, to exits at OpenStreetMap's
+Odenplan and Fridhemsplan, like T-Centralen, are Albert Guillaumes' 3D models (see [World
+coordinates](#world-coordinates)). Their green line platforms are joined to the network as
+T-Centralen's are, and the lines the network doesn't draw get a shuttle each way, as at
+T-Centralen: the pendeltåg at Odenplan and the blue line at Fridhemsplan. Their stairs, escalators
+and lifts open through the city's ground where they reach it.
+
+Every other red and green line station beyond T-Centralen can be walked from its platform up (or
+down) to the street: through passages, stairs, escalators and ticket halls, to exits at OpenStreetMap's
 subway entrances. Out on the green line's branches, OSM's entrance often lies between the tracks
 just past the platform, where the passage under the bank comes out; there isn't the headroom for
 an exit under the track, so the passage leads on under it to an exit beside the line. Each station is built from a short description in `data/station-descriptions.json`,
@@ -482,7 +502,8 @@ How the ground meets the track:
   lower, the track's bank runs on down into it.
 - Over a tunnel the ground stays at least 0.5 m above the crown. A "tunnel" whose ground the
   elevation model has below half its height is a short covered way or one under a bridge the
-  model leaves out, and stands in the open instead.
+  model leaves out, and stands in the open instead. Open track beside a tunnel lowers the ground
+  only as far as the tunnel's roof.
 - At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
   round the opening.
 
@@ -507,9 +528,14 @@ every other point. The ground is paved where buildings are close together and gr
 aren't. It can be walked on, except beside open track a service runs on, inside buildings and over
 the stations' openings (so the depot yards and halls can be walked through, but a hall's walls only
 at its doors), and the street around the exits stays walkable as before but isn't drawn. A flood
-fill from each of the 155 exits, with the player's step rule, in the game, reaches the city's ground
-from all but one: Sätra's comes up into a street hemmed in by the shopping centre, the track and
+fill from each of the 155 exits (146 since Odenplan and Fridhemsplan became models), with the
+player's step rule, in the game, reaches the city's ground from all but one: Sätra's comes up into a street hemmed in by the shopping centre, the track and
 higher ground.
+
+From below, the ground is as dark as the rock, and with the camera more than 3 m under it the
+buildings are hidden, so they don't show through the stations' open-topped halls. The tiles' skirts
+(over the cracks between tiles built at different detail) hang only as deep as the ground changes
+along the edge, so they don't hang into a shallow tunnel.
 
 `?nocity` starts the game without it.
 
@@ -551,10 +577,10 @@ const c20 = createTrain('C20', { interiorStyle: 'original' }); // the 1997 inter
 
 ## Credits
 
-Station geometry: 3D drawing of T-Centralen / Stockholm City / Stockholm C © Albert Guillaumes,
-[stations.albertguillaumes.cat](http://stations.albertguillaumes.cat/), converted unchanged from the
-site's `t-centralen.gltf` to `assets/t-centralen.glb`. The drawing is his work. Ask him before you
-publish or redistribute this project.
+Station geometry: 3D drawings of T-Centralen / Stockholm City / Stockholm C, Odenplan and
+Fridhemsplan © Albert Guillaumes, [stations.albertguillaumes.cat](http://stations.albertguillaumes.cat/),
+converted unchanged from the site's `t-centralen.gltf`, `odenplan.gltf` and `fridhemsplan.gltf` to
+`assets/*.glb`. The drawings are his work. Ask him before you publish or redistribute this project.
 
 Map data: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, under the Open
 Database License (`data/osm/`, and the placements, track graph and track geometry derived from it

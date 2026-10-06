@@ -4,7 +4,7 @@
 //   node tools/build-track-geometry.ts
 //
 // Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json,
-// data/height-corrections.json and the T-Centralen model; writes public/data/track-geometry.json
+// data/height-corrections.json and the station models; writes public/data/track-geometry.json
 // (format in src/track-geometry.ts).
 //
 // The plan. OpenStreetMap's track is traced from aerial photos in the open, but sketched in the
@@ -15,7 +15,8 @@
 // least squares, through:
 // - OpenStreetMap's track: closely in the open and along platforms, loosely in tunnels (but
 //   closely for track no service runs on, which OSM maps from depot and track plans)
-// - T-Centralen's platform tracks: the station model's tracks, which the game draws
+// - the platform tracks of the stations drawn from a model (T-Centralen, Odenplan, Fridhemsplan):
+//   the model's tracks, which the game draws
 // - the two tracks of a line in a tunnel, at the same level: 3.15 m apart, beside each other;
 //   at different levels, at least 7.5 m apart, so that their tunnels don't cut into each other;
 //   and at an island platform in a tunnel, the platform's width apart. Not near the tunnel's
@@ -46,7 +47,7 @@ import { loadStationModel, placeSample } from './lib/station-model.ts';
 const OUT = 'public/data/track-geometry.json';
 const STEP = 10;
 // how far each kind of anchor may be off, in metres (1/m for curvature)
-const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3 };
+const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3, middle: 0.1 };
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
 // 250 m, and measured over 20 m this keeps above it (and in proportion on the other lines). Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
@@ -97,8 +98,37 @@ interface Seg { piece: TrackPiece; k: number }
 const CELL = 20;
 interface Partner { piece: TrackPiece; k: number; t: number; d: number; dy: number; x: number; z: number; y: number; s: number }
 interface Across { vi: number; b0: number; b1: number; t: number; nx: number; nz: number }
+// Sidings and spurs in a tunnel, as OpenStreetMap has them: where one runs between the two tracks of
+// a line (a turnback track between the running lines, as west of Odenplan), those two are not
+// pulled together.
+const sidings: [number, number, number, number][] = [];
+{
+  const running = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+  for (const id of lineTrack(graph)) {
+    const p = graph.pieces[id];
+    if (running.has(id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+    for (let k = 1; k < p.points.length; k++) sidings.push([...p.points[k - 1], ...p.points[k]] as [number, number, number, number]);
+  }
+}
+const SIDING_CLEAR = 2;
+// the running lines either side of such a siding are looked for this far from it
+const SIDING_SPAN = 12;
+function sidingBetween(ax: number, az: number, bx: number, bz: number) {
+  const dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
+  if (d < 2 * SIDING_CLEAR) return false;
+  for (const [cx, cz, ex, ez] of sidings) {
+    const fx = ex - cx, fz = ez - cz, den = dx * fz - dz * fx;
+    if (Math.abs(den) < 1e-9) continue;
+    const u = ((cx - ax) * fz - (cz - az) * fx) / den, w = ((cx - ax) * dz - (cz - az) * dx) / den;
+    if (w >= 0 && w <= 1 && u * d > SIDING_CLEAR && (1 - u) * d > SIDING_CLEAR) return true;
+  }
+  return false;
+}
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
-const model = (await loadStationModel('t-centralen')).samples.map((s) => placeSample(s, placements['t-centralen']));
+// the stations drawn from a model (public/data/stations.json), with their tracks placed
+const models = await Promise.all(Object.entries(placements as Record<string, { name: string; rotationY: number; position: [number, number, number] }>)
+  .map(async ([file, place]) => ({ station: place.name, samples: (await loadStationModel(file)).samples.map((s) => placeSample(s, place)) })));
+const modelStations = new Set(models.map((m) => m.station));
 
 function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, log: (...a: unknown[]) => void) {
   // ------------------------------------------------------------------ the pieces and their points
@@ -282,24 +312,27 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
 
-  // T-Centralen: the model's tracks along its platforms, as in build-heights
-  const tcPlatforms = graph.stations.find((s) => s.name === 'T-Centralen')!.platforms.flatMap((p) => p.tracks);
+  // the stations drawn from a model: the model's tracks along their platforms (as in build-heights
+  // for T-Centralen)
   const onModel = new Map<number, [number, number]>();
-  for (const p of pieces) {
-    const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
-    const ranges = tcPlatforms.filter((t) => t.piece === p.id);
-    if (!lines.length || !ranges.length) continue;
-    const { s, v } = disc.get(p.id)!;
-    v.forEach((vi, k) => {
-      if (!ranges.some((t) => s[k] >= t.s0 && s[k] <= t.s1)) return;
-      let best: [number, number] | null = null, bestD = 3;
-      for (const m of model) {
-        if (!lines.includes(m.kind)) continue;
-        const d = Math.hypot(m.x - vars[vi].x0, m.z - vars[vi].z0);
-        if (d < bestD) { bestD = d; best = [m.x, m.z]; }
-      }
-      if (best) onModel.set(vi, best);
-    });
+  for (const { station, samples: model } of models) {
+    const platforms = graph.stations.find((st) => st.name === station)!.platforms.flatMap((p) => p.tracks);
+    for (const p of pieces) {
+      const lines: string[] = p.lines.filter((l) => l === 'red' || l === 'green' || l === 'blue');
+      const ranges = platforms.filter((t) => t.piece === p.id);
+      if (!lines.length || !ranges.length) continue;
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => {
+        if (!ranges.some((t) => s[k] >= t.s0 && s[k] <= t.s1)) return;
+        let best: [number, number] | null = null, bestD = 3;
+        for (const m of model) {
+          if (!lines.includes(m.kind)) continue;
+          const d = Math.hypot(m.x - vars[vi].x0, m.z - vars[vi].z0);
+          if (d < bestD) { bestD = d; best = [m.x, m.z]; }
+        }
+        if (best) onModel.set(vi, best);
+      });
+    }
   }
 
   // OpenStreetMap
@@ -325,6 +358,28 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     const at = pinned?.get(v.key);
     if (at) anchor(vi, at[0], at[1], SIGMA.pinned);
   }
+  // a siding in a tunnel between the two running lines (a turnback track), as they are fitted:
+  // in the middle between them
+  if (pinned) {
+    const fitted: [number, number][] = [];
+    for (const v of vars) { const at = pinned.get(v.key); if (at) fitted.push(at); }
+    for (const p of pieces) {
+      if (services.has(p.id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => {
+        if (pinned.has(vars[vi].key)) return;
+        const [tx, tz] = tangent(p, s[k]), x = vars[vi].x0, z = vars[vi].z0;
+        let left: [number, number, number] | null = null, right: [number, number, number] | null = null;
+        for (const [fx, fz] of fitted) {
+          const along = (fx - x) * tx + (fz - z) * tz, across = -tz * (fx - x) + tx * (fz - z);
+          if (Math.abs(along) > STEP / 2 || Math.abs(across) > SIDING_SPAN) continue;
+          if (across < 0 && (!left || -across < left[2])) left = [fx, fz, -across];
+          if (across > 0 && (!right || across < right[2])) right = [fx, fz, across];
+        }
+        if (left && right) anchor(vi, (left[0] + right[0]) / 2, (left[1] + right[1]) / 2, SIGMA.middle);
+      });
+    }
+  }
 
   // the two tracks of a line, beside each other
   const osmPos = (v: number): [number, number] => [vars[v].x0, vars[v].z0];
@@ -340,7 +395,13 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       if (!b || b.piece.structure !== 'tunnel') return;
       const here = platformAt(p.id, s[k]), there = platformAt(b.piece.id, b.s);
       let target: number, f: number;
-      if (here && there && here.osm === there.osm) {
+      if (sidingBetween(a.x0, a.z0, b.x, b.z)) {
+        // a siding between them, at the standard spacing from each
+        target = 2 * TRACK_CENTRES;
+        f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
+        if (f < 0.05) return;
+        pairRows++;
+      } else if (here && there && here.osm === there.osm) {
         // an island platform between them
         target = ISLAND_WIDTH + 2 * PLATFORM_EDGE;
         f = 1;
@@ -440,7 +501,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   log(`${held.size} points held to a ${CURVE_HOLD} m radius (${YARD_CURVE_HOLD} m off the running lines), ${heldApart.size} held ${APART.centres} m from a track at another level`);
   const pos = (v: number): [number, number] => [sol[X(v)], sol[Z(v)]];
   const moved = vars.map((a, v) => Math.hypot(sol[X(v)] - a.x0, sol[Z(v)] - a.z0));
-  log(`${vars.length} points, ${onModel.size} on the T-Centralen model, ${pairRows} pulling the two tracks together, ${islandRows} at island platforms`);
+  log(`${vars.length} points, ${onModel.size} on the station models, ${pairRows} pulling the two tracks together, ${islandRows} at island platforms`);
   const pct = (list: number[], q: number) => { const s = [...list].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))] ?? 0; };
   for (const [name, test] of [['open', (a: Var) => !a.tunnel], ['tunnel', (a: Var) => a.tunnel]] as const) {
     const d = moved.filter((_, v) => test(vars[v]));
@@ -617,12 +678,12 @@ console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
-// T-Centralen's are in the station model.
+// The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
 for (const p of pieces) {
   for (const r of platformsOn.get(p.id) ?? []) {
-    if (r.station === 'T-Centralen') continue;
+    if (modelStations.has(r.station)) continue;
     const st = graph.stations.find((s) => s.name === r.station)!;
     const pl = st.platforms.find((q) => q.osm === r.osm)!;
     const g = out[p.id];

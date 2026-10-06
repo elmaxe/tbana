@@ -48,8 +48,10 @@ export async function loadStationModel(name: string) {
 }
 
 // Model coordinates to world coordinates with a placement from public/data/stations.json
-// (three.js's rotation about +y, then the shift).
-export function placeSample<T extends { x: number; z: number }>(s: T, place: { rotationY: number; position: [number, number, number] }): T {
+// (three.js's rotation about +y, then the shift, which lifts the heights too).
+export function placeSample<T extends { x: number; y?: number; z: number }>(s: T, place: { rotationY: number; position: [number, number, number] }): T {
   const a = (place.rotationY * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
-  return { ...s, x: c * s.x + sn * s.z + place.position[0], z: -sn * s.x + c * s.z + place.position[2] };
+  const out = { ...s, x: c * s.x + sn * s.z + place.position[0], z: -sn * s.x + c * s.z + place.position[2] };
+  if (s.y !== undefined) out.y = s.y + place.position[1];
+  return out;
 }

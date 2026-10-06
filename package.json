@@ -9,6 +9,7 @@
     "inspect": "node tools/inspect.ts",
     "typecheck": "tsc && tsc -p tsconfig.node.json && tsc -p tsconfig.tools.json",
     "fetch-osm": "node tools/fetch-osm.ts",
+    "fetch-model": "node tools/fetch-model.ts",
     "fit-station": "node tools/fit-station.ts",
     "build-track-graph": "node tools/build-track-graph.ts",
     "plot-graph": "node tools/plot-graph.ts",

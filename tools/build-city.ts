@@ -21,7 +21,8 @@
 //   ground for a few metres either side, where the lowered ground of the open track meets the
 //   raised ground over the tunnel; the portal stands in it.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
-// of what the tunnels ask, with the open track winning.
+// of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
+// the ground stays over its roof, so that open track beside a tunnel doesn't open it.
 //
 // The buildings are OpenStreetMap's, as blocks with flat roofs:
 // - The walls stand from below the lowest ground under the outline to the building's height above
@@ -53,6 +54,8 @@ import * as S from '../src/sections.ts';
 const OUT = 'public/data/city';
 // over tunnels: the ground at least this far above the crown
 const COVER = 0.5;
+// ... and at least this far over its roof, even beside open track
+const ROOF_COVER = 0.15;
 // below open track: the ground this far under the formation
 const UNDER = 0.4;
 // the trains' space above the rails, which buildings over the track keep clear of
@@ -163,7 +166,8 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
       const g = p.ground[i];
       return g === null || g > p.y[i] + crownOf(kindAt(i), p.pair[i], platAt(i)) / 2;
     };
-    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, buried: buried(k) && buried(k + 1), yard };
+    // (the point at a mouth has the ground low: the segment into the tunnel from it is buried)
+    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, buried: buried(k) || buried(k + 1), yard };
     const first = k === 0 ? endJoins(0) : true, last = k + 1 === n - 1 ? endJoins(n - 1) : true;
     if (ka === kb) {
       segs.push({ ax: p.x[k], az: p.z[k], bx: p.x[k + 1], bz: p.z[k + 1], ...base, kind: ka, plat: platAt(k), clampA: first, clampB: last });
@@ -222,7 +226,7 @@ function relate(s: Seg, x: number, z: number) {
 // The ground at a point, shaped for the track: [height, whether it is beside open track a service
 // runs on (and so isn't walked on)]
 function shape(x: number, z: number, h0: number): [number, boolean] {
-  let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false;
+  let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false, roof = -Infinity;
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
@@ -232,6 +236,9 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
       lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
+      // over its own half of the tunnel, the ground stays over its roof
+      const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2 : halfWidth(s.kind, 0, s.plat, side);
+      if (r.d <= own) roof = Math.max(roof, r.y + crownOf(s.kind, s.pair, s.plat) + ROOF_COVER);
     } else {
       // flat for a metre beyond the structure, then rising at the bank's slope (or 1:1 behind a
       // cutting's walls)
@@ -244,7 +251,8 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
   }
   let h = Math.max(h0, lower);
   if (upper < h) { h = upper; if (upperRun < upper + 0.01) beside = true; }
-  return [h, beside];
+  // open track beside a tunnel lowers the ground only as far as the tunnel's roof
+  return [Math.max(h, roof), beside];
 }
 
 // ------------------------------------------------------------------ station parts at the surface

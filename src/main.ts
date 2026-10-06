@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { buildStation } from './station';
+import { buildStation, modelGroundCuts } from './station';
 import type { Station } from './station';
+import { HOME_STATION, loadStationModels } from './station-models';
+import type { StationPlacement } from './station-models';
 import { Player } from './player';
 import { Trains } from './trains';
 import { setOutsideLight } from './rolling-stock/index';
@@ -106,8 +107,6 @@ document.body.classList.toggle('touch', touchMode());
 mountBuildSwitcher($('buildSwitch'));
 
 // ------------------------------------------------------------------ loading
-// Where each station model sits on the world grid (src/geo.ts), as fitted by tools/fit-station.ts.
-interface StationPlacement { model: string; rotationY: number; position: [number, number, number] }
 
 function loadingFailed(err: unknown) {
   $('loading').textContent = 'Could not load the station model: ' + (err instanceof Error ? err.message : String(err));
@@ -115,13 +114,13 @@ function loadingFailed(err: unknown) {
 
 function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   // the station's tracks that run on through the network are joined to it
-  const join = net ? new StationJoin(net.graph, net.geometry, 'T-Centralen') : null;
+  const join = net ? new StationJoin(net.graph, net.geometry) : null;
   const station = buildStation(root, { join: join ? (tracks) => join.join(tracks) : undefined });
   scene.add(station.group);
   // the stations' passages and shafts open through the network's tunnel walls
   const cuts = net?.layouts ? Stations.volumes(net.layouts) : undefined;
   // the city around the line, its ground cut where the stations come up through it
-  const city = net?.city ? new City(net.city, net.layouts ? Stations.groundCuts(net.layouts) : [], CITY_REACH) : null;
+  const city = net?.city ? new City(net.city, [...(net.layouts ? Stations.groundCuts(net.layouts) : []), ...modelGroundCuts(station)], CITY_REACH) : null;
   if (city) scene.add(city.group);
   const network = net && join ? new Network(net.graph, net.geometry, join.exclusions, { ...cuts, city: !!city }) : null;
   if (network) scene.add(network.group);
@@ -138,7 +137,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   game = { station, network, stations, city, player, trains, minimap };
   sizeBigMap();
   buildTeleportList(station);
-  buildStationList(stations, net?.graph ?? null);
+  buildStationList(stations, station, net?.graph ?? null);
 
   const cam = params.get('cam');
   if (cam) {
@@ -148,7 +147,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
     player.fly = params.has('fly');
   } else {
     player.teleport(station.spawn.pos, station.spawn.yaw);
-    const at = params.get('at') && stations?.spot(params.get('at')!);
+    const at = params.get('at') && spotAt(params.get('at')!, stations, station);
     if (at) player.teleport(at.pos, at.yaw);
     const depot = net?.graph.depots?.find((d) => d.name === params.get('at'));
     if (depot) flyTo(player, depot.view);
@@ -188,22 +187,10 @@ const networkData: Promise<NetworkData | null> = Promise.all([
   params.has('nocity') ? null : getJson<CityIndex>('data/city/index.json').catch((err) => { console.warn('no city:', err); return null; }),
 ]).then(([graph, geometry, layouts, city]) => ({ graph, geometry, layouts, city }), (err) => { console.warn('no track network:', err); return null; });
 
+// the station models (src/station-models.ts), T-Centralen's first
 getJson<Record<string, StationPlacement>>('data/stations.json')
-  .then((stations) => {
-    const place = stations['t-centralen'];
-    new GLTFLoader().load(
-      place.model,
-      (gltf) => {
-        gltf.scene.rotation.y = THREE.MathUtils.degToRad(place.rotationY);
-        gltf.scene.position.fromArray(place.position);
-        networkData.then((net) => onStationLoaded(gltf.scene, net));
-      },
-      (e) => {
-        if (e.total) $('progress').style.width = `${(100 * e.loaded) / e.total}%`;
-      },
-      loadingFailed,
-    );
-  })
+  .then((places) => loadStationModels(places, (f) => { $('progress').style.width = `${100 * f}%`; }))
+  .then((root) => networkData.then((net) => onStationLoaded(root, net)))
   .catch(loadingFailed);
 
 // ------------------------------------------------------------------ start / pause
@@ -349,8 +336,18 @@ function flyTo(player: Player<Floor>, [x, y, z, yaw, pitch]: number[]) {
   document.body.classList.add('flying');
 }
 
-function buildStationList(stations: Stations | null, graph: TrackGraph | null) {
+// A station's platform to stand on: one the network's stations describe, or one of a model's.
+function spotAt(name: string, stations: Stations | null, station: Station) {
+  const spot = stations?.spot(name);
+  if (spot) return spot;
+  const t = station.teleports.find((p) => p.station === name && p.station !== HOME_STATION && LINES[p.line].kind === 'metro');
+  return t ? { pos: t.pos, yaw: t.yaw } : null;
+}
+
+function buildStationList(stations: Stations | null, station: Station, graph: TrackGraph | null) {
   if (!stations || !graph) return;
+  // the stations the network describes, and those drawn from a model other than the home one
+  const names = new Set([...stations.layouts.map((s) => s.name), ...station.areas.map((a) => a.name).filter((n) => n !== HOME_STATION)]);
   const depots = graph.depots ?? [];
   const select = $<HTMLSelectElement>('lineStations');
   // a group of stations for each line, in the order of LINES; a station of two lines is in both
@@ -359,9 +356,9 @@ function buildStationList(stations: Stations | null, graph: TrackGraph | null) {
     const group = document.createElement('optgroup');
     group.label = LINES[line].name;
     const served = new Set(graph.routes.filter((r) => r.line === line).flatMap((r) => r.stops.map((s) => s.station)));
-    for (const st of [...stations.layouts].filter((s) => served.has(s.name)).sort((a, b) => a.name.localeCompare(b.name, 'sv'))) {
+    for (const name of [...names].filter((n) => served.has(n)).sort((a, b) => a.localeCompare(b, 'sv'))) {
       const o = document.createElement('option');
-      o.value = o.textContent = st.name;
+      o.value = o.textContent = name;
       group.appendChild(o);
     }
     select.appendChild(group);
@@ -392,7 +389,7 @@ function buildStationList(stations: Stations | null, graph: TrackGraph | null) {
       });
       return;
     }
-    const spot = name ? stations.spot(name) : null;
+    const spot = name ? spotAt(name, stations, station) : null;
     if (!spot || !game) return;
     start();
     const { player } = game;
@@ -457,7 +454,7 @@ function toast(text: string, ms = 1800) {
 // station. Beyond the last station, the train turns out of sight: the screen goes dark, and the
 // player comes back in the same spot of the train that leaves from there the other way. On the
 // other lines a ride ends where the model's tunnel does: the screen goes dark for the rest of the
-// trip and back, and the player comes back into T-Centralen standing in the same spot of a train
+// trip and back, and the player comes back into the station they left standing in the same spot of a train
 // on the other track (see Trains.transfer).
 interface Journey {
   ride: Ride;
@@ -476,7 +473,9 @@ function startJourney(ride: Ride) {
   // a trip turning at the end of the line, or a shuttle going on to its next station and back
   const end = svc.trip ? svc.stops[svc.stops.length - 1].station : '';
   const next = nextStation(svc);
-  journey = { ride, stage: 'leaving', relYaw: 0, arrival: 'Arriving at T-Centralen' };
+  // (a shuttle comes back into the station it left)
+  const home = svc.stops[0].station;
+  journey = { ride, stage: 'leaving', relYaw: 0, arrival: `Arriving at ${home}` };
   $('fadeText').textContent = end ? `${end} — the train turns back` : next ? `${next} …` : '…';
   $('fade').classList.add('on', 'slow');
   journeyTimer = setTimeout(() => {
@@ -485,7 +484,7 @@ function startJourney(ride: Ride) {
     journey.ride = trains.transfer(ride);
     journey.stage = 'away';
     if (end) journey.arrival = `${end} — to ${journey.ride.svc.dest[1]}`;
-    else $('fadeText').textContent = next ? `${next} … and back to T-Centralen` : 'Back to T-Centralen';
+    else $('fadeText').textContent = next ? `${next} … and back to ${home}` : `Back to ${home}`;
   }, 1600);
 }
 
@@ -574,16 +573,24 @@ function updateHud() {
 // network's track runs in the open.
 const SKY = new THREE.Color(0x8193ad), DARK = new THREE.Color(FOG);
 let outdoor = 0;
+const inBox = (b: THREE.Box3, pos: THREE.Vector3, margin: number) =>
+  pos.x > b.min.x - margin && pos.x < b.max.x + margin && pos.z > b.min.z - margin && pos.z < b.max.z + margin;
+// in the home station's box (the minimap's)
 function inStation(pos: THREE.Vector3, margin = 0) {
   const b = game?.station.bounds;
-  return !!b && pos.x > b.min.x - margin && pos.x < b.max.x + margin && pos.z > b.min.z - margin && pos.z < b.max.z + margin;
+  return !!b && inBox(b, pos, margin);
 }
+// the station model whose box the player is in
+const modelAt = (pos: THREE.Vector3) => game?.station.areas.find((a) => inBox(a.bounds, pos, 0)) ?? null;
 function updateAtmosphere(player: Player<Floor>, dt: number) {
   const { x, y, z } = player.pos;
   const station = THREE.MathUtils.smoothstep(y, 3.5, 5.8);
   // the network's stations first: the station model's box reaches over some of them
+  // in T-Centralen's model, out above its street level; in the others, out only up at the city's ground
+  const model = modelAt(player.pos);
+  const inModel = model ? (model.name === HOME_STATION ? station : game?.city?.outdoorsAt(x, y, z) ?? 0) : null;
   const target = player.fly ? (game?.city ? 1 : 0.5) : game?.stations?.outdoorsAt(x, y, z)
-    ?? (inStation(player.pos) ? station : game?.network?.outdoorsAt(x, y, z) ?? game?.city?.outdoorsAt(x, y, z) ?? station);
+    ?? inModel ?? game?.network?.outdoorsAt(x, y, z) ?? game?.city?.outdoorsAt(x, y, z) ?? station;
   outdoor += (target - outdoor) * Math.min(1, dt * 3);
   // flying over the city, the sky; without it, the dark the network hangs in
   background.copy(DARK).lerp(SKY, player.fly && !game?.city ? 0 : outdoor);
