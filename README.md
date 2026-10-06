@@ -513,12 +513,12 @@ npm run build-city                             # -> public/data/city/
 
 - `fetch-terrain` reads Lantmäteriet's elevation model at 2 m (the overviews in its 10 km files)
   and samples it every 5 m on the game's grid, over the 500 m tiles that come within 1 km of the
-  track: 766 tiles.
+  track: 950 tiles.
 - `fetch-city` reads OpenStreetMap's extract of Stockholm county (from openstreetmap.fr, about
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
-  parts in those tiles, with their courtyards: about 69,000.
+  parts in those tiles, with their courtyards: about 83,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 10.9 MB in all. The format is in tagged sections, so roof shapes,
+  (format in `src/city-tile.ts`), 13.7 MB in all. The format is in tagged sections, so roof shapes,
   streets and water can be added later as new sections without breaking the game.
 
 How the ground meets the track:
@@ -554,9 +554,9 @@ every other point. The ground is paved where buildings are close together and gr
 aren't. It can be walked on, except beside open track a service runs on, inside buildings and over
 the stations' openings (so the depot yards and halls can be walked through, but a hall's walls only
 at its doors), and the street around the exits stays walkable as before but isn't drawn. A flood
-fill from each of the 155 exits (146 since Odenplan and Fridhemsplan became models), with the
-player's step rule, in the game, reaches the city's ground from all but one: Sätra's comes up into a street hemmed in by the shopping centre, the track and
-higher ground.
+fill from each of the 185 exits, with the player's step rule, in the game, reaches the city's ground
+within 120 m. Sätra's comes up into a street hemmed in by the shopping centre, the track and higher
+ground, and within 60 m it didn't.
 
 From below, the ground is as dark as the rock, and with the camera more than 3 m under it the
 buildings are hidden, so they don't show through the stations' open-topped halls. The tiles' skirts

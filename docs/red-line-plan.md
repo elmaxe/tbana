@@ -668,14 +668,18 @@ Each phase ends in a pull request with a playable preview.
      - Trains: the blue line runs C20s through T-Centralen and Fridhemsplan on the network, so
        neither model has a blue shuttle any more. Simulated for three hours: 76 trains out, all on
        time; the blue line's turn in 458–558 s. Rissnedepån, mostly in the rock, is the blue line's
-       depot: 8.5 km of yard, with C20s parked in its halls.
+       depot: 8.5 km of yard, with 15 C20s parked in its halls.
      - The blue line's drawn track is 69 km: 57.8 km in rock, 4.4 km of box, 3.4 km of bridge and
        3.5 km on the ground.
+     - City: the tiles within 1 km of any of the three lines, 950 (191 → 237 km²); 83,148
+       buildings and parts. 13.7 MB.
      - Stations: the 18 of the blue line's own, described from Albert Guillaumes' drawings, 39
        exits. Most are two platform halls in the rock, one for each track, joined at both ends and
        in the middle, with long escalators from their ends; Västra skogen has three tracks, its
        outbound platform reached by a footbridge, and the metro's longest escalator. Kista is an
        island on the viaduct with stairs down to the bus terminal.
+     - A flood fill in the game, with the player's step rule, out to 120 m from each of the 185
+       exits of the three lines, reaches the city's ground from every one.
      - Still open:
        - Hallonbergen's middle track, and the link to Rissnedepån between Rinkeby's platforms,
          aren't drawn.
