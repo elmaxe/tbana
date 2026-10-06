@@ -151,7 +151,7 @@ function readValue(b: Uint8Array): string | number | boolean {
 }
 
 // ------------------------------------------------------------------ cameras
-export const CAMERA_FIELDS = 'id,computed_geometry,computed_rotation,camera_type,camera_parameters,width,height,thumb_256_url,thumb_1024_url,thumb_2048_url';
+export const CAMERA_FIELDS = 'id,computed_geometry,computed_rotation,camera_type,camera_parameters,width,height,thumb_256_url,thumb_1024_url';
 
 export interface Camera {
   id: string;
@@ -163,7 +163,6 @@ export interface Camera {
   width: number;
   height: number;
   thumb: string;     // the thumbnail to measure in: 256 px wide, or 1024 for a spherical photo
-  large: string;     // a larger one, to cut walls out of: 1024 px, or 2048 for a spherical photo
 }
 
 // Each photo's camera, `ids` at most 50 at a time (fewer come back for photos without a
@@ -181,11 +180,10 @@ export async function cameras(get: (url: string) => Promise<Response>, ids: stri
     if (!geom || !rot || !['perspective', 'fisheye', 'spherical'].includes(type)) continue;
     if (type !== 'spherical' && !(params[0] > 0)) continue;
     const thumb = (type === 'spherical' ? d.thumb_1024_url : d.thumb_256_url) as string | undefined;
-    const large = (type === 'spherical' ? d.thumb_2048_url ?? d.thumb_1024_url : d.thumb_1024_url) as string | undefined;
-    if (!thumb || !large) continue;
+    if (!thumb) continue;
     out.push({
       id: String(d.id), lon: geom.coordinates[0], lat: geom.coordinates[1], rotation: rot, type, params,
-      width: Number(d.width), height: Number(d.height), thumb, large,
+      width: Number(d.width), height: Number(d.height), thumb,
     });
   }
   return out;

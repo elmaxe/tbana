@@ -701,33 +701,6 @@ npm run build-city
   `data/mapillary/walls.json` the walls are coloured as before: by OSM's tag, or from a palette
   by their style.
 
-**The walls' own images.** With `--facades`, `fetch-mapillary` also cuts each wall it can out of
-the photos and lays it on the wall, so that the streets the photos cover look like themselves:
-their windows, doors, awnings and plasterwork.
-
-```sh
-MAPILLARY_TOKEN='MLY|…' npm run fetch-mapillary -- --facades 0,0 -1,0   # these blocks' walls -> public/data/facades/
-```
-
-- A wall's image is taken from up to three photos taken square on to it (no more than 45° off),
-  the nearest first: each of its pixels (10 cm, at most 384 a side) from the first photo that
-  sees that point of the wall, on a building by Mapillary's segmentation, with no other building
-  or the ground in between. The later photos are matched in brightness and colour to the first.
-  What no photo sees (behind a tree or a van, the top of a tall wall) is filled with the wall's
-  commonest colour. A wall the photos see less than half of gets none.
-- Each city tile's walls go in one image, an atlas (`public/data/facades/<i>_<j>.jpg`, 4096 px
-  wide), with `<i>_<j>.json` saying which wall is where (format in `src/city-tile.ts`). The game
-  (`src/city.ts`) loads it with the tile and draws those walls with their images, matching them
-  by their ends; the rest are drawn as before. `?nofacades` starts the game without them.
-- Only walls facing a street or a square with photos have one: in the test area round
-  T-Centralen and Gamla stan, 723 walls of about 16,700 at least 4 m long (about 4%), in 15
-  tiles' atlases of 0.04–0.8 MB, 6 MB in all.
-- The light is in the photos: a wall in the sun is brighter than its neighbour in shade, and
-  balconies and bay windows are flat on the wall.
-- **Licence.** The images are cut from Mapillary's photos, so under CC BY-SA 4.0 they are
-  CC BY-SA 4.0 too (share-alike): anyone may reuse them on the same terms, with the credit. Their
-  index says so, and the start screen credits Mapillary.
-
 How it was arrived at, how well the colours agree with OSM's, and what could be done next (the
 walls' materials, their windows) are in [`docs/mapillary.md`](docs/mapillary.md).
 

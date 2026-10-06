@@ -120,7 +120,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   // the stations' passages and shafts open through the network's tunnel walls
   const cuts = net?.layouts ? Stations.volumes(net.layouts) : undefined;
   // the city around the line, its ground cut where the stations come up through it
-  const city = net?.city ? new City(net.city, [...(net.layouts ? Stations.groundCuts(net.layouts) : []), ...modelGroundCuts(station)], CITY_REACH, undefined, params.has('nophoto') ? null : undefined, params.has('nofacades') ? null : undefined) : null;
+  const city = net?.city ? new City(net.city, [...(net.layouts ? Stations.groundCuts(net.layouts) : []), ...modelGroundCuts(station)], CITY_REACH, undefined, params.has('nophoto') ? null : undefined) : null;
   if (city) scene.add(city.group);
   const network = net && join ? new Network(net.graph, net.geometry, join.exclusions, { ...cuts, city: !!city }) : null;
   if (network) scene.add(network.group);

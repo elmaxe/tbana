@@ -2,9 +2,9 @@
 
 The city's buildings have their heights and roofs from Lantmäteriet's laser scan
 (`tools/fetch-laser.ts`, see the README), but their walls were drawn from OSM's tags or guessed:
-colour, material, windows. Street-level photos can tell them. The walls' colours, and photo
-facades for a test area, are built (`tools/fetch-mapillary.ts`, see the README and
-[What's built](#whats-built)); the rest are notes for whoever picks it up. Written in October 2026.
+colour, material, windows. Street-level photos can tell them. The first step, the walls' colours,
+is built (`tools/fetch-mapillary.ts`, see the README and [What's built](#whats-built)); the rest
+are notes for whoever picks it up. Written in October 2026.
 
 ## Why Mapillary and not Google Street View
 
@@ -79,33 +79,30 @@ What was learned getting there:
 - Many buildings get no colour: they are in courtyards, behind others, or seen by too few
   segmented photos.
 
-**Facades** (`fetch-mapillary --facades`, see the README): each wall the photos see square on is
-cut out of them, straightened and laid on the wall, from up to three photos with the segmentation
-masking what's in front. What was learned:
-
-- Under a roof of its shape the game draws the walls up to the roof's own outline, which leaves
-  out corners of the outline too slight to show, so one of its walls can span two of the
-  outline's: the game splits it at the outline's corners to find each one's image.
-- Photos at a slant (more than 45° off square) smear the wall, and in a narrow lane take in what's
-  past the corner (the segmentation calls it building too). Gamla stan's lanes are too narrow for
-  any photo to see their walls square on, so they keep their colours.
-- A wall's top on a tall building is often out of the photo, or behind the eaves of the one
-  across the street; it's filled with the wall's colour.
-- In the test area round T-Centralen and Gamla stan, 723 walls of about 16,700 at least 4 m long
-  (about 4%) get an image; a tile's atlas is 0.04–0.8 MB, 6 MB for the 15 tiles.
-
 ## What could be done next
 
-1. **Facades everywhere.** Walls seen only at a slant could take a photo straightened less well
-   rather than none; and where a wall has no photo, a neighbour's of the same colour and storeys
-   would look better than a plain colour.
-2. **A better reference.** Exposure and white balance differ from photo to photo, and the
+1. **A better reference.** Exposure and white balance differ from photo to photo, and the
    median of a few photos only partly evens them out. The pavement or the road in the same photo
    (segmented, and grey) could be taken as each photo's white.
-3. **Wall material.** Classify the same patches as plaster, brick, wood, glass or plain (the
+2. **Wall material.** Classify the same patches as plaster, brick, wood, glass or plain (the
    `WallStyle`s the game draws) where OSM gives no `building:material`.
-4. **Storeys and windows.** Count the rows of windows on a wall to check the scan's eaves against
+3. **Storeys and windows.** Count the rows of windows on a wall to check the scan's eaves against
    the storeys, or to place the game's window texture at the right spacing.
+
+## Tried and dropped: facade textures
+
+Cutting each wall's own image out of the photos and laying it on the wall was tried in October
+2026 for a test area round T-Centralen and Gamla stan (up to three photos within 45° of square on,
+straightened at 10 cm a pixel, masked by the segmentation, packed into a JPEG atlas per city
+tile). It was dropped because it looked worse than the plain colours:
+
+- Few walls are seen square on: 723 of about 16,700 at least 4 m long (about 4%). A textured
+  wall next to plain ones stands out.
+- Slanted photos smear the wall; in narrow lanes they take in what's past the corner, which the
+  segmentation also calls building. Gamla stan's lanes can't be seen square on at all.
+- Light, cars, trees and the tops of tall walls (out of the photo) leave patches and seams.
+
+The code is in the history of PR #22 (commit fad097c) for whoever wants to look again.
 
 ## Things learned from the laser work that apply here
 

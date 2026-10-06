@@ -124,20 +124,6 @@ export interface PhotoIndex {
 
 export const photoName = (i: number, j: number) => `${i}_${j}.jpg`;
 
-// ------------------------------------------------------------------ facades
-// The walls' own images, cut out of street-level photos by tools/fetch-mapillary.ts --facades, in
-// public/data/facades/: for each city tile with any, an atlas <i>_<j>.jpg of them and
-// <i>_<j>.json (FacadeAtlas) saying which wall each is: the wall from (ax, az) to (bx, bz) of a
-// building's outline, in decimetres from the tile's corner as in BLDG, its image at x, y, w × h
-// pixels in the atlas, from the eaves (its top row, at y1, RH 2000) down to the ground (y0). And an
-// index of them in public/data/facades/index.json.
-export interface FacadeAtlas {
-  size: [number, number];
-  walls: [number, number, number, number, number, number, number, number, number, number][]; // ax, az, bx, bz, x, y, w, h, y0, y1
-}
-export interface FacadeIndex { attribution: string[]; note: string; tiles: [number, number][] }
-export const facadeName = (i: number, j: number) => `${i}_${j}.jpg`;
-
 // ------------------------------------------------------------------ heights
 // An n × n grid of heights (metres) as centimetres, each the difference from the one before it in
 // its row, or for a row's first from the first of the row above, and for the first from `base`.
