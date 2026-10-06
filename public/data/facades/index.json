@@ -1,0 +1,68 @@
+{
+ "attribution": [
+  "Street-level photos © Mapillary and its contributors, CC BY-SA 4.0 (processed: walls cut out of them; these images are CC BY-SA 4.0 too)"
+ ],
+ "note": "The walls of the city's buildings as Mapillary's street-level photos show them (tools/fetch-mapillary.ts --facades), an atlas of them for each city tile, and where each wall's is in it.",
+ "tiles": [
+  [
+   -2,
+   -2
+  ],
+  [
+   -1,
+   -2
+  ],
+  [
+   0,
+   -2
+  ],
+  [
+   1,
+   -2
+  ],
+  [
+   -2,
+   -1
+  ],
+  [
+   -1,
+   -1
+  ],
+  [
+   0,
+   -1
+  ],
+  [
+   1,
+   -1
+  ],
+  [
+   -2,
+   0
+  ],
+  [
+   -1,
+   0
+  ],
+  [
+   0,
+   0
+  ],
+  [
+   1,
+   0
+  ],
+  [
+   -2,
+   1
+  ],
+  [
+   0,
+   1
+  ],
+  [
+   1,
+   1
+  ]
+ ]
+}
