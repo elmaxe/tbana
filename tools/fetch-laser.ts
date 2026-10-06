@@ -17,11 +17,14 @@
 // The city is measured a block of BLOCK m at a time. Of a block's buildings (those whose middle
 // is in it), every point of the scan inside an outline, and more than EDGE from its walls (which
 // the laser hits at a slant, and eaves overhang), is taken as the roof's, except those the scan
-// calls noise. tools/lib/laser-roofs.ts fits the roofs of tools/lib/roofs.ts to them. Each block's
-// measures are kept in node_modules/.cache/laser/, so a run that stops can be started again.
+// calls noise. tools/lib/laser-roofs.ts fits the roofs of tools/lib/roofs.ts to them. The blocks are
+// measured by a worker thread per processor (up to JOBS), and each block's measures are kept in
+// node_modules/.cache/laser/, so a run that stops can be started again.
 //
 // A building the scan has mostly ground under (built since it was flown) is left out.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { availableParallelism } from 'node:os';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { GRID_TM, worldToGrid } from '../src/geo.ts';
 import { cityArea } from './lib/city-area.ts';
 import { openCopc, nodesOver, readNode } from './lib/copc.ts';
@@ -37,6 +40,7 @@ const CACHE = 'node_modules/.cache/laser';
 const BLOCK = 1000;
 const EDGE = 0.5;
 const CELL = 20;      // the buildings' index within a block
+const JOBS = 4;
 // the scan's classes: 2 ground, 7 low noise, 18 high noise
 const GROUND = 2, NOISE = new Set([7, 18]);
 
@@ -45,7 +49,8 @@ const args = process.argv.slice(2);
 const again = args.includes('--again');
 const only = new Set(args.filter((a) => /^-?\d+,-?\d+$/.test(a)));
 throttleFetch();
-const headers = authHeaders();
+// (the workers get the main thread's)
+const headers: Record<string, string> = isMainThread ? authHeaders() : workerData.headers;
 
 // ------------------------------------------------------------------ the buildings
 const osm: { buildings: { osm: string; tags: Record<string, string>; rings: number[][] }[] } =
@@ -84,7 +89,7 @@ for (const b of buildings) {
   const key = `${Math.floor(b.c[0] / BLOCK)},${Math.floor(b.c[1] / BLOCK)}`;
   (blocks.get(key) ?? blocks.set(key, []).get(key)!).push(b);
 }
-console.log(`${buildings.length} buildings in ${blocks.size} blocks of ${BLOCK} m (the city: ${area.tiles.length} tiles)`);
+if (isMainThread) console.log(`${buildings.length} buildings in ${blocks.size} blocks of ${BLOCK} m (the city: ${area.tiles.length} tiles)`);
 
 function inside(x: number, z: number, ring: XZ[]) {
   let c = false;
@@ -105,25 +110,6 @@ function nearEdge(x: number, z: number, rings: XZ[][], d: number) {
   }
   return false;
 }
-
-// ------------------------------------------------------------------ the scan's files
-let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
-for (const b of buildings) {
-  for (const [x, z] of [[b.box[0], b.box[1]], [b.box[2], b.box[3]], [b.box[0], b.box[3]], [b.box[2], b.box[1]]]) {
-    const g = worldToGrid(x, z, GRID_TM);
-    lo = [Math.min(lo[0], g.e), Math.min(lo[1], g.n)]; hi = [Math.max(hi[0], g.e), Math.max(hi[1], g.n)];
-  }
-}
-const all = await findFiles([lo[0], lo[1], hi[0], hi[1]], (c) => c === COLLECTION);
-const newest = new Map<string, StacFile>();
-for (const f of all) {
-  const key = f.bbox.join(',');
-  const had = newest.get(key);
-  if (!had || f.datetime > had.datetime) newest.set(key, f);
-}
-const files = [...newest.values()];
-const flown = [...new Set(files.map((f) => f.datetime.slice(0, 10)))].sort();
-console.log(`${files.length} squares of the scan, flown ${flown.join(', ')}`);
 
 const opened = new Map<string, Promise<CopcFile>>();
 function open(f: StacFile) {
@@ -149,20 +135,15 @@ function points(file: CopcFile, key: string) {
   return p;
 }
 
-// ------------------------------------------------------------------ the blocks
+// ------------------------------------------------------------------ a block
 type Measure = [number, number, string, number];   // eaves, top, shape, points
-mkdirSync(CACHE, { recursive: true });
-const results = new Map<string, Measure>();
-let done = 0, read = 0, fresh = 0, unbuilt = 0, few = 0;
-const t0 = Date.now();
-for (const [key, list] of [...blocks].sort()) {
-  done++;
-  const cached = `${CACHE}/${key.replace(',', '_')}.json`;
-  // (the blocks asked for are measured again)
-  if (only.size ? !only.has(key) : !again && existsSync(cached)) {
-    if (existsSync(cached)) for (const [id, m] of Object.entries(JSON.parse(readFileSync(cached, 'utf8')) as Record<string, Measure>)) results.set(id, m);
-    continue;
-  }
+interface Done { key: string; measured: number; of: number; read: number; unbuilt: number; few: number }
+const cacheOf = (key: string) => `${CACHE}/${key.replace(',', '_')}.json`;
+
+// Measures a block's buildings from the scan's files, and keeps the measures in the cache.
+async function measure(key: string, files: StacFile[]): Promise<Done> {
+  const list = blocks.get(key)!;
+  let read = 0, unbuilt = 0, few = 0;
   const [bi, bj] = key.split(',').map(Number);
   // the block's buildings, reaching out of it as they do
   let x0 = bi * BLOCK, z0 = bj * BLOCK, x1 = x0 + BLOCK, z1 = z0 + BLOCK;
@@ -221,19 +202,69 @@ for (const [key, list] of [...blocks].sort()) {
     const shape = roof.shape === 'skillion' ? `skillion:${Math.round(roof.direction!)}` : roof.across ? `${roof.shape}:across` : roof.shape;
     out[b.osm] = [Math.round(roof.eaves * 10) / 10, Math.round(roof.top * 10) / 10, shape, q.x.length];
   });
-  writeFileSync(cached, JSON.stringify(out));
-  for (const [id, m] of Object.entries(out)) results.set(id, m);
-  fresh++;
-  const s = (Date.now() - t0) / 1000;
-  console.log(`block ${key}: ${Object.keys(out).length} of ${list.length} buildings measured (${done} of ${blocks.size}, ${(read / 1e6).toFixed(0)} M points read, ${s.toFixed(0)} s)`);
+  writeFileSync(cacheOf(key), JSON.stringify(out));
+  return { key, measured: Object.keys(out).length, of: list.length, read, unbuilt, few };
 }
 
-// ------------------------------------------------------------------ the measures
-const shapes = new Map<string, number>();
-for (const m of results.values()) { const s = m[2].split(':')[0]; shapes.set(s, (shapes.get(s) ?? 0) + 1); }
-mkdirSync('data/laser', { recursive: true });
-const ids = [...results.keys()].sort();
-writeFileSync(OUT, `{
+if (!isMainThread) {
+  // a worker: measures the blocks it is sent
+  const files = workerData.files as StacFile[];
+  parentPort!.on('message', async (key: string) => parentPort!.postMessage(await measure(key, files)));
+} else {
+  // ------------------------------------------------------------------ the scan's files
+  let lo = [Infinity, Infinity], hi = [-Infinity, -Infinity];
+  for (const b of buildings) {
+    for (const [x, z] of [[b.box[0], b.box[1]], [b.box[2], b.box[3]], [b.box[0], b.box[3]], [b.box[2], b.box[1]]]) {
+      const g = worldToGrid(x, z, GRID_TM);
+      lo = [Math.min(lo[0], g.e), Math.min(lo[1], g.n)]; hi = [Math.max(hi[0], g.e), Math.max(hi[1], g.n)];
+    }
+  }
+  const all = await findFiles([lo[0], lo[1], hi[0], hi[1]], (c) => c === COLLECTION);
+  const newest = new Map<string, StacFile>();
+  for (const f of all) {
+    const key = f.bbox.join(',');
+    const had = newest.get(key);
+    if (!had || f.datetime > had.datetime) newest.set(key, f);
+  }
+  const files = [...newest.values()];
+  const flown = [...new Set(files.map((f) => f.datetime.slice(0, 10)))].sort();
+  console.log(`${files.length} squares of the scan, flown ${flown.join(', ')}`);
+  
+
+  // ------------------------------------------------------------------ the blocks
+  mkdirSync(CACHE, { recursive: true });
+  // (the blocks asked for are measured again)
+  const todo = [...blocks.keys()].sort().filter((key) => only.size ? only.has(key) : again || !existsSync(cacheOf(key)));
+  console.log(`${todo.length} of ${blocks.size} blocks to measure`);
+  let done = 0, read = 0, unbuilt = 0, few = 0;
+  const t0 = Date.now();
+  const jobs = Math.min(JOBS, availableParallelism(), todo.length);
+  await Promise.all(Array.from({ length: jobs }, () => new Promise<void>((finish, fail) => {
+    const worker = new Worker(new URL(import.meta.url), { workerData: { files, headers }, argv: process.argv.slice(2) });
+    const next = () => {
+      const key = todo.shift();
+      if (key) worker.postMessage(key); else worker.terminate().then(() => finish());
+    };
+    worker.on('message', (d: Done) => {
+      done++; read += d.read; unbuilt += d.unbuilt; few += d.few;
+      console.log(`block ${d.key}: ${d.measured} of ${d.of} buildings measured (${done} done, ${todo.length} to go, ${(read / 1e6).toFixed(0)} M points read, ${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+      next();
+    });
+    worker.on('error', fail);
+    next();
+  })));
+
+  // ------------------------------------------------------------------ the measures
+  const results = new Map<string, Measure>();
+  for (const key of blocks.keys()) {
+    if (!existsSync(cacheOf(key))) continue;
+    for (const [id, m] of Object.entries(JSON.parse(readFileSync(cacheOf(key), 'utf8')) as Record<string, Measure>)) results.set(id, m);
+  }
+  const shapes = new Map<string, number>();
+  for (const m of results.values()) { const s = m[2].split(':')[0]; shapes.set(s, (shapes.get(s) ?? 0) + 1); }
+  mkdirSync('data/laser', { recursive: true });
+  const ids = [...results.keys()].sort();
+  writeFileSync(OUT, `{
   "attribution": "${LASER_ATTRIBUTION}",
   "source": "https://api.lantmateriet.se/stac-hojd/v1/collections/${COLLECTION}",
   "flown": ${JSON.stringify(flown)},
@@ -243,4 +274,5 @@ ${ids.map((id) => `    ${JSON.stringify(id)}: ${JSON.stringify(results.get(id))}
   }
 }
 `);
-console.log(`${OUT}: ${results.size} of ${buildings.length} buildings (${[...shapes].sort((a, b) => b[1] - a[1]).map(([s, n]) => `${n} ${s}`).join(', ')}); ${unbuilt} not built when flown, ${few} with too few points; ${fresh} blocks measured now`);
+  console.log(`${OUT}: ${results.size} of ${buildings.length} buildings (${[...shapes].sort((a, b) => b[1] - a[1]).map(([s, n]) => `${n} ${s}`).join(', ')}); of the ${done} blocks measured now, ${unbuilt} not built when flown and ${few} with too few points`);
+}

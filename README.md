@@ -592,7 +592,9 @@ LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- --again     # all of them aga
 ```
 
 - The photos are their own product on Geotorget, **Ortofoto Nedladdning**: free, but the account
-  that fetches the elevation model must order it too, or every file is refused (403).
+  that fetches the elevation model must order it too, or every file is refused (403). Ordering it
+  takes a legal review (juridisk prövning) by Lantmäteriet, and the photos may not be stored outside
+  the EU/EEA: so they aren't in this repository, and the game on GitHub Pages runs without them.
 - `fetch-ortho` finds the photos through Lantmäteriet's STAC catalogue for images (`stac-bild`),
   and takes each pixel from the newest year's photo over it (Stockholm is flown every other year;
   the newest are from 2025 at 16 cm). It writes one JPEG per city tile, north up on the game's
@@ -625,23 +627,29 @@ LM_USER=… LM_PASSWORD=… npm run fetch-laser -- --again    # all of them agai
 npm run build-city
 ```
 
-- The scan is a point cloud of the ground and everything on it: about 1.4 points a square metre,
-  flown in the spring of 2020 and 2021 over the city, with heights in RH 2000 like the elevation model.
+- The scan is a point cloud of the ground and everything on it: 1.4 points a square metre on
+  average, 2–5 over the city where the flight strips overlap, flown in the spring of 2020 and 2021,
+  with heights in RH 2000 like the elevation model.
   Like the photos it is its own product on Geotorget, free, which the account must have ordered or every
   file is refused (403).
 - `fetch-laser` finds the scan's 10 km squares through the same STAC catalogue as the elevation
   model (collection `dsm-skoglig-copc`). They are [COPC](https://copc.io/) files (LAZ with an
   octree index), so only the parts under the city are read (`tools/lib/copc.ts`), about 6 bytes a
-  point. It works through the city a 1 km block at a time, and keeps each block's measures in
-  `node_modules/.cache/laser/`, so a run that stops can be started again.
+  point. It works through the city a 1 km block at a time, a worker thread to a processor (up to
+  4), and keeps each block's measures in `node_modules/.cache/laser/`, so a run that stops can be
+  started again.
 - A building's points are those inside its outline, more than 0.5 m from its walls, and not
   noise. `tools/lib/laser-roofs.ts` fits each roof `build-city` can build to them: flat, gabled
   (either way round), hipped, pyramidal, and skillion facing each of four ways. Each shape over an
   outline is one surface scaled by its height, so for each the eaves and the roof's height are
-  fitted by least squares, twice more without the sixth of the points furthest off (trees over the
-  roof, chimneys). A shape that isn't flat wins if its roof is at least 1.2 m high and its points
-  are within two thirds of flat's distance. Tried on simulated scans over the city's outlines, with
-  the noise, trees and chimneys of a real one, the eaves and tops mostly come out within 0.2 m.
+  fitted by least trimmed squares: to the 60% of the points they fit best. Often a third or more
+  of the points inside an outline aren't on its roof: its walls, which the laser hits at a slant,
+  a courtyard or a lower wing the outline takes in, trees over the roof, chimneys. A shape that
+  isn't flat wins if its roof is at least 1.2 m high and its points are within two thirds of
+  flat's distance. Tried on simulated scans over the city's outlines, with the noise, trees and
+  chimneys of a real one, the eaves and tops mostly come out within 0.2 m. Of the roofs OSM gives
+  a shape, the scan finds most gabled, hipped and skillion roofs, and many it calls flat that rise
+  less than a metre.
 - A building with mostly ground under it in the scan, built since, is left out.
 - `build-city` takes the scan's eaves for a building without OSM's `height`, and its roof's shape
   and height where OSM gives no `roof:shape`. Where OSM gives the shape, the walls rise to the

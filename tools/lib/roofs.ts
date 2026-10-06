@@ -113,6 +113,9 @@ const square = (e: Edge, f: Edge) => {
   return c > Math.sin(Math.PI / 4);
 };
 
+// Whether a pyramidal roof can be built over the outline (else it is built hipped).
+export const pyramidalFits = (rings: XZ[][]) => rings.length === 1 && isConvex(simplify(rings[0]));
+
 function isConvex(ring: XZ[]) {
   for (let k = 0; k < ring.length; k++) {
     const a = ring[k], b = ring[(k + 1) % ring.length], c = ring[(k + 2) % ring.length];
