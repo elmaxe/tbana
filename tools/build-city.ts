@@ -530,16 +530,27 @@ function heights(s: Source) {
 // The heights and roof as the laser scan measured them, over heights(s)'s, for a building whose
 // lowest ground is g0: its eaves, unless OSM gives a height; its roof's shape and height, unless
 // OSM gives a shape; else OSM's shape up to the scan's top. Left out where the scan has the roof
-// lower than a storey over the ground (built since, or the scan's wrong).
+// lower than a storey over the ground (built since, or the scan's wrong), or where it can't be
+// this building's (below).
 let laserMeasured = 0, laserShaped = 0;
+const laserDoubted = new Map<string, number>();
 function laserHeights(s: Source, g0: number, h: ReturnType<typeof heights>) {
   const opts = { direction: bearing(s.tags['roof:direction']), across: s.tags['roof:orientation'] === 'across' };
   const m = laser?.buildings[s.osm];
   if (!m || num(s.tags.height) !== null || s.tags.building === 'roof') return { ...h, opts };
   const [eaves, top, found] = m;
   if (top - g0 < 2.5) return { ...h, opts };
-  laserMeasured++;
   const t = s.tags;
+  // Where the scan has plainly measured something else: eaves under the ground (a fit gone wrong),
+  // a small building far taller than one could be (it stands under or against a taller one, whose
+  // roof the scan saw), eaves far from what OSM's levels say, or a roof higher than its walls.
+  const walls = eaves - g0, levels = num(t['building:levels']);
+  const doubt = walls < 2 ? 'eaves under the ground'
+    : s.area < 60 && top - g0 > 25 ? 'small and tall'
+    : levels && (walls > Math.max(6.5 * levels, 20) || walls < 2.2 * levels) ? 'not its levels'
+    : top - eaves > Math.max(8, walls) ? 'roof over its walls' : null;
+  if (doubt) { laserDoubted.set(doubt, (laserDoubted.get(doubt) ?? 0) + 1); return { ...h, opts }; }
+  laserMeasured++;
   if (t['roof:shape']) {
     const total = top - g0;
     const given = num(t['roof:height']) ?? (num(t['roof:levels']) ? num(t['roof:levels'])! * 2.8 : null);
@@ -798,7 +809,7 @@ writeFileSync(`${OUT}/index.json`, JSON.stringify(index, null, 1) + '\n');
 if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toFixed(0)}, ${m.z.toFixed(0)}, rail ${m.y.toFixed(1)}, out towards ${m.tx.toFixed(2)}, ${m.tz.toFixed(2)}`);
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
-if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found`);
+if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found; left out: ${[...laserDoubted].map(([k, n]) => `${n} ${k}`).join(', ')}`);
 console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
 console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);

@@ -518,7 +518,7 @@ npm run build-city                             # -> public/data/city/
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
   parts in those tiles, with their courtyards: about 83,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 17.3 MB in all. The format is in tagged sections, so streets and
+  (format in `src/city-tile.ts`), 17.2 MB in all. The format is in tagged sections, so streets and
   water can be added later as new sections without breaking the game, as the roofs were.
 
 How the ground meets the track:
@@ -537,7 +537,7 @@ The buildings are blocks with their roofs:
 
 - They stand from below the lowest ground under them to their height above it: OSM's `height`,
   or where Lantmäteriet's laser scan has measured them (below) their eaves and roof, or their
-  levels at 3.1 m, or for the 6% with none of these, the median levels of the tagged buildings
+  levels at 3.1 m, or for the 7% with none of these, the median levels of the tagged buildings
   of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
 - A building with parts is drawn as its parts.
 - Roofs are of their shapes, from OSM's [Simple 3D Buildings](https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings)
@@ -549,7 +549,7 @@ The buildings are blocks with their roofs:
   outline that is the straight skeleton's roof, and over an L, T or U the same in nearly every
   case. A gabled roof's gables are its wings' ends (shorter than their neighbours, or with
   `roof:orientation=across` longer), and the walls rise into them. A roof with no height given
-  (or `roof:levels=0`) is 3 m. 36,910 roofs are built (29,035 of the laser scan's shapes); the 11 left, where no faces covering the
+  (or `roof:levels=0`) is 3 m. 35,576 roofs are built (27,702 of the laser scan's shapes); the 11 left, where no faces covering the
   outline were found, are flat halfway up, as all were before.
 - A roof's colour is `roof:colour`, or by `roof:material` (red tiles, black tin, green copper…).
   The walls are plastered, brick, glass, wooden boards or plain, by `building:material`, or for
@@ -653,12 +653,16 @@ npm run build-city
 - A building with mostly ground under it in the scan, built since, is left out.
 - `build-city` takes the scan's eaves for a building without OSM's `height`, and its roof's shape
   and height where OSM gives no `roof:shape`. Where OSM gives the shape, the walls rise to the
-  scan's top less the roof. A building the scan has less than 2.5 m above its ground keeps OSM's.
+  scan's top less the roof. A building the scan has less than 2.5 m above its ground keeps OSM's,
+  and so does one where it has plainly measured something else: eaves less than 2 m over the
+  ground (788, nearly all skillion roofs fitted from the ground up), a building under 60 m² more
+  than 25 m high (10: it stands under or against a taller one), eaves outside 2.2–6.5 m a storey
+  of OSM's levels (599), or a roof higher than its walls and 8 m (352).
   Without `data/laser/buildings.json` the city is built as before.
 - Of the city's 82,776 buildings, the scan measures 80,664: 1,765 were built since it was flown,
-  and 340 have too few points (the smallest sheds). `build-city` takes its heights for 73,258, the
-  rest having OSM's `height`, and its roof's shape for 29,035; only 4,575 buildings are still
-  estimated, against 54,540 before. Where OSM gives `building:levels` the scan's eaves are 3.4 m a
+  and 340 have too few points (the smallest sheds). `build-city` takes its heights for 71,509, the
+  rest having OSM's `height` or being left out (above), and its roof's shape for 27,702; only
+  5,476 buildings are still estimated, against 54,540 before. Where OSM gives `building:levels` the scan's eaves are 3.4 m a
   storey (median). Where OSM gives `height`, the scan's top is within 2 m for 59%, and lower for
   most of the rest: spires and towers, and roofs OSM measures to their highest point.
 - Of the roofs whose shape OSM gives, the scan finds the same shape for about half. Some of the
