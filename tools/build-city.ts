@@ -26,11 +26,14 @@
 //
 // The buildings are OpenStreetMap's, as blocks with their roofs:
 // - The walls stand from below the lowest ground under the outline to the building's height above
-//   it: OSM's height, or its levels, or (for most) an estimate: the median levels of the tagged
-//   buildings of the same sort within 150 m, or a default for its sort and size.
+//   it: OSM's height, or where the laser scan measured it (data/laser/buildings.json, from
+//   tools/fetch-laser.ts) its eaves and roof, or its levels, or (for the rest) an estimate: the
+//   median levels of the tagged buildings of the same sort within 150 m, or a default for its
+//   sort and size.
 // - A building with building:part inside is drawn as its parts.
 // - Its roof is of its shape (roof:shape, roof:height or roof:levels, roof:orientation,
-//   roof:direction; tools/lib/roofs.ts) where one can be built over its outline, else flat; its
+//   roof:direction, or where OSM gives no shape the one the laser scan found; tools/lib/roofs.ts)
+//   where one can be built over its outline, else flat; its
 //   colour is roof:colour, or by roof:material. Its walls' style is by building:material, or for
 //   houses wood and for sheds and warehouses plain.
 // - Where a building stands over open track, the part over the track's space is lifted to clear
@@ -40,7 +43,7 @@
 //   of the building, and an exit's way out continues through the building to the outside.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
 //   it stands on the ground, open inside, with a door wherever a track passes through its walls.
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import polygonClipping from 'polygon-clipping';
 import type { MultiPolygon, Polygon } from 'polygon-clipping';
@@ -82,6 +85,10 @@ const groundMeta: { attribution: string; tile: number; step: number; n: number; 
   JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
 const osm: { attribution: string; extract: string; buildings: { osm: string; tags: Record<string, string>; rings: number[][] }[] } =
   JSON.parse(readFileSync('data/osm/buildings.json', 'utf8'));
+// the buildings as the laser scan measured them, where it has (tools/fetch-laser.ts): eaves, roof's
+// top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
+const laser: { attribution: string; buildings: Record<string, [number, number, string, number]> } | null =
+  existsSync('data/laser/buildings.json') ? JSON.parse(readFileSync('data/laser/buildings.json', 'utf8')) : null;
 if (groundMeta.tile !== CITY_TILE) throw new Error(`data/ground/city.json has ${groundMeta.tile} m tiles, the game ${CITY_TILE} m`);
 const N = groundMeta.n, STEP = groundMeta.step;
 
@@ -506,18 +513,58 @@ function heights(s: Source) {
   const roofLevels = num(t['roof:levels']) || null;
   let roofHeight = num(t['roof:height']) ?? (roofLevels !== null ? roofLevels * 2.8 : roof === 'flat' ? 0 : 3);
   let total = num(t.height);
-  let walls: number;
+  let walls: number, guessed = false;
   if (total !== null) {
     roofHeight = Math.min(roofHeight, total * 0.6);
     walls = total - roofHeight;
   } else {
     let levels = levelsOf(t);
-    if (levels === null) { levels = estimateLevels(s); estimated++; }
+    if (levels === null) { levels = estimateLevels(s); guessed = true; }
     walls = Math.max(2.5, levels * LEVEL + (levels >= 2 ? PARAPET : 0));
     total = walls + roofHeight;
   }
   const min = num(t.min_height) ?? (num(t['building:min_level']) !== null ? num(t['building:min_level'])! * LEVEL : 0);
-  return { roof, roofHeight, walls, min };
+  return { roof, roofHeight, walls, min, guessed };
+}
+
+// The heights and roof as the laser scan measured them, over heights(s)'s, for a building whose
+// lowest ground is g0: its eaves, unless OSM gives a height; its roof's shape and height, unless
+// OSM gives a shape; else OSM's shape up to the scan's top. Left out where the scan has the roof
+// lower than a storey over the ground (built since, or the scan's wrong), or where it can't be
+// this building's (below).
+let laserMeasured = 0, laserShaped = 0;
+const laserDoubted = new Map<string, number>();
+function laserHeights(s: Source, g0: number, h: ReturnType<typeof heights>) {
+  const opts = { direction: bearing(s.tags['roof:direction']), across: s.tags['roof:orientation'] === 'across' };
+  const m = laser?.buildings[s.osm];
+  if (!m || num(s.tags.height) !== null || s.tags.building === 'roof') return { ...h, opts };
+  const [eaves, top, found] = m;
+  if (top - g0 < 2.5) return { ...h, opts };
+  const t = s.tags;
+  // Where the scan has plainly measured something else: eaves under the ground (a fit gone wrong),
+  // a small building far taller than one could be (it stands under or against a taller one, whose
+  // roof the scan saw), eaves far from what OSM's levels say, or a roof higher than its walls.
+  const walls = eaves - g0, levels = num(t['building:levels']);
+  const doubt = walls < 2 ? 'eaves under the ground'
+    : s.area < 60 && top - g0 > 25 ? 'small and tall'
+    : levels && (walls > Math.max(6.5 * levels, 20) || walls < 2.2 * levels) ? 'not its levels'
+    : top - eaves > Math.max(8, walls) ? 'roof over its walls' : null;
+  if (doubt) { laserDoubted.set(doubt, (laserDoubted.get(doubt) ?? 0) + 1); return { ...h, opts }; }
+  laserMeasured++;
+  if (t['roof:shape']) {
+    const total = top - g0;
+    const given = num(t['roof:height']) ?? (num(t['roof:levels']) ? num(t['roof:levels'])! * 2.8 : null);
+    const roofHeight = h.roof === 'flat' ? 0 : Math.min(given ?? (top - eaves >= 1 ? top - eaves : 3), total * 0.6);
+    return { ...h, roofHeight, walls: Math.max(2.5, total - roofHeight), guessed: false, opts };
+  }
+  const [shape, arg] = found.split(':');
+  const roof = (ROOF_SHAPES as readonly string[]).includes(shape) ? shape as RoofShape : 'flat';
+  if (roof !== 'flat') {
+    laserShaped++;
+    if (roof === 'skillion') opts.direction = Number(arg);
+    if (roof === 'gabled') opts.across = arg === 'across';
+  }
+  return { ...h, roof, roofHeight: roof === 'flat' ? 0 : top - eaves, walls: Math.max(2.5, eaves - g0), guessed: false, opts };
 }
 
 // the track's space over open track, as polygons, near a point
@@ -635,7 +682,8 @@ for (const s of sources) {
   if (cg !== null) gs.push(cg);
   if (!gs.length) continue;
   const g0 = Math.min(...gs), g1 = Math.max(...gs);
-  const { roof, roofHeight, walls, min } = heights(s);
+  const { roof, roofHeight, walls, min, guessed, opts: roofOpts } = laserHeights(s, g0, heights(s));
+  if (guessed) estimated++;
   const roofOnly = s.tags.building === 'roof';
   const shed = !roofOnly && coveredInside(outline) >= SHED_TRACK;
   let top = g0 + walls;
@@ -646,7 +694,6 @@ for (const s of sources) {
     kind: roofOnly ? 'roof' : shed ? 'shed' : s.part ? 'part' : 'building', roof, bottom, top, roofHeight,
     colour: colour(s.tags['building:colour']), roofColour: roofColour(s.tags), wall: wallStyle(s.tags),
   };
-  const roofOpts = { direction: bearing(s.tags['roof:direction']), across: s.tags['roof:orientation'] === 'across' };
   let shape: MultiPolygon = [toPoly(s.rings)];
 
   const [bx0, bz0, bx1, bz1] = bbox(outline);
@@ -752,7 +799,7 @@ for (const [i, j] of groundMeta.tiles) {
 for (const f of readdirSync(OUT)) if (!written.has(f)) rmSync(`${OUT}/${f}`);
 
 const index: CityIndex = {
-  attribution: [groundMeta.attribution, osm.attribution],
+  attribution: [groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : [])],
   note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks.`,
   tile: CITY_TILE,
   tiles: groundMeta.tiles.map(([i, j]) => [i, j]),
@@ -762,6 +809,7 @@ writeFileSync(`${OUT}/index.json`, JSON.stringify(index, null, 1) + '\n');
 if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toFixed(0)}, ${m.z.toFixed(0)}, rail ${m.y.toFixed(1)}, out towards ${m.tx.toFixed(2)}, ${m.tz.toFixed(2)}`);
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
+if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found; left out: ${[...laserDoubted].map(([k, n]) => `${n} ${k}`).join(', ')}`);
 console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
 console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);

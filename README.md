@@ -518,7 +518,7 @@ npm run build-city                             # -> public/data/city/
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
   parts in those tiles, with their courtyards: about 83,000.
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 14.8 MB in all. The format is in tagged sections, so streets and
+  (format in `src/city-tile.ts`), 17.2 MB in all. The format is in tagged sections, so streets and
   water can be added later as new sections without breaking the game, as the roofs were.
 
 How the ground meets the track:
@@ -536,7 +536,8 @@ How the ground meets the track:
 The buildings are blocks with their roofs:
 
 - They stand from below the lowest ground under them to their height above it: OSM's `height`,
-  or its levels at 3.1 m, or for the 60% with neither, the median levels of the tagged buildings
+  or where Lantmäteriet's laser scan has measured them (below) their eaves and roof, or their
+  levels at 3.1 m, or for the 7% with none of these, the median levels of the tagged buildings
   of the same sort within 150 m, or a default for the sort (a house 1.7 storeys, a shed 1).
 - A building with parts is drawn as its parts.
 - Roofs are of their shapes, from OSM's [Simple 3D Buildings](https://wiki.openstreetmap.org/wiki/Simple_3D_Buildings)
@@ -548,7 +549,7 @@ The buildings are blocks with their roofs:
   outline that is the straight skeleton's roof, and over an L, T or U the same in nearly every
   case. A gabled roof's gables are its wings' ends (shorter than their neighbours, or with
   `roof:orientation=across` longer), and the walls rise into them. A roof with no height given
-  (or `roof:levels=0`) is 3 m. 7,864 roofs are built; the 11 left, where no faces covering the
+  (or `roof:levels=0`) is 3 m. 35,576 roofs are built (27,702 of the laser scan's shapes); the 11 left, where no faces covering the
   outline were found, are flat halfway up, as all were before.
 - A roof's colour is `roof:colour`, or by `roof:material` (red tiles, black tin, green copper…).
   The walls are plastered, brick, glass, wooden boards or plain, by `building:material`, or for
@@ -591,7 +592,9 @@ LM_USER=… LM_PASSWORD=… npm run fetch-ortho -- --again     # all of them aga
 ```
 
 - The photos are their own product on Geotorget, **Ortofoto Nedladdning**: free, but the account
-  that fetches the elevation model must order it too, or every file is refused (403).
+  that fetches the elevation model must order it too, or every file is refused (403). Ordering it
+  takes a legal review (juridisk prövning) by Lantmäteriet, and the photos may not be stored outside
+  the EU/EEA: so they aren't in this repository, and the game on GitHub Pages runs without them.
 - `fetch-ortho` finds the photos through Lantmäteriet's STAC catalogue for images (`stac-bild`),
   and takes each pixel from the newest year's photo over it (Stockholm is flown every other year;
   the newest are from 2025 at 16 cm). It writes one JPEG per city tile, north up on the game's
@@ -611,6 +614,66 @@ roofs in the photo are a few metres off their outlines, and the sides of the tal
 ground beside them. Their shadows are the morning's of the day they were flown.
 
 `?nophoto` starts the game without them.
+
+### Buildings measured by laser
+
+Lantmäteriet's airborne laser scan (Laserdata Nedladdning, skog, CC BY 4.0) measures the
+buildings OpenStreetMap only outlines: how high each one's eaves and roof are, and its roof's shape.
+
+```sh
+LM_USER=… LM_PASSWORD=… npm run fetch-laser              # -> data/laser/buildings.json
+LM_USER=… LM_PASSWORD=… npm run fetch-laser -- 0,0 1,0   # only these 1 km blocks, measured again
+LM_USER=… LM_PASSWORD=… npm run fetch-laser -- --again    # all of them again
+npm run build-city
+```
+
+- The scan is a point cloud of the ground and everything on it: 1.4 points a square metre on
+  average, 2–5 over the city where the flight strips overlap, flown in the spring of 2020 and 2021,
+  with heights in RH 2000 like the elevation model.
+  Like the photos it is its own product on Geotorget, free, which the account must have ordered or every
+  file is refused (403).
+- `fetch-laser` finds the scan's 10 km squares through the same STAC catalogue as the elevation
+  model (collection `dsm-skoglig-copc`). They are [COPC](https://copc.io/) files (LAZ with an
+  octree index), so only the parts under the city are read (`tools/lib/copc.ts`), about 6 bytes a
+  point. It works through the city a 1 km block at a time, a worker thread to a processor (up to
+  4), and keeps each block's measures in `node_modules/.cache/laser/`, so a run that stops can be
+  started again.
+- A building's points are those inside its outline, more than 0.5 m from its walls, and not
+  noise. `tools/lib/laser-roofs.ts` fits each roof `build-city` can build to them: flat, gabled
+  (either way round), hipped, pyramidal, and skillion facing each of four ways. Each shape over an
+  outline is one surface scaled by its height, so for each the eaves and the roof's height are
+  fitted by least trimmed squares: to the 60% of the points they fit best. Often a third or more
+  of the points inside an outline aren't on its roof: its walls, which the laser hits at a slant,
+  a courtyard or a lower wing the outline takes in, trees over the roof, chimneys. A shape that
+  isn't flat wins if its roof is at least 1.2 m high and its points are within two thirds of
+  flat's distance. Tried on simulated scans over the city's outlines, with the noise, trees and
+  chimneys of a real one, the eaves and tops mostly come out within 0.2 m. Of the roofs OSM gives
+  a shape, the scan finds most gabled, hipped and skillion roofs, and many it calls flat that rise
+  less than a metre.
+- A building with mostly ground under it in the scan, built since, is left out.
+- `build-city` takes the scan's eaves for a building without OSM's `height`, and its roof's shape
+  and height where OSM gives no `roof:shape`. Where OSM gives the shape, the walls rise to the
+  scan's top less the roof. A building the scan has less than 2.5 m above its ground keeps OSM's,
+  and so does one where it has plainly measured something else: eaves less than 2 m over the
+  ground (788, nearly all skillion roofs fitted from the ground up), a building under 60 m² more
+  than 25 m high (10: it stands under or against a taller one), eaves outside 2.2–6.5 m a storey
+  of OSM's levels (599), or a roof higher than its walls and 8 m (352).
+  Without `data/laser/buildings.json` the city is built as before.
+- Of the city's 82,776 buildings, the scan measures 80,664: 1,765 were built since it was flown,
+  and 340 have too few points (the smallest sheds). `build-city` takes its heights for 71,509, the
+  rest having OSM's `height` or being left out (above), and its roof's shape for 27,702; only
+  5,476 buildings are still estimated, against 54,540 before. Where OSM gives `building:levels` the scan's eaves are 3.4 m a
+  storey (median). Where OSM gives `height`, the scan's top is within 2 m for 59%, and lower for
+  most of the rest: spires and towers, and roofs OSM measures to their highest point.
+- Of the roofs whose shape OSM gives, the scan finds the same shape for about half. Some of the
+  rest OSM has wrong (a gabled roof the scan has flat, under trees), and many are near enough
+  (hipped found gabled, a gabled roof under a metre high found flat), but it finds too many
+  skillion roofs: a single slope fitted to one side of a gabled roof, where the other side's
+  points are few, can fit better: a third of the sloping roofs it finds are skillion.
+
+The walls are still drawn from OSM's tags or guessed. Notes on taking their colours and materials
+from Mapillary's street-level photos (CC BY-SA 4.0, unlike Google Street View) are in
+[`docs/mapillary.md`](docs/mapillary.md).
 
 ## Train models
 
