@@ -671,6 +671,10 @@ npm run build-city
   skillion roofs: a single slope fitted to one side of a gabled roof, where the other side's
   points are few, can fit better: a third of the sloping roofs it finds are skillion.
 
+The walls are still drawn from OSM's tags or guessed. Notes on taking their colours and materials
+from Mapillary's street-level photos (CC BY-SA 4.0, unlike Google Street View) are in
+[`docs/mapillary.md`](docs/mapillary.md).
+
 ## Train models
 
 ![C30 and C20](trains.jpg)
