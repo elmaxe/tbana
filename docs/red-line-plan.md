@@ -687,6 +687,12 @@ Each phase ends in a pull request with a playable preview.
          build lists them).
        - Most stations have one or two of their ways out; Kista's southern exits into Kista
          Galleria and Rådhuset's lifts up to Kungsklippan are left out.
+       - The plan holds the blue line to 350 m curves, not the 600 m it was built to: OSM's
+         sketch of the junctions at Hallonbergen and Västra skogen, and the T-Centralen model's
+         platforms, would need fixing first.
+       - Fridhemsplan's model draws the blue line some degrees off the map, so the line turns onto
+         its platforms in curves down to 221 m. Refitting the model's blue line, or the model,
+         would remove them.
 
 The game reads only the files the tools write, so new lines and corrections need no change to the
 game's code.
