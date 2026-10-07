@@ -141,11 +141,11 @@ function materials() {
     ground: new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 1, side: THREE.DoubleSide }),
     steel: new THREE.MeshStandardMaterial({ color: 0x5d6670, roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }),
     buffer: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.6 }),
-    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.35, side: THREE.DoubleSide }),
-    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.35, side: THREE.DoubleSide }),
+    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.8, side: THREE.DoubleSide }),
+    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.8, side: THREE.DoubleSide }),
     // (lit from below, by the lamps and the neon, which light nothing: so it glows a little)
     hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
-    hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.35 }),
+    hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.8 }),
     hallFloor: new THREE.MeshStandardMaterial({ map: T.clinker(), roughness: 0.8 }),
   } satisfies Record<MaterialName, THREE.Material>;
 }

@@ -33,7 +33,7 @@ export const HALL_STYLES: Record<string, HallStyle> = {
     ceiling: 4.6,
     step: 0.5,
     columns: { fromEdge: 2.2, size: 0.72, spacing: 8 },
-    tilesFrom: 1.4,
+    tilesFrom: 0.7,
     plateAt: 2.6,
     posters: { name: 'KUNGSGATAN', at: 2.63, apart: 1.27 },
     neon: { count: 103, tones: [0xffffff, 0xf3f7ff, 0xfff4e2, 0xe6f2ff, 0xfffbe8], reach: 2.6, below: [0.12, 0.75] },

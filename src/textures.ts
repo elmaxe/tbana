@@ -372,7 +372,7 @@ function hotorgetTileCanvas(height: number, { plate = 0, tilesFrom = 0, mirror =
       x.fillStyle = HOTORGET_BLUES[Math.floor(r() * HOTORGET_BLUES.length)];
       x.fillRect(i * PX + 1.2, j * PX + 1.2, PX - 2.4, PX - 2.4);
       // the glaze: lighter at the top of each tile
-      x.fillStyle = `rgba(255,255,255,${0.05 + r() * 0.1})`;
+      x.fillStyle = `rgba(255,255,255,${0.03 + r() * 0.05})`;
       x.fillRect(i * PX + 2, j * PX + 2, PX - 4, (PX - 4) * 0.4);
     }
   }
