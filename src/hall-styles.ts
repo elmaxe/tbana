@@ -1,5 +1,6 @@
 // Platform halls the network draws (src/network.ts) in their own style rather than as a plain
-// vault in rock: for now Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998).
+// vault in rock: for now Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998),
+// and Östermalmstorg, with Siri Derkert's lines in its concrete walls (1965).
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export interface HallStyle {
@@ -38,4 +39,25 @@ export const HALL_STYLES: Record<string, HallStyle> = {
     posters: { name: 'KUNGSGATAN', at: 2.3, apart: 1.27 },
     neon: { count: 103, tones: [0xffffff, 0xf3f7ff, 0xfff4e2, 0xe6f2ff, 0xfffbe8], reach: 2.6, below: [0.12, 0.75] },
   },
+};
+
+// A platform hall in rock with a platform of its own beside one track, styled: the walls straight
+// up to `spring`, then a shallow vault (`risePerWidth` of the hall's width) in smooth white
+// plaster with a row of lamps along it over the platform; white name signs on the wall behind the
+// platform, `signAt` high, every `signEvery` m.
+export interface VaultStyle {
+  spring: number;
+  risePerWidth: number;
+  signAt: number;
+  signEvery: number;
+}
+
+// Östermalmstorg (1965), 38 m down: a hall in rock for each
+// track, the platforms side by side beyond the wall between them. Their walls are in-situ
+// concrete, light and pitted, and the track walls carry Siri Derkert's Ristningar i betong
+// (1961–65): lines sandblasted into the concrete, of women of the peace and women's movements,
+// faces, singers, Rachel Carson's Tyst vår, staves of song and "peace" in several languages. Over
+// them a smooth white vault, the floor dark terrazzo with a band of pale tiles along the edge.
+export const VAULT_STYLES: Record<string, VaultStyle> = {
+  'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
 };
