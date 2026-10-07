@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { runningWays } from './track-graph';
 import type { TrackGraph } from './track-graph';
 import { STRUCTURE_KINDS } from './track-geometry';
@@ -6,8 +7,10 @@ import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } fr
 import * as S from './sections';
 import * as T from './textures';
 import { SurfaceIndex } from './surface-index';
-import { cutIndexed, loft, subtractAll } from './clip.ts';
+import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
+import { HALL_STYLES } from './hall-styles';
+import type { HallStyle } from './hall-styles';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -115,10 +118,15 @@ class MeshBuilder {
   }
 }
 
-type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer';
+type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer'
+  | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor';
+
+// The styled halls' surfaces (src/hall-styles.ts): Hötorget's, the only one so far.
+const HOTORGET = HALL_STYLES['Hötorget'];
 
 function materials() {
   const rock = T.tunnelRock(), concrete = T.concrete(9, 168), bed = T.trackBed(), platform = T.floorTiles();
+  const plaster = T.plaster();
   return {
     rock: new THREE.MeshStandardMaterial({ map: rock, roughness: 1, side: THREE.DoubleSide }),
     concrete: new THREE.MeshStandardMaterial({ map: concrete, color: 0xa8a49e, roughness: 0.9, side: THREE.DoubleSide }),
@@ -133,6 +141,12 @@ function materials() {
     ground: new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 1, side: THREE.DoubleSide }),
     steel: new THREE.MeshStandardMaterial({ color: 0x5d6670, roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }),
     buffer: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.6 }),
+    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.8, side: THREE.DoubleSide }),
+    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.8, side: THREE.DoubleSide }),
+    // (lit from below, by the lamps and the neon, which light nothing: so it glows a little)
+    hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
+    hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.8 }),
+    hallFloor: new THREE.MeshStandardMaterial({ map: T.clinker(), roughness: 0.8 }),
   } satisfies Record<MaterialName, THREE.Material>;
 }
 
@@ -146,6 +160,7 @@ export class Network {
   private floorData = new Map<string, PlatformFloorData>();
   private mats = materials();
   private signs = new Map<string, THREE.MeshBasicMaterial>();
+  private posterMats: THREE.MeshStandardMaterial[] | null = null;
   private stations: TrackGraph['stations'];
 
   // The stations' shafts and passages are cut out of the tunnels, platforms and everything else
@@ -204,6 +219,14 @@ export class Network {
       });
     }
     this.junctionCuts();
+    // the styled halls' neon, once for each, along one of its tracks
+    const lit = new Set<string>();
+    for (const samples of this.samples) {
+      const first = samples.find((sm) => hallStyle(sm));
+      if (!first || lit.has(first.plat!.station)) continue;
+      lit.add(first.plat!.station);
+      this.group.add(neon(samples.filter((sm) => sm.plat === first.plat), hallStyle(first)!, this.holes));
+    }
   }
 
   // Where a tunnel of track no service runs on meets a service's tunnel (each has the other within
@@ -371,8 +394,23 @@ export class Network {
     });
 
     // the structure around it
-    sweep(b.rock, run, (sm) => (sm.kind === 'rock' ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
-    sweep(b.concrete, run, (sm) => (sm.kind === 'box' ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    // a styled hall: its tiled wall, and the soffit and ceiling (the wall is the outline's first
+    // two points where the other track is to the right, its last two where it is to the left)
+    for (const [mb, sign] of [[b.hallWall, -1], [b.hallWallMirror, 1]] as const) {
+      sweep(mb, run, (sm) => {
+        const st = hallStyle(sm);
+        if (!st || Math.sign(sm.pair) !== sign) return null;
+        const o = shellOutline(sm)!;
+        return { key: o.key, pts: sign > 0 ? o.pts.slice(0, 2) : o.pts.slice(-2) };
+      }, { u: (_, v) => (v - S.FLOOR) / (HOTORGET.soffit - S.FLOOR), vScale: 1 / T.HOTORGET_REPEAT });
+    }
+    sweep(b.hallCeiling, run, (sm) => {
+      if (!hallStyle(sm)) return null;
+      const o = shellOutline(sm)!;
+      return { key: o.key, pts: sm.pair > 0 ? o.pts.slice(1) : o.pts.slice(0, -1) };
+    }, { uScale: 0.25, vScale: 0.25 });
     // floor beside the ballast; on a bank, only between two tracks (the bank has its own)
     for (const side of [-1, 1]) {
       sweep(b.floor, run, (sm) => {
@@ -387,6 +425,8 @@ export class Network {
     }
     this.openStructure(run, b);
     this.platforms(run, b, group);
+    this.columns(samples, run, b);
+    this.posters(samples, run, group);
     this.lights(run, b);
     this.ends(samples, i0, i1, b);
   }
@@ -457,9 +497,9 @@ export class Network {
 
   private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
     const H = S.PLATFORM_HEIGHT;
-    sweep(b.platform, run, (sm) => {
+    for (const [mb, styled] of [[b.platform, false], [b.hallFloor, true]] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
-      if (!p) return null;
+      if (!p || !hallStyle(sm) !== !styled) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
     }, { uScale: 0.5, vScale: 0.5 });
@@ -478,7 +518,8 @@ export class Network {
         lastSign = sm.along;
         const span = structureSpan(sm);
         const wall = p.side > 0 ? span[0] : span[1];
-        if (sm.kind === 'rock' || sm.kind === 'box') {
+        // (a styled hall has its own name plates)
+        if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm)) {
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
           sign.position.copy(at(sm, wall + p.side * 0.06, 2.4));
           sign.lookAt(at(sm, wall + p.side * 1.06, 2.4));
@@ -486,8 +527,65 @@ export class Network {
         }
       }
       if (Math.round(sm.along / STEP) % 2 === 0) {
-        box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        // (in a styled hall, troffers in the soffit)
+        const st = hallStyle(sm);
+        if (st) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
+        else box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
+    }
+  }
+
+  // A styled hall's posters on this track's wall, either side of a plate with the station's old
+  // name: halfway between two of the tiles' name plates, the nearest to the platform's middle.
+  private posters(all: Sample[], run: Sample[], group: THREE.Group) {
+    const first = run.find((sm) => hallStyle(sm));
+    const st = first && hallStyle(first), ps = st?.posters;
+    if (!first || !ps) return;
+    const p = first.plat!, on = all.filter((sm) => sm.plat === p);
+    const t = Math.round((on[0].along + on[on.length - 1].along) / 2 / T.HOTORGET_REPEAT) * T.HOTORGET_REPEAT;
+    const i = run.findIndex((sm, j) => j + 1 < run.length && sm.along <= t && run[j + 1].along > t);
+    if (i < 0 || run[i].plat !== p) return;
+    const sa = run[i], sb = run[i + 1], f = (t - sa.along) / (sb.along - sa.along || 1);
+    const sm = { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f };
+    const span = structureSpan(sm), wall = p.side > 0 ? span[0] : span[1];
+    // along the track, to the left of someone facing the wall
+    const left = new THREE.Vector3(sm.rz, 0, -sm.rx).multiplyScalar(Math.sign(wall));
+    this.posterMats ??= [T.posterKatten(), T.namePlate(ps.name), T.posterToy()].map((map) => new THREE.MeshStandardMaterial({ map, roughness: 0.5 }));
+    const sizes: [number, number][] = [[1.3, 1.75], [0.63, 0.09], [1.3, 1.75]];
+    [-1, 0, 1].forEach((k, j) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(...sizes[j]), this.posterMats![j]);
+      const h = j === 1 ? st.plateAt : ps.at;
+      m.position.copy(at(sm, wall + p.side * 0.02, h)).addScaledVector(left, -k * ps.apart);
+      m.lookAt(at(sm, wall + p.side, h).addScaledVector(left, -k * ps.apart));
+      group.add(m);
+    });
+  }
+
+  // A styled hall's row of columns along this track's side of the platform, evenly spaced and
+  // centred on it (`all` is the piece's samples, `run` the stretch being built).
+  private columns(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>) {
+    const first = run.find((sm) => hallStyle(sm));
+    if (!first) return;
+    const st = hallStyle(first)!, p = first.plat!, { fromEdge, size, spacing } = st.columns;
+    const on = all.filter((sm) => sm.plat === p);
+    const a0 = on[0].along, a1 = on[on.length - 1].along;
+    const n = Math.floor((a1 - a0 - 2 * spacing / 2) / spacing);
+    const start = a0 + (a1 - a0 - n * spacing) / 2;
+    for (let k = 0; k <= n; k++) {
+      const t = start + k * spacing;
+      // in this run (half open, as the next run starts on this one's last sample)
+      const i = run.findIndex((sm, j) => j + 1 < run.length && sm.along <= t && run[j + 1].along > t);
+      if (i < 0 || run[i].plat !== p) continue;
+      const sa = run[i], sb = run[i + 1], f = (t - sa.along) / (sb.along - sa.along || 1);
+      const sm = { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f };
+      const u = p.side * (S.PLATFORM_EDGE + fromEdge);
+      // none where the stairs or escalators come down into the hall
+      const h = size / 2, open = (i: number, k: number, v: number) => {
+        const q = at(sm, u + i * h, v);
+        return this.holes.some((o) => insideVolume(o, q.x + sm.rz * k * h, q.y, q.z - sm.rx * k * h));
+      };
+      if ([-1, 1].some((i) => [-1, 1].some((k) => open(i, k, S.PLATFORM_HEIGHT + 1) || open(i, k, st.soffit - 0.05)))) continue;
+      pillar(b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
     }
   }
 
@@ -692,6 +790,8 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     const pts = sm.pair > 0 ? [...left, [mid + OVERLAP, H] as [number, number]] : sm.pair < 0 ? [[mid - OVERLAP, H] as [number, number], ...right] : [...left, ...right];
     return { key: `turnout${Math.sign(sm.pair)}`, pts };
   }
+  const style = hallStyle(sm);
+  if (style) return styledOutline(sm, a, b, style);
   const width = b - a;
   const full: [number, number][] = [[a, S.FLOOR]];
   if (sm.kind === 'box') {
@@ -741,6 +841,27 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     pts.push([u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
   }
   return { key: `${sm.kind}${Math.sign(sm.pair)}`, pts };
+}
+
+// A styled hall's outline (src/hall-styles.ts), the island platform's two tracks sharing it: the
+// walls up to the soffit, over each track to the inner face of its row of columns, then up to the ceiling between
+// them; this track's half, to just over the middle. Its corners are kept, unlike the vaults'.
+function hallStyle(sm: Sample): HallStyle | null {
+  const p = sm.plat;
+  return p && p.island && sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
+}
+function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: string; pts: [number, number][] } {
+  const s = sm.plat!.side, d = S.PLATFORM_EDGE + st.columns.fromEdge + st.columns.size / 2;
+  const c1 = s * d, c2 = sm.pair - s * d;
+  const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
+  const full: [number, number][] = [[a, S.FLOOR], [a, st.soffit], [lo, st.soffit], [lo + st.step, st.ceiling],
+    [hi - st.step, st.ceiling], [hi, st.soffit], [b, st.soffit], [b, S.FLOOR]];
+  const [o0, o1] = ownSpan(sm, [a, b]);
+  const pts: [number, number][] = sm.pair > 0
+    ? [...full.filter(([u]) => u < o1), [o1, st.ceiling]]
+    : [[o0, st.ceiling], ...full.filter(([u]) => u > o0)];
+  const dy = sm.pairDy / 2;
+  return { key: `styled${Math.sign(sm.pair)}`, pts: pts.map(([u, v]) => [u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]) };
 }
 
 // A tunnel's outline as a closed line around this track: where it shares the tunnel, its half,
@@ -848,6 +969,94 @@ function box(b: MeshBuilder, c: THREE.Vector3, sm: Sample, sx: number, sy: numbe
     [[-1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, 1]], [[1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, -1]],
   ];
   for (const f of faces) b.quad(...(f.map(([i, j, k]) => corner(i, j, k)) as [THREE.Vector3, THREE.Vector3, THREE.Vector3, THREE.Vector3]));
+}
+
+// A square column standing at `c` from y0 to y1 above it, `size` across, its tiles in metres
+// (T.HOTORGET_REPEAT m to a repeat of the texture).
+function pillar(b: MeshBuilder, c: THREE.Vector3, sm: Sample, size: number, y0: number, y1: number) {
+  const tx = sm.rz, tz = -sm.rx, h = size / 2, R = T.HOTORGET_REPEAT;
+  const P = (i: number, k: number, y: number) => new THREE.Vector3(c.x + (sm.rx * i + tx * k) * h, c.y + y, c.z + (sm.rz * i + tz * k) * h);
+  const corners: [number, number][] = [[1, -1], [1, 1], [-1, 1], [-1, -1], [1, -1]];
+  for (let f = 0; f < 4; f++) {
+    const [i0, k0] = corners[f], [i1, k1] = corners[f + 1];
+    b.quad(P(i0, k0, y0), P(i1, k1, y0), P(i1, k1, y1), P(i0, k0, y1), [0, y0 / R], [size / R, y0 / R], [size / R, y1 / R], [0, y1 / R]);
+  }
+}
+
+// A styled hall's neon (Gun Gordillo's at Hötorget): tubes wandering along under the ceiling
+// between the columns, now and then across, each at its own height, hung on thin rods; in a few
+// tones of white. `plat` is one track's samples along the platform; none hang where the station's
+// stairs and escalators (`holes`) come down into the hall.
+function neon(plat: Sample[], st: HallStyle, holes: Volume[]) {
+  const r = T.rng(1998), group = new THREE.Group();
+  group.name = 'neon';
+  const L = plat[plat.length - 1].along - plat[0].along;
+  const mid = plat[0].pair / 2;
+  // the roof's height across the hall, from its middle
+  const inner = Math.abs(plat[0].pair) / 2 - S.PLATFORM_EDGE - st.columns.fromEdge - st.columns.size / 2 - st.step;
+  const roof = (w: number) => {
+    const d = Math.abs(w) - inner;
+    return d <= 0 ? st.ceiling : d >= st.step ? st.soffit : st.ceiling - ((st.ceiling - st.soffit) * d) / st.step;
+  };
+  const point = (t: number, w: number, v: number) => {
+    const a = plat[0].along + t;
+    let i = 0;
+    while (i < plat.length - 2 && plat[i + 1].along < a) i++;
+    const sa = plat[i], sb = plat[i + 1], f = Math.max(0, Math.min(1, (a - sa.along) / (sb.along - sa.along || 1)));
+    const pa = at(sa, mid + w, v), pb = at(sb, mid + w, v);
+    return pa.lerp(pb, f);
+  };
+  const box = new THREE.Box3().setFromPoints(plat.map((sm) => new THREE.Vector3(sm.x, sm.y, sm.z))).expandByScalar(20);
+  const near = holes.filter((h) => h.max[0] > box.min.x && h.min[0] < box.max.x && h.max[2] > box.min.z && h.min[2] < box.max.z);
+  const open = (q: THREE.Vector3) => near.some((h) => insideVolume(h, q.x, q.y, q.z));
+  const tubes: THREE.BufferGeometry[][] = st.neon.tones.map(() => []);
+  const rods: number[] = [];
+  let hung: number[] = [];
+  const tube = (pts: THREE.Vector3[], tone: number) => {
+    const these = hung;
+    hung = [];
+    if (pts.length < 2) return;
+    rods.push(...these);
+    const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+    tubes[tone].push(new THREE.TubeGeometry(curve, pts.length * 8, 0.012, 5, false));
+  };
+  const { reach, below } = st.neon;
+  for (let n = 0; n < st.neon.count; n++) {
+    let t = 1 + r() * (L - 2), w = (r() * 2 - 1) * reach * 0.9;
+    let depth = below[0] + r() * (below[1] - below[0]);
+    const dir = r() < 0.5 ? -1 : 1, across = r() < 0.2;
+    let heading = across ? (r() < 0.5 ? -1 : 1) * (0.4 + r() * 0.6) : (r() - 0.5) * 0.3;
+    const len = 3 + r() * 9, tone = Math.floor(r() * tubes.length);
+    let pts: THREE.Vector3[] = [];
+    for (let run = 0; run <= len && t > 0.5 && t < L - 0.5; ) {
+      const v = roof(w) - depth, q = point(t, w, v);
+      // (where it would hang in an opening, it stops, and goes on beyond)
+      if (open(q) || open(point(t, w, roof(w) + 0.1))) { tube(pts, tone); pts = []; }
+      else {
+        pts.push(q);
+        if (pts.length === 1 || r() < 0.3) hung.push(...q.toArray(), ...point(t, w, roof(w)).toArray());
+      }
+      const step = 0.5 + r() * 0.9;
+      run += step;
+      t += dir * step;
+      w += heading * step + (r() - 0.5) * 0.35;
+      // now and then a bend
+      if (r() < 0.12) w += (r() - 0.5) * 1.4;
+      if (Math.abs(w) > reach) { w = Math.sign(w) * reach; heading = -heading; }
+      depth = Math.max(below[0], Math.min(below[1], depth + (r() - 0.5) * 0.12));
+    }
+    tube(pts, tone);
+  }
+  st.neon.tones.forEach((tone, k) => {
+    if (!tubes[k].length) return;
+    const g = mergeGeometries(tubes[k]);
+    tubes[k].forEach((t) => t.dispose());
+    group.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: tone, toneMapped: false })));
+  });
+  const rg = new THREE.BufferGeometry();
+  rg.setAttribute('position', new THREE.Float32BufferAttribute(rods, 3));
+  group.add(new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0x6d7276 })));
+  return group;
 }
 
 // ------------------------------------------------------------------ the two halves of a tunnel
