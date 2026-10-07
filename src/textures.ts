@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // All textures are drawn procedurally so the project ships with no image assets.
 
-function rng(seed: number) {
+export function rng(seed: number) {
   let s = seed >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -349,5 +349,98 @@ export function ground() {
   x.fillRect(0, 0, 256, 256);
   speckle(x, 256, 256, 4000, 0.09, 31);
   speckle(x, 256, 256, 2500, 0.06, 32, true);
+  return toTexture(c);
+}
+
+// Hötorget (1952): square tiles, 15 cm, glazed in seven shades of pale blue-green from
+// Upsala-Ekeby, with white joints. One repeat is 4.8 m across by `height` m up, drawn as seen
+// (across, then up from the bottom). With `plates`, a small black enamel plate with the
+// station's name in white at `plateAt` m from the bottom, one per repeat, as on its track walls;
+// below `grime` m the tiles are darker with the dust of the track.
+const HOTORGET_BLUES = ['#b4d8d9', '#bcdcdc', '#c4e0df', '#aed3d6', '#c9e3e2', '#b7d6db', '#bfdadd'];
+function hotorgetTileCanvas(height: number, { plates = false, plateAt = 0, grime = 0, mirror = false } = {}) {
+  const PX = 32, TILE = 0.15;
+  const nx = Math.round(4.8 / TILE), ny = Math.round(height / TILE);
+  const [c, x] = canvas(nx * PX, ny * PX);
+  const r = rng(1952);
+  x.fillStyle = '#e4e8e6';
+  x.fillRect(0, 0, c.width, c.height);
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      x.fillStyle = HOTORGET_BLUES[Math.floor(r() * HOTORGET_BLUES.length)];
+      x.fillRect(i * PX + 1.5, j * PX + 1.5, PX - 3, PX - 3);
+      // the glaze: lighter at the top of each tile
+      x.fillStyle = `rgba(255,255,255,${0.05 + r() * 0.08})`;
+      x.fillRect(i * PX + 2.5, j * PX + 2.5, PX - 5, (PX - 5) * 0.4);
+    }
+  }
+  if (grime > 0) {
+    const y0 = c.height - (grime / height) * c.height;
+    const g = x.createLinearGradient(0, y0, 0, c.height);
+    g.addColorStop(0, 'rgba(40,38,34,0)');
+    g.addColorStop(1, 'rgba(40,38,34,0.75)');
+    x.fillStyle = g;
+    x.fillRect(0, y0, c.width, c.height - y0);
+  }
+  if (plates) {
+    const w = 0.75 / TILE * PX, h = 0.17 / TILE * PX;
+    const cx = c.width / 2, cy = c.height - (plateAt / height) * c.height;
+    x.save();
+    x.translate(cx, cy);
+    if (mirror) x.scale(-1, 1);
+    x.fillStyle = '#16191c';
+    x.fillRect(-w / 2, -h / 2, w, h);
+    x.strokeStyle = '#9aa0a4';
+    x.lineWidth = 1.5;
+    x.strokeRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6);
+    x.fillStyle = '#f2f2ee';
+    x.font = `600 ${Math.round(h * 0.5)}px "Helvetica Neue", Arial, sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('HÖTORGET', 0, 1, w - 16);
+    x.restore();
+  }
+  return c;
+}
+
+// Hötorget's track walls, turned for a sweep along the track: u up the wall from its foot (0) to
+// the soffit (1), v along the track, 4.8 m per repeat. One wall of a track sees the track's
+// direction the other way round: `mirror` turns the name plates for it.
+export function hotorgetWall(height: number, plateAt: number, mirror = false) {
+  const src = hotorgetTileCanvas(height, { plates: true, plateAt, grime: 1.2, mirror });
+  const [c, x] = canvas(src.height, src.width);
+  // (across, up) → (up from the left, across)
+  x.setTransform(0, 1, -1, 0, src.height, 0);
+  x.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// Hötorget's tiled columns: u across a face, v up it, 4.8 × 4.8 m per repeat.
+export function hotorgetColumn() {
+  return toTexture(hotorgetTileCanvas(4.8));
+}
+
+// Clinker floor tiles, 20 cm, in browns and beiges, as on Hötorget's platform. Covers 2 × 2 m.
+export function clinker() {
+  const [c, x] = canvas(500);
+  x.fillStyle = '#7a6b5c';
+  x.fillRect(0, 0, 500, 500);
+  const r = rng(52);
+  const shades = ['#a08b74', '#957f69', '#a99580', '#8c7761', '#9a866f'];
+  for (let j = 0; j < 10; j++) {
+    for (let i = 0; i < 10; i++) {
+      x.fillStyle = shades[Math.floor(r() * shades.length)];
+      x.fillRect(i * 50 + 2, j * 50 + 2, 46, 46);
+    }
+  }
+  speckle(x, 500, 500, 4000, 0.12, 53);
+  return toTexture(c);
+}
+
+// Smooth painted plaster, nearly white.
+export function plaster() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#f4f4f2';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 1500, 0.05, 61);
   return toTexture(c);
 }
