@@ -375,8 +375,9 @@ passages and stairs open out of it (see [The stations](#the-stations)).
 
 A few halls are drawn as they look rather than as a plain vault (`src/hall-styles.ts`). Hötorget
 keeps its 1952 look: track walls and two rows of columns in square tiles of seven shades of pale
-blue-green with small black name plates, clinker on the floor, a flat roof with the lamps in a
-soffit over each track, and Gun Gordillo's 103 lines of white neon (1998) hung under the ceiling.
+blue-green with small navy name plates, clinker on the floor, a flat roof with the lamps in a
+soffit over each track, the old name Kungsgatan between two 1950s posters (redrawn) on each
+track wall, and Gun Gordillo's 103 lines of white neon (1998) hung under the ceiling.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:

@@ -141,8 +141,8 @@ function materials() {
     ground: new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 1, side: THREE.DoubleSide }),
     steel: new THREE.MeshStandardMaterial({ color: 0x5d6670, roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }),
     buffer: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.6 }),
-    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.35, side: THREE.DoubleSide }),
-    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.35, side: THREE.DoubleSide }),
+    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.35, side: THREE.DoubleSide }),
+    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.35, side: THREE.DoubleSide }),
     // (lit from below, by the lamps and the neon, which light nothing: so it glows a little)
     hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
     hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.35 }),
@@ -160,6 +160,7 @@ export class Network {
   private floorData = new Map<string, PlatformFloorData>();
   private mats = materials();
   private signs = new Map<string, THREE.MeshBasicMaterial>();
+  private posterMats: THREE.MeshStandardMaterial[] | null = null;
   private stations: TrackGraph['stations'];
 
   // The stations' shafts and passages are cut out of the tunnels, platforms and everything else
@@ -403,7 +404,7 @@ export class Network {
         if (!st || Math.sign(sm.pair) !== sign) return null;
         const o = shellOutline(sm)!;
         return { key: o.key, pts: sign > 0 ? o.pts.slice(0, 2) : o.pts.slice(-2) };
-      }, { u: (_, v) => (v - S.FLOOR) / (HOTORGET.soffit - S.FLOOR), vScale: 1 / 4.8 });
+      }, { u: (_, v) => (v - S.FLOOR) / (HOTORGET.soffit - S.FLOOR), vScale: 1 / T.HOTORGET_REPEAT });
     }
     sweep(b.hallCeiling, run, (sm) => {
       if (!hallStyle(sm)) return null;
@@ -425,6 +426,7 @@ export class Network {
     this.openStructure(run, b);
     this.platforms(run, b, group);
     this.columns(samples, run, b);
+    this.posters(samples, run, group);
     this.lights(run, b);
     this.ends(samples, i0, i1, b);
   }
@@ -516,7 +518,8 @@ export class Network {
         lastSign = sm.along;
         const span = structureSpan(sm);
         const wall = p.side > 0 ? span[0] : span[1];
-        if (sm.kind === 'rock' || sm.kind === 'box') {
+        // (a styled hall has its own name plates)
+        if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm)) {
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
           sign.position.copy(at(sm, wall + p.side * 0.06, 2.4));
           sign.lookAt(at(sm, wall + p.side * 1.06, 2.4));
@@ -530,6 +533,32 @@ export class Network {
         else box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
     }
+  }
+
+  // A styled hall's posters on this track's wall, either side of a plate with the station's old
+  // name: halfway between two of the tiles' name plates, the nearest to the platform's middle.
+  private posters(all: Sample[], run: Sample[], group: THREE.Group) {
+    const first = run.find((sm) => hallStyle(sm));
+    const st = first && hallStyle(first), ps = st?.posters;
+    if (!first || !ps) return;
+    const p = first.plat!, on = all.filter((sm) => sm.plat === p);
+    const t = Math.round((on[0].along + on[on.length - 1].along) / 2 / T.HOTORGET_REPEAT) * T.HOTORGET_REPEAT;
+    const i = run.findIndex((sm, j) => j + 1 < run.length && sm.along <= t && run[j + 1].along > t);
+    if (i < 0 || run[i].plat !== p) return;
+    const sa = run[i], sb = run[i + 1], f = (t - sa.along) / (sb.along - sa.along || 1);
+    const sm = { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f };
+    const span = structureSpan(sm), wall = p.side > 0 ? span[0] : span[1];
+    // along the track, to the left of someone facing the wall
+    const left = new THREE.Vector3(sm.rz, 0, -sm.rx).multiplyScalar(Math.sign(wall));
+    this.posterMats ??= [T.posterKatten(), T.namePlate(ps.name), T.posterToy()].map((map) => new THREE.MeshStandardMaterial({ map, roughness: 0.5 }));
+    const sizes: [number, number][] = [[1.3, 1.75], [0.63, 0.09], [1.3, 1.75]];
+    [-1, 0, 1].forEach((k, j) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(...sizes[j]), this.posterMats![j]);
+      const h = j === 1 ? st.plateAt : ps.at;
+      m.position.copy(at(sm, wall + p.side * 0.02, h)).addScaledVector(left, -k * ps.apart);
+      m.lookAt(at(sm, wall + p.side, h).addScaledVector(left, -k * ps.apart));
+      group.add(m);
+    });
   }
 
   // A styled hall's row of columns along this track's side of the platform, evenly spaced and
@@ -943,14 +972,14 @@ function box(b: MeshBuilder, c: THREE.Vector3, sm: Sample, sx: number, sy: numbe
 }
 
 // A square column standing at `c` from y0 to y1 above it, `size` across, its tiles in metres
-// (4.8 m to a repeat of the texture).
+// (T.HOTORGET_REPEAT m to a repeat of the texture).
 function pillar(b: MeshBuilder, c: THREE.Vector3, sm: Sample, size: number, y0: number, y1: number) {
-  const tx = sm.rz, tz = -sm.rx, h = size / 2;
+  const tx = sm.rz, tz = -sm.rx, h = size / 2, R = T.HOTORGET_REPEAT;
   const P = (i: number, k: number, y: number) => new THREE.Vector3(c.x + (sm.rx * i + tx * k) * h, c.y + y, c.z + (sm.rz * i + tz * k) * h);
   const corners: [number, number][] = [[1, -1], [1, 1], [-1, 1], [-1, -1], [1, -1]];
   for (let f = 0; f < 4; f++) {
     const [i0, k0] = corners[f], [i1, k1] = corners[f + 1];
-    b.quad(P(i0, k0, y0), P(i1, k1, y0), P(i1, k1, y1), P(i0, k0, y1), [0, y0 / 4.8], [size / 4.8, y0 / 4.8], [size / 4.8, y1 / 4.8], [0, y1 / 4.8]);
+    b.quad(P(i0, k0, y0), P(i1, k1, y0), P(i1, k1, y1), P(i0, k0, y1), [0, y0 / R], [size / R, y0 / R], [size / R, y1 / R], [0, y1 / R]);
   }
 }
 
