@@ -1290,3 +1290,380 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
     }
   }
 }
+// ------------------------------------------------------------------ T-Centralen's platforms
+// The track walls of T-Centralen's three platform halls (src/station.ts), drawn upright for a
+// sweep along the track: u along it, TC_WALL.repeat m per repeat; v up the wall's profile from its
+// foot in the trench (0), TC_WALL.height m to the top of its curve (1), the platform TC_WALL.floor
+// m up it. The halls' end walls take the same, from the platform up.
+export const TC_WALL = { height: 9, floor: 1.25, ppm: 100 };
+
+// A wall canvas `len` m along, TC_WALL.height m up, and a helper from metres up the wall to pixels down it.
+function tcCanvas(len: number): [HTMLCanvasElement, CanvasRenderingContext2D, (m: number) => number] {
+  const { height, ppm } = TC_WALL;
+  const [c, x] = canvas(Math.round(len * ppm), Math.round(height * ppm));
+  return [c, x, (m) => (height - m) * ppm];
+}
+
+function tcTexture(c: HTMLCanvasElement) {
+  const t = toTexture(c);
+  t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// The trench below the platform: grimy concrete, darker towards the ballast.
+function tcTrench(x: CanvasRenderingContext2D, w: number, Y: (m: number) => number, top: number, seed: number) {
+  x.fillStyle = '#5b5852';
+  x.fillRect(0, Y(top), w, Y(0) - Y(top));
+  speckle(x, w, Y(0), 3000, 0.25, seed);
+  const g = x.createLinearGradient(0, Y(top), 0, Y(0));
+  g.addColorStop(0, 'rgba(30,28,25,0.15)');
+  g.addColorStop(1, 'rgba(20,18,16,0.75)');
+  x.fillStyle = g;
+  x.fillRect(0, Y(top), w, Y(0) - Y(top));
+}
+
+// Painted plaster from `from` m up the wall to its top: the vault over the tiles.
+function tcPlaster(x: CanvasRenderingContext2D, w: number, Y: (m: number) => number, from: number, seed: number) {
+  x.fillStyle = '#f2f1ec';
+  x.fillRect(0, 0, w, Y(from));
+  speckle(x, w, Y(from), 1500, 0.025, seed);
+}
+
+// A grid of glazed tiles `tw` × `th` m from `from` to `to` m up the wall, each coloured by `paint`
+// (column, row, middle in metres along and up): a colour, which may vary tile by tile.
+function tcTiles(
+  x: CanvasRenderingContext2D, w: number, Y: (m: number) => number, from: number, to: number,
+  tw: number, th: number, joint: string, paint: (i: number, j: number, u: number, m: number) => string,
+) {
+  const { ppm } = TC_WALL;
+  x.fillStyle = joint;
+  x.fillRect(0, Y(to), w, Y(from) - Y(to));
+  const nx = Math.round(w / (tw * ppm)), ny = Math.floor((to - from) / th);
+  const pw = w / nx, ph = th * ppm, gap = Math.max(1, ppm * 0.006);
+  for (let j = 0; j < ny; j++) {
+    const y = Y(from + (j + 1) * th);
+    for (let i = 0; i < nx; i++) {
+      x.fillStyle = paint(i, j, (i + 0.5) * tw, from + (j + 0.5) * th);
+      x.fillRect(i * pw + gap, y + gap, pw - 2 * gap, ph - 2 * gap);
+      // the glaze, catching the light along the top of each tile
+      x.fillStyle = 'rgba(255,255,255,0.07)';
+      x.fillRect(i * pw + gap, y + gap, pw - 2 * gap, ph * 0.3);
+    }
+  }
+}
+
+const TC_UPPER_REPEAT = 20.48;
+
+// The upper red/green hall (tracks 1–2), its green line wall: white glazed tiles, 15 × 7.5 cm,
+// with "Klaravagnen" (Anders Österlin and Signe Persson-Melin, 1957) along them: big signs and
+// letters laid in ochre, gold, brown and black tiles, a few metres apart, a frieze 145 m long.
+export function tcKlaravagnen() {
+  const [c, x, Y] = tcCanvas(TC_UPPER_REPEAT);
+  const w = c.width, { ppm, floor } = TC_WALL;
+  const tilesFrom = floor + 0.1, tilesTo = floor + 3.3;
+  tcPlaster(x, w, Y, tilesTo, 81);
+  tcTrench(x, w, Y, tilesFrom, 82);
+  // the figures, drawn as a mask first and then laid tile by tile
+  const [mc, mx] = canvas(w, c.height);
+  const r = rng(1957);
+  const at = (u: number) => u * ppm, up = (m: number) => Y(floor + m);
+  const ink = ['#c39433', '#d6ad48', '#8a6326', '#2b2723', '#b07a2a'];
+  const shapes: ((u: number) => void)[] = [
+    // a tall gold bar over a block of black and gold squares
+    (u) => { mx.fillRect(at(u), up(2.9), at(0.45), up(1.0) - up(2.9)); mx.fillRect(at(u - 0.35), up(1.0), at(1.1), up(0.3) - up(1.0)); },
+    // an arrow pointing up
+    (u) => {
+      mx.fillRect(at(u - 0.12), up(2.3), at(0.24), up(0.3) - up(2.3));
+      mx.beginPath(); mx.moveTo(at(u - 0.6), up(2.2)); mx.lineTo(at(u), up(3.0)); mx.lineTo(at(u + 0.6), up(2.2)); mx.closePath(); mx.fill();
+    },
+    // an octagon, framed, with bars inside
+    (u) => {
+      mx.lineWidth = at(0.18);
+      mx.beginPath();
+      for (let k = 0; k < 8; k++) {
+        const a = (k + 0.5) * Math.PI / 4;
+        const px = at(u) + Math.cos(a) * at(0.42), py = up(1.85) + Math.sin(a) * at(0.85);
+        if (k) mx.lineTo(px, py); else mx.moveTo(px, py);
+      }
+      mx.closePath(); mx.stroke();
+      for (let k = -1; k <= 1; k++) mx.fillRect(at(u - 0.2), up(1.85) + k * at(0.28), at(0.4), at(0.1));
+    },
+    // letters, thinner, in dark tiles
+    (u) => { mx.lineWidth = at(0.16); mx.beginPath(); mx.moveTo(at(u), up(0.6)); mx.lineTo(at(u), up(2.7)); mx.lineTo(at(u + 0.5), up(2.7)); mx.moveTo(at(u), up(1.8)); mx.lineTo(at(u + 0.35), up(1.8)); mx.stroke(); },
+    (u) => { mx.lineWidth = at(0.16); mx.beginPath(); mx.moveTo(at(u - 0.4), up(2.7)); mx.lineTo(at(u), up(1.8)); mx.lineTo(at(u + 0.4), up(2.7)); mx.moveTo(at(u), up(1.8)); mx.lineTo(at(u), up(0.6)); mx.stroke(); },
+    (u) => { mx.lineWidth = at(0.16); mx.beginPath(); mx.moveTo(at(u - 0.4), up(2.7)); mx.lineTo(at(u + 0.4), up(0.7)); mx.moveTo(at(u + 0.4), up(2.7)); mx.lineTo(at(u - 0.4), up(0.7)); mx.stroke(); },
+    // a tall thin pair of bars with a patterned foot
+    (u) => { mx.fillRect(at(u), up(2.8), at(0.24), up(0.9) - up(2.8)); mx.fillRect(at(u + 0.4), up(2.4), at(0.24), up(0.9) - up(2.4)); mx.fillRect(at(u - 0.1), up(0.9), at(0.65), up(0.4) - up(0.9)); },
+  ];
+  const colours: string[] = [];
+  let u = 1.2, k = 0;
+  while (u < TC_UPPER_REPEAT - 1.2) {
+    const tone = k < 3 || k === 6 ? (k === 0 ? 1 : k % 2 ? 0 : 4) : 3;
+    colours.push(ink[tone]);
+    mx.fillStyle = mx.strokeStyle = `rgb(${colours.length},0,0)`;
+    shapes[k % shapes.length](u);
+    u += 2.2 + r() * 1.4; k++;
+  }
+  const mask = mx.getImageData(0, 0, w, c.height).data;
+  const figure = (um: number, m: number) => {
+    const px = Math.min(w - 1, Math.floor(um * ppm)), py = Math.min(c.height - 1, Math.floor(Y(m)));
+    return mask[(py * w + px) * 4];
+  };
+  tcTiles(x, w, Y, tilesFrom, tilesTo, 0.15, 0.075, '#c9c7c0', (i, j, um, m) => {
+    const f = figure(um, m);
+    if (f) {
+      const base = colours[f - 1];
+      // the patterned blocks: black and gold squares mixed in at random
+      return r() < 0.12 ? (base === ink[3] ? ink[0] : ink[3]) : base;
+    }
+    const v = 240 + Math.floor(r() * 10);
+    return `rgb(${v},${v},${v - 3})`;
+  });
+  return tcTexture(c);
+}
+
+// The upper hall's red line wall: Erland Melanton's and Bengt Edenfalk's wall of glass prisms
+// (1958), small glass blocks in grey joints, in long slanting fields of blue with gold streaks,
+// of olive and moss green round a pale green lens, and of pale grey-green.
+export function tcGlassPrisms() {
+  const [c, x, Y] = tcCanvas(TC_UPPER_REPEAT);
+  const w = c.width, { floor } = TC_WALL;
+  const from = floor + 0.25, to = floor + 3.0;
+  tcPlaster(x, w, Y, to + 0.1, 91);
+  tcTrench(x, w, Y, from, 92);
+  const r = rng(1958);
+  const hex = (h: number, s: number, l: number) => `hsl(${h},${s}%,${l}%)`;
+  tcTiles(x, w, Y, from, to, 0.12, 0.06, '#8d8d86', (_i, _j, um, m) => {
+    const h = m - floor;
+    // the fields slant: where along the wall a block is, taken at the platform's height
+    const s = ((um - h * 0.9) % TC_UPPER_REPEAT + TC_UPPER_REPEAT) % TC_UPPER_REPEAT;
+    const n = r();
+    if (s < 7.5) {
+      // blue, with gold streaks running down the slant
+      if ((s * 1.7) % 1.3 < 0.12 + 0.06 * Math.sin(h * 3)) return hex(44 + n * 10, 65, 52 + n * 10);
+      return hex(218 + n * 14, 45 + n * 20, 30 + n * 22);
+    }
+    if (s < 15) {
+      // olive and moss, a pale green lens across it
+      const lx = (s - 11.2) / 3.6, ly = (h - 1.5) / (0.9 * (1 - lx * lx) + 0.01);
+      if (Math.abs(lx) < 1 && Math.abs(ly) < 1) return hex(85 + n * 20, 40 + n * 20, 50 + n * 15);
+      return hex(60 + n * 25, 25 + n * 20, 28 + n * 18);
+    }
+    return hex(150 + n * 40, 8 + n * 10, 62 + n * 14);
+  });
+  // a sheen on the glass: soft vertical bands of light
+  for (let i = 0; i < 40; i++) {
+    x.fillStyle = `rgba(255,255,255,${0.03 + r() * 0.05})`;
+    x.fillRect(r() * w, Y(to), 4 + r() * 18, Y(from) - Y(to));
+  }
+  return tcTexture(c);
+}
+
+// The plain white tiles of the upper hall's end walls.
+export function tcUpperPlain() {
+  const [c, x, Y] = tcCanvas(4.8);
+  const { floor } = TC_WALL, r = rng(83);
+  tcPlaster(x, c.width, Y, floor + 3.3, 84);
+  tcTrench(x, c.width, Y, floor + 0.1, 85);
+  tcTiles(x, c.width, Y, floor + 0.1, floor + 3.3, 0.15, 0.075, '#c9c7c0', () => {
+    const v = 240 + Math.floor(r() * 10);
+    return `rgb(${v},${v},${v - 3})`;
+  });
+  return tcTexture(c);
+}
+
+// The lower red/green hall (tracks 3–4): Oscar Brandtberg's patterns in square tiles, 15 cm, in
+// bands of white, cream, beige and greys, some rows mixed.
+export function tcBrandtberg() {
+  const [c, x, Y] = tcCanvas(4.8);
+  const { floor } = TC_WALL, r = rng(1957 + 34);
+  const from = floor + 0.05, to = floor + 3.35;
+  tcPlaster(x, c.width, Y, to, 86);
+  tcTrench(x, c.width, Y, from, 87);
+  const tones = ['#ecebe4', '#d9d6cc', '#c4c1b8', '#a7a49d', '#d8ccb0', '#bfb39a'];
+  // the rows, bottom up: [main tone, second tone, share of the second]
+  const rows: [number, number, number][] = [];
+  for (let j = 0; j < 22; j++) {
+    const kind = [0, 2, 0, 1, 4, 0, 3, 1, 0, 5, 2][j % 11];
+    const mix = j % 4 === 1 ? 0.45 : j % 5 === 3 ? 0.2 : 0;
+    rows.push([kind, kind ? 0 : 4, mix]);
+  }
+  tcTiles(x, c.width, Y, from, to, 0.15, 0.15, '#9b988f', (_i, j) => {
+    const [a, b, mix] = rows[j % rows.length];
+    return tones[r() < mix ? b : a];
+  });
+  return tcTexture(c);
+}
+
+// Leaves on a stem, as Per Olof Ultvedt painted them over T-Centralen's blue line hall (1975):
+// a frond from (x0, y0) bending as it grows `len` px at angle `a`, its leaves in pairs, smaller
+// towards the tip.
+function frond(x: CanvasRenderingContext2D, x0: number, y0: number, a: number, len: number, leaf: number, bend: number, r: () => number) {
+  const n = Math.max(4, Math.round(len / (leaf * 0.55)));
+  let px = x0, py = y0, ang = a;
+  const pts: [number, number, number][] = [];
+  for (let k = 0; k <= n; k++) {
+    pts.push([px, py, ang]);
+    ang += bend / n;
+    px += Math.cos(ang) * (len / n); py += Math.sin(ang) * (len / n);
+  }
+  x.lineCap = 'round';
+  x.lineWidth = Math.max(2, leaf * 0.09);
+  x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+  for (const p of pts) x.lineTo(p[0], p[1]);
+  x.stroke();
+  const blade = (bx: number, by: number, ba: number, l: number) => {
+    const wd = l * 0.28;
+    x.save(); x.translate(bx, by); x.rotate(ba);
+    x.beginPath(); x.moveTo(0, 0);
+    x.quadraticCurveTo(l * 0.45, -wd, l, 0);
+    x.quadraticCurveTo(l * 0.45, wd, 0, 0);
+    x.fill(); x.restore();
+  };
+  for (let k = 1; k < pts.length; k++) {
+    const [bx, by, ba] = pts[k];
+    const l = leaf * (1 - (k / pts.length) * 0.55) * (0.85 + r() * 0.3);
+    blade(bx, by, ba - 0.75, l);
+    blade(bx, by, ba + 0.75, l);
+  }
+  const [tx, ty, ta] = pts[pts.length - 1];
+  blade(tx, ty, ta, leaf * 0.6);
+}
+
+// Rocky shading: soft blotches of `rgb`, wrapping across the canvas's sides.
+function rockShade(x: CanvasRenderingContext2D, w: number, h: number, n: number, rgb: string, alpha: number, size: number, r: () => number, y0 = 0) {
+  for (let i = 0; i < n; i++) {
+    const cx = r() * w, cy = y0 + r() * (h - y0), rad = size * (0.3 + r());
+    for (const dx of [-w, 0, w]) {
+      const g = x.createRadialGradient(cx + dx, cy, 0, cx + dx, cy, rad);
+      g.addColorStop(0, `rgba(${rgb},${alpha * (0.4 + r() * 0.6)})`);
+      g.addColorStop(1, `rgba(${rgb},0)`);
+      x.fillStyle = g;
+      x.fillRect(cx + dx - rad, cy - rad, rad * 2, rad * 2);
+    }
+  }
+}
+
+const TC_BLUE = '#2b40ad', TC_BLUE_DARK = '#1e2f8a', TC_BLUE_LEAF = '#3f60c8', TC_ROCK = '#e9e9e4';
+const TC_CAVE_REPEAT = 16;
+
+// The blue line hall's painted rock walls: ultramarine from the trench to a ragged line a few
+// metres over the platform, with darker leaves in it, and white above, with blue fronds climbing
+// from the blue and reaching over into the vault.
+export function tcCaveWall() {
+  const [c, x, Y] = tcCanvas(TC_CAVE_REPEAT);
+  const w = c.width, { ppm, floor } = TC_WALL, r = rng(1975);
+  x.fillStyle = TC_ROCK;
+  x.fillRect(0, 0, w, c.height);
+  rockShade(x, w, c.height, 220, '150,155,165', 0.22, 60, r);
+  // the line between blue and white, ragged like the rock: metres up the wall at u
+  const waves = [1, 2, 3, 5, 8, 13, 21, 34].map((f) => [f, r() * Math.PI * 2, (0.12 + r() * 0.25) * Math.min(1, 3 / f)]);
+  const edge = (u: number) => floor + 3.6 + waves.reduce((s, [f, ph, amp]) => s + amp * Math.sin((u / TC_CAVE_REPEAT) * Math.PI * 2 * f + ph), 0);
+  x.fillStyle = TC_BLUE;
+  x.beginPath(); x.moveTo(0, c.height);
+  for (let px = 0; px <= w; px += 4) x.lineTo(px, Y(edge(px / ppm)) + (r() - 0.5) * 6);
+  x.lineTo(w, c.height); x.closePath(); x.fill();
+  x.save(); x.clip();
+  rockShade(x, w, c.height, 160, '20,30,90', 0.35, 50, r);
+  rockShade(x, w, c.height, 80, '90,110,210', 0.18, 40, r);
+  // darker leaves in the blue
+  x.fillStyle = x.strokeStyle = TC_BLUE_DARK;
+  for (let i = 0; i < 26; i++) {
+    const u0 = r() * w;
+    for (const dx of [-w, 0, w]) frond(x, u0 + dx, Y(floor - 0.6), -Math.PI / 2 + (r() - 0.5) * 0.9, (1.8 + r() * 2) * ppm, 0.38 * ppm, (r() - 0.5) * 1.4, rng(i + 7));
+  }
+  x.restore();
+  // the trench: grime over the blue
+  const g = x.createLinearGradient(0, Y(floor), 0, Y(0));
+  g.addColorStop(0, 'rgba(15,18,30,0.2)');
+  g.addColorStop(1, 'rgba(15,15,20,0.8)');
+  x.fillStyle = g;
+  x.fillRect(0, Y(floor), w, Y(0) - Y(floor));
+  // fronds climbing out of the blue into the white
+  x.fillStyle = x.strokeStyle = TC_BLUE_LEAF;
+  for (let i = 0; i < 14; i++) {
+    const u0 = ((i + r() * 0.6) / 14) * TC_CAVE_REPEAT;
+    const len = (2.4 + r() * 2.2) * ppm, leaf = (0.42 + r() * 0.2) * ppm;
+    for (const dx of [-w, 0, w]) frond(x, u0 * ppm + dx, Y(edge(u0) - 0.3), -Math.PI / 2 + (r() - 0.5) * 1.2, len, leaf, (r() - 0.5) * 1.6, rng(100 + i));
+  }
+  return tcTexture(c);
+}
+
+// The vault over the blue line hall: white rock with blue fronds across it, 8 m per repeat.
+export function tcCaveVault() {
+  const S = 1024, [c, x] = canvas(S), r = rng(1976), ppm = S / 8;
+  x.fillStyle = TC_ROCK;
+  x.fillRect(0, 0, S, S);
+  rockShade(x, S, S, 160, '140,145,158', 0.25, 70, r);
+  x.fillStyle = x.strokeStyle = TC_BLUE_LEAF;
+  for (let i = 0; i < 10; i++) {
+    const x0 = r() * S, y0 = r() * S, a = r() * Math.PI * 2, len = (2 + r() * 2) * ppm, leaf = (0.4 + r() * 0.2) * ppm;
+    for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) frond(x, x0 + dx, y0 + dy, a, len, leaf, (r() - 0.5) * 1.4, rng(200 + i));
+  }
+  return toTexture(c);
+}
+
+// Platform floors, 2 × 2 m per repeat. Upper red/green and blue line: polished stone slabs,
+// 1.0 × 0.5 m, `tone` the stone; lower red/green: small square tiles, 10 cm, cream in grey joints.
+export function tcStoneFloor(tone: number, seed: number) {
+  const [c, x] = canvas(512);
+  const r = rng(seed);
+  x.fillStyle = `rgb(${tone - 30},${tone - 30},${tone - 28})`;
+  x.fillRect(0, 0, 512, 512);
+  for (let j = 0; j < 4; j++) {
+    for (let i = 0; i < 2; i++) {
+      const v = tone + Math.floor((r() - 0.5) * 10);
+      x.fillStyle = `rgb(${v},${v},${v + 2})`;
+      x.fillRect(i * 256 + (j % 2) * 128 + 1, j * 128 + 1, 254, 126);
+      if ((j % 2) && i === 1) x.fillRect(1 - 128, j * 128 + 1, 254, 126);
+    }
+  }
+  speckle(x, 512, 512, 14000, 0.3, seed + 1);
+  speckle(x, 512, 512, 6000, 0.2, seed + 2, true);
+  return toTexture(c);
+}
+
+export function tcMosaicFloor() {
+  const [c, x] = canvas(1000);
+  x.fillStyle = '#8f8c86';
+  x.fillRect(0, 0, 1000, 1000);
+  const r = rng(34);
+  for (let j = 0; j < 20; j++) {
+    for (let i = 0; i < 20; i++) {
+      const v = 228 + Math.floor(r() * 16);
+      x.fillStyle = `rgb(${v},${v - 2},${v - 8})`;
+      x.fillRect(i * 50 + 2.5, j * 50 + 2.5, 45, 45);
+    }
+  }
+  speckle(x, 1000, 1000, 6000, 0.08, 35);
+  return toTexture(c);
+}
+
+// The light stone band along a platform's edge, and the tactile strip inside it: u along, v across.
+export function tcEdgeBand() {
+  const [c, x] = canvas(256, 64);
+  x.fillStyle = '#e9e8e2'; x.fillRect(0, 0, 256, 64);
+  for (let i = 0; i < 4; i++) { x.fillStyle = 'rgba(120,120,115,0.6)'; x.fillRect(i * 64, 0, 2, 64); }
+  speckle(x, 256, 64, 800, 0.08, 37);
+  return toTexture(c);
+}
+export function tcTactile() {
+  const [c, x] = canvas(64, 32);
+  x.fillStyle = '#45474b'; x.fillRect(0, 0, 64, 32);
+  x.fillStyle = '#b89a52';
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { x.beginPath(); x.arc(8 + i * 16, 8 + j * 16, 3.2, 0, Math.PI * 2); x.fill(); }
+  return toTexture(c);
+}
+
+// The station's name on an enamel plate on the track walls: dark capitals on white, or white on black.
+export function tcPlate(text: string, dark = false) {
+  const [c, x] = canvas(512, 88);
+  x.fillStyle = dark ? '#1c1c1e' : '#111'; x.fillRect(0, 0, 512, 88);
+  x.fillStyle = dark ? '#1c1c1e' : '#f3f2ec'; x.fillRect(5, 5, 502, 78);
+  x.fillStyle = dark ? '#f3f2ec' : '#141414';
+  x.font = '600 50px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '5px';
+  x.fillText(text.toUpperCase(), 256, 47, 470);
+  return toTexture(c, { repeat: false });
+}
