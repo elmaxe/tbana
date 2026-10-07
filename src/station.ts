@@ -355,7 +355,11 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
         // T-Centralen's halls: the wall in its own look, the name on plates along it
         const look = tcTrackWall(hall, tr.line);
         if (farClear) {
-          group.add(new THREE.Mesh(sweep(run, wallProf, { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true }), tc[look.key]));
+          // the blue line's is blasted rock: higher, rounder and rough
+          const g = hall === 'blue'
+            ? tcRough(sweep(tr.path.resample(Math.max(0, s0 - 6), Math.min(tr.path.length, s1 + 6), 0.7), tcCaveProfile(far, k), { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true }), tr.path.pointAt(s0).y, -k, tr)
+            : sweep(run, wallProf, { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true });
+          group.add(new THREE.Mesh(g, tc[look.key]));
           signs.push(...tcPlates(tr, far + k * 0.03, tc.plate[hall]));
         }
       } else if (farClear) (blue ? caveGeoms : trackWallGeoms).push(sweep(run, wallProf, { uScale: blue ? 0.2 : 0.5, vScale: blue ? 0.2 : 0.5, swapUV: true }));
@@ -381,7 +385,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     const hallTracks = tracks.filter((tr) => hallOf(tr) === hall);
     for (const tr of hallTracks) {
       const partner = hallTracks.find((o) => o !== tr && o.platform!.rec === tr.platform!.rec);
-      if (partner) tcCeiling(tr, partner, TC_CEILING, walk, elevators, hits, ceil, hall === 'blue' ? 1 / 8 : 1 / 2);
+      if (partner) tcCeiling(tr, partner, hall === 'blue' ? TC_CAVE_TOP : TC_CEILING, walk, elevators, hits, ceil, hall === 'blue' ? 1 / 8 : 1 / 2, hall === 'blue');
     }
     addMesh(ceil, tc[hall].ceiling);
   }
@@ -806,6 +810,63 @@ type TcHall = 'upper' | 'lower' | 'blue';
 const HALLS: TcHall[] = ['upper', 'lower', 'blue'];
 // the ceiling, above the platform: as high as the tops of the track walls' curves (src/station.ts)
 const TC_CEILING = 5.6;
+// the blue line's cave: its walls rise to TC_CAVE_TOP over the platform, the vault 1.4 m higher in the middle
+const TC_CAVE_TOP = 6.9, TC_CAVE_DOME = 1.4;
+
+// The cave's wall across the track, from the trench up and over towards the platform: steep, then
+// rounding into the vault.
+function tcCaveProfile(far: number, k: number): [number, number][] {
+  const prof: [number, number][] = [[far, -1.25], [far, 0.6]];
+  for (let i = 0; i <= 12; i++) {
+    const a = (i / 12) * Math.PI / 2;
+    prof.push([far + k * 3.6 * (1 - Math.cos(a)), 0.6 + (TC_CAVE_TOP - 0.6) * Math.sin(a)]);
+  }
+  return prof;
+}
+
+// Smooth noise in space, -1…1, a few octaves of value noise: the bumps and hollows of blasted rock.
+function rockNoise(x: number, y: number, z: number) {
+  const hash = (i: number, j: number, k: number) => {
+    let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(k, 1274126177);
+    h = Math.imul(h ^ (h >>> 13), 1103515245);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+  };
+  const value = (x: number, y: number, z: number) => {
+    const i = Math.floor(x), j = Math.floor(y), k = Math.floor(z);
+    const f = (t: number) => t * t * (3 - 2 * t);
+    const u = f(x - i), v = f(y - j), w = f(z - k);
+    const l = (a: number, b: number, t: number) => a + (b - a) * t;
+    const c = (dj: number, dk: number) => l(hash(i, j + dj, k + dk), hash(i + 1, j + dj, k + dk), u);
+    return l(l(c(0, 0), c(1, 0), v), l(c(0, 1), c(1, 1), v), w) * 2 - 1;
+  };
+  return value(x * 0.45, y * 0.45, z * 0.45) * 0.55 + value(x * 1.1 + 17, y * 1.1, z * 1.1) * 0.3 + value(x * 2.6, y * 2.6 + 9, z * 2.6) * 0.15;
+}
+
+// Roughens a cave wall swept along a track: pushes every point back into the rock (away from the
+// track, `out` its side) and up or down by the noise, little at the platform's height so the trench
+// and the name plates stay clear, up to 0.85 m above it. Faceted, as blasted rock is.
+function tcRough(g: THREE.BufferGeometry, floorY: number, out: number, tr: Track) {
+  const pos = g.attributes.position;
+  // the track every 2 m, with its right at each, to find the side away from it near any point
+  const along: { p: THREE.Vector3; r: THREE.Vector3 }[] = [];
+  for (let s = 0; s <= tr.path.length; s += 2) along.push({ p: tr.path.pointAt(s), r: tr.path.rightAt(s) });
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const h = y - floorY;
+    const amp = THREE.MathUtils.smoothstep(h, -0.5, 2.5) * 0.85;
+    if (amp <= 0) continue;
+    const n = rockNoise(x, y, z), m = rockNoise(z + 31, x, y - 7);
+    // the side away from the track, taken from the nearest point of the track
+    let r = along[0].r, best = Infinity;
+    for (const q of along) {
+      const d = (q.p.x - x) ** 2 + (q.p.z - z) ** 2;
+      if (d < best) { best = d; r = q.r; }
+    }
+    pos.setXYZ(i, x + r.x * out * amp * (n + 1) * 0.5, y + amp * m * 0.5, z + r.z * out * amp * (n + 1) * 0.5);
+  }
+  g.computeVertexNormals();
+  return g;
+}
 
 // The home station's platforms, by hall: the red/green ones, upper and lower, by height.
 function tcHalls(records: SurfaceRecord[]) {
@@ -871,16 +932,24 @@ function tcPlates(tr: Track, off: number, mat: THREE.Material) {
 // floor or a lift comes through.
 function tcCeiling(
   tr: Track, partner: Track, height: number, walk: SurfaceIndex<SurfaceData>, elevators: SurfaceRecord[],
-  hits: WalkHit[], out: Builder, uvScale: number,
+  hits: WalkHit[], out: Builder, uvScale: number, cave = false,
 ) {
   const spec = TRAIN_SPECS[LINES[tr.line].kind];
   const W = spec.halfWidth + 1.15, k = tr.platform!.side;
   const { s0, s1 } = tr.platform!;
   const pts = partner.path.resample(0, partner.path.length, 2);
   const p = new THREE.Vector3(), r = new THREE.Vector3();
-  const corner = (s: number, d: number) => {
+  const corner = (s: number, d: number, mid: number) => {
     tr.path.pointAt(s, p); tr.path.rightAt(s, r);
-    return p.clone().addScaledVector(r, k * d).setY(p.y + height);
+    const c = p.clone().addScaledVector(r, k * d).setY(p.y + height);
+    if (!cave) return c;
+    // the cave's vault: domed towards the middle of the hall, and rough
+    const t = THREE.MathUtils.clamp((d - from) / Math.max(0.5, mid - from), 0, 1);
+    c.y += TC_CAVE_DOME * Math.sin(t * Math.PI / 2) + rockNoise(c.x, p.y, c.z) * 0.6;
+    // but under the floors over it
+    walk.query(c.x, c.z, hits);
+    for (const h of hits) if (h.y > p.y + 3 && h.y - 0.6 < c.y) c.y = h.y - 0.6;
+    return c;
   };
   // halfway across to the partner, at s
   const half = (s: number) => {
@@ -892,11 +961,23 @@ function tcCeiling(
   const blocked = (c: THREE.Vector3) => {
     const y0 = c.y - height;
     walk.query(c.x, c.z, hits);
-    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + height + 1.5)) return true;
+    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + height + (cave ? TC_CAVE_DOME : 0) + 1.5)) return true;
     return elevators.some((e) => c.x > e.box.min.x - 0.3 && c.x < e.box.max.x + 0.3 && c.z > e.box.min.z - 0.3 && c.z < e.box.max.z + 0.3
       && e.box.max.y > y0 + 0.5 && e.box.min.y < y0 + height + 1.5);
   };
-  const from = 3.6 - W; // the top of the wall's curve, across the track from its middle
+  // the cave: only what comes up through the platform, or a floor too low to pass under, stops its vault
+  const blockedLow = (c: THREE.Vector3) => {
+    tr.path.pointAt(s0, p);
+    const y0 = p.y;
+    if (c.y < y0 + 3) return true;
+    walk.query(c.x, c.z, hits);
+    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + 3)) return true;
+    return elevators.some((e) => c.x > e.box.min.x - 0.3 && c.x < e.box.max.x + 0.3 && c.z > e.box.min.z - 0.3 && c.z < e.box.max.z + 0.3
+      && e.box.max.y > y0 + 0.5 && e.box.min.y < y0 + 3);
+  };
+  // the top of the wall's curve, across the track from its middle (the cave's from further back,
+  // over the top of its rough wall)
+  const from = 3.6 - W - (cave ? 1.0 : 0);
   const uv = (v: THREE.Vector3): [number, number] => [v.x * uvScale, v.z * uvScale];
   for (let s = Math.max(0, s0 - 6); s < Math.min(tr.path.length, s1 + 6); s += 1) {
     const sb = Math.min(s + 1, tr.path.length, s1 + 6);
@@ -905,9 +986,9 @@ function tcCeiling(
     for (let i = 0; i < n; i++) {
       const a0 = from + ((ha - from) * i) / n, a1 = from + ((ha - from) * (i + 1)) / n;
       const b0 = from + ((hb - from) * i) / n, b1 = from + ((hb - from) * (i + 1)) / n;
-      const c00 = corner(s, a0), c01 = corner(s, a1), c10 = corner(sb, b0), c11 = corner(sb, b1);
+      const c00 = corner(s, a0, ha), c01 = corner(s, a1, ha), c10 = corner(sb, b0, hb), c11 = corner(sb, b1, hb);
       const mid = c00.clone().add(c01).add(c10).add(c11).multiplyScalar(0.25);
-      if (blocked(mid)) continue;
+      if (cave ? [c00, c01, c10, c11].some((c) => blockedLow(c)) : blocked(mid)) continue;
       out.quad(c00, c10, c11, c01, uv(c00), uv(c10), uv(c11), uv(c01));
     }
   }
