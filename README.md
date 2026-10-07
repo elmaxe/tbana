@@ -383,6 +383,10 @@ smooth white vault, a row of lamps over the platform's edge, white name signs on
 the platform, and dark terrazzo floors with a band of pale tiles along the edge; on the track
 walls, Siri Derkert's Ristningar i betong (1961–65), redrawn: singing women, faces, staves of
 song, Rachel Carson's Tyst vår and "peace" in several languages.
+The blue line's stations (1975–85) are caves: the vault roughened into lumps of rock, and painted
+as each station's artists painted it, from Kungsträdgården's green with red and white zigzags and
+Solna centrum's red sky over a spruce forest to Huvudsta's hanging gardens, Solna strand's
+squares of sky, Tensta's white rock and Hjulsta's frieze of a march (Kista is above ground).
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:

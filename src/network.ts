@@ -9,8 +9,8 @@ import * as T from './textures';
 import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
-import { HALL_STYLES, VAULT_STYLES } from './hall-styles';
-import type { HallStyle, VaultStyle } from './hall-styles';
+import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
+import type { CaveStyle, HallStyle, VaultStyle } from './hall-styles';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -120,7 +120,9 @@ class MeshBuilder {
 
 type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer'
   | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor'
-  | 'vaultArt' | 'vaultArtMirror' | 'vaultWall' | 'vaultCeiling' | 'vaultFloor' | 'vaultEdge' | 'fitting';
+  | 'vaultArt' | 'vaultArtMirror' | 'vaultWall' | 'vaultCeiling' | 'vaultFloor' | 'vaultEdge' | 'fitting'
+  // a painted cave's rock, one for each station (src/hall-styles.ts)
+  | `cave:${string}`;
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's and Östermalmstorg's, the only
 // ones so far.
@@ -158,7 +160,7 @@ function materials() {
     vaultFloor: new THREE.MeshStandardMaterial({ map: T.terrazzo(), roughness: 0.35 }),
     vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
     fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
-  } satisfies Record<MaterialName, THREE.Material>;
+  } satisfies Partial<Record<MaterialName, THREE.Material>> as Record<MaterialName, THREE.Material>;
 }
 
 export class Network {
@@ -405,7 +407,15 @@ export class Network {
     });
 
     // the structure around it
-    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) && !vaultStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) && !vaultStyle(sm) && !caveStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    // a painted cave: its rock, painted as that station's is (u up the wall and on over the roof,
+    // v along the station, the same for both of its tracks)
+    for (const station of new Set(run.filter((sm) => caveStyle(sm)).map((sm) => sm.plat!.station))) {
+      const key: MaterialName = `cave:${station}`;
+      this.mats[key] ??= this.caveMaterial(station);
+      sweep(b[key] ??= new MeshBuilder(), run, (sm) => (caveStyle(sm) && sm.plat!.station === station ? shellOutline(sm) : null),
+        { u: (u, v, _, sm) => caveAcross(sm, u, v) / T.CAVE_ACROSS, v: (u, v, sm) => caveAlong(sm, u, v) / T.CAVE_REPEAT });
+    }
     sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) && !vaultStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
     // a styled vault: the wall across the track (its art drawn to be read from the platform), the
     // wall behind the platform, and the vault
@@ -583,9 +593,11 @@ export class Network {
         const wall = p.side > 0 ? span[0] : span[1];
         // (a styled hall has its own name plates)
         if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm)) {
+          // (on a painted cave's rock, where it is)
+          const w = caveStyle(sm) ? wall - Math.sign(wall) * caveInward(sm, wall, 2.4) : wall;
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
-          sign.position.copy(at(sm, wall + p.side * 0.06, 2.4));
-          sign.lookAt(at(sm, wall + p.side * 1.06, 2.4));
+          sign.position.copy(at(sm, w + p.side * 0.06, 2.4));
+          sign.lookAt(at(sm, w + p.side * 1.06, 2.4));
           group.add(sign);
         }
       }
@@ -593,7 +605,16 @@ export class Network {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
         if (st) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
-        else if (!vs) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+      }
+      if (caveStyle(sm)) {
+        // in a painted cave, a row of fittings hung on rods well under the rock, over the
+        // platform's edge
+        const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.7);
+        const roof = S.archHeight(a, c, S.HALL.spring, (c - a) * S.HALL.risePerWidth, u), v = Math.min(roof - CAVE_ROUGH - 0.4, H + 3.2);
+        box(b.fitting, at(sm, u, v + 0.04), sm, 0.3, 0.08, 2.2);
+        box(b.lamp, at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
+        box(b.fitting, at(sm, u, (v + roof) / 2), sm, 0.03, roof - v, 0.03);
       }
       if (vs) {
         // in a styled vault, a row of fittings hung under it over the platform's edge, nearly end
@@ -659,6 +680,12 @@ export class Network {
       if ([-1, 1].some((i) => [-1, 1].some((k) => open(i, k, S.PLATFORM_HEIGHT + 1) || open(i, k, st.soffit - 0.05)))) continue;
       pillar(b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
     }
+  }
+
+  private caveMaterial(station: string) {
+    const map = T.caveRock(CAVE_STYLES[station].paint);
+    // (lit by its lamps, which light nothing: so it glows a little, as the vaults do)
+    return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
   }
 
   private signMaterial(station: string, white = false) {
@@ -916,6 +943,7 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     // the floor stays with this track's rails; the roof is shared, between the two tracks' levels
     pts.push([u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
   }
+  if (caveStyle(sm)) return { key: `cave${Math.sign(sm.pair)}`, pts: roughen(sm, pts) };
   return { key: `${sm.kind}${Math.sign(sm.pair)}`, pts };
 }
 
@@ -925,6 +953,55 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
 function hallStyle(sm: Sample): HallStyle | null {
   const p = sm.plat;
   return p && p.island && sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
+}
+// A painted cave (src/hall-styles.ts): a station hall in rock, its rock left rough and painted.
+function caveStyle(sm: Sample): CaveStyle | null {
+  const p = sm.plat;
+  return p && sm.kind === 'rock' ? CAVE_STYLES[p.station] ?? null : null;
+}
+// A cave's rock is the vault's outline pushed in and out by up to CAVE_ROUGH, in lumps a few
+// metres across that depend only on where they are, so that the halves of a hall two tracks share
+// meet; the foot of each wall stays where it is.
+const CAVE_ROUGH = 0.45;
+function caveInward(sm: Sample, u: number, v: number) {
+  const p = at(sm, u, v);
+  const n = lumps(p.x / 4.5, p.y / 3, p.z / 4.5) * 0.7 + lumps(p.x / 1.6 + 17, p.y / 1.4, p.z / 1.6) * 0.3;
+  return n * CAVE_ROUGH * Math.min(1, Math.max(0, (v - S.FLOOR) / 1.4));
+}
+function roughen(sm: Sample, pts: [number, number][]): [number, number][] {
+  return pts.map(([u, v], j) => {
+    const [pu, pv] = pts[Math.max(0, j - 1)], [qu, qv] = pts[Math.min(pts.length - 1, j + 1)];
+    const tu = qu - pu, tv = qv - pv, l = Math.hypot(tu, tv) || 1;
+    // the outline runs up the left wall, over and down the right: outwards is to its left
+    const d = -caveInward(sm, u, v);
+    return [u - (tv / l) * d, v + (tu / l) * d];
+  });
+}
+// How far a point of a cave's rock is round from its floor: up the wall from the tunnel floor, then
+// across from the nearer wall (so the same for both halves of a shared hall where they meet).
+function caveAcross(sm: Sample, u: number, v: number) {
+  const [a, c] = structureSpan(sm);
+  return Math.max(0, v - S.FLOOR) + Math.min(Math.abs(u - a), Math.abs(u - c));
+}
+// And how far along the station: along its track, the same way for both tracks.
+function caveAlong(sm: Sample, u: number, v: number) {
+  const p = at(sm, u, v);
+  let tx = sm.rz, tz = -sm.rx;
+  if (tx < 0 || (tx === 0 && tz < 0)) { tx = -tx; tz = -tz; }
+  return p.x * tx + p.z * tz;
+}
+// Smooth value noise in [-1, 1].
+function lumps(x: number, y: number, z: number) {
+  const hash = (i: number, j: number, k: number) => {
+    let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(k, 2147483647);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295 * 2 - 1;
+  };
+  const x0 = Math.floor(x), y0 = Math.floor(y), z0 = Math.floor(z);
+  const f = (t: number) => t * t * (3 - 2 * t), fx = f(x - x0), fy = f(y - y0), fz = f(z - z0);
+  const L = (a: number, b: number, t: number) => a + (b - a) * t;
+  const c = (dy: number, dz: number) => L(hash(x0, y0 + dy, z0 + dz), hash(x0 + 1, y0 + dy, z0 + dz), fx);
+  return L(L(c(0, 0), c(1, 0), fy), L(c(0, 1), c(1, 1), fy), fz);
 }
 // A styled vault (src/hall-styles.ts): a hall in rock of its own, for a track with a platform
 // beside it.
@@ -1013,7 +1090,8 @@ function at(sm: Sample, u: number, v: number, out = new THREE.Vector3()) {
 // Sweeps a cross-section along the samples. `profile` gives each sample's section (or null for
 // none); where its key or its number of points changes, the surface starts again.
 function sweep(b: MeshBuilder, run: Sample[], profile: (sm: Sample) => { key: string; pts: [number, number][] } | null,
-  { uScale = 1, vScale = 1, u = null as ((u: number, v: number, along: number) => number) | null } = {}) {
+  { uScale = 1, vScale = 1, u = null as ((u: number, v: number, along: number, sm: Sample) => number) | null,
+    v = null as ((u: number, v: number, sm: Sample) => number) | null } = {}) {
   let rows: { sm: Sample; pts: [number, number][] }[] = [];
   let key = '';
   const flush = () => {
@@ -1024,7 +1102,7 @@ function sweep(b: MeshBuilder, run: Sample[], profile: (sm: Sample) => { key: st
         pts.forEach(([pu, pv], j) => {
           if (j) len += Math.hypot(pu - pts[j - 1][0], pv - pts[j - 1][1]);
           at(sm, pu, pv, _w);
-          b.vertex(_w.x, _w.y, _w.z, u ? u(pu, pv, sm.along) : len * uScale, sm.along * vScale);
+          b.vertex(_w.x, _w.y, _w.z, u ? u(pu, pv, sm.along, sm) : len * uScale, v ? v(pu, pv, sm) : sm.along * vScale);
         });
       }
       b.grid(rows.length, cols, first);

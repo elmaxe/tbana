@@ -1,3 +1,5 @@
+import type { CavePaint } from './textures';
+
 // Platform halls the network draws (src/network.ts) in their own style rather than as a plain
 // vault in rock: for now Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998),
 // and Östermalmstorg, with Siri Derkert's lines in its concrete walls (1965).
@@ -60,4 +62,117 @@ export interface VaultStyle {
 // them a smooth white vault, the floor dark terrazzo with a band of pale tiles along the edge.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
+};
+
+// The blue line's stations (1975–85), where the rock was left as it was blasted, sprayed with
+// concrete and painted: a cave, each painted as an artist chose. The halls keep their outlines,
+// roughened (src/network.ts); `paint` says how the rock is painted (src/textures.ts).
+export interface CaveStyle {
+  paint: CavePaint;
+}
+// Round from the track's floor (src/textures.ts): the platform is at 1.6, the walls rise to
+// about 4.2, and the crown is at about 9 over a hall of one track, 16 over an island platform.
+export const CAVE_STYLES: Record<string, CaveStyle> = {
+  // Kungsträdgården (1977, Ulrik Samuelson): the garden and the palace Makalös that stood
+  // above; the vault sprayed green, the walls' foot the bare grey-violet rock, and stripes of
+  // red, white and green zigzagging along it
+  'Kungsträdgården': { paint: { seed: 77, bands: [{ from: 0, color: '#6e655f' }, { from: 3.6, color: '#5f7d36', edge: 'ragged' }, { from: 7, color: '#6b8a3a', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#4a4440', '#857a72'], from: 0, to: 3.6, size: 0.4, count: 120, hard: true },
+      { kind: 'zigzag', colors: ['#c0392b', '#f0ece4', '#3d7a3a'], at: 4.1, width: 0.16, pitch: 0.7 },
+      { kind: 'zigzag', colors: ['#f0ece4', '#c0392b', '#3d7a3a'], at: 6.2, width: 0.16, pitch: 0.9 },
+      { kind: 'dabs', colors: ['#4f6c2c', '#7a9a48'], from: 3.6, to: 18, size: 0.6, count: 160 }] } },
+  // Rådhuset (1975, Sigvard Olsson, Fynden): the whole cave rust red, thin white and blue-grey
+  // veins running down its walls
+  'Rådhuset': { paint: { seed: 751, bands: [{ from: 0, color: '#7e3b1a' }, { from: 1.8, color: '#b2552c', edge: 'soft' }, { from: 9, color: '#9a4824', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#c4683a', '#8a4220'], from: 1.8, to: 18, size: 0.6, count: 200 },
+      { kind: 'drips', colors: ['#d8d0c8', '#7e8a94'], from: 1.2, to: 6, count: 70, width: 0.025 }] } },
+  // Stadshagen (1975, Lasse Lindqvist): sport; the vault near white, mid grey lower down, with
+  // thin red lines like the lanes of a running track flowing along the walls
+  'Stadshagen': { paint: { seed: 752, bands: [{ from: 0, color: '#8a8a80' }, { from: 3.4, color: '#c8c8c0', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#a8a8a0', '#dcdcd4'], from: 2, to: 18, size: 0.6, count: 180 },
+      { kind: 'drips', colors: ['#8b2a25', '#8b2a25', '#f0f0ea'], from: 1.8, to: 7, count: 40, width: 0.035 }] } },
+  // Västra skogen (1975, Sivert Lindblom): dark grey-brown rock, with shapes clad in little
+  // diamond tiles of lime, orange, yellow, blue and white along the walls
+  'Västra skogen': { paint: { seed: 753, bands: [{ from: 0, color: '#4a4a3a' }, { from: 2.4, color: '#6e6a5c', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#5a574a', '#827e70'], from: 2, to: 18, size: 0.6, count: 200 },
+      { kind: 'panels', color: '#3a6ab8', frame: '#2a2a2a', from: 2.4, to: 4.4, width: 1.6, every: 7, pattern: 'harlequin' },
+      { kind: 'stripes', colors: ['#e08a2a', '#3a6ab8', '#8ab83a', '#e8c840', '#f2f0ea'], from: 1.9, to: 2.1, width: 0.25, gap: 0.1 }] } },
+  // Solna centrum (1975, Karl-Olov Björk and Anders Åberg): a red evening sky over the dark green
+  // of a spruce forest, all round the cave, with small scenes of the countryside in the green
+  'Solna centrum': { paint: { seed: 1975, bands: [{ from: 0, color: '#2f6b4a' }, { from: 4.6, color: '#c8301f' }, { from: 9, color: '#9c2a25', edge: 'soft' }],
+    motifs: [{ kind: 'forest', color: '#2f6b4a', from: 4.4, to: 6.0 },
+      { kind: 'dabs', colors: ['#285c3e', '#3d8a64'], from: 1.6, to: 4.4, size: 0.5, count: 100 },
+      { kind: 'people', colors: ['#c8b890', '#8a6a4a', '#d8d0c0'], from: 2.6, to: 4.4, count: 12 },
+      { kind: 'doodles', color: '#d8d0b0', from: 2.6, to: 4.2, count: 10 }] } },
+  // Näckrosen (1975, Lizzie Olsson Arle): pale grey rock; over the platform a pond of water
+  // lilies on the roof, and boulders and small white ornaments set into the walls
+  'Näckrosen': { paint: { seed: 754, bands: [{ from: 0, color: '#8a8a86' }, { from: 2.2, color: '#b8b8b2', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#8a8a86', '#c8c8c2'], from: 2, to: 18, size: 0.6, count: 180 },
+      { kind: 'dabs', colors: ['#7a6658', '#6a5648', '#8a7464'], from: 2.6, to: 4.6, size: 0.14, count: 260, hard: true },
+      { kind: 'lilies', from: 6.5, to: 17, count: 16 }] } },
+  // Hallonbergen (1975, Elis Eriksson and Gösta Wallmark): off-white rock covered in drawings
+  // after children's: ships, people, dogs, houses, the sun, in black lines with a little colour
+  'Hallonbergen': { paint: { seed: 755, bands: [{ from: 0, color: '#a8a296' }, { from: 2, color: '#d8d4ca', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#bdb7aa', '#e4e0d6'], from: 2, to: 18, size: 0.6, count: 160 },
+      { kind: 'dabs', colors: ['#e88aa8', '#d8302a', '#e8c840', '#3a6ab8'], from: 2.4, to: 8, size: 0.12, count: 70, hard: true },
+      { kind: 'doodles', color: '#1a1a1a', from: 2.4, to: 8, count: 60 },
+      { kind: 'people', colors: ['#1a1a1a'], from: 2.4, to: 5, count: 14, outline: true }] } },
+  // Husby (1977, Birgit Broms): pale yellow-olive rock, and along the track walls a band of
+  // panels, grey-white, yellow and grey-brown, over the bare grey rock of the walls' foot
+  'Husby': { paint: { seed: 771, bands: [{ from: 0, color: '#8a8a86' }, { from: 2.6, color: '#c8c07a', edge: 'ragged' }, { from: 8, color: '#b0a868', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#9a9258', '#d4cc8a'], from: 2.6, to: 18, size: 0.6, count: 180 },
+      { kind: 'stripes', colors: ['#c8ccd0', '#d8c84a', '#6a5a4a', '#c8ccd0'], from: 2.6, to: 4.1, width: 2.4, gap: 0.12 }] } },
+  // Akalla (1975–77, Birgit Ståhl-Nyberg): the cave yellow ochre all over, with great tiled
+  // murals of people at work and at play set into the walls
+  'Akalla': { paint: { seed: 772, bands: [{ from: 0, color: '#977849' }, { from: 1.8, color: '#d7bb75', edge: 'soft' }, { from: 8, color: '#b8964a', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#c4a45e', '#e2c888'], from: 1.8, to: 18, size: 0.6, count: 200 },
+      { kind: 'panels', color: '#d8d6d0', frame: '#3a3a3a', from: 2.4, to: 4.9, width: 8, every: 20, pattern: 'mural' }] } },
+  // Huvudsta (1985, Per Holmberg, Hängande trädgårdar): pale rock with great masses of dark
+  // green foliage hanging from the roof, a band of little coloured blocks over the raw dark rock
+  // of the track wall's foot
+  'Huvudsta': { paint: { seed: 85, bands: [{ from: 0, color: '#2f2d2b' }, { from: 2.9, color: '#d9d7d0', edge: 'ragged' }],
+    motifs: [{ kind: 'stripes', colors: ['#4a46a8', '#e8c020', '#c83a3a', '#2f6fc0'], from: 2.85, to: 3.05, width: 0.3, gap: 0 },
+      { kind: 'canopy', color: '#2b7d48', shade: '#1f5a34', from: 4.4, to: 6.5 }] } },
+  // Solna strand (1985, Takashi Naraha, Himmelen av kub): dark grey rock, with squares of blue
+  // sky and clouds set into it at angles, like cubes sunk into the rock
+  'Solna strand': { paint: { seed: 851, bands: [{ from: 0, color: '#3c3c3f' }, { from: 2.4, color: '#48484b', edge: 'soft' }],
+    motifs: [{ kind: 'ribbon', color: '#2a2a2c', at: 3.1, width: 0.12 },
+      { kind: 'dabs', colors: ['#5c5c5f', '#333336'], from: 2.4, to: 18, size: 0.6, count: 160 },
+      { kind: 'windows', color: '#3f8fd0', from: 3.4, to: 17, count: 20, size: 0.85 }] } },
+  // Sundbybergs centrum (1985, Lars Kleen, Michael Söderlundh, Peter Tillberg): raw grey rock to
+  // a jagged edge, then the vault painted terracotta, darker over the roof, with dark ribs drawn
+  // across it
+  'Sundbybergs centrum': { paint: { seed: 852, bands: [{ from: 0, color: '#5f5e5a' }, { from: 3.6, color: '#a06a55', edge: 'ragged' }, { from: 7, color: '#7a4c3e', edge: 'soft' }],
+    motifs: [{ kind: 'stripes', colors: ['#4e2e24'], from: 3.7, to: 18, width: 0.06, gap: 3.4 }] } },
+  // Duvbo (1985, Gösta Sillén): the rock as it is, grey-brown and mottled, with pale panels like
+  // ruled pages set into it, fragments of bones and shells on them
+  'Duvbo': { paint: { seed: 853, bands: [{ from: 0, color: '#3a3732' }, { from: 3.1, color: '#6f6a5e', edge: 'ragged' }],
+    motifs: [{ kind: 'dabs', colors: ['#9a9284', '#4a463e', '#857e70'], from: 3.1, to: 18, size: 0.5, count: 260 },
+      { kind: 'panels', color: '#b8b2a4', frame: '#8e877a', from: 2.6, to: 4.4, width: 1.6, every: 6, pattern: 'ruled' }] } },
+  // Rissne (1985, Madeleine Dranger and Rolf H Reimers): pale rock over the dark rock of the
+  // walls' foot; along the track walls a band of thin coloured lines, and over it the history
+  // of the world from 3000 BC to 1985, written by hand, with little maps
+  'Rissne': { paint: { seed: 854, bands: [{ from: 0, color: '#2c2c2e' }, { from: 2.8, color: '#dedcd6', edge: 'ragged' }],
+    motifs: [{ kind: 'dabs', colors: ['#c8c6c0'], from: 3.5, to: 18, size: 0.7, count: 120 },
+      { kind: 'stripes', along: true, colors: ['#f4f4f2', '#2a9a8a', '#3c9c50', '#6a3a8a', '#b83a3a'], from: 2.85, to: 3.35, width: 0.045, gap: 0.012 },
+      { kind: 'writing', colors: ['#1d4f9a', '#b83a3a', '#2a7a3a', '#6a3a8a', '#222222'], from: 3.45, to: 4.9 },
+      { kind: 'dabs', colors: ['#e8c020', '#2f6fc0', '#3c9c50', '#c83a3a'], from: 3.5, to: 4.9, size: 0.18, count: 40 }] } },
+  // Rinkeby (1985, Nisse Zetterberg, Sven Sahlberg, Lennart Gram): the whole cave burnt orange,
+  // with gold mosaics of runes and finds from the Viking age set into it
+  'Rinkeby': { paint: { seed: 855, bands: [{ from: 0, color: '#8a3c22' }, { from: 2.2, color: '#b0532f', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#c8643c', '#7a3520'], from: 2.2, to: 18, size: 0.6, count: 200 },
+      { kind: 'panels', color: '#c8a848', frame: '#5a4a24', from: 3.0, to: 4.5, width: 1.3, every: 8, pattern: 'mosaic' }] } },
+  // Tensta (1975, Helga Henschen, En ros till invandrarna): chalk-white rock in deep folds, sky
+  // blue in its hollows overhead, and green fields on the walls with animals and plants drawn
+  // in white
+  'Tensta': { paint: { seed: 75, bands: [{ from: 0, color: '#5a5a58' }, { from: 2.2, color: '#e6e4de', edge: 'ragged' }],
+    motifs: [{ kind: 'dabs', colors: ['#c4c2ba', '#d4d2ca'], from: 2.2, to: 18, size: 0.8, count: 160 },
+      { kind: 'dabs', colors: ['#5e90c4', '#3a6ea8'], from: 6.5, to: 18, size: 0.6, count: 30, hard: true },
+      { kind: 'panels', color: '#4a8a3a', frame: '#2c6a2c', from: 2.3, to: 4.7, width: 3, every: 8 },
+      { kind: 'doodles', color: '#f4f4ee', from: 2.6, to: 4.4, count: 30 }] } },
+  // Hjulsta (1975): warm grey rock all over, and Eva Nyberg's frieze along the track wall: a
+  // march with red banners past a factory and a town, under a night sky
+  'Hjulsta': { paint: { seed: 751, bands: [{ from: 0, color: '#6e6d68' }, { from: 2, color: '#8c8b86', edge: 'soft' }],
+    motifs: [{ kind: 'dabs', colors: ['#a8a7a2', '#5e5d5a'], from: 2, to: 18, size: 0.6, count: 220 },
+      { kind: 'frieze', from: 3.1, to: 5.1 }] } },
 };
