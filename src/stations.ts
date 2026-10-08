@@ -260,7 +260,7 @@ export class Stations {
     for (const p of st.parts) {
       switch (p.kind) {
         case 'floor': this.buildFloor(p, m, others(p), spaces); break;
-        case 'incline': this.buildIncline(p, m, others(p), [...voids, ...spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol)]); break;
+        case 'incline': this.buildIncline(p, m, others(p), spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol), voids); break;
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
         case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
@@ -308,8 +308,9 @@ export class Stations {
   }
 
   // Steps lane by lane, the balustrades between the escalators, the ceiling, and the sides of the
-  // flight down to its foot where it stands in a room.
-  private buildIncline(p: InclinePart, m: Meshes, cut: Volume[], rooms: Volume[]) {
+  // flight down to its foot where it stands in a room: one of the station's (`rooms`) or a
+  // platform hall the network draws (`halls`).
+  private buildIncline(p: InclinePart, m: Meshes, cut: Volume[], rooms: Volume[], halls: Volume[]) {
     const dx = p.b[0] - p.a[0], dz = p.b[2] - p.a[2], run = Math.hypot(dx, dz) || 1;
     const fx = dx / run, fz = dz / run, rx = -fz, rz = fx;
     const rise = p.b[1] - p.a[1];
@@ -356,15 +357,19 @@ export class Stations {
       m.rubber.poly([[...q(-1, -w, -0.04), 0, 0], [...q(1, -w, -0.04), 1, 0], [...q(1, -w, 0.04), 1, 1], [...q(-1, -w, 0.04), 0, 1]]);
       m.rubber.poly([[...q(-1, w, 0.04), 0, 0], [...q(-1, w, -0.04), 1, 0], [...q(1, w, -0.04), 1, 1], [...q(1, w, 0.04), 0, 1]]);
     });
-    // the flight's sides below its steps, down to its foot: only where it stands in a room
+    // the flight's sides below its steps, down to its foot: only where it stands in a room, with
+    // its steps inside it. Where it only passes over a room (escalators climbing over a platform
+    // hall), what of its sides is inside the room would be a wall hanging across the hall, under
+    // nothing. (A piece's fourth value is how far up the flight it is, 0 to 1.) Nor are they
+    // carried out of a passage into the hall it opens into.
     const foot = p.a[1] - 0.05;
     for (const side of [-1, 1]) {
       const uu = side * p.width / 2;
       const a0 = at(uu, 0), a1 = at(uu, 1);
       const quad = [[a0[0], foot, a0[2], 0, 0], [a1[0], foot, a1[2], 1, 0], [...a1, 1, 1], [...a0, 0, 1]];
-      for (const r of rooms) {
+      for (const r of [...rooms, ...halls]) {
         const piece = intersect(quad, r);
-        if (piece.length) m.skirt.poly(piece);
+        if (piece.some((v) => v[1] > p.a[1] + rise * v[3] - 0.05)) m.skirt.poly(piece, halls.includes(r) ? [] : halls);
       }
     }
     // the ceiling, and lights up the middle

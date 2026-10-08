@@ -40,8 +40,10 @@ export interface GeometryPiece {
   // Another line's track beside this one in the same concrete box, on the side away from the
   // other track of this one's line: its distance to the right (negative: to the left), 0 where
   // there is none. Where any is (the red and green lines' four tracks from Gamla stan towards
-  // T-Centralen); each track's part of the box reaches halfway to it.
+  // T-Centralen); each track's part of the box reaches halfway to it. And how much higher its
+  // rails are, where they part for T-Centralen's two levels: the roof is between their levels.
   beside?: number[];
+  besideDy?: number[];
 }
 
 export interface TrackGeometry {

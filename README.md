@@ -258,7 +258,7 @@ each with its reason:
   area
 - island platforms drawn on the wrong side of a track, or across it, at Danderyds sjukhus,
   Aspudden, Medborgarplatsen, Skanstull, Svedmyra and Sankt Eriksplan; or far from the sketched
-  tracks at Hjulsta, Akalla and Hallonbergen
+  tracks at Hjulsta, Akalla, Mörby centrum and Hallonbergen
 - platforms drawn short of their 145 m at Bagarmossen, Bandhagen, Blackeberg, Rågsved, Stureby,
   Duvbo and Rissne
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)

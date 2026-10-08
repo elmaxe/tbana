@@ -38,8 +38,8 @@ interface Sample {
   kind: StructureKind;
   pair: number; pairDy: number;
   // another line's track sharing the structure on the other side, as in src/track-geometry.ts
-  // (to the right; negative: to the left), or 0
-  beside: number;
+  // (to the right; negative: to the left), or 0, and how much higher its rails are
+  beside: number; besideDy: number;
   // the nearest other track on each side, as in src/track-geometry.ts (negative for a service's)
   left: number; right: number;
   yard: boolean;                   // track no service runs on: crossovers, sidings, depots
@@ -948,9 +948,10 @@ function structureSpan(sm: Sample, widen = true): [number, number] {
   const l = shares(sm, -1), r = shares(sm, 1);
   if (l) a = -l / 2 - OVERLAP;
   if (r) b = r / 2 + OVERLAP;
-  // a hall wide enough for a platform beside the track
+  // a hall wide enough for a platform beside the track (an island's is shared with the track
+  // across it, to its middle)
   const p = sm.plat;
-  if (p && (sm.kind === 'rock' || sm.kind === 'box') && !(p.island && sm.pair)) {
+  if (p && (sm.kind === 'rock' || sm.kind === 'box') && !(p.island && across(sm))) {
     const o = p.side * (S.PLATFORM_EDGE + p.width + S.HALL.behindPlatform);
     if (p.side > 0) b = Math.max(b, o); else a = Math.min(a, o);
   }
@@ -1001,9 +1002,17 @@ function conductorGap(sm: Sample) {
   return (sm.yard || v > 0) && v !== 0 && Math.abs(v) < S.TRACK_CENTRES - 0.25;
 }
 
+// The track across an island platform that shares its hall: its own line's other track, or
+// another line's beside it (Gamla stan's); its offset, or 0.
+function across(sm: Sample) {
+  const p = sm.plat;
+  if (!p?.island) return 0;
+  return Math.sign(sm.pair) === p.side ? sm.pair : Math.sign(sm.beside) === p.side ? sm.beside : 0;
+}
+
 function platformOuter(sm: Sample) {
-  const p = sm.plat!;
-  if (p.island && sm.pair && Math.sign(sm.pair) === p.side) return sm.pair / 2 + p.side * OVERLAP;
+  const p = sm.plat!, v = across(sm);
+  if (v) return v / 2 + p.side * OVERLAP;
   return p.side * (S.PLATFORM_EDGE + p.width);
 }
 
@@ -1076,15 +1085,22 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     if (sm.pair < 0 || sm.beside < 0) t0 = over(o0);
   }
   const pts: [number, number][] = [];
-  const dy = sm.pair ? sm.pairDy / 2 : 0;
+  // the roof is shared, between the two tracks' levels at the middle; with a track on either side,
+  // it slopes from one middle to the other
+  const dy = (u: number) => {
+    const p = sm.pair ? sm.pairDy / 2 : 0, q = sm.beside ? sm.besideDy / 2 : 0;
+    if (!sm.pair || !sm.beside) return p + q;
+    const f = Math.max(0, Math.min(1, (u - sm.pair / 2) / (sm.beside / 2 - sm.pair / 2)));
+    return p + (q - p) * f;
+  };
   for (let j = 0; j < SHELL_POINTS; j++) {
     const t = t0 + ((t1 - t0) * j) / (SHELL_POINTS - 1);
     let i = 1;
     while (i < cum.length - 1 && cum[i] < t) i++;
     const f = (t - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
     const u = full[i - 1][0] + (full[i][0] - full[i - 1][0]) * f, v = full[i - 1][1] + (full[i][1] - full[i - 1][1]) * f;
-    // the floor stays with this track's rails; the roof is shared, between the two tracks' levels
-    pts.push([u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
+    // the floor stays with this track's rails
+    pts.push([u, v + (v > S.FLOOR + 0.01 ? dy(u) * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
   }
   if (caveStyle(sm)) return { key: `cave${Math.sign(sm.pair)}`, pts: roughen(sm, pts) };
   return { key: `${sm.kind}${Math.sign(sm.pair)}${sm.beside ? `b${Math.sign(sm.beside)}` : ''}`, pts };
@@ -1095,7 +1111,7 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
 // them; this track's half, to just over the middle. Its corners are kept, unlike the vaults'.
 function hallStyle(sm: Sample): HallStyle | null {
   const p = sm.plat;
-  return p && p.island && sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
+  return p && p.island && sm.pair && across(sm) === sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
 }
 // A painted cave (src/hall-styles.ts): a station hall in rock, its rock left rough and painted.
 function caveStyle(sm: Sample): CaveStyle | null {
@@ -1559,6 +1575,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     const pairDy = pair ? (g.pairDy[i] && g.pairDy[i + 1] ? lerp(g.pairDy, q) : g.pairDy[near]) : 0;
     const ba = g.beside?.[i] ?? 0, bb = g.beside?.[i + 1] ?? 0;
     const beside = ba && bb && Math.sign(ba) === Math.sign(bb) ? ba + (bb - ba) * t : g.beside?.[near] ?? 0;
+    const besideDy = !beside ? 0 : ba && bb && Math.sign(ba) === Math.sign(bb) ? lerp(g.besideDy!, q) : g.besideDy?.[near] ?? 0;
     const ga = g.ground[i], gb = g.ground[i + 1];
     const ground = ga !== null && gb !== null ? ga + (gb - ga) * t : g.ground[near];
     // the tracks beside it: where both points have one, in between; otherwise the nearer point's
@@ -1573,7 +1590,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : beside ? (beside > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
     const skip = exclude.some((x) => !x.trackOnly && se >= x.s0 && se <= x.s1);
     const noTrack = skip || exclude.some((x) => se >= x.s0 && se <= x.s1);
-    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, beside, left, right, yard, ground, plat, third, skip, noTrack };
+    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, beside, besideDy, left, right, yard, ground, plat, third, skip, noTrack };
   };
   // where something changes
   const breaks = new Set<number>();

@@ -667,16 +667,23 @@ for (const p of pieces) {
 
 // the other track, where they share a structure
 const shareStats = { shared: 0, total: 0 };
+// The game takes each point's sharing from halfway to the point before to halfway to the next, so
+// a point counts as at a platform where that stretch reaches it: an island platform's two tracks
+// then share its hall from its very ends. Otherwise each track's own hall would be drawn the
+// platform's full width across, out over the other track, for the few metres to the next point.
+const platformNear = (piece: number, s: number, before: number, after: number) =>
+  (platformsOn.get(piece) ?? []).find((r) => s + after >= r.s0 && s - before <= r.s1) ?? null;
 for (const p of pieces) {
   const g = out[p.id], { v } = disc.get(p.id)!;
   v.forEach((_, k) => {
     const x = g.x[k], z = g.z[k], y = g.y[k];
-    const here = platformAt(p.id, g.s[k]);
+    const here = platformNear(p.id, g.s[k], k ? (g.s[k] - g.s[k - 1]) / 2 : 0, k + 1 < g.s.length ? (g.s[k + 1] - g.s[k]) / 2 : 0);
     let b = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, SHARE_REACH, SHARE_DY);
-    // across an island platform they share
+    // across an island platform they share (OpenStreetMap may end it a few metres apart on the
+    // two tracks)
     if (!b && here) {
       const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, SHARE_DY);
-      if (c && platformAt(c.piece.id, c.s)?.osm === here.osm) b = c;
+      if (c && platformNear(c.piece.id, c.s, STEP, STEP)?.osm === here.osm) b = c;
     }
     if (b && (b.piece.structure === 'tunnel') !== (p.structure === 'tunnel')) b = null;
     // (not across another line's track)
@@ -765,19 +772,22 @@ for (const p of pieces) {
 }
 console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH} m`);
 
-// Another line's track beside a service's track in a concrete box, at the same level, on the
-// side away from its own line's other track: the four tracks from Gamla stan to where they part
-// for T-Centralen's two levels, which run side by side in one box. Each track's part of the box
+// Another line's track beside a service's track in a concrete box, at much the same level (as
+// near as a line's own two tracks share one), on the side away from its own line's other track:
+// the four tracks from Gamla stan to where they part for T-Centralen's two levels, which run side
+// by side in one box, and at Gamla stan across the
+// island platforms each line's track shares with the other line's. Each track's part of the box
 // reaches halfway to the next. Kept only where the other track has this one beside it too.
-const SHARE_BESIDE = 6.5;
+const SHARE_BESIDE = 6.5, SHARE_ISLAND = ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE;
 const isBox = (kind: number) => STRUCTURE_KINDS[kind] === 'box';
-const besideAt = new Map<number, { piece: number; s: number; lat: number }[]>();
+const besideAt = new Map<number, { piece: number; s: number; lat: number; dy: number }[]>();
 for (const p of pieces) {
   if (!run.has(p.id) || p.structure !== 'tunnel') continue;
   const g = out[p.id];
   besideAt.set(p.id, g.s.map((_, k) => {
-    const none = { piece: 0, s: 0, lat: 0 };
-    if (!isBox(g.kind[k]) || platformAt(p.id, g.s[k])) return none;
+    const none = { piece: 0, s: 0, lat: 0, dy: 0 };
+    if (!isBox(g.kind[k])) return none;
+    const at = platformAt(p.id, g.s[k]), near = platformNear(p.id, g.s[k], STEP, STEP);
     const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
     const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
     const tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
@@ -793,10 +803,15 @@ for (const p of pieces) {
       const t = da / (da - db);
       const lat = -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t);
       const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k], s = o.s[m] + (o.s[m + 1] - o.s[m]) * t;
-      if (Math.abs(lat) < 1 || Math.abs(lat) > SHARE_BESIDE || Math.abs(dy) > 1 || !isBox(o.kind[t < 0.5 ? m : m + 1]) || platformAt(q.id, s)) continue;
+      if (Math.abs(lat) < 1 || Math.abs(dy) > PAIR_DY[0] || !isBox(o.kind[t < 0.5 ? m : m + 1])) continue;
+      // (at a platform, only the other track across it: OpenStreetMap may end it a few metres
+      // apart on the two tracks)
+      const there = platformNear(q.id, s, STEP, STEP);
+      const island = near && there && near.osm === there.osm && Math.sign(lat) === near.side && Math.abs(lat) <= SHARE_ISLAND;
+      if (!island && (at || platformAt(q.id, s) || Math.abs(lat) > SHARE_BESIDE)) continue;
       // (on the side away from its own line's other track)
       if (g.pair[k] && Math.sign(g.pair[k]) === Math.sign(lat)) continue;
-      if (!best.lat || Math.abs(lat) < Math.abs(best.lat)) best = { piece: q.id, s, lat };
+      if (!best.lat || Math.abs(lat) < Math.abs(best.lat)) best = { piece: q.id, s, lat, dy };
     }
     return best;
   }));
@@ -812,7 +827,11 @@ for (const [id, list] of besideAt) {
     for (let j = 1; j < o.s.length; j++) if (Math.abs(o.s[j] - s) < Math.abs(o.s[m] - s)) m = j;
     return back[m].piece === id && Math.abs(Math.abs(back[m].lat) - Math.abs(lat)) < 0.5 ? lat : 0;
   });
-  if (beside.some((v) => v)) { g.beside = beside; besideShared += beside.filter((v) => v).length; }
+  if (beside.some((v) => v)) {
+    g.beside = beside;
+    g.besideDy = list.map(({ dy }, k) => (beside[k] ? dy : 0));
+    besideShared += beside.filter((v) => v).length;
+  }
 }
 console.log(`${besideShared} points share a box with another line's track beside them`);
 
@@ -870,7 +889,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 for (const g of Object.values(out)) {
   for (const k of ['s', 'x', 'z', 'y', 'pair', 'pairDy'] as const) g[k] = g[k].map(r2);
   if (g.left) { g.left = g.left.map(r2); g.right = g.right!.map(r2); }
-  if (g.beside) g.beside = g.beside.map(r2);
+  if (g.beside) { g.beside = g.beside.map(r2); g.besideDy = g.besideDy!.map(r2); }
   g.ground = g.ground.map((n) => (n === null ? null : r2(n)));
 }
 const result: TrackGeometry = {
@@ -892,7 +911,7 @@ for (const p of pieces) {
   }
 }
 console.log(`structures: ${Object.entries(lengths).map(([k, l]) => `${k} ${(l / 1000).toFixed(1)} km`).join(', ')}; ${Math.round(100 * shareStats.shared / shareStats.total)}% of the track shares its structure with the other track`);
-const centres = pieces.flatMap((p) => out[p.id].pair.filter((d, k) => d && out[p.id].kind[k] === STRUCTURE_KINDS.indexOf('rock') && !platformAt(p.id, out[p.id].s[k])).map(Math.abs));
+const centres = pieces.flatMap((p) => out[p.id].pair.filter((d, k) => d && out[p.id].kind[k] === STRUCTURE_KINDS.indexOf('rock') && !platformNear(p.id, out[p.id].s[k], STEP / 2, STEP / 2)).map(Math.abs));
 console.log(`track centres in shared rock tunnels: median ${pct(centres, 0.5).toFixed(2)} m, 5–95% ${pct(centres, 0.05).toFixed(2)}–${pct(centres, 0.95).toFixed(2)} m`);
 
 // the tightest curves, away from switches
