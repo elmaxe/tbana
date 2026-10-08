@@ -23,7 +23,8 @@
 //            door: u32 building (its index in BLDG), u16 edge (from the outline's point of that
 //            index to the next), u16 0, f32 from, f32 to (metres along the edge), f32 top (RH 2000).
 //   'LOOK'   how the buildings look, one for each in BLDG: u32 roof colour (0xRRGGBB, 0: none
-//            given), u8 wall style (WALL_STYLES), u8 0, u16 0.
+//            given), u8 wall style (WALL_STYLES), u8 flags (LOOK_PHOTO: the wall colour is
+//            measured from street-level photos, not given), u16 0.
 //   'ROOF'   roofs of their shapes (tools/lib/roofs.ts): u32 count, then for each: u32 building,
 //            u16 points, u16 triangles, u16 rings, u16 0; the points as i16 x, z in decimetres from
 //            the tile's corner and u16 y in centimetres above the building's top (the eaves); the
@@ -61,6 +62,9 @@ export type RoofShape = typeof ROOF_SHAPES[number];
 export const WALL_STYLES = ['plaster', 'brick', 'glass', 'wood', 'plain'] as const;
 export type WallStyle = typeof WALL_STYLES[number];
 
+// in LOOK's flags
+export const LOOK_PHOTO = 1;
+
 export interface Building {
   kind: BuildingKind;
   roof: RoofShape;
@@ -68,6 +72,7 @@ export interface Building {
   top: number;    // the top of the walls: the roof, for a flat one
   roofHeight: number; // the roof's height above `top`, for other shapes (0 for flat)
   colour: number | null;
+  photoColour?: boolean; // `colour` is measured from street-level photos (tools/fetch-mapillary.ts)
   rings: [number, number][][]; // world x, z: the outline anticlockwise, then courtyards
   doors?: Door[];  // a shed's doors
   roofColour?: number | null;
@@ -209,6 +214,7 @@ export function decodeTile(buf: ArrayBuffer): CityTile {
         const c = v.getUint32(s + 8 * k, true);
         b.roofColour = c ? c : null;
         b.wall = WALL_STYLES[v.getUint8(s + 8 * k + 4)] ?? 'plaster';
+        if (v.getUint8(s + 8 * k + 5) & LOOK_PHOTO) b.photoColour = true;
       });
     } else if (tag === 'ROOF') {
       const count = v.getUint32(s, true);
@@ -309,12 +315,13 @@ export function encodeTile(tile: CityTile): Uint8Array {
     });
     sections.push({ tag: 'DOOR', data });
   }
-  if (tile.buildings.some((b) => b.roofColour || (b.wall && b.wall !== 'plaster'))) {
+  if (tile.buildings.some((b) => b.roofColour || (b.wall && b.wall !== 'plaster') || b.photoColour)) {
     const data = new Uint8Array(8 * tile.buildings.length);
     const v = new DataView(data.buffer);
     tile.buildings.forEach((b, k) => {
       v.setUint32(8 * k, b.roofColour ?? 0, true);
       v.setUint8(8 * k + 4, Math.max(0, WALL_STYLES.indexOf(b.wall ?? 'plaster')));
+      v.setUint8(8 * k + 5, b.photoColour ? LOOK_PHOTO : 0);
     });
     sections.push({ tag: 'LOOK', data });
   }

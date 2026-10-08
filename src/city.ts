@@ -507,7 +507,10 @@ function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: 
   buildings.forEach((b, k) => {
     const seed = hash(t.i * 92821 + t.j * 68917 + k * 7919);
     const style = b.wall ?? 'plaster', palette = WALLS[style];
-    if (b.colour !== null) c.setHex(b.colour).lerp(new THREE.Color(0xd8d2c8), 0.35);
+    // (OSM's colours are names or bright swatches, toned down; one measured from street-level
+    // photos is the wall's own already)
+    if (b.colour !== null && b.photoColour) c.setHex(b.colour);
+    else if (b.colour !== null) c.setHex(b.colour).lerp(new THREE.Color(0xd8d2c8), 0.35);
     else c.setHex(palette[Math.floor(seed * palette.length)]);
     c.multiplyScalar(0.94 + 0.1 * hash(k * 31 + 7));
     roofC.setHex(b.roofColour ?? ROOFS[Math.floor(hash(k * 131 + t.i) * ROOFS.length)]);
