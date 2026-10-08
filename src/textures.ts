@@ -583,3 +583,710 @@ export function plaster() {
   speckle(x, 256, 256, 1500, 0.05, 61);
   return toTexture(c);
 }
+
+// Östermalmstorg (1965): in-situ concrete, light and pitted with small dark air holes, the joints
+// of its formwork faintly showing; `w` × `h` m at `px` to the metre, drawn as seen.
+function pittedConcrete(w: number, h: number, px: number, seed: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const [c, x] = canvas(Math.round(w * px), Math.round(h * px));
+  const r = rng(seed);
+  x.fillStyle = '#cdc6b6';
+  x.fillRect(0, 0, c.width, c.height);
+  // clouds, lighter and darker
+  for (let i = 0; i < w * h * 1.5; i++) {
+    const cx = r() * c.width, cy = r() * c.height, rad = (0.3 + r() * 0.9) * px;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    const tone = r() < 0.5 ? '255,250,240' : '90,80,68';
+    g.addColorStop(0, `rgba(${tone},${0.05 + r() * 0.06})`);
+    g.addColorStop(1, `rgba(${tone},0)`);
+    x.fillStyle = g;
+    x.fillRect(cx - rad, cy - rad, 2 * rad, 2 * rad);
+  }
+  speckle(x, c.width, c.height, w * h * px * 2, 0.12, seed + 1);
+  // the formwork's joints, 1.2 m by 0.6 m
+  x.strokeStyle = 'rgba(70,62,52,0.13)';
+  x.lineWidth = Math.max(1, px * 0.006);
+  for (let v = 0.6; v < h; v += 0.6) { x.beginPath(); x.moveTo(0, c.height - v * px); x.lineTo(c.width, c.height - v * px); x.stroke(); }
+  for (let u = 1.2; u < w; u += 1.2) { x.beginPath(); x.moveTo(u * px, 0); x.lineTo(u * px, c.height); x.stroke(); }
+  // the pits, some in clusters
+  for (let i = 0; i < w * h * 260; i++) {
+    let cx = r() * c.width, cy = r() * c.height;
+    if (r() < 0.3) { cx += (r() - 0.5) * px * 0.1; cy += (r() - 0.5) * px * 0.1; }
+    const s = (0.002 + r() * r() * 0.009) * px;
+    x.fillStyle = `rgba(${40 + r() * 30},${34 + r() * 26},${28 + r() * 22},${0.45 + r() * 0.5})`;
+    x.beginPath(); x.ellipse(cx, cy, s * (0.7 + r() * 0.6), s, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  return [c, x];
+}
+
+// Siri Derkert's Ristningar i betong (1961–65) at Östermalmstorg, redrawn: dark lines sandblasted
+// into the track walls' concrete. One repeat is DERKERT_REPEAT m along the wall, from the tunnel
+// floor `floor` m to `top` m above the rails, at DERKERT_PX to the metre.
+export const DERKERT_REPEAT = 24;
+const DERKERT_PX = 140;
+function derkertCanvas(floor: number, top: number) {
+  const PX = DERKERT_PX, [c, x] = pittedConcrete(DERKERT_REPEAT, top - floor, PX, 1965);
+  const r = rng(1961);
+  // dust of the track at the foot of the wall
+  const g = x.createLinearGradient(0, c.height - 1.6 * PX, 0, c.height);
+  g.addColorStop(0, 'rgba(60,52,44,0)');
+  g.addColorStop(1, 'rgba(60,52,44,0.6)');
+  x.fillStyle = g;
+  x.fillRect(0, c.height - 1.6 * PX, c.width, 1.6 * PX);
+  // in metres: along the wall, and up from the rails
+  x.setTransform(PX, 0, 0, PX, 0, top * PX);
+  const Y = (h: number) => -h;
+  const ink = (alpha = 0.85) => `rgba(42,35,29,${alpha})`;
+  x.lineCap = x.lineJoin = 'round';
+  // a line through the points, a little unsteady, sandblasted: rough at its edges
+  const line = (pts: [number, number][], w = 0.03) => {
+    const j = () => (r() - 0.5) * 0.012;
+    const q = pts.map(([u, h]) => [u + j(), Y(h) + j()] as [number, number]);
+    x.strokeStyle = ink(); x.lineWidth = w;
+    x.beginPath(); x.moveTo(...q[0]);
+    for (let i = 1; i < q.length - 1; i++) x.quadraticCurveTo(q[i][0], q[i][1], (q[i][0] + q[i + 1][0]) / 2, (q[i][1] + q[i + 1][1]) / 2);
+    x.lineTo(...q[q.length - 1]);
+    x.stroke();
+    x.fillStyle = ink(0.6);
+    for (let i = 1; i < q.length; i++) {
+      const n = Math.ceil(Math.hypot(q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]) / 0.03);
+      for (let k = 0; k < n; k++) {
+        const f = r(), s = w * (0.3 + r() * 0.5);
+        x.fillRect(q[i - 1][0] + (q[i][0] - q[i - 1][0]) * f + (r() - 0.5) * w * 1.6, q[i - 1][1] + (q[i][1] - q[i - 1][1]) * f + (r() - 0.5) * w * 1.6, s, s);
+      }
+    }
+  };
+  const loop = (cx: number, cy: number, rx: number, ry: number, n = 14, wob = 0.08) => {
+    const pts: [number, number][] = [];
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2, k = 1 + (r() - 0.5) * wob;
+      pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
+    }
+    line(pts);
+  };
+  const words = (text: string, u: number, h: number, size: number, tilt = 0) => {
+    x.save();
+    // (in 100 px type, scaled down: canvases don't draw type a fraction of a pixel high)
+    x.translate(u, Y(h)); x.rotate(tilt); x.scale(size / 100, size / 100);
+    x.font = '400 100px "Helvetica Neue", Arial, sans-serif';
+    x.lineWidth = 2.6 / size; x.strokeStyle = ink();
+    // a letter at a time, each a little off its line
+    let u0 = 0;
+    for (const ch of text) {
+      x.save(); x.translate(u0, (r() - 0.5) * 10); x.rotate((r() - 0.5) * 0.12);
+      x.strokeText(ch, 0, 0);
+      x.restore();
+      u0 += x.measureText(ch).width + 6;
+    }
+    x.restore();
+  };
+  // a face, front on: `s` m tall
+  const face = (u: number, h: number, s: number) => {
+    loop(u, h, s * 0.36, s * 0.5, 16, 0.12);
+    // hair: strokes falling from the crown
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (0.15 + 0.7 * r());
+      line([[u + Math.cos(a) * s * 0.3, h + Math.sin(a) * s * 0.45], [u + Math.cos(a) * s * 0.55, h + s * (0.2 - r() * 0.6)], [u + Math.cos(a) * s * 0.5, h - s * (0.4 + r() * 0.3)]]);
+    }
+    for (const e of [-1, 1]) {
+      line([[u + e * s * 0.2, h + s * 0.1], [u + e * s * 0.12, h + s * 0.14], [u + e * s * 0.04, h + s * 0.1]]);
+      line([[u + e * s * 0.19, h + s * 0.06], [u + e * s * 0.12, h + s * 0.03], [u + e * s * 0.05, h + s * 0.06]]);
+      line([[u + e * s * 0.22, h + s * 0.2], [u + e * s * 0.05, h + s * 0.22]]);
+    }
+    line([[u + s * 0.02, h + s * 0.12], [u - s * 0.03, h - s * 0.12], [u + s * 0.06, h - s * 0.15]]);
+    line([[u - s * 0.12, h - s * 0.28], [u, h - s * 0.31], [u + s * 0.12, h - s * 0.27]]);
+    line([[u - s * 0.13, h - s * 0.48], [u - s * 0.15, h - s * 0.75]]);
+    line([[u + s * 0.13, h - s * 0.48], [u + s * 0.15, h - s * 0.75]]);
+  };
+  // a woman standing, in profile facing `dir`, a book held before her: from her feet at `foot`
+  // to the top of her head, `s` m
+  const figure = (u: number, foot: number, s: number, dir = 1) => {
+    const hu = u + dir * s * 0.03, hh = foot + s * 0.92;
+    // head: the back of it round, the profile with brow, nose and lips
+    line([[hu + dir * s * 0.05, hh + s * 0.07], [hu - dir * s * 0.03, hh + s * 0.08], [hu - dir * s * 0.07, hh + s * 0.01], [hu - dir * s * 0.05, hh - s * 0.06]]);
+    line([[hu + dir * s * 0.05, hh + s * 0.07], [hu + dir * s * 0.065, hh + s * 0.02], [hu + dir * s * 0.09, hh - s * 0.005], [hu + dir * s * 0.065, hh - s * 0.02],
+      [hu + dir * s * 0.075, hh - s * 0.035], [hu + dir * s * 0.06, hh - s * 0.05], [hu + dir * s * 0.04, hh - s * 0.075]]);
+    line([[hu + dir * s * 0.035, hh + s * 0.02], [hu + dir * s * 0.05, hh + s * 0.02]], 0.016);
+    // neck, shoulders and the long body to the hem
+    line([[hu - dir * s * 0.04, hh - s * 0.06], [u - dir * s * 0.045, foot + s * 0.79], [u - dir * s * 0.1, foot + s * 0.74], [u - dir * s * 0.11, foot + s * 0.4], [u - dir * s * 0.1, foot + s * 0.12]]);
+    line([[hu + dir * s * 0.03, hh - s * 0.08], [u + dir * s * 0.05, foot + s * 0.78], [u + dir * s * 0.1, foot + s * 0.72], [u + dir * s * 0.1, foot + s * 0.4], [u + dir * s * 0.09, foot + s * 0.12]]);
+    line([[u - dir * s * 0.1, foot + s * 0.12], [u + dir * s * 0.09, foot + s * 0.12]]);
+    // arm and the book
+    line([[u - dir * s * 0.09, foot + s * 0.72], [u - dir * s * 0.07, foot + s * 0.56], [u + dir * s * 0.16, foot + s * 0.56]]);
+    line([[u + dir * s * 0.08, foot + s * 0.62], [u + dir * s * 0.2, foot + s * 0.6], [u + dir * s * 0.2, foot + s * 0.5], [u + dir * s * 0.08, foot + s * 0.52], [u + dir * s * 0.08, foot + s * 0.62]]);
+    // legs and feet
+    for (const k of [-0.04, 0.04]) line([[u + k * s, foot + s * 0.12], [u + k * s + (r() - 0.5) * 0.02, foot + s * 0.01], [u + k * s + dir * s * 0.04, foot]]);
+  };
+  // staves of song: five lines `len` long, rising at `tilt`, with notes on them
+  const staff = (u: number, h: number, len: number, tilt: number) => {
+    const cs = Math.cos(tilt), sn = Math.sin(tilt), gap = 0.05;
+    const p = (t: number, k: number): [number, number] => [u + t * cs - k * sn, h + t * sn + k * cs];
+    for (let k = 0; k < 5; k++) line([p(0, k * gap), p(len * 0.5, k * gap), p(len, k * gap)], 0.014);
+    for (let t = 0.15; t < len - 0.05; t += 0.12 + r() * 0.16) {
+      const k = Math.floor(r() * 9) * gap / 2, [nu, nh] = p(t, k);
+      x.fillStyle = ink();
+      x.beginPath(); x.ellipse(nu, Y(nh), 0.03, 0.022, -tilt - 0.4, 0, Math.PI * 2); x.fill();
+      line([[nu + 0.027, nh], [nu + 0.027 - sn * 0.17, nh + cs * 0.17]], 0.014);
+    }
+  };
+  // grass and reeds, with birds over them
+  const reeds = (u: number, h: number, w: number, tall: number) => {
+    for (let i = 0; i < w * 9; i++) {
+      const s = u + r() * w, t = tall * (0.5 + r() * 0.5), bend = (r() - 0.5) * 0.3;
+      line([[s, h], [s + bend * 0.3, h + t * 0.5], [s + bend, h + t]], 0.018);
+      if (r() < 0.5) { const k = h + t * (0.3 + r() * 0.5), e = r() < 0.5 ? -1 : 1; line([[s + bend * 0.2, k], [s + e * 0.12, k + 0.1], [s + e * 0.2, k + 0.08]], 0.016); }
+    }
+    for (let i = 0; i < 3; i++) {
+      const bu = u + r() * w, bh = h + tall + 0.15 + r() * 0.35, s = 0.1 + r() * 0.08;
+      line([[bu - s, bh + s * 0.4], [bu - s * 0.4, bh + s * 0.3], [bu, bh]]); line([[bu, bh], [bu + s * 0.4, bh + s * 0.35], [bu + s, bh + s * 0.5]]);
+    }
+  };
+  // two hands reaching to each other
+  const hand = (u: number, h: number, dir: number) => {
+    line([[u - dir * 0.6, h - 0.05], [u - dir * 0.2, h], [u, h + 0.04]]);
+    line([[u - dir * 0.6, h - 0.15], [u - dir * 0.2, h - 0.12], [u, h - 0.08]]);
+    for (let k = 0; k < 4; k++) line([[u, h + 0.04 - k * 0.04], [u + dir * (0.14 + 0.03 * Math.sin(k)), h + 0.05 - k * 0.045]], 0.016);
+  };
+
+  words('RACHEL CARSON', 0.35, 3.95, 0.16, -0.04);
+  words('TYST VÅR', 1.0, 3.6, 0.2, 0.02);
+  reeds(0.5, 1.55, 2.2, 1.5);
+  face(4.0, 2.75, 0.95);
+  for (let i = 0; i < 4; i++) staff(5.3 + i * 0.12, 3.35 - i * 0.42, 1.25, 0.3 - i * 0.15);
+  figure(8.0, 1.5, 2.25, 1);
+  hand(9.5, 2.6, -1);
+  for (let i = 0; i < 6; i++) figure(10.6 + i * 0.68, 1.45 + (r() - 0.5) * 0.08, 2.0 + r() * 0.25, -1);
+  staff(10.8, 3.75, 3.2, -0.03);
+  hand(5.6, 1.9, 1); hand(6.9, 1.95, -1);
+  face(14.2, 1.9, 0.55);
+  words('PAX', 15.0, 3.55, 0.3, -0.05);
+  words('FRIEDEN', 15.6, 3.05, 0.2, 0.06);
+  words('МИР', 17.3, 3.7, 0.26, 0);
+  words('PEACE', 14.6, 2.3, 0.22, -0.08);
+  words('FRED', 17.2, 2.2, 0.24, 0.05);
+  words('PAIX', 16.0, 1.75, 0.2, 0);
+  loop(16.6, 2.75, 0.3, 0.3, 18, 0.04);
+  line([[16.6, 3.05], [16.6, 2.45]]); line([[16.6, 2.75], [16.39, 2.54]]); line([[16.6, 2.75], [16.81, 2.54]]);
+  face(18.6, 2.9, 0.75);
+  face(19.4, 2.45, 0.65);
+  staff(20.2, 3.45, 2.3, 0.02);
+  figure(21.6, 1.5, 2.2, 1);
+  reeds(22.4, 1.55, 1.1, 0.9);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  return c;
+}
+
+// The track walls at Östermalmstorg, turned for a sweep along the track as hotorgetWall's: u up
+// the wall from the tunnel floor (0) to the vault (1), v along the track. One wall of a track
+// sees the track's direction the other way round: `mirror` turns the drawing for it.
+export function derkertWall(floor: number, top: number, mirror = false) {
+  const src = derkertCanvas(floor, top);
+  const [c, x] = canvas(src.height, src.width);
+  x.setTransform(0, 1, -1, 0, src.height, 0);
+  if (mirror) { x.translate(src.width, 0); x.scale(-1, 1); }
+  x.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// The wall behind Östermalmstorg's platforms: the same concrete, 2.4 × 2.4 m, u along the wall.
+export function pittedWall() {
+  return toTexture(pittedConcrete(2.4, 2.4, 160, 1964)[0]);
+}
+
+// Östermalmstorg's vault: smooth white plaster, 4 m across (u) and 6 m along (v), with a joint
+// across it at each 6 m.
+export function vaultPlaster() {
+  const [c, x] = canvas(256, 384);
+  x.fillStyle = '#f3f3f0';
+  x.fillRect(0, 0, c.width, c.height);
+  speckle(x, c.width, c.height, 2000, 0.04, 62);
+  x.fillStyle = 'rgba(80,80,78,0.22)';
+  x.fillRect(0, 0, c.width, 3);
+  return toTexture(c);
+}
+
+// Dark terrazzo, polished, as on Östermalmstorg's platforms: 2 × 2 m.
+export function terrazzo() {
+  const [c, x] = canvas(512);
+  x.fillStyle = '#424447';
+  x.fillRect(0, 0, 512, 512);
+  const r = rng(65);
+  for (let i = 0; i < 6000; i++) {
+    const v = r() < 0.6 ? 120 + r() * 80 : 25 + r() * 30, s = 0.6 + r() * r() * 3;
+    x.fillStyle = `rgba(${v},${v},${v - 4},${0.12 + r() * 0.3})`;
+    x.beginPath(); x.ellipse(r() * 512, r() * 512, s, s * (0.5 + r() * 0.5), r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, 512, 512, 4000, 0.1, 66);
+  return toTexture(c);
+}
+
+// The band along a platform's edge at Östermalmstorg, u across from the edge (0) to 1.3 m in (1),
+// v along it, 1.2 m a repeat: the edge stones, three rows of pale 30 cm tiles, then a strip of
+// grey ribbed tiles for the blind.
+export const EDGE_BAND = 1.3, EDGE_REPEAT = 1.2;
+export function edgeBand() {
+  const PX = 400, [c, x] = canvas(EDGE_BAND * PX, EDGE_REPEAT * PX);
+  const r = rng(30);
+  x.fillStyle = '#b4b0a7';
+  x.fillRect(0, 0, 0.08 * PX, c.height);
+  x.fillStyle = '#a89f8c';
+  x.fillRect(0.08 * PX, 0, 0.9 * PX, c.height);
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 4; j++) {
+      const v = Math.floor(r() * 10);
+      x.fillStyle = `rgb(${226 + v},${214 + v},${188 + v})`;
+      x.fillRect((0.08 + i * 0.3) * PX + 1.5, j * 0.3 * PX + 1.5, 0.3 * PX - 3, 0.3 * PX - 3);
+    }
+  }
+  x.fillStyle = '#5c5d5f';
+  x.fillRect(0.98 * PX, 0, 0.3 * PX, c.height);
+  x.fillStyle = '#76777a';
+  for (let k = 0; k < 6; k++) x.fillRect((1.005 + k * 0.045) * PX, 0, 0.02 * PX, c.height);
+  x.fillStyle = '#424447';
+  x.fillRect(1.28 * PX, 0, 0.02 * PX, c.height);
+  speckle(x, c.width, c.height, 3000, 0.08, 31);
+  return toTexture(c);
+}
+
+// SL's white station name sign with the name in black: 2.6 × 0.4 m.
+export function whiteNameSign(text: string) {
+  const [c, x] = canvas(1040, 160);
+  x.fillStyle = '#f4f4f1'; x.fillRect(0, 0, 1040, 160);
+  x.fillStyle = '#1a1a1a';
+  x.font = '600 84px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 520, 84, 960);
+  return toTexture(c, { repeat: false });
+}
+
+// The blue line's caves (src/hall-styles.ts): the rock left as it was blasted, sprayed with
+// concrete and painted. One texture covers CAVE_ACROSS m round from the floor (u: up a wall and
+// on over the roof, from the nearer wall) and CAVE_REPEAT m along the station (v, repeating),
+// at CAVE_PX to the metre.
+export const CAVE_ACROSS = 18, CAVE_REPEAT = 24;
+const CAVE_PX = 48;
+export interface CavePaint {
+  seed: number;
+  // the colours of the rock in bands round from the floor, each from `from` m; `edge`, the line
+  // where it starts: ragged as brushed, or a soft fade
+  bands: { from: number; color: string; edge?: 'ragged' | 'soft' }[];
+  motifs?: CaveMotif[];
+}
+// What is painted on the rock, between `from` and `to` m round from the floor.
+export type CaveMotif =
+  // leaves on winding stems
+  | { kind: 'vines'; color: string; from: number; to: number; count: number; leaf?: number }
+  // a forest's silhouette standing on the line `from`, up to `to`
+  | { kind: 'forest'; color: string; from: number; to: number }
+  // stripes across the cave (rings round it) or along it, in turn of these colours
+  | { kind: 'stripes'; colors: string[]; from: number; to: number; width: number; gap: number; along?: boolean }
+  // dabs of colour scattered over it, soft-edged as sprayed, or `hard`
+  | { kind: 'dabs'; colors: string[]; from: number; to: number; size: number; count: number; hard?: boolean }
+  // simple figures, people, in outline or filled
+  | { kind: 'people'; colors: string[]; from: number; to: number; count: number; outline?: boolean }
+  // outlined drawings: houses, suns, flowers, birds, as a child draws them
+  | { kind: 'doodles'; color: string; from: number; to: number; count: number }
+  // panels set into the rock, `width` m along, framed: a mosaic with a knot of runes in it, a
+  // ruled page with fragments of bones and shells, or a plain field
+  // ruled page with fragments of bones and shells, a harlequin of little diamond tiles in bright
+  // colours, a tiled mural of people in front of a goal under a blue sky, or a plain field
+  | { kind: 'panels'; color: string; frame: string; from: number; to: number; width: number; every: number; pattern?: 'mosaic' | 'ruled' | 'harlequin' | 'mural' }
+  // a band along the cave zigzagging in turn of these colours
+  | { kind: 'zigzag'; colors: string[]; at: number; width: number; pitch: number }
+  // thin lines running down the rock, wavering, like veins of a mineral
+  | { kind: 'drips'; colors: string[]; from: number; to: number; count: number; width?: number }
+  // a pond of water lilies: patches of blue water, round pads with a notch, small flowers
+  | { kind: 'lilies'; from: number; to: number; count: number }
+  // a ribbon painted along the walls
+  | { kind: 'ribbon'; color: string; at: number; width: number; wave?: number }
+  // a pattern of soft clouds
+  | { kind: 'clouds'; color: string; from: number; to: number; count: number }
+  // great masses of foliage hanging from the roof, their lower edges scalloped like leaves
+  | { kind: 'canopy'; color: string; shade: string; from: number; to: number }
+  // squares of sky set at angles into the rock, with clouds in them
+  | { kind: 'windows'; color: string; from: number; to: number; count: number; size: number }
+  // a painted frieze along the wall, `from`–`to` round: a night sky over hills, a town and a
+  // factory, and a march of black figures with red banners
+  | { kind: 'frieze'; from: number; to: number }
+  // lines of small handwriting in many colours
+  | { kind: 'writing'; colors: string[]; from: number; to: number };
+
+export function caveRock(paint: CavePaint) {
+  const PX = CAVE_PX, W = CAVE_ACROSS * PX, H = CAVE_REPEAT * PX;
+  const [c, x] = canvas(W, H);
+  const r = rng(paint.seed);
+  // in metres: x round from the floor, y along
+  x.setTransform(PX, 0, 0, PX, 0, 0);
+  // the bands; a ragged edge wanders and is brushed, wrapping along
+  const bands = [...paint.bands].sort((a, b) => a.from - b.from);
+  for (const [i, b] of bands.entries()) {
+    const to = i + 1 < bands.length ? bands[i + 1].from : CAVE_ACROSS + 1;
+    if (b.edge === 'soft' && i > 0) {
+      const g = x.createLinearGradient(b.from - 0.6, 0, b.from + 0.6, 0);
+      g.addColorStop(0, `${b.color}00`); g.addColorStop(1, b.color);
+      x.fillStyle = g; x.fillRect(b.from - 0.6, 0, 1.2, CAVE_REPEAT);
+      x.fillStyle = b.color; x.fillRect(b.from + 0.6, 0, to - b.from - 0.6, CAVE_REPEAT);
+    } else if (b.edge === 'ragged' && i > 0) {
+      x.fillStyle = b.color;
+      x.beginPath(); x.moveTo(to, 0);
+      const n = 96, ph = r() * 6;
+      for (let k = 0; k <= n; k++) {
+        const y = (k / n) * CAVE_REPEAT, t = (k / n) * Math.PI * 2;
+        x.lineTo(b.from + 0.25 * Math.sin(t * 3 + ph) + 0.15 * Math.sin(t * 7 + 2 * ph) + (r() - 0.5) * 0.12, y);
+      }
+      x.lineTo(to, CAVE_REPEAT); x.closePath(); x.fill();
+    } else {
+      x.fillStyle = b.color; x.fillRect(b.from, 0, to - b.from, CAVE_REPEAT);
+    }
+  }
+  for (const m of paint.motifs ?? []) caveMotif(x, m, r);
+  // the rock under the paint: lumps lit from above and shadowed below, and pits
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = 0; i < CAVE_ACROSS * CAVE_REPEAT * 1.4; i++) {
+    const cx = r() * W, cy = r() * H, rad = (0.25 + r() * 0.9) * PX, sx = 0.5 + r();
+    for (const [dy, tone, a] of [[-0.25, '255,255,255', 0.1], [0.3, '0,0,0', 0.16]] as const) {
+      const g = x.createRadialGradient(cx, cy + dy * rad, 0, cx, cy + dy * rad, rad);
+      g.addColorStop(0, `rgba(${tone},${a * (0.5 + r())})`); g.addColorStop(1, `rgba(${tone},0)`);
+      x.save(); x.translate(cx, cy); x.scale(sx, 1); x.translate(-cx, -cy);
+      x.fillStyle = g;
+      for (const oy of [-H, 0, H]) x.fillRect(cx - rad, cy + oy - rad + dy * rad, 2 * rad, 2 * rad);
+      x.restore();
+    }
+  }
+  speckle(x, W, H, W * H * 0.05, 0.2, paint.seed + 1);
+  // darker towards the floor, with the track's dust
+  const g = x.createLinearGradient(0, 0, 1.6 * PX, 0);
+  g.addColorStop(0, 'rgba(40,36,32,0.55)'); g.addColorStop(1, 'rgba(40,36,32,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 1.6 * PX, H);
+  const t = toTexture(c);
+  t.wrapS = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
+  const L = CAVE_REPEAT;
+  // draw `f` at y and again a repeat away, where it would cross the texture's edge
+  const wrap = (y: number, reach: number, f: (y: number) => void) => {
+    f(y); if (y < reach) f(y + L); if (y > L - reach) f(y - L);
+  };
+  const across = (from: number, to: number) => from + r() * (to - from);
+  switch (m.kind) {
+    case 'vines': {
+      x.strokeStyle = x.fillStyle = m.color; x.lineCap = 'round';
+      const leaf = m.leaf ?? 0.2;
+      for (let i = 0; i < m.count; i++) {
+        let u = across(m.from, m.to), y = r() * L, ang = r() * Math.PI * 2;
+        for (let k = 0; k < 60; k++) {
+          ang += (r() - 0.5) * 0.6;
+          const nu = Math.min(m.to, Math.max(m.from, u + Math.cos(ang) * 0.18)), ny = y + Math.sin(ang) * 0.18;
+          x.lineWidth = leaf * 0.22;
+          wrap(y, 1, (yy) => { x.beginPath(); x.moveTo(u, yy); x.lineTo(nu, yy + ny - y); x.stroke(); });
+          if (k % 4 === 0) {
+            const la = ang + (k % 8 === 0 ? 1 : -1) * 1.1;
+            wrap(ny, 1, (yy) => { x.save(); x.translate(nu, yy); x.rotate(la); x.beginPath(); x.ellipse(leaf, 0, leaf, leaf * 0.4, 0, 0, Math.PI * 2); x.fill(); x.restore(); });
+          }
+          u = nu; y = ((ny % L) + L) % L;
+        }
+      }
+      break;
+    }
+    case 'forest': {
+      // trunks and crowns of spruce and pine against the paint above, standing on `from`
+      x.fillStyle = x.strokeStyle = m.color;
+      x.fillRect(m.from - 0.3, 0, 0.32, L);
+      for (let y = 0; y < L; y += 0.35 + r() * 0.5) {
+        const h = (m.to - m.from) * (0.45 + r() * 0.55), w = 0.25 + r() * 0.35;
+        wrap(y, 1, (yy) => {
+          x.beginPath(); x.moveTo(m.from, yy - w);
+          for (let k = 1; k <= 6; k++) {
+            const t = k / 6;
+            x.lineTo(m.from + h * t, yy - w * (1 - t) * (k % 2 ? 1 : 0.6));
+          }
+          for (let k = 6; k >= 0; k--) {
+            const t = k / 6;
+            x.lineTo(m.from + h * t, yy + w * (1 - t) * (k % 2 ? 1 : 0.6));
+          }
+          x.closePath(); x.fill();
+        });
+      }
+      break;
+    }
+    case 'stripes': {
+      let i = 0;
+      if (m.along) {
+        for (let u = m.from; u < m.to; u += m.width + m.gap) { x.fillStyle = m.colors[i++ % m.colors.length]; x.fillRect(u, 0, Math.min(m.width, m.to - u), L); }
+      } else {
+        const n = Math.max(1, Math.round(L / (m.width + m.gap))), step = L / n;
+        for (let k = 0; k < n; k++) { x.fillStyle = m.colors[i++ % m.colors.length]; x.fillRect(m.from, k * step, m.to - m.from, m.width); }
+      }
+      break;
+    }
+    case 'dabs': {
+      for (let i = 0; i < m.count; i++) {
+        x.fillStyle = m.colors[Math.floor(r() * m.colors.length)];
+        const u = across(m.from, m.to), y = r() * L, s = m.size * (0.5 + r()), e = 0.5 + r() * 0.6, a = r() * 3;
+        if (!m.hard) {
+          const col = x.fillStyle as string, g = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+          g.addColorStop(0, col); g.addColorStop(0.55, `${col}aa`); g.addColorStop(1, `${col}00`);
+          x.fillStyle = g;
+          wrap(y, s * 1.6, (yy) => { x.save(); x.translate(u, yy); x.rotate(a); x.scale(s * 1.6, s * 1.6 * e); x.beginPath(); x.arc(0, 0, 1, 0, Math.PI * 2); x.fill(); x.restore(); });
+          continue;
+        }
+        wrap(y, s, (yy) => { x.beginPath(); x.ellipse(u, yy, s, s * e, a, 0, Math.PI * 2); x.fill(); });
+      }
+      break;
+    }
+    case 'people': {
+      // standing on their feet towards the floor: the head furthest round
+      for (let i = 0; i < m.count; i++) {
+        const col = m.colors[Math.floor(r() * m.colors.length)], h = 0.9 + r() * 0.8;
+        const u = across(m.from, Math.max(m.from, m.to - h)), y = r() * L, w = h * 0.22;
+        wrap(y, 1, (yy) => {
+          x.save(); x.translate(u, yy);
+          x.fillStyle = x.strokeStyle = col; x.lineWidth = 0.05; x.lineJoin = 'round';
+          x.beginPath();
+          // legs, body (a dress or a coat), arms out a little, head
+          x.moveTo(0, -w * 0.4); x.lineTo(h * 0.3, -w * 0.3); x.lineTo(h * 0.3, w * 0.3); x.lineTo(0, w * 0.4);
+          x.moveTo(h * 0.25, -w); x.lineTo(h * 0.72, -w * 0.45); x.lineTo(h * 0.72, w * 0.45); x.lineTo(h * 0.25, w); x.closePath();
+          if (m.outline) x.stroke(); else x.fill();
+          x.beginPath(); x.moveTo(h * 0.68, -w * 0.4); x.lineTo(h * 0.42, -w * 1.25); x.moveTo(h * 0.68, w * 0.4); x.lineTo(h * 0.42, w * 1.25); x.stroke();
+          x.beginPath(); x.ellipse(h * 0.85, 0, h * 0.12, h * 0.1, 0, 0, Math.PI * 2);
+          if (m.outline) x.stroke(); else x.fill();
+          x.restore();
+        });
+      }
+      break;
+    }
+    case 'doodles': {
+      x.strokeStyle = m.color; x.lineWidth = 0.05; x.lineCap = x.lineJoin = 'round';
+      for (let i = 0; i < m.count; i++) {
+        const u = across(m.from, m.to), y = r() * L, s = 0.4 + r() * 0.6, kind = Math.floor(r() * 4);
+        wrap(y, 1.2, (yy) => {
+          x.save(); x.translate(u, yy); x.beginPath();
+          if (kind === 0) { // a house: walls, roof
+            x.rect(0, -s / 2, s * 0.7, s); x.moveTo(s * 0.7, -s * 0.6); x.lineTo(s * 1.15, 0); x.lineTo(s * 0.7, s * 0.6);
+            x.rect(0, -s * 0.12, s * 0.35, s * 0.24);
+          } else if (kind === 1) { // a sun
+            x.arc(0, 0, s * 0.3, 0, Math.PI * 2);
+            for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; x.moveTo(Math.cos(a) * s * 0.4, Math.sin(a) * s * 0.4); x.lineTo(Math.cos(a) * s * 0.6, Math.sin(a) * s * 0.6); }
+          } else if (kind === 2) { // a flower
+            x.moveTo(-s * 0.5, 0); x.lineTo(s * 0.4, 0);
+            for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; x.moveTo(s * 0.4 + Math.cos(a) * s * 0.28, Math.sin(a) * s * 0.28); x.arc(s * 0.4 + Math.cos(a) * s * 0.18, Math.sin(a) * s * 0.18, s * 0.1, a, a + Math.PI * 2); }
+          } else { // a bird
+            x.moveTo(-s * 0.2, -s * 0.4); x.quadraticCurveTo(s * 0.15, -s * 0.2, 0, 0); x.quadraticCurveTo(s * 0.15, s * 0.2, -s * 0.2, s * 0.4);
+          }
+          x.stroke(); x.restore();
+        });
+      }
+      break;
+    }
+    case 'panels': {
+      for (let y = r() * m.every; y < L; y += m.every) {
+        const d = m.to - m.from;
+        x.fillStyle = m.frame; x.fillRect(m.from - 0.08, y - 0.08, d + 0.16, m.width + 0.16);
+        x.fillStyle = m.color; x.fillRect(m.from, y, d, m.width);
+        if (m.pattern === 'mosaic') {
+          // little tesserae, each a shade off, and a band of runes winding round as a serpent
+          for (let u = m.from; u < m.to - 0.01; u += 0.05) {
+            for (let v = y; v < y + m.width - 0.01; v += 0.05) {
+              x.fillStyle = `rgba(${r() < 0.5 ? '255,240,190' : '90,70,20'},${r() * 0.35})`;
+              x.fillRect(u + 0.004, v + 0.004, 0.042, 0.042);
+            }
+          }
+          x.strokeStyle = m.frame; x.lineWidth = 0.09;
+          x.beginPath();
+          for (let k = 0; k <= 40; k++) {
+            const t = (k / 40) * Math.PI * 2;
+            x.lineTo(m.from + d / 2 + Math.sin(t) * d * 0.36, y + m.width / 2 + Math.sin(t * 2) * m.width * 0.36);
+          }
+          x.stroke();
+          x.lineWidth = 0.025;
+          for (let k = 0; k < 14; k++) {
+            const t = (k / 14) * Math.PI * 2, pu = m.from + d / 2 + Math.sin(t) * d * 0.36, pv = y + m.width / 2 + Math.sin(t * 2) * m.width * 0.36;
+            x.beginPath(); x.moveTo(pu - 0.06, pv); x.lineTo(pu + 0.06, pv); x.moveTo(pu, pv); x.lineTo(pu + 0.04, pv + 0.04 * (k % 2 ? 1 : -1)); x.stroke();
+          }
+        } else if (m.pattern === 'harlequin') {
+          const cols = ['#8ab83a', '#e08a2a', '#e8c840', '#3a6ab8', '#f2f0ea', '#2e6a3a'];
+          for (let u = m.from; u < m.to; u += 0.12) {
+            for (let v = y; v < y + m.width; v += 0.12) {
+              x.fillStyle = cols[Math.floor(r() * cols.length)];
+              x.beginPath(); x.moveTo(u + 0.06, v); x.lineTo(u + 0.12, v + 0.06); x.lineTo(u + 0.06, v + 0.12); x.lineTo(u, v + 0.06); x.closePath(); x.fill();
+            }
+          }
+        } else if (m.pattern === 'mural') {
+          // green ground below, blue sky above, the net of a goal, and people in grey and black
+          x.fillStyle = '#4a8a3a'; x.fillRect(m.from, y, d * 0.3, m.width);
+          x.fillStyle = '#6a9ad0'; x.fillRect(m.from + d * 0.75, y, d * 0.25, m.width);
+          x.strokeStyle = 'rgba(40,70,140,0.7)'; x.lineWidth = 0.02;
+          const g0 = y + m.width * 0.3, g1 = y + m.width * 0.6;
+          for (let u = m.from + d * 0.3; u <= m.from + d * 0.7; u += 0.12) { x.beginPath(); x.moveTo(u, g0); x.lineTo(u, g1); x.stroke(); }
+          for (let v = g0; v <= g1; v += 0.12) { x.beginPath(); x.moveTo(m.from + d * 0.3, v); x.lineTo(m.from + d * 0.7, v); x.stroke(); }
+          for (let k = 0; k < 7; k++) {
+            const pv = y + 0.4 + r() * (m.width - 0.8), h = d * (0.55 + r() * 0.2), w = h * 0.2, base = m.from + d * 0.18;
+            x.fillStyle = ['#2a2a2a', '#7a7a78', '#e8e6e0', '#2a4a8a'][k % 4]; x.strokeStyle = '#111'; x.lineWidth = 0.035;
+            x.beginPath(); x.moveTo(base, pv - w * 0.5); x.lineTo(base + h * 0.75, pv - w); x.lineTo(base + h * 0.75, pv + w); x.lineTo(base, pv + w * 0.5); x.closePath(); x.fill(); x.stroke();
+            x.beginPath(); x.arc(base + h * 0.88, pv, h * 0.12, 0, Math.PI * 2); x.fill(); x.stroke();
+          }
+          x.strokeStyle = 'rgba(30,30,30,0.25)'; x.lineWidth = 0.01;
+          for (let u = m.from; u < m.to; u += 0.15) { x.beginPath(); x.moveTo(u, y); x.lineTo(u, y + m.width); x.stroke(); }
+          for (let v = y; v < y + m.width; v += 0.15) { x.beginPath(); x.moveTo(m.from, v); x.lineTo(m.to, v); x.stroke(); }
+        } else if (m.pattern === 'ruled') {
+          // ruled lines, a little writing, and bones and shells in relief
+          x.strokeStyle = 'rgba(80,72,60,0.35)'; x.lineWidth = 0.012;
+          for (let v = y + 0.1; v < y + m.width - 0.05; v += 0.12) { x.beginPath(); x.moveTo(m.from + 0.08, v); x.lineTo(m.to - 0.08, v); x.stroke(); }
+          for (let k = 0; k < 5; k++) {
+            const pu = m.from + 0.2 + r() * (d - 0.4), pv = y + 0.2 + r() * (m.width - 0.4), sz = 0.08 + r() * 0.12;
+            x.fillStyle = '#d8d2c4'; x.strokeStyle = 'rgba(60,54,44,0.6)'; x.lineWidth = 0.015;
+            x.beginPath();
+            if (k % 2) x.ellipse(pu, pv, sz, sz * 0.8, 0, Math.PI, Math.PI * 2); else x.ellipse(pu, pv, sz * 1.6, sz * 0.3, r() * 3, 0, Math.PI * 2);
+            x.fill(); x.stroke();
+          }
+        }
+      }
+      break;
+    }
+    case 'ribbon': {
+      x.fillStyle = m.color;
+      x.beginPath(); x.moveTo(m.at - m.width / 2, 0);
+      const wv = m.wave ?? 0;
+      for (let y = 0; y <= L; y += 0.25) x.lineTo(m.at - m.width / 2 + wv * Math.sin((y / L) * Math.PI * 8), y);
+      for (let y = L; y >= 0; y -= 0.25) x.lineTo(m.at + m.width / 2 + wv * Math.sin((y / L) * Math.PI * 8), y);
+      x.closePath(); x.fill();
+      break;
+    }
+    case 'zigzag': {
+      const n = Math.round(L / m.pitch), p = L / n;
+      for (let k = 0; k < n; k++) {
+        x.fillStyle = m.colors[k % m.colors.length];
+        const y = k * p, up = k % 2 ? 1 : -1;
+        x.beginPath();
+        x.moveTo(m.at - (up * m.width) / 2 - m.width / 2, y); x.lineTo(m.at + (up * m.width) / 2 - m.width / 2, y + p);
+        x.lineTo(m.at + (up * m.width) / 2 + m.width / 2, y + p); x.lineTo(m.at - (up * m.width) / 2 + m.width / 2, y);
+        x.closePath(); x.fill();
+      }
+      break;
+    }
+    case 'drips': {
+      x.lineWidth = m.width ?? 0.03; x.lineCap = 'round';
+      for (let i = 0; i < m.count; i++) {
+        x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
+        const y = r() * L, top = across(m.from + 0.5, m.to), pts: [number, number][] = [];
+        for (let u = top; u > m.from; u -= 0.2) pts.push([u, (pts.length ? pts[pts.length - 1][1] : 0) + (r() - 0.5) * 0.12]);
+        wrap(y, 1, (yy) => { x.beginPath(); pts.forEach(([u, dv], k) => (k ? x.lineTo(u, yy + dv) : x.moveTo(u, yy + dv))); x.stroke(); });
+      }
+      break;
+    }
+    case 'lilies': {
+      for (let i = 0; i < m.count; i++) {
+        const u = across(m.from, m.to), y = r() * L, w = 1 + r() * 1.5;
+        const pads = [0, 1, 2, 3, 4, 5].map(() => [(r() - 0.5) * w, (r() - 0.5) * w * 1.4, 0.15 + r() * 0.12, r() * 6, r() < 0.3 ? (r() < 0.5 ? '#f0e8e0' : '#e8b8c0') : '']);
+        wrap(y, w * 1.5, (yy) => {
+          const g = x.createRadialGradient(u, yy, 0, u, yy, w);
+          g.addColorStop(0, '#6a8ec8'); g.addColorStop(0.7, '#6a8ec8cc'); g.addColorStop(1, '#6a8ec800');
+          x.fillStyle = g; x.fillRect(u - w, yy - w, 2 * w, 2 * w);
+          for (const [du, dv, rad, a, flower] of pads as [number, number, number, number, string][]) {
+            x.fillStyle = rad > 0.21 ? '#2f5a2a' : '#4a7a3a';
+            x.beginPath(); x.moveTo(u + du, yy + dv); x.arc(u + du, yy + dv, rad, a, a + Math.PI * 1.8); x.closePath(); x.fill();
+            if (flower) { x.fillStyle = flower; x.beginPath(); x.arc(u + du + rad * 0.3, yy + dv, 0.07, 0, Math.PI * 2); x.fill(); }
+          }
+        });
+      }
+      break;
+    }
+    case 'canopy': {
+      // from the top of the texture (the crown) down to a scalloped edge wandering between `from`
+      // and `to`
+      // over the crown, all of it; lower down in clumps a few metres along, overlapping, hanging to
+      // different depths
+      x.fillStyle = m.color; x.fillRect(m.to + 1.2, 0, CAVE_ACROSS, L);
+      for (let y0 = 0; y0 < L; ) {
+        const len = 1.5 + r() * 2.5, deep = across(m.from, m.to), top = m.to + 1.4;
+        const edge: [number, number][] = [];
+        for (let y = y0; y < y0 + len; ) {
+          const w = 0.2 + r() * 0.3, f = Math.sin(((y - y0) / len) * Math.PI);
+          edge.push([top - (top - deep) * Math.sqrt(f) + (r() - 0.5) * 0.2, w]);
+          y += w;
+        }
+        for (const [col, off] of [[m.shade, 0.12], [m.color, 0]] as const) {
+          x.fillStyle = col;
+          wrap(y0, len + 1, (yy) => {
+            x.beginPath(); x.moveTo(CAVE_ACROSS + 1, yy);
+            let y = yy;
+            for (const [e, w] of edge) { x.lineTo(e - off + 0.1, y); x.quadraticCurveTo(e - off - 0.2, y + w / 2, e - off + 0.1, y + w); y += w; }
+            x.lineTo(CAVE_ACROSS + 1, y); x.closePath(); x.fill();
+          });
+        }
+        y0 += len * (0.55 + r() * 0.3);
+      }
+      break;
+    }
+    case 'windows': {
+      for (let i = 0; i < m.count; i++) {
+        const u = across(m.from, m.to), y = r() * L, s = m.size * (0.7 + r() * 0.6), a = r() * Math.PI, cl = [0, 1, 2].map(() => [(r() - 0.5) * s * 0.5, (r() - 0.5) * s * 0.5, s * (0.12 + r() * 0.1)]);
+        wrap(y, s, (yy) => {
+          x.save(); x.translate(u, yy); x.rotate(a);
+          x.fillStyle = 'rgba(20,20,22,0.6)'; x.fillRect(-s / 2 + 0.05, -s / 2 + 0.05, s, s);
+          x.fillStyle = m.color; x.fillRect(-s / 2, -s / 2, s, s);
+          x.fillStyle = '#ffffff';
+          for (const [cu, cv, cr] of cl) { x.beginPath(); x.arc(cu, cv, cr, 0, Math.PI * 2); x.arc(cu + cr, cv + cr * 0.3, cr * 0.8, 0, Math.PI * 2); x.fill(); }
+          x.restore();
+        });
+      }
+      break;
+    }
+    case 'frieze': {
+      const d = m.to - m.from;
+      x.fillStyle = '#2a3a8a'; x.fillRect(m.from, 0, d, L);
+      // hills, then the town and the factory, then the march, in from the bottom
+      x.fillStyle = '#2d5a3a';
+      x.beginPath(); x.moveTo(m.from, 0);
+      for (let y = 0; y <= L; y += 0.5) x.lineTo(m.from + d * (0.35 + 0.12 * Math.sin(y * 0.7) + 0.05 * Math.sin(y * 2.3)), y);
+      x.lineTo(m.from, L); x.closePath(); x.fill();
+      for (let y = 0.3; y < L; y += 1.1 + r()) {
+        x.fillStyle = r() < 0.5 ? '#e8c84a' : '#d88aa0';
+        const h = d * (0.15 + r() * 0.2); x.fillRect(m.from + d * 0.2, y, h, 0.6 + r() * 0.5);
+        if (r() < 0.3) { x.fillStyle = '#1a1a1a'; x.fillRect(m.from + d * 0.2, y + 0.2, d * 0.62, 0.12); }
+      }
+      x.fillStyle = '#f2e6a8';
+      x.beginPath(); x.arc(m.from + d * 0.82, L * 0.3, 0.18, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#2a3a8a';
+      x.beginPath(); x.arc(m.from + d * 0.84, L * 0.3 + 0.06, 0.16, 0, Math.PI * 2); x.fill();
+      for (let y = 0.2; y < L; y += 0.35 + r() * 0.25) {
+        const h = d * (0.3 + r() * 0.08);
+        x.fillStyle = '#141414';
+        x.fillRect(m.from + d * 0.05, y - 0.06, h * 0.75, 0.12);
+        x.beginPath(); x.arc(m.from + d * 0.05 + h * 0.85, y, 0.09, 0, Math.PI * 2); x.fill();
+        if (r() < 0.25) {
+          x.fillRect(m.from + d * 0.05 + h * 0.6, y + 0.1, h * 0.9, 0.025);
+          x.fillStyle = '#d8302a'; x.fillRect(m.from + d * 0.05 + h * 1.2, y + 0.12, h * 0.3, 0.45);
+        }
+      }
+      x.strokeStyle = '#111'; x.lineWidth = 0.06; x.strokeRect(m.from, -1, d, L + 2);
+      break;
+    }
+    case 'writing': {
+      x.lineWidth = 0.022; x.lineCap = 'round';
+      for (let u = m.from; u < m.to; u += 0.11) {
+        let y = r() * 0.5;
+        while (y < L) {
+          const w = 0.3 + r() * 1.4;
+          x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
+          x.beginPath(); x.moveTo(u, y);
+          for (let t = 0; t < w; t += 0.05) x.lineTo(u + (r() - 0.5) * 0.04, y + t);
+          x.stroke();
+          y += w + 0.15 + r() * 0.4;
+        }
+      }
+      break;
+    }
+    case 'clouds': {
+      x.fillStyle = m.color;
+      for (let i = 0; i < m.count; i++) {
+        const u = across(m.from, m.to), y = r() * L, s = 0.5 + r() * 0.9, du = [0, 1, 2, 3, 4].map(() => (r() - 0.5) * s * 0.6);
+        wrap(y, 2.5, (yy) => {
+          for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(u + du[k], yy + (k - 2) * s * 0.45, s * 0.45, s * 0.55, 0, 0, Math.PI * 2); x.fill(); }
+        });
+      }
+      break;
+    }
+  }
+}

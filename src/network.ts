@@ -9,8 +9,8 @@ import * as T from './textures';
 import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
-import { HALL_STYLES } from './hall-styles';
-import type { HallStyle } from './hall-styles';
+import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
+import type { CaveStyle, HallStyle, VaultStyle } from './hall-styles';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -119,10 +119,15 @@ class MeshBuilder {
 }
 
 type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer'
-  | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor';
+  | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor'
+  | 'vaultArt' | 'vaultArtMirror' | 'vaultWall' | 'vaultCeiling' | 'vaultFloor' | 'vaultEdge' | 'fitting'
+  // a painted cave's rock, one for each station (src/hall-styles.ts)
+  | `cave:${string}`;
 
-// The styled halls' surfaces (src/hall-styles.ts): Hötorget's, the only one so far.
+// The styled halls' surfaces (src/hall-styles.ts): Hötorget's and Östermalmstorg's, the only
+// ones so far.
 const HOTORGET = HALL_STYLES['Hötorget'];
+const OSTERMALMSTORG = VAULT_STYLES['Östermalmstorg'];
 
 function materials() {
   const rock = T.tunnelRock(), concrete = T.concrete(9, 168), bed = T.trackBed(), platform = T.floorTiles();
@@ -147,7 +152,15 @@ function materials() {
     hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
     hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.8 }),
     hallFloor: new THREE.MeshStandardMaterial({ map: T.clinker(), roughness: 0.8 }),
-  } satisfies Record<MaterialName, THREE.Material>;
+    vaultArt: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring), roughness: 0.95, side: THREE.DoubleSide }),
+    vaultArtMirror: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring, true), roughness: 0.95, side: THREE.DoubleSide }),
+    vaultWall: new THREE.MeshStandardMaterial({ map: T.pittedWall(), roughness: 0.95, side: THREE.DoubleSide }),
+    // (lit from below, by the lamps, which light nothing: so it glows a little, as the ceiling)
+    vaultCeiling: new THREE.MeshStandardMaterial({ map: T.vaultPlaster(), color: 0xe8e8e5, emissive: 0x7d7e7b, emissiveMap: T.vaultPlaster(), roughness: 0.85, side: THREE.DoubleSide }),
+    vaultFloor: new THREE.MeshStandardMaterial({ map: T.terrazzo(), roughness: 0.35 }),
+    vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
+    fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
+  } satisfies Partial<Record<MaterialName, THREE.Material>> as Record<MaterialName, THREE.Material>;
 }
 
 export class Network {
@@ -394,8 +407,40 @@ export class Network {
     });
 
     // the structure around it
-    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
-    sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) && !vaultStyle(sm) && !caveStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    // a painted cave: its rock, painted as that station's is (u up the wall and on over the roof,
+    // v along the station, the same for both of its tracks)
+    for (const station of new Set(run.filter((sm) => caveStyle(sm)).map((sm) => sm.plat!.station))) {
+      const key: MaterialName = `cave:${station}`;
+      this.mats[key] ??= this.caveMaterial(station);
+      sweep(b[key] ??= new MeshBuilder(), run, (sm) => (caveStyle(sm) && sm.plat!.station === station ? shellOutline(sm) : null),
+        { u: (u, v, _, sm) => caveAcross(sm, u, v) / T.CAVE_ACROSS, v: (u, v, sm) => caveAlong(sm, u, v) / T.CAVE_REPEAT });
+    }
+    sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) && !vaultStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    // a styled vault: the wall across the track (its art drawn to be read from the platform), the
+    // wall behind the platform, and the vault
+    for (const [mb, side] of [[b.vaultArt, -1], [b.vaultArtMirror, 1]] as const) {
+      sweep(mb, run, (sm) => {
+        const vs = vaultStyle(sm);
+        if (!vs || sm.plat!.side !== side) return null;
+        const [a, c] = structureSpan(sm), u = side > 0 ? a : c;
+        return { key: 'art', pts: side > 0 ? [[u, S.FLOOR], [u, vs.spring]] : [[u, vs.spring], [u, S.FLOOR]] };
+      }, { u: (_, v) => (v - S.FLOOR) / (OSTERMALMSTORG.spring - S.FLOOR), vScale: 1 / T.DERKERT_REPEAT });
+    }
+    sweep(b.vaultWall, run, (sm) => {
+      const vs = vaultStyle(sm);
+      if (!vs) return null;
+      const [a, c] = structureSpan(sm), u = sm.plat!.side > 0 ? c : a;
+      return { key: 'back', pts: sm.plat!.side > 0 ? [[u, vs.spring], [u, S.FLOOR]] : [[u, S.FLOOR], [u, vs.spring]] };
+    }, { u: (_, v) => v / 2.4, vScale: 1 / 2.4 });
+    sweep(b.vaultCeiling, run, (sm) => {
+      const vs = vaultStyle(sm);
+      if (!vs) return null;
+      const [a, c] = structureSpan(sm), rise = (c - a) * vs.risePerWidth, n = 16;
+      const pts: [number, number][] = [];
+      for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, S.archHeight(a, c, vs.spring, rise, u)]); }
+      return { key: 'vault', pts };
+    }, { uScale: 0.25, vScale: 1 / 6 });
     // a styled hall: its tiled wall, and the soffit and ceiling (the wall is the outline's first
     // two points where the other track is to the right, its last two where it is to the left)
     for (const [mb, sign] of [[b.hallWall, -1], [b.hallWallMirror, 1]] as const) {
@@ -499,13 +544,32 @@ export class Network {
     const H = S.PLATFORM_HEIGHT;
     for (const [mb, styled] of [[b.platform, false], [b.hallFloor, true]] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
-      if (!p || !hallStyle(sm) !== !styled) return null;
+      if (!p || !hallStyle(sm) !== !styled || vaultStyle(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
     }, { uScale: 0.5, vScale: 0.5 });
+    // a styled vault's platform: terrazzo, with a band of tiles along the edge
+    sweep(b.vaultFloor, run, (sm) => {
+      const p = sm.plat;
+      if (!p || !vaultStyle(sm)) return null;
+      const i = p.side * (S.PLATFORM_EDGE + T.EDGE_BAND), o = platformOuter(sm);
+      return { key: `t${p.side}`, pts: p.side > 0 ? [[i, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [i, H]] };
+    }, { uScale: 0.5, vScale: 0.5 });
+    sweep(b.concrete, run, (sm) => {
+      const p = sm.plat;
+      if (!p || !vaultStyle(sm)) return null;
+      const e = p.side * S.PLATFORM_EDGE;
+      return { key: `f${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H]] : [[e, H], [e, S.FLOOR]] };
+    }, { uScale: 0.25, vScale: 0.25 });
+    sweep(b.vaultEdge, run, (sm) => {
+      const p = sm.plat;
+      if (!p || !vaultStyle(sm)) return null;
+      const e = p.side * S.PLATFORM_EDGE, i = p.side * (S.PLATFORM_EDGE + T.EDGE_BAND);
+      return { key: `e${p.side}`, pts: p.side > 0 ? [[e, H], [i, H]] : [[i, H], [e, H]] };
+    }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.EDGE_BAND, vScale: 1 / T.EDGE_REPEAT });
     sweep(b.yellow, run, (sm) => {
       const p = sm.plat;
-      if (!p) return null;
+      if (!p || vaultStyle(sm)) return null;
       const u0 = p.side * (S.PLATFORM_EDGE + 0.3), u1 = p.side * (S.PLATFORM_EDGE + 0.42);
       return { key: `y${p.side}`, pts: p.side > 0 ? [[u0, H + 0.004], [u1, H + 0.004]] : [[u1, H + 0.004], [u0, H + 0.004]] };
     });
@@ -514,15 +578,26 @@ export class Network {
     for (const sm of run) {
       const p = sm.plat;
       if (!p) continue;
-      if (sm.along - lastSign >= 30) {
+      const vs = vaultStyle(sm);
+      if (vs && sm.along - lastSign >= vs.signEvery) {
+        // a styled vault's: white, on the wall behind the platform
+        lastSign = sm.along;
+        const back = structureSpan(sm)[p.side > 0 ? 1 : 0];
+        const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.4), this.signMaterial(p.station, true));
+        sign.position.copy(at(sm, back - p.side * 0.05, vs.signAt));
+        sign.lookAt(at(sm, back - p.side * 1.05, vs.signAt));
+        group.add(sign);
+      } else if (!vs && sm.along - lastSign >= 30) {
         lastSign = sm.along;
         const span = structureSpan(sm);
         const wall = p.side > 0 ? span[0] : span[1];
         // (a styled hall has its own name plates)
         if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm)) {
+          // (on a painted cave's rock, where it is)
+          const w = caveStyle(sm) ? wall - Math.sign(wall) * caveInward(sm, wall, 2.4) : wall;
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
-          sign.position.copy(at(sm, wall + p.side * 0.06, 2.4));
-          sign.lookAt(at(sm, wall + p.side * 1.06, 2.4));
+          sign.position.copy(at(sm, w + p.side * 0.06, 2.4));
+          sign.lookAt(at(sm, w + p.side * 1.06, 2.4));
           group.add(sign);
         }
       }
@@ -530,7 +605,25 @@ export class Network {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
         if (st) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
-        else box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+      }
+      if (caveStyle(sm)) {
+        // in a painted cave, a row of fittings hung on rods well under the rock, over the
+        // platform's edge
+        const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.7);
+        const roof = S.archHeight(a, c, S.HALL.spring, (c - a) * S.HALL.risePerWidth, u), v = Math.min(roof - CAVE_ROUGH - 0.4, H + 3.2);
+        box(b.fitting, at(sm, u, v + 0.04), sm, 0.3, 0.08, 2.2);
+        box(b.lamp, at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
+        box(b.fitting, at(sm, u, (v + roof) / 2), sm, 0.03, roof - v, 0.03);
+      }
+      if (vs) {
+        // in a styled vault, a row of fittings hung under it over the platform's edge, nearly end
+        // to end
+        const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.6);
+        const v = S.archHeight(a, c, vs.spring, (c - a) * vs.risePerWidth, u) - 0.3;
+        box(b.fitting, at(sm, u, v + 0.04), sm, 0.34, 0.08, 2.2);
+        box(b.lamp, at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
+        box(b.fitting, at(sm, u, v + 0.2), sm, 0.04, 0.24, 0.04);
       }
     }
   }
@@ -589,9 +682,16 @@ export class Network {
     }
   }
 
-  private signMaterial(station: string) {
-    let m = this.signs.get(station);
-    if (!m) { m = new THREE.MeshBasicMaterial({ map: T.nameSign(station) }); this.signs.set(station, m); }
+  private caveMaterial(station: string) {
+    const map = T.caveRock(CAVE_STYLES[station].paint);
+    // (lit by its lamps, which light nothing: so it glows a little, as the vaults do)
+    return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
+  }
+
+  private signMaterial(station: string, white = false) {
+    const key = `${station}${white ? ' white' : ''}`;
+    let m = this.signs.get(key);
+    if (!m) { m = new THREE.MeshBasicMaterial({ map: white ? T.whiteNameSign(station.toUpperCase()) : T.nameSign(station) }); this.signs.set(key, m); }
     return m;
   }
 
@@ -799,7 +899,10 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     full.push([a, h - k], [a + k, h], [b - k, h], [b, h - k]);
   } else {
     let spring: number, rise: number;
-    if (sm.plat) { spring = S.HALL.spring; rise = width * S.HALL.risePerWidth; }
+    if (sm.plat) {
+      const vs = vaultStyle(sm);
+      spring = vs?.spring ?? S.HALL.spring; rise = width * (vs?.risePerWidth ?? S.HALL.risePerWidth);
+    }
     else if (sm.pair) {
       spring = S.ROCK.doubleSpring;
       rise = ((S.ROCK.doubleCrown - S.ROCK.doubleSpring) * width) / (2 * S.ROCK.doubleWall + S.TRACK_CENTRES);
@@ -840,6 +943,7 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     // the floor stays with this track's rails; the roof is shared, between the two tracks' levels
     pts.push([u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
   }
+  if (caveStyle(sm)) return { key: `cave${Math.sign(sm.pair)}`, pts: roughen(sm, pts) };
   return { key: `${sm.kind}${Math.sign(sm.pair)}`, pts };
 }
 
@@ -849,6 +953,61 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
 function hallStyle(sm: Sample): HallStyle | null {
   const p = sm.plat;
   return p && p.island && sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
+}
+// A painted cave (src/hall-styles.ts): a station hall in rock, its rock left rough and painted.
+function caveStyle(sm: Sample): CaveStyle | null {
+  const p = sm.plat;
+  return p && sm.kind === 'rock' ? CAVE_STYLES[p.station] ?? null : null;
+}
+// A cave's rock is the vault's outline pushed in and out by up to CAVE_ROUGH, in lumps a few
+// metres across that depend only on where they are, so that the halves of a hall two tracks share
+// meet; the foot of each wall stays where it is.
+const CAVE_ROUGH = 0.45;
+function caveInward(sm: Sample, u: number, v: number) {
+  const p = at(sm, u, v);
+  const n = lumps(p.x / 4.5, p.y / 3, p.z / 4.5) * 0.7 + lumps(p.x / 1.6 + 17, p.y / 1.4, p.z / 1.6) * 0.3;
+  return n * CAVE_ROUGH * Math.min(1, Math.max(0, (v - S.FLOOR) / 1.4));
+}
+function roughen(sm: Sample, pts: [number, number][]): [number, number][] {
+  return pts.map(([u, v], j) => {
+    const [pu, pv] = pts[Math.max(0, j - 1)], [qu, qv] = pts[Math.min(pts.length - 1, j + 1)];
+    const tu = qu - pu, tv = qv - pv, l = Math.hypot(tu, tv) || 1;
+    // the outline runs up the left wall, over and down the right: outwards is to its left
+    const d = -caveInward(sm, u, v);
+    return [u - (tv / l) * d, v + (tu / l) * d];
+  });
+}
+// How far a point of a cave's rock is round from its floor: up the wall from the tunnel floor, then
+// across from the nearer wall (so the same for both halves of a shared hall where they meet).
+function caveAcross(sm: Sample, u: number, v: number) {
+  const [a, c] = structureSpan(sm);
+  return Math.max(0, v - S.FLOOR) + Math.min(Math.abs(u - a), Math.abs(u - c));
+}
+// And how far along the station: along its track, the same way for both tracks.
+function caveAlong(sm: Sample, u: number, v: number) {
+  const p = at(sm, u, v);
+  let tx = sm.rz, tz = -sm.rx;
+  if (tx < 0 || (tx === 0 && tz < 0)) { tx = -tx; tz = -tz; }
+  return p.x * tx + p.z * tz;
+}
+// Smooth value noise in [-1, 1].
+function lumps(x: number, y: number, z: number) {
+  const hash = (i: number, j: number, k: number) => {
+    let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(k, 2147483647);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967295 * 2 - 1;
+  };
+  const x0 = Math.floor(x), y0 = Math.floor(y), z0 = Math.floor(z);
+  const f = (t: number) => t * t * (3 - 2 * t), fx = f(x - x0), fy = f(y - y0), fz = f(z - z0);
+  const L = (a: number, b: number, t: number) => a + (b - a) * t;
+  const c = (dy: number, dz: number) => L(hash(x0, y0 + dy, z0 + dz), hash(x0 + 1, y0 + dy, z0 + dz), fx);
+  return L(L(c(0, 0), c(1, 0), fy), L(c(0, 1), c(1, 1), fy), fz);
+}
+// A styled vault (src/hall-styles.ts): a hall in rock of its own, for a track with a platform
+// beside it.
+function vaultStyle(sm: Sample): VaultStyle | null {
+  const p = sm.plat;
+  return p && !p.island && !sm.pair && sm.kind === 'rock' ? VAULT_STYLES[p.station] ?? null : null;
 }
 function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: string; pts: [number, number][] } {
   const s = sm.plat!.side, d = S.PLATFORM_EDGE + st.columns.fromEdge + st.columns.size / 2;
@@ -931,7 +1090,8 @@ function at(sm: Sample, u: number, v: number, out = new THREE.Vector3()) {
 // Sweeps a cross-section along the samples. `profile` gives each sample's section (or null for
 // none); where its key or its number of points changes, the surface starts again.
 function sweep(b: MeshBuilder, run: Sample[], profile: (sm: Sample) => { key: string; pts: [number, number][] } | null,
-  { uScale = 1, vScale = 1, u = null as ((u: number, v: number, along: number) => number) | null } = {}) {
+  { uScale = 1, vScale = 1, u = null as ((u: number, v: number, along: number, sm: Sample) => number) | null,
+    v = null as ((u: number, v: number, sm: Sample) => number) | null } = {}) {
   let rows: { sm: Sample; pts: [number, number][] }[] = [];
   let key = '';
   const flush = () => {
@@ -942,7 +1102,7 @@ function sweep(b: MeshBuilder, run: Sample[], profile: (sm: Sample) => { key: st
         pts.forEach(([pu, pv], j) => {
           if (j) len += Math.hypot(pu - pts[j - 1][0], pv - pts[j - 1][1]);
           at(sm, pu, pv, _w);
-          b.vertex(_w.x, _w.y, _w.z, u ? u(pu, pv, sm.along) : len * uScale, sm.along * vScale);
+          b.vertex(_w.x, _w.y, _w.z, u ? u(pu, pv, sm.along, sm) : len * uScale, v ? v(pu, pv, sm) : sm.along * vScale);
         });
       }
       b.grid(rows.length, cols, first);

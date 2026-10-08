@@ -378,6 +378,15 @@ keeps its 1952 look: track walls and two rows of columns in square tiles of seve
 blue-green with small navy name plates, clinker on the floor, a flat roof with the lamps in a
 soffit over each track, the old name Kungsgatan between two 1950s posters (redrawn) on each
 track wall, and Gun Gordillo's 103 lines of white neon (1998) hung under the ceiling.
+Östermalmstorg's two halls, one for each track, have walls of light, pitted concrete under a
+smooth white vault, a row of lamps over the platform's edge, white name signs on the wall behind
+the platform, and dark terrazzo floors with a band of pale tiles along the edge; on the track
+walls, Siri Derkert's Ristningar i betong (1961–65), redrawn: singing women, faces, staves of
+song, Rachel Carson's Tyst vår and "peace" in several languages.
+The blue line's stations (1975–85) are caves: the vault roughened into lumps of rock, and painted
+as each station's artists painted it, from Kungsträdgården's green with red and white zigzags and
+Solna centrum's red sky over a spruce forest to Huvudsta's hanging gardens, Solna strand's
+squares of sky, Tensta's white rock and Hjulsta's frieze of a march (Kista is above ground).
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:
