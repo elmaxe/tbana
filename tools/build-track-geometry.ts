@@ -777,13 +777,13 @@ for (const p of pieces) {
 }
 console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH} m`);
 
-// Another line's track beside a service's track in a concrete box, at much the same level (as
-// near as a line's own two tracks share one), on the side away from its own line's other track:
+// Another line's track beside a service's track in a concrete box, at much the same level (its
+// floor a step up or down), on the side away from its own line's other track:
 // the four tracks from Gamla stan to where they part for T-Centralen's two levels, which run side
 // by side in one box, and at Gamla stan across the
 // island platforms each line's track shares with the other line's. Each track's part of the box
 // reaches halfway to the next. Kept only where the other track has this one beside it too.
-const SHARE_BESIDE = 6.5, SHARE_ISLAND = ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE;
+const SHARE_BESIDE = 6.5, SHARE_ISLAND = ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, BESIDE_DY = 2.5;
 const isBox = (kind: number) => STRUCTURE_KINDS[kind] === 'box';
 const besideAt = new Map<number, { piece: number; s: number; lat: number; dy: number }[]>();
 for (const p of pieces) {
@@ -808,7 +808,7 @@ for (const p of pieces) {
       const t = da / (da - db);
       const lat = -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t);
       const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k], s = o.s[m] + (o.s[m + 1] - o.s[m]) * t;
-      if (Math.abs(lat) < 1 || Math.abs(dy) > PAIR_DY[0] || !isBox(o.kind[t < 0.5 ? m : m + 1])) continue;
+      if (Math.abs(lat) < 1 || Math.abs(dy) > BESIDE_DY || !isBox(o.kind[t < 0.5 ? m : m + 1])) continue;
       // (at a platform, only the other track across it: OpenStreetMap may end it a few metres
       // apart on the two tracks)
       const there = platformNear(q.id, s, STEP, STEP);

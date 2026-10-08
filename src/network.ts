@@ -505,6 +505,17 @@ export class Network {
         return { key: 'floor', pts: side < 0 ? [[a, f], [-S.BALLAST.toe, f]] : [[S.BALLAST.toe, f], [c, f]] };
       }, { uScale: 0.25, vScale: 0.25 });
     }
+    // where the track sharing the tunnel on that side is lower (as where the lines part for
+    // T-Centralen's two levels), the step down to its floor at the middle
+    for (const side of [-1, 1]) {
+      sweep(b.concrete, run, (sm) => {
+        if ((sm.kind !== 'rock' && sm.kind !== 'box') || inHall(sm) || hallStyle(sm)) return null;
+        const dy = Math.sign(sm.pair) === side ? sm.pairDy : Math.sign(sm.beside) === side ? sm.besideDy : 0;
+        if (dy > -0.05) return null;
+        const [a, c] = ownSpan(sm, structureSpan(sm)), f = S.FLOOR;
+        return { key: 'step', pts: side < 0 ? [[a, f + dy], [a, f]] : [[c, f], [c, f + dy]] };
+      }, { uScale: 0.25, vScale: 0.25 });
+    }
     this.openStructure(run, b);
     this.platforms(run, b, group);
     this.columns(samples, run, b);
