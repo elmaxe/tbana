@@ -363,6 +363,9 @@ through:
 - the two tracks of a line in a tunnel at the same level: 3.15 m apart, as built (the 1975
   standard), or a platform's width apart at an island platform
 - tracks at different levels: at least 7.5 m apart, so that their tunnels don't cut into each other
+- where two lines' tracks run interleaved (from Slussen to T-Centralen the red line's two tracks
+  run between the green line's), no two of the four closer than 3.15 m, and away from the mouths
+  and platforms pulled to that spacing, so that the four run side by side
 
 It keeps curves at the line's limit or wider: 250 m on the red line and 200 m on the green (the
 1975 description), and 350 m on the blue, and fails if it can't. The blue line was built to
@@ -378,7 +381,10 @@ nearest track on each side.
 **The structure.** Each point is in a rock tunnel, a concrete box (cut and cover, near the
 mouths, and wherever the rock over the tunnel would be less than 12 m), a cutting, on the
 ground, on an embankment, or on a bridge. The two tracks of a line share a tunnel, bridge or bank
-where they run side by side.
+where they run side by side. From Gamla stan towards T-Centralen the red and green lines' four
+tracks share one box, each track's part reaching halfway to the next (with a step in the floor
+where they part for T-Centralen's two levels), and at Gamla stan each island platform's hall is
+shared by the two lines' tracks either side of it.
 
 The game sweeps cross-sections along this line (`src/network.ts`): ballast and sleepers, rails, the
 conductor rail with its cover board, and the tunnel or bank around them. The sizes come from the
@@ -577,7 +583,9 @@ and where they don't close, its shores do: the water reaches on from what the mo
 150 m, without crossing a shore, and is kept where it joins the water at both ends, as under a
 bridge (Söderström). The ground there is brought down to the water's level. The game draws the
 water blue at its level over the cells it covers and those on its shores, so the shore is where the
-ground rises out of it. It can be waded through, since the bridges aren't drawn yet.
+ground rises out of it. It can be waded through, since the bridges aren't drawn yet. None is drawn
+over a tunnel whose inside reaches up through the water's level (the trough that carries the red
+and green lines under Riddarholmskanalen), where it would stand in the tunnel.
 
 How the ground meets the track:
 
@@ -589,7 +597,8 @@ How the ground meets the track:
   model leaves out, and stands in the open instead. Open track beside a tunnel lowers the ground
   only as far as the tunnel's roof.
 - At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
-  round the opening.
+  round the opening. So it is where a tunnel comes out from under the ground to stand in the
+  open, where the raised ground over it meets the lowered ground beside it.
 
 The buildings are blocks with their roofs:
 
@@ -614,6 +623,8 @@ The buildings are blocks with their roofs:
   houses wood and for sheds and warehouses plain, each with its own texture and colours.
 - Where a building stands over open track, the part over the track's space is lifted 5 m above
   the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
+  Where one would reach down into a tunnel (Gamla stan's halls, just under the street), the part
+  over it stands on the tunnel's roof.
 - Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
   building, and so is a way from the exit on through the building to the outside.
 - A building the depot's covered track runs through (OSM's `covered=yes`) is a hall: it stands
