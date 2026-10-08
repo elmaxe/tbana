@@ -1290,3 +1290,312 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
     }
   }
 }
+
+// Karlaplan (1967): the track walls clad in white enamelled steel panels, 1.2 m wide, over a black
+// plinth; on one panel in every repeat (KARLAPLAN_REPEAT m) the station's name in small black
+// capitals. One repeat is drawn as seen, across and then up from the foot of the wall, `height` m
+// up; the panels from `panelsFrom`, the name centred `nameAt` high. With `frieze` ([from, to]),
+// a band left for the photomontage, edged in black.
+export const KARLAPLAN_REPEAT = 14.4;
+function karlaplanWallCanvas(height: number, panelsFrom: number, nameAt: number, frieze: [number, number] | null, mirror: boolean) {
+  const PX = 64, W = Math.round(KARLAPLAN_REPEAT * PX), H = Math.round(height * PX);
+  const [c, x] = canvas(W, H);
+  const y = (h: number) => H - h * PX;
+  x.fillStyle = '#b9bbbd';
+  x.fillRect(0, 0, W, H);
+  // the plinth, dusty towards the track bed, with a steel trim along its top
+  x.fillStyle = '#1b1c1e';
+  x.fillRect(0, y(panelsFrom), W, H - y(panelsFrom));
+  speckle(x, W, H, 2500, 0.15, 67, true);
+  x.fillStyle = '#1b1c1e';
+  const dust = x.createLinearGradient(0, y(panelsFrom), 0, H);
+  dust.addColorStop(0, 'rgba(70,62,52,0)');
+  dust.addColorStop(1, 'rgba(70,62,52,0.55)');
+  x.fillStyle = dust;
+  x.fillRect(0, y(panelsFrom), W, H - y(panelsFrom));
+  x.fillStyle = '#9a9c9e';
+  x.fillRect(0, y(panelsFrom) - 3, W, 4);
+  // the panels: white enamel, a little sheen at the top of each, in rows between grey joints
+  const r = rng(1967);
+  const rows: [number, number][] = [];
+  const band = (a: number, b: number) => {
+    const n = Math.max(1, Math.round((b - a) / 0.6));
+    for (let k = 0; k < n; k++) rows.push([a + ((b - a) * k) / n, a + ((b - a) * (k + 1)) / n]);
+  };
+  if (frieze) { band(panelsFrom, frieze[0]); band(frieze[1], height); } else band(panelsFrom, height);
+  for (const [a, b] of rows) {
+    for (let i = 0; i < KARLAPLAN_REPEAT / 1.2; i++) {
+      const v = 238 + Math.floor(r() * 10);
+      x.fillStyle = `rgb(${v},${v},${v - 3})`;
+      x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+      const g = x.createLinearGradient(0, y(b), 0, y(a));
+      g.addColorStop(0, 'rgba(255,255,255,0.5)');
+      g.addColorStop(0.5, 'rgba(255,255,255,0)');
+      g.addColorStop(1, 'rgba(120,120,115,0.08)');
+      x.fillStyle = g;
+      x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+    }
+  }
+  // a broader grey joint along the top of the panels under the name
+  x.fillStyle = '#8f9194';
+  x.fillRect(0, y(nameAt - 0.3) - 3, W, 6);
+  if (frieze) {
+    x.fillStyle = '#0d0d0d';
+    x.fillRect(0, y(frieze[1]) - 4, W, (frieze[1] - frieze[0]) * PX + 8);
+  }
+  // the name, on the panel in the middle of the repeat
+  x.save();
+  x.translate(W / 2, y(nameAt));
+  if (mirror) x.scale(-1, 1);
+  x.fillStyle = '#16171a';
+  x.font = `600 ${Math.round(0.16 * PX)}px "Helvetica Neue", Arial, sans-serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${Math.round(0.025 * PX)}px`;
+  x.fillText('KARLAPLAN', 0, 0);
+  x.restore();
+  return c;
+}
+
+// Karlaplan's track walls, turned for a sweep along the track as Hötorget's are: u up the wall
+// from its foot (0) to the spring of the vault (1), v along the track, KARLAPLAN_REPEAT m per
+// repeat; `mirror` for the wall that sees the track's direction the other way round.
+export function karlaplanWall(height: number, panelsFrom: number, nameAt: number, frieze: [number, number] | null, mirror = false) {
+  const src = karlaplanWallCanvas(height, panelsFrom, nameAt, frieze, mirror);
+  const [c, x] = canvas(src.height, src.width);
+  x.setTransform(0, 1, -1, 0, src.height, 0);
+  x.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// Larseric Vänerlöf's photomontage along Karlaplan's track wall (1983): old Östermalm in black and
+// white, scene after scene, each fading into the next. Redrawn, not copied: stone houses of the
+// 1890s with their bays and towers, the fountain on Karlaplan in its ring of trees, the lindens of
+// Karlavägen, a tram, an old car, people in the street. One repeat is FRIEZE_REPEAT m long and the
+// band's height `height` m; turned for a sweep (u up, v along) as the walls are.
+export const FRIEZE_REPEAT = 24;
+export function karlaplanFrieze(height: number, mirror = false) {
+  const PX = 170, W = FRIEZE_REPEAT * PX, H = Math.round(height * PX);
+  const [c, x] = canvas(W, H);
+  const r = rng(1983);
+  const grey = (v: number, a = 1) => `rgba(${v},${v},${v},${a})`;
+  // a linden: a trunk, and a crown of many small leafy clumps, lighter where the sky shows through
+  const tree = (tx: number, foot: number, th: number, tone: number) => {
+    x.fillStyle = grey(tone - 50); x.fillRect(tx - th * 0.025, foot - th * 0.45, th * 0.05, th * 0.45);
+    for (let k = 0; k < 40; k++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r());
+      x.fillStyle = grey(tone - 40 + r() * 70, 0.85);
+      x.beginPath(); x.ellipse(tx + Math.cos(a) * d * th * 0.28, foot - th * 0.68 + Math.sin(a) * d * th * 0.28, th * 0.05, th * 0.04, 0, 0, Math.PI * 2); x.fill();
+    }
+  };
+  const scene = (x0: number, w: number, kind: number) => {
+    x.save();
+    x.beginPath(); x.rect(x0, 0, w, H); x.clip();
+    // the sky, pale and blank as in old prints, and the street
+    const sky = x.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, grey(200 + r() * 30)); sky.addColorStop(0.62, grey(170 + r() * 30)); sky.addColorStop(0.63, grey(110 + r() * 20)); sky.addColorStop(1, grey(70 + r() * 25));
+    x.fillStyle = sky; x.fillRect(x0, 0, w, H);
+    const horizon = H * 0.63;
+    if (kind === 0) {
+      // a row of stone houses: cornices, bays, a tower or two, rows of windows
+      let hx = x0 - r() * 40;
+      while (hx < x0 + w) {
+        const bw = 120 + r() * 220, top = H * (0.08 + r() * 0.25), tone = 90 + r() * 80;
+        x.fillStyle = grey(tone); x.fillRect(hx, top, bw, horizon - top);
+        x.fillStyle = grey(tone - 30); x.fillRect(hx - 3, top, bw + 6, 6);
+        if (r() < 0.35) { x.fillStyle = grey(tone - 15); x.beginPath(); x.moveTo(hx + bw * 0.4, top); x.lineTo(hx + bw * 0.5, top - H * 0.12); x.lineTo(hx + bw * 0.6, top); x.fill(); }
+        if (r() < 0.5) { x.fillStyle = grey(tone + 15); x.fillRect(hx + bw * 0.35, top + 10, bw * 0.3, horizon - top - 30); }
+        x.fillStyle = grey(35 + r() * 30);
+        for (let wy = top + 14; wy < horizon - 26; wy += 26) for (let wx = hx + 10; wx < hx + bw - 16; wx += 24) x.fillRect(wx, wy, 9, 14);
+        hx += bw + 2;
+      }
+    } else if (kind === 1) {
+      // the fountain on Karlaplan: the basin, its jets, the ring of trees behind
+      for (let k = 0; k < 10; k++) tree(x0 + r() * w, horizon, H * (0.45 + r() * 0.3), 90 + r() * 40);
+      const cx = x0 + w / 2;
+      x.strokeStyle = grey(240, 0.8); x.lineWidth = 2;
+      for (let k = -6; k <= 6; k++) { x.beginPath(); x.moveTo(cx + k * 6, horizon); x.quadraticCurveTo(cx + k * 14, H * 0.05, cx + k * 26, horizon - 4); x.stroke(); }
+      x.fillStyle = grey(225, 0.7); x.beginPath(); x.ellipse(cx, horizon - 6, 26, H * 0.32, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = grey(120); x.fillRect(cx - w * 0.35, horizon - 8, w * 0.7, 16);
+      x.fillStyle = grey(160); x.fillRect(cx - w * 0.35, horizon - 10, w * 0.7, 4);
+    } else if (kind === 2) {
+      // an avenue of lindens running away from us
+      const vx = x0 + w * (0.3 + r() * 0.4);
+      for (let k = 0; k < 12; k++) {
+        const f = 1 - k / 12;
+        for (const s of [-1, 1]) {
+          const tx = vx + s * (20 + f * f * w * 0.6), th = 20 + f * f * H * 0.6;
+          tree(tx, horizon + f * H * 0.3, th, 70 + k * 8);
+        }
+      }
+      x.fillStyle = grey(150, 0.6); x.beginPath(); x.moveTo(vx - 6, horizon); x.lineTo(vx + 6, horizon); x.lineTo(vx + w * 0.4, H); x.lineTo(vx - w * 0.4, H); x.fill();
+    } else if (kind === 3) {
+      // a tram, a car of the twenties and passers-by in front of the houses
+      x.fillStyle = grey(140); x.fillRect(x0, H * 0.15, w, horizon - H * 0.15);
+      x.fillStyle = grey(70); for (let wx = x0 + 8; wx < x0 + w; wx += 30) for (let wy = H * 0.2; wy < horizon - 20; wy += 28) x.fillRect(wx, wy, 10, 15);
+      const tx = x0 + w * 0.1;
+      x.fillStyle = grey(185); x.fillRect(tx, horizon - H * 0.38, 260, H * 0.34);
+      x.fillStyle = grey(40); for (let k = 0; k < 7; k++) x.fillRect(tx + 12 + k * 35, horizon - H * 0.33, 24, H * 0.12);
+      x.fillStyle = grey(25); x.fillRect(tx, horizon - H * 0.06, 260, 6);
+      x.strokeStyle = grey(30); x.lineWidth = 1.5; x.beginPath(); x.moveTo(tx + 130, horizon - H * 0.38); x.lineTo(tx + 160, 0); x.stroke();
+      const cx = x0 + w * 0.62;
+      x.fillStyle = grey(30);
+      x.beginPath(); x.moveTo(cx, H * 0.86); x.lineTo(cx + 10, H * 0.66); x.lineTo(cx + 60, H * 0.64); x.lineTo(cx + 80, H * 0.5); x.lineTo(cx + 150, H * 0.5); x.lineTo(cx + 165, H * 0.66); x.lineTo(cx + 210, H * 0.7); x.lineTo(cx + 212, H * 0.86); x.fill();
+      x.fillStyle = grey(200, 0.6); x.fillRect(cx + 88, H * 0.54, 54, H * 0.1);
+      for (const wx of [cx + 40, cx + 175]) { x.fillStyle = grey(15); x.beginPath(); x.arc(wx, H * 0.87, 20, 0, Math.PI * 2); x.fill(); x.fillStyle = grey(150); x.beginPath(); x.arc(wx, H * 0.87, 7, 0, Math.PI * 2); x.fill(); }
+    }
+    // people in the street, here and there
+    const n = Math.floor(r() * 6);
+    for (let k = 0; k < n; k++) {
+      const px = x0 + r() * w, ph = H * (0.2 + r() * 0.25), py = H - r() * H * 0.12;
+      x.fillStyle = grey(20 + r() * 40);
+      x.fillRect(px - ph * 0.08, py - ph * 0.8, ph * 0.16, ph * 0.55);
+      x.fillRect(px - ph * 0.06, py - ph * 0.25, ph * 0.05, ph * 0.25); x.fillRect(px + ph * 0.01, py - ph * 0.25, ph * 0.05, ph * 0.25);
+      x.beginPath(); x.arc(px, py - ph * 0.88, ph * 0.08, 0, Math.PI * 2); x.fill();
+      if (r() < 0.5) x.fillRect(px - ph * 0.12, py - ph * 0.97, ph * 0.24, ph * 0.03);
+    }
+    // the print: grain, and darker towards its edges
+    speckle(x, W, H, Math.round(w * H / 60), 0.18, Math.floor(r() * 1e6));
+    const vig = x.createLinearGradient(x0, 0, x0 + w, 0);
+    vig.addColorStop(0, 'rgba(0,0,0,0.35)'); vig.addColorStop(0.15, 'rgba(0,0,0,0)'); vig.addColorStop(0.85, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.35)');
+    x.fillStyle = vig; x.fillRect(x0, 0, w, H);
+    x.restore();
+  };
+  let sx = 0, kind = 0;
+  while (sx < W) {
+    const w = Math.min(W - sx, Math.round((2.2 + r() * 3) * PX));
+    scene(sx, W - sx - w < 1.2 * PX ? W - sx : w, kind);
+    sx += W - sx - w < 1.2 * PX ? W - sx : w;
+    kind = (kind + 1 + Math.floor(r() * 3)) % 4;
+  }
+  // its panels' joints, every 1.2 m
+  x.fillStyle = 'rgba(0,0,0,0.6)';
+  for (let k = 1; k < FRIEZE_REPEAT / 1.2; k++) x.fillRect(Math.round(k * 1.2 * PX) - 1, 0, 2, H);
+  // (turned: u up, v along; mirrored for the wall that sees the track's direction backwards)
+  const [t, tx] = canvas(H, W);
+  tx.setTransform(0, mirror ? -1 : 1, -1, 0, H, mirror ? W : 0);
+  tx.drawImage(c, 0, 0);
+  return toTexture(t);
+}
+
+// Karlaplan's platform: dark grey granite slabs, 40 cm, flecked with white and black. Covers 2 × 2 m.
+export function karlaplanFloor() {
+  const [c, x] = canvas(500);
+  x.fillStyle = '#26282a';
+  x.fillRect(0, 0, 500, 500);
+  const r = rng(13);
+  for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
+    const v = 52 + Math.floor(r() * 10);
+    x.fillStyle = `rgb(${v},${v + 1},${v + 3})`;
+    x.fillRect(i * 100 + 1.5, j * 100 + 1.5, 97, 97);
+  }
+  speckle(x, 500, 500, 9000, 0.35, 14, true);
+  speckle(x, 500, 500, 6000, 0.5, 15);
+  return toTexture(c);
+}
+
+// The pale stone along the platform's edge (a strip of it; the texture covers 2 × 2 m).
+export function karlaplanEdge() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#d9d7d1';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 3000, 0.12, 17);
+  x.fillStyle = 'rgba(80,80,80,0.5)';
+  for (let k = 0; k < 4; k++) x.fillRect(0, k * 64, 256, 2);
+  return toTexture(c);
+}
+
+// The blocks down the middle of Karlaplan's platform: long cream glazed tiles, set upright in
+// courses that step half a tile, and a dark brown bay joint at the left. One repeat is
+// KARLAPLAN_BAY m across and as high; u across and v up, in repeats.
+export const KARLAPLAN_BAY = 2.4;
+export function karlaplanBlock() {
+  const PX = 160, S = KARLAPLAN_BAY * PX, TW = 0.06 * PX, TH = 0.24 * PX;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#8f8676';
+  x.fillRect(0, 0, S, S);
+  const r = rng(67);
+  const tones = ['#e6dcc4', '#e1d6bd', '#ebe2cc', '#dcd1b6', '#e4d9c0'];
+  for (let j = 0; j * TH < S; j++) {
+    const off = (j % 2) * TW / 2;
+    for (let i = -1; i * TW < S; i++) {
+      x.fillStyle = tones[Math.floor(r() * tones.length)];
+      x.fillRect(off + i * TW + 1, j * TH + 1, TW - 2, TH - 2);
+      x.fillStyle = 'rgba(255,255,255,0.12)';
+      x.fillRect(off + i * TW + 2, j * TH + 2, TW * 0.4, TH - 4);
+    }
+  }
+  x.fillStyle = '#4b3d32';
+  x.fillRect(0, 0, 0.14 * PX, S);
+  x.fillStyle = 'rgba(255,255,255,0.08)';
+  x.fillRect(0.02 * PX, 0, 0.03 * PX, S);
+  return toTexture(c);
+}
+
+// The station's name along the top of a block, in raised navy capitals, with the ways out at
+// either end: `left` and `right`, with their arrows, as seen. `w` × `h` m; transparent elsewhere.
+export function karlaplanSign(left: string, right: string, w: number, h: number) {
+  const PX = 200, [c, x] = canvas(Math.round(w * PX), Math.round(h * PX));
+  x.fillStyle = '#1e2a5a';
+  x.textBaseline = 'middle';
+  const font = (size: number) => `700 ${Math.round(size * PX)}px "DIN Condensed", "Arial Narrow", Arial, sans-serif`;
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${Math.round(0.03 * PX)}px`;
+  x.font = font(h * 0.8);
+  x.textAlign = 'center';
+  x.fillText('KARLAPLAN', c.width / 2, c.height / 2);
+  x.font = font(h * 0.45);
+  const tri = (cx: number, dir: number) => {
+    const s = h * 0.22 * PX;
+    x.beginPath(); x.moveTo(cx + dir * s, c.height / 2); x.lineTo(cx - dir * s, c.height / 2 - s); x.lineTo(cx - dir * s, c.height / 2 + s); x.fill();
+  };
+  tri(0.2 * PX, -1);
+  x.textAlign = 'left'; x.fillText(left, 0.5 * PX, c.height / 2);
+  tri(c.width - 0.2 * PX, 1);
+  x.textAlign = 'right'; x.fillText(right, c.width - 0.5 * PX, c.height / 2);
+  return toTexture(c, { repeat: false });
+}
+
+// One of Tor Hörlin's seating niches (1967): lined in long tiles of green stoneware, and above
+// the bench a band of tiles in blue, ochre, white and grey, laid in long strokes and chevrons.
+// `w` × `h` m.
+export function horlinNiche(w: number, h: number, variant: number) {
+  const PX = 160, W = Math.round(w * PX), H = Math.round(h * PX);
+  const [c, x] = canvas(W, H);
+  const r = rng(1967 + variant);
+  x.fillStyle = '#3c4a22';
+  x.fillRect(0, 0, W, H);
+  const greens = ['#6b7f35', '#5f7330', '#768a3c', '#566a2b', '#7d8f45', '#62762f'];
+  const TW = 0.24 * PX, TH = 0.06 * PX;
+  for (let j = 0; j * TH < H; j++) for (let i = -1; i * TW < W; i++) {
+    x.fillStyle = greens[Math.floor(r() * greens.length)];
+    x.fillRect((j % 2) * TW / 2 + i * TW + 1, j * TH + 1, TW - 2, TH - 2);
+  }
+  // the glaze catching the light
+  speckle(x, W, H, Math.round(W * H / 200), 0.15, 1968 + variant, true);
+  const colours = ['#2b3f7a', '#d9a63a', '#f1ece0', '#9aa3a6', '#3a5590', '#c98f2c', '#e7e1cf'];
+  const cy = H * 0.42;
+  if (variant % 2) {
+    // chevrons pointing along the platform
+    for (let k = 0; k < 9; k++) {
+      const row = cy + (k - 4) * TH * 1.05, depth = Math.abs(k - 4);
+      for (let s = 0; s < 3; s++) {
+        x.fillStyle = colours[(k + s * 2) % colours.length];
+        x.fillRect(W * 0.18 + depth * TW * 0.6 + s * TW * 1.3, row, TW * (0.8 + r() * 0.6), TH - 2);
+      }
+    }
+  } else {
+    // long strokes, stacked and overlapping, like a skyline
+    for (let k = 0; k < 26; k++) {
+      const bw = TW * (0.6 + r() * 3), bh = TH * (1 + Math.floor(r() * 6));
+      const bx = W * 0.1 + r() * (W * 0.8 - bw), by = cy - bh / 2 + (r() - 0.5) * TH * 6;
+      x.fillStyle = colours[Math.floor(r() * colours.length)];
+      x.fillRect(bx, by, bw, bh);
+      x.strokeStyle = 'rgba(30,30,30,0.35)'; x.lineWidth = 1;
+      for (let ty = by + TH; ty < by + bh; ty += TH) { x.beginPath(); x.moveTo(bx, ty); x.lineTo(bx + bw, ty); x.stroke(); }
+    }
+  }
+  // shadow in the niche's top, light along its foot
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0.25)'); g.addColorStop(0.2, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.1)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  return toTexture(c, { repeat: false });
+}

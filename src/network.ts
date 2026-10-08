@@ -10,7 +10,7 @@ import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
-import type { CaveStyle, HallStyle, VaultStyle } from './hall-styles';
+import type { CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -120,13 +120,14 @@ class MeshBuilder {
 
 type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer'
   | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor'
+  | 'kpWall' | 'kpWallMirror' | 'kpFrieze' | 'kpVault' | 'kpFloor' | 'kpEdge' | 'kpBlock' | 'kpBlockTop' | 'kpBench'
   | 'vaultArt' | 'vaultArtMirror' | 'vaultWall' | 'vaultCeiling' | 'vaultFloor' | 'vaultEdge' | 'fitting'
   // a painted cave's rock, one for each station (src/hall-styles.ts)
   | `cave:${string}`;
 
-// The styled halls' surfaces (src/hall-styles.ts): Hötorget's and Östermalmstorg's, the only
-// ones so far.
-const HOTORGET = HALL_STYLES['Hötorget'];
+// The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Karlaplan's and Östermalmstorg's.
+const HOTORGET = HALL_STYLES['Hötorget'] as FlatHall;
+const KARLAPLAN = HALL_STYLES['Karlaplan'] as VaultHall;
 const OSTERMALMSTORG = VAULT_STYLES['Östermalmstorg'];
 
 function materials() {
@@ -152,6 +153,7 @@ function materials() {
     hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
     hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.8 }),
     hallFloor: new THREE.MeshStandardMaterial({ map: T.clinker(), roughness: 0.8 }),
+    ...karlaplanMaterials(plaster),
     vaultArt: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring), roughness: 0.95, side: THREE.DoubleSide }),
     vaultArtMirror: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring, true), roughness: 0.95, side: THREE.DoubleSide }),
     vaultWall: new THREE.MeshStandardMaterial({ map: T.pittedWall(), roughness: 0.95, side: THREE.DoubleSide }),
@@ -161,6 +163,29 @@ function materials() {
     vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
     fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
   } satisfies Partial<Record<MaterialName, THREE.Material>> as Record<MaterialName, THREE.Material>;
+}
+
+function karlaplanMaterials(plaster: THREE.Texture) {
+  const K = KARLAPLAN, h = K.spring - S.FLOOR, from = K.panelsFrom - S.FLOOR, name = K.nameAt - S.FLOOR;
+  const band: [number, number] | null = K.frieze ? [K.frieze.from - S.FLOOR, K.frieze.to - S.FLOOR] : null;
+  // (enamel, lit by the row of lamps, which light nothing: so it glows a little, as the vault does)
+  const wall = (frieze: boolean, mirror: boolean) => {
+    const map = T.karlaplanWall(h, from, name, frieze ? band : null, mirror);
+    return new THREE.MeshStandardMaterial({ map, emissive: 0x6c6c6a, emissiveMap: map, roughness: 0.35, metalness: 0.05, side: THREE.DoubleSide });
+  };
+  return {
+    kpWall: wall(K.frieze?.wall === -1, false),
+    kpWallMirror: wall(K.frieze?.wall === 1, true),
+    kpFrieze: new THREE.MeshStandardMaterial({ map: T.karlaplanFrieze(K.frieze ? K.frieze.to - K.frieze.from : 1, K.frieze?.wall === 1), roughness: 0.4,
+      polygonOffset: true, polygonOffsetFactor: -2, side: THREE.DoubleSide }),
+    // (lit from below by its row of lamps, which light nothing: so it glows a little)
+    kpVault: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe2ddd0, emissive: 0x8a867c, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
+    kpFloor: new THREE.MeshStandardMaterial({ map: T.karlaplanFloor(), roughness: 0.55 }),
+    kpEdge: new THREE.MeshStandardMaterial({ map: T.karlaplanEdge(), roughness: 0.7, polygonOffset: true, polygonOffsetFactor: -1 }),
+    kpBlock: new THREE.MeshStandardMaterial({ map: T.karlaplanBlock(), roughness: 0.45 }),
+    kpBlockTop: new THREE.MeshStandardMaterial({ color: 0x3b3631, roughness: 0.9 }),
+    kpBench: new THREE.MeshStandardMaterial({ color: 0xd9a63c, roughness: 0.55 }),
+  };
 }
 
 export class Network {
@@ -174,6 +199,8 @@ export class Network {
   private mats = materials();
   private signs = new Map<string, THREE.MeshBasicMaterial>();
   private posterMats: THREE.MeshStandardMaterial[] | null = null;
+  private kpSigns: Map<string, THREE.MeshStandardMaterial> | undefined;
+  private kpNiches: THREE.MeshStandardMaterial[] | undefined;
   private stations: TrackGraph['stations'];
 
   // The stations' shafts and passages are cut out of the tunnels, platforms and everything else
@@ -235,10 +262,10 @@ export class Network {
     // the styled halls' neon, once for each, along one of its tracks
     const lit = new Set<string>();
     for (const samples of this.samples) {
-      const first = samples.find((sm) => hallStyle(sm));
+      const first = samples.find((sm) => hallStyle(sm)?.kind === 'flat');
       if (!first || lit.has(first.plat!.station)) continue;
       lit.add(first.plat!.station);
-      this.group.add(neon(samples.filter((sm) => sm.plat === first.plat), hallStyle(first)!, this.holes));
+      this.group.add(neon(samples.filter((sm) => sm.plat === first.plat), hallStyle(first) as FlatHall, this.holes));
     }
   }
 
@@ -441,21 +468,28 @@ export class Network {
       for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, S.archHeight(a, c, vs.spring, rise, u)]); }
       return { key: 'vault', pts };
     }, { uScale: 0.25, vScale: 1 / 6 });
-    // a styled hall: its tiled wall, and the soffit and ceiling (the wall is the outline's first
-    // two points where the other track is to the right, its last two where it is to the left)
-    for (const [mb, sign] of [[b.hallWall, -1], [b.hallWallMirror, 1]] as const) {
-      sweep(mb, run, (sm) => {
-        const st = hallStyle(sm);
-        if (!st || Math.sign(sm.pair) !== sign) return null;
+    // a styled hall: its wall, and the roof over it (the wall is the outline's first two points
+    // where the other track is to the right, its last two where it is to the left)
+    const styled = (kind: HallStyle['kind']) => (sm: Sample) => hallStyle(sm)?.kind === kind;
+    const halls = [
+      { is: styled('flat'), walls: [b.hallWall, b.hallWallMirror], roof: b.hallCeiling, top: HOTORGET.soffit, repeat: T.HOTORGET_REPEAT },
+      { is: styled('vault'), walls: [b.kpWall, b.kpWallMirror], roof: b.kpVault, top: KARLAPLAN.spring, repeat: T.KARLAPLAN_REPEAT },
+    ];
+    for (const { is, walls, roof, top, repeat } of halls) {
+      for (const [mb, sign] of [[walls[0], -1], [walls[1], 1]] as const) {
+        sweep(mb, run, (sm) => {
+          if (!is(sm) || Math.sign(sm.pair) !== sign) return null;
+          const o = shellOutline(sm)!;
+          return { key: o.key, pts: sign > 0 ? o.pts.slice(0, 2) : o.pts.slice(-2) };
+        }, { u: (_, v) => (v - S.FLOOR) / (top - S.FLOOR), vScale: 1 / repeat });
+      }
+      sweep(roof, run, (sm) => {
+        if (!is(sm)) return null;
         const o = shellOutline(sm)!;
-        return { key: o.key, pts: sign > 0 ? o.pts.slice(0, 2) : o.pts.slice(-2) };
-      }, { u: (_, v) => (v - S.FLOOR) / (HOTORGET.soffit - S.FLOOR), vScale: 1 / T.HOTORGET_REPEAT });
+        return { key: o.key, pts: sm.pair > 0 ? o.pts.slice(1) : o.pts.slice(0, -1) };
+      }, { uScale: 0.25, vScale: 0.25 });
     }
-    sweep(b.hallCeiling, run, (sm) => {
-      if (!hallStyle(sm)) return null;
-      const o = shellOutline(sm)!;
-      return { key: o.key, pts: sm.pair > 0 ? o.pts.slice(1) : o.pts.slice(0, -1) };
-    }, { uScale: 0.25, vScale: 0.25 });
+    this.frieze(samples, run, b);
     // floor beside the ballast; on a bank, only between two tracks (the bank has its own)
     for (const side of [-1, 1]) {
       sweep(b.floor, run, (sm) => {
@@ -472,6 +506,7 @@ export class Network {
     this.platforms(run, b, group);
     this.columns(samples, run, b);
     this.posters(samples, run, group);
+    this.blocks(samples, run, b, group);
     this.lights(run, b);
     this.ends(samples, i0, i1, b);
   }
@@ -542,11 +577,18 @@ export class Network {
 
   private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
     const H = S.PLATFORM_HEIGHT;
-    for (const [mb, styled] of [[b.platform, false], [b.hallFloor, true]] as const) sweep(mb, run, (sm) => {
+    for (const [mb, kind] of [[b.platform, null], [b.hallFloor, 'flat'], [b.kpFloor, 'vault']] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
-      if (!p || !hallStyle(sm) !== !styled || vaultStyle(sm)) return null;
+      if (!p || (hallStyle(sm)?.kind ?? null) !== kind || vaultStyle(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
+    }, { uScale: 0.5, vScale: 0.5 });
+    // the pale stone along the edge of a vaulted hall's platform
+    sweep(b.kpEdge, run, (sm) => {
+      const p = sm.plat;
+      if (!p || hallStyle(sm)?.kind !== 'vault') return null;
+      const u0 = p.side * S.PLATFORM_EDGE, u1 = p.side * (S.PLATFORM_EDGE + 0.3);
+      return { key: `e${p.side}`, pts: p.side > 0 ? [[u0, H + 0.002], [u1, H + 0.002]] : [[u1, H + 0.002], [u0, H + 0.002]] };
     }, { uScale: 0.5, vScale: 0.5 });
     // a styled vault's platform: terrazzo, with a band of tiles along the edge
     sweep(b.vaultFloor, run, (sm) => {
@@ -601,10 +643,13 @@ export class Network {
           group.add(sign);
         }
       }
-      if (Math.round(sm.along / STEP) % 2 === 0) {
+      // (in a vaulted hall, a nearly unbroken row along its crown)
+      if (hallStyle(sm)?.kind === 'vault') {
+        if (sm.pair > 0) box(b.lamp, at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06), sm, 0.26, 0.08, STEP - 0.35);
+      } else if (Math.round(sm.along / STEP) % 2 === 0) {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
-        if (st) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
+        if (st?.kind === 'flat') box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
         else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       if (caveStyle(sm)) {
@@ -631,8 +676,8 @@ export class Network {
   // A styled hall's posters on this track's wall, either side of a plate with the station's old
   // name: halfway between two of the tiles' name plates, the nearest to the platform's middle.
   private posters(all: Sample[], run: Sample[], group: THREE.Group) {
-    const first = run.find((sm) => hallStyle(sm));
-    const st = first && hallStyle(first), ps = st?.posters;
+    const first = run.find((sm) => hallStyle(sm)?.kind === 'flat');
+    const st = first && (hallStyle(first) as FlatHall), ps = st?.posters;
     if (!first || !ps) return;
     const p = first.plat!, on = all.filter((sm) => sm.plat === p);
     const t = Math.round((on[0].along + on[on.length - 1].along) / 2 / T.HOTORGET_REPEAT) * T.HOTORGET_REPEAT;
@@ -657,9 +702,9 @@ export class Network {
   // A styled hall's row of columns along this track's side of the platform, evenly spaced and
   // centred on it (`all` is the piece's samples, `run` the stretch being built).
   private columns(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>) {
-    const first = run.find((sm) => hallStyle(sm));
+    const first = run.find((sm) => hallStyle(sm)?.kind === 'flat');
     if (!first) return;
-    const st = hallStyle(first)!, p = first.plat!, { fromEdge, size, spacing } = st.columns;
+    const st = hallStyle(first) as FlatHall, p = first.plat!, { fromEdge, size, spacing } = st.columns;
     const on = all.filter((sm) => sm.plat === p);
     const a0 = on[0].along, a1 = on[on.length - 1].along;
     const n = Math.floor((a1 - a0 - 2 * spacing / 2) / spacing);
@@ -679,6 +724,92 @@ export class Network {
       };
       if ([-1, 1].some((i) => [-1, 1].some((k) => open(i, k, S.PLATFORM_HEIGHT + 1) || open(i, k, st.soffit - 0.05)))) continue;
       pillar(b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
+    }
+  }
+
+  // A vaulted hall's frieze (Karlaplan's photomontage) along one of its track walls, centred on
+  // the platform, just proud of the wall.
+  private frieze(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>) {
+    const first = run.find((sm) => hallStyle(sm)?.kind === 'vault');
+    const st = first && (hallStyle(first) as VaultHall), f = st?.frieze;
+    if (!first || !f || Math.sign(first.pair) !== f.wall) return;
+    const on = all.filter((sm) => sm.plat === first.plat);
+    const mid = (on[0].along + on[on.length - 1].along) / 2, t0 = mid - f.length / 2, t1 = mid + f.length / 2;
+    sweep(b.kpFrieze, run, (sm) => {
+      if (sm.along < t0 || sm.along > t1 || hallStyle(sm) !== st || Math.sign(sm.pair) !== f.wall) return null;
+      const o = shellOutline(sm)!, u = o.pts[f.wall > 0 ? 0 : o.pts.length - 1][0] + f.wall * 0.015;
+      const dy = (v: number) => v + (sm.pairDy / 2) * Math.min(1, (v - S.FLOOR) / 2);
+      return { key: 'frieze', pts: [[u, dy(f.from)], [u, dy(f.to)]] };
+    }, { uScale: 1 / (f.to - f.from), vScale: 1 / T.FRIEZE_REPEAT });
+  }
+
+  // A vaulted hall's blocks down the middle of its platform (Karlaplan's), drawn by the track with
+  // the other to its right: tiled, the station's name along their tops with the ways out, and in
+  // their sides, by turns, a niche with a bench. None where the stairs or escalators come down.
+  private blocks(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+    const first = run.find((sm) => hallStyle(sm)?.kind === 'vault' && sm.pair > 0);
+    if (!first) return;
+    const st = hallStyle(first) as VaultHall, p = first.plat!, { width, height, length, gap, spread } = st.blocks;
+    const on = all.filter((sm) => sm.plat === p);
+    // as many as fit either side of a gap in the middle of the platform
+    const a0 = on[0].along, a1 = on[on.length - 1].along, mid = (a0 + a1) / 2;
+    const m = Math.max(1, Math.floor(((a1 - a0) * spread / 2 + gap / 2) / (length + gap)));
+    const H = S.PLATFORM_HEIGHT, R = T.KARLAPLAN_BAY;
+    for (let k = 0; k < 2 * m; k++) {
+      const c = mid + (k < m ? -1 : 1) * (gap / 2 + length / 2 + (k < m ? m - 1 - k : k - m) * (length + gap));
+      const i = run.findIndex((sm, j) => j + 1 < run.length && sm.along <= c && run[j + 1].along > c);
+      if (i < 0 || run[i].plat !== p) continue;
+      const sa = run[i], sb = run[i + 1], f = (c - sa.along) / (sb.along - sa.along || 1);
+      const sm = { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f };
+      const u = sm.pair / 2, y0 = H + sm.pairDy / 4, y1 = y0 + height;
+      // along the track, and across it to the right
+      const tx = sm.rz, tz = -sm.rx;
+      const P = (i: number, k: number, y: number) => new THREE.Vector3(sm.x + sm.rx * (u + (i * width) / 2) + tx * (k * length) / 2, sm.y + y, sm.z + sm.rz * (u + (i * width) / 2) + tz * (k * length) / 2);
+      const open = [-1, 1].some((i) => [-1, 0, 1].some((k) => {
+        const q = P(i, k, H + 1.5);
+        return this.holes.some((o) => insideVolume(o, q.x, q.y, q.z));
+      }));
+      if (open) continue;
+      // the four sides, their tiles in metres, and the top
+      const corners: [number, number, number][] = [[1, -1, length], [1, 1, width], [-1, 1, length], [-1, -1, width], [1, -1, 0]];
+      for (let s = 0; s < 4; s++) {
+        const [i0, k0, w] = corners[s], [i1, k1] = corners[s + 1];
+        b.kpBlock.quad(P(i0, k0, y0), P(i1, k1, y0), P(i1, k1, y1), P(i0, k0, y1), [0, 0], [w / R, 0], [w / R, height / R], [0, height / R]);
+      }
+      b.kpBlockTop.quad(P(-1, -1, y1), P(-1, 1, y1), P(1, 1, y1), P(1, -1, y1));
+      // on each long side: the name along the top, and a niche or a poster frame's worth of tiles
+      for (const side of [-1, 1] as const) {
+        const out = new THREE.Vector3(sm.rx * side, 0, sm.rz * side);
+        // to the right of someone facing this side
+        const right = new THREE.Vector3(out.z, 0, -out.x);
+        const face = (along: number, y: number) => P(side, 0, y).addScaledVector(out, 0.012).addScaledVector(new THREE.Vector3(tx, 0, tz), along);
+        const ends = st.exits.map((e) => ({ name: e.name, d: right.x * (e.x - sm.x) + right.z * (e.z - sm.z) }));
+        const toRight = ends.reduce((m, e) => (e.d > m.d ? e : m)), toLeft = ends.reduce((m, e) => (e.d < m.d ? e : m));
+        const signW = Math.min(length - 0.6, 7.2), signH = 0.36;
+        const key = `${toLeft.name}|${toRight.name}`;
+        this.kpSigns ??= new Map();
+        let sign = this.kpSigns.get(key);
+        if (!sign) { sign = new THREE.MeshStandardMaterial({ map: T.karlaplanSign(toLeft.name, toRight.name, signW, signH), transparent: true, roughness: 0.4 }); this.kpSigns.set(key, sign); }
+        const plate = new THREE.Mesh(new THREE.PlaneGeometry(signW, signH), sign);
+        plate.position.copy(face(0, y1 - 0.35));
+        plate.lookAt(plate.position.clone().add(out));
+        group.add(plate);
+        // a niche by turns, with its bench
+        if ((k + (side > 0 ? 0 : 1)) % 2 === 0) {
+          const nw = 3.0, nh = 2.2, variant = k * 2 + (side > 0 ? 0 : 1);
+          this.kpNiches ??= [0, 1].map((v) => new THREE.MeshStandardMaterial({ map: T.horlinNiche(nw, nh, v), roughness: 0.45 }));
+          const niche = new THREE.Mesh(new THREE.PlaneGeometry(nw, nh), this.kpNiches[variant % 2]);
+          niche.position.copy(face(0, y0 + nh / 2));
+          niche.lookAt(niche.position.clone().add(out));
+          group.add(niche);
+          // the bench: a slatted seat on two brackets, against the niche's back
+          const seat = face(0, y0 + 0.45).addScaledVector(out, 0.22);
+          const bench = { ...sm, x: seat.x, y: seat.y, z: seat.z };
+          box(b.kpBench, at(bench, 0, 0), bench as Sample, 0.4, 0.05, nw - 0.3);
+          box(b.kpBench, at(bench, side * -0.17, 0.22), bench as Sample, 0.06, 0.4, nw - 0.3);
+          for (const e of [-1, 1]) box(b.steel, at(bench, 0, -0.23).addScaledVector(new THREE.Vector3(tx, 0, tz), e * (nw / 2 - 0.4)), bench as Sample, 0.36, 0.45, 0.05);
+        }
+      }
     }
   }
 
@@ -1010,6 +1141,7 @@ function vaultStyle(sm: Sample): VaultStyle | null {
   return p && !p.island && !sm.pair && sm.kind === 'rock' ? VAULT_STYLES[p.station] ?? null : null;
 }
 function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: string; pts: [number, number][] } {
+  if (st.kind === 'vault') return vaultOutline(sm, a, b, st);
   const s = sm.plat!.side, d = S.PLATFORM_EDGE + st.columns.fromEdge + st.columns.size / 2;
   const c1 = s * d, c2 = sm.pair - s * d;
   const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
@@ -1021,6 +1153,24 @@ function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: 
     : [[o0, st.ceiling], ...full.filter(([u]) => u > o0)];
   const dy = sm.pairDy / 2;
   return { key: `styled${Math.sign(sm.pair)}`, pts: pts.map(([u, v]) => [u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]) };
+}
+
+// A vaulted hall's outline (Karlaplan's): straight walls up to the spring, and one segmental vault
+// over both tracks, its crown over the middle of the platform; this track's half, to just over
+// the middle, with the corner at the spring kept.
+function vaultOutline(sm: Sample, a: number, b: number, st: VaultHall): { key: string; pts: [number, number][] } {
+  const [o0, o1] = ownSpan(sm, [a, b]), n = 14;
+  const arc = (u: number): [number, number] => [u, S.archHeight(a, b, st.spring, st.crown - st.spring, u)];
+  const pts: [number, number][] = [];
+  if (sm.pair > 0) {
+    pts.push([a, S.FLOOR], [a, st.spring]);
+    for (let i = 1; i <= n; i++) pts.push(arc(a + ((o1 - a) * i) / n));
+  } else {
+    for (let i = 0; i < n; i++) pts.push(arc(o0 + ((b - o0) * i) / n));
+    pts.push([b, st.spring], [b, S.FLOOR]);
+  }
+  const dy = sm.pairDy / 2;
+  return { key: `vault${Math.sign(sm.pair)}`, pts: pts.map(([u, v]) => [u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]) };
 }
 
 // A tunnel's outline as a closed line around this track: where it shares the tunnel, its half,
@@ -1147,7 +1297,7 @@ function pillar(b: MeshBuilder, c: THREE.Vector3, sm: Sample, size: number, y0: 
 // between the columns, now and then across, each at its own height, hung on thin rods; in a few
 // tones of white. `plat` is one track's samples along the platform; none hang where the station's
 // stairs and escalators (`holes`) come down into the hall.
-function neon(plat: Sample[], st: HallStyle, holes: Volume[]) {
+function neon(plat: Sample[], st: FlatHall, holes: Volume[]) {
   const r = T.rng(1998), group = new THREE.Group();
   group.name = 'neon';
   const L = plat[plat.length - 1].along - plat[0].along;
@@ -1318,7 +1468,49 @@ function nearestSample(list: Sample[], x: number, z: number) {
 // every STEP metres. Where the structure, the sharing of it, a platform or an exclusion starts
 // or stops, there are two samples at the same place, one with each, so that the surfaces on
 // either side meet.
+// A platform the track graph splits in two along one track (where it takes the track to leave
+// the platform for a short stretch, as at Karlaplan) is one platform, as along the other track.
+const PLATFORM_JOIN = 45;
+function joinPlatforms(list: GeometryPlatform[]): GeometryPlatform[] {
+  const out: GeometryPlatform[] = [];
+  for (const p of [...list].sort((a, b) => a.s0 - b.s0)) {
+    const last = out[out.length - 1];
+    if (last && last.station === p.station && last.side === p.side && last.island === p.island && p.s0 - last.s1 < PLATFORM_JOIN) {
+      out[out.length - 1] = { ...last, s1: Math.max(last.s1, p.s1) };
+    } else out.push(p);
+  }
+  return out;
+}
+
+// Along such a stretch the track graph finds no other track across the platform, so neither
+// track shares the hall with the other there: in rock or concrete, where they share it on either
+// side of a stretch along an island platform, they share it along it too, from one side's
+// spacing to the other's.
+function sharedHalls(g: GeometryPiece, platforms: GeometryPlatform[]): Pick<GeometryPiece, 'pair' | 'pairDy'> {
+  const pair = [...g.pair], pairDy = [...g.pairDy];
+  const inside = (k: number) => {
+    const kind = STRUCTURE_KINDS[g.kind[k]];
+    return (kind === 'rock' || kind === 'box') && platforms.some((p) => p.island && g.s[k] >= p.s0 && g.s[k] <= p.s1);
+  };
+  for (let k = 1; k < pair.length - 1; k++) {
+    if (pair[k] || !pair[k - 1] || !inside(k)) continue;
+    let e = k;
+    while (e < pair.length && !pair[e] && inside(e)) e++;
+    if (e < pair.length && pair[e] && Math.sign(pair[e]) === Math.sign(pair[k - 1])) {
+      for (let j = k; j < e; j++) {
+        const f = (g.s[j] - g.s[k - 1]) / (g.s[e] - g.s[k - 1]);
+        pair[j] = pair[k - 1] + (pair[e] - pair[k - 1]) * f;
+        pairDy[j] = pairDy[k - 1] + (pairDy[e] - pairDy[k - 1]) * f;
+      }
+    }
+    k = e;
+  }
+  return { pair, pairDy };
+}
+
 function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: boolean): Sample[] {
+  const platforms = joinPlatforms(g.platforms);
+  g = { ...g, ...sharedHalls(g, platforms) };
   const n = g.s.length;
   const P = (i: number, k: 'x' | 'y' | 'z') => {
     if (i < 0) return 2 * g[k][0] - g[k][1];
@@ -1359,7 +1551,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     };
     const left = beside(g.left), right = beside(g.right);
     const se = lerp(g.s, e);
-    const plat = g.platforms.find((p) => se >= p.s0 && se <= p.s1) ?? null;
+    const plat = platforms.find((p) => se >= p.s0 && se <= p.s1) ?? null;
     const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
     const skip = exclude.some((x) => !x.trackOnly && se >= x.s0 && se <= x.s1);
     const noTrack = skip || exclude.some((x) => se >= x.s0 && se <= x.s1);
@@ -1382,7 +1574,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
       if (!shares(k0, -1) !== !shares(k1, -1) || !shares(k0, 1) !== !shares(k1, 1)) breaks.add(i + 0.5);
     }
   }
-  for (const p of g.platforms) for (const s of [p.s0, p.s1]) if (s > g.s[0] && s < g.s[n - 1]) breaks.add(qAt(s));
+  for (const p of platforms) for (const s of [p.s0, p.s1]) if (s > g.s[0] && s < g.s[n - 1]) breaks.add(qAt(s));
   for (const x of exclude) for (const s of [x.s0, x.s1]) if (s > g.s[0] && s < g.s[n - 1]) breaks.add(qAt(s));
   const qs: { q: number; twice: boolean }[] = [];
   for (let i = 0; i + 1 < n; i++) {
