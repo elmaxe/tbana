@@ -54,7 +54,7 @@
     },
     "Gamla stan": {
       "drawing": "gamla_stan.png",
-      "note": "Two island platforms on a deck over the street, red on the inner side of each and green on the outer. Stairs go down through each platform to the ticket hall under the tracks, at street level.",
+      "note": "Two island platforms at ground level, a metre or two above the streets beside them, red on the inner side of each and green on the outer. Stairs go down through each platform to the ticket hall under the tracks, and up from it to the streets.",
       "routes": [
         { "from": [-6, 7], "width": 2, "go": [
           {"stairs": -5.5, "toward": [-30, 7]},
@@ -69,13 +69,14 @@
           {"walk": [-26, 0]},
           {"gates": true},
           {"mark": "gates"},
-          {"exit": 401798228, "by": "walk"}
+          {"exit": 401798228}
         ] },
         { "from": "gates", "width": 4, "go": [
-          {"exit": 3596988872, "by": "walk", "ceiling": 2.6}
+          {"walk": [-44, 18.7]},
+          {"exit": 3596988872}
         ] },
         { "from": "gates", "width": 4, "go": [
-          {"exit": 486085165, "by": "walk"}
+          {"exit": 486085165}
         ] }
       ]
     },

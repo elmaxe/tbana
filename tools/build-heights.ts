@@ -64,6 +64,10 @@ interface Corrections {
   offGround?: Segment[];
   // bridges with a road or a valley under them: the rail at least `clearance` above the ground
   raised?: (Segment & { clearance: number })[];
+  // the rail's height where the elevation model can't see it (on a bridge, under water), such as
+  // from Google Earth's 3D model: x, z and the height at each point, anchored like a platform
+  // within reach of the line between them
+  rail?: { along: [number, number, number][]; reach: number; why: string }[];
 }
 interface Segment { along: [number, number][]; reach: number; why: string }
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
@@ -88,6 +92,17 @@ const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixe
   }));
 // tunnel that needs no cover, and surface track that isn't on the ground
 const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround);
+// the rail's height from the corrections at a point, if one reaches it
+const railAt = (x: number, z: number) => {
+  for (const { along, reach } of corrections.rail ?? []) {
+    for (let k = 1; k < along.length; k++) {
+      const [ax, az, ay] = along[k - 1], [bx, bz, by] = along[k], dx = bx - ax, dz = bz - az;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+      if (Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach) return ay + t * (by - ay);
+    }
+  }
+  return null;
+};
 const clearanceAt = (x: number, z: number) => {
   const fix = (corrections.raised ?? []).find((f) => within([f])(x, z));
   return fix ? fix.clearance : null;
@@ -290,6 +305,12 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       if (m) { addAnchor(vi, m.y - PLATFORM_ABOVE_RAIL, SIGMA.model); modelAnchors++; }
     });
   }
+  // the rail's height where the corrections give it
+  let railAnchors = 0;
+  vars.forEach((v, vi) => {
+    const h = onPlatform.has(vi) ? null : railAt(v.x, v.z);
+    if (h !== null) { addAnchor(vi, h, SIGMA.station); railAnchors++; }
+  });
 
   // the ground under every point, if known (nearest sample within 6 m)
   const groundGrid = new Map<string, [number, number, number][]>();
@@ -519,13 +540,13 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   }
 
   return {
-    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
+    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
     groundOf, coverGround, coverAt, onGround,
   };
 }
 const first = fit(run, null);
 const {
-  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
+  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
   groundOf, coverGround, coverAt, onGround,
 } = fit(lineTrack(graph), new Map(first.vars.map((v, i) => [v.key, first.y[i]])));
 
@@ -548,7 +569,7 @@ writeFileSync(OUT, JSON.stringify({
   note: 'Height of the top of the rail (RH 2000) at each point of each piece of the drawn lines\' track in public/data/track-graph.json: the pieces their services run on, and the crossovers, sidings and depots joined to them.',
   pieces: heights,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the station models, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${floorHeld.size} held over it on bridges, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the station models, ${railAnchors} at a rail height from the corrections, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${floorHeld.size} held over it on bridges, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check

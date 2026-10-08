@@ -305,13 +305,18 @@ model there follows the roof. It then checks the
 result against the 1975 limits: 40‰, 10‰ along platforms, and vertical curves of at least 2,000 m
 on the red line, 1,500 m on the green and 4,000 m on the blue. It fails on anything outside them,
 and says where. Bridges get no anchor; where the corrections say a street passes under one
-(Kistaviadukten, and the bridge at Kymlinge), its rail is held a clearance above the ground.
+(Kistaviadukten, and the bridge at Kymlinge), its rail is held a clearance above the ground, and
+where they give the rail's height (`rail`), it is anchored there like a platform.
 
 `data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
 
-- Gamla stan's Wikidata height is the street; its platforms are on a deck about 5 m higher.
-- In Riddarholmskanalen the line runs in a trough, not a bored tunnel, so it needs no cover.
-- South of Gamla stan's platforms, OSM's surface track is still on the station deck.
+- Gamla stan's platforms are at ground level, a metre above Wikidata's height of the street: its
+  rails are at 2.7 m where they leave the platforms. The strip the elevation model shows over the
+  platforms at +7 m is the station's roof.
+- Between T-Centralen and Gamla stan the line runs in a trough under the water and Riddarholmskanalen,
+  not a bored tunnel, so it needs no cover; its rail is held level with T-Centralen's under the water.
+- South of Gamla stan's platforms, OSM's surface track is already on the bridge to Slussen, whose
+  rails climb from 4 m to 8 m.
 - At Sätra, OSM draws a siding a few metres into the bank beside the running lines.
 - The green line's station heights and depths, above.
 - Under the green line at Kristineberg, Alvik and Farsta the elevation model dips 5 m where a road
@@ -319,6 +324,12 @@ and says where. Bridges get no anchor; where the corrections say a street passes
 - At Gullmarsplan the tracks south of the platforms are in a box under the bus terminal's deck.
 - Kista's platform is on a viaduct, above Wikidata's height, and the viaduct and the bridge at
   Kymlinge are held over the streets and the valley under them.
+
+The heights at Gamla stan, under the water and on the bridge to Slussen were read off a textured 3D
+model of the city from Google Earth, downloaded locally (it is not in the repository). Its heights
+are off RH 2000 by between 0.5 and 3.5 m, differently in different parts of the city, so they were
+tied to the elevation model on open streets next to each place measured: Munkbroleden beside the
+station, and Södermalm's quays for the bridge.
 
 `fetch-ground` needs a free Geotorget account at Lantmäteriet, given as `LM_USER` and
 `LM_PASSWORD`. It finds the files through Lantmäteriet's STAC catalogue for height data. Behind a
