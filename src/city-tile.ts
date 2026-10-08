@@ -5,7 +5,7 @@
 //
 // A tile is gzip-compressed binary, little-endian: a header, then sections, each a four-letter
 // tag, its length in bytes and its contents (padded to 4 bytes). A reader skips the sections it
-// doesn't know, so later layers (streets, water) can be added as new sections
+// doesn't know, so later layers (streets, say) can be added as new sections
 // without breaking the game, and new fields as new sections or a new version.
 //
 //   header   'TBCT', u16 version, u16 0, i32 i, i32 j
@@ -30,6 +30,10 @@
 //            triangles as u16 × 3, wound to face up; then the walls' tops under the roof, each ring
 //            of the outline as u16 points and its points as the roof's. A building with no roof here
 //            has a flat one.
+//   'WATR'   the water over the ground: u16 count, u16 0, then count f32 levels (RH 2000), then
+//            (n − 1)² u8, a cell of GRND's each, row by row as its flags: 0 for dry, else 1 + the
+//            index of the level the water stands at over it. A cell on the shore has the water too,
+//            so the shore is drawn where the ground rises out of it.
 //
 // It imports nothing, so the tools can use it on Node too.
 
@@ -92,7 +96,11 @@ export interface Door { edge: number; from: number; to: number; top: number }
 // such as at a tunnel mouth, where the portal stands.
 export interface GroundHole { corners: [number, number][]; bottom: number; top: number }
 
-export interface CityTile { i: number; j: number; ground: Ground | null; buildings: Building[]; holes: GroundHole[] }
+// The lakes and the sea over the ground: the levels they stand at, and for each cell of the
+// ground's which of them (0: none, k: levels[k − 1]).
+export interface Water { levels: number[]; cells: Uint8Array }
+
+export interface CityTile { i: number; j: number; ground: Ground | null; buildings: Building[]; holes: GroundHole[]; water?: Water | null }
 
 export interface CityIndex {
   attribution: string[];
@@ -241,6 +249,11 @@ export function decodeTile(buf: ArrayBuffer): CityTile {
         for (let c = 0; c < 4; c++) corners.push([x0 + v.getFloat32(q + 8 * c, true), z0 + v.getFloat32(q + 8 * c + 4, true)]);
         tile.holes.push({ corners, bottom: v.getFloat32(q + 32, true), top: v.getFloat32(q + 36, true) });
       }
+    } else if (tag === 'WATR') {
+      const count = v.getUint16(s, true), levels: number[] = [];
+      for (let k = 0; k < count; k++) levels.push(v.getFloat32(s + 4 + 4 * k, true));
+      const f = s + 4 + 4 * count;
+      tile.water = { levels, cells: new Uint8Array(buf.slice(f, s + len)) };
     }
     p = s + len + ((4 - (len % 4)) % 4);
   }
@@ -359,6 +372,15 @@ export function encodeTile(tile: CityTile): Uint8Array {
       v.setFloat32(q + 36, h.top, true);
     });
     sections.push({ tag: 'HOLE', data });
+  }
+  if (tile.water?.levels.length) {
+    const { levels, cells } = tile.water;
+    const data = new Uint8Array(4 + 4 * levels.length + cells.length);
+    const v = new DataView(data.buffer);
+    v.setUint16(0, levels.length, true);
+    levels.forEach((l, k) => v.setFloat32(4 + 4 * k, l, true));
+    data.set(cells, 4 + 4 * levels.length);
+    sections.push({ tag: 'WATR', data });
   }
   const pad = (n: number) => (4 - (n % 4)) % 4;
   const total = 16 + sections.reduce((s, x) => s + 8 + x.data.length + pad(x.data.length), 0);

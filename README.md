@@ -540,6 +540,7 @@ wherever you look out from a train, a bridge or a station's exit:
 ```sh
 LM_USER=… LM_PASSWORD=… npm run fetch-terrain  # the ground, every 5 m -> data/ground/city.json, city.bin.gz
 npm run fetch-city                             # OSM's buildings -> data/osm/buildings.json
+npm run fetch-water                            # OSM's lakes and shores -> data/osm/water.json
 npm run build-city                             # -> public/data/city/
 ```
 
@@ -549,9 +550,23 @@ npm run build-city                             # -> public/data/city/
 - `fetch-city` reads OpenStreetMap's extract of Stockholm county (from openstreetmap.fr, about
   80 MB, downloaded once a day to the temporary directory) and keeps the buildings and building
   parts in those tiles, with their courtyards: about 83,000.
+- `fetch-water` reads the same extract and keeps the lakes, canals and bays reaching into the tiles
+  (258), and as lines the coastline and the shores of the lakes whose outlines don't close within
+  the extract (Mälaren's).
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
-  (format in `src/city-tile.ts`), 17.2 MB in all. The format is in tagged sections, so streets and
-  water can be added later as new sections without breaking the game, as the roofs were.
+  (format in `src/city-tile.ts`), 17.3 MB in all. The format is in tagged sections, so streets can
+  be added later as new sections without breaking the game, as the roofs and the water were.
+
+The water: the elevation model has every lake and the sea flattened to the one level it stands
+at (Saltsjön +0.10 m, Mälaren +0.89 m, Brunnsviken +0.05 m in RH 2000), so `build-city` takes as
+water wherever the ground is level to the centimetre over 2,500 m² or more: 55 bodies of water,
+24.8 km². Under bridges and decks the model fills in the ground between their ends, so there
+OpenStreetMap's outlines carry the water on (Riddarholmskanalen under Centralbron, Karlbergskanalen),
+and where they don't close, its shores do: the water reaches on from what the model has, within
+150 m, without crossing a shore, and is kept where it joins the water at both ends, as under a
+bridge (Söderström). The ground there is brought down to the water's level. The game draws the
+water blue at its level over the cells it covers and those on its shores, so the shore is where the
+ground rises out of it. It can be waded through, since the bridges aren't drawn yet.
 
 How the ground meets the track:
 
