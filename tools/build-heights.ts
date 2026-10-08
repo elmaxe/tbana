@@ -19,7 +19,8 @@
 // - the stations drawn from a model (T-Centralen, which Wikidata lacks, Odenplan and Fridhemsplan):
 //   the heights of the model's tracks along their platforms instead, which are drawn at platform
 //   level, also 1.0 m above the rail
-// - surface track: 0.2 m above the ground, except on the last 30 m to a bridge, and a depot's
+// - surface track: 0.2 m above the ground, except on the last 30 m to a bridge (unless the
+//   corrections say it is on the ground right up to the bridge), and a depot's
 //   track through its halls and other buildings; bridges: no anchor, the line is carried across,
 //   but held a clearance above the ground where the corrections say a street passes under
 // - tunnels: below the ground with at least 6 m of cover, except near their mouths and along
@@ -62,6 +63,8 @@ interface Corrections {
   stations?: { station: string; height?: number; depth?: number; why: string }[];
   uncovered?: Segment[];
   offGround?: Segment[];
+  // surface track that is on the ground right up to a bridge: it keeps its ground anchors there
+  toBridge?: Segment[];
   // bridges with a road or a valley under them: the rail at least `clearance` above the ground
   raised?: (Segment & { clearance: number })[];
   // the rail's height where the elevation model can't see it (on a bridge, under water), such as
@@ -90,8 +93,9 @@ const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixe
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
     return Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach;
   }));
-// tunnel that needs no cover, and surface track that isn't on the ground
-const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround);
+// tunnel that needs no cover, surface track that isn't on the ground, and surface track that is
+// on it up to a bridge
+const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround), toBridge = within(corrections.toBridge);
 // the rail's height from the corrections at a point, if one reaches it
 const railAt = (x: number, z: number) => {
   for (const { along, reach } of corrections.rail ?? []) {
@@ -369,7 +373,8 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     && pieces.some((p) => p.structure === 'bridge' && (p.from === n.id || p.to === n.id))
     && pieces.some((p) => p.structure !== 'bridge' && (p.from === n.id || p.to === n.id)));
   const onGround = (vi: number) => structureOf.get(vi) === 'surface' && groundOf[vi] !== null && !covered.has(vi)
-    && !bridgeEnds.some((n) => Math.hypot(n.x - vars[vi].x, n.z - vars[vi].z) < 30) && !offGround(vars[vi].x, vars[vi].z);
+    && (!bridgeEnds.some((n) => Math.hypot(n.x - vars[vi].x, n.z - vars[vi].z) < 30) || toBridge(vars[vi].x, vars[vi].z))
+    && !offGround(vars[vi].x, vars[vi].z);
   vars.forEach((_, vi) => {
     if (onGround(vi)) { addAnchor(vi, groundOf[vi]! + 0.2, SIGMA.ground); groundAnchors++; }
   });

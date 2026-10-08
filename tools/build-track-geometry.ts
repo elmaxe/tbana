@@ -249,9 +249,10 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   }
 
   // The nearest point on the other track of the line: a track the same services run in the
-  // opposite direction, within `reach` in plan and between `minDy` and `dy` in height.
+  // opposite direction, within `reach` in plan and between `minDy` and `dy` in height (and, with
+  // `alike`, in the same kind of place as this one: in a tunnel, or out of one).
   function partner(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece, x: number, z: number, y: number,
-    run: [number, number], reach: number, dy: number, minDy = 0): Partner | null {
+    run: [number, number], reach: number, dy: number, minDy = 0, alike = false): Partner | null {
     const key = serviceKey(self.id);
     let best: Partner | null = null;
     const seen = new Set<Seg>();
@@ -263,6 +264,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
           const q = sg.piece;
           const dirQ = oneWay(q.id);
           if (q.id === self.id || !dirQ || serviceKey(q.id) !== key) continue;
+          if (alike && (q.structure === 'tunnel') !== (self.structure === 'tunnel')) continue;
           const { v, s } = disc.get(q.id)!;
           const [ax, az] = pos(v[sg.k]), [bx, bz] = pos(v[sg.k + 1]);
           const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
@@ -280,14 +282,14 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   }
   // ... and only if that track's nearest is this one again
   function mutualPartner(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece, s: number, x: number, z: number, y: number,
-    reach: number, dy: number, minDy = 0) {
+    reach: number, dy: number, minDy = 0, alike = false) {
     const dir = oneWay(self.id);
     if (!dir) return null;
     const [tx, tz] = tangent(self, s);
-    const b = partner(grid, pos, self, x, z, y, [tx * dir, tz * dir], reach, dy, minDy);
+    const b = partner(grid, pos, self, x, z, y, [tx * dir, tz * dir], reach, dy, minDy, alike);
     if (!b) return null;
     const [ux, uz] = tangent(b.piece, b.s), dirB = oneWay(b.piece.id);
-    const back = partner(grid, pos, b.piece, b.x, b.z, b.y, [ux * dirB, uz * dirB], reach, dy, minDy);
+    const back = partner(grid, pos, b.piece, b.x, b.z, b.y, [ux * dirB, uz * dirB], reach, dy, minDy, alike);
     if (!back || Math.hypot(back.x - x, back.z - z) > 3) return null;
     return b;
   }
@@ -665,7 +667,10 @@ for (const p of pieces) {
   out[p.id] = piece;
 }
 
-// the other track, where they share a structure
+// The other track, where they share a structure: only a track in the same kind of place, in a
+// tunnel or out of one. At a mouth each track's tunnel piece meets its open piece at one point,
+// and the other track's two pieces are both as near; whichever came first would decide whether the
+// track shares its tunnel there, and one half of the mouth would be a single track's.
 const shareStats = { shared: 0, total: 0 };
 // The game takes each point's sharing from halfway to the point before to halfway to the next, so
 // a point counts as at a platform where that stretch reaches it: an island platform's two tracks
@@ -678,14 +683,13 @@ for (const p of pieces) {
   v.forEach((_, k) => {
     const x = g.x[k], z = g.z[k], y = g.y[k];
     const here = platformNear(p.id, g.s[k], k ? (g.s[k] - g.s[k - 1]) / 2 : 0, k + 1 < g.s.length ? (g.s[k + 1] - g.s[k]) / 2 : 0);
-    let b = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, SHARE_REACH, SHARE_DY);
+    let b = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, SHARE_REACH, SHARE_DY, 0, true);
     // across an island platform they share (OpenStreetMap may end it a few metres apart on the
     // two tracks)
     if (!b && here) {
-      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, SHARE_DY);
+      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, SHARE_DY, 0, true);
       if (c && platformNear(c.piece.id, c.s, STEP, STEP)?.osm === here.osm) b = c;
     }
-    if (b && (b.piece.structure === 'tunnel') !== (p.structure === 'tunnel')) b = null;
     // (not across another line's track)
     if (b && lineBetween(alignedGrid, pos, p, x, z, b.x, b.z, y)) b = null;
     shareStats.total += STEP;
@@ -697,7 +701,8 @@ for (const p of pieces) {
     g.pairDy.push(b.dy);
   });
 }
-// tracks that share a structure share its kind: the shallower one's
+// tracks that share a structure share its kind: the shallower one's (the other track's point in
+// the same kind of place: at a mouth, a tunnel's kind isn't carried out to the open track's end)
 const rank: StructureKind[] = ['grade', 'embankment', 'cutting', 'rock', 'box', 'bridge'];
 for (let round = 0; round < 2; round++) {
   for (const p of pieces) {
@@ -706,7 +711,7 @@ for (let round = 0; round < 2; round++) {
       if (!g.pair[k]) return;
       const [tx, tz] = tangent(p, g.s[k]);
       const bx = g.x[k] - tz * g.pair[k], bz = g.z[k] + tx * g.pair[k];
-      const other = nearestPoint(bx, bz, p.id);
+      const other = nearestPoint(bx, bz, p);
       if (!other) return;
       const ok = out[other.piece].kind[other.k];
       const pick = rank.indexOf(STRUCTURE_KINDS[ok]) > rank.indexOf(STRUCTURE_KINDS[kind]) ? ok : kind;
@@ -715,10 +720,10 @@ for (let round = 0; round < 2; round++) {
     });
   }
 }
-function nearestPoint(x: number, z: number, not: number) {
+function nearestPoint(x: number, z: number, self: TrackPiece) {
   let best: { piece: number; k: number } | null = null, bestD = 2.5;
   for (const sg of alignedGrid.get(`${Math.floor(x / CELL)},${Math.floor(z / CELL)}`) ?? []) {
-    if (sg.piece.id === not) continue;
+    if (sg.piece.id === self.id || (sg.piece.structure === 'tunnel') !== (self.structure === 'tunnel')) continue;
     const g = out[sg.piece.id];
     for (const k of [sg.k, sg.k + 1]) {
       const d = Math.hypot(g.x[k] - x, g.z[k] - z);

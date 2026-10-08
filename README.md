@@ -305,8 +305,8 @@ model there follows the roof. It then checks the
 result against the 1975 limits: 40‰, 10‰ along platforms, and vertical curves of at least 2,000 m
 on the red line, 1,500 m on the green and 4,000 m on the blue. It fails on anything outside them,
 and says where. Bridges get no anchor; where the corrections say a street passes under one
-(Kistaviadukten, and the bridge at Kymlinge), its rail is held a clearance above the ground, and
-where they give the rail's height (`rail`), it is anchored there like a platform.
+(Kistaviadukten, and the bridges at Kymlinge and Hjorthagen), its rail is held a clearance above
+the ground, and where they give the rail's height (`rail`), it is anchored there like a platform.
 
 `data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
 
@@ -324,6 +324,9 @@ where they give the rail's height (`rail`), it is anchored there like a platform
 - At Gullmarsplan the tracks south of the platforms are in a box under the bus terminal's deck.
 - Kista's platform is on a viaduct, above Wikidata's height, and the viaduct and the bridge at
   Kymlinge are held over the streets and the valley under them.
+- At Hjorthagen, between Gärdet and Ropsten, the line crosses Tegeluddsvägen, Lidingövägen and
+  the ramps of Norra länken on a bridge, held over them; the abutment at its north end stands on
+  the hillside, so the track from it to the tunnel keeps its ground.
 
 The heights at Gamla stan, under the water and on the bridge to Slussen were read off a textured 3D
 model of the city from Google Earth, downloaded locally (it is not in the repository). Its heights
