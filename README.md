@@ -378,6 +378,11 @@ keeps its 1952 look: track walls and two rows of columns in square tiles of seve
 blue-green with small navy name plates, clinker on the floor, a flat roof with the lamps in a
 soffit over each track, the old name Kungsgatan between two 1950s posters (redrawn) on each
 track wall, and Gun Gordillo's 103 lines of white neon (1998) hung under the ceiling.
+Karlaplan (1967) has one smooth pale vault over both tracks with a row of lamps along its crown,
+white enamel panels over a black plinth on the track walls, dark granite on the floor, tiled
+blocks down the middle of the platform with the name and the ways out along their tops and Tor
+Hörlin's green stoneware seating niches in their sides, and Larseric Vänerlöf's black-and-white
+photomontage of old Östermalm (redrawn) along one track wall.
 Östermalmstorg's two halls, one for each track, have walls of light, pitted concrete under a
 smooth white vault, a row of lamps over the platform's edge, white name signs on the wall behind
 the platform, and dark terrazzo floors with a band of pale tiles along the edge; on the track

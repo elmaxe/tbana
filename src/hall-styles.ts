@@ -1,11 +1,15 @@
 import type { CavePaint } from './textures';
 
 // Platform halls the network draws (src/network.ts) in their own style rather than as a plain
-// vault in rock: for now Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998),
-// and Östermalmstorg, with Siri Derkert's lines in its concrete walls (1965).
+// vault in rock: Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998);
+// Karlaplan, as it has looked since 1967, with Tor Hörlin's niches and Larseric Vänerlöf's
+// photomontage; and Östermalmstorg, with Siri Derkert's lines in its concrete walls (1965).
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
-export interface HallStyle {
+export type HallStyle = FlatHall | VaultHall;
+
+export interface FlatHall {
+  kind: 'flat';
   // a flat roof: low over the track (the soffit, with the lamps in it), stepping up between the
   // two rows of columns to the ceiling
   soffit: number;
@@ -24,14 +28,46 @@ export interface HallStyle {
   neon: { count: number; tones: number[]; reach: number; below: [number, number] };
 }
 
+export interface VaultHall {
+  kind: 'vault';
+  // one smooth vault over both tracks: the track walls straight up to `spring`, the vault's
+  // crown `crown` high over the middle of the platform, a row of lamps along it
+  spring: number;
+  crown: number;
+  // the track walls: enamel panels from `panelsFrom` (black below, down to the track bed), with
+  // the station's name on one in every repeat, `nameAt` high (src/textures.ts)
+  panelsFrom: number;
+  nameAt: number;
+  // a frieze along one track wall (+1: the wall of the track with the other track to its right),
+  // centred on the platform: `length` long, from `from` to `to` high
+  frieze?: { wall: 1 | -1; length: number; from: number; to: number };
+  // tiled blocks down the middle of the platform, `width` across and `height` above it, about
+  // `length` long with `gap` between them, over the middle `spread` of the platform's length;
+  // on their sides, by turns, a seat in a niche and the station's name with the way to each of
+  // its `exits` (their ticket halls, in the scene's metres)
+  blocks: { width: number; height: number; length: number; gap: number; spread: number };
+  exits: { name: string; x: number; z: number }[];
+}
+
 // Hötorget: an island platform under Sveavägen, opened as Kungsgatan in 1952 (architect Gunnar
 // Lené) and kept as it was: the walls and columns in square tiles of seven shades of pale
 // blue-green, clinker on the floor, a flat roof with the lamps in a soffit along each track, and
 // small navy name plates along the track walls. Since the renovation of 2024–25 its old name,
 // Kungsgatan, is up on the walls again, between reproductions of two 1950s posters. Gun Gordillo
 // hung 103 lines of neon in five tones of white from its ceiling in 1998, at different heights.
+//
+// Karlaplan: an island platform in a cavern 23 m down under Fältöversten, opened in 1967. A
+// smooth, pale vault over both tracks, lit by one long row of lamps; the track walls clad in white
+// enamelled steel panels (2006) over a black plinth, with the station's name in small black
+// capitals; dark granite on the floor with a pale stone edge. Down the middle of the platform,
+// blocks in long, cream glazed tiles with dark joints between their bays, the name in navy
+// capitals along their tops with the ways out (Karlaplan to the south-west, Valhallavägen to the
+// north-east); in their sides Tor Hörlin's niches (1967), lined in green stoneware with a band of
+// coloured tiles over a yellow wooden bench. Along one track wall, Larseric Vänerlöf's
+// photomontage (1983, renewed 2009) of old Östermalm in black and white, 96 m long.
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
+    kind: 'flat',
     soffit: 3.9,
     ceiling: 4.6,
     step: 0.5,
@@ -40,6 +76,16 @@ export const HALL_STYLES: Record<string, HallStyle> = {
     plateAt: 2.25,
     posters: { name: 'KUNGSGATAN', at: 2.3, apart: 1.27 },
     neon: { count: 103, tones: [0xffffff, 0xf3f7ff, 0xfff4e2, 0xe6f2ff, 0xfffbe8], reach: 2.6, below: [0.12, 0.75] },
+  },
+  'Karlaplan': {
+    kind: 'vault',
+    spring: 4.5,
+    crown: 7.2,
+    panelsFrom: 1.1,
+    nameAt: 3.85,
+    frieze: { wall: 1, length: 96, from: 2.2, to: 3.4 },
+    blocks: { width: 3.2, height: 3.3, length: 11, gap: 6, spread: 0.62 },
+    exits: [{ name: 'KARLAPLAN', x: 1790, z: -765 }, { name: 'VALHALLAVÄGEN', x: 1950, z: -1010 }],
   },
 };
 
