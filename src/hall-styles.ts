@@ -110,15 +110,62 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
 };
 
-// The blue line's stations (1975–85), where the rock was left as it was blasted, sprayed with
-// concrete and painted: a cave, each painted as an artist chose. The halls keep their outlines,
+// The blue line's stations (1975–85), and before them Stadion on the red line (1973), where the
+// rock was left as it was blasted, sprayed with concrete and painted: a cave, each painted as an
+// artist chose. The halls keep their outlines,
 // roughened (src/network.ts); `paint` says how the rock is painted (src/textures.ts).
 export interface CaveStyle {
   paint: CavePaint;
+  // an island platform with the rock left standing down its middle (Stadion's)
+  island?: CaveIsland;
+}
+
+// Heights here are above the top of the rail, as for the styled halls above.
+export interface CaveIsland {
+  // two long pillars of rock down the middle of the platform, `width` across, a passage `gap`
+  // long between them, and `ends` m of open platform beyond them; their rock painted as `paint`
+  // says, and towards their outer ends, over `fenced` of their length, as `fencedPaint` says,
+  // behind fences of steel mesh with benches; a tiled plinth round their foot, `plinth` high
+  pillars: { width: number; gap: number; ends: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
+  // the passage's openings to the platform each side: arches `inset` in from the pillars' ends
+  // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them
+  portal: { inset: number; crown: number; thickness: number };
+  // a flat ceiling of steel mesh `ceiling` high over the tracks and the platform, but not over
+  // the passage, with fluorescent tubes across it
+  ceiling: number;
+  // the track walls: panels of steel mesh up to `panels`, and a white band over them with the
+  // station's name
+  panels: number;
 }
 // Round from the track's floor (src/textures.ts): the platform is at 1.6, the walls rise to
 // about 4.2, and the crown is at about 9 over a hall of one track, 16 over an island platform.
 export const CAVE_STYLES: Record<string, CaveStyle> = {
+  // Stadion (1973, Enno Hallek and Åke Pallarp), on the red line by the Olympic stadium of 1912:
+  // one of the first caves, painted sky blue so that it should not feel like the underworld. The
+  // rock is left standing in two long pillars down the island platform (Albert Guillaumes'
+  // drawing), sky blue with cracks traced in gold and dark blue, on a plinth of cream tiles that
+  // makes a bench round them; their outer ends dark green behind fences of green steel mesh.
+  // Between them a passage up into the cave, and over its openings to each side a rainbow. On the
+  // pillars, the poster of the 1912 games, a panel of flowers, coloured arrows to the ways out
+  // and the badges of sports clubs. A flat ceiling of black steel mesh hangs over the tracks and
+  // the platform, and the track walls, dark green rock, have green mesh panels along their foot.
+  'Stadion': {
+    paint: { seed: 73, bands: [{ from: 0, color: '#1f4643' }, { from: 2.4, color: '#2b5a55', edge: 'soft' }, { from: 13.5, color: '#7fb2dc', edge: 'soft' }],
+      motifs: [{ kind: 'dabs', colors: ['#23504c', '#376c66'], from: 2, to: 12, size: 0.6, count: 160 },
+        { kind: 'dabs', colors: ['#6aa0d0', '#a2cbec'], from: 13.5, to: 18, size: 0.6, count: 80 },
+        { kind: 'cracks', colors: ['#d8a838', '#2f5aa8'], from: 13.6, to: 18, count: 30 }] },
+    island: {
+      pillars: { width: 3.6, gap: 11, ends: 9, fenced: 0.35, plinth: 0.45,
+        paint: { seed: 731, bands: [{ from: 0, color: '#7eb3de' }],
+          motifs: [{ kind: 'dabs', colors: ['#5f97cc', '#a6cdee', '#8fbfe6'], from: 0, to: 18, size: 0.7, count: 260 },
+            { kind: 'cracks', colors: ['#d8a838', '#d8a838', '#2f5aa8'], from: 0, to: 18, count: 70 }] },
+        fencedPaint: { seed: 732, bands: [{ from: 0, color: '#2a5a56' }],
+          motifs: [{ kind: 'dabs', colors: ['#1f4643', '#3b726b'], from: 0, to: 18, size: 0.7, count: 220 }] } },
+      portal: { inset: 1.4, crown: 4.8, thickness: 0.45 },
+      ceiling: 4.4,
+      panels: 2.2,
+    },
+  },
   // Kungsträdgården (1977, Ulrik Samuelson): the garden and the palace Makalös that stood
   // above; the vault sprayed green, the walls' foot the bare grey-violet rock, and stripes of
   // red, white and green zigzagging along it
