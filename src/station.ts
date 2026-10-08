@@ -11,6 +11,8 @@ import type { GaugeSpec, LineId } from './lines';
 import * as T from './textures';
 import { prism } from './clip';
 import type { Volume } from './clip';
+import { BULB, TUBE, addLamps, stripLamps } from './lamps';
+import type { Lamp } from './lamps';
 
 // The source model is an extruded 2D drawing: floor slabs, stair ramps, escalator tubes,
 // lift shafts, ticket gates and tracks, each identified only by its colour. This module turns
@@ -311,6 +313,8 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
 
   const bedB = new Builder(), railGeoms: THREE.BufferGeometry[] = [], tunnelGeoms: THREE.BufferGeometry[] = [], caveGeoms: THREE.BufferGeometry[] = [], trackWallGeoms: THREE.BufferGeometry[] = [], lampB = new Builder(), tunnelLampB = new Builder();
   const signs: THREE.Group[] = [];
+  // the light of the platforms' rows of tubes and the tunnels' lamps underground (src/lamps.ts)
+  const lamps: Lamp[] = [];
   for (const tr of tracks) {
     const spec = TRAIN_SPECS[LINES[tr.line].kind];
     const [d0, d1] = tr.drawn ?? [0, tr.path.length];
@@ -343,6 +347,8 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
           const p = tr.path.pointAt(s), r = tr.path.rightAt(s);
           const q = p.clone().addScaledVector(r, -(W - 0.05)).setY(p.y + 2.2);
           boxInto(tunnelLampB, q, 0.12, 0.25, 0.12);
+          const t = tr.path.tangentAt(s).multiplyScalar(0.6);
+          lamps.push({ power: 2.5, reach: 9, color: BULB, down: 0.4, a: q.clone().sub(t), b: q.clone().add(t), floor: p.y - 1.5, top: p.y + 5.5 });
         }
       }
       // Rock / tiled wall behind the track, curving over towards the platform.
@@ -363,7 +369,9 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
           signs.push(...tcPlates(tr, far + k * 0.03, tc.plate[hall]));
         }
       } else if (farClear) (blue ? caveGeoms : trackWallGeoms).push(sweep(run, wallProf, { uScale: blue ? 0.2 : 0.5, vScale: blue ? 0.2 : 0.5, swapUV: true }));
-      addPlatformFurniture(tr, spec, lampB, signs, !!hall);
+      const row = addPlatformFurniture(tr, spec, lampB, signs, !!hall);
+      const ys = row.map((q) => q.y);
+      stripLamps(row, { power: 1.6, reach: 16, color: TUBE, down: 1, floor: Math.min(...ys) - 5, top: Math.max(...ys) + 5 }, lamps);
     }
   }
   if (!bedB.empty) addMesh(bedB, mats.bed);
@@ -404,6 +412,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
 
   // ---------------------------------------------------------------- 5. lifts
   const lifts = buildLifts(elevators, walk, hits);
+  addLamps(group, [...lamps, ...concourseLamps(records, walk, hits)]);
 
   // ---------------------------------------------------------------- 6. labels, spawn, teleports
   const LABEL: Record<LineId, string> = { blue: 'Blue line', red: 'Red line', green: 'Green line', pink: 'Pendeltåg', main: 'Stockholm C', tram: 'Tram 7' };
@@ -456,6 +465,37 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
   const bounds = (areas.find((a) => a.name === HOME_STATION) ?? areas[0]).bounds;
 
   return { group, mapGroup, walk, trackIdx, tracks, lifts, teleports, spawn, bounds, areas, records };
+}
+
+// Light over the models' concourses: rows of tubes 3 m over each floor, 8 m apart down its longer
+// side, wherever the floor is under them (the drawings have no ceilings to hang them from, so they
+// aren't drawn). T-Centralen's levels over its street level are out in the open.
+function concourseLamps(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
+  const SPACING = 8, STEP = 2, HEIGHT = 3;
+  const lamps: Lamp[] = [];
+  for (const rec of records) {
+    if (rec.kind !== 'floor' || rec.platformLines || (rec.station === HOME_STATION && rec.box.max.y > 3.5)) continue;
+    const { min, max } = rec.box;
+    const alongX = rec.size.x >= rec.size.z;
+    const [a0, a1, c0, c1] = alongX ? [min.x, max.x, min.z, max.z] : [min.z, max.z, min.x, max.x];
+    const rows = Math.max(1, Math.round((c1 - c0) / SPACING));
+    for (let r = 0; r < rows; r++) {
+      const c = c0 + ((c1 - c0) * (r + 0.5)) / rows;
+      let row: THREE.Vector3[] = [];
+      const end = () => {
+        if (row.length > 1) stripLamps(row, { power: 1.4, reach: 12, color: TUBE, down: 1, floor: row[0].y - HEIGHT - 0.3, top: row[0].y + 0.3 }, lamps);
+        row = [];
+      };
+      for (let a = a0 + STEP / 2; a < a1; a += STEP) {
+        const [x, z] = alongX ? [a, c] : [c, a];
+        const on = walk.query(x, z, hits).find((h) => h.data.rec === rec);
+        if (!on || (row.length && Math.abs(on.y + HEIGHT - row[0].y) > 0.1)) end();
+        if (on) row.push(new THREE.Vector3(x, on.y + HEIGHT, z));
+      }
+      end();
+    }
+  }
+  return lamps;
 }
 
 // The spaces of a model's floors, stairs, escalators and lifts, to be cut out of the city's ground
@@ -581,6 +621,7 @@ function neighbourBeyond(
   return found > total * 0.25;
 }
 
+// Lamps and signs along a platform; returns the line of lamps.
 function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs: THREE.Group[], plates = false) {
   const L = LINES[tr.line];
   const { s0, s1, side } = tr.platform!;
@@ -588,9 +629,11 @@ function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs:
   const p = new THREE.Vector3(), r = new THREE.Vector3(), t = new THREE.Vector3();
 
   // Fluorescent light strip above the platform edge.
+  const row: THREE.Vector3[] = [];
   for (let s = s0 + 3; s < s1 - 3; s += 3.2) {
     tr.path.pointAt(s, p); tr.path.rightAt(s, r);
     const c = p.clone().addScaledVector(r, edgeOff + side * 2.4).setY(p.y + 3.45);
+    row.push(c);
     tr.path.tangentAt(s, t);
     const ang = Math.atan2(t.x, t.z);
     // oriented box approximated by a rotated thin quad pair
@@ -617,7 +660,7 @@ function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs:
     signs.push(m);
   }
 
-  if (!L.dest) return;
+  if (!L.dest) return row;
   // Departure board (texture updated by the train system).
   const can = document.createElement('canvas');
   can.width = 512; can.height = 128;
@@ -635,6 +678,7 @@ function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs:
   board.lookAt(board.position.clone().addScaledVector(t, 1));
   signs.push(board);
   tr.board = { canvas: can, texture: btex, text: '' };
+  return row;
 }
 
 // Builds walls, glass railings and yellow safety lines along the outline of every walkable slab.

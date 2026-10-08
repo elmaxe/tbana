@@ -11,6 +11,8 @@ import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
 import type { CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
+import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
+import type { Lamp } from './lamps';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -27,6 +29,11 @@ const OVERLAP = 0.15;    // the halves of a shared tunnel or deck overlap by thi
 const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track (without a city)
 const SKIRT = 3;         // with a city: a bank's slope goes on this far below the ground
 const POINT_CELL = 20;
+// The light of the lamps (src/lamps.ts): the platforms' rows of tubes and the depot halls' lamps,
+// per metre of row, and a tunnel's lamps, each; how far each lights.
+const PLATFORM_LIGHT = { power: 1.7, reach: 16 };
+const HALL_LIGHT = { power: 1.2, reach: 14 };
+const TUNNEL_LAMP = { power: 2.5, reach: 9 };
 
 type UV = [number, number];
 
@@ -373,6 +380,7 @@ export class Network {
       if (t.group && d > UNLOAD) {
         this.group.remove(t.group);
         t.group.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+        removeLamps(t.group);
         t.group = null;
       } else if (!t.group && d < LOAD + TILE * 0.71) want.push({ t, d });
     }
@@ -399,7 +407,9 @@ export class Network {
     const b = Object.fromEntries(Object.keys(this.mats).map((k) => [k, new MeshBuilder()])) as Record<MaterialName, MeshBuilder>;
     const group = new THREE.Group();
     group.name = `tile ${tile.key}`;
-    for (const run of tile.runs) this.buildRun(run, b, group);
+    const lamps: Lamp[] = [];
+    for (const run of tile.runs) this.buildRun(run, b, group, lamps);
+    addLamps(group, lamps);
     // the holes reaching into the tile (its runs reach a little beyond it)
     const m = 60, x0 = tile.cx - TILE / 2 - m, x1 = tile.cx + TILE / 2 + m, z0 = tile.cz - TILE / 2 - m, z1 = tile.cz + TILE / 2 + m;
     const near = (h: Volume) => h.max[0] > x0 && h.min[0] < x1 && h.max[2] > z0 && h.min[2] < z1;
@@ -410,7 +420,7 @@ export class Network {
     return group;
   }
 
-  private buildRun({ samples, i0, i1 }: Run, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+  private buildRun({ samples, i0, i1 }: Run, b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
     const run = samples.slice(i0, i1 + 1);
     // the track itself
     // (track no service runs on a little lower, where its ballast meets another track's at a turnout)
@@ -517,11 +527,11 @@ export class Network {
       }, { uScale: 0.25, vScale: 0.25 });
     }
     this.openStructure(run, b);
-    this.platforms(run, b, group);
+    this.platforms(run, b, group, lamps);
     this.columns(samples, run, b);
     this.posters(samples, run, group);
     this.blocks(samples, run, b, group);
-    this.lights(run, b);
+    this.lights(run, b, lamps);
     this.ends(samples, i0, i1, b);
   }
 
@@ -589,7 +599,7 @@ export class Network {
     }
   }
 
-  private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+  private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
     const H = S.PLATFORM_HEIGHT;
     for (const [mb, kind] of [[b.platform, null], [b.hallFloor, 'flat'], [b.kpFloor, 'vault']] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
@@ -629,10 +639,13 @@ export class Network {
       const u0 = p.side * (S.PLATFORM_EDGE + 0.3), u1 = p.side * (S.PLATFORM_EDGE + 0.42);
       return { key: `y${p.side}`, pts: p.side > 0 ? [[u0, H + 0.004], [u1, H + 0.004]] : [[u1, H + 0.004], [u0, H + 0.004]] };
     });
-    // station name signs on the wall across the track, and lights over the platform edge
+    // station name signs on the wall across the track, and lights over the platform edge, which
+    // light the station where it is underground
     let lastSign = -Infinity;
+    const row = new LampRow(lamps, PLATFORM_LIGHT, TUBE, 1);
     for (const sm of run) {
       const p = sm.plat;
+      if (!p || (sm.kind !== 'rock' && sm.kind !== 'box')) row.end();
       if (!p) continue;
       const vs = vaultStyle(sm);
       if (vs && sm.along - lastSign >= vs.signEvery) {
@@ -657,13 +670,16 @@ export class Network {
           group.add(sign);
         }
       }
+      // the light of its row of lamps, wherever the hall has them
+      let light = at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6);
       // (in a vaulted hall, a nearly unbroken row along its crown)
       if (hallStyle(sm)?.kind === 'vault') {
+        light = at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06);
         if (sm.pair > 0) box(b.lamp, at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06), sm, 0.26, 0.08, STEP - 0.35);
       } else if (Math.round(sm.along / STEP) % 2 === 0) {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
-        if (st?.kind === 'flat') box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
+        if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
         else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       if (caveStyle(sm)) {
@@ -672,7 +688,7 @@ export class Network {
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.7);
         const roof = S.archHeight(a, c, S.HALL.spring, (c - a) * S.HALL.risePerWidth, u), v = Math.min(roof - CAVE_ROUGH - 0.4, H + 3.2);
         box(b.fitting, at(sm, u, v + 0.04), sm, 0.3, 0.08, 2.2);
-        box(b.lamp, at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
+        box(b.lamp, light = at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
         box(b.fitting, at(sm, u, (v + roof) / 2), sm, 0.03, roof - v, 0.03);
       }
       if (vs) {
@@ -681,10 +697,13 @@ export class Network {
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.6);
         const v = S.archHeight(a, c, vs.spring, (c - a) * vs.risePerWidth, u) - 0.3;
         box(b.fitting, at(sm, u, v + 0.04), sm, 0.34, 0.08, 2.2);
-        box(b.lamp, at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
+        box(b.lamp, light = at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
         box(b.fitting, at(sm, u, v + 0.2), sm, 0.04, 0.24, 0.04);
       }
+      // (a vaulted hall's one row is the right-hand track's)
+      if ((sm.kind === 'rock' || sm.kind === 'box') && !(hallStyle(sm)?.kind === 'vault' && sm.pair < 0)) row.add(sm, light, p);
     }
+    row.end();
   }
 
   // A styled hall's posters on this track's wall, either side of a plate with the station's old
@@ -842,14 +861,17 @@ export class Network {
 
   // Lamps on the tunnel walls: on the outer wall of each track of a double-track tunnel every
   // 20 m, so every 10 m on alternate walls; every 7 m on one wall of a single-track tunnel.
-  private lights(run: Sample[], b: Record<MaterialName, MeshBuilder>) {
+  private lights(run: Sample[], b: Record<MaterialName, MeshBuilder>, lamps: Lamp[]) {
     let next = -Infinity;
+    const row = new LampRow(lamps, HALL_LIGHT, TUBE, 1);
     for (const sm of run) {
+      if (!inHall(sm) || bare(sm)) row.end();
       if ((sm.kind !== 'rock' && sm.kind !== 'box') || sm.plat || sm.along < next || bare(sm)) continue;
       if (inHall(sm)) {
         // a row of lamps under a depot hall's roof, over each track
         next = sm.along + S.DEPOT_HALL.lights;
         box(b.lamp, at(sm, 0, S.DEPOT_HALL.height - 0.05), sm, 0.3, 0.08, 1.4);
+        row.add(sm, at(sm, 0, S.DEPOT_HALL.height - 0.05), 'hall');
         continue;
       }
       const single = !sm.pair;
@@ -861,8 +883,12 @@ export class Network {
       if (continues(sm, side)) side = -side;
       if (continues(sm, side)) continue;
       const wall = side > 0 ? span[1] : span[0];
-      box(b.lamp, at(sm, wall - side * 0.08, S.TUNNEL_LIGHT.height + (sm.pairDy || 0) / 2), sm, 0.1, 0.14, 1.2);
+      const c = at(sm, wall - side * 0.08, S.TUNNEL_LIGHT.height + (sm.pairDy || 0) / 2);
+      box(b.lamp, c, sm, 0.1, 0.14, 1.2);
+      const along = new THREE.Vector3(sm.rz, 0, -sm.rx).multiplyScalar(0.6);
+      lamps.push({ ...TUNNEL_LAMP, color: BULB, down: 0.4, ...space(sm), a: c.clone().sub(along), b: c.clone().add(along) });
     }
+    row.end();
   }
 
   // Where a tunnel opens into the open air or into a station the model draws, a concrete portal
@@ -933,6 +959,38 @@ export class Network {
         }
       } else if (tunnel(p) !== tunnel(q) && !bare(p) && !bare(q)) portal(tunnel(p) ? p : q);
     }
+  }
+}
+
+// ------------------------------------------------------------------ lamps
+// The space a lamp in the structure at a sample lights: from the floor to the roof.
+function space(sm: Sample) {
+  const shell = shellOutline(sm);
+  return { floor: sm.y + S.FLOOR - 0.3, top: sm.y + (shell ? Math.max(...shell.pts.map((p) => p[1])) : S.DEPOT_HALL.height) + 0.3 };
+}
+
+// A row of lamps along the track as strips of light (src/lamps.ts): the points of one row, until
+// it ends or another begins.
+class LampRow {
+  private pts: THREE.Vector3[] = [];
+  private floor = Infinity;
+  private top = -Infinity;
+  private of: unknown = null;
+  constructor(private lamps: Lamp[], private light: { power: number; reach: number }, private color: THREE.Color, private down: number) {}
+  add(sm: Sample, p: THREE.Vector3, of: unknown) {
+    if (of !== this.of) this.end();
+    this.of = of;
+    this.pts.push(p);
+    const { floor, top } = space(sm);
+    this.floor = Math.min(this.floor, floor);
+    this.top = Math.max(this.top, top);
+  }
+  end() {
+    if (this.pts.length) stripLamps(this.pts, { ...this.light, color: this.color, down: this.down, floor: this.floor, top: this.top }, this.lamps);
+    this.pts = [];
+    this.floor = Infinity;
+    this.top = -Infinity;
+    this.of = null;
   }
 }
 

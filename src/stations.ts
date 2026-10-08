@@ -8,6 +8,8 @@ import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, Sig
 import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
+import { TUBE, addLamps, removeLamps } from './lamps';
+import type { Lamp } from './lamps';
 
 // The metro's stations on the network, built from public/data/station-layouts.json (see
 // src/station-layout.ts and tools/build-stations.ts): their passages, halls, stairs, escalators
@@ -25,6 +27,9 @@ const PROBE = 0.15;   // how far beyond a floor's edge to look for the next floo
 const STEP = 0.65;    // a floor within this height there can be stepped onto
 const PIECE = 0.5;    // walls are found in pieces this long
 const PARAPET = 1.1;  // walls around stairs coming up into the street stand this high
+// the light of a row of lamps down a room's ceiling, per metre (see src/lamps.ts), and how far it
+// lights
+const ROOM_LIGHT = { power: 1.4, reach: 14 };
 
 export interface StationFloorData {
   kind: 'station';
@@ -107,6 +112,8 @@ export class Stations {
   private signs = new Map<string, THREE.Texture>();
   private _hits: SurfaceHit<StationFloorData>[] = [];
   private _plat: SurfaceHit<PlatformFloorData>[] = [];
+  // the lamps of the station being built
+  private lamps: Lamp[] = [];
 
   // The volumes the network cuts out of what it draws: the stations' open spaces (`holes`), and,
   // from the platforms' floors, the solid undersides of the stairs (`solids`).
@@ -234,6 +241,7 @@ export class Stations {
       if (g && d > UNLOAD) {
         this.group.remove(g);
         g.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+        removeLamps(g);
         this.built.delete(st.name);
       } else if (!g && d < LOAD) {
         const ng = this.build(st);
@@ -248,6 +256,7 @@ export class Stations {
     const m = Object.fromEntries(Object.keys(this.mats).map((k) => [k, new Mesh()])) as Meshes;
     const group = new THREE.Group();
     group.name = st.name;
+    this.lamps = [];
     const spaces: Space[] = [];
     const voids: Volume[] = [];
     for (const p of st.parts) {
@@ -274,6 +283,7 @@ export class Stations {
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));
     }
+    addLamps(group, this.lamps);
     return group;
   }
 
@@ -294,9 +304,17 @@ export class Stations {
     this.lampRow(m, s0, s1, p.ceiling - 0.04, cut);
   }
 
-  private lampRow(m: Meshes, a: XYZ, b: XYZ, above: number, cut: Volume[]) {
+  // A row of lamps `above` the line from a to b; indoors (`lights`), they light the room under them.
+  private lampRow(m: Meshes, a: XYZ, b: XYZ, above: number, cut: Volume[], lights = true) {
     const l = Math.hypot(b[0] - a[0], b[2] - a[2]);
     if (l < 1) return;
+    if (lights) {
+      this.lamps.push({
+        ...ROOM_LIGHT, color: TUBE, down: 1,
+        a: new THREE.Vector3(a[0], a[1] + above, a[2]), b: new THREE.Vector3(b[0], b[1] + above, b[2]),
+        floor: Math.min(a[1], b[1]) - 0.3, top: Math.max(a[1], b[1]) + above + 0.3,
+      });
+    }
     const fx = (b[0] - a[0]) / l, fz = (b[2] - a[2]) / l;
     const n = Math.max(1, Math.floor(l / 4));
     for (let i = 0; i < n; i++) {
@@ -559,7 +577,7 @@ export class Stations {
       for (const dy of [0, 0.25]) {
         m.canopy.poly([[a[0] - rx, a[1] + dy, a[2] - rz, 0, 0], [a[0] + rx, a[1] + dy, a[2] + rz, 1, 0], [b[0] + rx, b[1] + dy, b[2] + rz, 1, 1], [b[0] - rx, b[1] + dy, b[2] - rz, 0, 1]], cut);
       }
-      this.lampRow(m, [a[0], a[1], a[2]], [b[0], b[1], b[2]], -0.04, cut);
+      this.lampRow(m, [a[0], a[1], a[2]], [b[0], b[1], b[2]], -0.04, cut, false);
       if (i % 2 === 0) box(m.canopy, [a[0], a[1] - 1.6, a[2]], (b[0] - a[0]) / l, (b[2] - a[2]) / l, 0.25, 3.2, 0.25, cut);
     }
   }

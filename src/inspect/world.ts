@@ -8,6 +8,7 @@ import type { StationPlacement } from '../station-models';
 import type { Station } from '../station';
 import { Trains } from '../trains';
 import { setOutsideLight } from '../rolling-stock/index';
+import { DAYLIGHT, lightWithLamps, setDaylight, updateLamps } from '../lamps';
 import { Network } from '../network';
 import { StationJoin } from '../station-join';
 import { Stations } from '../stations';
@@ -40,7 +41,9 @@ export class World {
 
   private trainGroup = new THREE.Group();
   private ambient = new THREE.AmbientLight(0xffffff, 0);
-  private headLight = new THREE.PointLight(0xfff1dc, 9, 26, 1.5);
+  private sky = new THREE.HemisphereLight(0xf2f5ff, 0x4a4540, DAYLIGHT.sky);
+  private sun = new THREE.DirectionalLight(0xffffff, DAYLIGHT.sun);
+  private headLight = new THREE.PointLight(0xfff1dc, DAYLIGHT.head, 26, 1.5);
   private background = new THREE.Color();
   private fog = new THREE.FogExp2(DARK, 0.0105);
   private cutPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
@@ -54,11 +57,10 @@ export class World {
     this.renderer.toneMappingExposure = 1.1;
     const { scene } = this;
     scene.background = this.background;
-    scene.add(new THREE.HemisphereLight(0xf2f5ff, 0x4a4540, 1.7));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.9);
-    sun.position.set(0.35, 1, 0.25);
-    scene.add(sun, this.ambient, this.headLight, this.trainGroup);
+    this.sun.position.set(0.35, 1, 0.25);
+    scene.add(this.sky, this.sun, this.ambient, this.headLight, this.trainGroup);
     setOutsideLight({ direct: 0, ambient: 0.15 });
+    lightWithLamps(12);
     this.camera.rotation.order = 'YXZ';
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
@@ -92,7 +94,6 @@ export class World {
     Object.assign(this.options, o);
     if (this.city) this.city.group.visible = this.options.city;
     this.trainGroup.visible = this.options.trains;
-    this.ambient.intensity = this.options.bright ? 1.6 : 0;
     if (o.wire !== undefined) this.applyWire();
   }
 
@@ -123,6 +124,7 @@ export class World {
     this.stations?.update(pos);
     if (this.options.city) this.city?.update(pos);
     this.headLight.position.copy(pos);
+    updateLamps(pos);
     // the sky out in the open, the dark underground; with the game's fog, as the game has it
     const target = this.outdoorsAt(pos);
     this.outdoor += (target - this.outdoor) * Math.min(1, dt * 3);
@@ -158,6 +160,10 @@ export class World {
       v.camera.updateProjectionMatrix();
       r.clippingPlanes = v.cut === null || v.cut === undefined ? [] : [this.cutPlane.set(this.cutPlane.normal, v.cut)];
       this.scene.fog = v.outside ? null : fog;
+      // the camera's view lit as the game lights it; the views from outside in daylight, and with
+      // `bright` evenly
+      setDaylight(v.outside ? 1 : this.outdoor, this.sky, this.sun, this.headLight);
+      this.ambient.intensity = v.outside && this.options.bright ? 1.6 : 0;
       this.scene.background = !v.outside ? background : v.cut === null || v.cut === undefined ? CLEAR_SKY : SECTION;
       r.render(this.scene, v.camera);
     }

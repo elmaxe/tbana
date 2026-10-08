@@ -6,6 +6,7 @@ import type { StationPlacement } from './station-models';
 import { Player } from './player';
 import { Trains } from './trains';
 import { setOutsideLight } from './rolling-stock/index';
+import { DAYLIGHT, lightWithLamps, setDaylight, updateLamps } from './lamps';
 import type { CarFloorData, Ride } from './trains';
 import { nextStation } from './service';
 import { MiniMap } from './minimap';
@@ -48,12 +49,17 @@ scene.background = background;
 scene.fog = fog;
 
 const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 1600);
-scene.add(new THREE.HemisphereLight(0xf2f5ff, 0x4a4540, 1.7));
-const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+// The sky's light, out in the open; underground, only a little of it (see updateAtmosphere), and
+// the stations and tunnels are lit by their lamps (src/lamps.ts): fewer of them on phones, and
+// without their highlights.
+const sky = new THREE.HemisphereLight(0xf2f5ff, 0x4a4540, DAYLIGHT.sky);
+scene.add(sky);
+const sun = new THREE.DirectionalLight(0xffffff, DAYLIGHT.sun);
 sun.position.set(0.35, 1, 0.25);
 scene.add(sun);
-const headLight = new THREE.PointLight(0xfff1dc, 9, 26, 1.5);
+const headLight = new THREE.PointLight(0xfff1dc, DAYLIGHT.head, 26, 1.5);
 scene.add(headLight);
+lightWithLamps(coarse ? 8 : 12, !coarse);
 // Inside the train cars: none of these lights cast shadows, so the sun and the head light would
 // shine through the roofs. The cars' own lights light them, with a little of the station's.
 setOutsideLight({ direct: 0, ambient: 0.15 });
@@ -585,18 +591,24 @@ const modelAt = (pos: THREE.Vector3) => game?.station.areas.find((a) => inBox(a.
 function updateAtmosphere(player: Player<Floor>, dt: number) {
   const { x, y, z } = player.pos;
   const station = THREE.MathUtils.smoothstep(y, 3.5, 5.8);
-  // the network's stations first: the station model's box reaches over some of them
-  // in T-Centralen's model, out above its street level; in the others, out only up at the city's ground
+  // in T-Centralen's model, out above its street level; in the others, out only up at the city's
+  // ground (or flying above it)
   const model = modelAt(player.pos);
-  const inModel = model ? (model.name === HOME_STATION ? station : game?.city?.outdoorsAt(x, y, z) ?? 0) : null;
-  const target = player.fly ? (game?.city ? 1 : 0.5) : game?.stations?.outdoorsAt(x, y, z)
-    ?? inModel ?? game?.network?.outdoorsAt(x, y, z) ?? game?.city?.outdoorsAt(x, y, z) ?? station;
+  const ground = game?.city?.heightAt(x, z) ?? null;
+  const inModel = model ? (model.name === HOME_STATION ? station : game?.city?.outdoorsAt(x, y, z) ?? (player.fly && ground !== null && y > ground ? 1 : 0)) : null;
+  // the network's stations first: the station model's box reaches over some of them
+  const inside = game?.stations?.outdoorsAt(x, y, z) ?? inModel ?? game?.network?.outdoorsAt(x, y, z);
+  // flying, out in the open anywhere but in a station or a tunnel: over the city, or in the rock
+  // round them
+  const target = player.fly ? inside ?? (game?.city ? 1 : 0.5) : inside ?? game?.city?.outdoorsAt(x, y, z) ?? station;
   outdoor += (target - outdoor) * Math.min(1, dt * 3);
   // flying over the city, the sky; without it, the dark the network hangs in
   background.copy(DARK).lerp(SKY, player.fly && !game?.city ? 0 : outdoor);
   fog.color.copy(background);
   // out in the open the city can be seen nearly as far as it is built
   fog.density = THREE.MathUtils.lerp(0.0105, game?.city ? 2.3 / CITY_REACH : 0.0035, outdoor);
+  // underground, the stations' and tunnels' lamps light them
+  setDaylight(outdoor, sky, sun, headLight);
 }
 
 // ------------------------------------------------------------------ loop
@@ -642,6 +654,7 @@ function simulate(dt: number) {
     game.network?.update(camera.position);
     game.stations?.update(camera.position);
     game.city?.update(camera.position);
+    updateLamps(camera.position);
     updateAtmosphere(player, dt);
   }
 }

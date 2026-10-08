@@ -535,6 +535,14 @@ The network cuts the same spaces out of its tunnels and platforms.
 To visit one, pick it from the lines' stations in the menu, or start there with
 `?at=Mariatorget`.
 
+Underground, the stations and tunnels are lit by their own lamps (`src/lamps.ts`): the rows of
+tubes over the platforms and down the halls' and passages' ceilings, and a lamp on the tunnel
+wall every 7–10 m. Only a little of the sky's light gets down there. Each lamp is a strip of light
+whose light is worked out for every pixel (the irradiance of a line light, with a highlight on
+shiny floors), lighting only the room it hangs in, out to a reach of 9–16 m; the 12 strips
+nearest the camera are lit (8 on phones, without the highlights), and the furthest of them fade
+out as others come nearer. There are no shadows.
+
 ### The city
 
 Everything within 1 km of the red, green and blue lines has its ground and buildings, so the city is there
