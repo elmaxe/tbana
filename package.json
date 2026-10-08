@@ -21,6 +21,7 @@
     "build-stations": "node tools/build-stations.ts",
     "fetch-terrain": "node tools/fetch-terrain.ts",
     "fetch-city": "node tools/fetch-city.ts",
+    "fetch-water": "node tools/fetch-water.ts",
     "build-city": "node tools/build-city.ts",
     "fetch-ortho": "node tools/fetch-ortho.ts",
     "fetch-laser": "node tools/fetch-laser.ts"

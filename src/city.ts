@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CELL_TRACK, CITY_TILE, WALL_STYLES, decodeTile, photoName, tileName } from './city-tile.ts';
-import type { Building, CityIndex, CityTile, PhotoIndex, WallStyle } from './city-tile.ts';
+import type { Building, CityIndex, CityTile, PhotoIndex, WallStyle, Water } from './city-tile.ts';
 import { cutIndexed, insideVolume, prism } from './clip.ts';
 import type { Volume } from './clip.ts';
 import type { SurfaceHit } from './surface-index';
@@ -13,6 +13,9 @@ import * as T from './textures';
 // Where a tile has an aerial photo (public/data/ortho/, see tools/fetch-ortho.ts), it is laid on
 // the ground, with a fine grain over it for up close, and on the roofs from above. Without one, the
 // ground is grass or paving by how built up it is, and the roofs are plain.
+//
+// The lakes and the sea are drawn blue at their levels over the ground, out to where it rises out
+// of them on their shores.
 //
 // The ground can be walked on, except beside open track and inside buildings, and the stations'
 // stairs and halls are cut out of it where they come up through it. The depots' halls (sheds) are
@@ -54,6 +57,8 @@ const WALLS: Record<WallStyle, number[]> = {
 };
 const ROOFS = [0x3b3c3e, 0x46484b, 0x2f3134, 0x5b3a2e, 0x7a4636, 0x4f7a68, 0x55585c];
 const CEILING = new THREE.Color(0xc4c2bc);
+const WATER = 0x2d5a78;
+const WATER_OVER = 0.05; // the water's surface this far over the flattened ground at its level
 const GRASS = new THREE.Color(0x5c6b40), PAVED = new THREE.Color(0x8a8781), BALLAST = new THREE.Color(0x6e6559);
 // the ground texture's average (linear), which its grain over a photo is taken relative to
 const GRAIN_MEAN = 0.67, GRAIN = 0.55;
@@ -86,6 +91,8 @@ function materials() {
       plain: new THREE.MeshStandardMaterial({ map: T.facadePlain(), vertexColors: true, roughness: 0.8 }),
     } satisfies Record<WallStyle, THREE.Material>,
     roofs: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }),
+    // over the ground on the shore, which is level with it in the distance
+    water: new THREE.MeshStandardMaterial({ color: WATER, roughness: 0.3, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }),
   };
 }
 
@@ -380,6 +387,8 @@ export class City {
     group.name = `city ${t.i},${t.j}`;
     const d = t.data!;
     if (d.ground) group.add(new THREE.Mesh(this.groundGeometry(t), t.photo?.ground ?? this.mats.ground));
+    const water = d.ground && d.water ? waterGeometry(t, d.ground.step, d.ground.n - 1, d.water) : null;
+    if (water) group.add(new THREE.Mesh(water, this.mats.water));
     const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null);
     const meshes: [THREE.BufferGeometry | null, THREE.Material][] = [
       ...WALL_STYLES.map((st) => [walls[st], this.mats.walls[st]] as [THREE.BufferGeometry | null, THREE.Material]),
@@ -490,6 +499,32 @@ export class City {
     out.computeBoundingSphere();
     return out;
   }
+}
+
+// ------------------------------------------------------------------ water
+// The water's surface over its cells: a quad for each run of them along a row at one level.
+function waterGeometry(t: Tile, step: number, m: number, water: Water) {
+  const pos: number[] = [], idx: number[] = [];
+  for (let r = 0; r < m; r++) {
+    for (let c = 0; c < m;) {
+      const w = water.cells[r * m + c];
+      if (!w) { c++; continue; }
+      let e = c + 1;
+      while (e < m && water.cells[r * m + e] === w) e++;
+      const y = water.levels[w - 1] + WATER_OVER, x0 = t.x0 + c * step, x1 = t.x0 + e * step, z0 = t.z0 + r * step, z1 = z0 + step;
+      const v = pos.length / 3;
+      pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
+      idx.push(v, v + 3, v + 2, v, v + 2, v + 1);
+      c = e;
+    }
+  }
+  if (!idx.length) return null;
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geom.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
+  geom.setIndex(idx);
+  geom.computeBoundingSphere();
+  return geom;
 }
 
 // ------------------------------------------------------------------ buildings

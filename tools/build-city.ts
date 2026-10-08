@@ -24,6 +24,10 @@
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
 //
+// The water is where the elevation model has it flattened: the lakes and the sea, each at its level.
+// Where it hides water under bridges and decks, OpenStreetMap's outlines (data/osm/water.json, from
+// tools/fetch-water.ts) fill it in, and the ground there is brought down to the water's level.
+//
 // The buildings are OpenStreetMap's, as blocks with their roofs:
 // - The walls stand from below the lowest ground under the outline to the building's height above
 //   it: OSM's height, or where the laser scan measured it (data/laser/buildings.json, from
@@ -76,6 +80,10 @@ const SINK = 0.5;    // walls go this far below the lowest ground under them
 // a depot's hall: covered track through it for at least this long; its doors this wide (square
 // to the track) and this high above the rails
 const SHED_TRACK = 20, DOOR = { width: 4.6, height: 5.2 };
+// water: ground level to within `flat` metres over at least `area` m²; where OpenStreetMap only has
+// shores: the water reaches on from what the model has, from `clear` cells off any shore, at most
+// `reach` metres
+const WATER = { flat: 0.011, area: 2500, clear: 2, reach: 150 };
 
 type XZ = [number, number];
 const geometry: TrackGeometry = JSON.parse(readFileSync('public/data/track-geometry.json', 'utf8'));
@@ -89,6 +97,9 @@ const osm: { attribution: string; extract: string; buildings: { osm: string; tag
 // top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
 const laser: { attribution: string; buildings: Record<string, [number, number, string, number]> } | null =
   existsSync('data/laser/buildings.json') ? JSON.parse(readFileSync('data/laser/buildings.json', 'utf8')) : null;
+// OpenStreetMap's lakes, canals and bays (tools/fetch-water.ts), where they're to be had
+const water: { attribution: string; water: { osm: string; rings: number[][] }[]; shores: { osm: string; line: number[] }[] } | null =
+  existsSync('data/osm/water.json') ? JSON.parse(readFileSync('data/osm/water.json', 'utf8')) : null;
 if (groundMeta.tile !== CITY_TILE) throw new Error(`data/ground/city.json has ${groundMeta.tile} m tiles, the game ${CITY_TILE} m`);
 const N = groundMeta.n, STEP = groundMeta.step;
 
@@ -106,6 +117,234 @@ function groundAt(x: number, z: number): number | null {
   const c = Math.min(N - 2, Math.floor(u)), r = Math.min(N - 2, Math.floor(v)), fu = u - c, fv = v - r;
   const k = r * N + c;
   return (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
+}
+
+// ------------------------------------------------------------------ water
+// The elevation model has its lakes and the sea flattened, each to the one level it stands at
+// (Saltsjön at +0.10, Mälaren at +0.89, Brunnsviken at +0.05): water is where the fetched ground
+// is level to the centimetre over a large enough area, at that level. Each water cell and the cells
+// on its shore round it carry the level (city-tile.ts 'WATR').
+const M = N - 1;
+let ti0 = Infinity, tj0 = Infinity, ti1 = -Infinity, tj1 = -Infinity;
+for (const [i, j] of groundMeta.tiles) { ti0 = Math.min(ti0, i); tj0 = Math.min(tj0, j); ti1 = Math.max(ti1, i); tj1 = Math.max(tj1, j); }
+const WW = (ti1 - ti0 + 1) * M, WH = (tj1 - tj0 + 1) * M;
+const hasGround = (k: number) => { const x = k % WW, y = (k - x) / WW; return ground.has(`${ti0 + Math.floor(x / M)},${tj0 + Math.floor(y / M)}`); };
+// each cell's level, where its four corners are within FLAT of each other
+const cellLevel = new Float32Array(WW * WH).fill(NaN);
+for (const [i, j] of groundMeta.tiles) {
+  const h = ground.get(`${i},${j}`)!;
+  for (let r = 0; r < M; r++) for (let c = 0; c < M; c++) {
+    const k = r * N + c, a = h[k], b = h[k + 1], d = h[k + N], e = h[k + N + 1];
+    if (Math.max(a, b, d, e) - Math.min(a, b, d, e) <= WATER.flat) cellLevel[((j - tj0) * M + r) * WW + (i - ti0) * M + c] = (a + b + d + e) / 4;
+  }
+}
+// the level areas, kept where they are large enough; each cell's body of water, 1-based
+const body = new Int32Array(WW * WH);
+const bodyLevels: number[] = [];
+{
+  const seen = new Uint8Array(WW * WH), stack: number[] = [], cells: number[] = [];
+  for (let s = 0; s < WW * WH; s++) {
+    if (seen[s] || Number.isNaN(cellLevel[s])) continue;
+    seen[s] = 1;
+    stack.push(s);
+    cells.length = 0;
+    let sum = 0;
+    while (stack.length) {
+      const k = stack.pop()!, x = k % WW, y = (k - x) / WW;
+      cells.push(k);
+      sum += cellLevel[k];
+      for (const q of [x > 0 ? k - 1 : -1, x + 1 < WW ? k + 1 : -1, y > 0 ? k - WW : -1, y + 1 < WH ? k + WW : -1]) {
+        if (q < 0 || seen[q] || Number.isNaN(cellLevel[q]) || Math.abs(cellLevel[q] - cellLevel[s]) > WATER.flat) continue;
+        seen[q] = 1;
+        stack.push(q);
+      }
+    }
+    if (cells.length * STEP * STEP < WATER.area) continue;
+    bodyLevels.push(Math.round((sum / cells.length) * 100) / 100);
+    for (const k of cells) body[k] = bodyLevels.length;
+  }
+}
+// Where OpenStreetMap has water the model doesn't (under bridges and decks, which it fills in
+// between their ends), the water reaches on from what the model has, at its level, and the ground
+// is brought down to it.
+let filled = 0, bridged = 0, flattened = 0;
+if (water) {
+  const mask = new Uint8Array(WW * WH);
+  for (const { rings } of water.water) {
+    // the cells whose middles are inside, by even–odd over all the rings, row by row
+    const pts = rings.map((r) => { const out: XZ[] = []; for (let k = 0; k < r.length; k += 2) out.push([r[k], r[k + 1]]); return out; });
+    let z0 = Infinity, z1 = -Infinity;
+    for (const r of pts) for (const [, z] of r) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    const y0 = Math.max(0, Math.ceil((z0 - tj0 * CITY_TILE) / STEP - 0.5)), y1 = Math.min(WH - 1, Math.floor((z1 - tj0 * CITY_TILE) / STEP - 0.5));
+    for (let y = y0; y <= y1; y++) {
+      const z = tj0 * CITY_TILE + (y + 0.5) * STEP, xs: number[] = [];
+      for (const r of pts) {
+        for (let a = 0, b = r.length - 1; a < r.length; b = a++) {
+          const [xa, za] = r[a], [xb, zb] = r[b];
+          if ((za > z) !== (zb > z)) xs.push(xa + ((z - za) * (xb - xa)) / (zb - za));
+        }
+      }
+      xs.sort((a, b) => a - b);
+      for (let k = 0; k + 1 < xs.length; k += 2) {
+        const c0 = Math.max(0, Math.ceil((xs[k] - ti0 * CITY_TILE) / STEP - 0.5)), c1 = Math.min(WW - 1, Math.floor((xs[k + 1] - ti0 * CITY_TILE) / STEP - 0.5));
+        for (let c = c0; c <= c1; c++) mask[y * WW + c] = 1;
+      }
+    }
+  }
+  // out from the water the model has, through the outlines, nearest first
+  let front: number[] = [];
+  for (let k = 0; k < WW * WH; k++) if (body[k]) front.push(k);
+  while (front.length) {
+    const next: number[] = [];
+    for (const k of front) {
+      const x = k % WW, y = (k - x) / WW;
+      for (const q of [x > 0 ? k - 1 : -1, x + 1 < WW ? k + 1 : -1, y > 0 ? k - WW : -1, y + 1 < WH ? k + WW : -1]) {
+        if (q < 0 || body[q] || !mask[q] || !hasGround(q)) continue;
+        body[q] = body[k];
+        next.push(q);
+        filled++;
+      }
+    }
+    front = next;
+  }
+  // Where an outline doesn't close within the extract (Mälaren's), and along the coast, the shores
+  // and every other outline bound the water instead: within WATER.reach of those shores, it reaches
+  // on from the water the model has, well clear of them, as far again, and not over them.
+  const shore = new Uint8Array(WW * WH);
+  const mark = (x: number, z: number) => {
+    const c = Math.floor((x - ti0 * CITY_TILE) / STEP), r = Math.floor((z - tj0 * CITY_TILE) / STEP);
+    if (c >= 0 && r >= 0 && c < WW && r < WH) shore[r * WW + c] = 1;
+  };
+  const line = (pts: number[], closed: boolean) => {
+    for (let k = 0; k + 2 < pts.length + (closed ? 2 : 0); k += 2) {
+      const ax = pts[k], az = pts[k + 1], bx = pts[(k + 2) % pts.length], bz = pts[(k + 3) % pts.length];
+      // every cell the segment passes through, so that it can't be crossed from side to side
+      const n = Math.ceil(Math.hypot(bx - ax, bz - az) / (STEP / 4)) || 1;
+      for (let t = 0; t <= n; t++) {
+        const x = ax + ((bx - ax) * t) / n, z = az + ((bz - az) * t) / n;
+        mark(x, z);
+        if (t) mark(ax + ((bx - ax) * (t - 1)) / n, z);
+      }
+    }
+  };
+  for (const { line: l } of water.shores) line(l, false);
+  // only within reach of those shores
+  const within = new Uint8Array(WW * WH);
+  {
+    let ring: number[] = [];
+    for (let k = 0; k < WW * WH; k++) if (shore[k]) { within[k] = 1; ring.push(k); }
+    for (let d = 0; d < WATER.reach / STEP && ring.length; d++) {
+      const next: number[] = [];
+      for (const k of ring) {
+        const x = k % WW, y = (k - x) / WW;
+        for (const q of [x > 0 ? k - 1 : -1, x + 1 < WW ? k + 1 : -1, y > 0 ? k - WW : -1, y + 1 < WH ? k + WW : -1]) {
+          if (q >= 0 && !within[q]) { within[q] = 1; next.push(q); }
+        }
+      }
+      ring = next;
+    }
+  }
+  for (const { rings } of water.water) for (const r of rings) line(r, true);
+  const near = new Uint8Array(WW * WH);
+  for (let k = 0; k < WW * WH; k++) {
+    if (!shore[k]) continue;
+    const x = k % WW, y = (k - x) / WW;
+    for (let dy = -WATER.clear; dy <= WATER.clear; dy++) for (let dx = -WATER.clear; dx <= WATER.clear; dx++) {
+      const X = x + dx, Y = y + dy;
+      if (X >= 0 && Y >= 0 && X < WW && Y < WH) near[Y * WW + X] = 1;
+    }
+  }
+  front = [];
+  for (let k = 0; k < WW * WH; k++) if (body[k] && !near[k] && within[k]) front.push(k);
+  const added = new Uint8Array(WW * WH);
+  for (let step = 0; step < WATER.reach / STEP && front.length; step++) {
+    const next: number[] = [];
+    for (const k of front) {
+      const x = k % WW, y = (k - x) / WW;
+      for (const q of [x > 0 ? k - 1 : -1, x + 1 < WW ? k + 1 : -1, y > 0 ? k - WW : -1, y + 1 < WH ? k + WW : -1]) {
+        if (q < 0 || body[q] || shore[q] || !within[q] || !hasGround(q)) continue;
+        body[q] = body[k];
+        added[q] = 1;
+        next.push(q);
+      }
+    }
+    front = next;
+  }
+  // Each stretch of it is kept where it joins the water at two places or more, as under a bridge;
+  // where it only reaches in from one, it has found a gap in the shores, into the land.
+  const touched = new Uint8Array(WW * WH), stack: number[] = [], part: number[] = [], edge: number[] = [];
+  const four = (k: number) => { const x = k % WW, y = (k - x) / WW; return [x > 0 ? k - 1 : -1, x + 1 < WW ? k + 1 : -1, y > 0 ? k - WW : -1, y + 1 < WH ? k + WW : -1]; };
+  for (let s0 = 0; s0 < WW * WH; s0++) {
+    if (added[s0] !== 1) continue;
+    part.length = 0;
+    edge.length = 0;
+    added[s0] = 2;
+    stack.push(s0);
+    while (stack.length) {
+      const k = stack.pop()!;
+      part.push(k);
+      for (const q of four(k)) {
+        if (q < 0) continue;
+        if (added[q] === 1) { added[q] = 2; stack.push(q); }
+        else if (body[q] && !added[q] && !touched[q]) { touched[q] = 1; edge.push(q); }
+      }
+    }
+    // the places it joins the water: the water's cells beside it, in groups of neighbours
+    let joins = 0;
+    for (const e of edge) {
+      if (touched[e] !== 1) continue;
+      joins++;
+      touched[e] = 2;
+      stack.push(e);
+      while (stack.length) {
+        const k = stack.pop()!, x = k % WW;
+        for (const q of [...four(k), x > 0 && k >= WW ? k - WW - 1 : -1, x + 1 < WW && k >= WW ? k - WW + 1 : -1, x > 0 && k + WW < WW * WH ? k + WW - 1 : -1, x + 1 < WW && k + WW < WW * WH ? k + WW + 1 : -1]) {
+          if (q >= 0 && touched[q] === 1) { touched[q] = 2; stack.push(q); }
+        }
+      }
+    }
+    for (const e of edge) touched[e] = 0;
+    if (joins >= 2) bridged += part.length;
+    else for (const k of part) body[k] = 0;
+  }
+  // the ground in the water, where it's over its level
+  for (const [i, j] of groundMeta.tiles) {
+    const h = ground.get(`${i},${j}`)!;
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const x = (i - ti0) * M + c, y = (j - tj0) * M + r;
+      let b = -1;
+      for (const [dx, dy] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) {
+        const X = x + dx, Y = y + dy;
+        const w = X >= 0 && Y >= 0 && X < WW && Y < WH ? body[Y * WW + X] : 0;
+        if (!w || (b >= 0 && w !== b)) { b = 0; break; }
+        b = w;
+      }
+      if (b > 0 && h[r * N + c] > bodyLevels[b - 1]) {
+        if (h[r * N + c] > bodyLevels[b - 1] + WATER.flat) flattened++;
+        h[r * N + c] = bodyLevels[b - 1];
+      }
+    }
+  }
+}
+let waterCells = 0;
+for (const b of body) if (b) waterCells++;
+
+// A tile's water: its cells and those on their shores, with the levels it has.
+function waterOf(i: number, j: number) {
+  const ids: number[] = [], cells = new Uint8Array(M * M);
+  for (let r = 0; r < M; r++) for (let c = 0; c < M; c++) {
+    const x = (i - ti0) * M + c, y = (j - tj0) * M + r;
+    let b = body[y * WW + x];
+    for (let dy = -1; dy <= 1 && !b; dy++) for (let dx = -1; dx <= 1 && !b; dx++) {
+      const X = x + dx, Y = y + dy;
+      if (X >= 0 && Y >= 0 && X < WW && Y < WH) b = body[Y * WW + X];
+    }
+    if (!b) continue;
+    let at = ids.indexOf(b);
+    if (at < 0) at = ids.push(b) - 1;
+    cells[r * M + c] = at + 1;
+  }
+  return ids.length ? { levels: ids.map((b) => bodyLevels[b - 1]), cells } : null;
 }
 
 // ------------------------------------------------------------------ the track
@@ -790,7 +1029,7 @@ for (const [i, j] of groundMeta.tiles) {
   });
   const buildings = tiles.get(`${i},${j}`) ?? [];
   buildingCount += buildings.length;
-  const data = gzipSync(encodeTile({ i, j, ground: { step: STEP, n: N, heights, flags }, buildings, holes }), { level: 9 });
+  const data = gzipSync(encodeTile({ i, j, ground: { step: STEP, n: N, heights, flags }, buildings, holes, water: waterOf(i, j) }), { level: 9 });
   bytes += data.length;
   writeFileSync(`${OUT}/${tileName(i, j)}`, data);
   written.add(tileName(i, j));
@@ -800,7 +1039,7 @@ for (const f of readdirSync(OUT)) if (!written.has(f)) rmSync(`${OUT}/${f}`);
 
 const index: CityIndex = {
   attribution: [groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : [])],
-  note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks.`,
+  note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, its lakes and sea at their levels, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks.`,
   tile: CITY_TILE,
   tiles: groundMeta.tiles.map(([i, j]) => [i, j]),
 };
@@ -808,6 +1047,7 @@ writeFileSync(`${OUT}/index.json`, JSON.stringify(index, null, 1) + '\n');
 
 if (process.env.DEBUG) for (const m of mouths) console.log(`  mouth at ${m.x.toFixed(0)}, ${m.z.toFixed(0)}, rail ${m.y.toFixed(1)}, out towards ${m.tx.toFixed(2)}, ${m.tz.toFixed(2)}`);
 console.log(`ground: ${groundMeta.tiles.length} tiles; ${lowered} points lowered under open track, ${raised} raised over tunnels; ${mouths.length} mouths`);
+console.log(`water: ${bodyLevels.length} lakes and bays, ${(waterCells * STEP * STEP / 1e6).toFixed(1)} km² (${(filled * STEP * STEP / 1e3).toFixed(0)}k m² filled in from OpenStreetMap's outlines and ${(bridged * STEP * STEP / 1e3).toFixed(0)}k m² within its shores, ${flattened} points of ground brought down to it), at ${[...new Set(bodyLevels)].sort((a, b) => a - b).map((l) => l.toFixed(2)).join(', ')} m`);
 console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withParts} drawn as their parts, ${outside} outside the tiles); heights estimated for ${estimated}`);
 if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found; left out: ${[...laserDoubted].map(([k, n]) => `${n} ${k}`).join(', ')}`);
 console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
