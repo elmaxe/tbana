@@ -21,7 +21,10 @@
 //   at different levels, at least 7.5 m apart, so that their tunnels don't cut into each other;
 //   and at an island platform in a tunnel, the platform's width apart. Not near the tunnel's
 //   mouths, nor near the other platforms, where the tracks part to pass a platform or a station
-//   hall, so that they part and meet again in long, gentle curves.
+//   hall, so that they part and meet again in long, gentle curves. Nor where another line's track
+//   runs between them: from Slussen to T-Centralen the red line's two tracks run between the
+//   green line's, each beside the green track the same way, and no two of the four tracks are
+//   let come closer than 3.15 m.
 // Its curves are held to the line's limit: 250 m on the red line, 200 m on the green, where the
 // green line in the open keeps OpenStreetMap's curves, traced from aerial photos, and 350 m on the
 // blue (see CURVE_LIMIT). Near a switch no line is held to more than the red line's limit.
@@ -33,7 +36,9 @@
 // - in the open: in a cutting more than 1.5 m below the ground, on an embankment more than 1 m
 //   above it, otherwise on the ground
 // - bridge: a bridge
-// Where the two tracks of a line run side by side at one level, they share the structure.
+// Where the two tracks of a line run side by side at one level, they share the structure; where
+// another line's track runs beside them in a concrete box, the box takes it in too (the four
+// tracks from Gamla stan to where they part to T-Centralen's two levels).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
@@ -69,6 +74,9 @@ const PAIR_REACH = 40, PAIR_DY = [2.0, 1.5];
 // that their tunnels don't cut into each other, unless one is well below the other (full force
 // from the second height to the third).
 const APART = { centres: 7.5, reach: 20, dy: [2.0, 2.5, 6.0, 6.5] };
+// Another line's track at the same level is held at least the standard spacing from a service's
+// track, where it is this close in OpenStreetMap's plan
+const BESIDE_REACH = 8;
 // ... and this far from a tunnel mouth and from a platform they don't share (fully at the second)
 const PAIR_FROM_MOUTH = [30, 90], PAIR_FROM_PLATFORM = [100, 200];
 // rail to ground in a tunnel, under which it is a concrete box; and the length of the box at a mouth
@@ -284,6 +292,56 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     return b;
   }
 
+  // The nearest point on another line's track a service runs on, within `reach` in plan and `dy`
+  // in height.
+  function otherLine(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece, x: number, z: number, y: number,
+    reach: number, dy: number): Partner | null {
+    let best: Partner | null = null;
+    for (let i = Math.floor((x - reach) / CELL); i <= Math.floor((x + reach) / CELL); i++) {
+      for (let j = Math.floor((z - reach) / CELL); j <= Math.floor((z + reach) / CELL); j++) {
+        for (const sg of grid.get(`${i},${j}`) ?? []) {
+          const q = sg.piece;
+          if (q.id === self.id || !services.has(q.id) || lineOf(q) === lineOf(self)) continue;
+          const { v, s } = disc.get(q.id)!;
+          const [ax, az] = pos(v[sg.k]), [bx, bz] = pos(v[sg.k + 1]);
+          const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+          const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2));
+          const px = ax + dx * t, pz = az + dz * t, d = Math.hypot(px - x, pz - z);
+          const py = vars[v[sg.k]].y + (vars[v[sg.k + 1]].y - vars[v[sg.k]].y) * t;
+          if (d > reach || Math.abs(py - y) > dy || (best && d >= best.d)) continue;
+          best = { piece: q, k: sg.k, t, d, dy: py - y, x: px, z: pz, y: py, s: s[sg.k] + (s[sg.k + 1] - s[sg.k]) * t };
+        }
+      }
+    }
+    return best;
+  }
+  // Whether another line's track a service runs on passes between two points, at about the level
+  // y: from Slussen to T-Centralen the red line's two tracks run between the green line's, and the
+  // trains each way change lines across a platform (at Slussen and Gamla stan), so each green
+  // track is the red track's neighbour, not the other green track's.
+  function lineBetween(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece,
+    ax: number, az: number, bx: number, bz: number, y: number) {
+    const dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
+    if (d < 1) return false;
+    for (let i = Math.floor(Math.min(ax, bx) / CELL); i <= Math.floor(Math.max(ax, bx) / CELL); i++) {
+      for (let j = Math.floor(Math.min(az, bz) / CELL); j <= Math.floor(Math.max(az, bz) / CELL); j++) {
+        for (const sg of grid.get(`${i},${j}`) ?? []) {
+          const q = sg.piece;
+          if (!services.has(q.id) || lineOf(q) === lineOf(self)) continue;
+          const { v } = disc.get(q.id)!;
+          const [cx, cz] = pos(v[sg.k]), [ex, ez] = pos(v[sg.k + 1]);
+          const fx = ex - cx, fz = ez - cz, den = dx * fz - dz * fx;
+          if (Math.abs(den) < 1e-9) continue;
+          const u = ((cx - ax) * fz - (cz - az) * fx) / den, w = ((cx - ax) * dz - (cz - az) * dx) / den;
+          if (w < 0 || w > 1 || u * d < 0.5 || (1 - u) * d < 0.5) continue;
+          const qy = vars[v[sg.k]].y + (vars[v[sg.k + 1]].y - vars[v[sg.k]].y) * w;
+          if (Math.abs(qy - y) < PAIR_DY[0]) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   const ramp = (v: number, [a, b]: number[]) => Math.max(0, Math.min(1, (v - a) / (b - a)));
 
   // ------------------------------------------------------------------ the equations
@@ -400,6 +458,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         f = 1;
         islandRows++;
       } else {
+        if (lineBetween(osmGrid, osmPos, p, a.x0, a.z0, b.x, b.z, a.y)) return;
         target = TRACK_CENTRES;
         f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]])
           * ramp(Math.min(mouthDistance(p, s[k]), mouthDistance(b.piece, b.s)), PAIR_FROM_MOUTH)
@@ -425,7 +484,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     nx * ((1 - t) * y[X(b0)] + t * y[X(b1)] - y[X(vi)]) + nz * ((1 - t) * y[Z(b0)] + t * y[Z(b1)] - y[Z(vi)]);
 
   // tracks at different levels, close in plan, that could be held apart
-  const apart: { a: Across; f: number }[] = [];
+  const apart: { a: Across; f: number; centres: number }[] = [];
   for (const p of pieces) {
     if (p.structure !== 'tunnel') continue;
     const { s, v } = disc.get(p.id)!;
@@ -435,7 +494,34 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       const b = mutualPartner(osmGrid, osmPos, p, s[k], a.x0, a.z0, a.y, APART.reach, APART.dy[3], APART.dy[0]);
       if (!b || b.piece.structure !== 'tunnel') return;
       const dy = Math.abs(b.dy), f = ramp(dy, [APART.dy[0], APART.dy[1]]) * (1 - ramp(dy, [APART.dy[2], APART.dy[3]]));
-      if (f > 0.05) apart.push({ a: across(p, s[k], vi, b), f });
+      if (f > 0.05) apart.push({ a: across(p, s[k], vi, b), f, centres: APART.centres });
+    });
+  }
+  // ... and where two lines' tracks run interleaved (one line's two tracks between the other's,
+  // from Slussen to T-Centralen), another line's track beside a service's at the same level, at
+  // least the standard spacing from it, on the side OpenStreetMap has it; and away from the mouths
+  // and platforms, pulled to that spacing, as the two tracks of a line are, so that the four run
+  // together
+  const interleaved = (p: TrackPiece, s: number, x: number, z: number, y: number) => {
+    const b = mutualPartner(osmGrid, osmPos, p, s, x, z, y, PAIR_REACH, PAIR_DY[0]);
+    return !!b && lineBetween(osmGrid, osmPos, p, x, z, b.x, b.z, y);
+  };
+  let besideRows = 0;
+  for (const p of pieces) {
+    if (p.structure !== 'tunnel' || !services.has(p.id)) continue;
+    const { s, v } = disc.get(p.id)!;
+    v.forEach((vi, k) => {
+      if (onModel.has(vi)) return;
+      const a = vars[vi];
+      const b = otherLine(osmGrid, osmPos, p, a.x0, a.z0, a.y, BESIDE_REACH, PAIR_DY[0]);
+      if (!b || b.piece.structure !== 'tunnel') return;
+      if (!interleaved(p, s[k], a.x0, a.z0, a.y) && !interleaved(b.piece, b.s, b.x, b.z, b.y)) return;
+      const row = across(p, s[k], vi, b);
+      apart.push({ a: row, f: 1, centres: TRACK_CENTRES });
+      besideRows++;
+      const f = ramp(Math.min(mouthDistance(p, s[k]), mouthDistance(b.piece, b.s)), PAIR_FROM_MOUTH)
+        * ramp(Math.min(platformDistance(p, s[k]), platformDistance(b.piece, b.s)), PAIR_FROM_PLATFORM);
+      if (f >= 0.05) rows.push(spacingRow(row, TRACK_CENTRES, f));
     });
   }
 
@@ -474,14 +560,15 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     return [X, Z].map((f) => k * ((y[f(a)] - y[f(b)]) / h1 + (y[f(c)] - y[f(b)]) / h2));
   };
 
-  // Likewise tracks at different levels are held apart where they come too close.
+  // Likewise tracks at different levels, and other lines' tracks, are held apart where they come
+  // too close.
   const held = new Map<number, [number, number]>(); // bend → the direction it is held in
   const heldApart = new Set<number>();
   let sol = lsq.solve();
   for (let round = 0; round < 40; round++) {
     let changed = 0;
-    apart.forEach(({ a }, i) => {
-      if (!heldApart.has(i) && spacing(sol, a) < APART.centres - 0.01) { heldApart.add(i); changed++; }
+    apart.forEach(({ a, centres }, i) => {
+      if (!heldApart.has(i) && spacing(sol, a) < centres - 0.01) { heldApart.add(i); changed++; }
     });
     bends.forEach((bend, i) => {
       const [kx, kz] = curvature(sol, bend), k = Math.hypot(kx, kz);
@@ -494,9 +581,11 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       const { a, b, c, h1, h2, hold } = bends[i], k = 2 / (h1 + h2);
       const cs = [k / h1, -k / h1 - k / h2, k / h2];
       return [{ i: [X(a), X(b), X(c), Z(a), Z(b), Z(c)], c: [...cs.map((q) => q * nx), ...cs.map((q) => q * nz)], b: 1 / hold, w: 1 / SIGMA.hold }];
-    }).concat([...heldApart].map((i) => spacingRow(apart[i].a, APART.centres, apart[i].f, SIGMA.apart))));
+    }).concat([...heldApart].map((i) => spacingRow(apart[i].a, apart[i].centres, apart[i].f, SIGMA.apart))));
   }
-  log(`${held.size} points held to a ${CURVE_HOLD} m radius (${YARD_CURVE_HOLD} m off the running lines), ${heldApart.size} held ${APART.centres} m from a track at another level`);
+  const heldBeside = [...heldApart].filter((i) => apart[i].centres === TRACK_CENTRES).length;
+  log(`${held.size} points held to a ${CURVE_HOLD} m radius (${YARD_CURVE_HOLD} m off the running lines), ${heldApart.size - heldBeside} held ${APART.centres} m from a track at another level, `
+    + `${heldBeside} (of ${besideRows}) ${TRACK_CENTRES} m from another line's track beside them`);
   const pos = (v: number): [number, number] => [sol[X(v)], sol[Z(v)]];
   const moved = vars.map((a, v) => Math.hypot(sol[X(v)] - a.x0, sol[Z(v)] - a.z0));
   log(`${vars.length} points, ${onModel.size} on the station models, ${pairRows} pulling the two tracks together, ${islandRows} at island platforms`);
@@ -506,12 +595,12 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     log(`moved from OpenStreetMap, ${name}: median ${pct(d, 0.5).toFixed(1)} m, 90% within ${pct(d, 0.9).toFixed(1)} m, at most ${pct(d, 1).toFixed(1)} m`);
   }
 
-  return { pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, pct };
+  return { pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, lineBetween, pct };
 }
 const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
 const first = plan(run, null, () => {});
 const {
-  pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, pct,
+  pieces, disc, vars, pos, platformAt, platformsOn, mouthDistance, tangent, segmentGrid, mutualPartner, lineBetween, pct,
 } = plan(lineTrack(graph), new Map(first.vars.map((v, i) => [v.key, first.pos(i)])), console.log);
 
 // ------------------------------------------------------------------ ground and structure
@@ -590,6 +679,8 @@ for (const p of pieces) {
       if (c && platformAt(c.piece.id, c.s)?.osm === here.osm) b = c;
     }
     if (b && (b.piece.structure === 'tunnel') !== (p.structure === 'tunnel')) b = null;
+    // (not across another line's track)
+    if (b && lineBetween(alignedGrid, pos, p, x, z, b.x, b.z, y)) b = null;
     shareStats.total += STEP;
     if (!b) { g.pair.push(0); g.pairDy.push(0); return; }
     shareStats.shared += STEP;
@@ -674,6 +765,57 @@ for (const p of pieces) {
 }
 console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH} m`);
 
+// Another line's track beside a service's track in a concrete box, at the same level, on the
+// side away from its own line's other track: the four tracks from Gamla stan to where they part
+// for T-Centralen's two levels, which run side by side in one box. Each track's part of the box
+// reaches halfway to the next. Kept only where the other track has this one beside it too.
+const SHARE_BESIDE = 6.5;
+const isBox = (kind: number) => STRUCTURE_KINDS[kind] === 'box';
+const besideAt = new Map<number, { piece: number; s: number; lat: number }[]>();
+for (const p of pieces) {
+  if (!run.has(p.id) || p.structure !== 'tunnel') continue;
+  const g = out[p.id];
+  besideAt.set(p.id, g.s.map((_, k) => {
+    const none = { piece: 0, s: 0, lat: 0 };
+    if (!isBox(g.kind[k]) || platformAt(p.id, g.s[k])) return none;
+    const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
+    const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
+    const tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
+    let best = none;
+    const cells = [-1, 0, 1].flatMap((i) => [-1, 0, 1].map((j) => alignedGrid.get(`${Math.floor(g.x[k] / CELL) + i},${Math.floor(g.z[k] / CELL) + j}`) ?? []));
+    for (const sg of cells.flat()) {
+      const q = sg.piece;
+      if (q.id === p.id || !run.has(q.id) || lineOf(q) === lineOf(p)) continue;
+      const o = out[q.id], m = sg.k;
+      const ax = o.x[m] - g.x[k], az = o.z[m] - g.z[k], bx = o.x[m + 1] - g.x[k], bz = o.z[m + 1] - g.z[k];
+      const da = ax * tx + az * tz, db = bx * tx + bz * tz;
+      if (da * db > 0 || da === db) continue;
+      const t = da / (da - db);
+      const lat = -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t);
+      const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k], s = o.s[m] + (o.s[m + 1] - o.s[m]) * t;
+      if (Math.abs(lat) < 1 || Math.abs(lat) > SHARE_BESIDE || Math.abs(dy) > 1 || !isBox(o.kind[t < 0.5 ? m : m + 1]) || platformAt(q.id, s)) continue;
+      // (on the side away from its own line's other track)
+      if (g.pair[k] && Math.sign(g.pair[k]) === Math.sign(lat)) continue;
+      if (!best.lat || Math.abs(lat) < Math.abs(best.lat)) best = { piece: q.id, s, lat };
+    }
+    return best;
+  }));
+}
+let besideShared = 0;
+for (const [id, list] of besideAt) {
+  const g = out[id];
+  const beside = list.map(({ piece, s, lat }) => {
+    if (!lat) return 0;
+    // the other track's nearest point has this one beside it, as far
+    const o = out[piece], back = besideAt.get(piece)!;
+    let m = 0;
+    for (let j = 1; j < o.s.length; j++) if (Math.abs(o.s[j] - s) < Math.abs(o.s[m] - s)) m = j;
+    return back[m].piece === id && Math.abs(Math.abs(back[m].lat) - Math.abs(lat)) < 0.5 ? lat : 0;
+  });
+  if (beside.some((v) => v)) { g.beside = beside; besideShared += beside.filter((v) => v).length; }
+}
+console.log(`${besideShared} points share a box with another line's track beside them`);
+
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
 // The stations drawn from a model have theirs in the model.
@@ -728,6 +870,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 for (const g of Object.values(out)) {
   for (const k of ['s', 'x', 'z', 'y', 'pair', 'pairDy'] as const) g[k] = g[k].map(r2);
   if (g.left) { g.left = g.left.map(r2); g.right = g.right!.map(r2); }
+  if (g.beside) g.beside = g.beside.map(r2);
   g.ground = g.ground.map((n) => (n === null ? null : r2(n)));
 }
 const result: TrackGeometry = {
