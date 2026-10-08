@@ -134,6 +134,79 @@ export function lineTrack(graph: TrackGraph, lines: string | string[] = drawnLin
   return out;
 }
 
+// The sidings and turnback tracks among the given pieces: track no service runs on (but not a
+// depot's yard, nor a crossover) that OpenStreetMap tags as a siding or spur, or that leads to a
+// buffer stop without passing a running line (OSM leaves the turnback track east of
+// Östermalmstorg untagged). Not the arms of a scissors crossover, which meet at a diamond
+// between the running lines (OSM tags those south of Ropsten as sidings); nor, untagged, the ends
+// of a station's middle track left out of the given pieces (lineTrack: Alby's), which run on
+// between tracks still the platforms' width apart.
+export function sidingPieces(graph: TrackGraph, used: Set<number>) {
+  const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+  const at = new Map<number, TrackPiece[]>();
+  for (const p of graph.pieces) for (const n of new Set([p.from, p.to])) (at.get(n) ?? at.set(n, []).get(n)!).push(p);
+  const kind = new Map(graph.nodes.map((n) => [n.id, n.kind]));
+  const onRun = (n: number) => at.get(n)!.some((q) => run.has(q.id));
+  const scissors = (p: TrackPiece) => [[p.from, p.to], [p.to, p.from]].some(([a, b]) => kind.get(a) === 'crossing' && onRun(b));
+  const candidate = (p: TrackPiece) => used.has(p.id) && !run.has(p.id) && p.service !== 'yard' && p.service !== 'crossover' && !scissors(p);
+  const out = new Set<number>(), seen = new Set<number>();
+  for (const p of graph.pieces) {
+    if (!candidate(p) || seen.has(p.id)) continue;
+    // the track no service runs on joined to it, as far as the running lines
+    const group: TrackPiece[] = [], queue = [p];
+    seen.add(p.id);
+    while (queue.length) {
+      const q = queue.pop()!;
+      group.push(q);
+      for (const n of [q.from, q.to]) {
+        if (onRun(n)) continue;
+        for (const o of at.get(n)!) if (candidate(o) && !seen.has(o.id)) { seen.add(o.id); queue.push(o); }
+      }
+    }
+    const deadEnd = group.some((q) => [q.from, q.to].some((n) => at.get(n)!.length === 1))
+      && !group.some((q) => [q.from, q.to].some((n) => at.get(n)!.some((o) => !used.has(o.id))));
+    for (const q of group) if (deadEnd || q.service === 'siding' || q.service === 'spur') out.add(q.id);
+  }
+  return out;
+}
+
+// Where the running tracks of two services ('T13' and 'T14', or 'T13+T14' and 'T17+T18+T19') cross
+// in OpenStreetMap's plan, other than where they meet at a switch: one passes over the other, at
+// a flying junction (east of Östermalmstorg, at Gullmarsplan and Liljeholmen), or where two lines
+// part (the red and green lines north of T-Centralen). The two pieces, the point, and how far
+// along each piece it is.
+export interface Crossing { a: number; b: number; x: number; z: number; sa: number; sb: number }
+export function runningCrossings(graph: TrackGraph) {
+  const services = new Map<number, Set<string>>();
+  for (const r of runningWays(graph)) for (const st of r.path) (services.get(st.piece) ?? services.set(st.piece, new Set()).get(st.piece)!).add(r.service);
+  const key = (id: number) => [...services.get(id)!].sort().join('+');
+  const pieces = graph.pieces.filter((p) => services.has(p.id));
+  const nodeAt = new Map(graph.nodes.map((n) => [n.id, n]));
+  const boxes = new Map(pieces.map((p) => {
+    const xs = p.points.map((q) => q[0]), zs = p.points.map((q) => q[1]);
+    return [p.id, [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)]];
+  }));
+  const out: Crossing[] = [];
+  for (const pa of pieces) for (const pb of pieces) {
+    if (pb.id <= pa.id || key(pa.id) === key(pb.id)) continue;
+    const [a0, a1, a2, a3] = boxes.get(pa.id)!, [b0, b1, b2, b3] = boxes.get(pb.id)!;
+    if (a0 > b2 || b0 > a2 || a1 > b3 || b1 > a3) continue;
+    const shared = [pa.from, pa.to].filter((n) => n === pb.from || n === pb.to).map((n) => nodeAt.get(n)!);
+    const ca = chainage(pa), cb = chainage(pb);
+    for (let i = 1; i < pa.points.length; i++) for (let j = 1; j < pb.points.length; j++) {
+      const [px, pz] = pa.points[i - 1], [qx, qz] = pa.points[i], [rx, rz] = pb.points[j - 1], [sx, sz] = pb.points[j];
+      const dx = qx - px, dz = qz - pz, ex = sx - rx, ez = sz - rz, den = dx * ez - dz * ex;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((rx - px) * ez - (rz - pz) * ex) / den, u = ((rx - px) * dz - (rz - pz) * dx) / den;
+      if (t < 0 || t > 1 || u < 0 || u > 1) continue;
+      const x = px + dx * t, z = pz + dz * t;
+      if (shared.some((n) => Math.hypot(n.x - x, n.z - z) < 1)) continue;
+      out.push({ a: pa.id, b: pb.id, x, z, sa: ca[i - 1] + (ca[i] - ca[i - 1]) * t, sb: cb[j - 1] + (cb[j] - cb[j - 1]) * u });
+    }
+  }
+  return out;
+}
+
 // The ground under the drawn lines' track, from Lantmäteriet's elevation model
 // (tools/fetch-ground.ts): [world x, world z, height], from every line's file.
 export function groundSamples(graph: TrackGraph): [number, number, number][] {

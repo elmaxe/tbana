@@ -24,7 +24,9 @@
 //   hall, so that they part and meet again in long, gentle curves. Nor where another line's track
 //   runs between them: from Slussen to T-Centralen the red line's two tracks run between the
 //   green line's, each beside the green track the same way, and no two of the four tracks are
-//   let come closer than 3.15 m.
+//   let come closer than 3.15 m. So too another line's track at a different level, beside a
+//   line's (and where two lines' tracks cross one under the other, they cross where and as OSM
+//   has them, where build-heights has them at two levels).
 // Its curves are held to the line's limit: 250 m on the red line, 200 m on the green, where the
 // green line in the open keeps OpenStreetMap's curves, traced from aerial photos, and 350 m on the
 // blue (see CURVE_LIMIT). Near a switch no line is held to more than the red line's limit.
@@ -45,7 +47,7 @@ import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { ISLAND_WIDTH, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES } from '../src/sections.ts';
-import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt } from './lib/graph.ts';
+import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
@@ -53,7 +55,7 @@ import { loadStationModel, modelPlatforms, placeSample } from './lib/station-mod
 const OUT = 'public/data/track-geometry.json';
 const STEP = 10;
 // how far each kind of anchor may be off, in metres (1/m for curvature)
-const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3, middle: 0.1 };
+const SIGMA = { open: 0.3, platformOpen: 0.3, tunnel: 4, platformTunnel: 1.5, model: 0.1, pair: 0.05, apart: 0.3, curvature: 1 / 1000, hold: 1e-5, pinned: 0.002, yard: 0.3, middle: 0.1, crossing: 0.15 };
 // the tightest curve the line is let have, between points 10 m apart: the red line's limit is
 // 250 m, and measured over 20 m this keeps above it (and in proportion on the other lines). Track no service runs on (crossovers,
 // sidings, depots) keeps OpenStreetMap's tighter curves, held only against kinks.
@@ -109,25 +111,33 @@ interface Seg { piece: TrackPiece; k: number }
 const CELL = 20;
 interface Partner { piece: TrackPiece; k: number; t: number; d: number; dy: number; x: number; z: number; y: number; s: number }
 interface Across { vi: number; b0: number; b1: number; t: number; nx: number; nz: number }
-// Sidings and spurs in a tunnel, as OpenStreetMap has them: where one runs between the two tracks of
-// a line (a turnback track between the running lines, as west of Odenplan), those two are not
-// pulled together.
-const sidings: [number, number, number, number][] = [];
-{
-  const running = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
-  for (const id of lineTrack(graph)) {
-    const p = graph.pieces[id];
-    if (running.has(id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
-    for (let k = 1; k < p.points.length; k++) sidings.push([...p.points[k - 1], ...p.points[k]] as [number, number, number, number]);
-  }
+// Sidings and turnback tracks in a tunnel (tools/lib/graph.ts sidingPieces): where one runs between
+// the two tracks of a line (a turnback track between the running lines, as west of Odenplan),
+// those two are not pulled together.
+const sidingIds = sidingPieces(graph, lineTrack(graph));
+// Nor where another running track runs between them: east of Östermalmstorg the Ropsten branch's
+// track passes under the Mörby branch's on its way to its own other track, and the Mörby
+// branch's two tracks have it between them until then.
+const runningIds = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+// where the running tracks of two services cross (tools/lib/graph.ts), and how far either side of
+// it they count as crossing there (as in build-heights)
+const crossings = runningCrossings(graph), CROSSED = 80;
+// the segments of each kind of track, with their piece
+const sidings: [number, number, number, number, number][] = [], runningSegments: typeof sidings = [];
+for (const p of graph.pieces) {
+  if (p.structure !== 'tunnel' || (!sidingIds.has(p.id) && !runningIds.has(p.id))) continue;
+  for (let k = 1; k < p.points.length; k++) (sidingIds.has(p.id) ? sidings : runningSegments).push([...p.points[k - 1], ...p.points[k], p.id] as [number, number, number, number, number]);
 }
 const SIDING_CLEAR = 2;
 // the running lines either side of such a siding are looked for this far from it
 const SIDING_SPAN = 12;
-function sidingBetween(ax: number, az: number, bx: number, bz: number) {
+// whether one of the segments crosses the line from a to b, clear of both ends (but for those of
+// the pieces left out)
+function between(segments: typeof sidings, ax: number, az: number, bx: number, bz: number, not: number[] = []) {
   const dx = bx - ax, dz = bz - az, d = Math.hypot(dx, dz);
   if (d < 2 * SIDING_CLEAR) return false;
-  for (const [cx, cz, ex, ez] of sidings) {
+  for (const [cx, cz, ex, ez, id] of segments) {
+    if (not.includes(id)) continue;
     const fx = ex - cx, fz = ez - cz, den = dx * fz - dz * fx;
     if (Math.abs(den) < 1e-9) continue;
     const u = ((cx - ax) * fz - (cz - az) * fx) / den, w = ((cx - ax) * dz - (cz - az) * dx) / den;
@@ -250,9 +260,10 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
 
   // The nearest point on the other track of the line: a track the same services run in the
   // opposite direction, within `reach` in plan and between `minDy` and `dy` in height (and, with
-  // `alike`, in the same kind of place as this one: in a tunnel, or out of one).
+  // `alike`, in the same kind of place as this one: in a tunnel, or out of one). (With no
+  // direction `run`: on the track of other services, running either way.)
   function partner(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece, x: number, z: number, y: number,
-    run: [number, number], reach: number, dy: number, minDy = 0, alike = false): Partner | null {
+    run: [number, number] | null, reach: number, dy: number, minDy = 0, alike = false, skip: (q: TrackPiece) => boolean = () => false): Partner | null {
     const key = serviceKey(self.id);
     let best: Partner | null = null;
     const seen = new Set<Seg>();
@@ -263,13 +274,13 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
           seen.add(sg);
           const q = sg.piece;
           const dirQ = oneWay(q.id);
-          if (q.id === self.id || !dirQ || serviceKey(q.id) !== key) continue;
+          if (q.id === self.id || (run ? !dirQ || serviceKey(q.id) !== key : !services.has(q.id) || serviceKey(q.id) === key) || skip(q)) continue;
           if (alike && (q.structure === 'tunnel') !== (self.structure === 'tunnel')) continue;
           const { v, s } = disc.get(q.id)!;
           const [ax, az] = pos(v[sg.k]), [bx, bz] = pos(v[sg.k + 1]);
           const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
           // opposite running directions
-          if ((run[0] * dx + run[1] * dz) * dirQ / Math.sqrt(l2) > -0.7) continue;
+          if (run && (run[0] * dx + run[1] * dz) * dirQ / Math.sqrt(l2) > -0.7) continue;
           const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2));
           const px = ax + dx * t, pz = az + dz * t, d = Math.hypot(px - x, pz - z);
           const py = vars[v[sg.k]].y + (vars[v[sg.k + 1]].y - vars[v[sg.k]].y) * t;
@@ -406,6 +417,33 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     });
   }
 
+  // Where the running tracks of two services cross one over the other (tools/lib/graph.ts
+  // runningCrossings), build-heights has held them apart in height where OpenStreetMap has them
+  // cross: so they cross at the same points along each as OSM's do, and at OSM's angle, wherever
+  // the plan puts them: each track's points CROSS_SPAN either side of the crossing are held where
+  // OSM has them from the other track's crossing point. (Left loose, a track pulled towards its own
+  // other track could cross the other line's somewhere else along them, where they are at one
+  // level, or run along it at a shallow angle.) More loosely near a station, where the platforms
+  // hold the tracks near OSM's, and OSM's sketch of a crossing just beyond them may not quite fit
+  // the line's curves (Gullmarsplan): there only the crossing point is held, loosely.
+  const CROSS_SPAN = 15;
+  const along = (id: number, sc: number) => {
+    const { s, v } = disc.get(id)!;
+    sc = Math.max(s[0], Math.min(s[s.length - 1], sc));
+    let k = 0;
+    while (k < s.length - 2 && s[k + 1] < sc) k++;
+    const t = Math.max(0, Math.min(1, (sc - s[k]) / (s[k + 1] - s[k])));
+    return { i: [v[k], v[k + 1]], c: [1 - t, t], at: pointAt(graph.pieces[id], sc) };
+  };
+  for (const c of crossings) {
+    if (!used.has(c.a) || !used.has(c.b)) continue;
+    const loose = Math.min(platformDistance(graph.pieces[c.a], c.sa), platformDistance(graph.pieces[c.b], c.sb)) < PAIR_FROM_PLATFORM[0];
+    for (const [da, db] of loose ? [[0, 0]] : [[0, 0], [-CROSS_SPAN, 0], [CROSS_SPAN, 0], [0, -CROSS_SPAN], [0, CROSS_SPAN]]) {
+      const a = along(c.a, c.sa + da), b = along(c.b, c.sb + db);
+      [X, Z].forEach((f, j) => rows.push({ i: [...a.i, ...b.i].map(f), c: [...a.c, ...b.c.map((q) => -q)], b: a.at[j] - b.at[j], w: (loose ? 0.25 : 1) / SIGMA.crossing }));
+    }
+  }
+
   // the services' track, where it is already fitted
   for (const [vi, v] of vars.entries()) {
     const at = pinned?.get(v.key);
@@ -417,7 +455,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     const fitted: [number, number][] = [];
     for (const v of vars) { const at = pinned.get(v.key); if (at) fitted.push(at); }
     for (const p of pieces) {
-      if (services.has(p.id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+      if (services.has(p.id) || p.structure !== 'tunnel' || !sidingIds.has(p.id)) continue;
       const { s, v } = disc.get(p.id)!;
       v.forEach((vi, k) => {
         if (pinned.has(vars[vi].key)) return;
@@ -448,7 +486,8 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       if (!b || b.piece.structure !== 'tunnel') return;
       const here = platformAt(p.id, s[k]), there = platformAt(b.piece.id, b.s);
       let target: number, f: number;
-      if (sidingBetween(a.x0, a.z0, b.x, b.z)) {
+      if (between(runningSegments, a.x0, a.z0, b.x, b.z, [p.id, b.piece.id])) return;
+      if (between(sidings, a.x0, a.z0, b.x, b.z)) {
         // a siding between them, at the standard spacing from each
         target = 2 * TRACK_CENTRES;
         f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
@@ -493,10 +532,18 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     v.forEach((vi, k) => {
       if (onModel.has(vi)) return;
       const a = vars[vi];
-      const b = mutualPartner(osmGrid, osmPos, p, s[k], a.x0, a.z0, a.y, APART.reach, APART.dy[3], APART.dy[0]);
-      if (!b || b.piece.structure !== 'tunnel') return;
-      const dy = Math.abs(b.dy), f = ramp(dy, [APART.dy[0], APART.dy[1]]) * (1 - ramp(dy, [APART.dy[2], APART.dy[3]]));
-      if (f > 0.05) apart.push({ a: across(p, s[k], vi, b), f, centres: APART.centres });
+      // the other track of the line; and another line's, or another branch's, where the two don't
+      // cross near here (where they do, build-heights holds them apart in height instead)
+      const others = [mutualPartner(osmGrid, osmPos, p, s[k], a.x0, a.z0, a.y, APART.reach, APART.dy[3], APART.dy[0])];
+      if (services.has(p.id)) {
+        const crossedHere = (q: TrackPiece) => crossings.some((x) => ((x.a === p.id && x.b === q.id) || (x.b === p.id && x.a === q.id)) && Math.hypot(x.x - a.x0, x.z - a.z0) < CROSSED);
+        others.push(partner(osmGrid, osmPos, p, a.x0, a.z0, a.y, null, APART.reach, APART.dy[3], APART.dy[0], false, crossedHere));
+      }
+      for (const b of others) {
+        if (!b || b.piece.structure !== 'tunnel') continue;
+        const dy = Math.abs(b.dy), f = ramp(dy, [APART.dy[0], APART.dy[1]]) * (1 - ramp(dy, [APART.dy[2], APART.dy[3]]));
+        if (f > 0.05) apart.push({ a: across(p, s[k], vi, b), f, centres: APART.centres });
+      }
     });
   }
   // ... and where two lines' tracks run interleaved (one line's two tracks between the other's,

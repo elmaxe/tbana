@@ -927,7 +927,7 @@ export class Network {
       if (tunnel(p) && tunnel(q)) {
         const a = closedOutline(p), c = closedOutline(q);
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {
-          const [ra, rc] = rays(a, c, middle(p), middle(q));
+          const [ra, rc] = rays(a, c, middles(p), middles(q));
           // in rock, of rock
           ring(p, ra, rc, p.kind === 'rock' && q.kind === 'rock' ? b.rock : b.concrete);
         }
@@ -1230,21 +1230,29 @@ function closedOutline(sm: Sample): [number, number][] {
   return out;
 }
 
-// Where a track shares its tunnel, the middle its half is closed down: [u, side] (side +1 where the
-// other track is to the right), or null.
-function middle(sm: Sample): [number, number] | null {
-  const v = sm.pair || sm.beside;
-  if (!v || inHall(sm)) return null;
+// Where a track shares its tunnel, the middles its part is closed down: [u, side] (side +1 where
+// the other track is to the right). The half of a shared tunnel has one, and another where
+// another line's track is beside it on the other side; in a depot hall, a track has one on each
+// side another of the depot's tracks is beside it.
+function middles(sm: Sample): [number, number][] {
   const o = shellOutline(sm)!.pts;
-  return v > 0 ? [o[o.length - 1][0], 1] : [o[0][0], -1];
+  if (inHall(sm)) {
+    const out: [number, number][] = [];
+    if (shares(sm, -1) > 0) out.push([o[0][0], -1]);
+    if (shares(sm, 1) > 0) out.push([o[o.length - 1][0], 1]);
+    return out;
+  }
+  return [sm.pair, sm.beside].filter((v) => v).map((v) => (v > 0 ? [o[o.length - 1][0], 1] : [o[0][0], -1]));
 }
 
 // Two outlines, each closed along its floor, met by the same rays from a point over the track, all
 // the way round: the edges of the wall between two tunnels of different shapes. There is a ray
 // through every corner of either, and the last ray is the first again. Where one is the half of a
-// shared tunnel (`ma`, `mb`: its middle), the other is cut off at that middle: beyond it is the
-// other track's half, or its own tunnel, which this one opens into.
-function rays(a: [number, number][], b: [number, number][], ma: [number, number] | null = null, mb: [number, number] | null = null, n = 48): [[number, number][], [number, number][]] {
+// shared tunnel, or a track's part of a depot hall (`ma`, `mb`: its middles), the other is cut off
+// at that middle: beyond it is the other track's part, or its own tunnel, which this one opens
+// into. (Where two of a depot's tracks part at a switch, the hall starts from the single tunnel
+// round the switch, and each track's part of it must leave the other's track open.)
+function rays(a: [number, number][], b: [number, number][], ma: [number, number][] = [], mb: [number, number][] = [], n = 48): [[number, number][], [number, number][]] {
   const O: [number, number] = [0, 1.8];
   const angle = ([u, v]: [number, number]) => Math.atan2(v - O[1], u - O[0]);
   const hit = (poly: [number, number][], du: number, dv: number): [number, number] => {
@@ -1266,8 +1274,8 @@ function rays(a: [number, number][], b: [number, number][], ma: [number, number]
     if (j && t - ts[j - 1] < 1e-6) continue;
     const du = Math.cos(t), dv = Math.sin(t);
     let ha = hit(a, du, dv), hb = hit(b, du, dv);
-    if (ma && Math.abs(ha[0] - ma[0]) < 1e-6 && (hb[0] - ma[0]) * ma[1] > 0) hb = ha;
-    if (mb && Math.abs(hb[0] - mb[0]) < 1e-6 && (ha[0] - mb[0]) * mb[1] > 0) ha = hb;
+    for (const [u, side] of ma) if (Math.abs(ha[0] - u) < 1e-6 && (hb[0] - u) * side > 0) hb = ha;
+    for (const [u, side] of mb) if (Math.abs(hb[0] - u) < 1e-6 && (ha[0] - u) * side > 0) ha = hb;
     ra.push(ha); rb.push(hb);
   }
   ra.push(ra[0]); rb.push(rb[0]);

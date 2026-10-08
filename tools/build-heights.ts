@@ -34,7 +34,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
-import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile } from './lib/graph.ts';
+import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
@@ -49,7 +49,7 @@ const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 
 // 1,500 m, the red to 2,000 m, the blue to 4,000 m)
 const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000, blue: 4000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05 };
+const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05, stacked: 0.3 };
 // a siding is laid at the height of a running line this close beside it in a tunnel
 const SIDING_REACH = 9;
 let sidingAnchors = 0;
@@ -142,10 +142,20 @@ if (!ground.length) console.warn(`data/ground/<line>-line.json missing: no groun
 // the services' track pinned where the first fit put it, so that the crossovers, sidings and
 // depots are fitted to the line and don't move it.
 const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
+// the sidings and turnback tracks (tools/lib/graph.ts)
+const sidings = sidingPieces(graph, lineTrack(graph));
 // the line a piece belongs to: as OpenStreetMap names it, or the line of the services on it
 const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const STACKED = 6.5, CROSS_REACH = 7, JOINED = 250;
+// Where the running tracks of two services cross in OpenStreetMap's plan (tools/lib/graph.ts
+// runningCrossings), the points within CROSSED of the crossing count as crossing: the tracks
+// may run within CROSS_REACH of each other for a while either side, at a shallow angle. Tracks
+// merely side by side don't.
+const CROSSED = 80;
+const runCrossings = runningCrossings(graph);
+const crossedNear = (a: TrackPiece, b: TrackPiece, x: number, z: number) =>
+  runCrossings.some((c) => ((c.a === a.id && c.b === b.id) || (c.a === b.id && c.b === a.id)) && Math.hypot(c.x - x, c.z - z) < CROSSED);
 interface Var { x: number; z: number; key: string }
 const placements = JSON.parse(readFileSync('public/data/stations.json', 'utf8'));
 // the stations drawn from a model, with their tracks placed
@@ -234,7 +244,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       disc.get(p.id)!.v.forEach((vi, k) => { const h = pinned.get(vars[vi].key); if (h !== undefined) beside.push({ x: vars[vi].x, z: vars[vi].z, h, d: dirOf(p, k) }); });
     }
     for (const p of pieces) {
-      if (run.has(p.id) || p.structure !== 'tunnel' || (p.service !== 'siding' && p.service !== 'spur')) continue;
+      if (run.has(p.id) || p.structure !== 'tunnel' || !sidings.has(p.id)) continue;
       disc.get(p.id)!.v.forEach((vi, k) => {
         if (pinned.has(vars[vi].key)) return;
         const d = dirOf(p, k);
@@ -270,11 +280,14 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   // ... and are level along their length: the smoothing must not tilt them to meet the line on
   // either side
   const onPlatform = new Set(stationRows.map((r) => r.v));
-  // A station with no known height still has its platform tracks level with each other, as well
-  // as along their length: each track's points are held to the same height as the station's first
-  // platform point.
+  // A station's platform tracks are level with each other, as well as along their length (the
+  // station is built at one platform level; and where its height isn't known, they still are):
+  // each track's points are held to the same height as the station's first platform point. Where
+  // a line passes over another just beyond a station (Slussen, Västra skogen), it is the line that
+  // climbs or drops, not the platforms on one side of an island. Not at a station drawn from a
+  // model, whose platforms may be at several levels (Fridhemsplan), and are held to the model's.
   for (const st of graph.stations) {
-    if (stationHeights[st.name] || st.name === 'T-Centralen') continue;
+    if (st.name === 'T-Centralen' || models.some((m) => m.station === st.name)) continue;
     let first: number | null = null;
     for (const pl of st.platforms) {
       for (const t of pl.tracks) {
@@ -437,7 +450,10 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   // level); where two points of pieces at different layers are within CROSS_REACH in plan, more
   // than JOINED apart along the track (so not where a track rises out of a junction), and their
   // rails less than STACKED apart, the one above is held STACKED above the other. A service's own
-  // track stays where it is, and the other one moves.
+  // track stays where it is, and the other one moves. So too where the running tracks of two
+  // services cross in plan (crossedNear, above), whatever their layers: both move, and where
+  // OpenStreetMap gives them one layer (the red and green lines north of T-Centralen), the one
+  // above is the one that is mostly above them along the stretch, in the first solution.
   const pieceOfVar = new Map<number, { p: TrackPiece; s: number }>();
   for (const p of pieces) {
     const { s, v } = disc.get(p.id)!;
@@ -459,7 +475,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     }
     return Math.min((dist.get(b.p.from) ?? Infinity) + b.s, (dist.get(b.p.to) ?? Infinity) + b.p.length - b.s);
   }
-  const crossings: { a: number; b: number; order: number; fixed: number | null }[] = [];
+  const crossings: { a: number; b: number; order: number; fixed: number | null; pieces: string; orient: number }[] = [];
   {
     const grid = new Map<string, number[]>();
     for (const vi of pieceOfVar.keys()) {
@@ -471,14 +487,19 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       for (let i = Math.floor(x / 10) - 1; i <= Math.floor(x / 10) + 1; i++) for (let j = Math.floor(z / 10) - 1; j <= Math.floor(z / 10) + 1; j++) {
         for (const b of grid.get(`${i},${j}`) ?? []) {
           const pb = pieceOfVar.get(b)!;
-          if (b <= a || pa.p.layer === undefined || pb.p.layer === undefined || pa.p.layer === pb.p.layer) continue;
-          // the services' own tracks at two levels are kept apart in plan instead (build-track-geometry)
-          if (run.has(pa.p.id) && run.has(pb.p.id)) continue;
-          if (Math.hypot(vars[b].x - x, vars[b].z - z) > CROSS_REACH || alongTrack(pa, pb, JOINED) < JOINED) continue;
-          const fixed = run.has(pa.p.id) ? a : run.has(pb.p.id) ? b : null;
+          if (b <= a || Math.hypot(vars[b].x - x, vars[b].z - z) > CROSS_REACH) continue;
+          const layered = pa.p.layer !== undefined && pb.p.layer !== undefined && pa.p.layer !== pb.p.layer;
+          const both = run.has(pa.p.id) && run.has(pb.p.id);
+          // two services' running tracks only near where they cross (side by side, they may share a
+          // level; and the services' own two tracks at two levels are kept apart in plan instead,
+          // in build-track-geometry); other track where OpenStreetMap's layers differ
+          if (both ? !crossedNear(pa.p, pb.p, x, z) : !layered) continue;
+          if (alongTrack(pa, pb, JOINED) < JOINED) continue;
+          const fixed = both ? null : run.has(pa.p.id) ? a : run.has(pb.p.id) ? b : null;
           // against a service's track, the other passes on the side it is already on (0: decided
           // from the first solution): OpenStreetMap's layers there are often only roughly right
-          crossings.push({ a, b, order: fixed === null ? Math.sign(pa.p.layer - pb.p.layer) : 0, fixed });
+          crossings.push({ a, b, order: fixed === null && layered ? Math.sign(pa.p.layer! - pb.p.layer!) : 0, fixed,
+            pieces: `${Math.min(pa.p.id, pb.p.id)}/${Math.max(pa.p.id, pb.p.id)}`, orient: pa.p.id < pb.p.id ? 1 : -1 });
         }
       }
     }
@@ -499,7 +520,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       // a service's track stays where it is: only the other one moves
       if (fixed === a) return { i: [b], c: [1], b: y[a] - order * STACKED, w: 1 / SIGMA.cover };
       if (fixed === b) return { i: [a], c: [1], b: y[b] + order * STACKED, w: 1 / SIGMA.cover };
-      return { i: [a, b], c: [order, -order], b: STACKED, w: 1 / SIGMA.cover };
+      return { i: [a, b], c: [order, -order], b: STACKED, w: 1 / SIGMA.stacked };
     }),
     ...[...coverHeld].map((vi): Row => ({ i: [vi], c: [1], b: coverAt(vi)!, w: 1 / SIGMA.cover })),
     ...[...floorHeld].map((vi): Row => ({ i: [vi], c: [1], b: floorAt(vi)!, w: 1 / SIGMA.cover })),
@@ -534,8 +555,11 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       if (!bendHeld.has(k) && Math.abs(g) > 1 / bend.radius) { bendHeld.set(k, Math.sign(g)); changed++; }
       else if (bendHeld.has(k) && g * bendHeld.get(k)! < 1 / bend.radius) { bendHeld.delete(k); changed++; }
     });
+    // (two services' tracks at one layer: the side they are mostly on, all along the stretch)
+    const mostly = new Map<string, number>();
+    for (const c of crossings) if (!c.order && c.fixed === null) mostly.set(c.pieces, (mostly.get(c.pieces) ?? 0) + c.orient * (y[c.a] - y[c.b]));
     crossings.forEach((c, k) => {
-      if (!c.order) c.order = Math.sign(y[c.a] - y[c.b]) || 1;
+      if (!c.order) c.order = (c.fixed === null ? c.orient * Math.sign(mostly.get(c.pieces)!) : Math.sign(y[c.a] - y[c.b])) || 1;
       const dy = (y[c.a] - y[c.b]) * c.order;
       if (!stackHeld.has(k) && dy < STACKED - 0.01) { stackHeld.add(k); changed++; }
       else if (stackHeld.has(k) && dy > STACKED + 0.01) { stackHeld.delete(k); changed++; }
