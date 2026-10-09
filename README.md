@@ -89,6 +89,7 @@ to each, and exports them:
 | `F` | Free flight (`Space` / `C` to rise and sink) |
 | `R` | Back to the start |
 | `N` | Sound on/off |
+| `L` | Lights up: daylight everywhere and hardly any fog, to see dark stations and tunnels (`?light` starts with it on) |
 
 ### Phones and tablets
 

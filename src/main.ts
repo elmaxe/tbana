@@ -59,6 +59,9 @@ sun.position.set(0.35, 1, 0.25);
 scene.add(sun);
 const headLight = new THREE.PointLight(0xfff1dc, DAYLIGHT.head, 26, 1.5);
 scene.add(headLight);
+// even light everywhere, with the lights up (L)
+const fill = new THREE.AmbientLight(0xffffff, 0);
+scene.add(fill);
 lightWithLamps(coarse ? 8 : 12, !coarse);
 // Inside the train cars: none of these lights cast shadows, so the sun and the head light would
 // shine through the roofs. The cars' own lights light them, with a little of the station's.
@@ -283,6 +286,10 @@ function handleKey(code: string) {
       break;
     case 'KeyE': useLift(+1); break;
     case 'KeyQ': useLift(-1); break;
+    case 'KeyL':
+      lightsUp = !lightsUp;
+      toast(lightsUp ? 'Lights up' : 'Lights as built');
+      break;
     case 'KeyN':
       sound.setMuted(!sound.muted);
       toast(sound.muted ? 'Sound off' : 'Sound on');
@@ -586,6 +593,8 @@ function inStation(pos: THREE.Vector3, margin = 0) {
   const b = game?.station.bounds;
   return !!b && inBox(b, pos, margin);
 }
+// lit evenly everywhere, to see what is in the dark (L, or ?light)
+let lightsUp = params.has('light');
 // the station model whose box the player is in
 const modelAt = (pos: THREE.Vector3) => game?.station.areas.find((a) => inBox(a.bounds, pos, 0)) ?? null;
 function updateAtmosphere(player: Player<Floor>, dt: number) {
@@ -607,8 +616,11 @@ function updateAtmosphere(player: Player<Floor>, dt: number) {
   fog.color.copy(background);
   // out in the open the city can be seen nearly as far as it is built
   fog.density = THREE.MathUtils.lerp(0.0105, game?.city ? 2.3 / CITY_REACH : 0.0035, outdoor);
-  // underground, the stations' and tunnels' lamps light them
-  setDaylight(outdoor, sky, sun, headLight);
+  // underground, the stations' and tunnels' lamps light them; with the lights up (L, or ?light),
+  // daylight everywhere and hardly any fog, to see what is there
+  setDaylight(lightsUp ? 1 : outdoor, sky, sun, headLight);
+  fill.intensity = lightsUp ? 1.6 : 0;
+  if (lightsUp) fog.density = Math.min(fog.density, 0.0015);
 }
 
 // ------------------------------------------------------------------ loop
