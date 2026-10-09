@@ -908,7 +908,9 @@ export type CaveMotif =
   // factory, and a march of black figures with red banners
   | { kind: 'frieze'; from: number; to: number }
   // lines of small handwriting in many colours
-  | { kind: 'writing'; colors: string[]; from: number; to: number };
+  | { kind: 'writing'; colors: string[]; from: number; to: number }
+  // cracks in the rock traced in paint: thin lines wandering every way, branching
+  | { kind: 'cracks'; colors: string[]; from: number; to: number; count: number };
 
 export function caveRock(paint: CavePaint) {
   const PX = CAVE_PX, W = CAVE_ACROSS * PX, H = CAVE_REPEAT * PX;
@@ -1285,6 +1287,28 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
         wrap(y, 2.5, (yy) => {
           for (let k = 0; k < 5; k++) { x.beginPath(); x.ellipse(u + du[k], yy + (k - 2) * s * 0.45, s * 0.45, s * 0.55, 0, 0, Math.PI * 2); x.fill(); }
         });
+      }
+      break;
+    }
+    case 'cracks': {
+      x.lineCap = x.lineJoin = 'round';
+      const crack = (u: number, y: number, ang: number, len: number, w: number, depth: number) => {
+        const pts: [number, number][] = [[u, y]];
+        for (let d = 0; d < len; d += 0.12) {
+          ang += (r() - 0.5) * 0.7;
+          u = Math.min(m.to, Math.max(m.from, u + Math.cos(ang) * 0.12)); y += Math.sin(ang) * 0.12;
+          pts.push([u, y]);
+          if (depth < 2 && r() < 0.025) crack(u, y, ang + (r() < 0.5 ? 1 : -1) * (0.6 + r() * 0.8), len * (0.25 + r() * 0.35), w * 0.7, depth + 1);
+        }
+        const y0 = pts[0][1];
+        wrap(((y0 % L) + L) % L, len + 1, (yy) => {
+          x.lineWidth = w;
+          x.beginPath(); pts.forEach(([pu, py], k) => (k ? x.lineTo(pu, py - y0 + yy) : x.moveTo(pu, yy))); x.stroke();
+        });
+      };
+      for (let i = 0; i < m.count; i++) {
+        x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
+        crack(across(m.from, m.to), r() * L, r() * Math.PI * 2, 1.5 + r() * 3.5, 0.035 + r() * 0.025, 0);
       }
       break;
     }
@@ -1975,5 +1999,254 @@ export function horlinNiche(w: number, h: number, variant: number) {
   const g = x.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, 'rgba(0,0,0,0.25)'); g.addColorStop(0.2, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.1)');
   x.fillStyle = g; x.fillRect(0, 0, W, H);
+  return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ Stadion
+// Stadion (1973, src/hall-styles.ts): the platform's floor, large slabs of dark grey stone, 1 m
+// square (the texture covers 2 × 2 m).
+export function stadionFloor() {
+  const [c, x] = canvas(512);
+  x.fillStyle = '#8c8c8a'; x.fillRect(0, 0, 512, 512);
+  const r = rng(173);
+  for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+    const v = 70 + Math.floor(r() * 10);
+    x.fillStyle = `rgb(${v},${v + 1},${v + 3})`;
+    x.fillRect(i * 256 + 1.5, j * 256 + 1.5, 253, 253);
+  }
+  speckle(x, 512, 512, 7000, 0.25, 174, true);
+  speckle(x, 512, 512, 7000, 0.4, 175);
+  return toTexture(c);
+}
+
+// The pale stone along its edge (the texture covers 2 × 2 m).
+export function stadionEdge() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#d8d7d2'; x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 5000, 0.3, 176);
+  x.fillStyle = 'rgba(90,90,90,0.4)';
+  for (let k = 0; k < 2; k++) x.fillRect(0, k * 128, 256, 1.5);
+  return toTexture(c);
+}
+
+// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m).
+export function stadionPlinth() {
+  const [c, x] = canvas(384);
+  x.fillStyle = '#a9a294'; x.fillRect(0, 0, 384, 384);
+  const r = rng(177);
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+    const v = 222 + Math.floor(r() * 12);
+    x.fillStyle = `rgb(${v},${v - 6},${v - 22})`;
+    x.fillRect(i * 48 + 1.5, j * 48 + 1.5, 45, 45);
+  }
+  speckle(x, 384, 384, 1500, 0.08, 178);
+  return toTexture(c);
+}
+
+// The ceiling: black expanded steel mesh between dark beams across the hall every 1.5 m (the
+// texture covers 1.5 × 1.5 m, the beam along its top edge: v along the track).
+export function stadionCeiling() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#1e2023'; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = '#4a4d52'; x.lineWidth = 2;
+  const p = 12;
+  for (let k = -256; k < 512; k += p) {
+    x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 256, 256); x.stroke();
+    x.beginPath(); x.moveTo(k, 256); x.lineTo(k + 256, 0); x.stroke();
+  }
+  x.fillStyle = '#383a3e'; x.fillRect(0, 0, 256, 14);
+  x.fillStyle = '#5a5d62'; x.fillRect(0, 14, 256, 2);
+  return toTexture(c);
+}
+
+// Panels of green expanded steel mesh, on posts 1.2 m apart (the texture covers 1.2 × 1.2 m, a
+// post along its left edge), the dark rock showing through between the strands.
+export function stadionMesh() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#1d3a36'; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = '#5fb3a3'; x.lineWidth = 2.6;
+  const p = 256 / 24;
+  for (let k = -24; k <= 48; k++) {
+    x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + 128, 256); x.stroke();
+    x.beginPath(); x.moveTo(k * p, 256); x.lineTo(k * p + 128, 0); x.stroke();
+  }
+  x.fillStyle = '#4fa595'; x.fillRect(0, 0, 9, 256);
+  x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(9, 0, 3, 256);
+  return toTexture(c);
+}
+
+// How far round from the foot of a cave's paint (caveRock) the pillars' paint starts at the
+// platform.
+export const STADION_FOOT = 1.6;
+const RAINBOW = ['#d8321e', '#ee7a1c', '#f2cf2a', '#4aa83a', '#1f9a8a', '#2f6fd0', '#2a3a9a'];
+
+// The wall over one of the passage's openings, as seen from the passage: the pillars' sky-blue
+// rock, and round the opening a rainbow, its seven bands `band` m wide. `w` m along and `h` m up
+// from the platform; the opening `inset` in from each end with its crown `crown` high. With
+// `redInside`, the red band is the inner one.
+export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint) {
+  const PX = 48, W = Math.round(w * PX), H = Math.round(h * PX);
+  const [c, x] = canvas(W, H);
+  // the rock's paint, as on the pillars, upright (its foot, darkened by the track's dust, below
+  // the platform)
+  const rock = caveRock(paint).image as HTMLCanvasElement;
+  x.save(); x.translate(0, H + STADION_FOOT * PX); x.rotate(-Math.PI / 2);
+  for (let k = 0; k * CAVE_REPEAT * PX < W; k++) x.drawImage(rock, 0, k * CAVE_REPEAT * PX);
+  x.restore();
+  // the rainbow: the opening's half ellipse, grown band by band, the outer band first
+  const hw = w / 2 - inset, mid = w / 2;
+  x.setTransform(PX, 0, 0, -PX, 0, H);
+  const colours = redInside ? [...RAINBOW].reverse() : RAINBOW;
+  const r = rng(179), ph = [r() * 6, r() * 6];
+  for (let k = colours.length; k >= 1; k--) {
+    x.fillStyle = colours[colours.length - k];
+    x.beginPath();
+    const n = 90;
+    for (let i = 0; i <= n; i++) {
+      // (wavering a little, as brushed over the lumps)
+      const t = Math.PI * (i / n), wob = 1 + 0.025 * Math.sin(t * 7 + ph[0] + k * 0.3) + 0.015 * Math.sin(t * 17 + ph[1]);
+      const s = mid - Math.cos(t) * (hw + k * band) * wob, y = Math.sin(t) * (crown + k * band) * wob;
+      if (i) x.lineTo(s, y); else x.moveTo(s, -0.1);
+    }
+    x.lineTo(mid + hw + k * band, -0.1); x.closePath(); x.fill();
+  }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  // light on its lumps over the paint, so that it is painted on the rock
+  rockShade(x, W, H, Math.round(w * h * 1.5), '255,255,255', 0.16, PX * 0.6, r);
+  rockShade(x, W, H, Math.round(w * h * 1.5), '0,0,0', 0.18, PX * 0.6, r);
+  return toTexture(c, { repeat: false });
+}
+
+// The poster of the Olympic games of 1912 (Olle Hjortzberg's), between two pillars of grey stone:
+// a naked athlete waving a banner over a procession of the nations' flags, a swirl of blue and
+// yellow behind him, on gold, with its title below. 2.6 × 3.0 m.
+export function olympicPoster() {
+  const W = 520, H = 600, [c, x] = canvas(W, H);
+  const r = rng(1912);
+  // the stone either side, and the poster between them
+  for (const sx of [0, W - 70]) {
+    x.fillStyle = '#b9b9b6'; x.fillRect(sx, 0, 70, H);
+    for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(255,255,255,${0.1 + r() * 0.2})`; x.fillRect(sx + r() * 70, r() * H, 1 + r() * 10, 1 + r() * 30); }
+  }
+  const px = 72, pw = W - 144, py = 20, ph = H - 30;
+  x.fillStyle = '#c99a3a'; x.fillRect(px, py, pw, ph);
+  // the picture
+  const ix = px + 10, iy = py + 10, iw = pw - 20, ih = ph * 0.64;
+  x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
+  x.fillStyle = '#e8e2d2'; x.fillRect(ix, iy, iw, ih);
+  // the swirl
+  const cx = ix + iw * 0.62, cy = iy + ih * 0.42;
+  for (const [rad, col] of [[200, '#1f4fa0'], [170, '#f0c828'], [140, '#2c64b8'], [112, '#f2d548'], [86, '#1f4fa0'], [60, '#e8e2d2']] as const) {
+    x.fillStyle = col; x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI * 2); x.fill();
+  }
+  // the flags, along the left and the foot
+  const flag = (fx: number, fy: number, a: number, s: number, kind: number) => {
+    x.save(); x.translate(fx, fy); x.rotate(a);
+    const fw = 70 * s, fh = 46 * s;
+    if (kind === 0) { x.fillStyle = '#2c5fb0'; x.fillRect(0, 0, fw, fh); x.fillStyle = '#f2cf2a'; x.fillRect(fw * 0.3, 0, fh * 0.2, fh); x.fillRect(0, fh * 0.4, fw, fh * 0.2); }
+    else if (kind === 1) { for (let k = 0; k < 7; k++) { x.fillStyle = k % 2 ? '#f4f0e6' : '#c8302a'; x.fillRect(0, (k * fh) / 7, fw, fh / 7 + 1); } x.fillStyle = '#28408a'; x.fillRect(0, 0, fw * 0.4, fh * 0.55); }
+    else if (kind === 2) { ['#28408a', '#f4f0e6', '#c8302a'].forEach((col, k) => { x.fillStyle = col; x.fillRect((k * fw) / 3, 0, fw / 3 + 1, fh); }); }
+    else if (kind === 3) { x.fillStyle = '#f4f0e6'; x.fillRect(0, 0, fw, fh); x.fillStyle = '#c8302a'; x.fillRect(fw * 0.42, 0, fw * 0.16, fh); x.fillRect(0, fh * 0.38, fw, fh * 0.24); }
+    else { x.fillStyle = '#c8302a'; x.fillRect(0, 0, fw, fh); x.fillStyle = '#f4f0e6'; x.fillRect(fw * 0.4, fh * 0.2, fw * 0.2, fh * 0.6); x.fillRect(fw * 0.25, fh * 0.4, fw * 0.5, fh * 0.2); }
+    x.restore();
+  };
+  for (let i = 0; i < 26; i++) {
+    const t = i / 26;
+    flag(ix - 10 + (t < 0.5 ? r() * 60 : (t - 0.5) * 2 * iw * 0.9), t < 0.5 ? iy + t * 2 * ih * 0.8 : iy + ih * (0.72 + r() * 0.15), (r() - 0.5) * 1.2, 0.8 + r() * 0.6, Math.floor(r() * 5));
+  }
+  // the athlete, his arm raised with the banner's staff
+  x.fillStyle = '#b48a5a'; x.strokeStyle = '#6a4a2a'; x.lineWidth = 2;
+  const fx = ix + iw * 0.55, fy = iy + ih * 0.2;
+  x.beginPath(); x.arc(fx, fy, 16, 0, Math.PI * 2); x.fill(); x.stroke();
+  x.beginPath();
+  x.moveTo(fx - 22, fy + 22); x.lineTo(fx + 24, fy + 22); x.lineTo(fx + 20, fy + 110); x.lineTo(fx + 36, fy + 230); x.lineTo(fx + 22, fy + 232);
+  x.lineTo(fx + 2, fy + 130); x.lineTo(fx - 16, fy + 232); x.lineTo(fx - 30, fy + 228); x.lineTo(fx - 18, fy + 110); x.closePath(); x.fill(); x.stroke();
+  x.lineWidth = 12; x.strokeStyle = '#b48a5a'; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(fx + 20, fy + 28); x.lineTo(fx + 48, fy - 10); x.lineTo(fx + 62, fy - 42); x.stroke();
+  x.beginPath(); x.moveTo(fx - 20, fy + 28); x.lineTo(fx - 30, fy + 80); x.lineTo(fx - 24, fy + 120); x.stroke();
+  x.strokeStyle = '#3a3a3a'; x.lineWidth = 3;
+  x.beginPath(); x.moveTo(fx + 62, fy - 42); x.lineTo(fx + 140, fy + 30); x.stroke();
+  // the ribbon round them
+  x.strokeStyle = '#d8902a'; x.lineWidth = 7;
+  x.beginPath(); x.moveTo(ix, iy + ih * 0.45); x.bezierCurveTo(ix + iw * 0.3, iy + ih * 0.3, ix + iw * 0.5, iy + ih * 0.6, ix + iw, iy + ih * 0.55); x.stroke();
+  x.restore();
+  // the title
+  x.fillStyle = '#f4ead0'; x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+  x.font = '600 40px Georgia, "Times New Roman", serif';
+  x.fillText('OLYMPISKA SPELEN', W / 2, iy + ih + 58, pw - 20);
+  x.font = '600 32px Georgia, "Times New Roman", serif';
+  x.fillText('STOCKHOLM 1912', W / 2, iy + ih + 102, pw - 40);
+  x.font = '600 22px Georgia, "Times New Roman", serif';
+  x.fillText('29 JUNI — 22 JULI', W / 2, iy + ih + 136, pw - 60);
+  return toTexture(c, { repeat: false });
+}
+
+// A panel of painted flowers, red poppies and orange blooms among green leaves, in the shape of a
+// long hexagon, its two halves set at a slight angle; with a strip of turquoise sky along its top.
+// 3.6 × 2.2 m; clear outside it.
+export function stadionFlowers() {
+  const W = 720, H = 440, [c, x] = canvas(W, H);
+  const r = rng(1973);
+  x.beginPath(); x.moveTo(0, H / 2); x.lineTo(W * 0.18, 0); x.lineTo(W * 0.82, 0); x.lineTo(W, H / 2); x.lineTo(W * 0.82, H); x.lineTo(W * 0.18, H); x.closePath();
+  x.save(); x.clip();
+  x.fillStyle = '#1f6a2c'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#6ac8c0'; x.fillRect(0, 0, W, 34);
+  for (let i = 0; i < 260; i++) {
+    x.fillStyle = ['#2f8a3a', '#4aa83a', '#17501f', '#7ab84a'][Math.floor(r() * 4)];
+    x.save(); x.translate(r() * W, 30 + r() * H); x.rotate(r() * Math.PI);
+    x.beginPath(); x.ellipse(0, 0, 10 + r() * 18, 4 + r() * 6, 0, 0, Math.PI * 2); x.fill(); x.restore();
+  }
+  for (let i = 0; i < 46; i++) {
+    const fx = r() * W, fy = 40 + r() * (H - 40), rad = 10 + r() * 24, col = r() < 0.6 ? '#e2321e' : r() < 0.6 ? '#f07a1a' : '#f2c428';
+    for (let k = 0; k < 5; k++) {
+      x.fillStyle = col; x.beginPath();
+      x.ellipse(fx + Math.cos((k * Math.PI * 2) / 5) * rad * 0.45, fy + Math.sin((k * Math.PI * 2) / 5) * rad * 0.45, rad * 0.6, rad * 0.45, (k * Math.PI * 2) / 5, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = '#2a1a10'; x.beginPath(); x.arc(fx, fy, rad * 0.22, 0, Math.PI * 2); x.fill();
+  }
+  // the fold between its halves
+  const g = x.createLinearGradient(W * 0.5 - 30, 0, W * 0.5 + 30, 0);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, 'rgba(0,0,0,0.3)'); g.addColorStop(0.52, 'rgba(255,255,255,0.15)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.fillRect(W * 0.5 - 30, 0, 60, H);
+  x.restore();
+  return toTexture(c, { repeat: false });
+}
+
+// A round plaque, 0.55 m across, with a sports club's badge: a shield in its colours with its
+// initials, on white, rimmed in brass (`club` picks one of several).
+export function clubBadge(club: number) {
+  const clubs: [string, string[], string][] = [
+    ['D.I.F.', ['#2c5fb0', '#f2cf2a', '#c8302a'], '#f2cf2a'], ['AIK', ['#1a1a1a', '#f2cf2a'], '#f2cf2a'],
+    ['HIF', ['#1f7a3a', '#f4f4f0'], '#f4f4f0'], ['IFK', ['#2c5fb0', '#f4f4f0'], '#f4f4f0'], ['S.K.', ['#c8302a', '#f4f4f0'], '#f4f4f0'],
+  ];
+  const [name, cols, ink] = clubs[club % clubs.length];
+  const [c, x] = canvas(128);
+  x.clearRect(0, 0, 128, 128);
+  x.fillStyle = '#b08a3a'; x.beginPath(); x.arc(64, 64, 63, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#f2efe6'; x.beginPath(); x.arc(64, 64, 56, 0, Math.PI * 2); x.fill();
+  x.save();
+  x.beginPath(); x.moveTo(30, 24); x.lineTo(98, 24); x.lineTo(98, 66); x.quadraticCurveTo(98, 96, 64, 108); x.quadraticCurveTo(30, 96, 30, 66); x.closePath(); x.clip();
+  cols.forEach((col, k) => { x.fillStyle = col; x.save(); x.translate(64, 64); x.rotate(-0.7); x.fillRect(-80, -80 + (k * 160) / cols.length, 160, 160 / cols.length + 1); x.restore(); });
+  x.restore();
+  x.fillStyle = ink; x.strokeStyle = '#1a1a1a'; x.lineWidth = 3;
+  x.font = '900 24px "Arial Black", Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.strokeText(name, 64, 62, 64); x.fillText(name, 64, 62, 64);
+  return toTexture(c, { repeat: false });
+}
+
+// A coloured arrow pointing the way out, to the right: in bands of red to yellow, or in blocks of
+// blue, red and yellow. 2 × 1 m; clear outside it.
+export function stadionArrow(blocks: boolean) {
+  const W = 256, H = 128, [c, x] = canvas(W, H);
+  x.clearRect(0, 0, W, H);
+  x.beginPath(); x.moveTo(4, 44); x.lineTo(160, 44); x.lineTo(160, 8); x.lineTo(252, 64); x.lineTo(160, 120); x.lineTo(160, 84); x.lineTo(4, 84); x.closePath();
+  x.save(); x.clip();
+  if (blocks) {
+    ['#2f6fd0', '#d8321e', '#f2c428', '#2f6fd0', '#d8321e'].forEach((col, k) => { x.fillStyle = col; x.fillRect(k * 52, 0, 53, H); });
+  } else {
+    RAINBOW.slice(0, 3).forEach((col, k) => { x.fillStyle = col; x.fillRect(0, (k * H) / 3, W, H / 3 + 1); });
+  }
+  x.restore();
+  x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
   return toTexture(c, { repeat: false });
 }
