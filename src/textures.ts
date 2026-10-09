@@ -2250,3 +2250,122 @@ export function stadionArrow(blocks: boolean) {
   x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
   return toTexture(c, { repeat: false });
 }
+
+// ---------------------------------------------------------------- the detailed buildings
+// (src/detail/): near white where vertex colours tint them.
+
+// A window as seen from outside, over its whole pane (uv 0 → 1): a light frame, glazing bars and a
+// transom, and dark glass with the sky faintly in its upper part.
+export function detailWindow() {
+  const [c, x] = canvas(128, 256);
+  const g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#5b6b7a');
+  g.addColorStop(0.45, '#2c343d');
+  g.addColorStop(1, '#1d2329');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 128, 256);
+  x.fillStyle = '#ece9e1';
+  x.fillRect(0, 0, 128, 9); x.fillRect(0, 247, 128, 9); x.fillRect(0, 0, 9, 256); x.fillRect(119, 0, 9, 256);
+  x.fillRect(61, 0, 6, 256);
+  x.fillRect(0, 70, 128, 7);
+  for (const y of [140, 196]) x.fillRect(0, y, 128, 4);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A door: dark wood, glazed in its upper part, two panels below.
+export function detailDoor() {
+  const [c, x] = canvas(128, 256);
+  x.fillStyle = '#4a3220';
+  x.fillRect(0, 0, 128, 256);
+  speckle(x, 128, 256, 400, 0.15, 71);
+  x.fillStyle = '#1d242b';
+  x.fillRect(14, 18, 44, 86); x.fillRect(70, 18, 44, 86);
+  x.strokeStyle = 'rgba(0,0,0,0.45)';
+  x.lineWidth = 3;
+  for (const px of [14, 70]) x.strokeRect(px + 2, 128, 40, 108);
+  x.fillStyle = '#2e1f14';
+  x.fillRect(62, 0, 4, 256);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A shop front: a sign band over a big window of thin frames.
+export function detailShop() {
+  const [c, x] = canvas(256, 128);
+  const g = x.createLinearGradient(0, 30, 0, 128);
+  g.addColorStop(0, '#6d7c88');
+  g.addColorStop(0.5, '#38424c');
+  g.addColorStop(1, '#2a2f35');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 256, 128);
+  // warm light inside
+  x.fillStyle = 'rgba(255,214,150,0.18)';
+  x.fillRect(0, 60, 256, 68);
+  x.fillStyle = '#d9d6cf';
+  x.fillRect(0, 0, 256, 26);
+  x.fillStyle = '#3b3b3b';
+  x.fillRect(0, 26, 256, 4); x.fillRect(0, 0, 5, 128); x.fillRect(251, 0, 5, 128); x.fillRect(126, 30, 4, 98);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// Standing-seam metal roofing, the seams 0.5 m apart down the slope; covers 4 × 4 m.
+export function roofSeams() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#d2d4d8';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 900, 0.06, 81);
+  for (let k = 0; k < 256; k += 32) {
+    x.fillStyle = 'rgba(0,0,0,0.22)';
+    x.fillRect(k, 0, 2, 256);
+    x.fillStyle = 'rgba(255,255,255,0.35)';
+    x.fillRect(k + 2, 0, 2, 256);
+  }
+  return toTexture(c);
+}
+
+// Copper gone green, mottled; covers 2 × 2 m.
+export function verdigris() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#74b3a0';
+  x.fillRect(0, 0, 128, 128);
+  const r = rng(91);
+  for (let i = 0; i < 160; i++) {
+    const v = r();
+    x.fillStyle = v < 0.5 ? `rgba(60,95,88,${0.1 + r() * 0.25})` : `rgba(170,215,200,${0.1 + r() * 0.2})`;
+    x.beginPath(); x.arc(r() * 128, r() * 128, 2 + r() * 9, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
+}
+
+// Bricks without windows; covers 2 × 2 m.
+export function brickBond() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#c9c3bb';
+  x.fillRect(0, 0, 256, 256);
+  const r = rng(101);
+  // 32 courses of 62 mm, bricks 250 mm long
+  for (let y = 0; y < 256; y += 8) {
+    for (let k = -1; k < 9; k++) {
+      const x0 = k * 32 + ((y / 8) % 2 ? 16 : 0), v = 200 + Math.floor(r() * 55);
+      x.fillStyle = `rgb(${v},${v - 6},${v - 12})`;
+      x.fillRect(x0 + 1, y + 1, 30, 6);
+    }
+  }
+  return toTexture(c);
+}
+
+// A curtain wall of glass, one panel 1.25 m wide by one storey of 3.4 m: a spandrel at the floor,
+// mullions either side, and the glass with the sky in it.
+export function curtainWall() {
+  const [c, x] = canvas(128, 256);
+  const g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#9fb7c6');
+  g.addColorStop(0.7, '#5f7686');
+  g.addColorStop(1, '#4b5f6d');
+  x.fillStyle = g;
+  x.fillRect(0, 0, 128, 256);
+  x.fillStyle = '#7f9aa6';
+  x.fillRect(0, 190, 128, 66);
+  x.fillStyle = '#c9d2d6';
+  x.fillRect(0, 0, 6, 256); x.fillRect(122, 0, 6, 256); x.fillRect(0, 186, 128, 5); x.fillRect(0, 252, 128, 4);
+  return toTexture(c, { aniso: 8 });
+}
