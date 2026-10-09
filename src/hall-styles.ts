@@ -146,8 +146,8 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
   // drawing), sky blue with cracks traced in gold and dark blue, on a plinth of cream tiles that
   // makes a bench round them; their outer ends dark green behind fences of green steel mesh.
   // Between them a passage up into the cave, and over its openings to each side a rainbow. On the
-  // pillars, the poster of the 1912 games, a panel of flowers, coloured arrows to the ways out
-  // and the badges of sports clubs. A flat ceiling of black steel mesh hangs over the tracks and
+  // pillars' ends, the poster of the 1912 games (north) and a panel of flowers (south); along
+  // their sides, coloured arrows to the ways out and the badges of sports clubs. A flat ceiling of black steel mesh hangs over the tracks and
   // the platform, and the track walls, dark green rock, have green mesh panels along their foot.
   'Stadion': {
     paint: { seed: 73, bands: [{ from: 0, color: '#1f4643' }, { from: 2.4, color: '#2b5a55', edge: 'soft' }, { from: 13.5, color: '#7fb2dc', edge: 'soft' }],
@@ -155,7 +155,7 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
         { kind: 'dabs', colors: ['#6aa0d0', '#a2cbec'], from: 13.5, to: 18, size: 0.6, count: 80 },
         { kind: 'cracks', colors: ['#d8a838', '#2f5aa8'], from: 13.6, to: 18, count: 30 }] },
     island: {
-      pillars: { width: 7.4, gap: 11, ends: 9, fenced: 0.35, plinth: 0.45,
+      pillars: { width: 12, gap: 13, ends: 9, fenced: 0.35, plinth: 0.45,
         paint: { seed: 731, bands: [{ from: 0, color: '#7eb3de' }],
           motifs: [{ kind: 'dabs', colors: ['#5f97cc', '#a6cdee', '#8fbfe6'], from: 0, to: 18, size: 0.7, count: 260 },
             { kind: 'cracks', colors: ['#d8a838', '#d8a838', '#2f5aa8'], from: 0, to: 18, count: 70 }] },

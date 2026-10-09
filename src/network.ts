@@ -918,11 +918,13 @@ export class Network {
     const mat = (key: MaterialName, make: () => THREE.Material) => { this.mats[key] ??= make(); return b[key] ??= new MeshBuilder(); };
     const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint)), fencedRock = mat(`fenced:${station}`, () => islandRock(st.pillars.fencedPaint));
     // the art on the pillars' long faces (`ps`, the pillar: -1 or 1; `side`, its face: -1 or 1),
-    // which the rock is smoothed for
+    // which the rock is smoothed for; on a pillar's outer end instead (`side` 0), centred on the
+    // middle of the platform. The poster is at the north end, the flowers at the south: +s is
+    // north at Stadion.
     type Art = { ps: number; side: number; s: number; y: number; w: number; h: number; map: () => THREE.Texture; dir?: number; key: string };
     const arts: Art[] = [
-      { ps: -1, side: -1, s: -(gap + blue * 0.45), y: plinth + 1.33, w: 2.3, h: 2.65, map: () => T.olympicPoster(), key: 'poster' },
-      { ps: 1, side: 1, s: gap + blue * 0.45, y: plinth + 1.35, w: 3.6, h: 2.2, map: () => T.stadionFlowers(), key: 'flowers' },
+      { ps: 1, side: 0, s: 0, y: plinth + 1.43, w: 2.3, h: 2.65, map: () => T.olympicPoster(), key: 'poster' },
+      { ps: -1, side: 0, s: 0, y: plinth + 1.45, w: 3.6, h: 2.2, map: () => T.stadionFlowers(), key: 'flowers' },
       { ps: -1, side: 1, s: -(gap + blue * 0.8), y: 2.1, w: 2.4, h: 1.2, map: () => T.stadionArrow(false), dir: -1, key: 'arrow0' },
       { ps: 1, side: -1, s: gap + blue * 0.8, y: 2.1, w: 2.4, h: 1.2, map: () => T.stadionArrow(true), dir: 1, key: 'arrow1' },
     ];
@@ -940,8 +942,8 @@ export class Network {
     const smooth = (s: number, w: number, y: number) => {
       let f = 1;
       for (const a of arts) {
-        if (Math.sign(w) !== a.side || Math.abs(Math.abs(w) - hw) > 0.05) continue;
-        const d = Math.max(Math.abs(s - a.s) - a.w / 2, Math.abs(y - a.y) - a.h / 2);
+        if (a.side ? Math.sign(w) !== a.side || Math.abs(Math.abs(w) - hw) > 0.05 : Math.abs(s - a.ps * end) > 0.05) continue;
+        const d = Math.max(Math.abs((a.side ? s : w) - a.s) - a.w / 2, Math.abs(y - a.y) - a.h / 2);
         f = Math.min(f, Math.max(0, Math.min(1, d / 0.6)));
       }
       return f;
@@ -955,8 +957,9 @@ export class Network {
       const rows = [plinth, plinth + 0.25, plinth + 0.6];
       for (let y = plinth + 1.1; y < isl.top; y += 0.5) rows.push(y);
       rows.push(isl.top);
-      // the rock, painted blue near the passage and green behind the fences, in runs of columns
-      const zone = (j: number) => Math.abs((ring[j].s + ring[j + 1].s) / 2) > fence;
+      // the rock, painted blue near the passage and on the outer end, and green behind the fences
+      // along the sides, in runs of columns
+      const zone = (j: number) => Math.abs((ring[j].s + ring[j + 1].s) / 2) > fence && Math.abs((ring[j].w + ring[j + 1].w) / 2) > hw - 0.5;
       for (let j0 = 0; j0 + 1 < ring.length;) {
         let j1 = j0 + 1;
         while (j1 + 1 < ring.length && zone(j1) === zone(j0)) j1++;
@@ -1073,10 +1076,11 @@ export class Network {
         this.islandArt.set(a.key, m);
       }
       // (u along the face to the right of someone facing it, or for an arrow, the way it points)
-      const w = a.side * (hw + 0.03), right = a.dir ?? a.side;
-      const s0 = a.s - (right * a.w) / 2, s1 = a.s + (right * a.w) / 2, y0 = a.y - a.h / 2, y1 = a.y + a.h / 2;
+      const right = a.dir ?? (a.side || -a.ps), y0 = a.y - a.h / 2, y1 = a.y + a.h / 2;
+      const u0 = a.s - (right * a.w) / 2, u1 = a.s + (right * a.w) / 2;
+      const at = (u: number, y: number) => a.side ? isl.P(u, a.side * (hw + 0.03), y) : isl.P(a.ps * (end + 0.03), u, y);
       const g = new THREE.BufferGeometry();
-      const corners = [isl.P(s0, w, y0), isl.P(s1, w, y0), isl.P(s1, w, y1), isl.P(s0, w, y1)];
+      const corners = [at(u0, y0), at(u1, y0), at(u1, y1), at(u0, y1)];
       g.setAttribute('position', new THREE.Float32BufferAttribute(corners.flatMap((p) => [p.x, p.y, p.z]), 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
       g.setIndex([0, 1, 2, 0, 2, 3]);
