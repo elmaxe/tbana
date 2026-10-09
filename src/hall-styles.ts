@@ -142,7 +142,7 @@ export interface CaveIsland {
 export const CAVE_STYLES: Record<string, CaveStyle> = {
   // Stadion (1973, Enno Hallek and Åke Pallarp), on the red line by the Olympic stadium of 1912:
   // one of the first caves, painted sky blue so that it should not feel like the underworld. The
-  // rock is left standing in two long pillars down the island platform (Albert Guillaumes'
+  // rock is left standing in two long pillars down its wide island platform (Albert Guillaumes'
   // drawing), sky blue with cracks traced in gold and dark blue, on a plinth of cream tiles that
   // makes a bench round them; their outer ends dark green behind fences of green steel mesh.
   // Between them a passage up into the cave, and over its openings to each side a rainbow. On the
@@ -155,7 +155,7 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
         { kind: 'dabs', colors: ['#6aa0d0', '#a2cbec'], from: 13.5, to: 18, size: 0.6, count: 80 },
         { kind: 'cracks', colors: ['#d8a838', '#2f5aa8'], from: 13.6, to: 18, count: 30 }] },
     island: {
-      pillars: { width: 3.6, gap: 11, ends: 9, fenced: 0.35, plinth: 0.45,
+      pillars: { width: 7.4, gap: 11, ends: 9, fenced: 0.35, plinth: 0.45,
         paint: { seed: 731, bands: [{ from: 0, color: '#7eb3de' }],
           motifs: [{ kind: 'dabs', colors: ['#5f97cc', '#a6cdee', '#8fbfe6'], from: 0, to: 18, size: 0.7, count: 260 },
             { kind: 'cracks', colors: ['#d8a838', '#d8a838', '#2f5aa8'], from: 0, to: 18, count: 70 }] },

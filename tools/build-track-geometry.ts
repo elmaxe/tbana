@@ -39,7 +39,7 @@ import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
-import { ISLAND_WIDTH, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES } from '../src/sections.ts';
+import { ISLAND_WIDTH, ISLAND_WIDTHS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
 import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
@@ -78,6 +78,9 @@ const CUTTING = 1.5, EMBANKMENT = 1.0;
 // two tracks share a structure where they are this close (or across a shared island platform),
 // and their rails this close in height
 const SHARE_REACH = 7.5, SHARE_DY = 2.0;
+// how far across the widest island platform two tracks may be, and how far apart in length its
+// ends may be on the two
+const ISLAND_REACH = Math.max(ISLAND_WIDTH, ...Object.values(ISLAND_WIDTHS)) * 2 + 2 * PLATFORM_EDGE, ISLAND_ENDS = 8;
 // structure runs shorter than this are merged into the run before
 const MIN_RUN = 30;
 
@@ -396,7 +399,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         pairRows++;
       } else if (here && there && here.osm === there.osm) {
         // an island platform between them
-        target = ISLAND_WIDTH + 2 * PLATFORM_EDGE;
+        target = islandWidth(here.station) + 2 * PLATFORM_EDGE;
         f = 1;
         islandRows++;
       } else {
@@ -584,10 +587,11 @@ for (const p of pieces) {
     const x = g.x[k], z = g.z[k], y = g.y[k];
     const here = platformAt(p.id, g.s[k]);
     let b = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, SHARE_REACH, SHARE_DY);
-    // across an island platform they share
+    // across an island platform they share (whose ends OpenStreetMap puts a few metres apart on
+    // the two tracks)
     if (!b && here) {
-      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, SHARE_DY);
-      if (c && platformAt(c.piece.id, c.s)?.osm === here.osm) b = c;
+      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_REACH, SHARE_DY);
+      if (c && [0, -ISLAND_ENDS, ISLAND_ENDS].some((d) => platformAt(c.piece.id, c.s + d)?.osm === here.osm)) b = c;
     }
     if (b && (b.piece.structure === 'tunnel') !== (p.structure === 'tunnel')) b = null;
     shareStats.total += STEP;
