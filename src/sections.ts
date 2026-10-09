@@ -13,6 +13,11 @@ export const PLATFORM_HEIGHT = 1.0;
 // platform widths where OpenStreetMap doesn't give a usable one: an island between two tracks in
 // a rock station (1952: 6–9 m), and a platform on one side
 export const ISLAND_WIDTH = 9;
+// ... and the islands known to be wider: Stadion's, its rock left in two long pillars about
+// 12 m across with 4 m of platform beside each (measured on Albert Guillaumes' drawing, scaled by
+// the platform's length: eight of the old cars, 141 m)
+export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20 };
+export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
 
 export const GAUGE = 1.435;
