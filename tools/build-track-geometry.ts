@@ -72,6 +72,8 @@ const OPEN_AS_MAPPED = new Set(['green']);
 // the two tracks are pulled together where they are within this of each other in plan, and in
 // height (fully within the second figure)
 const PAIR_REACH = 40, PAIR_DY = [2.0, 1.5];
+// an island platform two lines share (Gamla stan's), m
+const SHARED_ISLAND_WIDTH = 8.2;
 // Tracks at different levels, which can't share a tunnel, are kept at least this far apart, so
 // that their tunnels don't cut into each other, unless one is well below the other (full force
 // from the second height to the third).
@@ -222,6 +224,12 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
   const platformAt = (piece: number, s: number) => (platformsOn.get(piece) ?? []).find((r) => s >= r.s0 && s <= r.s1) ?? null;
+  // the platforms two lines' tracks share (Gamla stan's, Slussen's)
+  const linesAt = new Map<number, Set<string>>();
+  for (const st of graph.stations) for (const pl of st.platforms) for (const t of pl.tracks) {
+    if (used.has(t.piece)) (linesAt.get(pl.osm) ?? linesAt.set(pl.osm, new Set()).get(pl.osm)!).add(lineOf(graph.pieces[t.piece]));
+  }
+  const sharedByLines = (r: PlatformRange | null) => !!r && (linesAt.get(r.osm)?.size ?? 0) > 1;
   // how far s is from the nearest platform on the piece, or on the pieces next to it
   const platformDistance = (p: TrackPiece, s: number) => {
     let best = Infinity;
@@ -498,6 +506,12 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         target = ISLAND_WIDTH + 2 * PLATFORM_EDGE;
         f = 1;
         islandRows++;
+      } else if (sharedByLines(here) && sharedByLines(there)) {
+        // between two islands, each shared with another line's track (Gamla stan): as far apart as
+        // OpenStreetMap has them, so that the islands either side don't squeeze them together
+        target = Math.max(TRACK_CENTRES, b.d);
+        f = 1;
+        pairRows++;
       } else {
         if (lineBetween(osmGrid, osmPos, p, a.x0, a.z0, b.x, b.z, a.y)) return;
         target = TRACK_CENTRES;
@@ -508,6 +522,23 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         pairRows++;
       }
       rows.push(spacingRow(across(p, s[k], vi, b), target, f));
+    });
+  }
+  // ... and an island platform two lines share in a tunnel (Gamla stan's: each line's track on
+  // one side, the trains each way changing lines across it), as wide as OpenStreetMap's outlines
+  // of Gamla stan's are at their widest along the whole platform: OpenStreetMap's tracks close in
+  // towards its north end, where the outlines taper to under 5 m
+  for (const p of pieces) {
+    if (p.structure !== 'tunnel' || !services.has(p.id)) continue;
+    const { s, v } = disc.get(p.id)!;
+    v.forEach((vi, k) => {
+      const here = platformAt(p.id, s[k]);
+      if (onModel.has(vi) || !here) return;
+      const a = vars[vi];
+      const b = otherLine(osmGrid, osmPos, p, a.x0, a.z0, a.y, ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, PAIR_DY[0]);
+      if (!b || b.piece.structure !== 'tunnel' || platformAt(b.piece.id, b.s)?.osm !== here.osm) return;
+      rows.push(spacingRow(across(p, s[k], vi, b), SHARED_ISLAND_WIDTH + 2 * PLATFORM_EDGE, 1));
+      islandRows++;
     });
   }
   // How far the other track is across this one, as a row of unknowns: this point, and the two

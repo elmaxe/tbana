@@ -71,7 +71,7 @@
           {"mark": "gates"},
           {"exit": 401798228}
         ] },
-        { "from": "gates", "width": 4, "go": [
+        { "from": "gates", "width": 2.5, "go": [
           {"walk": [-44, 18.7]},
           {"exit": 3596988872}
         ] },
