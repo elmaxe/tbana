@@ -8,6 +8,8 @@ import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, Sig
 import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
+import { TUBE, addLamps, removeLamps } from './lamps';
+import type { Lamp } from './lamps';
 
 // The metro's stations on the network, built from public/data/station-layouts.json (see
 // src/station-layout.ts and tools/build-stations.ts): their passages, halls, stairs, escalators
@@ -25,6 +27,9 @@ const PROBE = 0.15;   // how far beyond a floor's edge to look for the next floo
 const STEP = 0.65;    // a floor within this height there can be stepped onto
 const PIECE = 0.5;    // walls are found in pieces this long
 const PARAPET = 1.1;  // walls around stairs coming up into the street stand this high
+// the light of a row of lamps down a room's ceiling, per metre (see src/lamps.ts), and how far it
+// lights
+const ROOM_LIGHT = { power: 1.4, reach: 14 };
 
 export interface StationFloorData {
   kind: 'station';
@@ -107,6 +112,8 @@ export class Stations {
   private signs = new Map<string, THREE.Texture>();
   private _hits: SurfaceHit<StationFloorData>[] = [];
   private _plat: SurfaceHit<PlatformFloorData>[] = [];
+  // the lamps of the station being built
+  private lamps: Lamp[] = [];
 
   // The volumes the network cuts out of what it draws: the stations' open spaces (`holes`), and,
   // from the platforms' floors, the solid undersides of the stairs (`solids`).
@@ -234,6 +241,7 @@ export class Stations {
       if (g && d > UNLOAD) {
         this.group.remove(g);
         g.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+        removeLamps(g);
         this.built.delete(st.name);
       } else if (!g && d < LOAD) {
         const ng = this.build(st);
@@ -248,6 +256,7 @@ export class Stations {
     const m = Object.fromEntries(Object.keys(this.mats).map((k) => [k, new Mesh()])) as Meshes;
     const group = new THREE.Group();
     group.name = st.name;
+    this.lamps = [];
     const spaces: Space[] = [];
     const voids: Volume[] = [];
     for (const p of st.parts) {
@@ -260,7 +269,7 @@ export class Stations {
     for (const p of st.parts) {
       switch (p.kind) {
         case 'floor': this.buildFloor(p, m, others(p), spaces); break;
-        case 'incline': this.buildIncline(p, m, others(p), [...voids, ...spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol)]); break;
+        case 'incline': this.buildIncline(p, m, others(p), spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol), voids); break;
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
         case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
@@ -274,6 +283,7 @@ export class Stations {
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));
     }
+    addLamps(group, this.lamps);
     return group;
   }
 
@@ -294,9 +304,17 @@ export class Stations {
     this.lampRow(m, s0, s1, p.ceiling - 0.04, cut);
   }
 
-  private lampRow(m: Meshes, a: XYZ, b: XYZ, above: number, cut: Volume[]) {
+  // A row of lamps `above` the line from a to b; indoors (`lights`), they light the room under them.
+  private lampRow(m: Meshes, a: XYZ, b: XYZ, above: number, cut: Volume[], lights = true) {
     const l = Math.hypot(b[0] - a[0], b[2] - a[2]);
     if (l < 1) return;
+    if (lights) {
+      this.lamps.push({
+        ...ROOM_LIGHT, color: TUBE, down: 1,
+        a: new THREE.Vector3(a[0], a[1] + above, a[2]), b: new THREE.Vector3(b[0], b[1] + above, b[2]),
+        floor: Math.min(a[1], b[1]) - 0.3, top: Math.max(a[1], b[1]) + above + 0.3,
+      });
+    }
     const fx = (b[0] - a[0]) / l, fz = (b[2] - a[2]) / l;
     const n = Math.max(1, Math.floor(l / 4));
     for (let i = 0; i < n; i++) {
@@ -308,8 +326,9 @@ export class Stations {
   }
 
   // Steps lane by lane, the balustrades between the escalators, the ceiling, and the sides of the
-  // flight down to its foot where it stands in a room.
-  private buildIncline(p: InclinePart, m: Meshes, cut: Volume[], rooms: Volume[]) {
+  // flight down to its foot where it stands in a room: one of the station's (`rooms`) or a
+  // platform hall the network draws (`halls`).
+  private buildIncline(p: InclinePart, m: Meshes, cut: Volume[], rooms: Volume[], halls: Volume[]) {
     const dx = p.b[0] - p.a[0], dz = p.b[2] - p.a[2], run = Math.hypot(dx, dz) || 1;
     const fx = dx / run, fz = dz / run, rx = -fz, rz = fx;
     const rise = p.b[1] - p.a[1];
@@ -356,15 +375,19 @@ export class Stations {
       m.rubber.poly([[...q(-1, -w, -0.04), 0, 0], [...q(1, -w, -0.04), 1, 0], [...q(1, -w, 0.04), 1, 1], [...q(-1, -w, 0.04), 0, 1]]);
       m.rubber.poly([[...q(-1, w, 0.04), 0, 0], [...q(-1, w, -0.04), 1, 0], [...q(1, w, -0.04), 1, 1], [...q(1, w, 0.04), 0, 1]]);
     });
-    // the flight's sides below its steps, down to its foot: only where it stands in a room
+    // the flight's sides below its steps, down to its foot: only where it stands in a room, with
+    // its steps inside it. Where it only passes over a room (escalators climbing over a platform
+    // hall), what of its sides is inside the room would be a wall hanging across the hall, under
+    // nothing. (A piece's fourth value is how far up the flight it is, 0 to 1.) Nor are they
+    // carried out of a passage into the hall it opens into.
     const foot = p.a[1] - 0.05;
     for (const side of [-1, 1]) {
       const uu = side * p.width / 2;
       const a0 = at(uu, 0), a1 = at(uu, 1);
       const quad = [[a0[0], foot, a0[2], 0, 0], [a1[0], foot, a1[2], 1, 0], [...a1, 1, 1], [...a0, 0, 1]];
-      for (const r of rooms) {
+      for (const r of [...rooms, ...halls]) {
         const piece = intersect(quad, r);
-        if (piece.length) m.skirt.poly(piece);
+        if (piece.some((v) => v[1] > p.a[1] + rise * v[3] - 0.05)) m.skirt.poly(piece, halls.includes(r) ? [] : halls);
       }
     }
     // the ceiling, and lights up the middle
@@ -554,7 +577,7 @@ export class Stations {
       for (const dy of [0, 0.25]) {
         m.canopy.poly([[a[0] - rx, a[1] + dy, a[2] - rz, 0, 0], [a[0] + rx, a[1] + dy, a[2] + rz, 1, 0], [b[0] + rx, b[1] + dy, b[2] + rz, 1, 1], [b[0] - rx, b[1] + dy, b[2] - rz, 0, 1]], cut);
       }
-      this.lampRow(m, [a[0], a[1], a[2]], [b[0], b[1], b[2]], -0.04, cut);
+      this.lampRow(m, [a[0], a[1], a[2]], [b[0], b[1], b[2]], -0.04, cut, false);
       if (i % 2 === 0) box(m.canopy, [a[0], a[1] - 1.6, a[2]], (b[0] - a[0]) / l, (b[2] - a[2]) / l, 0.25, 3.2, 0.25, cut);
     }
   }

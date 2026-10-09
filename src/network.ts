@@ -11,6 +11,8 @@ import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
 import type { CaveIsland, CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
+import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
+import type { Lamp } from './lamps';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -27,6 +29,11 @@ const OVERLAP = 0.15;    // the halves of a shared tunnel or deck overlap by thi
 const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track (without a city)
 const SKIRT = 3;         // with a city: a bank's slope goes on this far below the ground
 const POINT_CELL = 20;
+// The light of the lamps (src/lamps.ts): the platforms' rows of tubes and the depot halls' lamps,
+// per metre of row, and a tunnel's lamps, each; how far each lights.
+const PLATFORM_LIGHT = { power: 1.7, reach: 16 };
+const HALL_LIGHT = { power: 1.2, reach: 14 };
+const TUNNEL_LAMP = { power: 2.5, reach: 9 };
 
 type UV = [number, number];
 
@@ -37,6 +44,9 @@ interface Sample {
   s: number;                       // distance along the piece in the track graph
   kind: StructureKind;
   pair: number; pairDy: number;
+  // another line's track sharing the structure on the other side, as in src/track-geometry.ts
+  // (to the right; negative: to the left), or 0, and how much higher its rails are
+  beside: number; besideDy: number;
   // the nearest other track on each side, as in src/track-geometry.ts (negative for a service's)
   left: number; right: number;
   yard: boolean;                   // track no service runs on: crossovers, sidings, depots
@@ -384,6 +394,7 @@ export class Network {
       if (t.group && d > UNLOAD) {
         this.group.remove(t.group);
         t.group.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+        removeLamps(t.group);
         t.group = null;
       } else if (!t.group && d < LOAD + TILE * 0.71) want.push({ t, d });
     }
@@ -410,10 +421,12 @@ export class Network {
     const b = Object.fromEntries(Object.keys(this.mats).map((k) => [k, new MeshBuilder()])) as Record<MaterialName, MeshBuilder>;
     const group = new THREE.Group();
     group.name = `tile ${tile.key}`;
-    for (const run of tile.runs) this.buildRun(run, b, group);
+    const lamps: Lamp[] = [];
+    for (const run of tile.runs) this.buildRun(run, b, group, lamps);
     for (const isl of this.islands) {
       if (`${Math.floor(isl.o.x / TILE)},${Math.floor(isl.o.z / TILE)}` === tile.key) this.buildIsland(isl, b, group);
     }
+    addLamps(group, lamps);
     // the holes reaching into the tile (its runs reach a little beyond it)
     const m = 60, x0 = tile.cx - TILE / 2 - m, x1 = tile.cx + TILE / 2 + m, z0 = tile.cz - TILE / 2 - m, z1 = tile.cz + TILE / 2 + m;
     const near = (h: Volume) => h.max[0] > x0 && h.min[0] < x1 && h.max[2] > z0 && h.min[2] < z1;
@@ -424,7 +437,7 @@ export class Network {
     return group;
   }
 
-  private buildRun({ samples, i0, i1 }: Run, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+  private buildRun({ samples, i0, i1 }: Run, b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
     const run = samples.slice(i0, i1 + 1);
     // the track itself
     // (track no service runs on a little lower, where its ballast meets another track's at a turnout)
@@ -519,13 +532,24 @@ export class Network {
         return { key: 'floor', pts: side < 0 ? [[a, f], [-S.BALLAST.toe, f]] : [[S.BALLAST.toe, f], [c, f]] };
       }, { uScale: 0.25, vScale: 0.25 });
     }
+    // where the track sharing the tunnel on that side is lower (as where the lines part for
+    // T-Centralen's two levels), the step down to its floor at the middle
+    for (const side of [-1, 1]) {
+      sweep(b.concrete, run, (sm) => {
+        if ((sm.kind !== 'rock' && sm.kind !== 'box') || inHall(sm) || hallStyle(sm)) return null;
+        const dy = Math.sign(sm.pair) === side ? sm.pairDy : Math.sign(sm.beside) === side ? sm.besideDy : 0;
+        if (dy > -0.05) return null;
+        const [a, c] = ownSpan(sm, structureSpan(sm)), f = S.FLOOR;
+        return { key: 'step', pts: side < 0 ? [[a, f + dy], [a, f]] : [[c, f], [c, f + dy]] };
+      }, { uScale: 0.25, vScale: 0.25 });
+    }
     this.openStructure(run, b);
     this.islandHall(run, b, group);
-    this.platforms(run, b, group);
+    this.platforms(run, b, group, lamps);
     this.columns(samples, run, b);
     this.posters(samples, run, group);
     this.blocks(samples, run, b, group);
-    this.lights(run, b);
+    this.lights(run, b, lamps);
     this.ends(samples, i0, i1, b);
   }
 
@@ -593,7 +617,7 @@ export class Network {
     }
   }
 
-  private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+  private platforms(run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
     const H = S.PLATFORM_HEIGHT;
     for (const [mb, kind] of [[b.platform, null], [b.hallFloor, 'flat'], [b.kpFloor, 'vault']] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
@@ -648,10 +672,13 @@ export class Network {
       const u0 = p.side * (S.PLATFORM_EDGE + from), u1 = p.side * (S.PLATFORM_EDGE + from + 0.12);
       return { key: `y${p.side}`, pts: p.side > 0 ? [[u0, H + 0.004], [u1, H + 0.004]] : [[u1, H + 0.004], [u0, H + 0.004]] };
     });
-    // station name signs on the wall across the track, and lights over the platform edge
+    // station name signs on the wall across the track, and lights over the platform edge, which
+    // light the station where it is underground
     let lastSign = -Infinity;
+    const row = new LampRow(lamps, PLATFORM_LIGHT, TUBE, 1);
     for (const sm of run) {
       const p = sm.plat;
+      if (!p || (sm.kind !== 'rock' && sm.kind !== 'box')) row.end();
       if (!p) continue;
       const vs = vaultStyle(sm);
       if (vs && sm.along - lastSign >= vs.signEvery) {
@@ -676,13 +703,16 @@ export class Network {
           group.add(sign);
         }
       }
+      // the light of its row of lamps, wherever the hall has them
+      let light = at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6);
       // (in a vaulted hall, a nearly unbroken row along its crown)
       if (hallStyle(sm)?.kind === 'vault') {
+        light = at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06);
         if (sm.pair > 0) box(b.lamp, at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06), sm, 0.26, 0.08, STEP - 0.35);
       } else if (Math.round(sm.along / STEP) % 2 === 0) {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
-        if (st?.kind === 'flat') box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
+        if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
         else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       if (caveStyle(sm) && !islandStyle(sm)) {
@@ -691,7 +721,7 @@ export class Network {
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.7);
         const roof = S.archHeight(a, c, S.HALL.spring, (c - a) * S.HALL.risePerWidth, u), v = Math.min(roof - CAVE_ROUGH - 0.4, H + 3.2);
         box(b.fitting, at(sm, u, v + 0.04), sm, 0.3, 0.08, 2.2);
-        box(b.lamp, at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
+        box(b.lamp, light = at(sm, u, v - 0.005), sm, 0.24, 0.02, 2.1);
         box(b.fitting, at(sm, u, (v + roof) / 2), sm, 0.03, roof - v, 0.03);
       }
       if (vs) {
@@ -700,10 +730,13 @@ export class Network {
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.6);
         const v = S.archHeight(a, c, vs.spring, (c - a) * vs.risePerWidth, u) - 0.3;
         box(b.fitting, at(sm, u, v + 0.04), sm, 0.34, 0.08, 2.2);
-        box(b.lamp, at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
+        box(b.lamp, light = at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
         box(b.fitting, at(sm, u, v + 0.2), sm, 0.04, 0.24, 0.04);
       }
+      // (a vaulted hall's one row is the right-hand track's)
+      if ((sm.kind === 'rock' || sm.kind === 'box') && !(hallStyle(sm)?.kind === 'vault' && sm.pair < 0)) row.add(sm, light, p);
     }
+    row.end();
   }
 
   // A styled hall's posters on this track's wall, either side of a plate with the station's old
@@ -1108,24 +1141,34 @@ export class Network {
 
   // Lamps on the tunnel walls: on the outer wall of each track of a double-track tunnel every
   // 20 m, so every 10 m on alternate walls; every 7 m on one wall of a single-track tunnel.
-  private lights(run: Sample[], b: Record<MaterialName, MeshBuilder>) {
+  private lights(run: Sample[], b: Record<MaterialName, MeshBuilder>, lamps: Lamp[]) {
     let next = -Infinity;
+    const row = new LampRow(lamps, HALL_LIGHT, TUBE, 1);
     for (const sm of run) {
+      if (!inHall(sm) || bare(sm)) row.end();
       if ((sm.kind !== 'rock' && sm.kind !== 'box') || sm.plat || sm.along < next || bare(sm)) continue;
       if (inHall(sm)) {
         // a row of lamps under a depot hall's roof, over each track
         next = sm.along + S.DEPOT_HALL.lights;
         box(b.lamp, at(sm, 0, S.DEPOT_HALL.height - 0.05), sm, 0.3, 0.08, 1.4);
+        row.add(sm, at(sm, 0, S.DEPOT_HALL.height - 0.05), 'hall');
         continue;
       }
       const single = !sm.pair;
       next = sm.along + (single ? S.TUNNEL_LIGHT.single : 2 * S.TUNNEL_LIGHT.double);
       const span = structureSpan(sm);
-      // the refuge side of a single-track tunnel; the outer wall of a double-track one
-      const side = single ? -sm.third : -Math.sign(sm.pair);
+      // the refuge side of a single-track tunnel; the outer wall of a double-track one (where
+      // another line's track is beside it, the wall there is, if any)
+      let side = single ? -sm.third : -Math.sign(sm.pair);
+      if (continues(sm, side)) side = -side;
+      if (continues(sm, side)) continue;
       const wall = side > 0 ? span[1] : span[0];
-      box(b.lamp, at(sm, wall - side * 0.08, S.TUNNEL_LIGHT.height + (sm.pairDy || 0) / 2), sm, 0.1, 0.14, 1.2);
+      const c = at(sm, wall - side * 0.08, S.TUNNEL_LIGHT.height + (sm.pairDy || 0) / 2);
+      box(b.lamp, c, sm, 0.1, 0.14, 1.2);
+      const along = new THREE.Vector3(sm.rz, 0, -sm.rx).multiplyScalar(0.6);
+      lamps.push({ ...TUNNEL_LAMP, color: BULB, down: 0.4, ...space(sm), a: c.clone().sub(along), b: c.clone().add(along) });
     }
+    row.end();
   }
 
   // Where a tunnel opens into the open air or into a station the model draws, a concrete portal
@@ -1190,12 +1233,44 @@ export class Network {
       if (tunnel(p) && tunnel(q)) {
         const a = closedOutline(p), c = closedOutline(q);
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {
-          const [ra, rc] = rays(a, c, middle(p), middle(q));
+          const [ra, rc] = rays(a, c, middles(p), middles(q));
           // in rock, of rock
           ring(p, ra, rc, p.kind === 'rock' && q.kind === 'rock' ? b.rock : b.concrete);
         }
       } else if (tunnel(p) !== tunnel(q) && !bare(p) && !bare(q)) portal(tunnel(p) ? p : q);
     }
+  }
+}
+
+// ------------------------------------------------------------------ lamps
+// The space a lamp in the structure at a sample lights: from the floor to the roof.
+function space(sm: Sample) {
+  const shell = shellOutline(sm);
+  return { floor: sm.y + S.FLOOR - 0.3, top: sm.y + (shell ? Math.max(...shell.pts.map((p) => p[1])) : S.DEPOT_HALL.height) + 0.3 };
+}
+
+// A row of lamps along the track as strips of light (src/lamps.ts): the points of one row, until
+// it ends or another begins.
+class LampRow {
+  private pts: THREE.Vector3[] = [];
+  private floor = Infinity;
+  private top = -Infinity;
+  private of: unknown = null;
+  constructor(private lamps: Lamp[], private light: { power: number; reach: number }, private color: THREE.Color, private down: number) {}
+  add(sm: Sample, p: THREE.Vector3, of: unknown) {
+    if (of !== this.of) this.end();
+    this.of = of;
+    this.pts.push(p);
+    const { floor, top } = space(sm);
+    this.floor = Math.min(this.floor, floor);
+    this.top = Math.max(this.top, top);
+  }
+  end() {
+    if (this.pts.length) stripLamps(this.pts, { ...this.light, color: this.color, down: this.down, floor: this.floor, top: this.top }, this.lamps);
+    this.pts = [];
+    this.floor = Infinity;
+    this.top = -Infinity;
+    this.of = null;
   }
 }
 
@@ -1210,6 +1285,8 @@ function structureSpan(sm: Sample, widen = true): [number, number] {
   else if (sm.pair) [a, b] = [-S.ROCK.doubleWall, S.ROCK.doubleWall];
   else [a, b] = sm.third < 0 ? [-S.ROCK.singleNear, S.ROCK.singleFar] : [-S.ROCK.singleFar, S.ROCK.singleNear];
   if (sm.pair > 0) b += sm.pair; else if (sm.pair < 0) a += sm.pair;
+  // another line's track beside it in the same box: as far again beyond it
+  if (sm.beside > 0) b = Math.max(b, sm.beside + S.ROCK.doubleWall); else if (sm.beside < 0) a = Math.min(a, sm.beside - S.ROCK.doubleWall);
   // a service's tunnel round a turnout
   if (widen) {
     const wl = widened(sm, -1), wr = widened(sm, 1);
@@ -1220,9 +1297,10 @@ function structureSpan(sm: Sample, widen = true): [number, number] {
   const l = shares(sm, -1), r = shares(sm, 1);
   if (l) a = -l / 2 - OVERLAP;
   if (r) b = r / 2 + OVERLAP;
-  // a hall wide enough for a platform beside the track
+  // a hall wide enough for a platform beside the track (an island's is shared with the track
+  // across it, to its middle)
   const p = sm.plat;
-  if (p && (sm.kind === 'rock' || sm.kind === 'box') && !(p.island && sm.pair)) {
+  if (p && (sm.kind === 'rock' || sm.kind === 'box') && !(p.island && across(sm))) {
     const o = p.side * (S.PLATFORM_EDGE + p.width + S.HALL.behindPlatform);
     if (p.side > 0) b = Math.max(b, o); else a = Math.min(a, o);
   }
@@ -1230,11 +1308,12 @@ function structureSpan(sm: Sample, widen = true): [number, number] {
 }
 
 // The part of a span this track draws: where it shares the structure, its own side of the middle
-// (and a little over).
+// (and a little over), on either side.
 function ownSpan(sm: Sample, [a, b]: [number, number]): [number, number] {
-  if (!sm.pair) return [a, b];
-  const mid = sm.pair / 2;
-  return sm.pair > 0 ? [a, mid + OVERLAP] : [mid - OVERLAP, b];
+  for (const v of [sm.pair, sm.beside]) {
+    if (v > 0) b = v / 2 + OVERLAP; else if (v < 0) a = v / 2 - OVERLAP;
+  }
+  return [a, b];
 }
 
 // Track no service runs on shares its structure with the track beside it: a depot's tracks in rock
@@ -1249,7 +1328,8 @@ function shares(sm: Sample, side: number) {
   return Math.abs(v) < OPEN_REACH ? Math.abs(v) : 0;
 }
 // whether the structure goes on beyond this track on that side, into the other track's part
-const continues = (sm: Sample, side: number) => (sm.yard ? shares(sm, side) > 0 : !!sm.pair && Math.sign(sm.pair) === side);
+const continues = (sm: Sample, side: number) => (sm.yard ? shares(sm, side) > 0
+  : (!!sm.pair && Math.sign(sm.pair) === side) || (!!sm.beside && Math.sign(sm.beside) === side));
 // a depot hall: in rock or concrete, beside another of the depot's tracks
 const inHall = (sm: Sample) => sm.yard && (sm.kind === 'rock' || sm.kind === 'box') && (shares(sm, -1) > 0 || shares(sm, 1) > 0);
 // A turnout in a tunnel: where track no service runs on comes within WIDEN of a service's track,
@@ -1271,9 +1351,17 @@ function conductorGap(sm: Sample) {
   return (sm.yard || v > 0) && v !== 0 && Math.abs(v) < S.TRACK_CENTRES - 0.25;
 }
 
+// The track across an island platform that shares its hall: its own line's other track, or
+// another line's beside it (Gamla stan's); its offset, or 0.
+function across(sm: Sample) {
+  const p = sm.plat;
+  if (!p?.island) return 0;
+  return Math.sign(sm.pair) === p.side ? sm.pair : Math.sign(sm.beside) === p.side ? sm.beside : 0;
+}
+
 function platformOuter(sm: Sample) {
-  const p = sm.plat!;
-  if (p.island && sm.pair && Math.sign(sm.pair) === p.side) return sm.pair / 2 + p.side * OVERLAP;
+  const p = sm.plat!, v = across(sm);
+  if (v) return v / 2 + p.side * OVERLAP;
   return p.side * (S.PLATFORM_EDGE + p.width);
 }
 
@@ -1332,30 +1420,39 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
   for (let i = 1; i < full.length; i++) cum.push(cum[i - 1] + Math.hypot(full[i][0] - full[i - 1][0], full[i][1] - full[i - 1][1]));
   const total = cum[cum.length - 1];
   let t0 = 0, t1 = total;
-  if (sm.pair) {
+  if (sm.pair || sm.beside) {
     const [o0, o1] = ownSpan(sm, [a, b]);
-    // where the roof passes over the cut
-    const cut = sm.pair > 0 ? o1 : o0;
-    let tc = total / 2;
-    for (let i = 1; i < full.length; i++) {
-      const [u0] = full[i - 1], [u1] = full[i];
-      if ((u0 - cut) * (u1 - cut) <= 0 && u1 !== u0 && full[i][1] > 1) { tc = cum[i - 1] + ((cut - u0) / (u1 - u0)) * (cum[i] - cum[i - 1]); break; }
-    }
-    if (sm.pair > 0) t1 = tc; else t0 = tc;
+    // where the roof passes over a cut
+    const over = (cut: number) => {
+      for (let i = 1; i < full.length; i++) {
+        const [u0] = full[i - 1], [u1] = full[i];
+        if ((u0 - cut) * (u1 - cut) <= 0 && u1 !== u0 && full[i][1] > 1) return cum[i - 1] + ((cut - u0) / (u1 - u0)) * (cum[i] - cum[i - 1]);
+      }
+      return total / 2;
+    };
+    if (sm.pair > 0 || sm.beside > 0) t1 = over(o1);
+    if (sm.pair < 0 || sm.beside < 0) t0 = over(o0);
   }
   const pts: [number, number][] = [];
-  const dy = sm.pair ? sm.pairDy / 2 : 0;
+  // the roof is shared, between the two tracks' levels at the middle; with a track on either side,
+  // it slopes from one middle to the other
+  const dy = (u: number) => {
+    const p = sm.pair ? sm.pairDy / 2 : 0, q = sm.beside ? sm.besideDy / 2 : 0;
+    if (!sm.pair || !sm.beside) return p + q;
+    const f = Math.max(0, Math.min(1, (u - sm.pair / 2) / (sm.beside / 2 - sm.pair / 2)));
+    return p + (q - p) * f;
+  };
   for (let j = 0; j < SHELL_POINTS; j++) {
     const t = t0 + ((t1 - t0) * j) / (SHELL_POINTS - 1);
     let i = 1;
     while (i < cum.length - 1 && cum[i] < t) i++;
     const f = (t - cum[i - 1]) / (cum[i] - cum[i - 1] || 1);
     const u = full[i - 1][0] + (full[i][0] - full[i - 1][0]) * f, v = full[i - 1][1] + (full[i][1] - full[i - 1][1]) * f;
-    // the floor stays with this track's rails; the roof is shared, between the two tracks' levels
-    pts.push([u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
+    // the floor stays with this track's rails
+    pts.push([u, v + (v > S.FLOOR + 0.01 ? dy(u) * Math.min(1, (v - S.FLOOR) / 2) : 0)]);
   }
   if (caveStyle(sm)) return { key: `cave${Math.sign(sm.pair)}`, pts: roughen(sm, pts) };
-  return { key: `${sm.kind}${Math.sign(sm.pair)}`, pts };
+  return { key: `${sm.kind}${Math.sign(sm.pair)}${sm.beside ? `b${Math.sign(sm.beside)}` : ''}`, pts };
 }
 
 // A styled hall's outline (src/hall-styles.ts), the island platform's two tracks sharing it: the
@@ -1363,7 +1460,7 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
 // them; this track's half, to just over the middle. Its corners are kept, unlike the vaults'.
 function hallStyle(sm: Sample): HallStyle | null {
   const p = sm.plat;
-  return p && p.island && sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
+  return p && p.island && sm.pair && across(sm) === sm.pair && (sm.kind === 'rock' || sm.kind === 'box') ? HALL_STYLES[p.station] ?? null : null;
 }
 // A painted cave (src/hall-styles.ts): a station hall in rock, its rock left rough and painted.
 function caveStyle(sm: Sample): CaveStyle | null {
@@ -1559,24 +1656,36 @@ function closedOutline(sm: Sample): [number, number][] {
     if (shares(sm, 1) > 0) out.push([o[o.length - 1][0], S.FLOOR]);
     return out;
   }
-  if (!sm.pair) return o;
-  return sm.pair > 0 ? [...o, [o[o.length - 1][0], S.FLOOR]] : [[o[0][0], S.FLOOR], ...o];
+  if (!sm.pair && !sm.beside) return o;
+  const out = [...o];
+  if (sm.pair > 0 || sm.beside > 0) out.push([o[o.length - 1][0], S.FLOOR]);
+  if (sm.pair < 0 || sm.beside < 0) out.unshift([o[0][0], S.FLOOR]);
+  return out;
 }
 
-// Where a track shares its tunnel, the middle its half is closed down: [u, side] (side +1 where the
-// other track is to the right), or null.
-function middle(sm: Sample): [number, number] | null {
-  if (!sm.pair || inHall(sm)) return null;
+// Where a track shares its tunnel, the middles its part is closed down: [u, side] (side +1 where
+// the other track is to the right). The half of a shared tunnel has one, and another where
+// another line's track is beside it on the other side; in a depot hall, a track has one on each
+// side another of the depot's tracks is beside it.
+function middles(sm: Sample): [number, number][] {
   const o = shellOutline(sm)!.pts;
-  return sm.pair > 0 ? [o[o.length - 1][0], 1] : [o[0][0], -1];
+  if (inHall(sm)) {
+    const out: [number, number][] = [];
+    if (shares(sm, -1) > 0) out.push([o[0][0], -1]);
+    if (shares(sm, 1) > 0) out.push([o[o.length - 1][0], 1]);
+    return out;
+  }
+  return [sm.pair, sm.beside].filter((v) => v).map((v) => (v > 0 ? [o[o.length - 1][0], 1] : [o[0][0], -1]));
 }
 
 // Two outlines, each closed along its floor, met by the same rays from a point over the track, all
 // the way round: the edges of the wall between two tunnels of different shapes. There is a ray
 // through every corner of either, and the last ray is the first again. Where one is the half of a
-// shared tunnel (`ma`, `mb`: its middle), the other is cut off at that middle: beyond it is the
-// other track's half, or its own tunnel, which this one opens into.
-function rays(a: [number, number][], b: [number, number][], ma: [number, number] | null = null, mb: [number, number] | null = null, n = 48): [[number, number][], [number, number][]] {
+// shared tunnel, or a track's part of a depot hall (`ma`, `mb`: its middles), the other is cut off
+// at that middle: beyond it is the other track's part, or its own tunnel, which this one opens
+// into. (Where two of a depot's tracks part at a switch, the hall starts from the single tunnel
+// round the switch, and each track's part of it must leave the other's track open.)
+function rays(a: [number, number][], b: [number, number][], ma: [number, number][] = [], mb: [number, number][] = [], n = 48): [[number, number][], [number, number][]] {
   const O: [number, number] = [0, 1.8];
   const angle = ([u, v]: [number, number]) => Math.atan2(v - O[1], u - O[0]);
   const hit = (poly: [number, number][], du: number, dv: number): [number, number] => {
@@ -1598,8 +1707,8 @@ function rays(a: [number, number][], b: [number, number][], ma: [number, number]
     if (j && t - ts[j - 1] < 1e-6) continue;
     const du = Math.cos(t), dv = Math.sin(t);
     let ha = hit(a, du, dv), hb = hit(b, du, dv);
-    if (ma && Math.abs(ha[0] - ma[0]) < 1e-6 && (hb[0] - ma[0]) * ma[1] > 0) hb = ha;
-    if (mb && Math.abs(hb[0] - mb[0]) < 1e-6 && (ha[0] - mb[0]) * mb[1] > 0) ha = hb;
+    for (const [u, side] of ma) if (Math.abs(ha[0] - u) < 1e-6 && (hb[0] - u) * side > 0) hb = ha;
+    for (const [u, side] of mb) if (Math.abs(hb[0] - u) < 1e-6 && (ha[0] - u) * side > 0) ha = hb;
     ra.push(ha); rb.push(hb);
   }
   ra.push(ra[0]); rb.push(rb[0]);
@@ -1916,26 +2025,29 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     const pa = g.pair[i], pb = g.pair[i + 1];
     const pair = pa && pb ? pa + (pb - pa) * t : g.pair[near];
     const pairDy = pair ? (g.pairDy[i] && g.pairDy[i + 1] ? lerp(g.pairDy, q) : g.pairDy[near]) : 0;
+    const ba = g.beside?.[i] ?? 0, bb = g.beside?.[i + 1] ?? 0;
+    const beside = ba && bb && Math.sign(ba) === Math.sign(bb) ? ba + (bb - ba) * t : g.beside?.[near] ?? 0;
+    const besideDy = !beside ? 0 : ba && bb && Math.sign(ba) === Math.sign(bb) ? lerp(g.besideDy!, q) : g.besideDy?.[near] ?? 0;
     const ga = g.ground[i], gb = g.ground[i + 1];
     const ground = ga !== null && gb !== null ? ga + (gb - ga) * t : g.ground[near];
     // the tracks beside it: where both points have one, in between; otherwise the nearer point's
-    const beside = (arr: number[] | undefined) => {
+    const nearest = (arr: number[] | undefined) => {
       if (!arr) return 0;
       const a = arr[i], b = arr[i + 1];
       return a && b && Math.sign(a) === Math.sign(b) ? a + (b - a) * t : arr[near];
     };
-    const left = beside(g.left), right = beside(g.right);
+    const left = nearest(g.left), right = nearest(g.right);
     const se = lerp(g.s, e);
     const plat = platforms.find((p) => se >= p.s0 && se <= p.s1) ?? null;
-    const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
+    const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : beside ? (beside > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
     const skip = exclude.some((x) => !x.trackOnly && se >= x.s0 && se <= x.s1);
     const noTrack = skip || exclude.some((x) => se >= x.s0 && se <= x.s1);
-    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, left, right, yard, ground, plat, third, skip, noTrack };
+    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, beside, besideDy, left, right, yard, ground, plat, third, skip, noTrack };
   };
   // where something changes
   const breaks = new Set<number>();
   for (let i = 0; i + 1 < n; i++) {
-    if (g.kind[i] !== g.kind[i + 1] || !g.pair[i] !== !g.pair[i + 1]) breaks.add(i + 0.5);
+    if (g.kind[i] !== g.kind[i + 1] || !g.pair[i] !== !g.pair[i + 1] || !g.beside?.[i] !== !g.beside?.[i + 1]) breaks.add(i + 0.5);
     // where a turnout's tunnel starts or ends
     if (g.left && g.right) {
       const k0 = { yard, kind: STRUCTURE_KINDS[g.kind[i]], left: g.left[i], right: g.right[i], pair: g.pair[i] } as Sample;
@@ -1984,7 +2096,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
   }
   // drop repeated places that aren't changes
   return out.filter((sm, i) => i === 0 || sm.along - out[i - 1].along > 0.05 || sm.kind !== out[i - 1].kind
-    || !sm.pair !== !out[i - 1].pair || sm.plat !== out[i - 1].plat || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack
+    || !sm.pair !== !out[i - 1].pair || !sm.beside !== !out[i - 1].beside || sm.plat !== out[i - 1].plat || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack
     || !shares(sm, -1) !== !shares(out[i - 1], -1) || !shares(sm, 1) !== !shares(out[i - 1], 1)
     || bare(sm) !== bare(out[i - 1]) || !widened(sm, -1) !== !widened(out[i - 1], -1) || !widened(sm, 1) !== !widened(out[i - 1], 1));
 }

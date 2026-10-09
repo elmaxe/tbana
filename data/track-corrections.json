@@ -181,6 +181,16 @@
       "why": "OSM draws the island platform as the whole 31 m wide hall, with the tracks sketched 40 m apart on either side of it, outside its edges. Both tracks are placed from its middle."
     },
     {
+      "station": "Mörby centrum",
+      "replace": true,
+      "reach": 20,
+      "at": [
+        152053.4,
+        6587114.2
+      ],
+      "why": "OSM draws the island platform 24 m wide, with the eastern track sketched outside it, so only the last 32 m of that track read as beside it, and the western track's platform reached across the eastern track along the rest. Both tracks are placed from the platform's middle, which lies between them."
+    },
+    {
       "station": "Hallonbergen",
       "reach": 30,
       "why": "OSM draws the platforms beside the middle turnback track only, with the running lines sketched up to 25 m away from them. The running lines are given platforms from the station's node, which lies between them; the middle track isn't drawn."

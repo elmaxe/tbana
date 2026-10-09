@@ -175,6 +175,16 @@
       "why": "The bridge from Gamla stan to Slussen, over Söderström: Google Earth's 3D model, tied to Lantmäteriet's elevation model on Södermalm and Munkbroleden, has its rails climbing from 4 m at Gamla stan's quay to 8 m at Slussen. Bridges get no anchor of their own, so without this the line hung between the stations, level at 6.5–7 m."
     }
   ],
+  "toBridge": [
+    {
+      "along": [
+        [2139, -2306],
+        [2146, -2276]
+      ],
+      "reach": 10,
+      "why": "Hjorthagen, the north end of the bridge from Gärdet: the abutment stands on the hillside, and the 35 m of track from it to the mouth of the tunnel to Ropsten is in a shallow cutting, not on a bank up to the bridge. Without its ground the line had nothing to hold it between the bridge and Ropsten, and humped 5 m over the ground at the mouth."
+    }
+  ],
   "raised": [
     {
       "along": [
@@ -206,6 +216,16 @@
       "reach": 15,
       "clearance": 6.5,
       "why": "Kymlinge, between Hallonbergen and Kista: the line crosses the valley of Igelbäcken and the E18 on a bridge, where the elevation model is 7 m under the tunnels at either end. Without this it sagged below the ground; the road under it needs the clearance."
+    },
+    {
+      "along": [
+        [2163, -2226],
+        [2195, -2126],
+        [2226, -2025]
+      ],
+      "reach": 15,
+      "clearance": 6.5,
+      "why": "Hjorthagen, between Gärdet and Ropsten: the line comes out of the rock face below Gärdet on to a 300 m concrete beam bridge (OpenStreetMap: bridge, layer 2) over Tegeluddsvägen, Lidingövägen and the ramps of Norra länken, and goes into the hill again before Ropsten. Bridges get no anchor of their own, so without this it ran level from Gärdet's platforms at the height of the tunnel, 3 m under the ground at the streets. Not held at the ends, where the ground rises to the mouths."
     }
   ]
 }

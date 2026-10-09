@@ -19,7 +19,8 @@
 //   and the tunnel stands in the open.
 // - At each tunnel mouth, the tunnel's own space (wall to wall, floor to crown) is cut out of the
 //   ground for a few metres either side, where the lowered ground of the open track meets the
-//   raised ground over the tunnel; the portal stands in it.
+//   raised ground over the tunnel; the portal stands in it. So it is where a tunnel comes out from
+//   under the ground to stand in the open.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
@@ -27,6 +28,7 @@
 // The water is where the elevation model has it flattened: the lakes and the sea, each at its level.
 // Where it hides water under bridges and decks, OpenStreetMap's outlines (data/osm/water.json, from
 // tools/fetch-water.ts) fill it in, and the ground there is brought down to the water's level.
+// None stands over a tunnel whose inside reaches up through its level, where it would be in it.
 //
 // The buildings are OpenStreetMap's, as blocks with their roofs:
 // - The walls stand from below the lowest ground under the outline to the building's height above
@@ -42,7 +44,8 @@
 //   houses wood and for sheds and warehouses plain.
 // - Where a building stands over open track, the part over the track's space is lifted to clear
 //   the trains (or left out if there is nothing above), and roofs on posts over the platforms are
-//   left out: the stations draw their own.
+//   left out: the stations draw their own. So it is where one would reach down into a tunnel: the
+//   part over it stands on its roof.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
 //   of the building, and an exit's way out continues through the building to the outside.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
@@ -329,7 +332,9 @@ if (water) {
 let waterCells = 0;
 for (const b of body) if (b) waterCells++;
 
-// A tile's water: its cells and those on their shores, with the levels it has.
+// A tile's water: its cells and those on their shores, with the levels it has; but none over a
+// tunnel whose inside reaches up through the water's level (the trough that carries the line
+// under Riddarholmskanalen), where the water would stand in it.
 function waterOf(i: number, j: number) {
   const ids: number[] = [], cells = new Uint8Array(M * M);
   for (let r = 0; r < M; r++) for (let c = 0; c < M; c++) {
@@ -339,7 +344,7 @@ function waterOf(i: number, j: number) {
       const X = x + dx, Y = y + dy;
       if (X >= 0 && Y >= 0 && X < WW && Y < WH) b = body[Y * WW + X];
     }
-    if (!b) continue;
+    if (!b || overTunnel(i * CITY_TILE + (c + 0.5) * STEP, j * CITY_TILE + (r + 0.5) * STEP, bodyLevels[b - 1])) continue;
     let at = ids.indexOf(b);
     if (at < 0) at = ids.push(b) - 1;
     cells[r * M + c] = at + 1;
@@ -355,6 +360,7 @@ interface Seg {
   buried: boolean;       // a tunnel the elevation model has more than half under the ground
   kind: StructureKind;
   pair: number;          // the other track's offset to the right (negative: left), 0 if none
+  beside: number;        // another line's track's offset in the same box, on the other side, 0 if none
   plat: { side: number; width: number } | null;
   clampA: boolean; clampB: boolean; // whether the ends round off (false at a mouth)
   yard: boolean;         // track no service runs on (a depot's, a siding): its ground is walked on
@@ -375,7 +381,7 @@ for (const p of Object.values(geometry.pieces)) {
 }
 
 // the structure's half-width on one side (+1 right, −1 left) of a track
-function halfWidth(kind: StructureKind, pair: number, plat: Seg['plat'], side: number) {
+function halfWidth(kind: StructureKind, pair: number, plat: Seg['plat'], side: number, beside = 0) {
   let w: number;
   switch (kind) {
     case 'grade': case 'embankment': w = S.EMBANKMENT.formation; break;
@@ -385,6 +391,7 @@ function halfWidth(kind: StructureKind, pair: number, plat: Seg['plat'], side: n
     default: w = pair ? S.ROCK.doubleWall : S.ROCK.singleFar;
   }
   if (pair && Math.sign(pair) === side) w += Math.abs(pair);
+  if (beside && Math.sign(beside) === side) w += Math.abs(beside);
   if (plat && plat.side === side) w = Math.max(w, S.PLATFORM_EDGE + plat.width + (TUNNEL.has(kind) ? S.HALL.behindPlatform : 0.3));
   return w;
 }
@@ -418,8 +425,19 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
       return g === null || g > p.y[i] + crownOf(kindAt(i), p.pair[i], platAt(i)) / 2;
     };
     // (the point at a mouth has the ground low: the segment into the tunnel from it is buried)
-    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, buried: buried(k) || buried(k + 1), yard };
+    const besideAt = (i: number) => p.beside?.[i] ?? 0;
+    const base = { ya: p.y[k], yb: p.y[k + 1], pair: (p.pair[k] + p.pair[k + 1]) / 2, beside: (besideAt(k) + besideAt(k + 1)) / 2, buried: buried(k) || buried(k + 1), yard };
     const first = k === 0 ? endJoins(0) : true, last = k + 1 === n - 1 ? endJoins(n - 1) : true;
+    // where a tunnel comes out from under the ground to stand in the open (or goes back under), the
+    // raised ground over it meets the lowered ground beside it as at a mouth, so the same hole is
+    // cut there, pointing out to the open
+    if (k > 0 && ka === kb && kindAt(k - 1) === ka && tunnelClass(ka)) {
+      const before = buried(k - 1) || buried(k);
+      if (before !== base.buried) {
+        const o = base.buried ? k - 1 : k + 1;
+        addMouth(p.x[k], p.z[k], p.x[o] - p.x[k], p.z[o] - p.z[k], p.y[k], ka, p.pair[k], platAt(k), besideAt(k));
+      }
+    }
     if (ka === kb) {
       segs.push({ ax: p.x[k], az: p.z[k], bx: p.x[k + 1], bz: p.z[k + 1], ...base, kind: ka, plat: platAt(k), clampA: first, clampB: last });
       continue;
@@ -427,11 +445,11 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     // the structure changes halfway (as the network draws it)
     const mx = (p.x[k] + p.x[k + 1]) / 2, mz = (p.z[k] + p.z[k + 1]) / 2, my = (p.y[k] + p.y[k + 1]) / 2;
     const mouth = tunnelClass(ka) !== tunnelClass(kb);
-    segs.push({ ax: p.x[k], az: p.z[k], bx: mx, bz: mz, ya: p.y[k], yb: my, pair: base.pair, buried: buried(k), kind: ka, plat: platAt(k), clampA: first, clampB: !mouth, yard });
-    segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last, yard });
+    segs.push({ ax: p.x[k], az: p.z[k], bx: mx, bz: mz, ya: p.y[k], yb: my, pair: base.pair, beside: base.beside, buried: buried(k), kind: ka, plat: platAt(k), clampA: first, clampB: !mouth, yard });
+    segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, beside: base.beside, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last, yard });
     // pointing out of the tunnel
     const out = tunnelClass(ka) ? 1 : -1;
-    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k));
+    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k), base.beside);
   }
   // mouths at the piece's ends, where it meets a piece of the other class
   for (const k of [0, n - 1]) {
@@ -439,14 +457,30 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     const here = ends.get(endKey(p.x[k], p.z[k]))!;
     if (!here.some((c) => !c)) continue; // a tunnel ending in nothing
     const o = k === 0 ? 1 : n - 2;
-    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], p.y[k], kindAt(k), p.pair[k], platAt(k));
+    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], p.y[k], kindAt(k), p.pair[k], platAt(k), p.beside?.[k] ?? 0);
   }
 }
 
 // The tunnel's own space at a mouth, from wall to wall and floor to crown: the hole cut there.
-function addMouth(x: number, z: number, dx: number, dz: number, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat']) {
+function addMouth(x: number, z: number, dx: number, dz: number, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat'], beside = 0) {
   const l = Math.hypot(dx, dz) || 1;
-  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -1), right: halfWidth(tunnel, pair, plat, 1) });
+  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -1, beside), right: halfWidth(tunnel, pair, plat, 1, beside) });
+}
+
+// Whether a cell of water (its middle at x, z) lies over a tunnel whose inside reaches up through
+// the water's level there.
+function overTunnel(x: number, z: number, level: number) {
+  for (const id of segsNear(x, z)) {
+    const s = segs[id];
+    if (!TUNNEL.has(s.kind)) continue;
+    const r = relate(s, x, z);
+    if (!r) continue;
+    const w = halfWidth(s.kind, s.pair, s.plat, r.across >= 0 ? 1 : -1, s.beside);
+    // (the cell's corners may reach over it from its middle)
+    if (r.d > w + STEP * 0.71) continue;
+    if (r.y + S.FLOOR < level && r.y + crownOf(s.kind, s.pair, s.plat) > level) return true;
+  }
+  return false;
 }
 
 // segments by 50 m cell, reaching as far as their effect on the ground can
@@ -483,12 +517,13 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
     const r = relate(s, x, z);
     if (!r) continue;
     const side = r.across >= 0 ? 1 : -1;
-    const w = halfWidth(s.kind, s.pair, s.plat, side);
+    const w = halfWidth(s.kind, s.pair, s.plat, side, s.beside);
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
       lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       // over its own half of the tunnel, the ground stays over its roof
-      const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2 : halfWidth(s.kind, 0, s.plat, side);
+      const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2
+        : s.beside && Math.sign(s.beside) === side ? Math.abs(s.beside) / 2 : halfWidth(s.kind, 0, s.plat, side);
       if (r.d <= own) roof = Math.max(roof, r.y + crownOf(s.kind, s.pair, s.plat) + ROOF_COVER);
     } else {
       // flat for a metre beyond the structure, then rising at the bank's slope (or 1:1 behind a
@@ -806,25 +841,27 @@ function laserHeights(s: Source, g0: number, h: ReturnType<typeof heights>) {
   return { ...h, roof, roofHeight: roof === 'flat' ? 0 : top - eaves, walls: Math.max(2.5, eaves - g0), guessed: false, opts };
 }
 
-// the track's space over open track, as polygons, near a point
+// the track's space, as polygons, near a point, with the height a building over it must clear: over
+// open track the trains, over a tunnel its roof (which only counts where the building would reach
+// down into it)
 function trackSpace(x: number, z: number, r: number) {
-  const polys: { poly: Polygon; y: number }[] = [];
+  const polys: { poly: Polygon; top: number; tunnel: boolean }[] = [];
   const seen = new Set<number>();
   for (let i = Math.floor((x - r) / SEG_CELL); i <= Math.floor((x + r) / SEG_CELL); i++) {
     for (let j = Math.floor((z - r) / SEG_CELL); j <= Math.floor((z + r) / SEG_CELL); j++) {
       for (const id of segIndex.get(`${i},${j}`) ?? []) {
         if (seen.has(id)) continue;
         seen.add(id);
-        const s = segs[id];
-        if (TUNNEL.has(s.kind)) continue;
+        const s = segs[id], tunnel = TUNNEL.has(s.kind);
         const dx = s.bx - s.ax, dz = s.bz - s.az, l = Math.hypot(dx, dz) || 1;
         const rx = -dz / l, rz = dx / l, ex = (dx / l) * 0.5, ez = (dz / l) * 0.5;
-        const wl = halfWidth(s.kind, s.pair, s.plat, -1) + 1, wr = halfWidth(s.kind, s.pair, s.plat, 1) + 1;
+        const wl = halfWidth(s.kind, s.pair, s.plat, -1, s.beside) + 1, wr = halfWidth(s.kind, s.pair, s.plat, 1, s.beside) + 1;
         const ring: XZ[] = [
           [s.ax - rx * wl - ex, s.az - rz * wl - ez], [s.bx - rx * wl + ex, s.bz - rz * wl + ez],
           [s.bx + rx * wr + ex, s.bz + rz * wr + ez], [s.ax + rx * wr - ex, s.az + rz * wr - ez],
         ];
-        polys.push({ poly: [[...ring, ring[0]]], y: Math.max(s.ya, s.yb) });
+        const y = Math.max(s.ya, s.yb);
+        polys.push({ poly: [[...ring, ring[0]]], top: tunnel ? y + crownOf(s.kind, s.pair, s.plat) : y + CLEARANCE, tunnel });
       }
     }
   }
@@ -954,7 +991,7 @@ for (const s of sources) {
 
   // the track's space
   const space = trackSpace((bx0 + bx1) / 2, (bz0 + bz1) / 2, Math.hypot(bx1 - bx0, bz1 - bz0) / 2 + 20);
-  const hits = space.filter(({ poly }) => polygonClipping.intersection(shape, poly).length);
+  const hits = space.filter(({ poly, top: clear, tunnel }) => (!tunnel || clear > bottom) && polygonClipping.intersection(shape, poly).length);
   if (shed) {
     // a hall: the tracks run in through its doors
     sheds++;
@@ -969,8 +1006,8 @@ for (const s of sources) {
     const union = polygonClipping.union(hits[0].poly, ...hits.slice(1).map((h) => h.poly));
     const over = polygonClipping.intersection(shape, union);
     shape = polygonClipping.difference(shape, union);
-    // the part over the track, lifted clear of the trains
-    const clear = Math.max(...hits.map((h) => h.y)) + CLEARANCE;
+    // the part over the track, lifted clear of the trains (or the tunnel's roof)
+    const clear = Math.max(...hits.map((h) => h.top));
     if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
   }
   emit(list, shape, base, roofOpts);

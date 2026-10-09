@@ -89,6 +89,7 @@ to each, and exports them:
 | `F` | Free flight (`Space` / `C` to rise and sink) |
 | `R` | Back to the start |
 | `N` | Sound on/off |
+| `L` | Lights up: daylight everywhere and hardly any fog, to see dark stations and tunnels (`?light` starts with it on) |
 
 ### Phones and tablets
 
@@ -258,7 +259,7 @@ each with its reason:
   area
 - island platforms drawn on the wrong side of a track, or across it, at Danderyds sjukhus,
   Aspudden, Medborgarplatsen, Skanstull, Svedmyra and Sankt Eriksplan; or far from the sketched
-  tracks at Hjulsta, Akalla and Hallonbergen
+  tracks at Hjulsta, Akalla, Mörby centrum and Hallonbergen
 - platforms drawn short of their 145 m at Bagarmossen, Bandhagen, Blackeberg, Rågsved, Stureby,
   Duvbo and Rissne
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)
@@ -305,8 +306,8 @@ model there follows the roof. It then checks the
 result against the 1975 limits: 40‰, 10‰ along platforms, and vertical curves of at least 2,000 m
 on the red line, 1,500 m on the green and 4,000 m on the blue. It fails on anything outside them,
 and says where. Bridges get no anchor; where the corrections say a street passes under one
-(Kistaviadukten, and the bridge at Kymlinge), its rail is held a clearance above the ground, and
-where they give the rail's height (`rail`), it is anchored there like a platform.
+(Kistaviadukten, and the bridges at Kymlinge and Hjorthagen), its rail is held a clearance above
+the ground, and where they give the rail's height (`rail`), it is anchored there like a platform.
 
 `data/height-corrections.json` fixes the inputs where they are wrong, each with its reason:
 
@@ -324,6 +325,9 @@ where they give the rail's height (`rail`), it is anchored there like a platform
 - At Gullmarsplan the tracks south of the platforms are in a box under the bus terminal's deck.
 - Kista's platform is on a viaduct, above Wikidata's height, and the viaduct and the bridge at
   Kymlinge are held over the streets and the valley under them.
+- At Hjorthagen, between Gärdet and Ropsten, the line crosses Tegeluddsvägen, Lidingövägen and
+  the ramps of Norra länken on a bridge, held over them; the abutment at its north end stands on
+  the hillside, so the track from it to the tunnel keeps its ground.
 
 The heights at Gamla stan, under the water and on the bridge to Slussen were read off a textured 3D
 model of the city from Google Earth, downloaded locally (it is not in the repository). Its heights
@@ -360,6 +364,9 @@ through:
 - the two tracks of a line in a tunnel at the same level: 3.15 m apart, as built (the 1975
   standard), or a platform's width apart at an island platform
 - tracks at different levels: at least 7.5 m apart, so that their tunnels don't cut into each other
+- where two lines' tracks run interleaved (from Slussen to T-Centralen the red line's two tracks
+  run between the green line's), no two of the four closer than 3.15 m, and away from the mouths
+  and platforms pulled to that spacing, so that the four run side by side
 
 It keeps curves at the line's limit or wider: 250 m on the red line and 200 m on the green (the
 1975 description), and 350 m on the blue, and fails if it can't. The blue line was built to
@@ -375,7 +382,10 @@ nearest track on each side.
 **The structure.** Each point is in a rock tunnel, a concrete box (cut and cover, near the
 mouths, and wherever the rock over the tunnel would be less than 12 m), a cutting, on the
 ground, on an embankment, or on a bridge. The two tracks of a line share a tunnel, bridge or bank
-where they run side by side.
+where they run side by side. From Gamla stan towards T-Centralen the red and green lines' four
+tracks share one box, each track's part reaching halfway to the next (with a step in the floor
+where they part for T-Centralen's two levels), and at Gamla stan each island platform's hall is
+shared by the two lines' tracks either side of it.
 
 The game sweeps cross-sections along this line (`src/network.ts`): ballast and sleepers, rails, the
 conductor rail with its cover board, and the tunnel or bank around them. The sizes come from the
@@ -532,6 +542,14 @@ The network cuts the same spaces out of its tunnels and platforms.
 To visit one, pick it from the lines' stations in the menu, or start there with
 `?at=Mariatorget`.
 
+Underground, the stations and tunnels are lit by their own lamps (`src/lamps.ts`): the rows of
+tubes over the platforms and down the halls' and passages' ceilings, and a lamp on the tunnel
+wall every 7–10 m. Only a little of the sky's light gets down there. Each lamp is a strip of light
+whose light is worked out for every pixel (the irradiance of a line light, with a highlight on
+shiny floors), lighting only the room it hangs in, out to a reach of 9–16 m; the 12 strips
+nearest the camera are lit (8 on phones, without the highlights), and the furthest of them fade
+out as others come nearer. There are no shadows.
+
 ### The city
 
 Everything within 1 km of the red, green and blue lines has its ground and buildings, so the city is there
@@ -566,7 +584,9 @@ and where they don't close, its shores do: the water reaches on from what the mo
 150 m, without crossing a shore, and is kept where it joins the water at both ends, as under a
 bridge (Söderström). The ground there is brought down to the water's level. The game draws the
 water blue at its level over the cells it covers and those on its shores, so the shore is where the
-ground rises out of it. It can be waded through, since the bridges aren't drawn yet.
+ground rises out of it. It can be waded through, since the bridges aren't drawn yet. None is drawn
+over a tunnel whose inside reaches up through the water's level (the trough that carries the red
+and green lines under Riddarholmskanalen), where it would stand in the tunnel.
 
 How the ground meets the track:
 
@@ -578,7 +598,8 @@ How the ground meets the track:
   model leaves out, and stands in the open instead. Open track beside a tunnel lowers the ground
   only as far as the tunnel's roof.
 - At each tunnel mouth the tunnel's own space is cut out of the ground, and a headwall stands
-  round the opening.
+  round the opening. So it is where a tunnel comes out from under the ground to stand in the
+  open, where the raised ground over it meets the lowered ground beside it.
 
 The buildings are blocks with their roofs:
 
@@ -603,6 +624,8 @@ The buildings are blocks with their roofs:
   houses wood and for sheds and warehouses plain, each with its own texture and colours.
 - Where a building stands over open track, the part over the track's space is lifted 5 m above
   the rails (or left out). Roofs on posts over the track are left out: the stations draw theirs.
+  Where one would reach down into a tunnel (Gamla stan's halls, just under the street), the part
+  over it stands on the tunnel's roof.
 - Where a station's stairs, lift or hall comes up inside a building, it is cut out of the
   building, and so is a way from the exit on through the building to the outside.
 - A building the depot's covered track runs through (OSM's `covered=yes`) is a hall: it stands

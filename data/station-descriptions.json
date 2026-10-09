@@ -71,7 +71,7 @@
           {"mark": "gates"},
           {"exit": 401798228}
         ] },
-        { "from": "gates", "width": 4, "go": [
+        { "from": "gates", "width": 2.5, "go": [
           {"walk": [-44, 18.7]},
           {"exit": 3596988872}
         ] },
@@ -324,8 +324,8 @@
           {"exit": 1872294260}
         ] },
         { "from": [-68, 0], "width": 5, "go": [
-          {"walk": [-90, 0]},
-          {"escalators": 14, "toward": [-150, 0], "lanes": "EE"},
+          {"walk": [-90, 1]},
+          {"escalators": 14, "toward": [-150, 1], "lanes": "EE"},
           {"walk": 5, "width": 6},
           {"gates": true},
           {"exit": 318561839}
@@ -386,10 +386,10 @@
         { "from": [0, -10], "width": 8, "go": [
           {"walk": [0, 10]}
         ] },
-        { "from": [70, -10], "width": 6, "go": [
+        { "from": [70, -10], "width": 12, "go": [
           {"walk": [70, 10]}
         ] },
-        { "from": [70, 0], "width": 5, "go": [
+        { "from": [73, 0], "width": 5, "go": [
           {"escalators": 14, "toward": [85.4, -40.6], "lanes": "EES"},
           {"walk": 4, "width": 7},
           {"gates": true},
@@ -430,8 +430,8 @@
       "drawing": "morby_centrum.png",
       "note": "The line's northern end: a wide island platform deep in the rock. Long escalators climb from it to the ticket hall under the shopping centre.",
       "routes": [
-        { "from": [-20, 2], "width": 5, "go": [
-          {"escalators": 18, "toward": [-90, 2], "lanes": "EES"},
+        { "from": [-20, 0], "width": 5, "go": [
+          {"escalators": 18, "toward": [-90, 0], "lanes": "EES"},
           {"walk": 6, "width": 8},
           {"gates": true},
           {"walk": 3},
@@ -1565,14 +1565,14 @@
       "drawing": "vastra_skogen.png",
       "note": "Where the line splits for Hjulsta and Akalla: three tracks in the rock, the trains into town on the two eastern ones, beside two platform halls joined at both ends and in the middle; the trains out of town on the western track, beside its own platform, reached by stairs and a footbridge over the tracks. From the south end, escalators climb 7 m, then the metro's longest, 66 m and 33 m high, to the one exit.",
       "routes": [
-        { "from": [0, 1.1], "width": 8, "go": [
-          {"walk": [0, 18.1]}
+        { "from": [0, 0.6], "width": 8, "go": [
+          {"walk": [0, 18.7]}
         ] },
-        { "from": [-70, 1.1], "width": 6, "go": [
-          {"walk": [-70, 18.1]}
+        { "from": [-70, 0.6], "width": 6, "go": [
+          {"walk": [-70, 18.7]}
         ] },
-        { "from": [60, 1.1], "width": 6, "go": [
-          {"walk": [60, 18.1]}
+        { "from": [60, 0.6], "width": 6, "go": [
+          {"walk": [60, 18.7]}
         ] },
         { "from": [-20, -1], "width": 3, "go": [
           {"stairs": 5.6, "toward": [-60, -1]},
