@@ -35,10 +35,10 @@ type Segment =
   | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
-  | { lift: number }
+  | { lift: number; above?: number }
   | { gates: true }
   | { mark: string }
-  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number };
+  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean };
 interface RouteDesc { from: SU | string; h?: number; width?: number; go: Segment[] }
 interface Description {
   drawing?: string;
@@ -238,7 +238,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     const incline = (kind: 'stairs' | 'escalators', dh: number, nx: number, nz: number, lanes: string, ceiling = CEILING.incline, open?: number) => {
       const slope = kind === 'stairs' ? STAIR_SLOPE : ESCALATOR_SLOPE;
       const run = Math.abs(dh) / slope;
-      const w = [...lanes].reduce((a, c) => a + LANE[c as 'E' | 'S'], 0);
+      const w = [...lanes].reduce((a, c) => a + LANE[c as keyof typeof LANE], 0);
       joint(nx, nz, w);
       const ex = x + nx * run, ez = z + nz * run;
       const lo: XYZ = dh > 0 ? [x, y, z] : [ex, y + dh, ez];
@@ -279,7 +279,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         // the shaft just beyond where the way ends, its door facing back along it
         const yaw = Math.atan2(hx, hz);
         const dist = 0.3 + 2.4 / 2;
-        parts.push({ kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)] });
+        parts.push({ kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)], ...(sg.above === undefined ? {} : { above: sg.above }) });
         y += sg.lift;
       } else if ('gates' in sg) {
         parts.push({ kind: 'gates', x: r2(x), y: r2(y), z: r2(z), yaw: r2(Math.atan2(-hx, -hz)), width: r2(width) });
@@ -292,7 +292,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         const by = sg.by ?? 'stairs';
         const dh = ey - y, l = Math.hypot(e.x - x, e.z - z);
         const nx = l > 0.01 ? (e.x - x) / l : hx, nz = l > 0.01 ? (e.z - z) / l : hz;
-        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling);
+        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling, sg.open);
         else if (by === 'lift') {
           walkTo(e.x, e.z);
           const yaw = Math.atan2(hx, hz);

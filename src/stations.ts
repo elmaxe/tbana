@@ -87,8 +87,9 @@ export class Stations {
   private look = new OpenLook();
   private open: { frame: Frame; style: OpenStyle; on: (m: THREE.Material) => Mesh } | null = null;
 
-  // The volumes the network cuts out of what it draws: the stations' open spaces (`holes`), and,
-  // from the platforms' floors, the solid undersides of the stairs (`solids`).
+  // The volumes the network cuts out of what it draws: the stations' open spaces and the halls a
+  // styled open station stands on its platform (`holes`), and, from the platforms' floors, the
+  // solid undersides of the stairs (`solids`).
   static volumes(data: StationLayouts) {
     const holes: Volume[] = [], solids: Volume[] = [];
     for (const st of data.stations) {
@@ -98,6 +99,8 @@ export class Stations {
         if (v) holes.push(v);
         if (p.kind === 'incline') solids.push(solidOf(p));
       }
+      const style = OPEN_STYLES[st.name];
+      if (style) holes.push(...blockVolumes(style, new Frame(st), true));
     }
     return { holes, solids };
   }
@@ -259,7 +262,8 @@ export class Stations {
           this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), cut));
         } break;
         case 'canopy':
-          if (this.open) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.map((s) => s.vol), group);
+          // (not cut by the floors out in the open under it, which reach up to it)
+          if (this.open) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol), group);
           else this.buildCanopy(p, m, spaces.map((s) => s.vol));
           break;
         case 'sign': group.add(this.buildSign(p, m)); break;
@@ -345,7 +349,7 @@ export class Stations {
     let u = -p.width / 2;
     const bounds = [u];
     for (const lane of p.lanes) {
-      const w = LANE[lane as 'E' | 'S'];
+      const w = LANE[lane as keyof typeof LANE];
       const mesh = lane === 'E' ? m.escalator : m.stairs;
       // each step: its riser, then its tread, so that the walking plane runs through the middle of
       // both; and a last riser up to the top
@@ -403,10 +407,12 @@ export class Stations {
     // out into the street, or through a floor at the top: no ceiling over the opening
     let tEnd = p.open === undefined ? 1 : Math.max(0, Math.min(1, (p.open - p.a[1] - p.ceiling) / (rise || 1)));
     if (this.throughFloor(p)) tEnd = Math.min(tEnd, Math.max(0, 1 - p.ceiling / (rise || 1)));
+    // (in a glass building, under its roof)
+    const room = this.roomOf(p);
+    if (room?.sill !== undefined) tEnd = 0;
     if (tEnd > 0) {
       const w2 = p.width / 2;
       const c0 = ceil(-w2, 0), c1 = ceil(w2, 0), c2 = ceil(w2, tEnd), c3 = ceil(-w2, tEnd);
-      const room = this.roomOf(p);
       if (room?.ceiling) this.flat(room.ceiling, [c0, c1, c2, c3], cut, true);
       else m.ceiling.poly([[...c0, 0, 0], [...c1, p.width / 3, 0], [...c2, p.width / 3, run * tEnd / 3], [...c3, 0, run * tEnd / 3]], cut);
       this.lampRow(m, at(0, 0) as XYZ, at(0, tEnd) as XYZ, p.ceiling - 0.04, cut);
@@ -421,6 +427,7 @@ export class Stations {
     const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length, cz = corners.reduce((s, c) => s + c[2], 0) / corners.length;
     const n = corners.length;
     const room = this.roomOf(p), finish = (p.kind === 'incline' ? room?.stairs : undefined) ?? room?.walls ?? undefined;
+    const sill = room?.sill === undefined ? undefined : this.open!.frame.st.platformY + room.sill;
     if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
@@ -434,7 +441,7 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, finish);
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, finish, sill);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {
@@ -472,8 +479,20 @@ export class Stations {
   }
 
   private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number,
-    finish?: Finish) {
+    finish?: Finish, sill?: number) {
     const P = (t: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    // in a glass building, only up to the glass's sill: none where the floor is above it, and
+    // only the part below it where the floor rises through it
+    if (sill !== undefined) {
+      const ya = P(t0)[1], yb = P(t1)[1];
+      if (Math.min(ya, yb) >= sill - 0.01) return;
+      if (Math.max(ya, yb) > sill + 0.01) {
+        const tk = t0 + ((t1 - t0) * (sill - ya)) / (yb - ya);
+        if (ya < yb) this.wallQuad(p, m, a, b, t0, tk, bottom, ceiling, cut, len, finish, sill);
+        else this.wallQuad(p, m, a, b, tk, t1, bottom, ceiling, cut, len, finish, sill);
+        return;
+      }
+    }
     const p0 = P(t0), p1 = P(t1);
     // the top: the ceiling; in the open, a parapet; around stairs coming up into the street, the
     // ceiling below the street and a parapet above it
@@ -481,6 +500,7 @@ export class Stations {
     // and down through a floor, no higher than the floor
     const cap = p.kind === 'incline' && this.throughFloor(p) ? p.b[1] : Infinity;
     const top = (q: number[]) => {
+      if (sill !== undefined) return sill;
       if (ceiling === null) return q[1] + PARAPET;
       if (open !== undefined) return Math.min(q[1] + ceiling, Math.max(open + PARAPET, q[1] + PARAPET));
       return Math.min(cap, q[1] + ceiling);
@@ -560,7 +580,7 @@ export class Stations {
 
   private buildLift(p: LiftPart, m: Meshes) {
     const c = liftCorners(p);
-    const y0 = Math.min(...p.levels) - LIFT.below, y1 = Math.max(...p.levels) + LIFT.above;
+    const y0 = Math.min(...p.levels) - LIFT.below, y1 = Math.max(...p.levels) + (p.above ?? LIFT.above);
     for (let i = 0; i < 4; i++) {
       const [ax, az] = c[i], [bx, bz] = c[(i + 1) % 4];
       m.glass.poly([[ax, y0, az, 0, 0], [bx, y0, bz, 1, 0], [bx, y1, bz, 1, 1], [ax, y1, az, 0, 1]]);

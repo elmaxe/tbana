@@ -25,8 +25,8 @@ export interface OpenStyle {
   // fences along the tracks, beyond them
   fences?: Fence[];
   // benches down the middle of the platform at these `s`: along it, or across it, against the
-  // panel between a pair of columns
-  benches?: { at: number[]; across?: boolean };
+  // panel between a pair of columns; `double`, two back to back along it
+  benches?: { at: number[]; across?: boolean; double?: boolean };
 }
 
 // A roof whose two halves slope down to a valley along its middle, held up by a row of columns
@@ -35,6 +35,8 @@ export interface ButterflyRoof {
   kind: 'butterfly';
   from: number; to: number;    // along the platform
   width: number;
+  offset?: number;             // its middle this far to the right of the platform's
+
   // the underside's height at the middle and at the edges, the roof's thickness, and how deep
   // its fascia is at the edges
   middle: number; edge: number;
@@ -42,15 +44,24 @@ export interface ButterflyRoof {
   rafters: number;             // between the rafters across the underside
   beam: number;                // the beam's depth under the valley
   rafterSize?: [number, number]; // across and deep (0.05 by 0.1 by default)
-  // columns `every` m, one of them at `at`; or pairs of them across the platform, `pair` apart,
-  // each under a beam of its own
-  columns: { every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number };
+  // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
+  // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
+  // each column up to the beam this far along it either way
+  columns: {
+    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
+    between?: [number, number]; braces?: number;
+  };
   // rows of strip lights along the underside, `offset` either side of the beam: fittings
   // `length` long, `every` apart
   lamps: { offset: number; length: number; every: number };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // name signs hung under the beam at these `s`, with the way out at each end of the platform
+  // (none if empty)
   signs: { at: number[]; back: string; ahead: string };
+  // round clocks with a face each way along the platform, and departure boards, hung from the
+  // roof at s, u
+  clocks?: [number, number][];
+  boards?: { s: number; u: number; toward: string; trains: [string, string] }[];
 }
 
 // The platform's top, across from its edge: a pale band of edge stones, a strip of ribbed or
@@ -72,11 +83,14 @@ export interface Paving {
 // at all (`walls: null`) where its floors are the platform's ends, out under the roof. `roof`
 // puts a roof this thick on its ceilings; `slab` a slab this thick under its floors, where they
 // stand on a bridge.
+//
+// `sill`: in a glass building (a block's), the walls beside its floors and stairs rise only to
+// this height, the building's glass above them, and its stairs have no ceiling of their own.
 export interface Room {
   name: string;
   s: [number, number]; u?: [number, number]; h: [number, number];
   walls?: Finish | null; floor?: Finish; ceiling?: Finish; stairs?: Finish;
-  roof?: number; slab?: number;
+  roof?: number; slab?: number; sill?: number;
 }
 
 export type Finish =
@@ -91,22 +105,27 @@ export type Finish =
   | 'slats'         // a white slatted ceiling
   | 'whiteTiles'    // small square tiles, white, with a band of black and yellow lozenges
   | 'terrazzo'      // pale grey terrazzo in large squares
-  | 'whitePanels';  // white sheet-metal panels
+  | 'whitePanels'   // white sheet-metal panels
+  | 'greyTiles'     // grey square tiles, 30 cm
+  | 'redLineTiles'; // small square tiles, white, with a thin dark red line
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
 // this thick, and a floor at `from` wherever the station's own floors leave it open. The
-// station's parts open through it. `sides` gives a side (from corner i to the next) a finish of
-// its own, or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a
-// finish of their own all round from a height up; `lights`, lit yellow signs on a side, `at` the
-// way along it (0 to 1) and `length` long.
+// station's parts open through it. `low`: its top falls from `h[1]` at its first and last corners
+// to this at the other two. `sides` gives a side (from corner i to the next) a finish of its own,
+// or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a finish of
+// their own all round from a height up; `lights`, lit yellow signs on a side, `at` the way along
+// it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
+// be walked on inside it (only the station's own floors are).
 export interface Block {
-  name: string; plan: [number, number][]; h: [number, number]; from?: number;
+  name: string; plan: [number, number][]; h: [number, number]; from?: number; low?: number;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
+  onPlatform?: boolean;
 }
 
-export type Art = Guardian | Stacks | Panels;
+export type Art = Guardian | Stacks | Panels | Masts | Mural;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -120,6 +139,14 @@ export interface Stacks { kind: 'stacks'; s: number; u: number; turn: number; he
 // Lacquered panels in two colours, left and right, hung between each pair of the roof's
 // columns from `bottom` to `top`, the colours in turn along the platform from its back end.
 export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: number; top: number }
+
+// Lamp posts at the points ([s, u], in the station's frame): a tall red-brown post with a white
+// dome lamp on top and one on an arm to each side, `height` high.
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number }
+
+// A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
+// `top` and `width` across; drawn in code (src/textures.ts).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // A chain-link fence on posts through the points ([s, u]), from `h[0]` to `h[1]` high.
 export interface Fence { points: [number, number][]; h: [number, number] }
@@ -281,5 +308,89 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-80, 15.39], [-60, 12.59], [-40, 10.29], [-20, 8.9], [0, 8.4], [20, 8.8], [40, 10.01], [60, 11.81], [80, 14.31], [86, 15.28]], h: [-1, 1] },
     ],
     benches: { at: [-65, -45, -15, 15, 45, 65], across: true },
+  },
+
+  // Tallkrogen (1 October 1950, Peter Celsing): an island platform on the bank between Tallkrogen's
+  // villas, its south end on the tracks' bridges over Victor Balcks väg. The laser scan puts its
+  // butterfly roof from 81 m south of the platform's middle to 27 m south, about 7.2 m wide and
+  // half a metre west of the platform's middle, its top 3.0 m over the platform along the valley
+  // and 3.2 m at the edges (OpenStreetMap's outline of it agrees). Photographs show it boarded
+  // white underneath on white rafters, a white fascia under a dark edge, black steel columns
+  // with knee braces under a black beam along the valley, strip lights, a clock at its north end
+  // and the departure boards over the hall's door; double benches of black slats on steel frames;
+  // grey concrete slabs, a ribbed strip for the blind and pale edge stones; and out in the open,
+  // red-brown lamp posts down the middle, each with three white dome lamps (the laser scan finds
+  // them 4.4 m high, every 15 m or so).
+  //
+  // The south half of the roof covers a narrow hall on the platform, the platform running on
+  // past it on both sides (photographs; OpenStreetMap's indoor mapping puts its door 54 m south
+  // of the middle, the ticket gates at 67 m and a lift at 78 m): white panels under a band of
+  // windows, the roof's boarding for a ceiling, grey square tiles, a glazed front with the
+  // door. Beyond it a glass stair house between the tracks (OpenStreetMap's outline; laser scan:
+  // its roof falls from 2.35 m over the platform at 82 m south to 0.3 m at 102 m): stairs down
+  // between walls of white tiles with a thin dark red line, the glass above them; a landing;
+  // then Kristina Anshelm's Tallkrogsdraken (1998, plastic laminate: a dragon over the suburb's
+  // ring of streets and red roofs) on the wall over the second flight, which goes down through
+  // it to the door onto Victor Balcks väg under the tracks' bridges, 6.85 m below the platform.
+  // The lift goes down to a passage under the western track out to Tallkrogsvägen ("Hiss till
+  // höger runt hörnet", says the sign at the street); how that passage is finished isn't known,
+  // so it is tiled as the stairs are.
+  //
+  // Chain-link fences beyond both tracks.
+  'Tallkrogen': {
+    roof: {
+      kind: 'butterfly',
+      from: -81.3, to: -26.6, width: 7.2, offset: -0.55,
+      middle: 2.8, edge: 2.98, thick: 0.22, fascia: 0.28,
+      rafters: 1.2, rafterSize: [0.07, 0.16],
+      beam: 0.3,
+      // (in the hall its walls carry the roof)
+      columns: { every: 9, at: -31.5, size: 0.16, plinth: { size: 0.24, height: 0.06 }, between: [-53, -27], braces: 0.9 },
+      lamps: { offset: 1.9, length: 1.5, every: 3 },
+      colors: { underside: 0xf1f1ed, fascia: 0xe6e6e2, top: 0x34383b, steel: 0x262829 },
+      signs: { at: [-48, -35], back: 'Victor Balcks väg', ahead: '' },
+      clocks: [[-27.6, 1.5]],
+      boards: [
+        { s: -53.3, u: 1.4, toward: 'Farsta strand', trains: ['18 Farsta strand  4 min', '18 Farsta strand  14 min'] },
+        { s: -53.3, u: -1.4, toward: 'T-Centralen', trains: ['18 Alvik  7 min', '18 Alvik  17 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.3, tactile: [0.55, 0.95], slabs: 5, slabSize: [0.5, 0.35],
+      colors: { edge: 0xc8c6c0, tactile: 0x74726d, slab: 0x86837d, pavers: 0x86837d, face: 0x9c9993 },
+      pattern: 'bond',
+    },
+    rooms: [
+      // (the hall's floors are open to the roof over them; the walls round them are its block's)
+      { name: 'hall', s: [-81.5, -53.4], h: [-0.5, 2], walls: null, floor: 'greyTiles', ceiling: 'slats' },
+      { name: 'stair house', s: [-92.5, -81.5], h: [-4, 0.5], walls: 'redLineTiles', floor: 'greyTiles', ceiling: 'slats', stairs: 'redLineTiles', sill: -1.55 },
+      { name: 'stairs to the street', s: [-103, -92.5], h: [-7.5, -3.5], walls: 'redLineTiles', floor: 'greyTiles', ceiling: 'slats', stairs: 'redLineTiles' },
+      { name: 'passage to the lift', s: [-83, -77], u: [-20, -0.6], h: [-7.5, -6], walls: 'redLineTiles', floor: 'greyTiles', ceiling: 'slats' },
+    ],
+    // (the stair house keeps clear of the trains on the tracks closing in on it)
+    blocks: [
+      { name: 'hall', plan: [[-53.8, -3.2], [-81.5, -3.2], [-81.5, 1.5], [-53.8, 1.5]], h: [0, 2.95], walls: 'whitePanels', sides: [undefined, undefined, undefined, 'glazed'],
+        band: { walls: 'glazed', from: 2.15 }, floor: 'greyTiles', onPlatform: true },
+      // (its floor the ledge at the glass's foot, beside the stairs)
+      { name: 'stair house', plan: [[-81.5, -2.6], [-92.6, -2.6], [-92.6, 1.4], [-81.5, 1.4]], h: [-3.6, 2.35], low: 1.25, from: -1.55, walls: 'glazed', sides: [undefined, null, undefined, null],
+        floor: 'boardConcrete', ceiling: 'slats', roof: 0.2 },
+      // (over the second flight, under the tracks' level: the wall with Tallkrogsdraken, and the
+      // door at the street)
+      { name: 'stair house, lower', plan: [[-92.6, -2.6], [-102.2, -2.0], [-102.2, 1.6], [-92.6, 1.4]], h: [-6.85, 1.25], low: 0.3, from: -6.85, walls: 'boardConcrete',
+        sides: [undefined, undefined, undefined, 'whitePanels'], roof: 0.2 },
+      // (where the passage to the lift comes out of the bank)
+      { name: 'passage to the lift', plan: [[-79.4, -8.5], [-82.0, -8.5], [-82.0, -18.2], [-79.4, -18.2]], h: [-6.85, -4.0], from: -6.85, walls: 'boardConcrete', roof: 0.25 },
+    ],
+    buildings: ['w1147168692', 'w1147168693'],
+    art: [
+      { kind: 'masts', height: 4.4, at: [[-16, -0.2], [0.5, -0.5], [15, -0.3], [30.5, 0.3], [47, 0.6], [60, 1.5], [75, 1.6], [81, 1.4]] },
+      { kind: 'mural', picture: 'tallkrogsdraken', s: -92.6, u: -0.6, turn: 0, bottom: -0.95, top: 1.1, width: 3.0 },
+    ],
+    // 2.6 m beyond each track
+    fences: [
+      { points: [[-75, -7.6], [-60, -8.0], [-50, -8.1], [-30, -7.9], [-10, -7.5], [10, -6.8], [30, -6.0], [50, -5.1], [70, -4.1], [88, -3.3]], h: [-2, 0] },
+      { points: [[-80, 6.6], [-60, 6.9], [-40, 7.1], [-20, 7.2], [30, 7.2], [60, 7.4], [88, 7.5]], h: [-2, 0] },
+    ],
+    benches: { at: [-45, -36, -23], double: true },
   },
 };

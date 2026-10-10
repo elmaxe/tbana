@@ -428,7 +428,13 @@ bronze columns of stacked slabs, and fans of small setts down the middle of the 
 south end a glass hall, then stairs down to a passage under the tracks in white tiles with a
 band of yellow and black lozenges; at its north end a glass stair house and escalators down to
 the ticket hall under the tracks' bridge over Örbyleden, dark stone below a white band with lit
-yellow signs, and a glass front towards the road. The city leaves out OpenStreetMap's outlines
+yellow signs, and a glass front towards the road. Tallkrogen (1950, Peter Celsing) has a lower
+roof, braced on its columns at the hall end, with a clock and departure boards hung under it,
+red lamp masts with white globes down the rest of the platform, and double benches. At its south
+end a hall of white panels under a band of glass holds the ticket gates; beyond it a glass stair
+house with a slatted ceiling and red-lined white tiles goes down past Kristina Anshelm's
+Tallkrogsdraken (1998) to a door in the bridge abutment on Victor Balcks väg, and a lift goes
+down to a passage out to Tallkrogsvägen. The city leaves out OpenStreetMap's outlines
 of the buildings such a station draws itself, and the street round its exits doesn't run on
 inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
@@ -534,12 +540,13 @@ A description lists the ways out, each as a route of steps from a point on the p
 - `walk` goes to a point, or on for so many metres; with `dh` it is a ramp, and `open` leaves it
   without a ceiling.
 - `stairs` and `escalators` climb a height (down if negative) towards a point, or end at it with
-  `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs.
-- `lift` rises a height; `gates` puts ticket gates across the way; `mark` names a place that
-  another route can start `from`.
+  `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs, `s` narrower
+  stairs.
+- `lift` rises a height, its shaft reaching `above` its top stop (3 m by default); `gates` puts
+  ticket gates across the way; `mark` names a place that another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
-  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track) or a
-  lift.
+  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or
+  `open`) or a lift.
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,

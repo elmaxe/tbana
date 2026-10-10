@@ -1258,14 +1258,33 @@
     },
     "Tallkrogen": {
       "drawing": "tallkrogen.png",
-      "note": "An island platform in the open. At its south-west end stairs go down to the ticket hall at the street.",
+      "note": "An island platform on the bank, under a butterfly roof over its south half, which also covers a narrow hall on the platform with the ticket gates and a lift. Beyond the hall a glass stair house between the tracks, with two flights of stairs down to the door onto Victor Balcks väg under the tracks' bridges; the lift goes down to a passage under the western track out to Tallkrogsvägen. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station.",
       "routes": [
-        { "from": [-48.374273392087005, -0.5], "width": 3, "go": [
-          {"stairs": -6.2, "toward": [-60.0, -0.6]},
-          {"walk": [-66.0, -0.5], "width": 6},
-          {"walk": [-66.0, -12.3], "width": 4},
+        { "from": [-53.6, -0.7], "width": 2.4, "go": [
+          {"walk": [-54.0, -0.7], "ceiling": 2.3},
+          {"walk": [-66.6, -0.7], "width": 4.2, "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -26.3], "name":  "Tallkrogen"}}
+          {"walk": [-76.9, -0.7], "open": true}
+        ] },
+        { "from": [-76.9, 0.4], "width": 2.0, "go": [
+          {"walk": [-79.5, 0.4], "open": true}
+        ] },
+        { "from": [-79.5, -0.5], "width": 3.6, "go": [
+          {"walk": [-81.3, -0.5], "open": true},
+          {"walk": [-82.0, -0.5], "ceiling": 2.2},
+          {"stairs": -3.4, "toward": [-100, -0.5], "lanes": "ss", "ceiling": 2.2},
+          {"walk": [-92.4, -0.5], "open": true},
+          {"stairs": -3.45, "lanes": "ss", "ceiling": 2.4},
+          {"walk": [-101.6, -0.5], "width": 2.4, "ceiling": 2.6},
+          {"walk": [-102.4, -0.5], "ceiling": 2.4},
+          {"exit": {"at": [-104.6, -0.5], "name": "Victor Balcks väg"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-80.4, -1.8], "width": 2.2, "go": [
+          {"walk": [-79.7, -1.8], "open": true},
+          {"lift": -6.85, "above": 2.6},
+          {"walk": [-80.7, -1.8], "ceiling": 2.6},
+          {"walk": [-80.7, -13.0], "ceiling": 2.6},
+          {"exit": {"at": [-80.7, -18.5], "name": "Tallkrogsvägen"}, "by": "walk", "ceiling": 2.6}
         ] }
       ]
     },

@@ -2461,8 +2461,103 @@ export function hangingSign(name: string, left: string, right: string) {
     x.beginPath(); x.moveTo(cx + dir * 18, 196); x.lineTo(cx - dir * 4, 180); x.lineTo(cx - dir * 4, 212); x.fill();
     x.fillRect(Math.min(cx - dir * 22, cx - dir * 4), 192, 18, 8);
   };
-  arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, 197, W / 2 - 100);
-  arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, 197, W / 2 - 100);
+  // (no way out that way if there's no name)
+  if (left) { arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, 197, W / 2 - 100); }
+  if (right) { arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, 197, W / 2 - 100); }
+  return toTexture(c, { repeat: false });
+}
+
+// A station clock's face: white, black bars for the hours and strokes for the minutes, black
+// hands (at ten past ten).
+export function clockFace() {
+  const N = 256, [c, x] = canvas(N);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, N, N);
+  x.translate(N / 2, N / 2);
+  x.fillStyle = '#141516';
+  for (let k = 0; k < 60; k++) {
+    x.save(); x.rotate((k * Math.PI) / 30);
+    if (k % 5 === 0) x.fillRect(-5, -118, 10, 30); else x.fillRect(-1.5, -118, 3, 10);
+    x.restore();
+  }
+  const hand = (turn: number, len: number, w: number) => { x.save(); x.rotate(turn * Math.PI * 2); x.fillRect(-w / 2, -len, w, len + 16); x.restore(); };
+  hand((10 + 10 / 60) / 12, 70, 12);
+  hand(10 / 60, 104, 8);
+  x.beginPath(); x.arc(0, 0, 9, 0, Math.PI * 2); x.fill();
+  return toTexture(c, { repeat: false });
+}
+
+// A departure board: a pale strip naming the trains' direction, and the next two trains in
+// orange lights on black.
+export function departureBoard(toward: string, trains: [string, string]) {
+  const W = 680, H = 200, [c, x] = canvas(W, H);
+  x.fillStyle = '#0e0f10'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#d6d9d6'; x.fillRect(0, 0, W, 44);
+  x.fillStyle = '#1a1b1c'; x.font = '500 28px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(`Tåg mot ${toward}`, W / 2, 23, W - 40);
+  x.fillStyle = '#ff8a1e'; x.font = '700 50px "Courier New", monospace'; x.textAlign = 'left';
+  trains.forEach((t, k) => x.fillText(t, 22, 84 + k * 70, W - 44));
+  return toTexture(c, { repeat: false });
+}
+
+// Kristina Anshelm's Tallkrogsdraken (1998), redrawn: a black-outlined dragon whose round body is
+// Tallkrogen's ring of streets, yellow and blue, with four legs either side, a thin tail to the
+// left and a snake's head to the right, over the suburb seen from above (green gardens, red and
+// orange roofs) with an orange road along the bottom.
+export function tallkrogsdraken() {
+  const W = 1024, H = 700, [c, x] = canvas(W, H);
+  const r = rng(1998);
+  x.fillStyle = '#3e9147'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 260; k++) {
+    x.fillStyle = ['#2c7a37', '#57a957', '#78bf68', '#347f3c'][k % 4];
+    x.beginPath(); x.arc(r() * W, r() * H, 10 + r() * 30, 0, Math.PI * 2); x.fill();
+  }
+  // the houses: roofs seen from above, a pale wall along one side
+  const cx = 500, cy = 350, rx = 235, ry = 180;
+  for (let k = 0; k < 140; k++) {
+    const hx = r() * W, hy = r() * H;
+    if (((hx - cx) / (rx + 30)) ** 2 + ((hy - cy) / (ry + 30)) ** 2 < 1) continue;
+    x.save(); x.translate(hx, hy); x.rotate((r() - 0.5) * 1.6);
+    x.fillStyle = '#efe5cc'; x.fillRect(-19, -8, 38, 24);
+    x.fillStyle = ['#d24a26', '#e5702f', '#c43b22', '#ee8a3a'][k % 4]; x.fillRect(-19, -16, 38, 18);
+    x.fillStyle = 'rgba(80,20,10,0.5)'; x.fillRect(-19, -8, 38, 2);
+    x.restore();
+  }
+  // the road along the bottom
+  x.strokeStyle = '#e57d2e'; x.lineWidth = 9; x.beginPath(); x.moveTo(0, H - 60); x.bezierCurveTo(W * 0.3, H - 30, W * 0.6, H - 95, W, H - 70); x.stroke();
+  x.lineCap = 'round'; x.strokeStyle = '#121212';
+  // the legs, four above and four below, curling at their feet
+  x.lineWidth = 15;
+  for (const side of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const lx = cx - 120 + k * 85, ly = cy + side * ry * Math.sqrt(1 - ((lx - cx) / rx) ** 2);
+    x.beginPath(); x.moveTo(lx, ly); x.quadraticCurveTo(lx - 20, ly + side * 90, lx + 12, ly + side * 150); x.quadraticCurveTo(lx + 30, ly + side * 168, lx + 46, ly + side * 158); x.stroke();
+  }
+  // the tail, thin and wavy, off to the left
+  x.lineWidth = 7; x.beginPath(); x.moveTo(cx - rx + 4, cy + 10);
+  x.bezierCurveTo(cx - rx - 80, cy - 40, cx - rx - 120, cy + 70, cx - rx - 210, cy + 20); x.bezierCurveTo(cx - rx - 260, cy - 5, 70, cy + 40, 40, cy + 10); x.stroke();
+  // the neck and the snake's head, to the right
+  x.lineWidth = 34; x.beginPath(); x.moveTo(cx + rx - 20, cy - 10); x.bezierCurveTo(cx + rx + 70, cy - 50, cx + rx + 110, cy + 40, cx + rx + 190, cy - 10); x.stroke();
+  x.strokeStyle = '#2a5fc0'; x.lineWidth = 18; x.stroke();
+  x.fillStyle = '#121212'; x.beginPath(); x.ellipse(cx + rx + 210, cy - 16, 36, 22, -0.3, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#2a5fc0'; x.beginPath(); x.ellipse(cx + rx + 210, cy - 16, 26, 13, -0.3, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#d8281e'; x.lineWidth = 5; x.beginPath(); x.moveTo(cx + rx + 242, cy - 26); x.lineTo(cx + rx + 272, cy - 34); x.moveTo(cx + rx + 262, cy - 31); x.lineTo(cx + rx + 276, cy - 22); x.stroke();
+  // the body: the ring of streets, yellow between blue rings round a centre to the right of its
+  // middle, crossed by black streets, in a heavy black outline
+  x.save(); x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.clip();
+  x.fillStyle = '#f0bf2a'; x.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+  x.fillStyle = 'rgba(255,240,170,0.35)'; x.beginPath(); x.ellipse(cx - 60, cy - 50, rx * 0.6, ry * 0.5, 0, 0, Math.PI * 2); x.fill();
+  const tx = cx + 70;
+  x.strokeStyle = '#2a5fc0';
+  for (const k of [0.25, 0.5, 0.75, 1.0]) {
+    x.lineWidth = 16; x.beginPath(); x.ellipse(tx, cy, rx * 0.62 * k, ry * 0.78 * k, 0, 0.2, Math.PI * 2 - 0.2); x.stroke();
+  }
+  x.fillStyle = '#2a5fc0'; x.beginPath(); x.arc(tx, cy, 18, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#121212'; x.lineWidth = 14;
+  x.beginPath(); x.moveTo(tx, cy - ry); x.lineTo(tx, cy + ry); x.stroke();
+  x.beginPath(); x.moveTo(cx - rx, cy); x.lineTo(tx - 30, cy); x.stroke();
+  for (const k of [-1, 1]) { x.beginPath(); x.ellipse(cx - 40, cy, 120, 130, 0, k > 0 ? -1.2 : Math.PI - 1.2, k > 0 ? 1.2 : Math.PI + 1.2); x.stroke(); }
+  x.restore();
+  x.strokeStyle = '#121212'; x.lineWidth = 18; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.stroke();
+  speckle(x, W, H, 5000, 0.06, 1999);
   return toTexture(c, { repeat: false });
 }
 
@@ -2472,7 +2567,7 @@ export function hangingSign(name: string, left: string, right: string) {
 export const FINISH_SIZE: Record<Finish, [number, number]> = {
   clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
-  whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4],
+  whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows'];
@@ -2591,6 +2686,27 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(70,72,74,0.45)'; x.fillRect(0, 0, 2, H); x.fillRect(W - 2, 0, 2, H);
       x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(3, 0, 3, H);
       break;
+    case 'greyTiles': {
+      x.fillStyle = '#4a4b4c'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 104 + Math.floor(r() * 14);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 3})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'redLineTiles': {
+      // 15 cm tiles, and at 1.2 m a thin dark red line (on the walls beside stairs it follows them
+      // down, as the walls' heights are measured up from the steps)
+      x.fillStyle = '#a9aba8'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 234 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      x.fillStyle = '#7a2622'; x.fillRect(0, Y(1.23), W, 0.03 * PX);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
