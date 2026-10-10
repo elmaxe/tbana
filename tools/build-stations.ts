@@ -10,7 +10,8 @@
 // OpenStreetMap's subway entrances. Points are [s, u] in the station's frame: s metres along the
 // platforms from their middle (towards `axis`, by default north or east), u metres to the right.
 // Heights are metres above the platform. An exit comes up to the street at the entrance, at the
-// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts).
+// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts), with a sign
+// on a post beside it (`sign: false`, none: the station's name is over its doors).
 //
 // The build fails on:
 // - a step that can't be made: stairs that don't fit before their point, an exit too close
@@ -38,7 +39,7 @@ type Segment =
   | { lift: number; above?: number; through?: boolean }
   | { gates: true }
   | { mark: string }
-  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean };
+  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean; sign?: boolean };
 interface RouteDesc { from: SU | string; h?: number; width?: number; go: Segment[] }
 interface Description {
   drawing?: string;
@@ -316,7 +317,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         exits.push({ name: label, x: r2(x), y: r2(y), z: r2(z), yaw: r2(yaw) });
         // the sign beside the way down, facing the street
         const rx = -hz, rz = hx;
-        parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: name });
+        if (sg.sign !== false) parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: name });
       }
     }
   }

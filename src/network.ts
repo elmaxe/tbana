@@ -10,9 +10,9 @@ import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
-import type { CaveIsland, CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
+import type { CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultHall, VaultStyle } from './hall-styles';
 import { OPEN_STYLES } from './open-styles';
-import type { OpenStyle } from './open-styles';
+import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
 
@@ -131,7 +131,7 @@ class MeshBuilder {
 }
 
 type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor' | 'cover' | 'lamp' | 'platform' | 'yellow' | 'ground' | 'steel' | 'buffer'
-  | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor'
+  | 'hallWall' | 'hallWallMirror' | 'hallCeiling' | 'hallColumn' | 'hallFloor' | 'fsWall' | 'fsCeiling' | 'fsColumn'
   | 'kpWall' | 'kpWallMirror' | 'kpFrieze' | 'kpVault' | 'kpFloor' | 'kpEdge' | 'kpBlock' | 'kpBlockTop' | 'kpBench'
   | 'vaultArt' | 'vaultArtMirror' | 'vaultWall' | 'vaultCeiling' | 'vaultFloor' | 'vaultEdge' | 'fitting'
   | 'stFloor' | 'stEdge' | 'stPlinth' | 'stCeiling' | 'stMesh' | 'stBand' | 'stRail'
@@ -141,8 +141,10 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
   | `pave:${string}` | `face:${string}`;
 
-// The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Karlaplan's and Östermalmstorg's.
-const HOTORGET = HALL_STYLES['Hötorget'] as FlatHall;
+// The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
+// Östermalmstorg's.
+const HOTORGET = HALL_STYLES['Hötorget'] as FlatHall, HT = HOTORGET.finish as TiledHall;
+const FARSTA_STRAND = HALL_STYLES['Farsta strand'] as FlatHall;
 const KARLAPLAN = HALL_STYLES['Karlaplan'] as VaultHall;
 const OSTERMALMSTORG = VAULT_STYLES['Östermalmstorg'];
 
@@ -163,12 +165,18 @@ function materials() {
     ground: new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 1, side: THREE.DoubleSide }),
     steel: new THREE.MeshStandardMaterial({ color: 0x5d6670, roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }),
     buffer: new THREE.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.6 }),
-    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR), roughness: 0.8, side: THREE.DoubleSide }),
-    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HOTORGET.tilesFrom - S.FLOOR, HOTORGET.plateAt - S.FLOOR, true), roughness: 0.8, side: THREE.DoubleSide }),
+    hallWall: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HT.tilesFrom - S.FLOOR, HT.plateAt - S.FLOOR), roughness: 0.8, side: THREE.DoubleSide }),
+    hallWallMirror: new THREE.MeshStandardMaterial({ map: T.hotorgetWall(HOTORGET.soffit - S.FLOOR, HT.tilesFrom - S.FLOOR, HT.plateAt - S.FLOOR, true), roughness: 0.8, side: THREE.DoubleSide }),
     // (lit from below, by the lamps and the neon, which light nothing: so it glows a little)
     hallCeiling: new THREE.MeshStandardMaterial({ map: plaster, color: 0xe6e8e6, emissive: 0x8e918f, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide }),
     hallColumn: new THREE.MeshStandardMaterial({ map: T.hotorgetColumn(), roughness: 0.8 }),
     hallFloor: new THREE.MeshStandardMaterial({ map: T.clinker(), roughness: 0.8 }),
+    // Farsta strand's: from the floor beside the track, the plinth to 0.7 m above the rails, the
+    // rails at 1.05, 1.5 and 1.95, the beam from 3.25 to 3.65
+    fsWall: new THREE.MeshStandardMaterial({ map: T.farstaStrandWall(FARSTA_STRAND.soffit - S.FLOOR, 0.7 - S.FLOOR, [1.05, 1.5, 1.95].map((h) => h - S.FLOOR), [3.25 - S.FLOOR, 3.65 - S.FLOOR]), roughness: 0.9, side: THREE.DoubleSide }),
+    // (lit from below by its lamps, which light nothing: so it shows a little)
+    fsCeiling: new THREE.MeshStandardMaterial({ map: T.perforatedCeiling(), emissive: 0x6a6a6a, emissiveMap: T.perforatedCeiling(), roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide }),
+    fsColumn: new THREE.MeshStandardMaterial({ map: T.mosaicColumn(), roughness: 0.5 }),
     ...karlaplanMaterials(plaster),
     vaultArt: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring), roughness: 0.95, side: THREE.DoubleSide }),
     vaultArtMirror: new THREE.MeshStandardMaterial({ map: T.derkertWall(S.FLOOR, OSTERMALMSTORG.spring, true), roughness: 0.95, side: THREE.DoubleSide }),
@@ -289,7 +297,7 @@ export class Network {
     // the styled halls' neon, once for each, along one of its tracks
     const lit = new Set<string>();
     for (const samples of this.samples) {
-      const first = samples.find((sm) => hallStyle(sm)?.kind === 'flat');
+      const first = samples.find((sm) => hallStyle(sm)?.kind === 'flat' && (hallStyle(sm) as FlatHall).neon);
       if (!first || lit.has(first.plat!.station)) continue;
       lit.add(first.plat!.station);
       this.group.add(neon(samples.filter((sm) => sm.plat === first.plat), hallStyle(first) as FlatHall, this.holes));
@@ -504,12 +512,17 @@ export class Network {
     }, { uScale: 0.25, vScale: 1 / 6 });
     // a styled hall: its wall, and the roof over it (the wall is the outline's first two points
     // where the other track is to the right, its last two where it is to the left)
-    const styled = (kind: HallStyle['kind']) => (sm: Sample) => hallStyle(sm)?.kind === kind;
+    // (a flat one by its finish)
+    const styled = (kind: FlatHall['finish']['kind'] | VaultHall['kind']) => (sm: Sample) => {
+      const st = hallStyle(sm);
+      return (st?.kind === 'flat' ? st.finish.kind : st?.kind) === kind;
+    };
     const halls = [
-      { is: styled('flat'), walls: [b.hallWall, b.hallWallMirror], roof: b.hallCeiling, top: HOTORGET.soffit, repeat: T.HOTORGET_REPEAT },
-      { is: styled('vault'), walls: [b.kpWall, b.kpWallMirror], roof: b.kpVault, top: KARLAPLAN.spring, repeat: T.KARLAPLAN_REPEAT },
+      { is: styled('tiles'), walls: [b.hallWall, b.hallWallMirror], roof: b.hallCeiling, top: HOTORGET.soffit, repeat: T.HOTORGET_REPEAT, overhead: 4 },
+      { is: styled('concrete'), walls: [b.fsWall, b.fsWall], roof: b.fsCeiling, top: FARSTA_STRAND.soffit, repeat: T.FS_WALL_REPEAT, overhead: 2.4 },
+      { is: styled('vault'), walls: [b.kpWall, b.kpWallMirror], roof: b.kpVault, top: KARLAPLAN.spring, repeat: T.KARLAPLAN_REPEAT, overhead: 4 },
     ];
-    for (const { is, walls, roof, top, repeat } of halls) {
+    for (const { is, walls, roof, top, repeat, overhead } of halls) {
       for (const [mb, sign] of [[walls[0], -1], [walls[1], 1]] as const) {
         sweep(mb, run, (sm) => {
           if (!is(sm) || Math.sign(sm.pair) !== sign) return null;
@@ -521,7 +534,7 @@ export class Network {
         if (!is(sm)) return null;
         const o = shellOutline(sm)!;
         return { key: o.key, pts: sm.pair > 0 ? o.pts.slice(1) : o.pts.slice(0, -1) };
-      }, { uScale: 0.25, vScale: 0.25 });
+      }, { uScale: 1 / overhead, vScale: 1 / overhead });
     }
     this.frieze(samples, run, b);
     // floor beside the ballast; on a bank, only between two tracks (the bank has its own)
@@ -550,7 +563,7 @@ export class Network {
     this.openStructure(run, b);
     this.islandHall(run, b, group);
     this.platforms(run, b, group, lamps);
-    this.columns(samples, run, b);
+    this.columns(samples, run, b, group);
     this.posters(samples, run, group);
     this.blocks(samples, run, b, group);
     this.lights(run, b, lamps);
@@ -625,7 +638,7 @@ export class Network {
     const H = S.PLATFORM_HEIGHT;
     for (const [mb, kind] of [[b.platform, null], [b.hallFloor, 'flat'], [b.kpFloor, 'vault']] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
-      if (!p || (hallStyle(sm)?.kind ?? null) !== kind || vaultStyle(sm) || islandStyle(sm) || openStyle(sm)) return null;
+      if (!p || (hallStyle(sm)?.kind ?? null) !== kind || vaultStyle(sm) || islandStyle(sm) || pavingOf(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
     }, { uScale: 0.5, vScale: 0.5 });
@@ -668,14 +681,15 @@ export class Network {
       const u0 = p.side * S.PLATFORM_EDGE, u1 = p.side * (S.PLATFORM_EDGE + ISLAND_EDGE);
       return { key: `e${p.side}`, pts: p.side > 0 ? [[u0, H + 0.002], [u1, H + 0.002]] : [[u1, H + 0.002], [u0, H + 0.002]] };
     }, { uScale: 0.5, vScale: 0.5 });
-    // a styled open station's: its paving, mapped across from the edge (on an island, each
-    // track's half out to the line down its middle), and the face of its edge
-    for (const station of new Set(run.filter((sm) => openStyle(sm)).map((sm) => sm.plat!.station))) {
+    // a styled open station's, or a flat hall's in concrete: its paving, mapped across from the
+    // edge (on an island, each track's half out to the line down its middle), and the face of its
+    // edge
+    for (const station of new Set(run.filter((sm) => pavingOf(sm)).map((sm) => sm.plat!.station))) {
       const pave: MaterialName = `pave:${station}`, face: MaterialName = `face:${station}`;
-      const paving = OPEN_STYLES[station].paving;
+      const paving = pavingOf(run.find((sm) => pavingOf(sm) && sm.plat!.station === station)!)!;
       this.mats[pave] ??= new THREE.MeshStandardMaterial({ map: T.openPaving(paving), roughness: 0.85 });
       this.mats[face] ??= new THREE.MeshStandardMaterial({ map: T.platformFace(paving.colors.face), roughness: 0.6, side: THREE.DoubleSide });
-      const mine = (sm: Sample) => openStyle(sm) && sm.plat!.station === station;
+      const mine = (sm: Sample) => pavingOf(sm) && sm.plat!.station === station;
       sweep(b[pave] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
         const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
@@ -689,7 +703,7 @@ export class Network {
     }
     sweep(b.yellow, run, (sm) => {
       const p = sm.plat;
-      if (!p || vaultStyle(sm) || openStyle(sm)) return null;
+      if (!p || vaultStyle(sm) || pavingOf(sm)) return null;
       // (in an island cave, along the inner side of its pale band)
       const from = islandStyle(sm) ? ISLAND_EDGE : 0.3;
       const u0 = p.side * (S.PLATFORM_EDGE + from), u1 = p.side * (S.PLATFORM_EDGE + from + 0.12);
@@ -728,10 +742,18 @@ export class Network {
       }
       // the light of its row of lamps, wherever the hall has them
       let light = at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6);
+      const concrete = concreteHall(sm);
       // (in a vaulted hall, a nearly unbroken row along its crown)
       if (hallStyle(sm)?.kind === 'vault') {
         light = at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06);
         if (sm.pair > 0) box(b.lamp, at(sm, sm.pair / 2, (hallStyle(sm) as VaultHall).crown + sm.pairDy / 2 - 0.06), sm, 0.26, 0.08, STEP - 0.35);
+      } else if (concrete) {
+        // (in a flat hall in concrete, fittings hung just under the ceiling over the platform's
+        // edge, nearly end to end)
+        const u = p.side * (S.PLATFORM_EDGE + 0.5), top = concrete.soffit, v = top - 0.32;
+        box(b.fitting, at(sm, u, v + 0.05), sm, 0.24, 0.1, STEP - 0.6);
+        box(b.lamp, light = at(sm, u, v - 0.006), sm, 0.16, 0.012, STEP - 0.7);
+        box(b.fitting, at(sm, u, (v + 0.1 + top) / 2), sm, 0.03, top - v - 0.1, 0.03);
       } else if (Math.round(sm.along / STEP) % 2 === 0) {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
@@ -782,38 +804,67 @@ export class Network {
     const sizes: [number, number][] = [[1.3, 1.75], [0.63, 0.09], [1.3, 1.75]];
     [-1, 0, 1].forEach((k, j) => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(...sizes[j]), this.posterMats![j]);
-      const h = j === 1 ? st.plateAt : ps.at;
+      const h = j === 1 ? (st.finish as TiledHall).plateAt : ps.at;
       m.position.copy(at(sm, wall + p.side * 0.02, h)).addScaledVector(left, -k * ps.apart);
       m.lookAt(at(sm, wall + p.side, h).addScaledVector(left, -k * ps.apart));
       group.add(m);
     });
   }
 
-  // A styled hall's row of columns along this track's side of the platform, evenly spaced and
-  // centred on it (`all` is the piece's samples, `run` the stretch being built).
-  private columns(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>) {
+  // A styled hall's row of columns along this track's side of the platform, or down its middle,
+  // evenly spaced and centred on it (`all` is the piece's samples, `run` the stretch being built);
+  // in a hall in concrete, the station's name hung between them now and then.
+  private columns(all: Sample[], run: Sample[], b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
     const first = run.find((sm) => hallStyle(sm)?.kind === 'flat');
     if (!first) return;
-    const st = hallStyle(first) as FlatHall, p = first.plat!, { fromEdge, size, spacing } = st.columns;
+    const st = hallStyle(first) as FlatHall, p = first.plat!, { fromEdge, size, spacing, round, middle } = st.columns;
+    // (one row down the middle: along the track with the other to its right)
+    if (middle && first.pair < 0) return;
     const on = all.filter((sm) => sm.plat === p);
     const a0 = on[0].along, a1 = on[on.length - 1].along;
     const n = Math.floor((a1 - a0 - 2 * spacing / 2) / spacing);
     const start = a0 + (a1 - a0 - n * spacing) / 2;
-    for (let k = 0; k <= n; k++) {
-      const t = start + k * spacing;
-      // in this run (half open, as the next run starts on this one's last sample)
+    // where along this run, and the sample there
+    const sampleAt = (t: number) => {
+      // (half open, as the next run starts on this one's last sample)
       const i = run.findIndex((sm, j) => j + 1 < run.length && sm.along <= t && run[j + 1].along > t);
-      if (i < 0 || run[i].plat !== p) continue;
+      if (i < 0 || run[i].plat !== p) return null;
       const sa = run[i], sb = run[i + 1], f = (t - sa.along) / (sb.along - sa.along || 1);
-      const sm = { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f };
-      const u = p.side * (S.PLATFORM_EDGE + fromEdge);
+      return { ...sa, x: sa.x + (sb.x - sa.x) * f, y: sa.y + (sb.y - sa.y) * f, z: sa.z + (sb.z - sa.z) * f, pair: sa.pair + (sb.pair - sa.pair) * f };
+    };
+    const across = (sm: Sample) => (middle ? sm.pair / 2 : p.side * (S.PLATFORM_EDGE + fromEdge));
+    // where the stairs or escalators come down into the hall, round (u, v) and `h` either way
+    const open = (sm: Sample, u: number, h: number, v: number) => [-1, 1].some((i) => [-1, 1].some((k) => {
+      const q = at(sm, u + i * h, v);
+      return this.holes.some((o) => insideVolume(o, q.x + sm.rz * k * h, q.y, q.z - sm.rx * k * h));
+    }));
+    const concrete = st.finish.kind === 'concrete';
+    for (let k = 0; k <= n; k++) {
+      const sm = sampleAt(start + k * spacing);
+      if (!sm) continue;
+      const u = across(sm);
       // none where the stairs or escalators come down into the hall
-      const h = size / 2, open = (i: number, k: number, v: number) => {
-        const q = at(sm, u + i * h, v);
-        return this.holes.some((o) => insideVolume(o, q.x + sm.rz * k * h, q.y, q.z - sm.rx * k * h));
-      };
-      if ([-1, 1].some((i) => [-1, 1].some((k) => open(i, k, S.PLATFORM_HEIGHT + 1) || open(i, k, st.soffit - 0.05)))) continue;
-      pillar(b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
+      if (open(sm, u, size / 2, S.PLATFORM_HEIGHT + 1) || open(sm, u, size / 2, st.soffit - 0.05)) continue;
+      if (round) roundPillar(concrete ? b.fsColumn : b.hallColumn, at(sm, u, 0), size, S.PLATFORM_HEIGHT, st.soffit);
+      else pillar(concrete ? b.fsColumn : b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
+    }
+    if (st.finish.kind !== 'concrete' || (!middle && first.pair < 0)) return;
+    // the name signs: halfway between two columns, every so many gaps out from the middle one
+    const { every, at: h } = st.finish.signs, m = Math.max(1, Math.round(every / spacing)), mid = Math.floor(n / 2);
+    for (let k = mid % m; k < n; k += m) {
+      const sm = sampleAt(start + (k + 0.5) * spacing);
+      if (!sm) continue;
+      const u = middle ? sm.pair / 2 : across(sm);
+      if (open(sm, u, 1, h)) continue;
+      const along = new THREE.Vector3(sm.rz, 0, -sm.rx), c = at(sm, u, h);
+      for (const d of [1, -1]) {
+        const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.34), this.signMaterial(p.station, 'dark'));
+        sign.position.copy(c).addScaledVector(along, d * 0.015);
+        sign.lookAt(c.clone().addScaledVector(along, d));
+        group.add(sign);
+      }
+      box(b.fitting, at(sm, u, h), sm, 1.84, 0.38, 0.025);
+      for (const w of [-0.7, 0.7]) box(b.fitting, at(sm, u + w, (h + 0.19 + st.soffit) / 2), sm, 0.02, st.soffit - h - 0.19, 0.02);
     }
   }
 
@@ -1503,6 +1554,16 @@ function openStyle(sm: Sample): OpenStyle | null {
   const p = sm.plat;
   return p && sm.kind !== 'rock' && sm.kind !== 'box' ? OPEN_STYLES[p.station] ?? null : null;
 }
+// A flat hall in concrete (src/hall-styles.ts): Farsta strand's.
+function concreteHall(sm: Sample): FlatHall | null {
+  const st = hallStyle(sm);
+  return st?.kind === 'flat' && st.finish.kind === 'concrete' ? st : null;
+}
+// A platform paved in its own style (src/open-styles.ts): a styled open station's, or a flat hall's
+// in concrete.
+function pavingOf(sm: Sample): Paving | null {
+  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | undefined)?.paving ?? null);
+}
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down
 // its middle towards the track on its right (looking along `t`), y up from the platform's top.
@@ -1807,11 +1868,24 @@ function pillar(b: MeshBuilder, c: THREE.Vector3, sm: Sample, size: number, y0: 
   }
 }
 
+// A round column standing at `c` from y0 to y1 above it, `size` across, its tiles in metres round
+// it and up it (1 m to a repeat of the texture).
+function roundPillar(b: MeshBuilder, c: THREE.Vector3, size: number, y0: number, y1: number) {
+  const r = size / 2, n = 16, arc = (Math.PI * size) / n;
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2, e = ((k + 1) / n) * Math.PI * 2;
+    const P = (t: number, y: number) => new THREE.Vector3(c.x + Math.cos(t) * r, c.y + y, c.z + Math.sin(t) * r);
+    b.quad(P(e, y0), P(a, y0), P(a, y1), P(e, y1), [(k + 1) * arc, y0], [k * arc, y0], [k * arc, y1], [(k + 1) * arc, y1]);
+  }
+}
+
 // A styled hall's neon (Gun Gordillo's at Hötorget): tubes wandering along under the ceiling
 // between the columns, now and then across, each at its own height, hung on thin rods; in a few
 // tones of white. `plat` is one track's samples along the platform; none hang where the station's
 // stairs and escalators (`holes`) come down into the hall.
 function neon(plat: Sample[], st: FlatHall, holes: Volume[]) {
+  // (only for a hall with neon)
+  const tubing = st.neon!;
   const r = T.rng(1998), group = new THREE.Group();
   group.name = 'neon';
   const L = plat[plat.length - 1].along - plat[0].along;
@@ -1833,7 +1907,7 @@ function neon(plat: Sample[], st: FlatHall, holes: Volume[]) {
   const box = new THREE.Box3().setFromPoints(plat.map((sm) => new THREE.Vector3(sm.x, sm.y, sm.z))).expandByScalar(20);
   const near = holes.filter((h) => h.max[0] > box.min.x && h.min[0] < box.max.x && h.max[2] > box.min.z && h.min[2] < box.max.z);
   const open = (q: THREE.Vector3) => near.some((h) => insideVolume(h, q.x, q.y, q.z));
-  const tubes: THREE.BufferGeometry[][] = st.neon.tones.map(() => []);
+  const tubes: THREE.BufferGeometry[][] = tubing.tones.map(() => []);
   const rods: number[] = [];
   let hung: number[] = [];
   const tube = (pts: THREE.Vector3[], tone: number) => {
@@ -1844,8 +1918,8 @@ function neon(plat: Sample[], st: FlatHall, holes: Volume[]) {
     const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
     tubes[tone].push(new THREE.TubeGeometry(curve, pts.length * 8, 0.012, 5, false));
   };
-  const { reach, below } = st.neon;
-  for (let n = 0; n < st.neon.count; n++) {
+  const { reach, below } = tubing;
+  for (let n = 0; n < tubing.count; n++) {
     let t = 1 + r() * (L - 2), w = (r() * 2 - 1) * reach * 0.9;
     let depth = below[0] + r() * (below[1] - below[0]);
     const dir = r() < 0.5 ? -1 : 1, across = r() < 0.2;
@@ -1871,7 +1945,7 @@ function neon(plat: Sample[], st: FlatHall, holes: Volume[]) {
     }
     tube(pts, tone);
   }
-  st.neon.tones.forEach((tone, k) => {
+  tubing.tones.forEach((tone, k) => {
     if (!tubes[k].length) return;
     const g = mergeGeometries(tubes[k]);
     tubes[k].forEach((t) => t.dispose());

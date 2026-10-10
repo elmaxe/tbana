@@ -218,7 +218,10 @@ export async function fromIon(token: string, box: Box, above = 25.9): Promise<Pi
           const gz = m[2] * p[i] + m[6] * p[i + 1] + m[10] * p[i + 2] + m[14];
           pos.set(fromEcef(gx, -gz, gy), i);
         }
-        const tex = gl.textures[gl.materials[prim.material].pbrMetallicRoughness.baseColorTexture.index];
+        // (now and then a piece comes untextured: it is left out)
+        const base = gl.materials[prim.material]?.pbrMetallicRoughness?.baseColorTexture;
+        if (!base) continue;
+        const tex = gl.textures[base.index];
         const jpg = view(gl.images[tex.source].bufferView);
         pieces.push({
           pos, uv: Float32Array.from(accessor(prim.attributes.TEXCOORD_0)), idx: Uint32Array.from(accessor(prim.indices)),

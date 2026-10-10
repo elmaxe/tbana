@@ -1450,13 +1450,36 @@
     },
     "Farsta strand": {
       "drawing": "farsta_strand.png",
-      "note": "The end of T18: an island platform in a concrete box under the centre. In the middle stairs climb to the ticket hall at the street.",
+      "note": "The end of T18: an island platform in a long, low box under Centrumhuset and Stieg Trenters torg, where the line once ran in an open cutting. In the middle two flights, each stairs beside an escalator, climb towards each other to the ticket hall in the pavilion on the square, with a lift between them; the ticket gates are on the hall's east side, and the way out is on the square, by the kiosk. Laid out from OpenStreetMap's indoor mapping, Lantmäteriet's laser scan and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-30, 0], "width": 4, "go": [
-          {"stairs": 4, "toward": [150, 0]},
-          {"walk": 3, "width": 6},
+        { "from": [-37.4, -1.2], "width": 3.6, "go": [
+          {"walk": [-34.4, -1.2], "open": true},
+          {"escalators": 4.4, "toward": [100, -1.2], "lanes": "SE", "ceiling": 2.8},
+          {"walk": [-24.4, -1.2], "ceiling": 3.4}
+        ] },
+        { "from": [-3.0, -1.2], "width": 3.6, "go": [
+          {"walk": [-6.0, -1.2], "open": true},
+          {"escalators": 4.4, "toward": [-100, -1.2], "lanes": "ES", "ceiling": 2.8},
+          {"walk": [-16.4, -1.2], "ceiling": 3.0}
+        ] },
+        { "from": [-16.4, -0.6], "h": 4.4, "width": 8.2, "go": [
+          {"walk": [-24.4, -0.6], "ceiling": 3.4}
+        ] },
+        { "from": [-20.3, 3.6], "width": 2.0, "go": [
+          {"walk": [-20.3, 1.6], "open": true},
+          {"lift": 4.4, "through": true},
+          {"walk": [-20.3, -2.6], "ceiling": 3.4}
+        ] },
+        { "from": [-20.3, 1.0], "h": 4.4, "width": 6.0, "go": [
+          {"walk": [-20.3, 3.2], "ceiling": 3.4},
           {"gates": true},
-          {"exit": 1203647912, "by": "walk"}
+          {"walk": [-20.3, 7.1], "width": 8.2, "ceiling": 3.4},
+          {"mark": "hall"},
+          {"walk": [-20.3, 9.5], "ceiling": 3.4}
+        ] },
+        { "from": "hall", "width": 3.0, "go": [
+          {"walk": [-17.5, 7.1], "ceiling": 2.5},
+          {"exit": 1203647912, "by": "walk", "ceiling": 2.5, "sign": false}
         ] }
       ]
     },

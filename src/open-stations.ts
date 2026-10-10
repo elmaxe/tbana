@@ -113,7 +113,8 @@ export class OpenLook {
       const map = T.finish(f);
       return new THREE.MeshStandardMaterial({
         map, roughness: f === 'triangles' || f === 'darkStone' ? 0.4 : 0.8, alphaTest: T.FINISH_GLASS.includes(f) ? 0.5 : 0,
-        emissive: ceiling ? 0x3a3936 : 0x000000, emissiveMap: ceiling ? map : null, side: THREE.DoubleSide,
+        // (a ceiling lit by the lamps under it: the dark steel panels more)
+        emissive: ceiling ? (f === 'perforated' ? 0x6a6a6a : 0x3a3936) : 0x000000, emissiveMap: ceiling ? map : null, side: THREE.DoubleSide,
       });
     });
   }
@@ -129,6 +130,7 @@ export class OpenLook {
   // The canopy the roof follows, of a platform's (each of its pieces has one): the one under the
   // roof's middle, or the longest.
   canopyFor(st: StationLayout, style: OpenStyle, canopies: CanopyPart[]): CanopyPart | undefined {
+    if (!style.roof) return undefined;
     const frame = new Frame(st), mid = (style.roof.from + style.roof.to) / 2;
     const span = (c: CanopyPart) => { const s = c.points.map(([x, , z]) => frame.s(x, z)); return [Math.min(...s), Math.max(...s)]; };
     return canopies.find((c) => { const [a, b] = span(c); return a <= mid && b >= mid; })
@@ -138,13 +140,15 @@ export class OpenLook {
   // The roof over a platform, and its columns, lamps and signs, the art and benches under it;
   // `cut` by the station's spaces.
   roofOver(st: StationLayout, style: OpenStyle, canopy: CanopyPart, on: On, cut: Volume[], group: THREE.Group) {
-    const frame = new Frame(st), line = new Line(frame, canopy, style.roof.offset);
-    this.butterfly(st.name, style.roof, style, line, on, cut, group);
+    const roof = style.roof;
+    if (!roof) return;
+    const frame = new Frame(st), line = new Line(frame, canopy, roof.offset);
+    this.butterfly(st.name, roof, style, line, on, cut, group);
     for (const R of style.roofs ?? []) this.butterfly(st.name, R, style, new Line(frame, canopy, R.offset), on, cut, group);
     for (const a of style.art ?? []) {
       if (a.kind === 'guardian') this.guardian(a, line, on);
       else if (a.kind === 'stacks') this.stacks(a, line, on);
-      else if (a.kind === 'panels') this.panels(a, style.roof, line, on);
+      else if (a.kind === 'panels') this.panels(a, roof, line, on);
       else if (a.kind === 'chairs') this.chairs(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
@@ -558,7 +562,21 @@ export class OpenLook {
         return [ns * E(i), nu * E(i)];
       };
       const out = corners.map(([s, u], i) => { const a = normal((i + 3) % 4), c = normal(i); return [s + a[0] + c[0], u + a[1] + c[1]]; });
-      slab(on(this.roofing), out.map(([s, u], i) => frame.at(s, u, blockTop(b, i) + b.roof!)), b.roof, 0.5, roofCut);
+      slab(on(b.roofColor === undefined ? this.roofing : this.color(b.roofColor, 0.7, 0.2)), out.map(([s, u], i) => frame.at(s, u, blockTop(b, i) + b.roof!)), b.roof, 0.5, roofCut);
+      // the brackets under the eaves: a beam out under the roof, and a strut up to it from the wall
+      const K = b.brackets, steel = K && on(this.color(K.color, 0.5, 0.3));
+      for (let i = 0; K && steel && i < 4; i++) {
+        const e = E(i);
+        if (e < 0.3) continue;
+        const [s0, u0] = corners[i], [s1, u1] = corners[(i + 1) % 4], l = Math.hypot(s1 - s0, u1 - u0);
+        const [ns, nu] = normal(i).map((v) => v / e), n = Math.max(1, Math.round(l / K.every));
+        for (let k = 0; k < n; k++) {
+          const t = (k + 0.5) / n, s = s0 + (s1 - s0) * t, u = u0 + (u1 - u0) * t;
+          const top = blockTop(b, i) + (blockTop(b, (i + 1) % 4) - blockTop(b, i)) * t;
+          bar(steel, frame.at(s, u, top), frame.at(s + ns * (e - 0.1), u + nu * (e - 0.1), top), 0.08, 0.18);
+          bar(steel, frame.at(s + ns * 0.04, u + nu * 0.04, top - 1.0), frame.at(s + ns * e * 0.6, u + nu * e * 0.6, top - 0.15), 0.06, 0.06);
+        }
+      }
     }
     if (b.ceiling) {
       const [cw] = T.FINISH_SIZE[b.ceiling];

@@ -298,8 +298,9 @@ export class Stations {
     // the floor is cut where stairs or a lift pass down through it
     const through = spaces.filter((s) => s.part !== p && s.part.kind !== 'floor').map((s) => s.vol);
     const room = this.roomOf(p);
+    // (none where it is the network's platform, paved as the platform is)
     if (room?.floor) this.flat(room.floor, c, through);
-    else m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
+    else if (room?.floor !== null) m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
     // (in a styled open station: a slab under it where it stands on a bridge, a roof over it)
     if (room?.slab) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] - 0.02, v[2]]), room.slab, 0.5, through);
     if (p.ceiling === null) return;

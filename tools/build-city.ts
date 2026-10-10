@@ -49,7 +49,9 @@
 //   part over it stands on its roof.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
 //   of the building, and an exit's way out continues through the building to the outside. The
-//   buildings a styled open station draws itself (src/open-styles.ts) are left out.
+//   buildings a styled open station draws itself (src/open-styles.ts) are left out. A building
+//   the corrections say stands over a station (its stairs climbing into its ground floor) isn't
+//   cut: its walls are open where the station's parts pass through them, up to their ceiling.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
 //   it stands on the ground, open inside, with a door wherever a track passes through its walls.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -99,13 +101,18 @@ const groundMeta: { attribution: string; tile: number; step: number; n: number; 
   JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
 const osm: { attribution: string; extract: string; buildings: { osm: string; tags: Record<string, string>; rings: number[][] }[] } =
   JSON.parse(readFileSync('data/osm/buildings.json', 'utf8'));
-// fixes to OSM's tags, each with its reason (data/building-corrections.json)
-const corrections: { buildings: { osm: string; tags: Record<string, string>; why: string }[] } | null =
+// fixes to OSM's buildings, each with its reason (data/building-corrections.json): their tags; an
+// outline in place of OSM's (world x, z in turn); and `overStation`, a building standing over a
+// station's stairs, which aren't cut out of it (below)
+const corrections: { buildings: { osm: string; tags?: Record<string, string>; outline?: number[]; overStation?: boolean; why: string }[] } | null =
   existsSync('data/building-corrections.json') ? JSON.parse(readFileSync('data/building-corrections.json', 'utf8')) : null;
+const overStation = new Set<string>();
 for (const c of corrections?.buildings ?? []) {
   const b = osm.buildings.find((b) => b.osm === c.osm);
   if (!b) throw new Error(`data/building-corrections.json: no building ${c.osm}`);
-  Object.assign(b.tags, c.tags);
+  Object.assign(b.tags, c.tags ?? {});
+  if (c.outline) b.rings = [c.outline];
+  if (c.overStation) overStation.add(c.osm);
 }
 // the buildings as the laser scan measured them, where it has (tools/fetch-laser.ts): eaves, roof's
 // top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
@@ -557,7 +564,8 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
 // the exits that come up into the street.
 // `way`: from an exit (the stairs' end in the street, or a lift's door) on through any buildings
 // to the outside
-interface StationCut { plan: XZ[]; exit: { x: number; z: number; dx: number; dz: number; width: number } | null; way: XZ[] | null }
+// (`top`, the part's ceiling at its highest)
+interface StationCut { plan: XZ[]; top: number; exit: { x: number; z: number; dx: number; dz: number; width: number } | null; way: XZ[] | null }
 const stationCuts: StationCut[] = [];
 function grow(plan: XZ[], m: number): XZ[] {
   // a convex polygon's edges moved out by m
@@ -599,7 +607,7 @@ for (const st of layouts.stations) {
       const dx = -Math.sin(p.yaw), dz = -Math.cos(p.yaw);
       exit = { x: p.x + (dx * LIFT.depth) / 2, z: p.z + (dz * LIFT.depth) / 2, dx, dz, width: LIFT.width };
     }
-    stationCuts.push({ plan: grow(plan, 0.6), exit, way: null });
+    stationCuts.push({ plan: grow(plan, 0.6), top: Math.max(...top), exit, way: null });
   }
 }
 
@@ -957,6 +965,41 @@ function doorsOf(ring: Ring): Door[] {
   return out;
 }
 
+// Where the stations' parts (convex plans) pass through a ring's walls: a door in each edge, up to
+// the part's ceiling; doors that overlap on a wall are made one.
+function passages(ring: XZ[], parts: StationCut[]): Door[] {
+  const out: Door[] = [];
+  for (let e = 0; e < ring.length; e++) {
+    const [ax, az] = ring[e], [bx, bz] = ring[(e + 1) % ring.length];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 0.01) continue;
+    const found: { from: number; to: number; top: number }[] = [];
+    for (const c of parts) {
+      // the edge clipped to the plan, a side at a time (inside is to the left of each side, for
+      // a positive shoelace area)
+      const n = c.plan.length;
+      const turn = Math.sign(c.plan.reduce((t, [px, pz], i) => t + px * c.plan[(i + 1) % n][1] - c.plan[(i + 1) % n][0] * pz, 0));
+      let t0 = 0, t1 = 1;
+      for (let i = 0; i < n && t0 < t1; i++) {
+        const [px, pz] = c.plan[i], [qx, qz] = c.plan[(i + 1) % n];
+        const side = (x: number, z: number) => ((qx - px) * (z - pz) - (qz - pz) * (x - px)) * turn;
+        const fa = side(ax, az), fb = side(bx, bz);
+        if (fa < 0 && fb < 0) t1 = 0;
+        else if (fa < 0) t0 = Math.max(t0, fa / (fa - fb));
+        else if (fb < 0) t1 = Math.min(t1, fa / (fa - fb));
+      }
+      if (t1 > t0) found.push({ from: t0 * len, to: t1 * len, top: c.top });
+    }
+    found.sort((p, q) => p.from - q.from);
+    for (const d of found) {
+      const last = out[out.length - 1];
+      if (last && last.edge === e && d.from <= last.to) { last.to = Math.max(last.to, d.to); last.top = Math.max(last.top, d.top); }
+      else out.push({ edge: e, ...d });
+    }
+  }
+  return out;
+}
+
 const tiles = new Map<string, Building[]>();
 let overTrack = 0, sheds = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
 let shaped = 0, unshaped = 0;
@@ -992,7 +1035,10 @@ for (const s of sources) {
     for (const id of cutIndex.get(`${i},${j}`) ?? []) cuts.add(id);
   }
   let cut = false;
-  for (const id of cuts) {
+  // (a building over a station's stairs, which climb into its ground floor, isn't cut: its walls
+  // are open where they pass through them, up to their ceiling)
+  const over = overStation.has(s.osm) ? [...cuts].map((id) => stationCuts[id]) : null;
+  for (const id of over ? [] : cuts) {
     const c = stationCuts[id];
     const holes: Polygon[] = [c.plan, ...(c.way ? [c.way] : [])].map((r) => [[...r, r[0]]])
       .filter((h) => polygonClipping.intersection(shape, h).length);
@@ -1023,12 +1069,13 @@ for (const s of sources) {
     const clear = Math.max(...hits.map((h) => h.top));
     if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
   }
-  emit(list, shape, base, roofOpts);
+  emit(list, shape, base, roofOpts, over);
 }
 
 // Polygons as buildings: the outline with a positive shoelace area in x, z, courtyards negative.
-// The pieces of a building, each with its roof of its shape (where one can be built: else flat).
-function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>, roofOpts?: { direction: number | null; across: boolean }) {
+// The pieces of a building, each with its roof of its shape (where one can be built: else flat);
+// over a station, open where its parts pass through the walls.
+function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>, roofOpts?: { direction: number | null; across: boolean }, over?: StationCut[] | null) {
   for (const p of shape) {
     const rings = fromPoly(p).filter((r) => r.length >= 3 && Math.abs(ringArea(r)) > 1);
     if (!rings.length) continue;
@@ -1038,6 +1085,11 @@ function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings
     if (roofOpts && b.roof !== 'flat' && (b.kind === 'building' || b.kind === 'part')) {
       const roof = buildRoof(rings, b.roof, b.roofHeight, roofOpts);
       if (roof) { b.roofMesh = roof; shaped++; } else unshaped++;
+    }
+    // (on the outline the walls are drawn along: the roof's, with its gables' peaks)
+    if (over?.length) {
+      const doors = passages(b.roofMesh?.tops[0]?.map(([x, z]): XZ => [x, z]) ?? rings[0], over);
+      if (doors.length) b.doors = doors;
     }
     list.push(b);
   }

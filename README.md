@@ -406,6 +406,18 @@ white enamel panels over a black plinth on the track walls, dark granite on the 
 blocks down the middle of the platform with the name and the ways out along their tops and Tor
 Hörlin's green stoneware seating niches in their sides, and Larseric Vänerlöf's black-and-white
 photomontage of old Östermalm (redrawn) along one track wall.
+Farsta strand (1971), its platform once in an open cutting and since built over, is a long, low
+box: a flat ceiling of dark perforated steel panels with lamps hung over the platform's edges,
+one row of round columns in small grey tiles down its middle, the track walls the cutting's dark
+concrete between pale pilasters with steel rails along them, grey pavers on the platform, and
+the station's name on signs hung across it. Its two flights climb towards each other to the
+ticket hall in the pavilion on Stieg Trenters torg (`src/open-styles.ts`): red walls, a floor of
+pale stone crossed by Fredrik Jacobsson's dark lines of mosaic (1993), the same steel ceiling,
+and, outside, red steel and glass under a pale green roof on red brackets, the kiosk's white
+shutter and a glazed annex over the nearer flight, which comes up into it between concrete
+parapets. The further flight climbs into Centrumhuset's ground floor: the city draws that
+building to its gable only (`data/building-corrections.json`), and leaves its wall open where
+the escalators pass through it, rather than cutting it.
 Östermalmstorg's two halls, one for each track, have walls of light, pitted concrete under a
 smooth white vault, a row of lamps over the platform's edge, white name signs on the wall behind
 the platform, and dark terrazzo floors with a band of pale tiles along the edge; on the track
@@ -575,7 +587,8 @@ A description lists the ways out, each as a route of steps from a point on the p
   ticket gates across the way; `mark` names a place that another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
   by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or
-  `open`) or a lift.
+  `open`) or a lift, with the station's sign on a post beside it (none with `"sign": false`,
+  where its name is over the doors).
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,

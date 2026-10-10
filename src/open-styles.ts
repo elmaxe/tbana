@@ -8,12 +8,16 @@
 // `u` metres to the right of that; heights are above the top of the platform. The roof and what
 // stands under it (`u` across from the line down the middle of the platform) follow that line,
 // so they bend with the track.
+//
+// A station whose platform is underground (a box or rock, which the network draws, styled in
+// src/hall-styles.ts) can be styled here too, without a roof or paving: its ticket hall, stairs
+// and the building over them in the street.
 
 export interface OpenStyle {
-  roof: ButterflyRoof;
+  roof?: ButterflyRoof;
   // more roofs beside it, along the same line: a W of two butterflies side by side
   roofs?: ButterflyRoof[];
-  paving: Paving;
+  paving?: Paving;
   // the finishes of the station's halls, passages and stairs: each part takes the first room
   // whose box holds the middle of its floor
   rooms: Room[];
@@ -99,7 +103,8 @@ export interface Paving {
 
 // The finishes in a box: from `s[0]` to `s[1]` along, across `u` (all of it by default), and
 // from `h[0]` to `h[1]` high; `stairs` for the walls beside stairs and escalators, and no walls
-// at all (`walls: null`) where its floors are the platform's ends, out under the roof. `roof`
+// at all (`walls: null`) where its floors are the platform's ends, out under the roof, and no floor
+// drawn (`floor: null`) where they are on a platform the network draws, which is paved. `roof`
 // puts a roof this thick on its ceilings; `slab` a slab this thick under its floors, where they
 // stand on a bridge.
 //
@@ -108,7 +113,7 @@ export interface Paving {
 export interface Room {
   name: string;
   s: [number, number]; u?: [number, number]; h: [number, number];
-  walls?: Finish | null; floor?: Finish; ceiling?: Finish; stairs?: Finish;
+  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish;
   roof?: number; slab?: number; sill?: number;
 }
 
@@ -143,7 +148,13 @@ export type Finish =
   | 'gridTerrazzo'  // cream terrazzo squares in a grid of dark grey strips
   | 'shopWindows'   // shop fronts: lit windows, a sign board over each, white render above
   | 'storeys'       // a building of three storeys: shops under a dark band, ribbon windows in white render
-  | 'liftWindows';  // black steel panels on a concrete plinth, windows in pale frames
+  | 'liftWindows'   // black steel panels on a concrete plinth, windows in pale frames
+  | 'redWindows'    // windows in red steel frames on a concrete plinth, cream panels above
+  | 'shutter'       // a white roller shutter, cream panels above
+  | 'redPanels'     // dark red painted panels
+  | 'perforated'    // dark grey perforated steel panels, a ceiling's
+  | 'lineMosaic'    // pale grey stone, dark lines of mosaic crossing it in long triangles
+  | 'creamPanels';  // cream panels between red steel posts
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -157,12 +168,15 @@ export type Finish =
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
 // up (on the side's inner face, `inside`). `eaves`: its roof reaches out this far past its walls,
 // along each side (or all round). `ground`: it is dug into the city's ground, which isn't there
-// inside it.
+// inside it. `roofColor`: its roof this colour (dark grey by default); `brackets`, steel brackets
+// of this colour under the eaves, from the walls' top out to the roof's edge, about `every` m
+// apart along each side the eaves reach out from.
 export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; low?: number; eaves?: number | number[]; ground?: boolean;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
   onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean };
+  roofColor?: number; brackets?: { every: number; color: number };
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel;
@@ -845,6 +859,61 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     fences: [
       { points: [[-48.8, -6.0], [-48.8, 6.3]], h: [0, 1.8] },
       { points: [[93.4, -6.4], [93.4, 6.3]], h: [0, 1.8] },
+    ],
+  },  // Farsta strand (29 August 1971): the platform is underground, in a box the network draws in its
+  // own style (src/hall-styles.ts); here, the ticket hall over it and the pavilion on Stieg
+  // Trenters torg it stands in. OpenStreetMap's indoor mapping and photographs (2018) put two
+  // flights in the middle of the platform, each stairs beside escalators, climbing towards each
+  // other to the hall at the square (4.4 m over the platform): the nearer up into a glazed annex
+  // on the pavilion's front, where it comes up through an opening in the floor between concrete
+  // parapets, the further into Centrumhuset's ground floor; a lift between them, and the ticket
+  // gates in the hall's middle, facing the way out on the square. Inside: a floor of pale grey
+  // stone with Fredrik Jacobsson's mosaic (1993), dark lines crossing it in long triangles; a
+  // ceiling of dark perforated steel panels, as on the platform; red walls.
+  //
+  // The pavilion, from the laser scan: its roof across the station from 26.9 m to 14.8 m south of
+  // the platform's middle, from 18.8 m west of its line to 14 m east, its top falling from 9.6 m
+  // over the platform at the back to 8.3 m at the front, with a raised part 10.1 m high at the back
+  // against Centrumhuset's gable (whose outline data/building-corrections.json ends there); the
+  // annex's flat roof 7.7 m high, from 15 m to 8 m south. Photographs: the roof pale green on red
+  // steel brackets, reaching out over the walls; on the front a white roller shutter (the kiosk),
+  // the doors under the station's name on a blue band and a low green canopy, and the annex glazed
+  // in red frames on a concrete plinth.
+  'Farsta strand': {
+    rooms: [
+      { name: 'flight up into the annex', s: [-16, -3], u: [-3.2, 0.8], h: [-0.5, 0.5], walls: 'boardConcrete', floor: null, stairs: 'boardConcrete', sill: 4.4 },
+      { name: 'flight up into Centrumhuset', s: [-38, -24], u: [-3.6, 0.4], h: [-0.5, 0.5], walls: 'greyTiles', floor: null, stairs: 'greyTiles' },
+      { name: "lift's door", s: [-22, -18.5], u: [1, 4], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'annex', s: [-16.2, -12], u: [-6, 2], h: [4, 5], walls: 'redPanels', floor: 'lineMosaic', ceiling: 'perforated', sill: 4.3 },
+      { name: 'ticket hall', s: [-30, -15], u: [-19, 14], h: [4, 5], walls: 'redPanels', floor: 'lineMosaic', ceiling: 'perforated', sill: 4.3 },
+    ],
+    // (the walls stand back from the roof's edges by its eaves)
+    blocks: [
+      { name: 'raised back', plan: [[-29.5, 13.1], [-26.9, 13.1], [-26.9, -18.8], [-29.5, -18.8]], h: [3.9, 9.75], from: 4.4, walls: 'redPanels', roof: 0.3,
+        ground: true, roofColor: 0x8fb3a2 },
+      // the kiosk, the hall and the shops, up to the hall's ceiling
+      { name: 'kiosk', plan: [[-26.9, 13.1], [-16.0, 13.1], [-16.0, 9.6], [-26.9, 9.6]], h: [3.9, 7.85], from: 4.4, walls: 'redWindows',
+        sides: [undefined, 'shutter', 'redPanels', null], ground: true, floor: 'lineMosaic', ceiling: 'perforated' },
+      { name: 'hall', plan: [[-26.9, 9.6], [-16.0, 9.6], [-16.0, -5.9], [-26.9, -5.9]], h: [3.9, 7.85], from: 4.4, walls: 'redWindows',
+        sides: [null, undefined, null, null], ground: true, floor: 'lineMosaic', ceiling: 'perforated',
+        nameSign: { side: 1, at: 0.161, length: 4.4, bottom: 6.95 } },
+      { name: 'shops', plan: [[-26.9, -5.9], [-16.0, -5.9], [-16.0, -18.8], [-26.9, -18.8]], h: [3.9, 7.85], from: 4.4, walls: 'redWindows',
+        sides: ['redPanels', undefined, undefined, null], ground: true, floor: 'lineMosaic', ceiling: 'perforated' },
+      // the roof over them, falling to the front, pale green on red steel brackets
+      { name: 'roof', plan: [[-26.9, 13.1], [-16.0, 13.1], [-16.0, -18.8], [-26.9, -18.8]], h: [7.85, 9.3], from: 7.85, low: 7.9, roof: 0.3, walls: 'creamPanels',
+        sides: [undefined, null, undefined, null], eaves: [1.0, 1.2, 0.2, 0], roofColor: 0x8fb3a2, brackets: { every: 1.8, color: 0xa3302a } },
+      { name: 'annex', plan: [[-16.0, 1.5], [-8.2, 1.5], [-8.2, -5.6], [-16.0, -5.6]], h: [3.9, 7.5], from: 4.4, roof: 0.2, walls: 'redWindows',
+        sides: [undefined, undefined, undefined, null], eaves: [0.3, 0.3, 0.3, 0], ground: true, floor: 'lineMosaic', ceiling: 'perforated',
+        roofColor: 0x8fb3a2 },
+      // the canopy over the doors, level with the annex's roof
+      { name: 'canopy', plan: [[-16.0, 9.6], [-15.95, 9.6], [-15.95, 1.5], [-16.0, 1.5]], h: [7.5, 7.5], from: 7.5, roof: 0.2, walls: 'redPanels',
+        sides: [null, null, null, null], eaves: [0, 0.9, 0, 0], roofColor: 0x8fb3a2, brackets: { every: 1.6, color: 0xa3302a } },
+      // the parapets round the opening the nearer flight comes up through
+      { name: 'parapets', plan: [[-13.6, 0.65], [-8.75, 0.65], [-8.75, -3.05], [-13.6, -3.05]], h: [4.4, 5.5], from: 4.4, walls: 'boardConcrete',
+        sides: [undefined, undefined, undefined, null] },
+      // (where it climbs under the square, before it comes up into the annex)
+      { name: 'ceiling over the escalators', plan: [[-5.9, 1.0], [-8.2, 1.0], [-8.2, -3.4], [-5.9, -3.4]], h: [4.2, 4.2], from: 4.2, roof: 0.15, walls: 'boardConcrete',
+        sides: [null, null, null, null], ceiling: 'perforated' },
     ],
   },
 };

@@ -2320,6 +2320,87 @@ export function stadionArrow(blocks: boolean) {
   return toTexture(c, { repeat: false });
 }
 
+// ------------------------------------------------------------------ Farsta strand's hall
+// (src/hall-styles.ts)
+
+// The track walls, from the floor beside the track up to the ceiling, `height` m: dark concrete
+// between paler pilasters 0.8 m wide, every FS_WALL_REPEAT m, under a beam along the top; along
+// them three steel rails on posts; below, a plinth of paler concrete in cast lengths, `plinth` m
+// high. Turned for a sweep along the track, as Hötorget's: u up the wall, v along the track.
+export const FS_WALL_REPEAT = 5.4;
+export function farstaStrandWall(height: number, plinth: number, rails: number[], beam: [number, number]) {
+  const PX = 64, W = Math.round(FS_WALL_REPEAT * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
+  const r = rng(1971), Y = (h: number) => H - h * PX;
+  // the recesses between the pilasters, in shadow
+  x.fillStyle = '#2b2d2c'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 2500, 0.1, 71);
+  // the pilasters, at the repeat's ends, and the beam over them
+  for (const [x0, x1] of [[0, 0.4], [FS_WALL_REPEAT - 0.4, FS_WALL_REPEAT]]) {
+    x.fillStyle = '#5b5c59'; x.fillRect(x0 * PX, Y(beam[0]), (x1 - x0) * PX, (beam[0] - plinth) * PX);
+  }
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0.4 * PX, Y(beam[0]), 0.06 * PX, (beam[0] - plinth) * PX);
+  x.fillRect((FS_WALL_REPEAT - 0.46) * PX, Y(beam[0]), 0.06 * PX, (beam[0] - plinth) * PX);
+  x.fillStyle = '#5f605d'; x.fillRect(0, Y(beam[1]), W, (beam[1] - beam[0]) * PX);
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(0, Y(beam[0]), W, 0.05 * PX);
+  x.fillStyle = '#232524'; x.fillRect(0, 0, W, Y(beam[1]));
+  // the plinth, in lengths with joints between
+  x.fillStyle = '#676863'; x.fillRect(0, Y(plinth), W, plinth * PX);
+  for (let k = 0; k < 4; k++) {
+    x.fillStyle = css(0x676863, Math.floor(r() * 12) - 6); x.fillRect(k * W / 4 + 2, Y(plinth) + 2, W / 4 - 4, plinth * PX - 2);
+  }
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, Y(plinth), W, 0.04 * PX);
+  speckle(x, W, H, 1800, 0.08, 72, true);
+  // the rails, on posts at the pilasters and between them
+  const top = rails[rails.length - 1] + 0.12;
+  for (const px of [0.2, FS_WALL_REPEAT / 2, FS_WALL_REPEAT - 0.2]) {
+    x.fillStyle = '#3e3832'; x.fillRect(px * PX - 2, Y(top), 4, (top - rails[0] + 0.1) * PX);
+  }
+  for (const h of rails) {
+    x.fillStyle = '#6b5d4f'; x.fillRect(0, Y(h + 0.07), W, 0.07 * PX);
+    x.fillStyle = '#2a2420'; x.fillRect(0, Y(h), W, 0.025 * PX);
+  }
+  const [c, y] = canvas(H, W);
+  // (along, up) → (up from the left, along)
+  y.setTransform(0, 1, -1, 0, H, 0);
+  y.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// The ceiling: panels of dark grey perforated steel, 1.2 m along by 2.4 m across, in a grid of
+// thin pale joints, on steel beams across every 2.4 m (the texture covers 2.4 × 2.4 m, u across,
+// v along, a beam along its top edge).
+export function perforatedCeiling() {
+  const N = 384, PX = N / 2.4, [c, x] = canvas(N);
+  x.fillStyle = '#585c5e'; x.fillRect(0, 0, N, N);
+  // the holes, a fine dark grain
+  x.fillStyle = '#3c3f41';
+  for (let j = 2; j < N; j += 4) for (let i = (j % 8 === 2 ? 0 : 2); i < N; i += 4) x.fillRect(i, j, 1.6, 1.6);
+  // each panel a little lighter or darker than the next
+  const r = rng(1971);
+  for (let j = 0; j < 2; j++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},${0.02 + r() * 0.04})`; x.fillRect(0, j * 1.2 * PX, N, 1.2 * PX);
+  }
+  x.fillStyle = '#6c7072';
+  x.fillRect(0, 1.2 * PX - 1, N, 2); x.fillRect(0, 0, 2, N); x.fillRect(N - 2, 0, 2, N);
+  // the beam
+  x.fillStyle = '#5a5e61'; x.fillRect(0, 0, N, 0.1 * PX);
+  x.fillStyle = '#7d8184'; x.fillRect(0, 0.1 * PX, N, 2);
+  return toTexture(c);
+}
+
+// The columns' cladding: small tiles, 5 × 10 cm, in greys, stacked in columns with dark joints (the
+// texture covers 1 × 1 m, u round the column, v up it).
+export function mosaicColumn() {
+  const N = 400, PX = N, [c, x] = canvas(N), r = rng(1972);
+  x.fillStyle = '#4d5150'; x.fillRect(0, 0, N, N);
+  const w = 0.05 * PX, h = 0.1 * PX;
+  for (let i = 0; i < N / w; i++) for (let j = 0; j < N / h; j++) {
+    x.fillStyle = css(0x7b7f7e, Math.floor(r() * 18) - 9);
+    x.fillRect(i * w + 1, j * h + 1, w - 2, h - 2);
+  }
+  return toTexture(c);
+}
+
 // ------------------------------------------------------------------ styled open stations
 // (src/open-styles.ts)
 
@@ -2653,9 +2734,11 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
   stripes: [2.4, 2.4], greenWindows: [1.2, 4], checkWindows: [1.5, 2.8], blueTiles: [1.2, 3], tiledWindows: [1.2, 3],
   gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
+  redWindows: [1.2, 4.2], shutter: [1.2, 4.2], redPanels: [1.2, 3], perforated: [2.4, 2.4], lineMosaic: [4.8, 4.8],
+  creamPanels: [1.2, 1.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -2991,6 +3074,66 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(0, 0, 2, H);
       break;
     }
+    case 'redWindows': {
+      // Farsta strand's pavilion: a concrete plinth, glass in red steel frames to 2.95 m with a
+      // transom, then cream panels between the red posts
+      const red = '#a3302a';
+      band(0, 4.2, '#e0d9c6');
+      band(0, 0.75, '#a29e96'); band(0.71, 0.75, '#8a867e');
+      band(0.75, 0.85, red); pane(0.85, 2.1, red, 0.1); band(2.1, 2.17, red); pane(2.17, 2.95, red, 0.1); band(2.95, 3.07, red);
+      x.fillStyle = red; x.fillRect(0, Y(4.2), 0.05 * PX, 1.13 * PX); x.fillRect(W - 0.05 * PX, Y(4.2), 0.05 * PX, 1.13 * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(3.65), W, 2);
+      break;
+    }
+    case 'shutter': {
+      // a roller shutter down over a shop's front, its box over it, cream panels above
+      band(0, 4.2, '#e0d9c6');
+      band(0, 0.3, '#a29e96');
+      band(0.3, 2.7, '#d9dbd8');
+      for (let k = 0.3; k < 2.7; k += 0.08) { x.fillStyle = 'rgba(70,72,74,0.35)'; x.fillRect(0, Y(k + 0.01), W, 1.5); }
+      band(2.7, 2.98, '#b9bcbc'); band(2.98, 3.07, '#a3302a');
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(3.65), W, 2);
+      break;
+    }
+    case 'creamPanels':
+      // as over redWindows' glass
+      x.fillStyle = '#e0d9c6'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#a3302a'; x.fillRect(0, 0, 0.05 * PX, H); x.fillRect(W - 0.05 * PX, 0, 0.05 * PX, H);
+      break;
+    case 'redPanels':
+      x.fillStyle = '#8e2d27'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(3, 0, W * 0.4, H);
+      x.fillStyle = 'rgba(40,10,8,0.6)'; x.fillRect(0, 0, 2, H); x.fillRect(0, Y(1.5), W, 2);
+      break;
+    case 'perforated': {
+      // as the platform's ceiling (perforatedCeiling): 1.2 by 2.4 m panels, the holes a fine grain
+      x.fillStyle = '#585c5e'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#3c3f41';
+      for (let j = 2; j < H; j += 4) for (let i = (j % 8 === 2 ? 0 : 2); i < W; i += 4) x.fillRect(i, j, 1.6, 1.6);
+      x.fillStyle = '#6c7072'; x.fillRect(0, 0, W, 2); x.fillRect(0, Y(1.2), W, 2); x.fillRect(0, 0, 2, H);
+      break;
+    }
+    case 'lineMosaic': {
+      // Farsta strand's hall (Fredrik Jacobsson, 1993): pale grey slabs, 60 cm, and lines of dark
+      // mosaic 5 cm wide across them, along and at two slants, so that they cross in long
+      // triangles (each family wraps round the repeat)
+      x.fillStyle = '#a7a7a3'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 184 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 4})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      x.strokeStyle = '#46474a'; x.lineWidth = 0.05 * PX;
+      const line = (x0: number, y0: number, x1: number, y1: number) => {
+        for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+          x.beginPath(); x.moveTo(x0 * PX + dx, y0 * PX + dy); x.lineTo(x1 * PX + dx, y1 * PX + dy); x.stroke();
+        }
+      };
+      line(0, 0, 4.8, 2.4); line(0, 2.4, 4.8, 4.8);
+      line(0, 4.8, 4.8, 0);
+      line(2.4, 0, 2.4, 4.8);
+      break;
+    }
     case 'asphalt':
       x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
       speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
@@ -3003,7 +3146,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
