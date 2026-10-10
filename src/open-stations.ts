@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Fence, Finish, Guardian, Masts, Mural, OpenStyle, Panels, Room, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Fence, Finish, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -163,6 +163,7 @@ export class OpenLook {
     for (const a of style.art ?? []) {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
       else if (a.kind === 'mural') this.mural(a, frame, on);
+      else if (a.kind === 'roundel') this.roundel(a, frame, on, group);
     }
   }
 
@@ -455,6 +456,24 @@ export class OpenLook {
         for (let k = 0; k < 12; k++) { const t = (k / 12) * Math.PI * 2; ring.push([p[0] + Math.cos(t) * r * 0.6, p[1] - r * 0.74, p[2] + Math.sin(t) * r * 0.6, 0, 0]); }
         bulb.poly(ring);
       }
+    }
+  }
+
+  // The round T on its post, a face to each side.
+  private roundel(a: Roundel, frame: Frame, on: On, group: THREE.Group) {
+    const steel = on(this.color(0x9aa0a4, 0.45, 0.6)), r = a.size / 2;
+    box(steel, frame.at(a.s, a.u, (a.foot + a.h - r) / 2), frame.fx, frame.fz, 0.08, a.h - r - a.foot, 0.08);
+    const c = frame.at(a.s, a.u, a.h), rx = -frame.fz, rz = frame.fx;
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.08, 32).rotateZ(Math.PI / 2), this.color(0xdfe1df, 0.4, 0.4));
+    rim.position.set(...c);
+    rim.rotation.y = Math.atan2(rx, rz) - Math.PI / 2;
+    group.add(rim);
+    const m = this.mat('tRoundel', () => new THREE.MeshBasicMaterial({ map: T.tRoundel() }));
+    for (const side of [1, -1]) {
+      const face = new THREE.Mesh(new THREE.CircleGeometry(r - 0.01, 32), m);
+      face.position.set(c[0] + rx * side * 0.045, c[1], c[2] + rz * side * 0.045);
+      face.rotation.y = Math.atan2(rx * side, rz * side);
+      group.add(face);
     }
   }
 

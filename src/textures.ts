@@ -2508,6 +2508,15 @@ export function hangingSign(name: string, left: string, right: string) {
   return toTexture(c, { repeat: false });
 }
 
+// The metro's round sign: a blue T on white in a blue ring.
+export function tRoundel() {
+  const N = 256, [c, x] = canvas(N);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, N, N);
+  x.strokeStyle = '#1f4f9c'; x.lineWidth = 16; x.beginPath(); x.arc(N / 2, N / 2, N / 2 - 12, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#1f4f9c'; x.fillRect(58, 64, 140, 34); x.fillRect(110, 64, 36, 132);
+  return toTexture(c, { repeat: false });
+}
+
 // A station clock's face: white, black bars for the hours and strokes for the minutes, black
 // hands (at ten past ten).
 export function clockFace() {
@@ -2642,9 +2651,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
   darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
   highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
+  stripes: [2.4, 2.4], greenWindows: [1.2, 4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -2845,6 +2855,30 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'stripes': {
+      // bands of tiles 30 by 7.5 cm, white and black, the bands one to four rows deep
+      const rows = [2, 1, 3, 1, 2, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 1, 1, 1];
+      const t = 0.075 * PX, a = 0.3 * PX;
+      x.fillStyle = '#8d8e8c'; x.fillRect(0, 0, W, H);
+      let j = 0;
+      rows.forEach((n, k) => {
+        const black = k % 2 === 1;
+        for (let q = 0; q < n; q++, j++) for (let i = -1; i * a < W; i++) {
+          const v = black ? 26 + Math.floor(r() * 10) : 232 + Math.floor(r() * 12);
+          x.fillStyle = `rgb(${v},${v},${v + (black ? 2 : -2)})`;
+          x.fillRect(i * a + (j % 2) * a / 2 + 1, Y(0) - (j + 1) * t + 1, a - 2, t - 2);
+        }
+      });
+      break;
+    }
+    case 'greenWindows': {
+      // green sheet-metal panels 0.6 m wide, ribbed, to 2.5 m; above, windows in grey steel frames
+      band(0, 4, '#3d7f58');
+      for (let i = 0; i * 0.15 * PX < W; i++) { x.fillStyle = i % 4 === 0 ? 'rgba(20,40,28,0.55)' : 'rgba(255,255,255,0.08)'; x.fillRect(i * 0.15 * PX, Y(2.5), 2, 2.5 * PX); }
+      band(0, 0.08, '#5b5f61');
+      band(2.5, 2.6, steel); pane(2.6, 3.9, steel, 0.1); band(3.9, 4, steel);
+      break;
+    }
     case 'asphalt':
       x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
       speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
@@ -2857,7 +2891,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

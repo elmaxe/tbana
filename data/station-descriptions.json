@@ -1219,14 +1219,29 @@
     },
     "Blåsut": {
       "drawing": "blasut.png",
-      "note": "An island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "note": "An island platform on the bank, under a butterfly roof over its southern half. At its south end the platform runs into the station's hall between the tracks, over the cycle path's underpass: the ticket gates, then stairs down along its east side and a walkway along its west side to a glass lift, both to the underpass, which comes out towards Blåsutvägen to the west and Fyrvaktarkroken to the east. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-49.87436714794674, 0.2], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, 0.4]},
-          {"walk": [-66.0, 0.4], "width": 6},
-          {"walk": [-66.0, -11.5], "width": 4},
+        { "from": [-63.8, 0.45], "width": 3.0, "go": [
+          {"walk": [-65.0, 0.45], "ceiling": 2.4},
+          {"walk": [-68.6, 0.45], "width": 5.1, "ceiling": 3.75},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -25.5], "name":  "Blåsut"}}
+          {"walk": [-73.5, 0.45], "ceiling": 3.75}
+        ] },
+        { "from": [-73.5, 2.0], "width": 2.0, "go": [
+          {"stairs": -4.2, "toward": [-100, 2.0], "lanes": "S"},
+          {"walk": [-82.2, 2.0], "ceiling": 2.25}
+        ] },
+        { "from": [-81.55, 0.0], "h": -4.2, "width": 5.9, "go": [
+          {"walk": [-81.55, -7.1], "ceiling": 2.25},
+          {"exit": {"at": [-81.55, -14.5], "name": "Blåsutvägen"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-81.55, 0.0], "h": -4.2, "width": 5.9, "go": [
+          {"walk": [-81.55, 7.2], "ceiling": 2.25},
+          {"exit": {"at": [-81.55, 14.5], "name": "Fyrvaktarkroken"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-73.5, -0.5], "width": 3.0, "go": [
+          {"walk": [-84.0, -0.5], "ceiling": 3.75},
+          {"lift": -4.2, "above": 5.4}
         ] }
       ]
     },

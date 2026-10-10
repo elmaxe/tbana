@@ -129,7 +129,9 @@ export type Finish =
   | 'highWindows'   // pale grey wall to 2.5 m, windows in grey steel frames above
   | 'paleGreenTiles' // small square tiles, a pale green
   | 'paleTiles'     // pale cream floor tiles, 30 cm
-  | 'asphalt';      // dark grey asphalt
+  | 'asphalt'       // dark grey asphalt
+  | 'stripes'       // tiles in bands of white and black, the bands of different depths
+  | 'greenWindows'; // green sheet-metal panels to 2.5 m, windows in grey steel frames above
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -151,7 +153,7 @@ export interface Block {
   onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -180,6 +182,10 @@ export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken'; s: number; u
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
 export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
+
+// The metro's round sign on a post on a roof at s, u, its middle `h` high and `size` across, its
+// faces across the platform; the post from `foot` up.
+export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
@@ -601,6 +607,103 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-92, 7.6], [-80, 7.9], [-60, 8.3], [-40, 8.6], [-20, 8.8], [0, 8.9], [20, 8.8], [40, 8.3], [60, 7.6], [75, 7.1]], h: [-1.4, 0.4], kind: 'louvres' },
       { points: [[-91.5, -8.9], [-107, -8.9]], h: [-1.4, 0.4], kind: 'boards' },
       { points: [[-91.5, 7.3], [-107, 7.3]], h: [-1.4, 0.4], kind: 'boards' },
+    ],
+  },
+  // Blåsut (1 October 1950; renewed, and Ann Edholm's art put up, in 2008): an island platform on
+  // the bank through Blåsutparken, with its way out at its south end, where the tracks cross the
+  // cycle path's underpass. The laser scan puts a butterfly roof from 13.5 m south of the
+  // platform's middle to 64.6 m, 8.7 m wide, its top 3.3 m over the platform at the valley and
+  // 3.65 m at the edges. Photographs (2019) show its underside pale grey, with white steel rafters
+  // across it, a dark grey beam along the valley on a row of dark grey columns, a long round light
+  // down each half, black name signs and departure boards, a clock at the south end, and a glass
+  // shelter framed in black on the east side. The paving: a pale band along each edge, a ribbed
+  // strip for the blind, then grey slabs. Out in the open to the north, galvanised lamp posts down
+  // the middle (laser scan: about 15 m apart, 4.7 m high), each with three white dome lamps, some
+  // with black name signs.
+  //
+  // At the south end the platform runs into the station's hall between the tracks, on the bank over
+  // the underpass (OpenStreetMap's outline, laser scan: from 64.6 m to 84.5 m south, its roof
+  // 4.35 m over the platform, narrowing to the south where the western track bends in), a flat
+  // roof reaching out over its walls. Its northern part, with the ticket gates (OpenStreetMap's
+  // indoor mapping: 68.9 m south), green sheet metal under a row of windows; its southern part
+  // glazed from floor to roof in grey steel frames, over the stairs down along its east side
+  // (OpenStreetMap: from 73.5 m to 81.4 m south) and a walkway along its west side to a glass lift
+  // tower at its south end (laser scan: 6 m high), both to the underpass, 4.2 m under the platform.
+  // Inside: pale tiled floors, white panels, a white slatted ceiling over the gates; pale tiles
+  // beside the stairs. South of the lift, a low concrete box. The underpass runs straight under the
+  // bank, between faces lined to the top of the way through in Ann Edholm's bands of white and
+  // black tiles, with the station's name on a blue band over each end.
+  //
+  // Chain-link fences beyond both tracks, along the top of the bank.
+  'Blåsut': {
+    roof: {
+      kind: 'butterfly',
+      from: -64.6, to: -13.5, width: 8.7, offset: -0.15,
+      middle: 3.08, edge: 3.44, thick: 0.2, fascia: 0.3,
+      rafters: 1.8, rafterSize: [0.1, 0.3], rafterColor: 0xd9dbd9,
+      beam: 0.35,
+      columns: { every: 8, at: -20, size: 0.24, plinth: { size: 0.45, height: 0.12 } },
+      lamps: { offset: 2.8, length: 1.2, every: 1.8, tube: true },
+      colors: { underside: 0xdcdedc, fascia: 0xd0d2d0, top: 0x4a4e52, steel: 0x50565a },
+      signs: { at: [-24, -40, -56], back: '', ahead: '' },
+      clocks: [[-62.5, -0.9]],
+      boards: [
+        { s: -33, u: -1.6, toward: 'Hässelby strand', trains: ['18 Hässelby strand  4 min', '18 Hässelby strand  14 min'] },
+        { s: -33, u: 1.6, toward: 'Farsta strand', trains: ['18 Farsta strand  6 min', '18 Farsta strand  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.9, tactile: [0.9, 1.25], slabs: 1.25, paverSize: [0.6, 0.6], mix: 0.05,
+      colors: { edge: 0xc2c1bc, tactile: 0xaeada8, slab: 0xb6b4ae, pavers: 0x9fa0a0, paler: 0xaeb0b0, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: 'gate hall', s: [-71.5, -64.5], h: [-0.5, 1], walls: 'whitePanels', floor: 'paleTiles', ceiling: 'slats', sill: 2.5 },
+      { name: 'stair hall', s: [-84.6, -71.5], h: [-0.5, 1], walls: 'whitePanels', floor: 'paleTiles', ceiling: 'whitePanels', stairs: 'paleTiles', sill: 0 },
+      { name: 'stairs', s: [-81.5, -73], u: [0.5, 3.5], h: [-5, -3], walls: 'paleTiles', floor: 'paleTiles', stairs: 'paleTiles', sill: 0 },
+      { name: 'west of the underpass', s: [-87, -76], u: [-30, -7.0], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'east of the underpass', s: [-87, -76], u: [7.1, 30], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'underpass', s: [-87, -76], h: [-5, -3], walls: 'stripes', floor: 'asphalt', ceiling: 'boardConcrete' },
+    ],
+    // (between the tracks, kept 1.5 m off them; the roof reaches out over them)
+    blocks: [
+      { name: 'gate hall', plan: [[-64.6, -3.35], [-71.5, -3.15], [-71.5, 3.55], [-64.6, 3.55]], h: [-1.2, 4.05], walls: 'greenWindows',
+        sides: [undefined, null, undefined, 'glazed'], eaves: [0.5, 0, 0.6, 0.2], floor: 'paleTiles', ceiling: 'slats', roof: 0.3, onPlatform: true },
+      { name: 'stair hall', plan: [[-71.5, -3.15], [-84.5, -2.35], [-84.5, 3.55], [-71.5, 3.55]], h: [-1.2, 4.05], walls: 'glazed',
+        sides: [undefined, undefined, undefined, null], eaves: [0.6, 0.3, 0.6, 0], floor: 'paleTiles', ceiling: 'whitePanels', roof: 0.3, onPlatform: true },
+      // the tiled wall along the stairwell's east side, inside the glass
+      { name: 'wall beside the stairs', plan: [[-73.5, 3.0], [-84.4, 3.0], [-84.4, 3.25], [-73.5, 3.25]], h: [0, 2.4], walls: 'paleTiles', roof: 0.05 },
+      { name: 'box south of the lift', plan: [[-86.9, -1.9], [-88.6, -1.85], [-88.6, 1.9], [-86.9, 1.9]], h: [-1.2, 1.1], from: -1.2, walls: 'boardConcrete', roof: 0.1 },
+      // the underpass's ends: a notch in the bank, the face over the way through and walls either
+      // side falling with the bank, tiled up to the top of the way through
+      { name: 'west end of the underpass', plan: [[-77.5, -6.8], [-77.5, -12.5], [-86.0, -12.5], [-86.0, -6.8]], h: [-4.4, -1.2], from: -4.4, low: -4.3,
+        walls: 'stripes', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.52, length: 4.4, bottom: -1.85, inside: true }, onPlatform: true, ground: true },
+      { name: 'east end of the underpass', plan: [[-77.5, 6.9], [-77.5, 12.5], [-86.0, 12.5], [-86.0, 6.9]], h: [-4.4, -1.2], from: -4.4, low: -4.1,
+        walls: 'stripes', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.52, length: 4.4, bottom: -1.85, inside: true }, onPlatform: true, ground: true },
+      // and on along the bank's foot to the south, the slope rising in front of them
+      { name: 'west face south of the underpass', plan: [[-86.0, -6.8], [-95.0, -6.8], [-95.0, -7.1], [-86.0, -7.1]], h: [-4.4, -1.2], from: -4.4,
+        walls: 'stripes', band: { walls: 'boardConcrete', from: -1.95 }, sides: ['boardConcrete'], roof: 0.05 },
+      { name: 'east face south of the underpass', plan: [[-86.0, 6.9], [-95.0, 6.9], [-95.0, 7.2], [-86.0, 7.2]], h: [-4.4, -1.2], from: -4.4,
+        walls: 'stripes', band: { walls: 'boardConcrete', from: -1.95 }, sides: ['boardConcrete'], roof: 0.05 },
+      // (under the bank, where neither the street nor the ground runs on; nor the street just
+      // beyond the underpass's walls, which isn't to be stepped onto through them)
+      { name: 'bank over the underpass', plan: [[-78.6, -6.8], [-84.5, -6.8], [-84.5, 6.9], [-78.6, 6.9]], h: [-4.2, -1.95], from: -4.2, walls: 'boardConcrete', sides: [null, null, null, null],
+        onPlatform: true, ground: true },
+      { name: 'street under the bank', plan: [[-77.0, -6.8], [-87.0, -6.8], [-87.0, 6.9], [-77.0, 6.9]], h: [-4.4, -2.0], from: -4.4, walls: 'boardConcrete', sides: [null, null, null, null] },
+    ],
+    art: [
+      { kind: 'masts', height: 4.75, color: 0x9a9fa3, at: [[8.2, -0.2], [38.5, -0.3], [68, -0.3]] },
+      { kind: 'masts', height: 4.75, color: 0x9a9fa3, sign: 2.6, at: [[-6.4, -0.2], [23.8, -0.3], [54.3, -0.4], [84, -0.1]] },
+      // on the lift's tower
+      { kind: 'roundel', s: -86.4, u: -1.3, h: 6.35, size: 0.8, foot: 5.4 },
+    ],
+    benches: { at: [-9.5, 31, 61.5], double: true },
+    shelters: [{ s: [-48, -44], u: [0.5, 2.2] }],
+    fences: [
+      { points: [[-88, -6.9], [-77.5, -6.9], [-70, -7.6], [-60, -8.4], [-40, -8.8], [-10, -9.0], [20, -9.0], [60, -8.8], [95, -8.6]], h: [-1.2, 0.6] },
+      { points: [[-88, 7.0], [-77.5, 7.0], [-70, 7.6], [-60, 8.3], [-40, 8.6], [0, 8.6], [40, 8.4], [70, 7.8], [95, 7.6]], h: [-1.2, 0.6] },
     ],
   },
 };

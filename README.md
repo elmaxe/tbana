@@ -447,7 +447,13 @@ with three dome lamps beyond it, wide pale slabs along the platform's edges, and
 slanting boards between concrete posts beyond the eastern track. At its south end a glass hall
 between the tracks holds the gates, then stairs down behind a glass balustrade and a walkway to a
 lift, both to the underpass of Stora Gungans väg, lined in pale green tiles between concrete
-abutments with the station's name over each end and red board fences on top. The city leaves out
+abutments with the station's name over each end and red board fences on top. Blåsut (1950) has a
+pale butterfly roof on white steel rafters, a dark grey beam and columns down its valley and a
+long round light down each half, galvanised lamp posts with three dome lamps beyond it. At its
+south end the platform runs into a hall between the tracks, green sheet metal under a row of
+windows round the gates, then glazed in grey steel frames over stairs down beside a tiled wall and
+a walkway to a glass lift tower with the round T on top, both to the cycle path's underpass,
+lined in Ann Edholm's bands of white and black tiles (2008). The city leaves out
 OpenStreetMap's outlines
 of the buildings such a station draws itself, and the street round its exits doesn't run on
 inside them.
