@@ -37,7 +37,8 @@
 //   cover), in rock elsewhere
 // - in the open: in a cutting more than 1.5 m below the ground, on an embankment more than 1 m
 //   above it, otherwise on the ground
-// - bridge: a bridge
+// - bridge: a bridge, and surface track on a viaduct OpenStreetMap doesn't map as one (the
+//   `viaducts` of data/height-corrections.json)
 // Where the two tracks of a line run side by side at one level, they share the structure; where
 // another line's track runs beside them in a concrete box, the box takes it in too (the four
 // tracks from Gamla stan to where they part to T-Centralen's two levels).
@@ -712,10 +713,10 @@ const within = (fixes: { along: [number, number][]; reach: number }[] | undefine
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
     return Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach;
   }));
-const uncovered = within(corrections.uncovered);
+const uncovered = within(corrections.uncovered), viaduct = within(corrections.viaducts);
 
 const kindOf = (p: TrackPiece, s: number, x: number, z: number, y: number): StructureKind => {
-  if (p.structure === 'bridge') return 'bridge';
+  if (p.structure === 'bridge' || (p.structure === 'surface' && viaduct(x, z))) return 'bridge';
   if (p.structure === 'tunnel') {
     if (uncovered(x, z) || mouthDistance(p, s) < BOX_AT_MOUTH) return 'box';
     const g = groundAt(x, z, 25, true);

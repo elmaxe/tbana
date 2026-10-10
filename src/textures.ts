@@ -2774,6 +2774,107 @@ export function crackle() {
 
 // Small granite setts, about 10 cm, grey and a few pinkish, laid in rows in dark joints: a
 // metre square.
+// The photographic mosaic of a forest floor along Svedmyra's ticket hall: dry grass, rusty
+// needles and dark soil, mossy hollows, grey stones and twigs, all in small square tesserae. 13 by
+// 3 m, its picture across the whole width.
+export function forestFloor() {
+  const W = 2080, H = 480, [c, x] = canvas(W, H);
+  const r = rng(1930);
+  x.fillStyle = '#7b6446'; x.fillRect(0, 0, W, H);
+  // patches of ground, larger to smaller
+  const ground = ['#a88c58', '#8d6a3c', '#5b4632', '#9a5a32', '#6e5a3a', '#b59a68', '#5f6b3c', '#4a3b2e', '#7d7350'];
+  for (const [n, size] of [[220, 70], [700, 30], [2200, 12]] as const) {
+    for (let k = 0; k < n; k++) {
+      x.fillStyle = ground[Math.floor(r() * ground.length)];
+      x.globalAlpha = 0.35 + r() * 0.5;
+      x.beginPath(); x.ellipse(r() * W, r() * H, size * (0.5 + r()), size * (0.3 + r() * 0.6), r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+  }
+  x.globalAlpha = 1;
+  // blades of dry grass and fallen needles, every way
+  for (let k = 0; k < 2600; k++) {
+    const x0 = r() * W, y0 = r() * H, a = r() * Math.PI, l = 6 + r() * 22;
+    x.strokeStyle = ['#c8ae74', '#b5482a', '#d0b880', '#8c4a26'][Math.floor(r() * 4)]; x.lineWidth = 1 + r();
+    x.beginPath(); x.moveTo(x0, y0); x.lineTo(x0 + Math.cos(a) * l, y0 + Math.sin(a) * l); x.stroke();
+  }
+  // stones, grey, lit from above
+  for (let k = 0; k < 26; k++) {
+    const cx = r() * W, cy = r() * H, rx = 18 + r() * 46, ry = rx * (0.5 + r() * 0.3);
+    const g = x.createLinearGradient(cx, cy - ry, cx, cy + ry);
+    g.addColorStop(0, '#b9b7ae'); g.addColorStop(1, '#6c6b66');
+    x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx, ry, r() * 0.6 - 0.3, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(60,52,40,0.35)'; x.beginPath(); x.ellipse(cx + rx * 0.2, cy + ry * 0.85, rx * 0.9, ry * 0.25, 0, 0, Math.PI * 2); x.fill();
+  }
+  // twigs
+  for (let k = 0; k < 60; k++) {
+    let x0 = r() * W, y0 = r() * H, a = r() * Math.PI * 2;
+    x.strokeStyle = '#3b2c20'; x.lineWidth = 2 + r() * 2;
+    x.beginPath(); x.moveTo(x0, y0);
+    for (let j = 0; j < 4; j++) { a += r() * 0.8 - 0.4; x0 += Math.cos(a) * 18; y0 += Math.sin(a) * 18; x.lineTo(x0, y0); }
+    x.stroke();
+  }
+  // a tree's foot rising out of it near the left end
+  const tg = x.createLinearGradient(150, 0, 230, 0);
+  tg.addColorStop(0, '#6f685c'); tg.addColorStop(0.5, '#9a9284'); tg.addColorStop(1, '#5d574d');
+  x.fillStyle = tg; x.beginPath(); x.moveTo(150, 0); x.lineTo(230, 0); x.lineTo(250, H * 0.5); x.lineTo(130, H * 0.5); x.fill();
+  // the tesserae: each square one colour, about 2.5 cm, in dark joints
+  const t = 4, img = x.getImageData(0, 0, W, H), d = img.data;
+  for (let j = 0; j < H; j += t) for (let i = 0; i < W; i += t) {
+    const o = ((j + 1) * W + i + 1) * 4, v = 0.92 + r() * 0.16;
+    for (let b = 0; b < t; b++) for (let a = 0; a < t; a++) {
+      const q = ((j + b) * W + i + a) * 4, joint = a === t - 1 || b === t - 1;
+      for (let ch = 0; ch < 3; ch++) d[q + ch] = joint ? d[o + ch] * 0.55 : Math.min(255, d[o + ch] * v);
+    }
+  }
+  x.putImageData(img, 0, 0);
+  return toTexture(c, { repeat: false });
+}
+
+// Glass wind screens on a viaduct's edge, in steel frames 1.25 m apart: some panes printed with a
+// big green leaf (maple, lime, horse chestnut, rowan, oak, birch) outlined in white, the rest
+// plain. Eight panes across, 2.2 m high; the glass itself faintly tinted.
+export function leafGlass(leaves: boolean) {
+  const PX = 96, pw = 1.25 * PX, W = Math.round(8 * pw), H = Math.round(2.2 * PX), [c, x] = canvas(W, H);
+  const r = rng(leaves ? 1991 : 1992);
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = 'rgba(190,210,214,0.28)'; x.fillRect(0, 0, W, H);
+  const leaf = (kind: number, cx: number, cy: number, s: number) => {
+    x.save(); x.translate(cx, cy); x.rotate(r() * 0.5 - 0.25);
+    x.fillStyle = ['#3f8f3a', '#4c9b3e', '#3a8536'][kind % 3]; x.strokeStyle = 'rgba(240,244,236,0.95)'; x.lineWidth = 2.5;
+    const blade = (len: number, wd: number, a: number) => {
+      x.save(); x.rotate(a); x.beginPath(); x.moveTo(0, 0);
+      x.bezierCurveTo(wd, -len * 0.3, wd * 0.8, -len * 0.8, 0, -len); x.bezierCurveTo(-wd * 0.8, -len * 0.8, -wd, -len * 0.3, 0, 0);
+      x.fill(); x.stroke(); x.restore();
+    };
+    if (kind === 0) for (const a of [-1.3, -0.65, 0, 0.65, 1.3]) blade(s * (a === 0 ? 1 : 0.8), s * 0.42, a);        // maple
+    else if (kind === 1) for (const [dx, dy, k] of [[-0.3, -0.2, 0.55], [0.3, -0.5, 0.6], [0, 0.25, 0.5]]) {          // lime
+      x.save(); x.translate(dx * s, dy * s); blade(s * k, s * k * 0.75, r() - 0.5); x.restore();
+    }
+    else if (kind === 2) for (const a of [-1.6, -1.05, -0.5, 0, 0.5, 1.05, 1.6]) blade(s * (1 - Math.abs(a) * 0.22), s * 0.22, a); // horse chestnut
+    else if (kind === 3) {                                                                                                   // rowan
+      x.strokeStyle = '#3a6a30'; x.beginPath(); x.moveTo(0, s * 0.6); x.lineTo(0, -s); x.stroke(); x.strokeStyle = 'rgba(240,244,236,0.95)';
+      for (let k = 0; k < 6; k++) for (const side of [-1, 1]) {
+        x.save(); x.translate(0, s * 0.45 - k * s * 0.27); blade(s * 0.32, s * 0.09, side * 1.2); x.restore();
+      }
+      blade(s * 0.3, s * 0.09, 0);
+    } else if (kind === 4) {                                                                                                 // oak
+      x.beginPath(); x.moveTo(0, s * 0.5);
+      for (let k = 0; k <= 12; k++) { const t = k / 12, y = s * 0.5 - t * s * 1.4, w = s * 0.32 * Math.sin(Math.PI * t) * (k % 2 ? 0.65 : 1); x.lineTo(w, y); }
+      for (let k = 12; k >= 0; k--) { const t = k / 12, y = s * 0.5 - t * s * 1.4, w = s * 0.32 * Math.sin(Math.PI * t) * (k % 2 ? 0.65 : 1); x.lineTo(-w, y); }
+      x.fill(); x.stroke();
+    } else blade(s * 0.9, s * 0.55, 0);                                                                                     // birch
+    x.restore();
+  };
+  for (let k = 0; k < 8; k++) {
+    if (leaves && k % 4 !== 3) leaf((k * 5 + Math.floor(r() * 3)) % 6, k * pw + pw / 2, H * 0.62, 0.62 * PX);
+  }
+  // the frames: posts between the panes, a rail along the top and the foot
+  x.fillStyle = '#8c9296';
+  for (let k = 0; k <= 8; k++) x.fillRect(k * pw - 3, 0, 6, H);
+  x.fillRect(0, 0, W, 5); x.fillRect(0, H - 8, W, 8);
+  return toTexture(c);
+}
+
 export function cobbles() {
   const W = 160, [c, x] = canvas(W, W), r = rng(1990);
   x.fillStyle = '#4a4a48'; x.fillRect(0, 0, W, W);
@@ -2806,6 +2907,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
   whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
   whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
+  greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
@@ -3359,6 +3461,28 @@ export function finish(name: Finish) {
       x.fillStyle = st; x.fillRect(0, Y(4.3), W, 0.06 * PX); x.fillRect(0, Y(5.6), W, 0.06 * PX);
       break;
     }
+    case 'greenTerrazzo': {
+      // green terrazzo, speckled pale and dark, and a pair of dark red lines along it
+      x.fillStyle = '#44705a'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 60000, 0.35, 74); speckle(x, W, H, 30000, 0.3, 75, true);
+      for (const k of [0.4, 0.52]) { x.fillStyle = '#7a2e26'; x.fillRect(k * PX, 0, 0.05 * PX, H); }
+      break;
+    }
+    case 'squareTiles': {
+      // white tiles 15 cm square, in grey joints
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 238 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'whiteRender':
+      // smooth white render
+      x.fillStyle = '#e8e6e0'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 9000, 0.12, 76); speckle(x, W, H, 6000, 0.15, 77, true);
+      break;
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {

@@ -181,7 +181,10 @@ export type Finish =
   | 'whitePerforated' // white acoustic panels, finely perforated
   | 'roughcast'     // grey roughcast render
   | 'hallTiles'     // white tiles, windows in grey frames, white render, tall windows in black frames
-  | 'glassFront';   // glass doors in brushed steel, the name's band, glass in steel frames above
+  | 'glassFront'    // glass doors in brushed steel, the name's band, glass in steel frames above
+  | 'greenTerrazzo' // dark green terrazzo with two thin dark red lines along it
+  | 'squareTiles'   // white tiles, 15 cm, in grey joints
+  | 'whiteRender';  // white render
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -206,7 +209,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -229,8 +232,9 @@ export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: nu
 export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
-// `top` and `width` across; drawn in code (src/textures.ts).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// `top` and `width` across; drawn in code (src/textures.ts): the dragon of Tallkrogen's, or a
+// mosaic of a forest's floor.
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -262,9 +266,14 @@ export interface Figure { kind: 'figure'; pose: 'cling' | 'crouch'; s: number; u
 // heads and shoulders, one sprawled.
 export interface FoolsShip { kind: 'foolsShip'; s: number; u: number; turn: number }
 
+// A tall cone of dark bronze, fluted all round and rounding to a point, on short feet at s, u
+// (across from the line down the platform's middle), `height` high and `base` across at its foot.
+export interface Cone { kind: 'cone'; s: number; u: number; height: number; base: number }
+
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
-// boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
-export interface Fence { points: [number, number][]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres'; color?: number }
+// boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
+// panes of glass in steel frames (`glass`), on most of them a leaf drawn in white (`leaves`).
+export interface Fence { points: [number, number][]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass'; color?: number; leaves?: boolean }
 
 // Gubbängen (1950): an island platform on a low bank on the hillside, along Lingvägen, under a
 // long butterfly roof. Since its renewal the roof's underside is white boarding on white rafters,
@@ -1320,6 +1329,136 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         [10, -9.1], [20, -8.9], [30, -8.7], [40, -8.4], [50, -8.1], [60, -7.7], [70, -7.4], [80, -7.1]], h: [-1.1, 1.0] },
       { points: [[-90, 15.2], [-80, 13.7], [-70, 12.5], [-60, 11.5], [-50, 10.7], [-40, 10.1], [-30, 9.6], [-20, 9.4], [-10, 9.2], [0, 9.2],
         [10, 9.2], [20, 9.2], [30, 9.3], [40, 9.3], [50, 9.4], [60, 9.4], [70, 9.4], [80, 9.3]], h: [-1.1, 1.0] },
+    ],
+  },
+
+  // Svedmyra (9 September 1951, where the Örbybanan tram had stopped since 1930): an island
+  // platform on a bank at its south end and, from its middle north, on a concrete viaduct over the
+  // street, under a butterfly roof. The laser scan puts the roof from 52 m south of the platform's
+  // middle to 40 m north, about 8.3 m wide, its top 3.3 m over the platform at the valley and
+  // 3.6 m at the edges. Photographs (2009 to 2024) show its underside boarded pale on rafters,
+  // a dark fascia, dark steel columns down the middle on concrete plinths, about 10.5 m apart,
+  // with knee braces up to a beam along the valley; strip lights either side of the beam,
+  // departure boards hung from it (Hässelby strand's over the eastern half, Hagsätra's over the
+  // western), double benches of slats by the columns. Beyond the roof, galvanised lamp posts
+  // down the middle (some with SL's blue name sign) and a glass shelter at the south end. The
+  // network's track runs about 2 m east of the laser scan's here, so the roof follows the middle
+  // between its tracks rather than the platform's line, and the station's parts keep to the
+  // tracks rather than to the scan.
+  //
+  // Along the viaduct the tracks have screens of glass in steel frames, on the western side with
+  // a leaf drawn on most panes; chain-link fences beyond them along the bank. On the platform
+  // north of the roof stands Torgny Larsson's bronze (1991), a tall fluted cone rounding to its
+  // point on short feet.
+  //
+  // Two long flights of stairs go down from the platform, one from its south half and one from
+  // under the roof's north end, and a lift from its middle (its head up through the roof), to
+  // the ticket hall under the viaduct at the street (OpenStreetMap's indoor mapping: the flights
+  // from 14 m south and from 38 m north, the lift at 14 m north, the gates at 7 m). The hall:
+  // a floor of green terrazzo with dark red lines, walls of small white tiles, a white perforated
+  // ceiling, and along its west wall a mosaic of a forest's floor (moss, needles, stones, cones
+  // and twigs). Outside it is rendered white. From the gates a passage runs east under the
+  // eastern track into the low entrance building at the foot of the viaduct (the laser scan: its
+  // roof 2.3 m to 3 m under the platform, from 4 m south to 12 m north), its doors in a glass
+  // front under SL's blue band, a kiosk beside them, and over both a canopy curving down at its
+  // edge on thin dark posts, onto a paved square; the bank's foot is held by a granite kerb.
+  'Svedmyra': {
+    roof: {
+      kind: 'butterfly',
+      from: -52, to: 40, width: 8.3,
+      // (the middle between the network's tracks, which curve apart from the platform's line
+      // towards the south)
+      shape: [[-70, 2.11, 8.3], [-60, 1.64, 8.3], [-50, 1.21, 8.3], [-40, 0.87, 8.3], [-30, 0.62, 8.3], [-20, 0.42, 8.3],
+        [-10, 0.25, 8.3], [0, 0.07, 8.3], [10, -0.1, 8.3], [20, -0.21, 8.3], [30, -0.2, 8.3], [40, -0.06, 8.3]],
+      middle: 3.1, edge: 3.35, thick: 0.2, fascia: 0.3,
+      rafters: 1.0,
+      beam: 0.3,
+      columns: { every: 10.5, at: -4.5, size: 0.3, plinth: { size: 0.45, height: 0.25 }, braces: 1.2 },
+      lamps: { offset: 2.5, length: 1.5, every: 3 },
+      colors: { underside: 0xe6e2d8, fascia: 0x2b2d30, top: 0x4a4e52, steel: 0x26282b },
+      signs: { at: [], back: '', ahead: 'Utgång', blue: true },
+      boards: [
+        { s: 33, u: 1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
+        { s: 22, u: -1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  6 min', '19 Hagsätra  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 0.95], slabs: 0.95, paverSize: [0.6, 0.4], mix: 0.25,
+      colors: { edge: 0xcdcac2, tactile: 0x8a8c8c, slab: 0x707377, pavers: 0x707377, paler: 0x83868a, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: "lift's landing", s: [9.5, 13], h: [-0.5, 1], walls: null, floor: null },
+      { name: 'south stairs', s: [-14, -2.1], h: [-6.5, 0.5], walls: 'squareTiles', floor: 'greenTerrazzo', ceiling: 'whitePerforated', stairs: 'squareTiles' },
+      { name: 'north stairs', s: [29, 39], h: [-6.5, 0.5], walls: 'squareTiles', floor: 'greenTerrazzo', ceiling: 'whitePerforated', stairs: 'squareTiles' },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-2.2, 28.4], u: [-5, 1.9], h: [-6.5, -5.5], walls: 'squareTiles', floor: 'greenTerrazzo', ceiling: 'whitePerforated', sill: -6.16 },
+      { name: 'passage', s: [3, 12], u: [1.9, 11.25], h: [-6.5, -5.5], walls: 'squareTiles', floor: 'greenTerrazzo', ceiling: 'whitePerforated', sill: -6.16 },
+      { name: 'square', s: [3, 12], u: [11.25, 20], h: [-7, -5.5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the hall under the viaduct, between the tracks, white outside
+      { name: 'ticket hall', plan: [[-2.1, -4.75], [28.3, -4.75], [28.3, 1.85], [-2.1, 1.85]], h: [-6.15, -3.0], from: -6.15,
+        walls: 'squareTiles', ceiling: 'whitePerforated', roof: 0.3, ground: true, onPlatform: true },
+      { name: "hall's west side", plan: [[-2.12, -4.87], [28.42, -4.87], [28.42, -4.77], [-2.12, -4.77]], h: [-6.15, -2.7], from: -6.15, walls: 'whiteRender' },
+      { name: "hall's north side", plan: [[28.32, -4.87], [28.42, -4.87], [28.42, 1.97], [28.32, 1.97]], h: [-6.15, -2.7], from: -6.15, walls: 'whiteRender' },
+      { name: "hall's east side", plan: [[12.02, 1.87], [28.42, 1.87], [28.42, 1.97], [12.02, 1.97]], h: [-6.15, -2.7], from: -6.15, walls: 'whiteRender' },
+      // where the bank ends and the viaduct begins
+      { name: 'abutment', plan: [[-2.25, -10.5], [-2.12, -10.5], [-2.12, 1.97], [-2.25, 1.97]], h: [-6.15, -2.7], from: -6.15, walls: 'boardConcrete' },
+      // the north flight's well, out under the viaduct beyond the hall
+      { name: 'north stairwell', plan: [[28.32, -4.43], [38.7, -5.11], [38.7, -2.87], [28.32, -2.19]], h: [-6.15, -2.65], from: -6.15,
+        walls: 'whiteRender', sides: [undefined, undefined, undefined, null] },
+      // the entrance building: the kiosk, and the doors east onto the square
+      { name: 'kiosk', plan: [[-3, 1.9], [3, 1.9], [3, 11], [-3, 11]], h: [-6.15, -2.95], from: -6.15,
+        walls: 'whiteRender', sides: [undefined, 'shopWindows', 'shopWindows', undefined], floor: 'greyTiles', ceiling: 'whitePerforated', roof: 0.3,
+        ground: true, onPlatform: true },
+      { name: 'entrance', plan: [[3, 1.9], [12, 1.9], [12, 11], [3, 11]], h: [-6.15, -2.95], from: -6.15,
+        walls: 'whiteRender', sides: [null, undefined, 'glassFront', null], floor: 'greenTerrazzo', ceiling: 'whitePerforated', roof: 0.3,
+        nameSign: { side: 2, at: 0.5, length: 2.6, bottom: -3.72 }, ground: true, onPlatform: true },
+      // the canopy over its front, curving down at its edge (a quarter of an ellipse, in four)
+      { name: 'canopy 1', plan: [[12, 11.0], [12, 12.07], [-3, 12.07], [-3, 11.0]], h: [-2.65, -2.65], from: -2.65, low: -2.73,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.12, roofColor: 0x3a3d40 },
+      { name: 'canopy 2', plan: [[12, 12.07], [12, 12.98], [-3, 12.98], [-3, 12.07]], h: [-2.73, -2.73], from: -2.73, low: -2.94,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.12, roofColor: 0x3a3d40 },
+      { name: 'canopy 3', plan: [[12, 12.98], [12, 13.59], [-3, 13.59], [-3, 12.98]], h: [-2.94, -2.94], from: -2.94, low: -3.27,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.12, roofColor: 0x3a3d40 },
+      { name: 'canopy 4', plan: [[12, 13.59], [12, 13.8], [-3, 13.8], [-3, 13.59]], h: [-3.27, -3.27], from: -3.27, low: -3.65,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.12, roofColor: 0x3a3d40 },
+      { name: "canopy's edge", plan: [[-3, 13.78], [12, 13.78], [12, 13.86], [-3, 13.86]], h: [-3.95, -3.6], from: -3.95, walls: 'greyPanels', roof: 0.02, roofColor: 0x3a3d40 },
+      ...[-2.6, 1.5, 4.6, 9.4, 11.6].map((s): Block => (
+        { name: 'canopy post', plan: [[s - 0.05, 13.6], [s + 0.05, 13.6], [s + 0.05, 13.7], [s - 0.05, 13.7]], h: [-6.15, -3.55], from: -6.15, walls: 'greyPanels' })),
+      // the square paved in front of it, on the hall's level (the city's ground, from a 4 m grid,
+      // has the bank and the building in it: cut away, and a granite kerb up to the bank's foot)
+      { name: 'square', plan: [[-3, 11], [-3, 19.5], [16, 19.5], [16, 11]], h: [-6.2, -2.4], from: -6.2, low: -6.0,
+        walls: 'granite', sides: [undefined, null, null, null], floor: 'pavers' },
+      { name: "square's ground", plan: [[-3, 11], [-3, 19.5], [16, 19.5], [16, 11]], h: [-2.7, -2.7], from: -6.2,
+        walls: 'granite', sides: [null, null, null, null], ground: true, onPlatform: true },
+      // and north of the building under the viaduct, and west of the hall
+      { name: 'under the viaduct, east', plan: [[12, 1.97], [20, 1.97], [20, 11], [12, 11]], h: [-2.7, -2.7], from: -6.2,
+        walls: 'granite', sides: [null, null, null, null], floor: 'pavers', ground: true },
+      { name: 'under the viaduct, west', plan: [[-2.1, -10.5], [28.4, -10.5], [28.4, -4.87], [-2.1, -4.87]], h: [-2.7, -2.7], from: -6.15,
+        walls: 'asphalt', sides: [null, null, null, null], floor: 'asphalt', ground: true },
+      // glass round the stairs' openings in the platform, open at their tops
+      { name: "south stairs' glass", plan: [[-5.2, -2.57], [-14.1, -2.57], [-14.1, -0.33], [-5.2, -0.33]], h: [0, 2.2],
+        walls: 'darkGlazed', sides: [undefined, null, undefined, undefined] },
+      { name: "north stairs' glass", plan: [[38.6, -5.07], [29.6, -4.52], [29.6, -2.28], [38.6, -2.83]], h: [0, 2.2],
+        walls: 'darkGlazed', sides: [undefined, undefined, undefined, null] },
+    ],
+    art: [
+      { kind: 'mural', picture: 'forestFloor', s: 7.5, u: -4.75, turn: Math.PI / 2, bottom: -6.07, top: -3.05, width: 13 },
+      { kind: 'cone', s: 45, u: -1.6, height: 2.9, base: 0.6 },
+      { kind: 'masts', height: 5.1, color: 0x9a9fa3, arm: 1.0, at: [[-58, -2.85], [-66, -3.6], [47, -3.5], [55, -4.6], [63, -6.0]] },
+      { kind: 'masts', height: 5.1, color: 0x9a9fa3, arm: 1.0, sign: 2.6, blue: true, at: [[-62, -3.2], [51, -4.0]] },
+    ],
+    benches: { at: [-46.5, -36, -25.5, 6, 16.5], double: true, wood: true },
+    shelters: [{ s: [-64, -59], u: [-1, 1.2], roof: true }],
+    // glass screens along the viaduct, 2.8 m beyond each track, on its decks' edges; chain-link
+    // along the bank, 3.4 m beyond
+    fences: [
+      { points: [[-90, -12.9], [-80, -12.2], [-70, -11.6], [-60, -11.0], [-50, -10.5], [-40, -10.0], [-30, -9.6], [-20, -9.4], [-10, -9.3]], h: [-1.6, 0.3] },
+      { points: [[-10, -8.7], [0, -8.9], [10, -9.4], [20, -10.1], [30, -10.9], [40, -11.8], [50, -12.8], [60, -14.0], [65, -14.7]], h: [-1.6, 0.9], kind: 'glass', leaves: true },
+      { points: [[-90, 0.3], [-80, 1.9], [-70, 3.5], [-60, 5.0], [-50, 6.4], [-40, 7.5], [-30, 8.4]], h: [-1.6, 0.3] },
+      { points: [[-30, 7.8], [-20, 8.4], [-10, 8.8], [0, 8.9], [10, 8.8], [20, 8.4], [30, 7.6], [40, 6.5], [50, 5.0], [60, 3.1], [70, 0.9]], h: [-1.6, 0.9], kind: 'glass' },
     ],
   },
 };

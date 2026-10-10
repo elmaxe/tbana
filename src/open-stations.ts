@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -204,6 +204,7 @@ export class OpenLook {
       else if (a.kind === 'panels') this.panels(a, roof, line, on);
       else if (a.kind === 'chairs') this.chairs(a, line, on);
       else if (a.kind === 'foolsShip') this.foolsShip(a, line, on);
+      else if (a.kind === 'cone') this.cone(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
     const B = style.benches;
@@ -607,6 +608,26 @@ export class OpenLook {
     ball(bronze, P(-1.1 + 0.98, 0.15, top + 0.17), 0.1);
   }
 
+  // Torgny Larsson's cone of bronze (1991): fluted all round, its sides rounding in to the point,
+  // on three short feet.
+  private cone(a: Cone, line: Line, on: On) {
+    const bronze = on(this.color(0x3b4a40, 0.4, 0.6)), [fx, fz] = line.dir(a.s), c = line.at(a.s, a.u, 0);
+    const n = 64, rings = 14, foot = 0.14, R = a.base / 2, H = a.height - foot;
+    const P = (i: number, j: number) => {
+      const t = j / rings, k = (i / n) * Math.PI * 2, r = R * (1 - t ** 1.5) * (1 - 0.07 * (0.5 + 0.5 * Math.cos(k * 16)));
+      return [c[0] + Math.cos(k) * r, c[1] + foot + t * H, c[2] + Math.sin(k) * r, i / n, t * 4];
+    };
+    for (let i = 0; i < n; i++) for (let j = 0; j < rings; j++) {
+      if (j === rings - 1) bronze.poly([P(i, j), P(i, j + 1), P(i + 1, j)]);
+      else bronze.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
+    }
+    bronze.poly(Array.from({ length: n }, (_, i) => P(n - i, 0)));
+    for (let k = 0; k < 3; k++) {
+      const q = (k / 3) * Math.PI * 2 + 0.4, x = Math.cos(q) * R * 0.6, z = Math.sin(q) * R * 0.6;
+      box(bronze, [c[0] + x, c[1] + foot / 2, c[2] + z], fx, fz, 0.08, foot, 0.08);
+    }
+  }
+
   // A glass shelter: glazed along both sides on black posts, open at the ends, a bench inside,
   // and a flat roof of its own out in the open.
   private shelter(sh: { s: [number, number]; u: [number, number]; roof?: boolean }, line: Line, on: On, cut: Volume[]) {
@@ -688,7 +709,7 @@ export class OpenLook {
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
     const m = on(this.mat(`mural:${a.picture}`, () => {
-      const map = T.tallkrogsdraken();
+      const map = a.picture === 'forestFloor' ? T.forestFloor() : T.tallkrogsdraken();
       return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.4, side: THREE.DoubleSide });
     }));
     // (its left edge on the viewer's left, looking at it)
@@ -790,6 +811,7 @@ export class OpenLook {
   // side on rails, or slanting between concrete posts.
   private fence(f: Fence, frame: Frame, on: On) {
     if (f.kind === 'boards' || f.kind === 'louvres') return this.boardFence(f, frame, on);
+    if (f.kind === 'glass') return this.glassFence(f, frame, on);
     const link = on(this.mat('chainLink', () => new THREE.MeshStandardMaterial({ map: T.chainLink(), alphaTest: 0.35, roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide })));
     const post = on(this.color(0x9aa0a4, 0.45, 0.6));
     const [h0, h1] = f.h;
@@ -805,6 +827,21 @@ export class OpenLook {
       const P = (t: number, h: number, a: number) => [...frame.at(sa + fs * l * t, ua + fu * l * t, h), a / 0.5, (h - h0) / 0.5];
       link.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
       bar(post, frame.at(sa, ua, h1 + 0.02), frame.at(sb, ub, h1 + 0.02), 0.04, 0.04);
+      along += l;
+    }
+  }
+
+  // Panes of glass 1.25 m wide in steel frames (drawn in the texture, the glass behind them).
+  private glassFence(f: Fence, frame: Frame, on: On) {
+    const frames = on(this.mat(`fence:glass:${!!f.leaves}`, () => new THREE.MeshStandardMaterial({ map: T.leafGlass(!!f.leaves), alphaTest: 0.5, roughness: 0.5, metalness: 0.3, side: THREE.DoubleSide })));
+    const pane = on(this.pane), [h0, h1] = f.h;
+    let along = 0;
+    for (let i = 0; i + 1 < f.points.length; i++) {
+      const [sa, ua] = f.points[i], [sb, ub] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua);
+      const P = (t: number, h: number, a: number) => [...frame.at(sa + (sb - sa) * t, ua + (ub - ua) * t, h), a / 10, (h - h0) / (h1 - h0)];
+      const q = [P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)];
+      frames.poly(q);
+      pane.poly(q);
       along += l;
     }
   }

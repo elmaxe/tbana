@@ -185,6 +185,18 @@
       "why": "Hjorthagen, the north end of the bridge from Gärdet: the abutment stands on the hillside, and the 35 m of track from it to the mouth of the tunnel to Ropsten is in a shallow cutting, not on a bank up to the bridge. Without its ground the line had nothing to hold it between the bridge and Ropsten, and humped 5 m over the ground at the mouth."
     }
   ],
+  "viaducts": [
+    {
+      "along": [
+        [465.3, 6014.8],
+        [482.2, 5998.5],
+        [494.4, 5982.3],
+        [510.3, 5961.3]
+      ],
+      "reach": 9,
+      "why": "Svedmyra: from the ticket hall north, the platform and both tracks stand on a concrete viaduct, which OSM maps as a bridge only where it crosses Tussmötevägen. Lantmäteriet's laser scan has the street 6 m under the platform right up to the deck's edges (6.5 m east and 11 m west of the platform's middle), the elevation model has no bank there, and photographs show bicycles parked under the deck between its columns."
+    }
+  ],
   "raised": [
     {
       "along": [
