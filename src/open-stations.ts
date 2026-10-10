@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Fence, Finish, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Fence, Figure, Finish, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -101,6 +101,50 @@ function dome(m: Mesh, c: XYZ, r: number, h: number) {
   }
 }
 
+// A limb from a to b, eight-sided, `wa` across at a and `wb` at b (open at its ends, which the
+// joints' balls close).
+function limb(m: Mesh, a: XYZ, b: XYZ, wa: number, wb: number) {
+  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], l = Math.hypot(d[0], d[1], d[2]) || 1, t = d.map((v) => v / l);
+  // two directions across it
+  const w = Math.abs(t[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  let p = [t[1] * w[2] - t[2] * w[1], t[2] * w[0] - t[0] * w[2], t[0] * w[1] - t[1] * w[0]];
+  const pl = Math.hypot(p[0], p[1], p[2]);
+  p = p.map((v) => v / pl);
+  const q = [t[1] * p[2] - t[2] * p[1], t[2] * p[0] - t[0] * p[2], t[0] * p[1] - t[1] * p[0]];
+  const n = 8, ring = (c: XYZ, wd: number, v: number) => Array.from({ length: n + 1 }, (_, i) => {
+    const k = (i / n) * Math.PI * 2, x = Math.cos(k) * wd / 2, y = Math.sin(k) * wd / 2;
+    return [c[0] + p[0] * x + q[0] * y, c[1] + p[1] * x + q[1] * y, c[2] + p[2] * x + q[2] * y, i / n, v];
+  });
+  const A = ring(a, wa, 0), B = ring(b, wb, l / 0.4);
+  for (let i = 0; i < n; i++) m.poly([A[i], A[i + 1], B[i + 1], B[i]]);
+}
+
+// A ball `r` round at c.
+function ball(m: Mesh, c: XYZ, r: number) {
+  const n = 8, rings = 6;
+  const P = (i: number, j: number) => {
+    const t = (i / n) * Math.PI * 2, a = (j / rings) * Math.PI;
+    return [c[0] + Math.cos(t) * Math.sin(a) * r, c[1] + Math.cos(a) * r, c[2] + Math.sin(t) * Math.sin(a) * r, i / n, j / rings];
+  };
+  for (let i = 0; i < n; i++) for (let j = 0; j < rings; j++) m.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
+}
+
+// The figures' joints in their poses (x to the right, for its right side; y up; z the way it
+// faces), in metres for a grown person: crouching, from the ledge under its toes; clinging, from
+// the underside of the beam over it, its head the way it faces.
+const FIGURES: Record<Figure['pose'], Record<string, XYZ>> = {
+  crouch: {
+    pelvis: [0, 0.5, -0.16], chest: [0, 0.72, 0.06], neck: [0, 0.84, 0.2], head: [0, 0.91, 0.3],
+    shoulder: [0.18, 0.78, 0.12], elbow: [0.22, 0.45, 0.2], hand: [0.12, 0.04, 0.26],
+    hip: [0.1, 0.47, -0.16], knee: [0.27, 0.53, 0.18], ankle: [0.17, 0.1, -0.02], toe: [0.19, 0.02, 0.12],
+  },
+  cling: {
+    pelvis: [0, -0.52, -0.22], chest: [0, -0.47, 0.12], neck: [0, -0.41, 0.29], head: [0, -0.35, 0.4],
+    shoulder: [0.18, -0.42, 0.22], elbow: [0.28, -0.18, 0.32], hand: [0.12, 0.03, 0.42],
+    hip: [0.1, -0.5, -0.22], knee: [0.2, -0.12, -0.3], ankle: [0.1, -0.03, -0.7], toe: [0.13, 0.05, -0.8],
+  },
+};
+
 export class OpenLook {
   private mats = new Map<string, THREE.Material>();
 
@@ -189,6 +233,39 @@ export class OpenLook {
       else if (a.kind === 'roundel') this.roundel(a, frame, on, group);
       else if (a.kind === 'glassStacks') this.glassStacks(a, frame, on);
       else if (a.kind === 'glassPosts') this.glassPosts(a, frame, on);
+      else if (a.kind === 'figure') this.figure(a, frame, on);
+    }
+  }
+
+  // polished aluminium, crazed
+  private get aluminium() {
+    return this.mat('aluminium', () => new THREE.MeshStandardMaterial({ map: T.crackle(), metalness: 0.7, roughness: 0.25, side: THREE.DoubleSide }));
+  }
+
+  // A figure of limbs between its joints, a ball at each joint, its head a ball.
+  private figure(a: Figure, frame: Frame, on: On) {
+    const m = on(this.aluminium), J = FIGURES[a.pose];
+    // its own axes: x to its right, y up, z the way it faces
+    const dx = frame.fx * Math.cos(a.turn) - frame.fz * Math.sin(a.turn), dz = frame.fz * Math.cos(a.turn) + frame.fx * Math.sin(a.turn);
+    const o = frame.at(a.s, a.u, a.h);
+    const P = (name: string, side = 0): XYZ => {
+      const [x, y, z] = J[name];
+      return [o[0] + (-dz * x * side + dx * z) * a.size, o[1] + y * a.size, o[2] + (dx * x * side + dz * z) * a.size];
+    };
+    const k = a.size;
+    limb(m, P('pelvis'), P('chest'), 0.24 * k, 0.27 * k);
+    limb(m, P('chest'), P('neck'), 0.1 * k, 0.09 * k);
+    ball(m, P('pelvis'), 0.12 * k); ball(m, P('chest'), 0.14 * k); ball(m, P('head'), 0.115 * k);
+    limb(m, P('shoulder', -1), P('shoulder', 1), 0.11 * k, 0.11 * k);
+    limb(m, P('hip', -1), P('hip', 1), 0.15 * k, 0.15 * k);
+    for (const side of [-1, 1]) {
+      limb(m, P('shoulder', side), P('elbow', side), 0.09 * k, 0.07 * k);
+      limb(m, P('elbow', side), P('hand', side), 0.07 * k, 0.05 * k);
+      limb(m, P('hip', side), P('knee', side), 0.15 * k, 0.1 * k);
+      limb(m, P('knee', side), P('ankle', side), 0.1 * k, 0.065 * k);
+      limb(m, P('ankle', side), P('toe', side), 0.07 * k, 0.05 * k);
+      ball(m, P('shoulder', side), 0.055 * k); ball(m, P('elbow', side), 0.037 * k); ball(m, P('hand', side), 0.045 * k);
+      ball(m, P('hip', side), 0.075 * k); ball(m, P('knee', side), 0.052 * k); ball(m, P('ankle', side), 0.034 * k);
     }
   }
 
@@ -323,6 +400,12 @@ export class OpenLook {
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
       }
       if (C.cross) bar(steel, line.at(s, -half(s) + 0.1, C.cross[0] + C.cross[1]), line.at(s, half(s) - 0.1, C.cross[0] + C.cross[1]), 0.25, C.cross[1], cut);
+      // bars across between a pair, and one slanting from the lowest to the highest
+      const ties = C.ties ?? [], [ua, ub] = rows(s);
+      if (ties.length && ub !== undefined) {
+        for (const t of ties) bar(steel, line.at(s, ua, t + 0.03), line.at(s, ub, t + 0.03), 0.06, 0.06, cut);
+        bar(steel, line.at(s, ua, Math.max(...ties)), line.at(s, ub, Math.min(...ties) + 0.06), 0.05, 0.06, cut);
+      }
     }
     // name signs hung under the beam, the way out at each end of the platform to either side
     const W = 2.4, H = 0.6;

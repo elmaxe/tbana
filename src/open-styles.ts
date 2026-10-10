@@ -76,11 +76,13 @@ export interface ButterflyRoof {
   // them, and the signs) this far to the right of the roof's middle; `edges`, pairs of them each
   // this far in from the roof's edges, however wide it is there; `cross`, a steel beam across the
   // roof over each pair, from edge to edge, its underside `cross[0]` over the platform and
-  // `cross[1]` deep (and the columns on up through it to the rafters over them)
+  // `cross[1]` deep (and the columns on up through it to the rafters over them); `ties`, steel
+  // bars across between each pair at these heights, and one slanting from the lowest at one
+  // column to the highest at the other
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
     between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
-    edges?: number; cross?: [number, number];
+    edges?: number; cross?: [number, number]; ties?: number[];
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
   // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
@@ -171,7 +173,11 @@ export type Finish =
   | 'blueGlazed'    // white panels to a sill, glazed above in blue steel frames
   | 'blueClerestory' // white panels, a dark blue band over a yellow line, windows in blue frames above
   | 'steelFront'    // glass doors in brushed steel, a sign band, the dark blue band, windows above
-  | 'ribbedMetal';  // pale ribbed sheet metal, a ceiling's
+  | 'ribbedMetal'   // pale ribbed sheet metal, a ceiling's
+  | 'whiteBranches' // pale stone tiles on end, black branches spreading over them
+  | 'darkBranches'  // dark grey slabs on end, staggered, here and there a black branch
+  | 'basketTiles'   // white tiles in pairs, each pair turned from its neighbours
+  | 'granite';      // rough granite blocks in courses, in pale mortar
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -196,7 +202,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -238,6 +244,13 @@ export interface GlassStacks { kind: 'glassStacks'; s: number; u: number; foot: 
 // Slabs of the same glass standing at the points, from `h[0]` to `h[1]` high, `size` along and
 // across the platform.
 export interface GlassPosts { kind: 'glassPosts'; at: [number, number][]; h: [number, number]; size: [number, number] }
+
+// A human figure of polished aluminium, its surface crazed all over, at s, u (in the station's
+// frame), `h` high, facing `turn` as a guardian does, `size` times a grown person's: `cling`,
+// hanging on its back under a beam (its underside `h` high and along `turn`), gripping it with its
+// hands over its head and its feet behind; `crouch`, squatting on its toes on a ledge `h` high,
+// its knees wide and its hands down on the ledge between its feet, as if about to jump.
+export interface Figure { kind: 'figure'; pose: 'cling' | 'crouch'; s: number; u: number; h: number; turn: number; size: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
@@ -1065,6 +1078,114 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-96.2, -40], [-96.2, -13.1]], h: [4.75, 5.85] },
       { points: [[-103.1, -40], [-104.6, -3], [-117.8, 34.5]], h: [4.75, 5.85] },
       { points: [[-97.9, -0.6], [-112.2, 34.5]], h: [4.75, 5.85] },
+    ],
+  },
+
+  // Enskede gård (9 September 1951, where the Örbybanan tram had run since 1930; due to close
+  // around 2032): an island platform on the bank between Palmfeltsvägen and the park along
+  // Odelbergsvägen, its tracks parting towards its north end. The laser scan puts a butterfly
+  // roof over the whole platform, from 66.5 m south of its middle to 71.8 m north, widening with
+  // it from 7.3 m to 9.3 m, its top 3.6 m to 3.9 m over the platform along the valley and about
+  // 0.3 m higher at the edges. Photographs (2018) show it boarded white underneath, the boards
+  // along the platform, on white rafters, with a pale fascia; down the middle, frames of black
+  // steel every 6.5 m or so, each two columns 1 m apart across the platform, on concrete plinths,
+  // under a black beam each, tied by a bar near the foot and one near the top and a brace
+  // slanting between them (photographs from 2006 show the same frames red); long round lights
+  // along both edges, SL's blue name signs with the way out to the north, a clock, departure
+  // boards and double benches of slats. The paving: a pale band along each edge, a dark ribbed
+  // strip for the blind, then dark grey pavers in a running bond.
+  //
+  // At the north end the platform runs on into a glass stair house between the tracks
+  // (OpenStreetMap's outline; laser scan: its flat roof 3.45 m over the platform, from 71.8 m to
+  // 94.5 m north, and a lift's tower at its far end 1.4 m higher), framed in black, with a dark
+  // stone floor and a dark ceiling: on its west side a walkway at the platform's level out to the
+  // lift, behind a glass balustrade; on its east side stairs down, between walls of pale stone
+  // tiles with black branches spreading over them, to the ticket hall in the bank, 3.75 m down
+  // (OpenStreetMap's indoor mapping: the stairs from 77.5 m to 90.2 m north, the lift at 93.5 m,
+  // the gates at 94.2 m, the hall's door at 97.3 m). The hall: dark terrazzo, walls of dark grey
+  // slabs on end with a few black branches on them too, round lamps in a pale ceiling, the gates
+  // and a booth. Its door opens into the footway's underpass under the tracks, lined in white
+  // tiles and paved in grey slabs, under a concrete ceiling; its ends in the bank's concrete
+  // faces, SL's blue band with the station's name over each, between retaining walls of rough
+  // granite. It comes out to the west into the park, a path on to Odelbergsvägen, and to the
+  // east onto a small square, from which a ramp and steps climb to Palmfeltsvägen.
+  //
+  // Maria Miesenberger's Ögonblick i rörelse (2012): figures of polished aluminium, crazed all
+  // over, one clinging under one of the roof's beams over the platform's northern half (where
+  // along it is inferred), one crouching on the ledge over the foot of the stairs, as if about to
+  // jump down them.
+  //
+  // Chain-link fences beyond both tracks, along the top of the bank and over the underpass's ends.
+  'Enskede gård': {
+    roof: {
+      kind: 'butterfly',
+      from: -66.5, to: 71.8, width: 9,
+      shape: [[-66.5, -1.15, 7.3], [-60, -1.1, 7.5], [-40, -0.9, 7.9], [-20, -0.5, 8.4], [0, -0.05, 8.9], [20, 0.15, 8.9],
+        [40, 0.25, 9.3], [60, 0.1, 9.2], [71.8, 0, 9.2]],
+      middle: 3.5, edge: 3.8, thick: 0.22, fascia: 0.3,
+      rafters: 1.3, rafterSize: [0.08, 0.22],
+      beam: 0.3,
+      columns: { every: 6.5, at: 26, size: 0.14, plinth: { size: 0.4, height: 0.2 }, pair: 1.0, ties: [1.0, 2.35] },
+      lamps: { offset: 3.2, length: 1.6, every: 1.6, tube: true },
+      colors: { underside: 0xf2f2ee, fascia: 0xe2e3e0, top: 0x5f6365, steel: 0x1f2123 },
+      signs: { at: [-42.25, -9.75, 22.75, 55.25], back: '', ahead: 'Utgång', bottom: 2.45, blue: true },
+      clocks: [[24, -1.6]],
+      boards: [
+        { s: 61.75, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
+        { s: 61.75, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  6 min', '19 Hagsätra  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.5, tactile: [0.5, 0.85], slabs: 0.85, paverSize: [0.4, 0.3], mix: 0.12,
+      colors: { edge: 0xc8c7c2, tactile: 0x5e6063, slab: 0x5e6063, pavers: 0x56595d, paler: 0x66696d, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: "platform's north end", s: [66, 71.8], h: [-0.5, 1], walls: null, floor: 'darkStone' },
+      // (the glass stair house's: walls beside the stairs up to the walkway's level, the glass over
+      // them)
+      { name: 'stair house', s: [71.8, 90.2], h: [-4.5, 1], walls: 'whiteBranches', floor: 'darkStone', ceiling: 'perforated', stairs: 'whiteBranches', sill: 0 },
+      { name: 'ticket hall', s: [90.2, 97.2], h: [-4.5, -3], walls: 'darkBranches', floor: 'darkStone', ceiling: 'boardConcrete' },
+      { name: 'west of the underpass', s: [95, 107], u: [-30, 3.4], h: [-5, -2], walls: null, floor: 'asphalt' },
+      { name: 'east of the underpass', s: [92, 106], u: [17.0, 30], h: [-5, -2], walls: null, floor: 'asphalt' },
+      { name: 'underpass', s: [95, 107], h: [-5, -3], walls: 'basketTiles', floor: 'pavers', ceiling: 'boardConcrete' },
+    ],
+    blocks: [
+      // between the tracks, kept 2 m off them, open to the platform
+      { name: 'stair house', plan: [[71.8, 2.83], [94.6, 6.59], [94.6, 11.35], [71.8, 7.59]], h: [-1.0, 3.15], walls: 'darkGlazed',
+        sides: [undefined, undefined, undefined, null], eaves: [0.4, 0.3, 0.4, 0], floor: 'darkStone', ceiling: 'perforated', roof: 0.3, onPlatform: true },
+      // the underpass's ends: a notch in the bank, the face over the way through and granite walls
+      // either side, falling with the bank (the underpass runs across the stair house's line)
+      { name: 'west end of the underpass', plan: [[97.33, 3.02], [98.63, -4.87], [104.55, -3.89], [103.25, 4.0]], h: [-4.3, -1.15], from: -3.8, low: -3.2,
+        walls: 'granite', sides: [undefined, null, undefined, 'boardConcrete'], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.7, inside: true }, onPlatform: true, ground: true },
+      { name: 'east end of the underpass', plan: [[95.11, 16.44], [94.13, 22.36], [102.03, 23.66], [103.0, 17.74]], h: [-4.3, -1.15], from: -3.8, low: -3.0,
+        walls: 'granite', sides: [undefined, null, undefined, 'boardConcrete'], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.625, length: 4.4, bottom: -1.7, inside: true }, onPlatform: true, ground: true },
+      // (the bank between the tracks, over the hall and the underpass, where neither the street nor
+      // the ground runs on; nor the street just beyond the underpass's walls, which isn't to be
+      // stepped onto through them)
+      { name: 'bank over the hall', plan: [[90.0, 6.01], [97.0, 7.17], [97.0, 12.97], [90.0, 11.81]], h: [-3.8, -1.0], from: -3.8, walls: 'boardConcrete',
+        sides: [undefined, null, undefined, null], roof: 0.05, roofColor: 0x5b6e44, ground: true },
+      { name: 'bank over the underpass', plan: [[98.32, 3.19], [96.1, 16.6], [100.05, 17.26], [102.26, 3.84]], h: [-3.8, -1.0], from: -3.8, walls: 'boardConcrete',
+        sides: [null, null, null, null], roof: 0.05, roofColor: 0x5b6e44, onPlatform: true, ground: true },
+      { name: 'street under the bank', plan: [[96.34, 2.86], [94.13, 16.28], [102.02, 17.58], [104.24, 4.16]], h: [-4.3, -1.8], from: -4.3, walls: 'boardConcrete',
+        sides: [null, null, null, null] },
+    ],
+    buildings: ['w114113999'],
+    art: [
+      { kind: 'figure', pose: 'cling', s: 27.5, u: 1.29, h: 3.23, turn: 0, size: 1 },
+      { kind: 'figure', pose: 'crouch', s: 90.45, u: 9.49, h: 0, turn: Math.PI, size: 1 },
+      // on the bank beyond the stair house's far end
+      { kind: 'roundel', s: 95.3, u: 11.2, h: 4.3, size: 0.8, foot: -1.1 },
+    ],
+    benches: { at: [-32.5, 0, 32.5], double: true },
+    // 2.7 m beyond each track, and along the top of the underpass's faces
+    fences: [
+      { points: [[-90, -7.0], [-80, -7.2], [-60, -7.45], [-40, -7.7], [-20, -7.9], [0, -8.1], [20, -7.9], [40, -6.8], [60, -4.8], [70, -3.4], [80, -1.7],
+        [90, 0.4], [95, 1.65], [97.31, 3.12], [103.23, 4.1], [106, 4.7], [110, 5.9], [120, 9.1]], h: [-1.1, 1.4] },
+      { points: [[-90, 6.75], [-80, 6.9], [-60, 7.2], [-40, 7.5], [-20, 7.8], [0, 8.1], [20, 8.7], [40, 9.8], [60, 11.5], [70, 12.7], [80, 14.2],
+        [90, 15.9], [95.13, 16.34], [103.02, 17.65], [106, 19.5], [110, 20.5], [120, 23.4]], h: [-1.1, 1.4] },
     ],
   },
 };

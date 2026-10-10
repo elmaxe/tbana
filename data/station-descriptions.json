@@ -1510,14 +1510,36 @@
     },
     "Enskede gård": {
       "drawing": "enskede_gard.png",
-      "note": "An island platform in the open. At its north end stairs go down to the ticket hall under the tracks.",
+      "note": "An island platform on the bank, under a butterfly roof. At its north end the platform runs on into a glass stair house between the tracks: a walkway at the platform's level along its west side out to a lift, and stairs down along its east side, both to the ticket hall in the bank, with the gates, and on into the footway's underpass under the tracks, which comes out towards Odelbergsvägen to the west and Palmfeltsvägen to the east. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [49.87436714794674, 2.1], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [60.0, 3.2]},
-          {"walk": [66.0, 3.9], "width": 6},
-          {"walk": [66.0, -8.5], "width": 4},
+        { "from": [71.0, 6.37], "width": 2.0, "go": [
+          {"walk": [72.0, 6.54], "open": true},
+          {"walk": [83.26, 8.4], "open": true},
+          {"stairs": -3.75, "toward": [100, 11.18], "lanes": "S"},
+          {"walk": [92.2, 9.88], "ceiling": 2.6},
+          {"walk": [94.6, 10.27], "width": 1.9, "ceiling": 2.6},
+          {"walk": [95.0, 10.34], "width": 4.0, "ceiling": 2.6},
           {"gates": true},
-          {"exit": {"at":  [66.0, -22.5], "name":  "Enskede gård"}}
+          {"walk": [97.2, 10.7], "ceiling": 2.6},
+          {"walk": [99.05, 11.01], "ceiling": 2.0},
+          {"mark": "underpass"}
+        ] },
+        { "from": [71.0, 4.32], "width": 1.6, "go": [
+          {"walk": [72.0, 4.49], "open": true},
+          {"walk": [91.9, 7.78], "open": true},
+          {"lift": -3.75, "above": 4.85}
+        ] },
+        { "from": [90.2, 7.5], "h": -3.75, "width": 2.2, "go": [
+          {"walk": [91.9, 7.78], "ceiling": 2.6}
+        ] },
+        { "from": "underpass", "width": 4.0, "go": [
+          {"walk": [100.34, 3.22], "ceiling": 2.0},
+          {"exit": {"at": [102.55, -10.2], "name": "Odelbergsvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "underpass", "width": 4.0, "go": [
+          {"walk": [98.02, 17.23], "ceiling": 2.0},
+          {"walk": [97.69, 19.2], "dh": 0.15, "open": true},
+          {"exit": {"at": [99.39, 21.2], "name": "Palmfeltsvägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

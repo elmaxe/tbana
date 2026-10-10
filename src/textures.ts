@@ -2726,6 +2726,52 @@ export function tallkrogsdraken() {
   return toTexture(c, { repeat: false });
 }
 
+// Black branches over a wall, `n` of them, each from a root at its foot or its top, crooked and
+// forking as it goes, thinning to twigs; wrapping round the repeat.
+function branches(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number, n: number, color: string, depth = 5) {
+  x.strokeStyle = color; x.lineCap = 'round';
+  const grow = (px: number, py: number, angle: number, width: number, len: number, depth: number) => {
+    let cx = px, cy = py, a = angle;
+    for (let k = 0; k < 4; k++) {
+      a += (r() - 0.5) * 0.7;
+      const nx = cx + Math.cos(a) * len / 4, ny = cy + Math.sin(a) * len / 4;
+      x.lineWidth = Math.max(1, width * (1 - k * 0.08));
+      for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) { x.beginPath(); x.moveTo(cx + dx, cy + dy); x.lineTo(nx + dx, ny + dy); x.stroke(); }
+      cx = nx; cy = ny;
+    }
+    if (depth === 0 || width < 1.5) return;
+    const forks = r() < 0.35 ? 3 : 2;
+    for (let f = 0; f < forks; f++) grow(cx, cy, a + (f - (forks - 1) / 2) * 0.9 + (r() - 0.5) * 0.5, width * 0.62, len * (0.7 + r() * 0.2), depth - 1);
+  };
+  for (let i = 0; i < n; i++) {
+    const up = i % 2 === 0;
+    grow(r() * W, up ? H : 0, (up ? -1 : 1) * Math.PI / 2 + (r() - 0.5) * 0.9, 0.07 * PX, (0.45 + r() * 0.25) * PX, depth);
+  }
+}
+
+// Polished aluminium, its surface crazed all over: pale cells of slightly different greys, dark
+// cracks between them (a Voronoi pattern on the repeat).
+export function crackle() {
+  const N = 256, [c, x] = canvas(N), r = rng(2012);
+  const pts = Array.from({ length: 90 }, () => [r() * N, r() * N, 186 + Math.floor(r() * 40)]);
+  const img = x.createImageData(N, N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    let d1 = 1e9, d2 = 1e9, v = 0;
+    for (const [px, py, pv] of pts) {
+      let dx = Math.abs(i - px), dy = Math.abs(j - py);
+      if (dx > N / 2) dx = N - dx;
+      if (dy > N / 2) dy = N - dy;
+      const d = dx * dx + dy * dy;
+      if (d < d1) { d2 = d1; d1 = d; v = pv; } else if (d < d2) d2 = d;
+    }
+    const edge = Math.sqrt(d2) - Math.sqrt(d1), k = (j * N + i) * 4;
+    const g = edge < 1.4 ? 70 : edge < 2.6 ? v - 50 : v;
+    img.data[k] = g; img.data[k + 1] = g + 2; img.data[k + 2] = g + 6; img.data[k + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  return toTexture(c);
+}
+
 // The finishes of a styled open station's halls, passages and stairs, each `size` m a repeat
 // (across, and up a wall or along a floor). Walls are drawn as seen, from the floor up; their
 // glass is left clear (the glass itself is drawn apart). `clamp`: drawn to a height, not repeating.
@@ -2739,6 +2785,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
   redWindows: [1.2, 4.2], shutter: [1.2, 4.2], redPanels: [1.2, 3], perforated: [2.4, 2.4], lineMosaic: [4.8, 4.8],
   creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
+  whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront'];
@@ -3173,6 +3220,72 @@ export function finish(name: Finish) {
       line(0, 0, 4.8, 2.4); line(0, 2.4, 4.8, 4.8);
       line(0, 4.8, 4.8, 0);
       line(2.4, 0, 2.4, 4.8);
+      break;
+    }
+    case 'whiteBranches': {
+      // Enskede gård's stairs: pale stone tiles, 30 by 60 cm on end, and black branches spreading
+      // over them from the foot and the top of the wall, as of a tree and its roots
+      x.fillStyle = '#9fa1a1'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.6 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = 214 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 2})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+      }
+      speckle(x, W, H, 6000, 0.1, 68);
+      branches(x, W, H, PX, rng(2012), 7, 'rgba(38,39,41,0.92)');
+      break;
+    }
+    case 'darkBranches': {
+      // its ticket hall: dark grey slabs, 20 cm wide and of different lengths, on end and
+      // staggered, and here and there a black branch over them
+      x.fillStyle = '#1f2123'; x.fillRect(0, 0, W, H);
+      const a = 0.2 * PX;
+      for (let i = 0; i * a < W; i++) {
+        let y = -r() * 0.6 * PX;
+        while (y < H) {
+          const l = (0.4 + r() * 0.5) * PX, v = 50 + Math.floor(r() * 14);
+          x.fillStyle = `rgb(${v},${v + 2},${v + 5})`; x.fillRect(i * a + 1, y + 1, a - 2, l - 2);
+          y += l;
+        }
+      }
+      branches(x, W, H, PX, rng(2013), 1, 'rgba(12,13,14,0.9)', 4);
+      break;
+    }
+    case 'basketTiles': {
+      // white tiles 15 by 30 cm, in pairs, each pair turned the other way from its neighbours
+      x.fillStyle = '#b4b5b1'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, q = t / 2;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) for (let k = 0; k < 2; k++) {
+        const v = 232 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`;
+        if ((i + j) % 2) x.fillRect(i * t + k * q + 1, j * t + 1, q - 2, t - 2);
+        else x.fillRect(i * t + 1, j * t + k * q + 1, t - 2, q - 2);
+      }
+      break;
+    }
+    case 'granite': {
+      // a retaining wall of rough granite blocks in courses, grey to a pinkish brown, in pale
+      // mortar
+      x.fillStyle = '#a8a397'; x.fillRect(0, 0, W, H);
+      let y = 0;
+      for (const ch of [0.42, 0.55, 0.38, 0.6, 0.45]) {
+        const hh = ch * PX;
+        let p = r() * 0.5 * PX;
+        const start = p;
+        while (p < start + W) {
+          const l = Math.min((0.35 + r() * 0.6) * PX, start + W - p), v = 92 + Math.floor(r() * 40), warm = Math.floor(r() * 14);
+          x.fillStyle = `rgb(${v + warm},${v + Math.floor(warm / 2)},${v - 2})`;
+          for (const dx of [0, -W]) {
+            x.beginPath();
+            x.moveTo(p + dx + 2 + r() * 4, y + 2 + r() * 4); x.lineTo(p + dx + l - 2 - r() * 4, y + 2 + r() * 4);
+            x.lineTo(p + dx + l - 2 - r() * 4, y + hh - 2 - r() * 4); x.lineTo(p + dx + 2 + r() * 4, y + hh - 2 - r() * 4);
+            x.closePath(); x.fill();
+          }
+          p += l;
+        }
+        y += hh;
+      }
+      speckle(x, W, H, 12000, 0.2, 69); speckle(x, W, H, 5000, 0.15, 70, true);
       break;
     }
     case 'asphalt':
