@@ -16,6 +16,7 @@ export interface WallStyle {
   surround?: number;     // width of the surround (0: none)
   sill?: boolean;
   flush?: boolean;       // panes only, without reveals or trim
+  pane?: string;         // the windows' material, if not the usual 'window' (four to its texture too)
 }
 
 const PANE: Record<OpeningKind, string> = { win: 'window', tall: 'window', ground: 'window', door: 'door', shop: 'shop' };
@@ -51,7 +52,7 @@ export function wallWithOpenings(B: Builder, o: V3, h: V3, n: V3, W: number, y0:
   for (const { a0, a1, b0, b1, kind } of ops) {
     // flush: only the pane, set in a hair (for walls seen from afar, such as courtyards')
     if (s.flush) {
-      pane(B, [P(a0, b1, -0.05), P(a1, b1, -0.05), P(a1, b0, -0.05), P(a0, b0, -0.05)], n, kind, o[0] + o[2] + a0 * 7.3 + b0 * 3.1);
+      pane(B, [P(a0, b1, -0.05), P(a1, b1, -0.05), P(a1, b0, -0.05), P(a0, b0, -0.05)], n, kind, o[0] + o[2] + a0 * 7.3 + b0 * 3.1, s.pane);
       B.poly([P(a0, b0), P(a1, b0), P(a1, b0, -0.05), P(a0, b0, -0.05)], up, reveal, 2);
       B.poly([P(a0, b1), P(a1, b1), P(a1, b1, -0.05), P(a0, b1, -0.05)], down, reveal, 2);
       continue;
@@ -62,7 +63,7 @@ export function wallWithOpenings(B: Builder, o: V3, h: V3, n: V3, W: number, y0:
     B.poly([P(a1, b0), P(a1, b1), P(a1, b1, -d), P(a1, b0, -d)], back, rv, 2);
     B.poly([P(a0, b1), P(a1, b1), P(a1, b1, -d), P(a0, b1, -d)], down, rv, 2);
     B.poly([P(a0, b0), P(a1, b0), P(a1, b0, -d), P(a0, b0, -d)], up, rv, 2);
-    pane(B, [P(a0, b1, -d), P(a1, b1, -d), P(a1, b0, -d), P(a0, b0, -d)], n, kind, o[0] + o[2] + a0 * 7.3 + b0 * 3.1);
+    pane(B, [P(a0, b1, -d), P(a1, b1, -d), P(a1, b0, -d), P(a0, b0, -d)], n, kind, o[0] + o[2] + a0 * 7.3 + b0 * 3.1, s.pane);
     if (!trim) continue;
     if (s.sill !== false && kind !== 'door' && kind !== 'shop') B.wallBox(o, h, n, a0 - 0.12, a1 + 0.12, b0 - 0.1, b0, -0.02, 0.14, trim, 2, ['back', 'left', 'right']);
     if (f > 0 && kind !== 'shop') {
@@ -77,15 +78,17 @@ export function wallWithOpenings(B: Builder, o: V3, h: V3, n: V3, W: number, y0:
 }
 
 // A pane, left to right as seen from outside, v = 1 at its top (canvas textures are flipped), in
-// its own colours rather than the wall's. A window's is one of the four in its texture, by `seed`.
-function pane(B: Builder, pts: V3[], n: V3, kind: OpeningKind, seed: number) {
+// its own colours rather than the wall's. A window's is one of the four in its texture, by `seed`;
+// its material the style's own if it has one.
+function pane(B: Builder, pts: V3[], n: V3, kind: OpeningKind, seed: number, own?: string) {
   const was = B.colour;
   B.tint([1, 1, 1]);
+  const mat = PANE[kind] === 'window' && own ? own : PANE[kind];
   let u0 = 0, u1 = 1;
   if (PANE[kind] === 'window') {
     const k = Math.floor((Math.abs(Math.sin(seed * 12.9898) * 43758.5453) % 1) * 4);
     u0 = k / 4; u1 = (k + 1) / 4;
   }
-  B.poly(pts, n, PANE[kind], 1, [[u0, 1], [u1, 1], [u1, 0], [u0, 0]]);
+  B.poly(pts, n, mat, 1, [[u0, 1], [u1, 1], [u1, 0], [u0, 0]]);
   B.tint(was);
 }

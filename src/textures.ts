@@ -2322,16 +2322,16 @@ export function stadionArrow(blocks: boolean) {
 // ---------------------------------------------------------------- the detailed buildings
 // (src/detail/): near white where vertex colours tint them.
 
-// A window as seen from outside, over its whole pane (uv 0 → 1 across a quarter of it): a light
-// frame, glazing bars and a transom, and glass that reflects the sky. Four windows side by side,
-// their glass different (src/detail/wall.ts picks one for each window).
-export function detailWindow() {
+// A window as seen from outside, over its whole pane (uv 0 → 1 across a quarter of it): a frame
+// (light unless given), glazing bars and a transom, and glass that reflects the sky. Four windows
+// side by side, their glass different (src/detail/wall.ts picks one for each window).
+export function detailWindow(frame = '#ece9e1') {
   const [c, x] = canvas(512, 256);
   const r = rng(61);
   for (let k = 0; k < 4; k++) {
     const ox = k * 128;
     paintGlass(x, ox, 0, 128, 256, r);
-    x.fillStyle = '#ece9e1';
+    x.fillStyle = frame;
     x.fillRect(ox, 0, 128, 9); x.fillRect(ox, 247, 128, 9); x.fillRect(ox, 0, 9, 256); x.fillRect(ox + 119, 0, 9, 256);
     x.fillRect(ox + 61, 0, 6, 256);
     x.fillRect(ox, 70, 128, 7);
@@ -2479,6 +2479,16 @@ export function marble() {
   x.fillStyle = '#9b9994';
   for (const k of [0, 128]) { x.fillRect(k, 0, 2, 256); x.fillRect(0, k, 256, 2); }
   return toTexture(c, { aniso: 8 });
+}
+
+// A shop's name in bold letters on nothing (for an alpha test), as on a facade; covers its width.
+export function letters(text: string, colour: string) {
+  const [c, x] = canvas(1024, 160);
+  x.font = '800 128px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = colour;
+  x.fillText(text, 512, 84, 1000);
+  return toTexture(c, { repeat: false, aniso: 4 });
 }
 
 // A stone balustrade 1 m high on nothing (for an alpha test): a plinth, five turned balusters to

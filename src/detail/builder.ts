@@ -126,7 +126,8 @@ export class Builder {
       }
       for (let j = 0; j < seg; j++) {
         const i0 = b + 2 * j;
-        p.idx.push3(i0, i0 + 3, i0 + 1); p.idx.push3(i0, i0 + 2, i0 + 3);
+        // counter-clockwise seen from outside
+        p.idx.push3(i0, i0 + 1, i0 + 3); p.idx.push3(i0, i0 + 3, i0 + 2);
       }
     }
   }

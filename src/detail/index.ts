@@ -3,7 +3,9 @@ import type { Building } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
 import { buildKonserthuset, konserthusetOutline } from './konserthuset.ts';
+import { HOTORGSCITY_WEST } from './hotorgscity.ts';
 import { KUNGSTORNEN } from './kungstornen.ts';
+import { PUB } from './pub.ts';
 import { detailMaterial } from './materials.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -17,11 +19,13 @@ export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams
 
 export const DETAIL_AREAS = [{ name: 'Hötorget', x: 270, z: -420, r: 165 }];
 
-interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder) => void }
+interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
   ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: t.at, build: (B) => buildTower(B, t.tower) })),
   ...KUNGSTORNEN,
+  HOTORGSCITY_WEST,
+  PUB,
 ];
 
 export interface TileDetail {
@@ -43,7 +47,7 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
   });
   for (const l of LANDMARKS) {
     if (l.anchor[0] >= x0 && l.anchor[0] < x0 + size && l.anchor[1] >= z0 && l.anchor[1] < z0 + size) {
-      l.build(B);
+      l.build(B, ground);
       B.place([0, 0, 0], 0);
     }
   }

@@ -56,6 +56,8 @@ The laser scan is the ground truth for geometry: Laserdata Nedladdning, skog, CC
 - **Glass.** It must reflect the sky: use `paintGlass`, and draw panes untinted. Never black glass.
 - **Materials.** Make per-building materials with `addMaterial(key, () => standard(...))` from src/detail/materials.ts.
 - **Triangle budget.** Keep a landmark to a few thousand triangles. Generated facades cost about 25 triangles per window.
+- **Blocks of several buildings or storeys stepping back.** Describe them as boxes in the building's frame, each with a top height and a look for its walls, and let the code draw only the walls that show (src/detail/pub.ts). Read the boxes off a 2 m grid of the laser scan's heights in that frame.
+- **Where the walls stand.** Take them from the laser scan, not OSM: PUB's outline was 1–2 m short on two sides.
 
 ## 3. Check it in the game
 
