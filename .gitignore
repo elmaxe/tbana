@@ -5,3 +5,7 @@ dist/
 # Lantmäteriet's aerial photos (npm run fetch-ortho): their licence doesn't allow storing them
 # outside the EU/EEA, so they stay local and are never pushed.
 public/data/ortho/
+
+# Google's 3D model of the city and pictures of it (npm run google-mesh): for looking and measuring
+# only, never pushed.
+.google/

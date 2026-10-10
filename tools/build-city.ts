@@ -3,7 +3,8 @@
 //   node tools/build-city.ts
 //
 // Reads data/ground/city.json and city.bin.gz (tools/fetch-terrain.ts), data/osm/buildings.json
-// (tools/fetch-city.ts), public/data/track-geometry.json and public/data/station-layouts.json;
+// (tools/fetch-city.ts) with the fixes to it in data/building-corrections.json,
+// public/data/track-geometry.json and public/data/station-layouts.json;
 // writes public/data/city/ (see src/city-tile.ts).
 //
 // The ground is the elevation model, shaped where the track runs:
@@ -98,6 +99,14 @@ const groundMeta: { attribution: string; tile: number; step: number; n: number; 
   JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
 const osm: { attribution: string; extract: string; buildings: { osm: string; tags: Record<string, string>; rings: number[][] }[] } =
   JSON.parse(readFileSync('data/osm/buildings.json', 'utf8'));
+// fixes to OSM's tags, each with its reason (data/building-corrections.json)
+const corrections: { buildings: { osm: string; tags: Record<string, string>; why: string }[] } | null =
+  existsSync('data/building-corrections.json') ? JSON.parse(readFileSync('data/building-corrections.json', 'utf8')) : null;
+for (const c of corrections?.buildings ?? []) {
+  const b = osm.buildings.find((b) => b.osm === c.osm);
+  if (!b) throw new Error(`data/building-corrections.json: no building ${c.osm}`);
+  Object.assign(b.tags, c.tags);
+}
 // the buildings as the laser scan measured them, where it has (tools/fetch-laser.ts): eaves, roof's
 // top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
 const laser: { attribution: string; buildings: Record<string, [number, number, string, number]> } | null =

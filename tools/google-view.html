@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Google's mesh of a piece of the city (a .glb from tools/google-mesh.ts) seen from the camera of a
+     game screenshot, for tools/shot.ts --google to set beside it. Served by the dev server only;
+     what it draws stays on this machine. -->
+<html>
+<head><meta charset="utf-8"><style>html, body { margin: 0; overflow: hidden; background: #a9c4dc }</style></head>
+<body>
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+  const q = new URLSearchParams(location.search);
+  const num = (k) => q.get(k).split(',').map(Number);
+  THREE.ColorManagement.enabled = false;
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.append(renderer.domElement);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xa9c4dc);
+  const camera = new THREE.PerspectiveCamera(Number(q.get('fov')), innerWidth / innerHeight, 0.5, 5000);
+  camera.position.fromArray(num('pos'));
+  camera.quaternion.fromArray(num('quat'));
+  const gltf = await new GLTFLoader().loadAsync(q.get('glb'));
+  gltf.scene.traverse((o) => {
+    if (o.material?.map) { o.material.map.colorSpace = THREE.NoColorSpace; o.material.side = THREE.DoubleSide; }
+  });
+  scene.add(gltf.scene);
+  renderer.render(scene, camera);
+  window.__google = { renderer, scene, camera };
+</script>
+</body>
+</html>
