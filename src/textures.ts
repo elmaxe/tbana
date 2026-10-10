@@ -248,35 +248,35 @@ export function trackBed() {
   return toTexture(c);
 }
 
-// A building's facade, white so vertex colours tint it: one bay of one storey (3 × 3.1 m), a
-// window with a sill in plaster. Repeats along the wall and up it.
+// A building's facade, white so vertex colours tint it: four bays by two storeys (each 3 × 3.1 m;
+// the material repeats it at a quarter and a half), a window with a sill in plaster in each, its
+// glass different from bay to bay. The glass is marked in the alpha channel (see markGlass) so the
+// walls' colour does not tint it.
 export function facade() {
-  const [c, x] = canvas(128);
+  const [c, x] = canvas(512, 256);
   x.fillStyle = '#f4f2ee';
-  x.fillRect(0, 0, 128, 128);
-  speckle(x, 128, 128, 500, 0.1, 21);
-  drawWindow(x, '#8c8a86');
-  return toTexture(c, { aniso: 4 });
+  x.fillRect(0, 0, 512, 256);
+  speckle(x, 512, 256, 2000, 0.1, 21);
+  return bays(c, x, '#8c8a86', 23);
 }
 
-// The facade's other styles, also one bay by one storey, light so vertex colours tint them.
+// The facade's other styles, also four bays by two storeys, light so vertex colours tint them.
 // Brick: courses of bricks with darker joints, and the window.
 export function facadeBrick() {
-  const [c, x] = canvas(128);
+  const [c, x] = canvas(512, 256);
   x.fillStyle = '#e2ddd6';
-  x.fillRect(0, 0, 128, 128);
+  x.fillRect(0, 0, 512, 256);
   const r = rng(41);
   // courses 5 px high, bricks 14 px long, every other course offset by half
-  for (let y = 0; y < 128; y += 5) {
-    for (let k = -1; k < 10; k++) {
+  for (let y = 0; y < 256; y += 5) {
+    for (let k = -1; k < 38; k++) {
       const x0 = k * 14 + ((y / 5) % 2 ? 7 : 0);
       const v = 205 + Math.floor(r() * 50);
       x.fillStyle = `rgb(${v},${v - 4},${v - 8})`;
       x.fillRect(x0 + 1, y + 1, 12, 3);
     }
   }
-  drawWindow(x, '#bdb7ae');
-  return toTexture(c, { aniso: 4 });
+  return bays(c, x, '#bdb7ae', 43);
 }
 
 // Glass: a curtain wall, panes between mullions, with a band at each floor.
@@ -295,24 +295,29 @@ export function facadeGlass() {
 
 // Wood: vertical boards, and a smaller window with a white frame.
 export function facadeWood() {
-  const [c, x] = canvas(128);
+  const [c, x] = canvas(512, 256);
   x.fillStyle = '#efebe4';
-  x.fillRect(0, 0, 128, 128);
-  for (let k = 0; k < 128; k += 8) {
+  x.fillRect(0, 0, 512, 256);
+  for (let k = 0; k < 512; k += 8) {
     x.fillStyle = 'rgba(0,0,0,0.16)';
-    x.fillRect(k, 0, 1, 128);
+    x.fillRect(k, 0, 1, 256);
     x.fillStyle = 'rgba(255,255,255,0.18)';
-    x.fillRect(k + 1, 0, 1, 128);
+    x.fillRect(k + 1, 0, 1, 256);
   }
-  speckle(x, 128, 128, 300, 0.08, 43);
-  x.fillStyle = '#fbfbf8';
-  x.fillRect(42, 36, 44, 54);
-  x.fillStyle = '#3a4048';
-  x.fillRect(46, 40, 36, 46);
-  x.fillStyle = '#fbfbf8';
-  x.fillRect(62, 40, 4, 46);
-  x.fillRect(46, 60, 36, 3);
-  return toTexture(c, { aniso: 4 });
+  speckle(x, 512, 256, 1200, 0.08, 43);
+  const r = rng(47), glass: number[][] = [];
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    const ox = i * 128, oy = j * 128;
+    x.fillStyle = '#fbfbf8';
+    x.fillRect(ox + 42, oy + 36, 44, 54);
+    paintGlass(x, ox + 46, oy + 40, 36, 46, r);
+    glass.push([ox + 46, oy + 40, 36, 46]);
+    x.fillStyle = '#fbfbf8';
+    x.fillRect(ox + 62, oy + 40, 4, 46);
+    x.fillRect(ox + 46, oy + 60, 36, 3);
+  }
+  markGlass(x, glass);
+  return quarterHalf(toTexture(c, { aniso: 4 }));
 }
 
 // Plain: sheet metal or concrete, ribbed, without windows.
@@ -328,18 +333,81 @@ export function facadePlain() {
   return toTexture(c, { aniso: 4 });
 }
 
-// the facades' window: dark glass, a frame round it and a sill under it
-function drawWindow(x: CanvasRenderingContext2D, frame: string) {
-  x.fillStyle = frame;
-  x.fillRect(36, 30, 56, 64);
-  x.fillStyle = '#3a4048';
-  x.fillRect(40, 34, 48, 56);
-  x.fillStyle = '#56606b';
-  x.fillRect(40, 34, 48, 22);
-  x.fillStyle = frame;
-  x.fillRect(62, 34, 4, 56);
-  x.fillStyle = '#d8d6d2';
-  x.fillRect(32, 94, 64, 5);
+// the facades' windows, one in each bay of four by two: a frame, its glass, a glazing bar and a sill
+function bays(c: HTMLCanvasElement, x: CanvasRenderingContext2D, frame: string, seed: number) {
+  const r = rng(seed), glass: number[][] = [];
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    const ox = i * 128, oy = j * 128;
+    x.fillStyle = frame;
+    x.fillRect(ox + 36, oy + 30, 56, 64);
+    paintGlass(x, ox + 40, oy + 34, 48, 56, r);
+    glass.push([ox + 40, oy + 34, 48, 56]);
+    x.fillStyle = frame;
+    x.fillRect(ox + 62, oy + 34, 4, 56);
+    x.fillStyle = '#d8d6d2';
+    x.fillRect(ox + 32, oy + 94, 64, 5);
+  }
+  markGlass(x, glass);
+  return quarterHalf(toTexture(c, { aniso: 4 }));
+}
+// (the walls' uvs are in bays and storeys)
+function quarterHalf(t: THREE.Texture) {
+  t.repeat.set(0.25, 0.5);
+  return t;
+}
+
+// Window glass in daylight: the sky reflected in its upper part, the room darker behind its lower,
+// and now and then curtains, blinds or a darker room, a light reflection across it.
+export function paintGlass(x: CanvasRenderingContext2D, gx: number, gy: number, gw: number, gh: number, r: () => number, tint: string | null = null, office = false) {
+  const k = 0.88 + r() * 0.24;
+  const shade = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16), f = (v: number) => Math.min(255, Math.round(v * k));
+    return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+  };
+  const g = x.createLinearGradient(0, gy, 0, gy + gh);
+  g.addColorStop(0, shade('#b9c7d2'));
+  g.addColorStop(0.4, shade('#8494a2'));
+  g.addColorStop(1, shade('#56626d'));
+  x.fillStyle = g;
+  x.fillRect(gx, gy, gw, gh);
+  if (tint) { x.fillStyle = tint; x.fillRect(gx, gy, gw, gh); }
+  // (an office's windows have blinds rather than curtains)
+  const v = r();
+  if (v < 0.25 && !office) {
+    // curtains drawn to the sides
+    const cw = gw * (0.18 + r() * 0.12);
+    x.fillStyle = r() < 0.5 ? 'rgba(236,228,212,0.85)' : 'rgba(222,226,228,0.8)';
+    x.fillRect(gx, gy, cw, gh); x.fillRect(gx + gw - cw, gy, cw, gh);
+    x.fillStyle = 'rgba(0,0,0,0.08)';
+    for (let f = 3; f < cw; f += 5) { x.fillRect(gx + f, gy, 1, gh); x.fillRect(gx + gw - cw + f, gy, 1, gh); }
+  } else if (office ? v > 0.82 : v < 0.42) {
+    // a blind let down part of the way
+    const bh = gh * (0.2 + r() * 0.5);
+    x.fillStyle = office ? 'rgba(214,214,208,0.45)' : 'rgba(226,222,212,0.9)';
+    x.fillRect(gx, gy, gw, bh);
+    x.fillStyle = 'rgba(0,0,0,0.1)';
+    for (let f = 2; f < bh; f += 3) x.fillRect(gx, gy + f, gw, 1);
+  } else if (v < 0.58) {
+    x.fillStyle = 'rgba(20,26,32,0.3)';
+    x.fillRect(gx, gy + gh * 0.3, gw, gh * 0.7);
+  }
+  // a reflection across it
+  x.save();
+  x.beginPath(); x.rect(gx, gy, gw, gh); x.clip();
+  x.fillStyle = `rgba(255,255,255,${0.06 + r() * 0.1})`;
+  const s = gx + r() * gw;
+  x.beginPath(); x.moveTo(s, gy); x.lineTo(s + gw * 0.35, gy); x.lineTo(s - gw * 0.25, gy + gh); x.lineTo(s - gw * 0.6, gy + gh); x.fill();
+  x.restore();
+}
+
+// Marks the glass in a texture's alpha (half), for the walls' materials to leave it untinted
+// (city.ts: untintedGlass).
+function markGlass(x: CanvasRenderingContext2D, rects: number[][]) {
+  for (const [gx, gy, gw, gh] of rects) {
+    const d = x.getImageData(gx, gy, gw, gh);
+    for (let i = 3; i < d.data.length; i += 4) d.data[i] = 128;
+    x.putImageData(d, gx, gy);
+  }
 }
 
 // Ground: rough, light grey, so vertex colours give it grass or paving. Covers 8 × 8 m.
@@ -2249,4 +2317,209 @@ export function stadionArrow(blocks: boolean) {
   x.restore();
   x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
   return toTexture(c, { repeat: false });
+}
+
+// ---------------------------------------------------------------- the detailed buildings
+// (src/detail/): near white where vertex colours tint them.
+
+// A window as seen from outside, over its whole pane (uv 0 → 1 across a quarter of it): a frame
+// (light unless given), glazing bars and a transom, and glass that reflects the sky. Four windows
+// side by side, their glass different (src/detail/wall.ts picks one for each window).
+export function detailWindow(frame = '#ece9e1') {
+  const [c, x] = canvas(512, 256);
+  const r = rng(61);
+  for (let k = 0; k < 4; k++) {
+    const ox = k * 128;
+    paintGlass(x, ox, 0, 128, 256, r);
+    x.fillStyle = frame;
+    x.fillRect(ox, 0, 128, 9); x.fillRect(ox, 247, 128, 9); x.fillRect(ox, 0, 9, 256); x.fillRect(ox + 119, 0, 9, 256);
+    x.fillRect(ox + 61, 0, 6, 256);
+    x.fillRect(ox, 70, 128, 7);
+    for (const y of [140, 196]) x.fillRect(ox, y, 128, 4);
+  }
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A door: dark wood, glazed in its upper part, two panels below.
+export function detailDoor() {
+  const [c, x] = canvas(128, 256);
+  x.fillStyle = '#4a3220';
+  x.fillRect(0, 0, 128, 256);
+  speckle(x, 128, 256, 400, 0.15, 71);
+  x.fillStyle = '#1d242b';
+  x.fillRect(14, 18, 44, 86); x.fillRect(70, 18, 44, 86);
+  x.strokeStyle = 'rgba(0,0,0,0.45)';
+  x.lineWidth = 3;
+  for (const px of [14, 70]) x.strokeRect(px + 2, 128, 40, 108);
+  x.fillStyle = '#2e1f14';
+  x.fillRect(62, 0, 4, 256);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A shop front: a sign band over a big window of thin frames, the street reflected in its glass
+// and the shop lit warm behind it.
+export function detailShop() {
+  const [c, x] = canvas(256, 128);
+  const r = rng(67);
+  for (const [gx, gw] of [[5, 121], [130, 121]]) {
+    paintGlass(x, gx, 30, gw, 98, r);
+    x.fillStyle = 'rgba(255,214,150,0.22)';
+    x.fillRect(gx, 70, gw, 58);
+    // shelves and goods
+    for (let k = 0; k < 6; k++) {
+      x.fillStyle = `rgba(${120 + r() * 100},${90 + r() * 90},${70 + r() * 80},0.35)`;
+      x.fillRect(gx + r() * (gw - 30), 80 + r() * 30, 12 + r() * 20, 6 + r() * 14);
+    }
+  }
+  x.fillStyle = '#d9d6cf';
+  x.fillRect(0, 0, 256, 26);
+  x.fillStyle = '#3b3b3b';
+  x.fillRect(0, 26, 256, 4); x.fillRect(0, 0, 5, 128); x.fillRect(251, 0, 5, 128); x.fillRect(126, 30, 4, 98);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// Standing-seam metal roofing, the seams 0.5 m apart down the slope; covers 4 × 4 m.
+export function roofSeams() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#d2d4d8';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 900, 0.06, 81);
+  for (let k = 0; k < 256; k += 32) {
+    x.fillStyle = 'rgba(0,0,0,0.22)';
+    x.fillRect(k, 0, 2, 256);
+    x.fillStyle = 'rgba(255,255,255,0.35)';
+    x.fillRect(k + 2, 0, 2, 256);
+  }
+  return toTexture(c);
+}
+
+// Copper gone green, mottled; covers 2 × 2 m.
+export function verdigris() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#74b3a0';
+  x.fillRect(0, 0, 128, 128);
+  const r = rng(91);
+  for (let i = 0; i < 160; i++) {
+    const v = r();
+    x.fillStyle = v < 0.5 ? `rgba(60,95,88,${0.1 + r() * 0.25})` : `rgba(170,215,200,${0.1 + r() * 0.2})`;
+    x.beginPath(); x.arc(r() * 128, r() * 128, 2 + r() * 9, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
+}
+
+// Bricks without windows; covers 2 × 2 m.
+export function brickBond() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#c9c3bb';
+  x.fillRect(0, 0, 256, 256);
+  const r = rng(101);
+  // 32 courses of 62 mm, bricks 250 mm long
+  for (let y = 0; y < 256; y += 8) {
+    for (let k = -1; k < 9; k++) {
+      const x0 = k * 32 + ((y / 8) % 2 ? 16 : 0), v = 200 + Math.floor(r() * 55);
+      x.fillStyle = `rgb(${v},${v - 6},${v - 12})`;
+      x.fillRect(x0 + 1, y + 1, 30, 6);
+    }
+  }
+  return toTexture(c);
+}
+
+// A curtain wall of glass and aluminium: four panels by four storeys (each 128 × 256 px), a pane
+// of vision glass over a spandrel in each, between mullions and transoms. `style` gives the
+// spandrels' colour and share, the glass's tint, the frames' colour and width, and how far the
+// glass is narrowed inside a frame of the spandrels' colour.
+export interface CurtainStyle { spandrel: string; share: number; tint: string | null; frame: string; mullion: number; inset?: number; band?: string }
+export function curtainWall(st: CurtainStyle = { spandrel: '#7f9aa6', share: 0.26, tint: null, frame: '#c9d2d6', mullion: 6 }) {
+  const [c, x] = canvas(512, 1024);
+  const r = rng(91);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const ox = i * 128, oy = j * 256, sh = Math.round(256 * st.share), gy = oy, gh = 256 - sh;
+    // the spandrel at the bottom of the storey, the glass over it
+    x.fillStyle = st.spandrel;
+    x.fillRect(ox, oy, 128, 256);
+    const ins = st.inset ?? 0;
+    paintGlass(x, ox + ins, gy + 6, 128 - 2 * ins, gh - 6, r, st.tint, true);
+    x.fillStyle = 'rgba(255,255,255,0.05)';
+    x.fillRect(ox, oy + gh, 128, sh);
+    // mullions at the panel's sides, a transom over the spandrel, a floor band
+    x.fillStyle = st.frame;
+    const m = st.mullion / 2;
+    x.fillRect(ox, oy, m, 256); x.fillRect(ox + 128 - m, oy, m, 256);
+    x.fillRect(ox, oy + gh - 3, 128, 6);
+    x.fillRect(ox, oy, 128, 4);
+    if (st.band) { x.fillStyle = st.band; x.fillRect(ox, oy + 252, 128, 4); }
+  }
+  return toTexture(c, { aniso: 8 });
+}
+
+// Marble cladding: slabs 1.25 × 1.65 m in a grid, near white with faint veins, weathered buff in
+// places. Two slabs by two (covers 2.5 × 3.3 m).
+export function marble() {
+  const [c, x] = canvas(256, 256);
+  const r = rng(97);
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+    const v = 226 + Math.floor(r() * 14);
+    x.fillStyle = `rgb(${v},${v - 1},${v - 5})`;
+    x.fillRect(i * 128, j * 128, 128, 128);
+    // weathering
+    for (let k = 0; k < 6; k++) {
+      x.fillStyle = `rgba(190,160,115,${r() * 0.12})`;
+      x.beginPath(); x.ellipse(i * 128 + r() * 128, j * 128 + r() * 128, 8 + r() * 30, 10 + r() * 40, 0, 0, Math.PI * 2); x.fill();
+    }
+    // veins
+    x.strokeStyle = 'rgba(140,140,135,0.18)'; x.lineWidth = 1;
+    for (let k = 0; k < 3; k++) {
+      x.beginPath(); let px = i * 128 + r() * 128, py = j * 128;
+      x.moveTo(px, py);
+      for (let t = 0; t < 6; t++) { px += (r() - 0.5) * 40; py += 22; x.lineTo(px, py); }
+      x.stroke();
+    }
+  }
+  speckle(x, 256, 256, 800, 0.05, 98);
+  x.fillStyle = '#9b9994';
+  for (const k of [0, 128]) { x.fillRect(k, 0, 2, 256); x.fillRect(0, k, 256, 2); }
+  return toTexture(c, { aniso: 8 });
+}
+
+// A shop's name in bold letters on nothing (for an alpha test), as on a facade; covers its width.
+export function letters(text: string, colour: string) {
+  const [c, x] = canvas(1024, 160);
+  x.font = '800 128px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = colour;
+  x.fillText(text, 512, 84, 1000);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A stone balustrade 1 m high on nothing (for an alpha test): a plinth, five turned balusters to
+// the metre and a rail; covers 1 × 1 m.
+export function balustrade() {
+  const [c, x] = canvas(128, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 128, 14); x.fillRect(0, 114, 128, 14);
+  for (let k = 0; k < 5; k++) {
+    const cx = 12.8 + k * 25.6;
+    x.beginPath();
+    x.moveTo(cx - 6, 114); x.lineTo(cx + 6, 114);
+    x.bezierCurveTo(cx + 3, 100, cx + 10, 70, cx + 4, 46);
+    x.bezierCurveTo(cx + 2, 34, cx + 6, 22, cx + 6, 14);
+    x.lineTo(cx - 6, 14);
+    x.bezierCurveTo(cx - 6, 22, cx - 2, 34, cx - 4, 46);
+    x.bezierCurveTo(cx - 10, 70, cx - 3, 100, cx - 6, 114);
+    x.fill();
+  }
+  x.fillStyle = 'rgba(0,0,0,0.18)';
+  x.fillRect(0, 12, 128, 2); x.fillRect(0, 114, 128, 2);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A digit in blue neon tubes, on nothing (for an alpha test), as on the Hötorget towers' gables.
+export function neonDigit(d: string) {
+  const [c, x] = canvas(128, 192);
+  x.font = '700 170px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.lineJoin = 'round';
+  x.strokeStyle = '#2f5cf0'; x.lineWidth = 16; x.strokeText(d, 64, 100);
+  x.strokeStyle = '#d6e0ff'; x.lineWidth = 5; x.strokeText(d, 64, 100);
+  return toTexture(c, { repeat: false, aniso: 4 });
 }

@@ -5,6 +5,7 @@ import { cutIndexed, insideVolume, prism } from './clip.ts';
 import type { Volume } from './clip.ts';
 import type { SurfaceHit } from './surface-index';
 import * as T from './textures';
+import { DETAIL_ON, tileDetail, type TileDetail } from './detail/index.ts';
 
 // The city around the line, from public/data/city/ (see src/city-tile.ts and tools/build-city.ts):
 // the ground, and the buildings as blocks with flat roofs. Tiles are fetched and built as the
@@ -84,16 +85,29 @@ function materials() {
   return {
     ground,
     walls: {
-      plaster: new THREE.MeshStandardMaterial({ map: T.facade(), vertexColors: true, roughness: 0.9 }),
-      brick: new THREE.MeshStandardMaterial({ map: T.facadeBrick(), vertexColors: true, roughness: 0.95 }),
+      plaster: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facade(), vertexColors: true, roughness: 0.9 })),
+      brick: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facadeBrick(), vertexColors: true, roughness: 0.95 })),
       glass: new THREE.MeshStandardMaterial({ map: T.facadeGlass(), vertexColors: true, roughness: 0.35, metalness: 0.2 }),
-      wood: new THREE.MeshStandardMaterial({ map: T.facadeWood(), vertexColors: true, roughness: 0.9 }),
+      wood: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facadeWood(), vertexColors: true, roughness: 0.9 })),
       plain: new THREE.MeshStandardMaterial({ map: T.facadePlain(), vertexColors: true, roughness: 0.8 }),
     } satisfies Record<WallStyle, THREE.Material>,
     roofs: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }),
     // over the ground on the shore, which is level with it in the distance
     water: new THREE.MeshStandardMaterial({ color: WATER, roughness: 0.3, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }),
   };
+}
+
+// A wall's material that leaves its windows' glass (marked by a half alpha in its texture, see
+// T.facade) out of the vertex colours' tint, so a red wall's windows are not red. It keeps the
+// lamps' lighting every standard material has (src/lamps.ts).
+function untintedGlass(m: THREE.MeshStandardMaterial) {
+  m.onBeforeCompile = (shader, renderer) => {
+    THREE.MeshStandardMaterial.prototype.onBeforeCompile.call(m, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+      'diffuseColor.rgb *= mix(vec3(1.0), vColor, step(0.75, sampledDiffuseColor.a));\ndiffuseColor.a = opacity;');
+  };
+  m.customProgramCacheKey = () => 'city-wall-glass';
+  return m;
 }
 
 // A tile's photo on its ground, with the ground texture's grain over it (by world x, z, 8 m to a
@@ -389,11 +403,21 @@ export class City {
     if (d.ground) group.add(new THREE.Mesh(this.groundGeometry(t), t.photo?.ground ?? this.mats.ground));
     const water = d.ground && d.water ? waterGeometry(t, d.ground.step, d.ground.n - 1, d.water) : null;
     if (water) group.add(new THREE.Mesh(water, this.mats.water));
-    const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null);
+    // near the camera, the areas drawn in detail (src/detail/)
+    const detail = t.lod === 1 && DETAIL_ON ? tileDetail(d.buildings, t.x0, t.z0, CITY_TILE, (k) => {
+      const c = wallColour(d.buildings[k], t, k, new THREE.Color());
+      return [c.r, c.g, c.b];
+    }, (x, z) => this.heightAt(x, z) ?? this.heightIn(t, x, z)) : null;
+    const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null, detail);
     const meshes: [THREE.BufferGeometry | null, THREE.Material][] = [
       ...WALL_STYLES.map((st) => [walls[st], this.mats.walls[st]] as [THREE.BufferGeometry | null, THREE.Material]),
       [roofs, t.photo?.roofs ?? this.mats.roofs], [plain, this.mats.roofs],
     ];
+    for (const m of detail?.meshes ?? []) {
+      m.userData.building = true;
+      m.visible = this.buildingsShown;
+      group.add(m);
+    }
     for (const [geom, mat] of meshes) {
       if (!geom) continue;
       const m = new THREE.Mesh(geom, mat);
@@ -534,17 +558,19 @@ const BAY = 3, STOREY = 3.1;
 // and, plain, the undersides of roofs and of buildings standing clear of the ground, and the roofs
 // where there is no photo or they reach out of it. A roof of its shape stands on walls that rise
 // into its gables; any other is flat (a pitched one halfway up).
-function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: number) => [number, number]) | null) {
+//
+// `detail`: the buildings left out (a landmark is drawn in their place) and those whose walls are
+// drawn in detail, of which only the gables over the eaves are drawn here.
+function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: number) => [number, number]) | null, detail: TileDetail | null = null) {
   const buf = () => ({ pos: [] as number[], uv: [] as number[], col: [] as number[], idx: [] as number[] });
   const w = Object.fromEntries(WALL_STYLES.map((st) => [st, buf()])) as Record<WallStyle, ReturnType<typeof buf>>;
   const r = buf(), pl = buf();
   const c = new THREE.Color(), roofC = new THREE.Color();
   buildings.forEach((b, k) => {
-    const seed = hash(t.i * 92821 + t.j * 68917 + k * 7919);
-    const style = b.wall ?? 'plaster', palette = WALLS[style];
-    if (b.colour !== null) c.setHex(b.colour).lerp(new THREE.Color(0xd8d2c8), 0.35);
-    else c.setHex(palette[Math.floor(seed * palette.length)]);
-    c.multiplyScalar(0.94 + 0.1 * hash(k * 31 + 7));
+    if (detail?.replaced.has(k)) return;
+    const walled = !detail?.detailed.has(k);
+    const style = b.wall ?? 'plaster';
+    wallColour(b, t, k, c);
     roofC.setHex(b.roofColour ?? ROOFS[Math.floor(hash(k * 131 + t.i) * ROOFS.length)]);
     const mesh = b.roofMesh;
     // the eaves (or a flat roof halfway up a pitched one)
@@ -573,9 +599,12 @@ function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: 
           at = d.to;
         }
         if (at < len) parts.push([at, len, bottom]);
-        for (const [f0, f1, y0] of parts) {
+        for (let [f0, f1, y0] of parts) {
           const x0 = ax + ((bx - ax) * f0) / len, z0 = az + ((bz - az) * f0) / len, x1 = ax + ((bx - ax) * f1) / len, z1 = az + ((bz - az) * f1) / len;
           const t0 = top + ya + ((yb - ya) * f0) / len, t1 = top + ya + ((yb - ya) * f1) / len;
+          // drawn in detail up to the eaves: only a gable over them is left
+          if (!walled && t0 < top + 0.01 && t1 < top + 0.01) continue;
+          if (!walled) y0 = top;
           // u in bays along the wall, v in storeys down from the eaves (up into a gable)
           const u0 = Math.round(along / BAY * 4) / 4 + f0 / BAY, u1 = Math.round(along / BAY * 4) / 4 + f1 / BAY;
           for (const inner of shed ? [false, true] : [false]) {
@@ -655,6 +684,15 @@ function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: 
   };
   const walls = Object.fromEntries(WALL_STYLES.map((st) => [st, make(w[st], true)])) as Record<WallStyle, THREE.BufferGeometry | null>;
   return { walls, roofs: make(r, true), plain: make(pl, false) };
+}
+
+// The colour of a building's walls: its own, softened, or one of its style's by chance.
+function wallColour(b: Building, t: Tile, k: number, c: THREE.Color) {
+  const seed = hash(t.i * 92821 + t.j * 68917 + k * 7919);
+  const palette = WALLS[b.wall ?? 'plaster'];
+  if (b.colour !== null) c.setHex(b.colour).lerp(new THREE.Color(0xd8d2c8), 0.35);
+  else c.setHex(palette[Math.floor(seed * palette.length)]);
+  return c.multiplyScalar(0.94 + 0.1 * hash(k * 31 + 7));
 }
 
 // A shed's walls as segments [ax, az, bx, bz], leaving out its doors.

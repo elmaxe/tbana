@@ -1,0 +1,10 @@
+{
+  "note": "Fixes to OpenStreetMap's tags of buildings, for tools/build-city.ts, each with its reason. Checked against Lantmäteriet's laser scan (tools/laser-points.ts) and Google's 3D mesh of the city (tools/google-mesh.ts).",
+  "buildings": [
+    {
+      "osm": "w18779937",
+      "tags": { "building:levels": "6" },
+      "why": "Hötorgshallen and Filmstaden Sergel with the shops along Sergelgatan, south of Hötorget: a market hall under a cinema, its storeys tall. OSM has 3 levels, but the laser scan and Google's mesh both put its roofs 17–24 m over the street (35 m RH 2000 at Hötorget, 28–33 m further south), more than 3 levels can be, so the scan was left out and it stood 10 m high. 6 levels lets the scan's height in."
+    }
+  ]
+}
