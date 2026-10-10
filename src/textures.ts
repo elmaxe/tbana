@@ -2263,7 +2263,7 @@ const css = (n: number, k = 0) => {
 // A styled open station's platform paving, u across from the edge (0) to PAVING_ACROSS m in (1),
 // v along it, PAVING_REPEAT m a repeat: the edge stones, the ribbed strip for the blind, pale
 // slabs, then pavers.
-export const PAVING_ACROSS = 4, PAVING_REPEAT = 2.4;
+export const PAVING_ACROSS = 5, PAVING_REPEAT = 2.4;
 export function openPaving(p: Paving) {
   const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
@@ -2276,6 +2276,25 @@ export function openPaving(p: Paving) {
       x.fillStyle = css(C.pavers, Math.floor(r() * 14) - 7);
       x.fillRect(i * pw + 0.6, j * pl + (i % 2) * pl / 2 + 0.6, pw - 1.2, pl - 1.2);
     }
+  } else if (p.pattern === 'fans') {
+    // small setts, 8 cm, in rows of fans 0.8 m wide, each row overlapping the one before it
+    const R = 0.57 * PX, sz = 0.08 * PX;
+    for (let row = -6; row * 0.4 * PX < H + R; row++) {
+      const cy = row * 0.4 * PX + R;
+      for (let col = -1; col * 0.8 * PX < W + R; col++) {
+        const cx = col * 0.8 * PX + (row % 2 ? 0.4 * PX : 0);
+        x.fillStyle = css(C.pavers, -16); x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R + 1, -0.75 * Math.PI, -0.25 * Math.PI); x.closePath(); x.fill();
+        for (let rr = R - sz / 2; rr > sz; rr -= sz) {
+          const n = Math.max(1, Math.round((rr * Math.PI / 2) / sz));
+          for (let k = 0; k < n; k++) {
+            const a = -0.75 * Math.PI + ((k + 0.5) / n) * Math.PI / 2;
+            x.save(); x.translate(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); x.rotate(a);
+            x.fillStyle = css(C.pavers, Math.floor(r() * 12) - 6); x.fillRect(-sz / 2 + 0.6, -sz / 2 + 0.6, sz - 1.2, sz - 1.2);
+            x.restore();
+          }
+        }
+      }
+    }
   } else {
     for (let i = -2; i * pw < W + pl; i++) for (let j = -2; j * pw < H + pl; j += 2) {
       const ox = i * pw, oy = (j + i) * pw;
@@ -2283,22 +2302,32 @@ export function openPaving(p: Paving) {
       x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + pw + 1, pw - 2, pl - 2);
     }
   }
-  // pale slabs out to `slabs`, 30 cm square
+  // pale slabs out to `slabs`, 30 cm square, or in courses along the platform, their joints across
+  // it staggered
+  const [sa, sl] = p.slabSize ?? [0.3, 0.3];
   const slab = (a: number, b: number) => {
     x.fillStyle = joint; x.fillRect(a * PX, 0, (b - a) * PX, H);
-    const n = Math.max(1, Math.round((b - a) / 0.3)), w = ((b - a) * PX) / n;
-    for (let i = 0; i < n; i++) for (let j = 0; j < H / (0.3 * PX); j++) {
+    const n = Math.max(1, Math.round((b - a) / sa)), w = ((b - a) * PX) / n, l = sl * PX;
+    for (let i = 0; i < n; i++) for (let j = -1; j < H / l; j++) {
+      const off = sa === sl ? 0 : (i % 2) * l / 2;
       x.fillStyle = css(C.slab, Math.floor(r() * 12) - 6);
-      x.fillRect(a * PX + i * w + 1.5, j * 0.3 * PX + 1.5, w - 3, 0.3 * PX - 3);
+      x.fillRect(a * PX + i * w + 1.5, j * l + off + 1.5, w - 3, l - 3);
     }
   };
   if (p.slabs > p.tactile[1]) slab(p.tactile[1], p.slabs);
-  // the ribbed strip, its ribs along the platform
+  // the strip for the blind: ribs along the platform, or rows of studs
   const [t0, t1] = p.tactile;
   x.fillStyle = css(C.tactile); x.fillRect(t0 * PX, 0, (t1 - t0) * PX, H);
-  for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
-    x.fillStyle = css(C.tactile, 26); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
-    x.fillStyle = css(C.tactile, -22); x.fillRect((t0 + k + 0.025) * PX, 0, 0.008 * PX, H);
+  if (p.studs) {
+    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) for (let j = 0.03; j < PAVING_REPEAT; j += 0.06) {
+      x.fillStyle = css(C.tactile, -24); x.beginPath(); x.arc((t0 + k) * PX + 0.6, j * PX + 0.6, 0.013 * PX, 0, Math.PI * 2); x.fill();
+      x.fillStyle = css(C.tactile, 22); x.beginPath(); x.arc((t0 + k) * PX, j * PX, 0.011 * PX, 0, Math.PI * 2); x.fill();
+    }
+  } else {
+    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
+      x.fillStyle = css(C.tactile, 26); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
+      x.fillStyle = css(C.tactile, -22); x.fillRect((t0 + k + 0.025) * PX, 0, 0.008 * PX, H);
+    }
   }
   for (let j = 0; j <= H; j += 0.6 * PX) { x.fillStyle = joint; x.fillRect(t0 * PX, j - 1, (t1 - t0) * PX, 2); }
   // the edge stones, 60 cm long
@@ -2375,6 +2404,7 @@ export function hangingSign(name: string, left: string, right: string) {
 export const FINISH_SIZE: Record<Finish, [number, number]> = {
   clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
+  whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows'];
@@ -2462,6 +2492,37 @@ export function finish(name: Finish) {
       speckle(x, W, H, 9000, 0.18, 61); speckle(x, W, H, 4000, 0.12, 62, true);
       break;
     }
+    case 'whiteTiles': {
+      // 15 cm tiles, and at 1.5 m to 1.65 m a band of black lozenges on yellow
+      x.fillStyle = '#a9aba8'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      const y0 = Y(1.65);
+      for (let i = 0; i * t < W; i += 2) {
+        x.fillStyle = '#d9b238'; x.fillRect(i * t + 1, y0 + 1, t - 2, t - 2);
+        x.fillStyle = '#1e1f21'; x.beginPath();
+        x.moveTo(i * t + t / 2, y0 + 3); x.lineTo(i * t + t - 3, y0 + t / 2); x.lineTo(i * t + t / 2, y0 + t - 3); x.lineTo(i * t + 3, y0 + t / 2); x.closePath(); x.fill();
+      }
+      break;
+    }
+    case 'terrazzo': {
+      x.fillStyle = '#8f8f8b'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 168 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 4})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      speckle(x, W, H, 14000, 0.22, 64); speckle(x, W, H, 6000, 0.18, 65, true);
+      break;
+    }
+    case 'whitePanels':
+      x.fillStyle = '#e9eae6'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(70,72,74,0.45)'; x.fillRect(0, 0, 2, H); x.fillRect(W - 2, 0, 2, H);
+      x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(3, 0, 3, H);
+      break;
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -2476,13 +2537,14 @@ export function finish(name: Finish) {
   return t;
 }
 
-// Bronze, darkened and worn.
-export function bronze() {
+// Bronze, darkened and worn; or dark with a green patina.
+export function bronze(patina = false) {
   const [c, x] = canvas(128);
-  x.fillStyle = '#4b3b2b'; x.fillRect(0, 0, 128, 128);
-  const r = rng(1994);
+  x.fillStyle = patina ? '#2a3230' : '#4b3b2b'; x.fillRect(0, 0, 128, 128);
+  const r = rng(patina ? 1995 : 1994);
   for (let i = 0; i < 300; i++) {
-    x.fillStyle = r() < 0.5 ? `rgba(120,92,58,${r() * 0.3})` : `rgba(30,26,22,${r() * 0.35})`;
+    if (patina) x.fillStyle = r() < 0.55 ? `rgba(70,118,104,${r() * 0.35})` : `rgba(18,20,20,${r() * 0.4})`;
+    else x.fillStyle = r() < 0.5 ? `rgba(120,92,58,${r() * 0.3})` : `rgba(30,26,22,${r() * 0.35})`;
     x.fillRect(r() * 128, r() * 128, 2 + r() * 10, 2 + r() * 30);
   }
   return toTexture(c);

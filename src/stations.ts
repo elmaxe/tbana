@@ -9,7 +9,8 @@ import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, Sig
 import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
-import { Frame, OpenLook, roomOf } from './open-stations';
+import { Frame, OpenLook, blockVolumes, roomOf } from './open-stations';
+import { OPEN_STYLES } from './open-styles';
 import type { Finish, OpenStyle, Room } from './open-styles';
 import { TUBE, addLamps, removeLamps } from './lamps';
 import type { Lamp } from './lamps';
@@ -131,6 +132,9 @@ export class Stations {
       if (p.kind === 'incline') cutters.push(spaceOf(p)!, solidOf(p));
       else if (p.kind === 'lift') cutters.push(spaceOf(p)!);
     }
+    // (in a styled open station, the street doesn't run on inside its buildings)
+    const style = OPEN_STYLES[st.name];
+    const shells = style ? blockVolumes(style, new Frame(st)) : [];
     const data = (label: string, top: number | null, outdoor = false, street = false): StationFloorData => ({ kind: 'station', rec: { label }, station: st.name, top, outdoor, street });
     const add = (tri: number[][], d: StationFloorData, cut: Volume[]) => {
       for (const piece of subtractAll(tri, cut)) {
@@ -152,7 +156,8 @@ export class Stations {
         add([v[0], v[2], v[3]], d, []);
       } else if (p.kind === 'street') {
         const d = data(`${st.name} · street`, null, true, true);
-        this.streetCells(p, (q) => { add([q[0], q[1], q[2]], d, cutters); add([q[0], q[2], q[3]], d, cutters); });
+        const cut = [...cutters, ...shells];
+        this.streetCells(p, (q) => { add([q[0], q[1], q[2]], d, cut); add([q[0], q[2], q[3]], d, cut); });
       } else if (p.kind === 'lift') {
         const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
         const door = LIFT.depth / 2 + 0.9;
@@ -249,7 +254,10 @@ export class Stations {
         case 'incline': this.buildIncline(p, m, others(p), spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol), voids); break;
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
-        case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
+        case 'street': if (this.drawStreets) {
+          const cut = [...spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol), ...(this.open ? blockVolumes(this.open.style, this.open.frame) : [])];
+          this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), cut));
+        } break;
         case 'canopy':
           if (this.open) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.map((s) => s.vol), group);
           else this.buildCanopy(p, m, spaces.map((s) => s.vol));

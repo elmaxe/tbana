@@ -209,20 +209,21 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     }
     // the last step's kind and heading, for the joints between steps
     let last: 'walk' | 'incline' | null = null;
-    const joint = (nx: number, nz: number, w: number) => {
+    const joint = (nx: number, nz: number, w: number, ceiling: number = CEILING.passage) => {
       if (!last || hx * nx + hz * nz > Math.cos((10 * Math.PI) / 180)) return;
       // a square landing where the way turns, so that the corner is floored
       const s = Math.max(w, width) / 2;
       const rx = -hz, rz = hx;
       const corners: XYZ[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [x + hx * s * i + rx * s * j, y, z + hz * s * i + rz * s * j]);
-      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling: CEILING.passage, room: 'passage', label: `${name} · passage` });
+      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room: 'passage', label: `${name} · passage` });
     };
     const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
       if (l < 0.01) return;
       const nx = dx / l, nz = dz / l;
       if (Math.abs(dh) / l > 1 / 12 + 1e-6) problems.add(`${where}: a ramp of ${(Math.abs(dh) / l * 100).toFixed(0)}% (at most 8%)`);
-      joint(nx, nz, width);
+      // (the landing as high as the way on from it)
+      joint(nx, nz, width, open ? undefined : ceiling);
       const rx = -nz * width / 2, rz = nx * width / 2;
       const room = open ? 'platform' : width >= HALL_WIDTH ? 'hall' : 'passage';
       parts.push({
@@ -314,7 +315,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     }
   }
   parts.push(...hallVoids(name), ...canopies(name, d));
-  return { name, x: r2(f.x), z: r2(f.z), yaw: r2(Math.atan2(-f.tx, -f.tz)), platformY: r2(f.y), parts, exits };
+  return { name, x: r2(f.x), z: r2(f.z), yaw: +Math.atan2(-f.tx, -f.tz).toFixed(5), platformY: r2(f.y), parts, exits };
 }
 
 // The insides of the platform halls the network draws, in 10 m pieces along each platform track:
@@ -349,7 +350,6 @@ function hallVoids(name: string): VoidPart[] {
 function canopies(name: string, d: Description): CanopyPart[] {
   if (d.canopy === false) return [];
   const out: CanopyPart[] = [];
-  const mids: { x: number; z: number }[] = [];
   for (const t of platformTracks(name)) {
     const { g } = t;
     const points: XYZ[] = [];
@@ -363,12 +363,19 @@ function canopies(name: string, d: Description): CanopyPart[] {
     }
     if (points.length < 2) continue;
     const mid = points[Math.floor(points.length / 2)];
-    // an island platform has a track on each side: one roof
-    if (mids.some((m) => Math.hypot(m.x - mid[0], m.z - mid[2]) < 4)) continue;
-    mids.push({ x: mid[0], z: mid[2] });
+    // an island platform has a track on each side: one roof (its points needn't fall at the same
+    // places along the two tracks)
+    if (out.some((c) => c.points.some((p, i) => i > 0 && segmentDistance(mid, c.points[i - 1], p) < 4))) continue;
     out.push({ kind: 'canopy', points, width: r2(Math.min(t.width, ISLAND_WIDTH + 4) - 0.6) });
   }
   return out;
+}
+
+// how far p is from the segment a–b, across the ground
+function segmentDistance(p: XYZ, a: XYZ, b: XYZ) {
+  const dx = b[0] - a[0], dz = b[2] - a[2], l2 = dx * dx + dz * dz || 1;
+  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[2] - a[2]) * dz) / l2));
+  return Math.hypot(p[0] - a[0] - dx * t, p[2] - a[2] - dz * t);
 }
 
 // ------------------------------------------------------------------ checks

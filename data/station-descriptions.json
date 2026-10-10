@@ -1302,21 +1302,32 @@
     },
     "Hökarängen": {
       "drawing": "hokarangen.png",
-      "note": "An island platform in the open. At each end stairs go down to a ticket hall under the tracks.",
+      "note": "An island platform out in the open on a long curve, under a butterfly roof. At its south end a glass hall with the ticket gates, then stairs down to a passage under the tracks, with a way out on each side. At its north end the platform runs on, narrowing, into a glass stair house, with an escalator and stairs down to the ticket hall under the track's bridge, which opens towards Örbyleden. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-49.87436714794674, 3.0], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, 4.3]},
-          {"walk": [-66.0, 5.2], "width": 6},
-          {"walk": [-66.0, 17.5], "width": 4},
+        { "from": [-76, 6.7], "width": 5, "go": [
+          {"walk": [-79.5, 7.0], "open": true},
+          {"walk": [-82, 7.4], "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, 31.5], "name":  "Hökarängen"}}
+          {"walk": [-87.5, 8.6], "width": 4.4, "open": true},
+          {"stairs": -4.1, "toward": [-100, 9.6], "lanes": "S"},
+          {"walk": [-96.8, 8.7], "width": 3.5, "ceiling": 2.2},
+          {"mark": "under"},
+          {"walk": [-97, 0], "ceiling": 2.2},
+          {"exit": {"at": [-95, -2.8], "name": "Sirapsvägen"}, "lanes": "S"}
         ] },
-        { "from": [49.87436714794674, 2.9], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [60.0, 4.1]},
-          {"walk": [66.0, 5.0], "width": 6},
-          {"walk": [66.0, -7.3], "width": 4},
+        { "from": "under", "width": 3.5, "go": [
+          {"walk": [-94, 32], "ceiling": 2.2},
+          {"exit": {"at": [-93.5, 37.5], "name": "Russinvägen"}, "lanes": "S"}
+        ] },
+        { "from": [76, 6.5], "width": 5, "go": [
+          {"walk": [80, 7.3], "open": true},
+          {"walk": [91, 9.2], "open": true},
+          {"escalators": -5.4, "toward": [102, 11.3], "lanes": "ES"},
+          {"walk": [103.9, 11.7], "width": 6.4, "ceiling": 3.0},
           {"gates": true},
-          {"exit": {"at":  [66.0, -21.3], "name":  "Hökarängen"}}
+          {"walk": [109.0, 12.65], "dh": -0.1, "ceiling": 3.0},
+          {"walk": [109.6, 12.76], "width": 3.0, "ceiling": 2.3},
+          {"exit": {"at": [110.2, 12.9], "name": "Örbyleden"}, "by": "walk", "ceiling": 2.3}
         ] }
       ]
     },

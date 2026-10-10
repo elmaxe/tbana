@@ -421,8 +421,16 @@ ribbed strip for the blind; chain-link fences beyond the tracks; Ragnhild Alexan
 bronze Väktare (1994) beside casings round two of the columns; at its south end a hall of grey
 panels under a band of windows in yellow frames, over the stairs down to a passage under the
 tracks lined in small yellow tiles; and at its north end a glass stair house up to the ticket
-hall on its bridge over the tracks, with a floor of black and white terrazzo in triangles. The
-city leaves out OpenStreetMap's outlines of the buildings such a station draws itself.
+hall on its bridge over the tracks, with a floor of black and white terrazzo in triangles.
+Hökarängen (1950, Peter Celsing) curves under the same kind of roof, on pairs of steel columns,
+with Hanns Karlewski's art (1995): lacquered panels in two colours between the columns, two
+bronze columns of stacked slabs, and fans of small setts down the middle of the platform. At its
+south end a glass hall, then stairs down to a passage under the tracks in white tiles with a
+band of yellow and black lozenges; at its north end a glass stair house and escalators down to
+the ticket hall under the tracks' bridge over Örbyleden, dark stone below a white band with lit
+yellow signs, and a glass front towards the road. The city leaves out OpenStreetMap's outlines
+of the buildings such a station draws itself, and the street round its exits doesn't run on
+inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:
