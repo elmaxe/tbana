@@ -5,8 +5,8 @@
 //
 // A tile is gzip-compressed binary, little-endian: a header, then sections, each a four-letter
 // tag, its length in bytes and its contents (padded to 4 bytes). A reader skips the sections it
-// doesn't know, so later layers (streets, say) can be added as new sections
-// without breaking the game, and new fields as new sections or a new version.
+// doesn't know, so later layers can be added as new sections without breaking the game, and new
+// fields as new sections or a new version.
 //
 //   header   'TBCT', u16 version, u16 0, i32 i, i32 j
 //   'GRND'   the ground: f32 step, u16 n, u16 0, f32 base; n × n heights, row by row from the
@@ -34,6 +34,17 @@
 //            (n − 1)² u8, a cell of GRND's each, row by row as its flags: 0 for dry, else 1 + the
 //            index of the level the water stands at over it. A cell on the shore has the water too,
 //            so the shore is drawn where the ground rises out of it.
+//   'STRT'   streets and paths, in the areas drawn in detail (src/detail/areas.ts): u32 count, then
+//            for each: u8 kind (STREET_KINDS), u8 surface (SURFACES), u8 flags (STREET_ONEWAY, …),
+//            u8 lanes (0: not given), u16 width in centimetres (0: not given), u16 points, then the
+//            points as i16 x, z in decimetres from the tile's corner. A street over the tile's edge
+//            is in each tile it crosses, with its segments in that tile and one either side of them
+//            (for the corners); a tile draws those whose middles are in it.
+//   'PAVE'   squares and other paved areas there: u32 count, then for each: u8 kind, u8 surface,
+//            u16 rings, then the rings as BLDG's (the outline, then holes in it). One over the
+//            tile's edge is in each tile it reaches into, whole; a tile draws its part.
+//   'TREE'   trees there: u32 count, then for each: i16 x, z in decimetres from the tile's corner,
+//            u16 height over the ground in centimetres, u8 crown radius in decimetres, u8 0.
 //
 // It imports nothing, so the tools can use it on Node too.
 
@@ -102,7 +113,34 @@ export interface GroundHole { corners: [number, number][]; bottom: number; top: 
 // ground's which of them (0: none, k: levels[k − 1]).
 export interface Water { levels: number[]; cells: Uint8Array }
 
-export interface CityTile { i: number; j: number; ground: Ground | null; buildings: Building[]; holes: GroundHole[]; water?: Water | null }
+// The streets, paths and squares, and the trees, in the areas drawn in detail (src/detail/streets.ts
+// draws them), from OpenStreetMap (tools/fetch-streets.ts) and the laser scan (tools/find-trees.ts).
+// kind: OpenStreetMap's highway=* (the links as their roads, the rest 'other'); surface: its
+// surface=*, a few alike taken together (unknown where not given)
+export const STREET_KINDS = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'service',
+  'living_street', 'pedestrian', 'footway', 'cycleway', 'path', 'steps', 'track', 'other'] as const;
+export type StreetKind = typeof STREET_KINDS[number];
+export const SURFACES = ['unknown', 'asphalt', 'sett', 'cobblestone', 'paving_stones', 'concrete', 'gravel', 'wood', 'other'] as const;
+export type Surface = typeof SURFACES[number];
+// a street's flags: one way only; a pavement beside a road (footway=sidewalk); a path across a road
+// (footway=crossing), and with stripes on it (a zebra crossing)
+export const STREET_ONEWAY = 1, STREET_SIDEWALK = 2, STREET_CROSSING = 4, STREET_ZEBRA = 8;
+
+export interface Street {
+  kind: StreetKind;
+  surface: Surface;
+  flags: number;
+  lanes: number;  // 0: not given
+  width: number;  // metres, 0: not given
+  line: [number, number][]; // world x, z
+}
+export interface Square { kind: StreetKind; surface: Surface; rings: [number, number][][] }
+export interface Tree { x: number; z: number; height: number; radius: number } // height over the ground
+
+export interface CityTile {
+  i: number; j: number; ground: Ground | null; buildings: Building[]; holes: GroundHole[]; water?: Water | null;
+  streets?: Street[]; squares?: Square[]; trees?: Tree[];
+}
 
 export interface CityIndex {
   attribution: string[];
@@ -256,6 +294,42 @@ export function decodeTile(buf: ArrayBuffer): CityTile {
       for (let k = 0; k < count; k++) levels.push(v.getFloat32(s + 4 + 4 * k, true));
       const f = s + 4 + 4 * count;
       tile.water = { levels, cells: new Uint8Array(buf.slice(f, s + len)) };
+    } else if (tag === 'STRT') {
+      const count = v.getUint32(s, true);
+      let q = s + 4;
+      tile.streets = [];
+      for (let k = 0; k < count; k++) {
+        const np = v.getUint16(q + 6, true);
+        const street: Street = {
+          kind: STREET_KINDS[v.getUint8(q)] ?? 'other', surface: SURFACES[v.getUint8(q + 1)] ?? 'unknown',
+          flags: v.getUint8(q + 2), lanes: v.getUint8(q + 3), width: v.getUint16(q + 4, true) / 100, line: [],
+        };
+        q += 8;
+        for (let m = 0; m < np; m++, q += 4) street.line.push([x0 + v.getInt16(q, true) / 10, z0 + v.getInt16(q + 2, true) / 10]);
+        tile.streets.push(street);
+      }
+    } else if (tag === 'PAVE') {
+      const count = v.getUint32(s, true);
+      let q = s + 4;
+      tile.squares = [];
+      for (let k = 0; k < count; k++) {
+        const nr = v.getUint16(q + 2, true);
+        const square: Square = { kind: STREET_KINDS[v.getUint8(q)] ?? 'other', surface: SURFACES[v.getUint8(q + 1)] ?? 'unknown', rings: [] };
+        q += 4;
+        for (let r = 0; r < nr; r++) {
+          const np = v.getUint16(q, true), ring: [number, number][] = [];
+          q += 2;
+          for (let m = 0; m < np; m++, q += 4) ring.push([x0 + v.getInt16(q, true) / 10, z0 + v.getInt16(q + 2, true) / 10]);
+          square.rings.push(ring);
+        }
+        tile.squares.push(square);
+      }
+    } else if (tag === 'TREE') {
+      const count = v.getUint32(s, true);
+      tile.trees = [];
+      for (let k = 0, q = s + 4; k < count; k++, q += 8) {
+        tile.trees.push({ x: x0 + v.getInt16(q, true) / 10, z: z0 + v.getInt16(q + 2, true) / 10, height: v.getUint16(q + 4, true) / 100, radius: v.getUint8(q + 6) / 10 });
+      }
     }
     p = s + len + ((4 - (len % 4)) % 4);
   }
@@ -383,6 +457,54 @@ export function encodeTile(tile: CityTile): Uint8Array {
     levels.forEach((l, k) => v.setFloat32(4 + 4 * k, l, true));
     data.set(cells, 4 + 4 * levels.length);
     sections.push({ tag: 'WATR', data });
+  }
+  const dm = (u: number) => Math.max(-32767, Math.min(32767, Math.round(u * 10)));
+  if (tile.streets?.length) {
+    const data = new Uint8Array(4 + tile.streets.reduce((t, st) => t + 8 + 4 * st.line.length, 0));
+    const v = new DataView(data.buffer);
+    v.setUint32(0, tile.streets.length, true);
+    let q = 4;
+    for (const st of tile.streets) {
+      v.setUint8(q, Math.max(0, STREET_KINDS.indexOf(st.kind)));
+      v.setUint8(q + 1, Math.max(0, SURFACES.indexOf(st.surface)));
+      v.setUint8(q + 2, st.flags);
+      v.setUint8(q + 3, Math.min(255, st.lanes));
+      v.setUint16(q + 4, Math.min(65535, Math.round(st.width * 100)), true);
+      v.setUint16(q + 6, st.line.length, true);
+      q += 8;
+      for (const [x, z] of st.line) { v.setInt16(q, dm(x - x0), true); v.setInt16(q + 2, dm(z - z0), true); q += 4; }
+    }
+    sections.push({ tag: 'STRT', data });
+  }
+  if (tile.squares?.length) {
+    const data = new Uint8Array(4 + tile.squares.reduce((t, sq) => t + 4 + sq.rings.reduce((u, r) => u + 2 + 4 * r.length, 0), 0));
+    const v = new DataView(data.buffer);
+    v.setUint32(0, tile.squares.length, true);
+    let q = 4;
+    for (const sq of tile.squares) {
+      v.setUint8(q, Math.max(0, STREET_KINDS.indexOf(sq.kind)));
+      v.setUint8(q + 1, Math.max(0, SURFACES.indexOf(sq.surface)));
+      v.setUint16(q + 2, sq.rings.length, true);
+      q += 4;
+      for (const r of sq.rings) {
+        v.setUint16(q, r.length, true); q += 2;
+        for (const [x, z] of r) { v.setInt16(q, dm(x - x0), true); v.setInt16(q + 2, dm(z - z0), true); q += 4; }
+      }
+    }
+    sections.push({ tag: 'PAVE', data });
+  }
+  if (tile.trees?.length) {
+    const data = new Uint8Array(4 + 8 * tile.trees.length);
+    const v = new DataView(data.buffer);
+    v.setUint32(0, tile.trees.length, true);
+    tile.trees.forEach((t, k) => {
+      const q = 4 + 8 * k;
+      v.setInt16(q, dm(t.x - x0), true);
+      v.setInt16(q + 2, dm(t.z - z0), true);
+      v.setUint16(q + 4, Math.max(0, Math.min(65535, Math.round(t.height * 100))), true);
+      v.setUint8(q + 6, Math.max(0, Math.min(255, Math.round(t.radius * 10))));
+    });
+    sections.push({ tag: 'TREE', data });
   }
   const pad = (n: number) => (4 - (n % 4)) % 4;
   const total = 16 + sections.reduce((s, x) => s + 8 + x.data.length + pad(x.data.length), 0);

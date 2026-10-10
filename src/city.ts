@@ -334,6 +334,26 @@ export class City {
       : h[k] + (h[k + g.n] - h[k]) * fv + (h[k + g.n + 1] - h[k + g.n]) * fu;
   }
 
+  // Whether the ground at (x, z) is there to draw on (src/detail/streets.ts): not the track's, nor
+  // cut away. `t` is the tile being built, for a point whose own tile isn't loaded.
+  private bare(t: Tile, x: number, z: number) {
+    const u = this.tileAt(x, z) ?? t, g = u.data?.ground;
+    if (!g) return false;
+    const c = Math.min(g.n - 2, Math.max(0, Math.floor((x - u.x0) / g.step))), r = Math.min(g.n - 2, Math.max(0, Math.floor((z - u.z0) / g.step)));
+    if (g.flags[r * (g.n - 1) + c] & CELL_TRACK) return false;
+    const y = this.heightIn(u, x, z)!;
+    return !u.cuts.some((v) => insideVolume(v, x, y + 0.05, z));
+  }
+
+  // The level of the water over the ground's cell at (x, z), or null for none.
+  private waterAt(t: Tile, x: number, z: number) {
+    const u = this.tileAt(x, z) ?? t, g = u.data?.ground, w = u.data?.water;
+    if (!g || !w) return null;
+    const c = Math.min(g.n - 2, Math.max(0, Math.floor((x - u.x0) / g.step))), r = Math.min(g.n - 2, Math.max(0, Math.floor((z - u.z0) / g.step)));
+    const k = w.cells[r * (g.n - 1) + c];
+    return k ? w.levels[k - 1] : null;
+  }
+
   // Whether (x, z) is inside a building standing on the ground.
   insideBuilding(x: number, z: number) {
     const t = this.tileAt(x, z) ?? this.tileAt(x + 30, z) ?? this.tileAt(x - 30, z);
@@ -404,10 +424,14 @@ export class City {
     const water = d.ground && d.water ? waterGeometry(t, d.ground.step, d.ground.n - 1, d.water) : null;
     if (water) group.add(new THREE.Mesh(water, this.mats.water));
     // near the camera, the areas drawn in detail (src/detail/)
+    const height = (x: number, z: number) => this.heightAt(x, z) ?? this.heightIn(t, x, z);
+    const streets = d.ground && (d.streets || d.squares || d.trees)
+      ? { streets: d.streets, squares: d.squares, trees: d.trees, ground: { step: d.ground.step, height: (x: number, z: number) => height(x, z) ?? 0, bare: (x: number, z: number) => this.bare(t, x, z), water: (x: number, z: number) => this.waterAt(t, x, z) } }
+      : undefined;
     const detail = t.lod === 1 && DETAIL_ON ? tileDetail(d.buildings, t.x0, t.z0, CITY_TILE, (k) => {
       const c = wallColour(d.buildings[k], t, k, new THREE.Color());
       return [c.r, c.g, c.b];
-    }, (x, z) => this.heightAt(x, z) ?? this.heightIn(t, x, z)) : null;
+    }, height, streets) : null;
     const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null, detail);
     const meshes: [THREE.BufferGeometry | null, THREE.Material][] = [
       ...WALL_STYLES.map((st) => [walls[st], this.mats.walls[st]] as [THREE.BufferGeometry | null, THREE.Material]),

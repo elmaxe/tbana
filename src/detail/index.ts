@@ -8,24 +8,18 @@ import { HOTORGSCITY_WEST } from './hotorgscity.ts';
 import { KUNGSTORNEN } from './kungstornen.ts';
 import { PUB } from './pub.ts';
 import { detailMaterial } from './materials.ts';
+import { inDetailArea } from './areas.ts';
+import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
-// The city in detail near the camera, in the areas listed here (a pilot round Hötorget for now):
+// The city in detail near the camera, in the areas of src/detail/areas.ts:
 // landmarks built by hand in place of the city's plain blocks of them, and the other buildings'
-// facades with real windows, shop fronts and cornices (src/detail/facades.ts). A tile drawn at
-// full resolution (near the camera) gets them; further off it keeps its plain blocks.
+// facades with real windows, shop fronts and cornices (src/detail/facades.ts), and the streets,
+// squares and trees (src/detail/streets.ts). A tile drawn at full resolution (near the camera) gets
+// them; further off it keeps its plain blocks.
 
 // ?nodetail: the plain city everywhere, to compare
 export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nodetail');
-
-export const DETAIL_AREAS = [
-  { name: 'Hötorget', x: 270, z: -420, r: 165 },
-  // what the trains' bridge over Söderström looks out on: Gamla stan's west and south fronts,
-  // Riddarholmen's south end and Söder Mälarstrand
-  { name: 'Gamla stan', x: 560, z: 930, r: 140 },
-  { name: 'Riddarholmen', x: 330, z: 790, r: 80 },
-  { name: 'Söder Mälarstrand', x: 520, z: 1215, r: 160 },
-];
 
 interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
 const LANDMARKS: Landmark[] = [
@@ -52,10 +46,8 @@ export interface TileDetail {
   detailed: Set<number>;  // buildings whose walls are drawn here (the city keeps their roofs and gables)
 }
 
-const inArea = (x: number, z: number) => DETAIL_AREAS.some((a) => Math.hypot(x - a.x, z - a.z) < a.r);
-
 export function tileDetail(buildings: Building[], x0: number, z0: number, size: number,
-  colourOf: (k: number) => [number, number, number], ground: (x: number, z: number) => number | null): TileDetail {
+  colourOf: (k: number) => [number, number, number], ground: (x: number, z: number) => number | null, streets?: TileStreets): TileDetail {
   const replaced = new Set<number>(), detailed = new Set<number>();
   const B = new Builder();
   const mid = buildings.map((b) => centroid(b.rings[0]));
@@ -84,10 +76,11 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
     return x >= a && x <= d && z >= c && z <= e && inPoly(x, z, buildings[k].rings[0] as V2[]);
   });
   buildings.forEach((b, k) => {
-    if (replaced.has(k) || b.kind === 'roof' || b.kind === 'shed' || !inArea(...mid[k])) return;
+    if (replaced.has(k) || b.kind === 'roof' || b.kind === 'shed' || !inDetailArea(...mid[k])) return;
     detailed.add(k);
     buildFacades(B, b, k, colourOf(k), { ground, insideOther });
   });
+  if (streets) buildStreets(B, streets, x0, z0, size);
   const meshes: THREE.Mesh[] = [];
   for (const [mat, geom] of B.geometries()) {
     const m = new THREE.Mesh(geom, detailMaterial(mat));

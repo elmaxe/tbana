@@ -2566,3 +2566,131 @@ export function entranceSign(text: string) {
   x.fillText(text, 200, 84, 800);
   return toTexture(c, { repeat: false });
 }
+
+// ------------------------------------------------------------------ streets and trees
+// (src/detail/streets.ts) Light and near neutral, for the vertex colours to tint.
+
+// Granite setts (gatsten) in rows, as in Gamla stan's streets: stones 12.5 cm across the row and
+// 14–24 cm along it, each its own shade, in dark joints. Covers 2 × 2 m.
+export function setts() {
+  const S = 512, px = S / 2;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#5a5855'; x.fillRect(0, 0, S, S);
+  const r = rng(71), row = px / 8;
+  for (let y = 0; y < S; y += row) {
+    let u = -r() * px * 0.2;
+    while (u < S) {
+      const len = Math.min(S - u, px * (0.14 + r() * 0.1)), v = 165 + Math.floor(r() * 60), warm = Math.floor(r() * 10);
+      x.fillStyle = `rgb(${v + warm},${v},${v - warm})`;
+      const j = 2 + r() * 1.5;
+      // (wrapping round the repeat's edge)
+      for (const o of [0, S]) x.fillRect(u + j - o, y + j, len - 2 * j, row - 2 * j);
+      u += len;
+    }
+  }
+  speckle(x, S, S, 9000, 0.22, 72);
+  speckle(x, S, S, 3000, 0.12, 73, true);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Round cobbles (kullersten): stones of 8–14 cm, packed, in dark gaps. Covers 1.5 × 1.5 m.
+export function cobbles() {
+  const S = 256, px = S / 1.5;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#4e4b47'; x.fillRect(0, 0, S, S);
+  const r = rng(75);
+  for (let k = 0; k < 520; k++) {
+    const cx = r() * S, cy = r() * S, rad = px * (0.04 + r() * 0.03), v = 150 + Math.floor(r() * 80), warm = Math.floor(r() * 14);
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      const g = x.createRadialGradient(cx + ox - rad * 0.3, cy + oy - rad * 0.3, rad * 0.1, cx + ox, cy + oy, rad);
+      g.addColorStop(0, `rgb(${v + 30 + warm},${v + 30},${v + 30 - warm})`); g.addColorStop(1, `rgb(${v - 30 + warm},${v - 30},${v - 30 - warm})`);
+      x.fillStyle = g;
+      x.beginPath(); x.ellipse(cx + ox, cy + oy, rad, rad * (0.8 + r() * 0.2), r() * 3, 0, Math.PI * 2); x.fill();
+    }
+  }
+  return toTexture(c, { aniso: 8 });
+}
+
+// Concrete paving slabs (betongplattor), 35 × 35 cm, four by four, each a shade apart. Covers 1.4 ×
+// 1.4 m.
+export function pavingSlabs() {
+  const S = 256, n = 4, w = S / n;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#707070'; x.fillRect(0, 0, S, S);
+  const r = rng(77);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const v = 200 + Math.floor(r() * 30);
+    x.fillStyle = `rgb(${v},${v},${v - 3})`;
+    x.fillRect(i * w + 1, j * w + 1, w - 2, w - 2);
+  }
+  speckle(x, S, S, 4000, 0.14, 78);
+  speckle(x, S, S, 1500, 0.1, 79, true);
+  // stains
+  for (let k = 0; k < 14; k++) {
+    x.fillStyle = `rgba(60,60,55,${r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * S, r() * S, 5 + r() * 30, 5 + r() * 30, 0, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { aniso: 8 });
+}
+
+// Asphalt: fine grit, lighter stones in it, darker patches and seams. Covers 4 × 4 m.
+export function asphalt() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#c4c4c4'; x.fillRect(0, 0, S, S);
+  const r = rng(81);
+  for (let k = 0; k < 10; k++) {
+    x.fillStyle = `rgba(40,40,40,${0.03 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * S, r() * S, 10 + r() * 50, 8 + r() * 40, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, S, S, 9000, 0.3, 82);
+  speckle(x, S, S, 5000, 0.25, 83, true);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Gravel: grit and small stones. Covers 2 × 2 m.
+export function gravel() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#cfc8bb'; x.fillRect(0, 0, S, S);
+  speckle(x, S, S, 12000, 0.35, 85);
+  speckle(x, S, S, 6000, 0.3, 86, true);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A tree's leaves, packed: clumps of small leaves in lighter and darker greens on shadow. Near
+// white-green for the vertex colours to tint. Covers 2 × 2 m.
+export function leaves() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#7d8a74'; x.fillRect(0, 0, S, S);
+  leafClumps(x, S, 2600, 87);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A spray of leaves on nothing, for an alpha test: thick in the middle, ragged at the edge. A
+// crown's outside is made of many of them (src/detail/streets.ts).
+export function leafCard() {
+  const S = 128;
+  const [c, x] = canvas(S);
+  const r = rng(89);
+  for (let k = 0; k < 150; k++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * S * 0.4, len = 6 + r() * 6, v = r(), shade = 0.7 + r() * 0.3;
+    const g = Math.floor(165 + v * 90);
+    x.fillStyle = `rgb(${Math.floor(g * 0.86 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.74 * shade)})`;
+    x.beginPath(); x.ellipse(S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, len, len * 0.5, r() * Math.PI, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+function leafClumps(x: CanvasRenderingContext2D, S: number, n: number, seed: number) {
+  const r = rng(seed);
+  for (let k = 0; k < n; k++) {
+    const cx = r() * S, cy = r() * S, len = 3 + r() * 5, a = r() * Math.PI, v = r();
+    const g = Math.floor(170 + v * 85), shade = 0.75 + r() * 0.25;
+    x.fillStyle = `rgb(${Math.floor(g * 0.88 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.78 * shade)})`;
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      x.beginPath(); x.ellipse(cx + ox, cy + oy, len, len * 0.55, a, 0, Math.PI * 2); x.fill();
+    }
+  }
+}

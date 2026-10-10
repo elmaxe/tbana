@@ -55,13 +55,18 @@
 //   of the building, and an exit's way out continues through the building to the outside.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
 //   it stands on the ground, open inside, with a door wherever a track passes through its walls.
+//
+// In the areas drawn in detail (src/detail/areas.ts), the streets, paths and squares on the ground
+// (data/osm/streets.json, from tools/fetch-streets.ts: not those on bridges, in tunnels, indoors or
+// on other levels) and the trees (data/trees.json, from tools/find-trees.ts, with OpenStreetMap's
+// own) go in the tiles for src/detail/streets.ts to draw.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import polygonClipping from 'polygon-clipping';
 import type { MultiPolygon, Polygon } from 'polygon-clipping';
 import { CELL_PAVED, CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName } from '../src/city-tile.ts';
-import type { Building, CityIndex, Door, RoofShape, WallStyle } from '../src/city-tile.ts';
-import { ROOF_SHAPES } from '../src/city-tile.ts';
+import type { Building, CityIndex, Door, RoofShape, Square, Street, StreetKind, Surface, Tree, WallStyle } from '../src/city-tile.ts';
+import { ROOF_SHAPES, STREET_CROSSING, STREET_KINDS, STREET_ONEWAY, STREET_SIDEWALK, STREET_ZEBRA } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { LIFT, floorHeights, inclineCorners, liftCorners } from '../src/station-layout.ts';
@@ -1070,6 +1075,87 @@ function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings
   }
 }
 
+// ------------------------------------------------------------------ streets and trees
+// OpenStreetMap's streets, squares and trees in the areas drawn in detail (tools/fetch-streets.ts),
+// and the trees the laser scan and Google's mesh show there (tools/find-trees.ts)
+type Tags = Record<string, string>;
+const streetData: { attribution: string; streets: { osm: string; tags: Tags; line: number[] }[]; areas: { osm: string; tags: Tags; rings: number[][] }[];
+  treeRows: { osm: string; tags: Tags; line: number[] }[]; trees: { osm: string; tags: Tags; x: number; z: number }[] } | null =
+  existsSync('data/osm/streets.json') ? JSON.parse(readFileSync('data/osm/streets.json', 'utf8')) : null;
+const treeData: { attribution: string; trees: [number, number, number, number][] } | null =
+  existsSync('data/trees.json') ? JSON.parse(readFileSync('data/trees.json', 'utf8')) : null;
+const pairs = (flat: number[]): XZ[] => Array.from({ length: flat.length / 2 }, (_, k) => [flat[2 * k], flat[2 * k + 1]]);
+const metres = (v: string | undefined) => { const m = v?.match(/^\s*([0-9.]+)\s*m?\s*$/); return m ? parseFloat(m[1]) : 0; };
+// those on the ground only: not on bridges, in tunnels or passages, indoors, or on other levels
+const onGround = (t: Tags) => (!t.bridge || t.bridge === 'no') && (!t.tunnel || t.tunnel === 'no') && t.covered !== 'yes' &&
+  t.indoor !== 'yes' && !t.location?.startsWith('underground') && (t.layer ?? '0') === '0' && (t.level ?? '0') === '0';
+function kindOf(t: Tags): StreetKind {
+  const h = (t.highway ?? t['area:highway'] ?? '').replace(/_link$/, '');
+  if (t.amenity === 'parking' && !h) return 'service';
+  return (STREET_KINDS as readonly string[]).includes(h) ? (h as StreetKind) : h === 'bridleway' ? 'path' : 'other';
+}
+function surfaceOf(t: Tags): Surface {
+  const s = t.surface ?? '';
+  if (s === 'asphalt' || s === 'chipseal') return 'asphalt';
+  if (s === 'sett') return 'sett';
+  if (s.includes('cobblestone')) return 'cobblestone';
+  if (s.startsWith('paving_stones') || s === 'concrete:plates' || s === 'bricks') return 'paving_stones';
+  if (s.startsWith('concrete')) return 'concrete';
+  if (['gravel', 'fine_gravel', 'compacted', 'pebblestone', 'dirt', 'earth', 'ground', 'unpaved'].includes(s)) return 'gravel';
+  if (s === 'wood') return 'wood';
+  return s && s !== 'paved' ? 'other' : 'unknown';
+}
+const streetsIn = new Map<string, Street[]>(), squaresIn = new Map<string, Square[]>(), treesIn = new Map<string, Tree[]>();
+const add = <T>(m: Map<string, T[]>, key: string, v: T) => (m.get(key) ?? m.set(key, []).get(key)!).push(v);
+let streetsKept = 0, streetsLeft = 0;
+for (const s of streetData?.streets ?? []) {
+  const t = s.tags;
+  if (!onGround(t)) { streetsLeft++; continue; }
+  streetsKept++;
+  const crossing = t.footway === 'crossing' || t.cycleway === 'crossing';
+  const flags = (['yes', '1', 'true', '-1'].includes(t.oneway) ? STREET_ONEWAY : 0) | (t.footway === 'sidewalk' ? STREET_SIDEWALK : 0) |
+    (crossing ? STREET_CROSSING : 0) | (crossing && t.crossing !== 'unmarked' && t.crossing !== 'no' && t['crossing:markings'] !== 'no' &&
+      t['crossing:markings'] !== 'dots' && t.cycleway !== 'crossing' ? STREET_ZEBRA : 0);
+  const base = { kind: kindOf(t), surface: surfaceOf(t), flags, lanes: Math.min(255, parseInt(t.lanes) || 0), width: metres(t.width) || metres(t.est_width) };
+  // in each tile its segments' middles are in, with the segment either side of each run of them
+  const line = pairs(s.line);
+  const tileOf = (k: number) => `${Math.floor((line[k][0] + line[k + 1][0]) / 2 / CITY_TILE)},${Math.floor((line[k][1] + line[k + 1][1]) / 2 / CITY_TILE)}`;
+  const keys = new Set(line.slice(1).map((_, k) => tileOf(k)));
+  for (const key of keys) {
+    for (let k = 0; k + 1 < line.length;) {
+      if (tileOf(k) !== key) { k++; continue; }
+      let e = k;
+      while (e + 1 < line.length - 1 && tileOf(e + 1) === key) e++;
+      add(streetsIn, key, { ...base, line: line.slice(Math.max(0, k - 1), Math.min(line.length, e + 3)) });
+      k = e + 1;
+    }
+  }
+}
+for (const a of streetData?.areas ?? []) {
+  if (!onGround(a.tags) || a.tags.parking === 'underground' || a.tags.parking === 'multi-storey') continue;
+  const rings = a.rings.map(pairs);
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const [x, z] of rings[0]) { x0 = Math.min(x0, x); z0 = Math.min(z0, z); x1 = Math.max(x1, x); z1 = Math.max(z1, z); }
+  for (let i = Math.floor(x0 / CITY_TILE); i <= Math.floor(x1 / CITY_TILE); i++) for (let j = Math.floor(z0 / CITY_TILE); j <= Math.floor(z1 / CITY_TILE); j++) {
+    add(squaresIn, `${i},${j}`, { kind: kindOf(a.tags), surface: surfaceOf(a.tags), rings });
+  }
+}
+// the trees: the scan's and the mesh's, and OpenStreetMap's where those have none within 2.5 m
+// (its rows a tree every 8 m), 8 m tall and 2.5 m across the crown unless it says
+const trees: Tree[] = (treeData?.trees ?? []).map(([x, z, height, radius]) => ({ x, z, height, radius }));
+const osmTrees: Tree[] = [];
+const treeOf = (t: Tags, x: number, z: number): Tree => ({ x, z, height: metres(t.height) || 8, radius: metres(t.diameter_crown) / 2 || 2.5 });
+for (const t of streetData?.trees ?? []) osmTrees.push(treeOf(t.tags, t.x, t.z));
+for (const r of streetData?.treeRows ?? []) {
+  const line = pairs(r.line);
+  for (let k = 0; k + 1 < line.length; k++) {
+    const [ax, az] = line[k], [bx, bz] = line[k + 1], len = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(len / 8));
+    for (let m = k ? 1 : 0; m <= n; m++) osmTrees.push(treeOf(r.tags, ax + ((bx - ax) * m) / n, az + ((bz - az) * m) / n));
+  }
+}
+const osmTreesKept = osmTrees.filter((o) => !trees.some((t) => Math.hypot(t.x - o.x, t.z - o.z) < 2.5));
+for (const t of [...trees, ...osmTreesKept]) add(treesIn, `${Math.floor(t.x / CITY_TILE)},${Math.floor(t.z / CITY_TILE)}`, t);
+
 // ------------------------------------------------------------------ the tiles
 mkdirSync(OUT, { recursive: true });
 const written = new Set<string>(['index.json']);
@@ -1109,7 +1195,11 @@ for (const [i, j] of groundMeta.tiles) {
   });
   const buildings = tiles.get(`${i},${j}`) ?? [];
   buildingCount += buildings.length;
-  const data = gzipSync(encodeTile({ i, j, ground: { step: STEP, n: N, heights, flags }, buildings, holes, water: waterOf(i, j) }), { level: 9 });
+  const key = `${i},${j}`;
+  const data = gzipSync(encodeTile({
+    i, j, ground: { step: STEP, n: N, heights, flags }, buildings, holes, water: waterOf(i, j),
+    streets: streetsIn.get(key), squares: squaresIn.get(key), trees: treesIn.get(key),
+  }), { level: 9 });
   bytes += data.length;
   writeFileSync(`${OUT}/${tileName(i, j)}`, data);
   written.add(tileName(i, j));
@@ -1118,8 +1208,9 @@ for (const [i, j] of groundMeta.tiles) {
 for (const f of readdirSync(OUT)) if (!written.has(f)) rmSync(`${OUT}/${f}`);
 
 const index: CityIndex = {
-  attribution: [groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : [])],
-  note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, its lakes and sea at their levels, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks.`,
+  attribution: [...new Set([groundMeta.attribution, osm.attribution, ...(laser ? [laser.attribution] : []), ...(streetData ? [streetData.attribution] : []),
+    ...(treeData ? [treeData.attribution] : [])])],
+  note: `The city around the line, in ${CITY_TILE} m tiles (format ${CITY_VERSION}, src/city-tile.ts): the ground every ${STEP} m from Lantmäteriet's elevation model, shaped where the track runs, its lakes and sea at their levels, and OpenStreetMap's buildings (extract of ${osm.extract}) as flat-roofed blocks${streetData ? '; where it is drawn in detail, its streets, squares and trees' : ''}.`,
   tile: CITY_TILE,
   tiles: groundMeta.tiles.map(([i, j]) => [i, j]),
 };
@@ -1132,4 +1223,5 @@ console.log(`buildings: ${buildingCount} blocks from ${sources.length} (${withPa
 if (laser) console.log(`  measured by the laser scan: ${laserMeasured} (of ${Object.keys(laser.buildings).length} it has), ${laserShaped} with the roof's shape it found; left out: ${[...laserDoubted].map(([k, n]) => `${n} ${k}`).join(', ')}`);
 console.log(`  roofs of their shapes: ${shaped} built, ${unshaped} left flat (lower than 0.3 m, or no faces found)`);
 console.log(`  ${overTrack} over open track (cleared), ${roofsDropped} roofs over the track left out, ${cutForStations} cut for stations, ${sheds} depot halls`);
+if (streetData) console.log(`streets: ${streetsKept} on the ground (${streetsLeft} on bridges, in tunnels or indoors left out), ${streetData.areas.length} squares; trees: ${trees.length} found, ${osmTreesKept.length} more from OpenStreetMap`);
 console.log(`${OUT}: ${(bytes / 1e6).toFixed(1)} MB`);
