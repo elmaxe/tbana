@@ -85,16 +85,29 @@ function materials() {
   return {
     ground,
     walls: {
-      plaster: new THREE.MeshStandardMaterial({ map: T.facade(), vertexColors: true, roughness: 0.9 }),
-      brick: new THREE.MeshStandardMaterial({ map: T.facadeBrick(), vertexColors: true, roughness: 0.95 }),
+      plaster: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facade(), vertexColors: true, roughness: 0.9 })),
+      brick: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facadeBrick(), vertexColors: true, roughness: 0.95 })),
       glass: new THREE.MeshStandardMaterial({ map: T.facadeGlass(), vertexColors: true, roughness: 0.35, metalness: 0.2 }),
-      wood: new THREE.MeshStandardMaterial({ map: T.facadeWood(), vertexColors: true, roughness: 0.9 }),
+      wood: untintedGlass(new THREE.MeshStandardMaterial({ map: T.facadeWood(), vertexColors: true, roughness: 0.9 })),
       plain: new THREE.MeshStandardMaterial({ map: T.facadePlain(), vertexColors: true, roughness: 0.8 }),
     } satisfies Record<WallStyle, THREE.Material>,
     roofs: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, side: THREE.DoubleSide }),
     // over the ground on the shore, which is level with it in the distance
     water: new THREE.MeshStandardMaterial({ color: WATER, roughness: 0.3, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }),
   };
+}
+
+// A wall's material that leaves its windows' glass (marked by a half alpha in its texture, see
+// T.facade) out of the vertex colours' tint, so a red wall's windows are not red. It keeps the
+// lamps' lighting every standard material has (src/lamps.ts).
+function untintedGlass(m: THREE.MeshStandardMaterial) {
+  m.onBeforeCompile = (shader, renderer) => {
+    THREE.MeshStandardMaterial.prototype.onBeforeCompile.call(m, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>',
+      'diffuseColor.rgb *= mix(vec3(1.0), vColor, step(0.75, sampledDiffuseColor.a));\ndiffuseColor.a = opacity;');
+  };
+  m.customProgramCacheKey = () => 'city-wall-glass';
+  return m;
 }
 
 // A tile's photo on its ground, with the ground texture's grain over it (by world x, z, 8 m to a

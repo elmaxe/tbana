@@ -20,7 +20,7 @@ function look(style: Style, colour: [number, number, number]) {
   const light: [number, number, number] = colour.map((c) => c + (1 - c) * 0.55) as [number, number, number];
   switch (style) {
     case 'brick': return { wall: { wall: 'brick', wallTile: 2, trim: 'stone', depth: 0.22, surround: 0, sill: true } as WallStyle, trimTint: [0.92, 0.9, 0.86] as [number, number, number], cornice: 'stone', socle: true, string: false };
-    case 'glass': return { wall: { wall: 'curtain', wallTile: [1.25, 3.4], trim: null, depth: 0.15 } as WallStyle, trimTint: [0.8, 0.82, 0.84] as [number, number, number], cornice: 'metal', socle: false, string: false };
+    case 'glass': return { wall: { wall: 'curtain', wallTile: [5, 13.6], trim: null, depth: 0.15 } as WallStyle, trimTint: [0.8, 0.82, 0.84] as [number, number, number], cornice: 'metal', socle: false, string: false };
     case 'plain': return { wall: { wall: 'concrete', wallTile: 4, trim: null, depth: 0.18 } as WallStyle, trimTint: light, cornice: 'concrete', socle: false, string: false };
     default: return { wall: { wall: 'plaster', wallTile: 4, trim: 'plaster', depth: 0.24, surround: 0.12, sill: true } as WallStyle, trimTint: light, cornice: 'plaster', socle: true, string: true };
   }

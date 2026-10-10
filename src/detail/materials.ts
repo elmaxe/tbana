@@ -1,25 +1,38 @@
 import * as THREE from 'three';
 import * as T from '../textures';
 
-// The detailed buildings' materials, shared by all of them; each is tinted by vertex colours.
-let mats: Map<string, THREE.Material> | null = null;
+// The detailed buildings' materials, shared by all of them; each is tinted by vertex colours. Made
+// when first drawn: these, and those the landmarks add with addMaterial.
+const made = new Map<string, THREE.Material>();
+const recipes = new Map<string, () => THREE.Material>();
 
-export function detailMaterials() {
-  if (mats) return mats;
-  const std = (map: THREE.Texture | null, roughness: number, metalness = 0, extra: THREE.MeshStandardMaterialParameters = {}) =>
-    new THREE.MeshStandardMaterial({ map, vertexColors: true, roughness, metalness, ...extra });
-  mats = new Map<string, THREE.Material>([
-    ['plaster', std(T.plaster(), 0.9)],
-    ['brick', std(T.brickBond(), 0.95)],
-    ['concrete', std(T.concrete(17, 228), 0.9)],
-    ['stone', std(T.concrete(9, 170), 0.85)],
-    ['roof', std(T.roofSeams(), 0.6, 0.25)],
-    ['copper', std(T.verdigris(), 0.7, 0.15)],
-    ['window', std(T.detailWindow(), 0.25, 0.1)],
-    ['door', std(T.detailDoor(), 0.6)],
-    ['shop', std(T.detailShop(), 0.3, 0.05)],
-    ['curtain', std(T.curtainWall(), 0.2, 0.35)],
-    ['metal', std(null, 0.45, 0.6)],
-  ]);
-  return mats;
+export const standard = (map: THREE.Texture | null, roughness: number, metalness = 0, extra: THREE.MeshStandardMaterialParameters = {}) =>
+  new THREE.MeshStandardMaterial({ map, vertexColors: true, roughness, metalness, ...extra });
+
+for (const [key, make] of [
+  ['plaster', () => standard(T.plaster(), 0.9)],
+  ['brick', () => standard(T.brickBond(), 0.95)],
+  ['concrete', () => standard(T.concrete(17, 228), 0.9)],
+  ['stone', () => standard(T.concrete(9, 170), 0.85)],
+  ['roof', () => standard(T.roofSeams(), 0.6, 0.25)],
+  ['copper', () => standard(T.verdigris(), 0.7, 0.15)],
+  ['window', () => standard(T.detailWindow(), 0.5)],
+  ['door', () => standard(T.detailDoor(), 0.6)],
+  ['shop', () => standard(T.detailShop(), 0.4)],
+  ['curtain', () => standard(T.curtainWall(), 0.4, 0.05)],
+  ['metal', () => standard(null, 0.45, 0.6)],
+] as [string, () => THREE.Material][]) recipes.set(key, make);
+
+export function addMaterial(key: string, make: () => THREE.Material) {
+  if (!recipes.has(key)) recipes.set(key, make);
+}
+
+export function detailMaterial(key: string) {
+  let m = made.get(key);
+  if (!m) {
+    const make = recipes.get(key);
+    if (!make) throw new Error(`no detail material ${key}`);
+    made.set(key, m = make());
+  }
+  return m;
 }

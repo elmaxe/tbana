@@ -3,7 +3,7 @@ import type { Building } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
 import { buildKonserthuset, konserthusetOutline } from './konserthuset.ts';
-import { detailMaterials } from './materials.ts';
+import { detailMaterial } from './materials.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
 // The city in detail near the camera, in the areas listed here (a pilot round Hötorget for now):
@@ -19,7 +19,7 @@ export const DETAIL_AREAS = [{ name: 'Hötorget', x: 270, z: -420, r: 165 }];
 interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder) => void }
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
-  ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: [t.at[0], t.at[2]], build: (B) => buildTower(B, t) })),
+  ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: t.at, build: (B) => buildTower(B, t.tower) })),
 ];
 
 export interface TileDetail {
@@ -64,9 +64,9 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
     detailed.add(k);
     buildFacades(B, b, k, colourOf(k), { ground, insideOther });
   });
-  const mats = detailMaterials(), meshes: THREE.Mesh[] = [];
+  const meshes: THREE.Mesh[] = [];
   for (const [mat, geom] of B.geometries()) {
-    const m = new THREE.Mesh(geom, mats.get(mat));
+    const m = new THREE.Mesh(geom, detailMaterial(mat));
     m.name = `detail ${mat}`;
     meshes.push(m);
   }
