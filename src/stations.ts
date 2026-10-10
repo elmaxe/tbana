@@ -2,12 +2,15 @@ import * as THREE from 'three';
 import { SurfaceIndex } from './surface-index';
 import type { SurfaceHit } from './surface-index';
 import { insideVolume, intersect, prism, subtractAll } from './clip.ts';
+import { Mesh, box, slab } from './poly-mesh.ts';
 import type { Volume } from './clip.ts';
 import { LANE, LIFT, floorHeights, inclineCorners, liftCorners, solidOf, spaceOf } from './station-layout.ts';
 import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, SignPart, StationLayout, StationLayouts, StreetPart, XYZ } from './station-layout.ts';
 import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
+import { Frame, OpenLook, roomOf } from './open-stations';
+import type { Finish, OpenStyle, Room } from './open-styles';
 import { TUBE, addLamps, removeLamps } from './lamps';
 import type { Lamp } from './lamps';
 
@@ -61,43 +64,7 @@ function materials() {
   } satisfies Record<MaterialName, THREE.Material>;
 }
 
-// Triangles with uvs, for one material; each polygon is cut by the given volumes as it is added.
-// The materials are double-sided, so polygons may face either way.
-class Mesh {
-  pos: number[] = [];
-  uv: number[] = [];
-  get empty() { return this.pos.length === 0; }
-  // a convex polygon of [x, y, z, u, v] vertices, minus the volumes
-  poly(verts: number[][], cut: Volume[] = []) {
-    for (const piece of subtractAll(verts, cut)) {
-      for (let k = 1; k + 1 < piece.length; k++) {
-        for (const v of [piece[0], piece[k], piece[k + 1]]) { this.pos.push(v[0], v[1], v[2]); this.uv.push(v[3], v[4]); }
-      }
-    }
-  }
-  build() {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
-    g.computeVertexNormals();
-    g.computeBoundingSphere();
-    return g;
-  }
-}
-
 type Meshes = Record<MaterialName, Mesh>;
-
-// A box `sx` across, `sy` high and `sz` along the direction (fx, fz), centred at c.
-function box(m: Mesh, c: XYZ, fx: number, fz: number, sx: number, sy: number, sz: number, cut: Volume[] = []) {
-  const rx = -fz, rz = fx;
-  const P = (i: number, j: number, k: number) => [c[0] + rx * i * sx / 2 + fx * k * sz / 2, c[1] + j * sy / 2, c[2] + rz * i * sx / 2 + fz * k * sz / 2];
-  const faces = [
-    [[1, -1, -1], [1, -1, 1], [1, 1, 1], [1, 1, -1]], [[-1, -1, 1], [-1, -1, -1], [-1, 1, -1], [-1, 1, 1]],
-    [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]], [[-1, -1, 1], [1, -1, 1], [1, -1, -1], [-1, -1, -1]],
-    [[-1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, 1]], [[1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, -1]],
-  ];
-  for (const f of faces) m.poly(f.map(([i, j, k], n) => [...P(i, j, k), n === 1 || n === 2 ? 1 : 0, n >= 2 ? 1 : 0]), cut);
-}
 
 // the open spaces of a station's parts, with the parts they belong to
 interface Space { part: Part; vol: Volume }
@@ -114,6 +81,10 @@ export class Stations {
   private _plat: SurfaceHit<PlatformFloorData>[] = [];
   // the lamps of the station being built
   private lamps: Lamp[] = [];
+  // the styled open stations' look (src/open-styles.ts), and the station being built, if it is
+  // one: its frame, its style, and the mesh for each of its own materials
+  private look = new OpenLook();
+  private open: { frame: Frame; style: OpenStyle; on: (m: THREE.Material) => Mesh } | null = null;
 
   // The volumes the network cuts out of what it draws: the stations' open spaces (`holes`), and,
   // from the platforms' floors, the solid undersides of the stairs (`solids`).
@@ -257,6 +228,12 @@ export class Stations {
     const group = new THREE.Group();
     group.name = st.name;
     this.lamps = [];
+    const own = new Map<THREE.Material, Mesh>();
+    const style = this.look.style(st);
+    this.open = style && {
+      frame: new Frame(st), style,
+      on: (mat) => { let x = own.get(mat); if (!x) own.set(mat, x = new Mesh()); return x; },
+    };
     const spaces: Space[] = [];
     const voids: Volume[] = [];
     for (const p of st.parts) {
@@ -273,16 +250,22 @@ export class Stations {
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
         case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
-        case 'canopy': this.buildCanopy(p, m, spaces.map((s) => s.vol)); break;
+        case 'canopy':
+          if (this.open) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.map((s) => s.vol), group);
+          else this.buildCanopy(p, m, spaces.map((s) => s.vol));
+          break;
         case 'sign': group.add(this.buildSign(p, m)); break;
         default: break;
       }
     }
     for (const p of st.parts) if (p.kind === 'floor' || p.kind === 'incline') this.buildWalls(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
+    if (this.open) this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids]);
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));
     }
+    for (const [mat, mesh] of own) if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), mat));
+    this.open = null;
     addLamps(group, this.lamps);
     return group;
   }
@@ -291,10 +274,16 @@ export class Stations {
     const c = p.corners;
     // the floor is cut where stairs or a lift pass down through it
     const through = spaces.filter((s) => s.part !== p && s.part.kind !== 'floor').map((s) => s.vol);
-    m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
+    const room = this.roomOf(p);
+    if (room?.floor) this.flat(room.floor, c, through);
+    else m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
+    // (in a styled open station: a slab under it where it stands on a bridge, a roof over it)
+    if (room?.slab) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] - 0.02, v[2]]), room.slab, 0.5, through);
     if (p.ceiling === null) return;
     const top = c.map((v): number[] => [v[0], v[1] + p.ceiling!, v[2], v[0] / 3, v[2] / 3]);
-    m.ceiling.poly(top, cut);
+    if (room?.ceiling) this.flat(room.ceiling, top, cut, true);
+    else m.ceiling.poly(top, cut);
+    if (room?.roof) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] + p.ceiling! + 0.02 + room.roof!, v[2]]), room.roof, 0.5, cut);
     // lights down the middle, along the longer side
     const [a, b, cc, d] = c;
     const l1 = Math.hypot(b[0] - a[0], b[2] - a[2]), l2 = Math.hypot(d[0] - a[0], d[2] - a[2]);
@@ -302,6 +291,17 @@ export class Stations {
     const s0: XYZ = [(p0[0] + q0[0]) / 2, (p0[1] + q0[1]) / 2, (p0[2] + q0[2]) / 2];
     const s1: XYZ = [(p1[0] + q1[0]) / 2, (p1[1] + q1[1]) / 2, (p1[2] + q1[2]) / 2];
     this.lampRow(m, s0, s1, p.ceiling - 0.04, cut);
+  }
+
+  // In a styled open station, the room whose finishes a floor or a flight of stairs takes.
+  private roomOf(p: FloorPart | InclinePart): Room | null {
+    return this.open ? roomOf(this.open.style, this.open.frame, p) : null;
+  }
+
+  // A floor or ceiling in a finish, its uvs in the station's frame.
+  private flat(f: Finish, verts: number[][], cut: Volume[], ceiling = false) {
+    const o = this.open!, [w] = T.FINISH_SIZE[f];
+    o.on(this.look.finish(f, ceiling)).poly(verts.map((v) => [v[0], v[1], v[2], o.frame.u(v[0], v[2]) / w, o.frame.s(v[0], v[2]) / w]), cut);
   }
 
   // A row of lamps `above` the line from a to b; indoors (`lights`), they light the room under them.
@@ -398,7 +398,9 @@ export class Stations {
     if (tEnd > 0) {
       const w2 = p.width / 2;
       const c0 = ceil(-w2, 0), c1 = ceil(w2, 0), c2 = ceil(w2, tEnd), c3 = ceil(-w2, tEnd);
-      m.ceiling.poly([[...c0, 0, 0], [...c1, p.width / 3, 0], [...c2, p.width / 3, run * tEnd / 3], [...c3, 0, run * tEnd / 3]], cut);
+      const room = this.roomOf(p);
+      if (room?.ceiling) this.flat(room.ceiling, [c0, c1, c2, c3], cut, true);
+      else m.ceiling.poly([[...c0, 0, 0], [...c1, p.width / 3, 0], [...c2, p.width / 3, run * tEnd / 3], [...c3, 0, run * tEnd / 3]], cut);
       this.lampRow(m, at(0, 0) as XYZ, at(0, tEnd) as XYZ, p.ceiling - 0.04, cut);
     }
   }
@@ -410,6 +412,8 @@ export class Stations {
     const ceiling = p.kind === 'floor' ? p.ceiling : p.ceiling;
     const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length, cz = corners.reduce((s, c) => s + c[2], 0) / corners.length;
     const n = corners.length;
+    const room = this.roomOf(p), finish = (p.kind === 'incline' ? room?.stairs : undefined) ?? room?.walls ?? undefined;
+    if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
       const len = Math.hypot(b[0] - a[0], b[2] - a[2]);
@@ -422,7 +426,7 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len);
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, finish);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {
@@ -459,7 +463,8 @@ export class Stations {
     return null;
   }
 
-  private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number) {
+  private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number,
+    finish?: Finish) {
     const P = (t: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
     const p0 = P(t0), p1 = P(t1);
     // the top: the ceiling; in the open, a parapet; around stairs coming up into the street, the
@@ -479,6 +484,14 @@ export class Stations {
       [p1[0], top(p1), p1[2], u1, top(p1) / 2], [p0[0], top(p0), p0[2], u0, top(p0) / 2],
     ];
     if (quad[2][1] <= quad[1][1] + 0.01 && quad[3][1] <= quad[0][1] + 0.01) return;
+    if (finish) {
+      // in a styled open station's finish: its uvs in metres along the wall and up from the floor
+      const [w, h] = T.FINISH_SIZE[finish], ends = [p0, p1, p1, p0];
+      const fq = quad.map((v, i) => [v[0], v[1], v[2], (i === 0 || i === 3 ? t0 : t1) * len / w, (v[1] - ends[i][1]) / h]);
+      this.open!.on(this.look.finish(finish)).poly(fq, cut);
+      if (T.FINISH_GLASS.includes(finish)) this.open!.on(this.look.pane).poly(fq, cut);
+      return;
+    }
     m.wall.poly(quad, cut);
   }
 

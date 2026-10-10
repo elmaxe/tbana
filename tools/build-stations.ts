@@ -23,7 +23,7 @@ import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, TrackGeometry } from '../src/track-geometry.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
 import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT } from '../src/sections.ts';
-import { ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
+import { CANOPY_HEIGHT, ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
 import type { CanopyPart, Exit, FloorPart, InclinePart, Part, StationLayout, StreetPart, VoidPart, XYZ } from '../src/station-layout.ts';
 import { interp } from './lib/graph.ts';
 
@@ -359,7 +359,7 @@ function canopies(name: string, d: Description): CanopyPart[] {
       if (kind === 'rock' || kind === 'box') continue;
       const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1), l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
       const u = t.side * (PLATFORM_EDGE + t.width / 2);
-      points.push(p3([g.x[k] - ((g.z[b] - g.z[a]) / l) * u, g.y[k] + PLATFORM_HEIGHT + 3.2, g.z[k] + ((g.x[b] - g.x[a]) / l) * u]));
+      points.push(p3([g.x[k] - ((g.z[b] - g.z[a]) / l) * u, g.y[k] + PLATFORM_HEIGHT + CANOPY_HEIGHT, g.z[k] + ((g.x[b] - g.x[a]) / l) * u]));
     }
     if (points.length < 2) continue;
     const mid = points[Math.floor(points.length / 2)];

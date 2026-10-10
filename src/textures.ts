@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Finish, Paving } from './open-styles';
 
 // All textures are drawn procedurally so the project ships with no image assets.
 
@@ -2249,4 +2250,240 @@ export function stadionArrow(blocks: boolean) {
   x.restore();
   x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
   return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ styled open stations
+// (src/open-styles.ts)
+
+const css = (n: number, k = 0) => {
+  const ch = (s: number) => Math.max(0, Math.min(255, ((n >> s) & 255) + k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+};
+
+// A styled open station's platform paving, u across from the edge (0) to PAVING_ACROSS m in (1),
+// v along it, PAVING_REPEAT m a repeat: the edge stones, the ribbed strip for the blind, pale
+// slabs, then pavers.
+export const PAVING_ACROSS = 4, PAVING_REPEAT = 2.4;
+export function openPaving(p: Paving) {
+  const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
+  const r = rng(1950), C = p.colors;
+  const joint = css(C.pavers, -34);
+  // pavers: rectangles 24 × 12 cm, in a running bond along the platform, or in herringbone
+  x.fillStyle = joint; x.fillRect(0, 0, W, H);
+  const pw = 0.12 * PX, pl = 0.24 * PX;
+  if (p.pattern === 'bond') {
+    for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
+      x.fillStyle = css(C.pavers, Math.floor(r() * 14) - 7);
+      x.fillRect(i * pw + 0.6, j * pl + (i % 2) * pl / 2 + 0.6, pw - 1.2, pl - 1.2);
+    }
+  } else {
+    for (let i = -2; i * pw < W + pl; i++) for (let j = -2; j * pw < H + pl; j += 2) {
+      const ox = i * pw, oy = (j + i) * pw;
+      x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + 1, pl - 2, pw - 2);
+      x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + pw + 1, pw - 2, pl - 2);
+    }
+  }
+  // pale slabs out to `slabs`, 30 cm square
+  const slab = (a: number, b: number) => {
+    x.fillStyle = joint; x.fillRect(a * PX, 0, (b - a) * PX, H);
+    const n = Math.max(1, Math.round((b - a) / 0.3)), w = ((b - a) * PX) / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < H / (0.3 * PX); j++) {
+      x.fillStyle = css(C.slab, Math.floor(r() * 12) - 6);
+      x.fillRect(a * PX + i * w + 1.5, j * 0.3 * PX + 1.5, w - 3, 0.3 * PX - 3);
+    }
+  };
+  if (p.slabs > p.tactile[1]) slab(p.tactile[1], p.slabs);
+  // the ribbed strip, its ribs along the platform
+  const [t0, t1] = p.tactile;
+  x.fillStyle = css(C.tactile); x.fillRect(t0 * PX, 0, (t1 - t0) * PX, H);
+  for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
+    x.fillStyle = css(C.tactile, 26); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
+    x.fillStyle = css(C.tactile, -22); x.fillRect((t0 + k + 0.025) * PX, 0, 0.008 * PX, H);
+  }
+  for (let j = 0; j <= H; j += 0.6 * PX) { x.fillStyle = joint; x.fillRect(t0 * PX, j - 1, (t1 - t0) * PX, 2); }
+  // the edge stones, 60 cm long
+  for (let j = 0; j * 0.6 * PX < H; j++) {
+    x.fillStyle = css(C.edge, Math.floor(r() * 10) - 5);
+    x.fillRect(0, j * 0.6 * PX + 1.5, p.edge * PX - 1.5, 0.6 * PX - 3);
+  }
+  x.fillStyle = joint; x.fillRect(p.edge * PX - 1.5, 0, 2, H);
+  speckle(x, W, H, 6000, 0.1, 1951);
+  return toTexture(c);
+}
+
+// The face of a platform's edge over the track: dark grey, with a bracket every 1.2 m. u up the
+// face from the track bed (0) to the platform's top (1), v along, FACE_REPEAT m a repeat.
+export const FACE_REPEAT = 1.2;
+export function platformFace(color: number) {
+  const [c, x] = canvas(64, 128);
+  x.fillStyle = css(color); x.fillRect(0, 0, 64, 128);
+  x.fillStyle = css(color, -16); x.fillRect(46, 0, 18, 128);
+  x.fillStyle = css(color, 22); x.fillRect(46, 0, 2, 128);
+  x.fillStyle = css(color, 30); x.fillRect(34, 56, 26, 16);
+  x.fillStyle = css(color, -30); x.fillRect(34, 70, 26, 3);
+  speckle(x, 64, 128, 300, 0.12, 52);
+  return toTexture(c);
+}
+
+// The white boarding under a roof, the boards along the platform: u across 1 m, v along 2.4 m.
+export function roofBoards(color: number) {
+  const [c, x] = canvas(200, 240);
+  x.fillStyle = css(color); x.fillRect(0, 0, 200, 240);
+  const r = rng(77);
+  for (let i = 0; i < 10; i++) {
+    x.fillStyle = css(color, Math.floor(r() * 8) - 6); x.fillRect(i * 20 + 1, 0, 18, 240);
+    x.fillStyle = css(color, -38); x.fillRect(i * 20, 0, 1.2, 240);
+  }
+  speckle(x, 200, 240, 400, 0.05, 78);
+  return toTexture(c);
+}
+
+// A chain-link fence: galvanised wire in diamonds 5 cm across, clear between. 0.5 × 0.5 m.
+export function chainLink() {
+  const [c, x] = canvas(128);
+  x.clearRect(0, 0, 128, 128);
+  x.strokeStyle = 'rgba(176,182,186,1)'; x.lineWidth = 2.2;
+  for (let k = -128; k <= 256; k += 12.8) {
+    x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 128, 128); x.stroke();
+    x.beginPath(); x.moveTo(k, 128); x.lineTo(k + 128, 0); x.stroke();
+  }
+  return toTexture(c);
+}
+
+// A black name sign hung under a platform's roof: the name in white, and under it the ways out,
+// to the left and to the right. 2.4 × 0.6 m.
+export function hangingSign(name: string, left: string, right: string) {
+  const W = 960, H = 240, [c, x] = canvas(W, H);
+  x.fillStyle = '#161718'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#f2f2ee'; x.textBaseline = 'middle';
+  x.font = '600 108px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center';
+  x.fillText(name, W / 2, 82, W - 80);
+  x.fillStyle = '#5a5c5e'; x.fillRect(30, 150, W - 60, 3);
+  x.fillStyle = '#f2f2ee'; x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
+  const arrow = (cx: number, dir: number) => {
+    x.beginPath(); x.moveTo(cx + dir * 18, 196); x.lineTo(cx - dir * 4, 180); x.lineTo(cx - dir * 4, 212); x.fill();
+    x.fillRect(Math.min(cx - dir * 22, cx - dir * 4), 192, 18, 8);
+  };
+  arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, 197, W / 2 - 100);
+  arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, 197, W / 2 - 100);
+  return toTexture(c, { repeat: false });
+}
+
+// The finishes of a styled open station's halls, passages and stairs, each `size` m a repeat
+// (across, and up a wall or along a floor). Walls are drawn as seen, from the floor up; their
+// glass is left clear (the glass itself is drawn apart). `clamp`: drawn to a height, not repeating.
+export const FINISH_SIZE: Record<Finish, [number, number]> = {
+  clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
+  darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
+};
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows'];
+export function finish(name: Finish) {
+  const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  const r = rng(name.length * 131 + 7);
+  // heights up the wall, in metres, to the canvas's rows
+  const Y = (m: number) => H - m * PX;
+  const band = (from: number, to: number, fill: string) => { x.fillStyle = fill; x.fillRect(0, Y(to), W, (to - from) * PX); };
+  const yellow = '#e0b13a', grey = '#cfd1ce', steel = '#7a8086';
+  const pane = (from: number, to: number, frame: string, mullion: number) => {
+    x.clearRect(0, Y(to), W, (to - from) * PX);
+    x.fillStyle = frame;
+    x.fillRect(0, Y(to), mullion * PX / 2, (to - from) * PX);
+    x.fillRect(W - mullion * PX / 2, Y(to), mullion * PX / 2, (to - from) * PX);
+  };
+  const panels = (from: number, to: number) => {
+    band(from, to, grey);
+    x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(3, Y(to), W * 0.3, (to - from) * PX);
+    x.fillStyle = 'rgba(60,62,64,0.6)'; x.fillRect(0, Y(to), 2, (to - from) * PX); x.fillRect(W - 2, Y(to), 2, (to - from) * PX);
+    x.fillRect(0, Y((from + to) / 2), W, 2);
+  };
+  switch (name) {
+    case 'clerestory':
+      band(0, 4, '#8e9295');
+      band(0, 0.1, '#55585a');
+      panels(0.1, 2.1);
+      band(2.1, 2.2, yellow); pane(2.2, 2.9, yellow, 0.1); band(2.9, 3.0, yellow);
+      break;
+    case 'windows':
+      band(0, 4, '#8e9295');
+      band(0, 0.1, '#55585a');
+      panels(0.1, 0.9);
+      band(0.9, 0.98, yellow); pane(0.98, 2.2, yellow, 0.1); band(2.2, 2.27, yellow); pane(2.27, 3.0, yellow, 0.1); band(3.0, 3.08, yellow);
+      break;
+    case 'glazed':
+      pane(0, h, steel, 0.1);
+      x.fillStyle = steel; x.fillRect(0, Y(0.04), W, 0.08 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, Y(0.04), W, 2);
+      break;
+    case 'yellowTiles': {
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${218 + Math.floor(r() * 14)},${178 + Math.floor(r() * 12)},${88 + Math.floor(r() * 16)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'boardConcrete':
+      for (let j = 0; j * 0.1 * PX < H; j++) {
+        const v = 158 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(0, j * 0.1 * PX, W, 0.1 * PX);
+        x.fillStyle = 'rgba(80,78,74,0.18)'; x.fillRect(0, j * 0.1 * PX, W, 1);
+      }
+      for (let k = 0; k < 60; k++) { x.fillStyle = `rgba(80,76,70,${0.03 + r() * 0.05})`; x.fillRect(r() * W, r() * H, 20 + r() * 120, 3 + r() * 10); }
+      break;
+    case 'darkStone': {
+      x.fillStyle = '#2c2d2f'; x.fillRect(0, 0, W, H);
+      const t = 0.4 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 70 + Math.floor(r() * 14);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 4})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'pavers': {
+      x.fillStyle = '#56544f'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.2 * PX;
+      for (let i = 0; i * b < W; i++) for (let j = -1; j * a < H; j++) {
+        const v = 128 + Math.floor(r() * 20);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(i * b + 1.5, j * a + (i % 2) * a / 2 + 1.5, b - 3, a - 3);
+      }
+      break;
+    }
+    case 'triangles': {
+      // squares of 1.2 m split corner to corner: pale stone above and below, black at the sides
+      const t = 1.2 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const x0 = i * t, y0 = j * t, cx = x0 + t / 2, cy = y0 + t / 2;
+        const tri = (pts: number[][], fill: string) => { x.fillStyle = fill; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (const q of pts.slice(1)) x.lineTo(q[0], q[1]); x.closePath(); x.fill(); };
+        tri([[x0, y0], [x0 + t, y0], [cx, cy]], '#ddd5c4'); tri([[x0, y0 + t], [x0 + t, y0 + t], [cx, cy]], '#ddd5c4');
+        tri([[x0, y0], [x0, y0 + t], [cx, cy]], '#3b3c3e'); tri([[x0 + t, y0], [x0 + t, y0 + t], [cx, cy]], '#3b3c3e');
+      }
+      speckle(x, W, H, 9000, 0.18, 61); speckle(x, W, H, 4000, 0.12, 62, true);
+      break;
+    }
+    case 'slats':
+      x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.1 * PX < W; i++) {
+        x.fillStyle = `rgb(${236 + Math.floor(r() * 8)},${236 + Math.floor(r() * 8)},${232 + Math.floor(r() * 8)})`;
+        x.fillRect(i * 0.1 * PX + 1.5, 0, 0.1 * PX - 3, H);
+      }
+      break;
+  }
+  if (name !== 'triangles' && name !== 'glazed' && name !== 'clerestory' && name !== 'windows') speckle(x, W, H, 2500, 0.08, 63);
+  const t = toTexture(c);
+  if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// Bronze, darkened and worn.
+export function bronze() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#4b3b2b'; x.fillRect(0, 0, 128, 128);
+  const r = rng(1994);
+  for (let i = 0; i < 300; i++) {
+    x.fillStyle = r() < 0.5 ? `rgba(120,92,58,${r() * 0.3})` : `rgba(30,26,22,${r() * 0.35})`;
+    x.fillRect(r() * 128, r() * 128, 2 + r() * 10, 2 + r() * 30);
+  }
+  return toTexture(c);
 }

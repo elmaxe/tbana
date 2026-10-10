@@ -47,8 +47,10 @@ export interface StreetPart { kind: 'street'; x0: number; z0: number; step: numb
 // into: up to where the hall's vault or roof begins.
 export interface VoidPart { kind: 'void'; corners: [number, number][]; y0: number; y1: number }
 
-// A roof over an open platform: along the points, `width` wide, its underside at their heights.
+// A roof over an open platform: along the points, `width` wide, its underside at their heights,
+// CANOPY_HEIGHT over the platform's top.
 export interface CanopyPart { kind: 'canopy'; points: XYZ[]; width: number }
+export const CANOPY_HEIGHT = 3.2;
 
 // A sign at an exit: the station's name over the way down, facing `yaw`.
 export interface SignPart { kind: 'sign'; x: number; y: number; z: number; yaw: number; text: string }

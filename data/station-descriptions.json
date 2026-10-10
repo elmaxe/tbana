@@ -1271,14 +1271,32 @@
     },
     "Gubbängen": {
       "drawing": "gubbangen.png",
-      "note": "An island platform in a shallow cutting. At its south end stairs go down to a passage under the tracks, with an exit to the street beside the line.",
+      "note": "An island platform at ground level on the hillside, under a long butterfly roof, the track on a low bank. At its south end a short hall with the ticket gates, then stairs down southwards to a passage under the tracks, with a way out on each side. At its north end a glass stair house, with an escalator and stairs up to the ticket hall on the Herrhagsvägen bridge, which opens onto the street to the east. Laid out from Lantmäteriet's laser scan, Google's 3D mesh and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-49.87436714794674, -0.1], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -0.1]},
-          {"walk": [-66.0, -0.0], "width": 6},
-          {"walk": [-66.0, -12.2], "width": 4},
+        { "from": [-72, -0.8], "width": 4.4, "go": [
+          {"walk": [-74.5, -0.8], "open": true},
+          {"walk": [-79, -0.8]},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -26.2], "name":  "Gubbängen"}}
+          {"walk": [-84, -0.8], "ceiling": 3.4},
+          {"stairs": -4.2, "toward": [-100, -0.8], "lanes": "SS"},
+          {"walk": [-97, -0.8], "width": 4, "ceiling": 2.2},
+          {"mark": "under"},
+          {"walk": [-97, -8], "ceiling": 2.2},
+          {"exit": {"at": [-97, -14], "name": "Gubbängen"}, "lanes": "SS"}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [-97, 6], "ceiling": 2.2},
+          {"exit": {"at": [-97, 16], "name": "Gubbängen"}, "by": "walk", "ceiling": 2.6}
+        ] },
+        { "from": [72, 0.8], "width": 5, "go": [
+          {"walk": [76.5, 0.8], "open": true},
+          {"walk": [77, 0.8], "ceiling": 3.4},
+          {"escalators": 4.6, "toward": [100, 0.8], "lanes": "ES"},
+          {"walk": [92, 0.8], "width": 7},
+          {"gates": true},
+          {"walk": [104, 0.8]},
+          {"walk": [104, 12], "width": 4},
+          {"exit": {"at": [104.6, 17.6], "name": "Herrhagsvägen"}, "by": "walk"}
         ] }
       ]
     },

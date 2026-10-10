@@ -413,6 +413,16 @@ The blue line's stations (1975–85) are caves: the vault roughened into lumps o
 as each station's artists painted it, from Kungsträdgården's green with red and white zigzags and
 Solna centrum's red sky over a spruce forest to Huvudsta's hanging gardens, Solna strand's
 squares of sky, Tensta's white rock and Hjulsta's frieze of a march (Kista is above ground).
+Some stations out in the open are drawn as they look too (`src/open-styles.ts`, built by
+`src/open-stations.ts`). Gubbängen (1950) has its long butterfly roof, white boarding on white
+rafters under a dark fascia, on dark steel columns down the middle of the platform with strip
+lights and black name signs hung under the beam; grey concrete pavers with pale edge stones and a
+ribbed strip for the blind; chain-link fences beyond the tracks; Ragnhild Alexandersson's two
+bronze Väktare (1994) beside casings round two of the columns; at its south end a hall of grey
+panels under a band of windows in yellow frames, over the stairs down to a passage under the
+tracks lined in small yellow tiles; and at its north end a glass stair house up to the ticket
+hall on its bridge over the tracks, with a floor of black and white terrazzo in triangles. The
+city leaves out OpenStreetMap's outlines of the buildings such a station draws itself.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:

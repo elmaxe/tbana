@@ -11,6 +11,8 @@ import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
 import type { CaveIsland, CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
+import { OPEN_STYLES } from './open-styles';
+import type { OpenStyle } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
 
@@ -135,7 +137,9 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   | 'stFloor' | 'stEdge' | 'stPlinth' | 'stCeiling' | 'stMesh' | 'stBand' | 'stRail'
   // a painted cave's rock, one for each station (src/hall-styles.ts), and the rock of its pillars
   // and of the walls over its passage, where it has them
-  | `cave:${string}` | `pillar:${string}` | `fenced:${string}` | `portal${0 | 1}:${string}`;
+  | `cave:${string}` | `pillar:${string}` | `fenced:${string}` | `portal${0 | 1}:${string}`
+  // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
+  | `pave:${string}` | `face:${string}`;
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Karlaplan's and Östermalmstorg's.
 const HOTORGET = HALL_STYLES['Hötorget'] as FlatHall;
@@ -621,7 +625,7 @@ export class Network {
     const H = S.PLATFORM_HEIGHT;
     for (const [mb, kind] of [[b.platform, null], [b.hallFloor, 'flat'], [b.kpFloor, 'vault']] as const) sweep(mb, run, (sm) => {
       const p = sm.plat;
-      if (!p || (hallStyle(sm)?.kind ?? null) !== kind || vaultStyle(sm) || islandStyle(sm)) return null;
+      if (!p || (hallStyle(sm)?.kind ?? null) !== kind || vaultStyle(sm) || islandStyle(sm) || openStyle(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
     }, { uScale: 0.5, vScale: 0.5 });
@@ -664,9 +668,28 @@ export class Network {
       const u0 = p.side * S.PLATFORM_EDGE, u1 = p.side * (S.PLATFORM_EDGE + ISLAND_EDGE);
       return { key: `e${p.side}`, pts: p.side > 0 ? [[u0, H + 0.002], [u1, H + 0.002]] : [[u1, H + 0.002], [u0, H + 0.002]] };
     }, { uScale: 0.5, vScale: 0.5 });
+    // a styled open station's: its paving, mapped across from the edge (on an island, each
+    // track's half out to the line down its middle), and the face of its edge
+    for (const station of new Set(run.filter((sm) => openStyle(sm)).map((sm) => sm.plat!.station))) {
+      const pave: MaterialName = `pave:${station}`, face: MaterialName = `face:${station}`;
+      const paving = OPEN_STYLES[station].paving;
+      this.mats[pave] ??= new THREE.MeshStandardMaterial({ map: T.openPaving(paving), roughness: 0.85 });
+      this.mats[face] ??= new THREE.MeshStandardMaterial({ map: T.platformFace(paving.colors.face), roughness: 0.6, side: THREE.DoubleSide });
+      const mine = (sm: Sample) => openStyle(sm) && sm.plat!.station === station;
+      sweep(b[pave] ??= new MeshBuilder(), run, (sm) => {
+        if (!mine(sm)) return null;
+        const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
+        return { key: `p${p.side}`, pts: p.side > 0 ? [[e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H]] };
+      }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.PAVING_ACROSS, vScale: 1 / T.PAVING_REPEAT });
+      sweep(b[face] ??= new MeshBuilder(), run, (sm) => {
+        if (!mine(sm)) return null;
+        const e = sm.plat!.side * S.PLATFORM_EDGE;
+        return { key: `f${sm.plat!.side}`, pts: sm.plat!.side > 0 ? [[e, S.FLOOR], [e, H]] : [[e, H], [e, S.FLOOR]] };
+      }, { u: (_, v) => (v - S.FLOOR) / (H - S.FLOOR), vScale: 1 / T.FACE_REPEAT });
+    }
     sweep(b.yellow, run, (sm) => {
       const p = sm.plat;
-      if (!p || vaultStyle(sm)) return null;
+      if (!p || vaultStyle(sm) || openStyle(sm)) return null;
       // (in an island cave, along the inner side of its pale band)
       const from = islandStyle(sm) ? ISLAND_EDGE : 0.3;
       const u0 = p.side * (S.PLATFORM_EDGE + from), u1 = p.side * (S.PLATFORM_EDGE + from + 0.12);
@@ -713,7 +736,8 @@ export class Network {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
         if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
-        else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        // (a styled open station's hang under its roof: src/stations.ts)
+        else if (!vs && !caveStyle(sm) && !openStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       if (caveStyle(sm) && !islandStyle(sm)) {
         // in a painted cave, a row of fittings hung on rods well under the rock, over the
@@ -1472,6 +1496,12 @@ function caveStyle(sm: Sample): CaveStyle | null {
 function islandStyle(sm: Sample): CaveIsland | null {
   const p = sm.plat;
   return p && p.island && sm.pair ? caveStyle(sm)?.island ?? null : null;
+}
+
+// A styled open station (src/open-styles.ts): a platform out in the open, under its own roof.
+function openStyle(sm: Sample): OpenStyle | null {
+  const p = sm.plat;
+  return p && sm.kind !== 'rock' && sm.kind !== 'box' ? OPEN_STYLES[p.station] ?? null : null;
 }
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down

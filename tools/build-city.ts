@@ -47,7 +47,8 @@
 //   left out: the stations draw their own. So it is where one would reach down into a tunnel: the
 //   part over it stands on its roof.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
-//   of the building, and an exit's way out continues through the building to the outside.
+//   of the building, and an exit's way out continues through the building to the outside. The
+//   buildings a styled open station draws itself (src/open-styles.ts) are left out.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
 //   it stands on the ground, open inside, with a door wherever a track passes through its walls.
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -58,6 +59,7 @@ import { CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName 
 import type { Building, CityIndex, Door, RoofShape, WallStyle } from '../src/city-tile.ts';
 import { ROOF_SHAPES } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
+import { OPEN_STYLES } from '../src/open-styles.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { LIFT, floorHeights, inclineCorners, liftCorners } from '../src/station-layout.ts';
 import type { StationLayouts } from '../src/station-layout.ts';
@@ -699,6 +701,8 @@ function colour(v: string | undefined) {
   return NAMED[s.replace(/[\s_-]/g, '')] ?? null;
 }
 
+// the buildings the styled open stations draw themselves (src/open-styles.ts)
+const drawnByStations = new Set(Object.values(OPEN_STYLES).flatMap((st) => st.buildings ?? []));
 interface Source { osm: string; tags: Record<string, string>; rings: Ring[]; part: boolean; area: number; c: XZ; hasParts?: boolean }
 const sources: Source[] = osm.buildings.map((b) => {
   const rings = b.rings.map((flat) => {
@@ -712,7 +716,7 @@ const sources: Source[] = osm.buildings.map((b) => {
   }).filter((r) => r.length >= 3);
   const part = !b.tags.building || b.tags.building === 'no';
   return { osm: b.osm, tags: b.tags, rings, part, area: rings.length ? Math.abs(ringArea(rings[0])) : 0, c: rings.length ? centroid(rings[0]) : [0, 0] as XZ };
-}).filter((s) => s.rings.length && s.area > 2);
+}).filter((s) => s.rings.length && s.area > 2 && !drawnByStations.has(s.osm));
 
 // buildings by 50 m cell, for finding neighbours and outlines around parts
 const BCELL = 50;

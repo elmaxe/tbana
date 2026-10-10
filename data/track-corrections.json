@@ -97,7 +97,11 @@
     },
     {
       "station": "Gubbängen",
-      "why": "No platform is mapped at Gubbängen in OSM (October 2026). The station's node lies between the two tracks, at the island platform."
+      "at": [
+        154688.3,
+        6571980
+      ],
+      "why": "No platform is mapped at Gubbängen in OSM (October 2026), and the station's node is 60 m north of the platform's middle. The island platform is placed between the tracks under its roof, which Lantmäteriet's laser scan shows from 7548 to 7696 m south (world z)."
     },
     {
       "station": "Skarpnäck",
