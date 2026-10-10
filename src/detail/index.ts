@@ -3,6 +3,7 @@ import type { Building } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
 import { buildKonserthuset, konserthusetOutline } from './konserthuset.ts';
+import { KUNGSTORNEN } from './kungstornen.ts';
 import { detailMaterial } from './materials.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -20,6 +21,7 @@ interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
   ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: t.at, build: (B) => buildTower(B, t.tower) })),
+  ...KUNGSTORNEN,
 ];
 
 export interface TileDetail {

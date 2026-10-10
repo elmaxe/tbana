@@ -12,8 +12,9 @@
 //   <out>-top-height.jpg   the height of that view, blue (low) through green to red (high)
 // and with --frame (the building's middle in world x, z, its turn in degrees as src/detail's
 // Builder.place, and its length and depth), the building's four sides seen straight on, at 0.05 m
-// to a pixel: <out>-north.jpg (its −z side), -south, -east (+x), -west. Then it prints a profile
-// across the building in 1 m slices, as tools/laser-points.ts does, from the mesh's top surface.
+// to a pixel, with only what stands inside that frame: <out>-north.jpg (its −z side), -south,
+// -east (+x), -west. Then it prints a profile across the building in 1 m slices, as
+// tools/laser-points.ts does, from the mesh's top surface.
 //
 // Neither the mesh nor any picture of it may go in the repo: Google's terms allow looking and
 // measuring, not publishing. Keep them in .google/ or the scratchpad. The repo keeps only numbers
@@ -90,7 +91,8 @@ console.log(`${out}.glb`);
 // An orthographic view: across (right) and up in the picture, and towards the viewer, as world
 // vectors; the nearest surface wins.
 type V = [number, number, number];
-function view(file: string, origin: V, right: V, up: V, toward: V, width: number, height: number, res: number) {
+function view(file: string, origin: V, right: V, up: V, toward: V, width: number, height: number, res: number,
+  keep?: (x: number, z: number) => boolean) {
   const W = Math.ceil(width / res), H = Math.ceil(height / res);
   const rgba = new Uint8Array(W * H * 4), depth = new Float32Array(W * H).fill(-Infinity), at = new Float32Array(W * H).fill(NaN);
   const dot = (p: Float32Array, i: number, v: V) => (p[i] - origin[0]) * v[0] + (p[i + 1] - origin[1]) * v[1] + (p[i + 2] - origin[2]) * v[2];
@@ -98,6 +100,7 @@ function view(file: string, origin: V, right: V, up: V, toward: V, width: number
     const { width: tw, height: th, data } = pc.img;
     for (let t = 0; t < pc.idx.length; t += 3) {
       const ia = pc.idx[t], ib = pc.idx[t + 1], ic = pc.idx[t + 2];
+      if (keep && !keep((pc.pos[3 * ia] + pc.pos[3 * ib] + pc.pos[3 * ic]) / 3, (pc.pos[3 * ia + 2] + pc.pos[3 * ib + 2] + pc.pos[3 * ic + 2]) / 3)) continue;
       const sx = [ia, ib, ic].map((i) => dot(pc.pos, 3 * i, right) / res);
       const sy = [ia, ib, ic].map((i) => H - dot(pc.pos, 3 * i, up) / res);
       const sd = [ia, ib, ic].map((i) => dot(pc.pos, 3 * i, toward));
@@ -149,11 +152,16 @@ if (frame) {
   const yLo = lo - 2, tall = hi - yLo + 2, m = 4;
   const corner = (u: number, v: number): V => [cx + u * ax[0] + v * az[0], yLo, cz + u * ax[2] + v * az[2]];
   const L = length / 2 + m, D = depthM / 2 + m;
+  // only what stands inside the frame, so a neighbour in front does not hide the building
+  const keep = (x: number, z: number) => {
+    const u = (x - cx) * ax[0] + (z - cz) * ax[2], v = (x - cx) * az[0] + (z - cz) * az[2];
+    return Math.abs(u) <= L && Math.abs(v) <= D;
+  };
   // each side from outside, left to right as seen
-  view(`${out}-north.jpg`, corner(L, -D), [-ax[0], 0, -ax[2]], [0, 1, 0], [-az[0], 0, -az[2]], 2 * L, tall, 0.05);
-  view(`${out}-south.jpg`, corner(-L, D), ax, [0, 1, 0], az, 2 * L, tall, 0.05);
-  view(`${out}-east.jpg`, corner(L, D), [-az[0], 0, -az[2]], [0, 1, 0], ax, 2 * D, tall, 0.05);
-  view(`${out}-west.jpg`, corner(-L, -D), az, [0, 1, 0], [-ax[0], 0, -ax[2]], 2 * D, tall, 0.05);
+  view(`${out}-north.jpg`, corner(L, -D), [-ax[0], 0, -ax[2]], [0, 1, 0], [-az[0], 0, -az[2]], 2 * L, tall, 0.05, keep);
+  view(`${out}-south.jpg`, corner(-L, D), ax, [0, 1, 0], az, 2 * L, tall, 0.05, keep);
+  view(`${out}-east.jpg`, corner(L, D), [-az[0], 0, -az[2]], [0, 1, 0], ax, 2 * D, tall, 0.05, keep);
+  view(`${out}-west.jpg`, corner(-L, -D), az, [0, 1, 0], [-ax[0], 0, -ax[2]], 2 * D, tall, 0.05, keep);
 
   const plan = view(`${out}-plan.jpg`, corner(-L, D), ax, [-az[0], 0, -az[2]], [0, 1, 0], 2 * L, 2 * D, 0.25);
   const ys: number[] = [];

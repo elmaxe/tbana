@@ -14,13 +14,13 @@ Axel knows these buildings in real life. A model built from memory or guesswork 
 `npm run google-mesh -- <x0,z0,x1,z1> <out> --frame <x,z,turn,length,depth>` (tools/google-mesh.ts) cuts Google's photorealistic mesh to a world box and writes:
 - `<out>.glb`, in world coordinates and textured
 - a top view and a height map of the top view
-- the building's four sides seen straight on, at 0.05 m per pixel, which is the best reference for its facades
+- the building's four sides seen straight on, at 0.05 m per pixel, with only what stands inside the frame (so make the frame just bigger than the building, or a neighbour in it hides it). These are the best reference for its facades
 - a profile across the building in 1 m slices
 
 Read the side views and the top view with the Read tool.
 
 Where the mesh comes from:
-- **Axel's download of Google Earth's mesh (preferred).** It is on his computer at `C:\Users\axele\hobby\sthlm\downloaded_files\web\central-20-1015`: central Stockholm at level 20, with about 0.1 m texels. Its heights match the laser scan to 0.1–0.3 m.
+- **Axel's download of Google Earth's mesh (preferred).** It is on his computer at `C:\Users\axele\hobby\sthlm\downloaded_files\web\central-20-1015`: central Stockholm at level 20, with about 0.1 m texels. Its heights match the laser scan to 0.1–0.3 m at Hötorget, but not everywhere: at Kungstornen they sit 2.8 m low. Read heights relative to the street beside the building (the profile prints the ground), and check the absolute ones against the laser scan.
   - On his computer the tool finds it by itself, through `../sthlm`.
   - From a cloud session, stage `tileset.json` with the remote-devices tools (folder `sthlm`, `~/mnt/sthlm/downloaded_files/web/central-20-1015/`). Then run the tool with `--dir <staged folder> --files` to list the node files the box needs, stage those (50 per call), and run it again with `--dir`.
 - **Cesium ion (`--ion`, with `CESIUM_ION_TOKEN`, which the cloud sessions have).** This is the same mesh, but its heights are off by up to 2.5 m, and by different amounts in different places. Use it for shape and looks only, never for heights.
@@ -60,7 +60,8 @@ The laser scan is the ground truth for geometry: Laserdata Nedladdning, skog, CC
 ## 3. Check it in the game
 
 - Take screenshots with `npm run shot -- <file.png> <x,y,z,yaw,pitch> [more pairs] --before`. It starts the dev server and writes `<file>-before.png` without the detail (`?nodetail`). Forward is (−sin yaw, 0, −cos yaw).
-- Shoot from the viewpoints of the reference photos and of the Google side views, and compare them side by side before showing Axel.
+- Shoot from the viewpoints of the reference photos and of the Google side views, and compare them side by side before showing Axel. `--google <glb>` renders the mesh from google-mesh from the same cameras, as `<file>-google.png`, for a like-for-like comparison (local only, like the mesh).
+- To find what to fix next in an area, compare each city block's height with the mesh's and the laser scan's over its outline. A block that is only the wrong height needs no landmark: its OpenStreetMap tags are usually wrong (too few levels make tools/build-city.ts doubt the laser scan). Fix them in `data/building-corrections.json` with the reason, and run `npm run build-city`.
 - Put the screenshots in /mnt/project-files/<area>-pilot/ and attach them to the reply. Game screenshots are fine to share; Google pictures are not.
 
 ## 4. Ship it

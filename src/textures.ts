@@ -2481,6 +2481,28 @@ export function marble() {
   return toTexture(c, { aniso: 8 });
 }
 
+// A stone balustrade 1 m high on nothing (for an alpha test): a plinth, five turned balusters to
+// the metre and a rail; covers 1 × 1 m.
+export function balustrade() {
+  const [c, x] = canvas(128, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 128, 14); x.fillRect(0, 114, 128, 14);
+  for (let k = 0; k < 5; k++) {
+    const cx = 12.8 + k * 25.6;
+    x.beginPath();
+    x.moveTo(cx - 6, 114); x.lineTo(cx + 6, 114);
+    x.bezierCurveTo(cx + 3, 100, cx + 10, 70, cx + 4, 46);
+    x.bezierCurveTo(cx + 2, 34, cx + 6, 22, cx + 6, 14);
+    x.lineTo(cx - 6, 14);
+    x.bezierCurveTo(cx - 6, 22, cx - 2, 34, cx - 4, 46);
+    x.bezierCurveTo(cx - 10, 70, cx - 3, 100, cx - 6, 114);
+    x.fill();
+  }
+  x.fillStyle = 'rgba(0,0,0,0.18)';
+  x.fillRect(0, 12, 128, 2); x.fillRect(0, 114, 128, 2);
+  return toTexture(c, { aniso: 4 });
+}
+
 // A digit in blue neon tubes, on nothing (for an alpha test), as on the Hötorget towers' gables.
 export function neonDigit(d: string) {
   const [c, x] = canvas(128, 192);
