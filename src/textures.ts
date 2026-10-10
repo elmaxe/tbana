@@ -2412,7 +2412,7 @@ const css = (n: number, k = 0) => {
 // A styled open station's platform paving, u across from the edge (0) to PAVING_ACROSS m in (1),
 // v along it, PAVING_REPEAT m a repeat: the edge stones, the ribbed strip for the blind, pale
 // slabs, then pavers.
-export const PAVING_ACROSS = 5, PAVING_REPEAT = 2.4;
+export const PAVING_ACROSS = 8, PAVING_REPEAT = 2.4;
 export function openPaving(p: Paving) {
   const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
@@ -2571,21 +2571,24 @@ export function chainLink() {
 
 // A black name sign hung under a platform's roof: the name in white, and under it the ways out,
 // to the left and to the right. 2.4 × 0.6 m.
-export function hangingSign(name: string, left: string, right: string) {
+export function hangingSign(name: string, left: string, right: string, blue = false) {
   const W = 960, H = 240, [c, x] = canvas(W, H);
-  x.fillStyle = '#161718'; x.fillRect(0, 0, W, H);
+  x.fillStyle = blue ? '#24307a' : '#161718'; x.fillRect(0, 0, W, H);
+  // (SL's blue ones: a yellow stripe along the foot)
+  if (blue) { x.fillStyle = '#f2c230'; x.fillRect(0, H - 22, W, 22); }
   x.fillStyle = '#f2f2ee'; x.textBaseline = 'middle';
   x.font = '600 108px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center';
   x.fillText(name, W / 2, 82, W - 80);
-  x.fillStyle = '#5a5c5e'; x.fillRect(30, 150, W - 60, 3);
+  x.fillStyle = blue ? '#e8e8e2' : '#5a5c5e'; x.fillRect(30, 150, W - 60, 3);
   x.fillStyle = '#f2f2ee'; x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
+  const y = blue ? 186 : 197;
   const arrow = (cx: number, dir: number) => {
-    x.beginPath(); x.moveTo(cx + dir * 18, 196); x.lineTo(cx - dir * 4, 180); x.lineTo(cx - dir * 4, 212); x.fill();
-    x.fillRect(Math.min(cx - dir * 22, cx - dir * 4), 192, 18, 8);
+    x.beginPath(); x.moveTo(cx + dir * 18, y - 1); x.lineTo(cx - dir * 4, y - 17); x.lineTo(cx - dir * 4, y + 15); x.fill();
+    x.fillRect(Math.min(cx - dir * 22, cx - dir * 4), y - 5, 18, 8);
   };
   // (no way out that way if there's no name)
-  if (left) { arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, 197, W / 2 - 100); }
-  if (right) { arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, 197, W / 2 - 100); }
+  if (left) { arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, y, W / 2 - 100); }
+  if (right) { arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, y, W / 2 - 100); }
   return toTexture(c, { repeat: false });
 }
 
@@ -2735,10 +2738,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   stripes: [2.4, 2.4], greenWindows: [1.2, 4], checkWindows: [1.5, 2.8], blueTiles: [1.2, 3], tiledWindows: [1.2, 3],
   gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
   redWindows: [1.2, 4.2], shutter: [1.2, 4.2], redPanels: [1.2, 3], perforated: [2.4, 2.4], lineMosaic: [4.8, 4.8],
-  creamPanels: [1.2, 1.2],
+  creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3095,6 +3098,44 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(3.65), W, 2);
       break;
     }
+    case 'blueGlazed': {
+      // Globen's stair houses: a white panel to 0.9 m between blue rails, then glass in blue steel
+      // frames (the top row of the picture carried on up the wall, so glazed to the roof)
+      const blue = '#2f6fae';
+      band(0, 0.06, blue); band(0.06, 0.9, '#e4e6e3'); band(0.9, 0.98, blue); pane(0.98, 2.4, blue, 0.1);
+      x.fillStyle = blue; x.fillRect(0, Y(0.9), 0.05 * PX, 0.9 * PX); x.fillRect(W - 0.05 * PX, Y(0.9), 0.05 * PX, 0.9 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(0, Y(0.98), W, 1.5);
+      break;
+    }
+    case 'blueClerestory': {
+      // Globen's halls: white panels to 2.9 m, a dark blue band over a yellow line, and windows
+      // in blue frames above it, on up to the roof
+      const blue = '#2f6fae';
+      band(0, 0.12, '#55595c'); band(0.12, 2.9, '#e6e7e3');
+      x.fillStyle = 'rgba(70,72,74,0.4)'; x.fillRect(0, Y(2.9), 2, 2.78 * PX); x.fillRect(0, Y(1.5), W, 2);
+      band(2.9, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.33, blue); pane(3.33, 4.2, blue, 0.1);
+      break;
+    }
+    case 'steelFront': {
+      // their fronts: glass doors in brushed steel frames, a steel transom, a black sign band, the
+      // dark blue band and yellow line, windows in blue frames above
+      const steelLight = '#a9aeb1', blue = '#2f6fae';
+      band(0, 0.1, steelLight); pane(0.1, 2.4, steelLight, 0.14);
+      x.fillStyle = steelLight; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 0.08 * PX, 2.3 * PX); x.fillRect(0, Y(1.15), W, 0.06 * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 1.5, 2.3 * PX);
+      band(2.4, 2.55, steelLight); band(2.55, 2.88, '#1b1c1e');
+      x.fillStyle = '#f2f2ee'; x.fillRect(0.3 * PX, Y(2.79), 0.6 * PX, 0.06 * PX);
+      band(2.88, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.33, blue); pane(3.33, 4.2, blue, 0.1);
+      break;
+    }
+    case 'ribbedMetal':
+      // ribs 15 cm apart, across the picture
+      x.fillStyle = '#c9c4b8'; x.fillRect(0, 0, W, H);
+      for (let j = 0; j * 0.15 * PX < H; j++) {
+        x.fillStyle = 'rgba(80,76,68,0.35)'; x.fillRect(0, j * 0.15 * PX, W, 0.03 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, j * 0.15 * PX + 0.05 * PX, W, 0.02 * PX);
+      }
+      break;
     case 'creamPanels':
       // as over redWindows' glass
       x.fillStyle = '#e0d9c6'; x.fillRect(0, 0, W, H);
@@ -3150,6 +3191,23 @@ export function finish(name: Finish) {
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
+}
+
+// Sheets of green glass stacked flat, seen edge on: a streak for each sheet's edge, eight of them
+// up the picture (a layer of the stack, about 12 cm), some weathered grey.
+export function stackedGlass() {
+  const W = 64, H = 64, [c, x] = canvas(W, H), r = rng(1989);
+  x.fillStyle = '#2c6f60'; x.fillRect(0, 0, W, H);
+  for (let y = 0; y < H; y += 8) {
+    for (let a = 0; a < W;) {
+      const grey = r() < 0.25, k = r(), l = 8 + r() * 40;
+      x.fillStyle = grey ? `rgba(96,104,100,${0.5 + 0.3 * k})` : k < 0.5 ? `rgba(20,62,52,${0.4 + 0.4 * k})` : `rgba(110,196,170,${0.25 + 0.5 * (k - 0.5)})`;
+      x.fillRect(a, y + 1, l, 5);
+      a += l;
+    }
+    x.fillStyle = 'rgba(12,36,30,0.6)'; x.fillRect(0, y, W, 1);
+  }
+  return toTexture(c);
 }
 
 // Bronze, darkened and worn; or dark with a green patina.

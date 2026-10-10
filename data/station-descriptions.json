@@ -1485,17 +1485,26 @@
     },
     "Globen": {
       "drawing": "globen.png",
-      "note": "A wide island platform in a cutting. At its east end stairs climb to a ticket hall at the street, by the arena.",
+      "note": "An island platform in a cutting between Palmfeltsvägen and the tram's platform, under a long butterfly roof that widens with the platform towards its east end. At the east end escalators and stairs climb in a glazed house to the ticket hall on Globenbron, its gates in the middle, and out onto the bridge; at the west end stairs climb in a glazed tube to a small hall on Slakthusbron, its gates at the top. Laid out from Lantmäteriet's laser scan, OpenStreetMap and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [40, 0], "width": 4, "go": [
-          {"stairs": 7, "toward": [150, 0]},
-          {"walk": 6, "width": 6},
+        { "from": [65.0, -3.9], "h": 0.1, "width": 7.0, "go": [
+          {"walk": [77.2, -7.4], "open": true},
+          {"escalators": 7.2, "toward": [106.0, -15.65], "lanes": "EESs"},
+          {"walk": [100.9, -14.2], "width": 8.0, "open": true},
           {"gates": true},
-          {"mark": "east"},
-          {"exit": 13820436338}
+          {"walk": [110.9, -17.0], "open": true},
+          {"walk": [113.8, -17.8], "width": 4.0, "open": true},
+          {"exit": {"at": [111.5, -36.0], "name": "Globenbron"}, "by": "walk", "open": true}
         ] },
-        { "from": "east", "width": 4, "go": [
-          {"exit": 5418076910}
+        { "from": [-64.0, -2.8], "width": 3.0, "go": [
+          {"walk": [-72.8, -2.8], "open": true},
+          {"stairs": 4.8, "toward": [-90.0, -2.8], "lanes": "ss"},
+          {"walk": [-90.5, -2.8], "width": 4.0, "open": true},
+          {"gates": true},
+          {"walk": [-96.5, -2.8], "open": true},
+          {"walk": [-101.3, -2.8], "open": true},
+          {"walk": [-99.0, -36.0], "open": true},
+          {"exit": {"at": [-97.5, -42.0], "name": "Slakthusbron"}, "by": "walk", "open": true}
         ] }
       ]
     },

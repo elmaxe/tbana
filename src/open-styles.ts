@@ -46,6 +46,9 @@ export interface ButterflyRoof {
   from: number; to: number;    // along the platform
   width: number;
   offset?: number;             // its middle this far to the right of the platform's
+  // or, where its tracks curve apart and the platform widens, its middle (this far to the right of
+  // the platform's) and its width at points along it ([s, u, width]), straight between them
+  shape?: [number, number, number][];
 
   // the underside's height at the middle and at the edges, the roof's thickness, and how deep
   // its fascia is at the edges
@@ -61,23 +64,33 @@ export interface ButterflyRoof {
   rafterColor?: number;
   // steel purlins along the underside at these `u` across the roof's middle, `size` across and deep
   purlins?: { at: number[]; size: [number, number] };
+  // a steel channel along the valley, wide and deep
+  gutter?: [number, number];
+  // raised bays across the roof, each `length` long with its middle at one of `at`: a covering
+  // pitched both ways along the platform from a ridge across it, `ridge` over the platform
+  lanterns?: { at: number[]; length: number; ridge: number };
   // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
   // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
   // each column up to the beam this far along it either way; `casings`, a dark box round the
   // columns at these `s`, `size` across and along; `offset`, the columns (and the beams over
-  // them, and the signs) this far to the right of the roof's middle
+  // them, and the signs) this far to the right of the roof's middle; `edges`, pairs of them each
+  // this far in from the roof's edges, however wide it is there; `cross`, a steel beam across the
+  // roof over each pair, from edge to edge, its underside `cross[0]` over the platform and
+  // `cross[1]` deep (and the columns on up through it to the rafters over them)
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
     between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
+    edges?: number; cross?: [number, number];
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
   // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
-  // housing hung under the rafters
-  lamps: { offset: number; length: number; every: number; at?: number[]; tube?: boolean };
+  // housing hung under the rafters; `across`, the fittings lying across the platform
+  lamps: { offset: number; length: number; every: number; at?: number[]; tube?: boolean; across?: boolean };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // name signs hung under the beam at these `s`, with the way out at each end of the platform
-  // (none if empty); or, between a pair of beams, from the rafters, `bottom` over the platform
-  signs: { at: number[]; back: string; ahead: string; bottom?: number };
+  // (none if empty); or, between a pair of beams, from the rafters, `bottom` over the platform;
+  // black, or (`blue`) SL's dark blue over a yellow stripe
+  signs: { at: number[]; back: string; ahead: string; bottom?: number; blue?: boolean };
   // round clocks with a face each way along the platform, and departure boards, hung from the
   // roof at s, u
   clocks?: [number, number][];
@@ -154,7 +167,11 @@ export type Finish =
   | 'redPanels'     // dark red painted panels
   | 'perforated'    // dark grey perforated steel panels, a ceiling's
   | 'lineMosaic'    // pale grey stone, dark lines of mosaic crossing it in long triangles
-  | 'creamPanels';  // cream panels between red steel posts
+  | 'creamPanels'   // cream panels between red steel posts
+  | 'blueGlazed'    // white panels to a sill, glazed above in blue steel frames
+  | 'blueClerestory' // white panels, a dark blue band over a yellow line, windows in blue frames above
+  | 'steelFront'    // glass doors in brushed steel, a sign band, the dark blue band, windows above
+  | 'ribbedMetal';  // pale ribbed sheet metal, a ceiling's
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -179,7 +196,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -212,6 +229,15 @@ export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
 // The metro's round sign on a post on a roof at s, u, its middle `h` high and `size` across, its
 // faces across the platform; the post from `foot` up.
 export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number }
+
+// Stacks of green glass sheets, each tapering on all sides to a narrow ridge, `count` of them side
+// by side along the platform with their middle at s, u, standing on the ground `foot` high, the
+// tallest `height` high.
+export interface GlassStacks { kind: 'glassStacks'; s: number; u: number; foot: number; height: number; count: number }
+
+// Slabs of the same glass standing at the points, from `h[0]` to `h[1]` high, `size` along and
+// across the platform.
+export interface GlassPosts { kind: 'glassPosts'; at: [number, number][]; h: [number, number]; size: [number, number] }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
@@ -860,7 +886,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-48.8, -6.0], [-48.8, 6.3]], h: [0, 1.8] },
       { points: [[93.4, -6.4], [93.4, 6.3]], h: [0, 1.8] },
     ],
-  },  // Farsta strand (29 August 1971): the platform is underground, in a box the network draws in its
+  },
+
+  // Farsta strand (29 August 1971): the platform is underground, in a box the network draws in its
   // own style (src/hall-styles.ts); here, the ticket hall over it and the pavilion on Stieg
   // Trenters torg it stands in. OpenStreetMap's indoor mapping and photographs (2018) put two
   // flights in the middle of the platform, each stairs beside escalators, climbing towards each
@@ -914,6 +942,129 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // (where it climbs under the square, before it comes up into the annex)
       { name: 'ceiling over the escalators', plan: [[-5.9, 1.0], [-8.2, 1.0], [-8.2, -3.4], [-5.9, -3.4]], h: [4.2, 4.2], from: 4.2, roof: 0.15, walls: 'boardConcrete',
         sides: [null, null, null, null], ceiling: 'perforated' },
+    ],
+  },
+
+  // Globen (9 September 1951, as Slakthuset; Isstadion from 1958, Globen since 1989, when it was
+  // rebuilt with the arena): an island platform in a cutting between Palmfeltsvägen and the
+  // tram's platform, its tracks curving apart towards its east end, so that it widens from 7.5 m
+  // at its west end to 13.7 m at its east. The laser scan puts its butterfly roof over the whole
+  // platform, from 73 m west of its middle to 72.5 m east, the valley 3.6 m over the platform
+  // and the edges 3.95 m, widening with it; three raised bays across it, each 8.5 m long, their
+  // ridges 4.9 m high. Photographs show its underside of ribbed sheet, the ribs across the
+  // platform, a pale wood brown, on rafters and beams of teal steel; two rows of teal columns,
+  // one in from each edge, about 12.6 m apart, under a beam across the roof over each pair; strip
+  // lights lying across, a steel gutter along the valley, departure boards side by side down the
+  // middle, and SL's blue name signs with the ways out, Slakthusområdet to the west and Stockholm
+  // Live to the east. The paving: pale edge stones, a ribbed strip for the blind, then dark grey
+  // concrete slabs, 60 by 30 cm, in a running bond.
+  //
+  // At the east end, escalators and stairs climb 7.3 m in a glazed house, white panels under
+  // glass in blue frames, its roof following them up, to the ticket hall on Globenbron
+  // (OpenStreetMap's outline; laser scan: its eaves 10.8 m over the platform and its ridge 13.9 m):
+  // a gabled hall, white panels under a dark blue band and a yellow line, windows in blue frames
+  // above, a dark stone floor and a ribbed ceiling, the gates in its middle; its east gable
+  // glass doors in brushed steel. The bridge's deck, 7 m over the platform, runs on north along
+  // its front. At the west end, stairs climb 4.8 m in a glazed tube beside a lift's tower to a
+  // small gabled hall on Slakthusbron, over the tracks on a concrete pier: the same walls, the
+  // gates at the top of the stairs and the station's name over its doors, and the bridge's deck
+  // across in front of it, from Slakthusområdet to the north over Palmfeltsvägen to Slakthusplan.
+  //
+  // Chain-link fences beyond both tracks. Along the southern, by Palmfeltsvägen, Joanna
+  // Troikowicz's Isfantasi (1989), 149 m of it: slabs of green glass standing in the fence, and by
+  // the road below the escalators' house, four stacks of green glass sheets, each tapering to a
+  // ridge, about 3.5 m high (photographs; where the slabs stand along it is inferred).
+  'Globen': {
+    roof: {
+      kind: 'butterfly',
+      from: -73, to: 72.5, width: 12,
+      shape: [[-73, 2.22, 7.83], [-60, 1.67, 8.94], [-44, 1.08, 10.12], [-28, 0.65, 11.0], [-12, 0.27, 11.74], [0, 0.03, 12.23],
+        [16, -0.25, 12.78], [32, -0.43, 13.17], [48, -0.58, 13.45], [64, -0.75, 13.78], [72.5, -0.86, 13.98]],
+      middle: 3.6, edge: 3.95, thick: 0.15, fascia: 0.35,
+      rafters: 4.2, rafterAt: 5.8, rafterSize: [0.15, 0.3], rafterColor: 0x2f5f70,
+      deck: 'ribbedAcross', gutter: [0.5, 0.35],
+      lanterns: { at: [-38.3, -0.5, 37.3], length: 8.5, ridge: 4.9 },
+      beam: 0.3,
+      columns: { every: 12.6, at: 5.8, size: 0.3, plinth: { size: 0.5, height: 0.15 }, edges: 1.9, cross: [2.8, 0.45] },
+      lamps: { offset: 3, length: 3.6, every: 4.2, at: [-3, 3], across: true },
+      colors: { underside: 0xb39a77, fascia: 0x2c3f5a, top: 0x9ea4a8, steel: 0x2f5f70 },
+      signs: { at: [-50.9, -13.1, 12.1, 49.9], back: 'Slakthusområdet', ahead: 'Stockholm Live', blue: true },
+      boards: [
+        { s: -25.7, u: -1.1, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
+        { s: -25.7, u: 1.1, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
+        { s: 24.7, u: -1.1, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
+        { s: 24.7, u: 1.1, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.45, tactile: [0.45, 0.9], slabs: 1.05, slabSize: [0.3, 0.3], paverSize: [0.6, 0.3],
+      colors: { edge: 0xb3b2ab, tactile: 0x8e8f8c, slab: 0xa4a7aa, pavers: 0x6e7072, face: 0x56585a },
+      pattern: 'bond',
+    },
+    rooms: [
+      // (out on the bridges' decks, which are the blocks')
+      { name: 'Globenbron', s: [111, 140], u: [-45, 12], h: [6, 9], walls: null, floor: null },
+      { name: 'east hall', s: [85, 116], h: [7, 8], walls: 'blueClerestory', floor: 'darkStone', sill: 7.2 },
+      { name: 'escalators', s: [64, 95], h: [-0.5, 1], walls: 'blueClerestory', floor: null, stairs: 'blueClerestory', sill: 0.1 },
+      { name: 'Slakthusbron', s: [-125, -96.6], h: [3, 7], walls: null, floor: null },
+      { name: 'west hall', s: [-97.5, -84], h: [4, 6], walls: 'blueClerestory', floor: 'darkStone', sill: 4.7 },
+      { name: 'west stairs', s: [-84, -70], h: [-0.5, 1], walls: 'blueClerestory', floor: null, stairs: 'blueClerestory', sill: 0.1 },
+      { name: "platform's west end", s: [-75, -60], h: [-0.5, 1], walls: null, floor: null },
+    ],
+    blocks: [
+      // the escalators' house, its roof following them up to the hall
+      { name: 'escalators', plan: [[89.9, -16.1], [71.1, -10.85], [73.9, -1.2], [93.9, -7.1]], h: [-1.6, 11], low: 4.6, walls: 'blueGlazed',
+        sides: [undefined, undefined, undefined, null], floor: 'pavers', roof: 0.25, roofColor: 0x3a3f45 },
+      // the hall on Globenbron, gabled: its halves either side of the ridge
+      { name: 'east hall, north half', plan: [[92.09, -11.18], [88.54, -19.35], [108.56, -25.08], [111.0, -16.59]], h: [6.3, 13.9], from: 7.3, low: 10.8,
+        walls: 'blueClerestory', sides: [undefined, undefined, 'steelFront', null], ceiling: 'ribbedMetal', floor: 'darkStone',
+        roof: 0.3, eaves: [1.0, 1.2, 1.5, 0], roofColor: 0x3a3f45 },
+      { name: 'east hall, south half', plan: [[92.09, -11.18], [95.63, -3.0], [113.45, -8.1], [111.0, -16.59]], h: [6.3, 13.9], from: 7.3, low: 10.8,
+        walls: 'blueClerestory', sides: [undefined, undefined, 'steelFront', null], ceiling: 'ribbedMetal', floor: 'darkStone',
+        roof: 0.3, eaves: [1.0, 1.2, 1.5, 0], roofColor: 0x3a3f45 },
+      // Globenbron's deck along the hall's east front, falling a little to the north
+      { name: 'Globenbron', plan: [[116, 8], [108.5, -33], [119, -33], [133, 6]], h: [6.4, 7.0], from: 6.4, low: 6.7, walls: 'boardConcrete',
+        roof: 0.3, roofColor: 0xb3b0a8 },
+      // the west stairs' tube and the lift's tower beside it
+      { name: 'west stairs', plan: [[-84.5, -1.3], [-72.5, -1.3], [-72.5, -4.3], [-84.5, -4.3]], h: [-1.6, 8.6], low: 2.9, walls: 'blueGlazed',
+        sides: [undefined, undefined, undefined, null], floor: 'pavers', roof: 0.2, roofColor: 0x3a3f45 },
+      { name: "lift's tower", plan: [[-80, -4.3], [-72, -4.3], [-72, -6.9], [-80, -6.9]], h: [-1.6, 8.8], walls: 'blueGlazed', roof: 0.2, roofColor: 0x3a3f45 },
+      // the hall on Slakthusbron, gabled, over the tracks on a concrete pier, with a lower part
+      // along its north side
+      { name: 'west hall, north half', plan: [[-96, -5.7], [-96, -10.5], [-84.5, -10.5], [-84.5, -5.7]], h: [3.8, 10.2], from: 4.8, low: 9.5,
+        walls: 'blueClerestory', sides: ['steelFront', undefined, undefined, null], ceiling: 'ribbedMetal', floor: 'darkStone',
+        roof: 0.3, eaves: [0.6, 0.6, 0.6, 0], roofColor: 0x3a3f45 },
+      { name: 'west hall, south half', plan: [[-96, -5.7], [-96, -1.6], [-84.5, -0.9], [-84.5, -5.7]], h: [3.8, 10.2], from: 4.8, low: 9.5,
+        walls: 'blueClerestory', sides: ['steelFront', undefined, undefined, null], ceiling: 'ribbedMetal', floor: 'darkStone',
+        roof: 0.3, eaves: [0.6, 0.6, 0.6, 0], roofColor: 0x3a3f45, nameSign: { side: 0, at: 0.5, length: 3.0, bottom: 7.4 } },
+      { name: 'west hall, lower part', plan: [[-96, -12.8], [-84.5, -12.8], [-84.5, -10.5], [-96, -10.5]], h: [3.8, 7.7], from: 4.8,
+        walls: 'blueClerestory', sides: [undefined, undefined, null], roof: 0.25, roofColor: 0x3a3f45 },
+      { name: 'west hall, pier', plan: [[-96, -7.6], [-84.5, -7.3], [-84.5, -2.2], [-96, -3.0]], h: [-1.6, 3.8], from: -1.6, walls: 'boardConcrete' },
+      // Slakthusbron's deck, from Slakthusområdet over the tracks and Palmfeltsvägen to Slakthusplan
+      { name: 'Slakthusbron, north', plan: [[-96, -3], [-96, -40], [-103, -40], [-104.5, -3]], h: [4.0, 4.45], from: 4.0, walls: 'boardConcrete',
+        roof: 0.3, roofColor: 0x8d8c88 },
+      { name: 'Slakthusbron, south', plan: [[-112, 35], [-97, -3], [-104.5, -3], [-118, 35]], h: [4.0, 4.7], from: 4.0, low: 4.45, walls: 'boardConcrete',
+        roof: 0.3, roofColor: 0x8d8c88 },
+    ],
+    buildings: ['w59413195', 'w114114003', 'w114114007'],
+    art: [
+      // on the bridge, before the hall's doors
+      { kind: 'roundel', s: -99.5, u: 0.0, h: 7.9, size: 0.8, foot: 4.75 },
+      // Isfantasi: in the southern fence, and by Palmfeltsvägen
+      { kind: 'glassPosts', h: [-1.6, 1.25], size: [0.35, 0.14],
+        at: [[-70, 6.0], [-60, 7.4], [-50, 8.6], [-40, 9.4], [-30, 10.1], [-20, 10.6], [-10, 10.95], [0, 11.1], [10, 10.95],
+          [20, 10.6], [30, 10.1], [40, 9.4], [50, 8.5], [60, 7.3], [70, 5.9]] },
+      { kind: 'glassStacks', s: 80, u: 17, foot: 0.4, height: 3.5, count: 4 },
+    ],
+    // 3.4 m beyond the southern track and 3 m beyond the northern; and railings along the bridges'
+    // decks
+    fences: [
+      { points: [[-105, 1.2], [-90, 3.2], [-75, 5.3], [-60, 7.2], [-45, 8.8], [-30, 9.9], [-15, 10.7], [0, 10.9], [15, 10.7], [30, 9.9], [45, 8.8], [60, 7.1], [75, 4.8], [90, 1.4], [100, -1.3]], h: [-1.6, 1.0] },
+      { points: [[-70, -11.4], [-60, -11.0], [-45, -10.5], [-30, -10.2], [-15, -10.2], [0, -10.5], [15, -11.3], [30, -12.4], [45, -14.0], [60, -16.0], [75, -18.8], [80, -19.8]], h: [-1.6, 1.0] },
+      { points: [[119.2, -32.5], [132.7, 5.6], [116.3, 7.6], [113.7, -5]], h: [7.0, 8.2] },
+      { points: [[-96.2, -40], [-96.2, -13.1]], h: [4.75, 5.85] },
+      { points: [[-103.1, -40], [-104.6, -3], [-117.8, 34.5]], h: [4.75, 5.85] },
+      { points: [[-97.9, -0.6], [-112.2, 34.5]], h: [4.75, 5.85] },
     ],
   },
 };

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Fence, Finish, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Fence, Finish, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -29,13 +29,22 @@ export class Frame {
 }
 
 // The line down the middle of a platform, through its roof's points, carried on straight past
-// its ends (or `offset` to the right of it): s as the frame's, u to the right of the line,
-// heights above the platform's top.
+// its ends (or `offset` to the right of it, or as a roof's `shape` puts its middle): s as the
+// frame's, u to the right of the line, heights above the platform's top.
 class Line {
   private pts: { s: number; x: number; y: number; z: number }[];
-  constructor(frame: Frame, canopy: CanopyPart, private offset = 0) {
+  constructor(frame: Frame, canopy: CanopyPart, private offset = 0, private shape?: [number, number, number][]) {
     this.pts = canopy.points.map(([x, y, z]) => ({ s: frame.s(x, z), x, y: y - CANOPY_HEIGHT, z })).sort((a, b) => a.s - b.s);
   }
+  // the shape's middle (k 1) or width (k 2) at s, straight between its points and level past them
+  private shaped(s: number, k: 1 | 2) {
+    const p = this.shape!;
+    if (s <= p[0][0]) return p[0][k];
+    for (let i = 1; i < p.length; i++) if (s <= p[i][0]) return p[i - 1][k] + (p[i][k] - p[i - 1][k]) * (s - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+    return p[p.length - 1][k];
+  }
+  // how wide the roof is at s, by its shape
+  width(s: number, otherwise: number) { return this.shape ? this.shaped(s, 2) : otherwise; }
   private mid(s: number): XYZ {
     const p = this.pts;
     let i = 0;
@@ -48,7 +57,7 @@ class Line {
     return [(b[0] - a[0]) / l, (b[2] - a[2]) / l];
   }
   at(s: number, u: number, h: number): XYZ {
-    const c = this.mid(s), [fx, fz] = this.dir(s), v = u + this.offset;
+    const c = this.mid(s), [fx, fz] = this.dir(s), v = u + this.offset + (this.shape ? this.shaped(s, 1) : 0);
     return [c[0] - fz * v, c[1] + h, c[2] + fx * v];
   }
 }
@@ -142,9 +151,9 @@ export class OpenLook {
   roofOver(st: StationLayout, style: OpenStyle, canopy: CanopyPart, on: On, cut: Volume[], group: THREE.Group) {
     const roof = style.roof;
     if (!roof) return;
-    const frame = new Frame(st), line = new Line(frame, canopy, roof.offset);
+    const frame = new Frame(st), line = new Line(frame, canopy, roof.offset, roof.shape);
     this.butterfly(st.name, roof, style, line, on, cut, group);
-    for (const R of style.roofs ?? []) this.butterfly(st.name, R, style, new Line(frame, canopy, R.offset), on, cut, group);
+    for (const R of style.roofs ?? []) this.butterfly(st.name, R, style, new Line(frame, canopy, R.offset, R.shape), on, cut, group);
     for (const a of style.art ?? []) {
       if (a.kind === 'guardian') this.guardian(a, line, on);
       else if (a.kind === 'stacks') this.stacks(a, line, on);
@@ -178,11 +187,38 @@ export class OpenLook {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
       else if (a.kind === 'mural') this.mural(a, frame, on);
       else if (a.kind === 'roundel') this.roundel(a, frame, on, group);
+      else if (a.kind === 'glassStacks') this.glassStacks(a, frame, on);
+      else if (a.kind === 'glassPosts') this.glassPosts(a, frame, on);
     }
   }
 
+  // stacked green glass, as an edge-on texture
+  private get glass() {
+    return this.mat('stackedGlass', () => new THREE.MeshStandardMaterial({ map: T.stackedGlass(), roughness: 0.25, metalness: 0.15, side: THREE.DoubleSide }));
+  }
+
+  // Stacks of glass sheets side by side, each in layers about 12 cm thick, tapering, their edges
+  // stepping in and out a little.
+  private glassStacks(a: GlassStacks, frame: Frame, on: On) {
+    const glass = on(this.glass), heights = [1, 0.9, 0.78, 0.94], gap = 1.15;
+    const r = (k: number) => { const v = Math.sin(k * 12.9898 + a.s * 78.233) * 43758.5453; return v - Math.floor(v); };
+    for (let i = 0; i < a.count; i++) {
+      const s = a.s + (i - (a.count - 1) / 2) * gap, H = a.height * heights[i % heights.length], n = Math.round(H / 0.12), t = H / n;
+      const size = (y: number, k: number): [number, number] => [1.1 + (0.25 - 1.1) * y / H + 0.05 * r(k), 1.6 + (0.4 - 1.6) * y / H + 0.08 * r(k + 300)];
+      for (let j = 0; j < n; j++) {
+        const k = i * 100 + j, ds = 0.04 * (r(k + 600) - 0.5);
+        taper(glass, frame.at(s + ds, a.u, a.foot + j * t), frame.at(s + ds, a.u, a.foot + (j + 1) * t - 0.004), size(j * t, k), size((j + 1) * t, k), frame.fx, frame.fz);
+      }
+    }
+  }
+
+  private glassPosts(a: GlassPosts, frame: Frame, on: On) {
+    const glass = on(this.glass), [h0, h1] = a.h;
+    for (const [s, u] of a.at) box(glass, frame.at(s, u, (h0 + h1) / 2), frame.fx, frame.fz, a.size[1], h1 - h0, a.size[0]);
+  }
+
   private butterfly(name: string, R: ButterflyRoof, style: OpenStyle, line: Line, on: On, cut: Volume[], group: THREE.Group) {
-    const hw = R.width / 2, across = R.deck === 'ribbedAcross';
+    const across = R.deck === 'ribbedAcross';
     const under = on(this.mat(`under:${R.deck ?? 'boards'}:${R.colors.underside}`, () => {
       const map = R.deck === 'ribbed' || across ? T.ribbedSheet(R.colors.underside) : T.roofBoards(R.colors.underside);
       return new THREE.MeshStandardMaterial({ map, emissive: 0x3a3a38, emissiveMap: map, roughness: 0.8, side: THREE.DoubleSide });
@@ -191,79 +227,115 @@ export class OpenLook {
     const steel = on(this.color(R.colors.steel, 0.5, 0.4)), casing = on(this.color(0x3a3d41, 0.7, 0.2));
     const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
-    // the underside's height across the roof
-    const h = (u: number) => R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / hw);
+    // half the roof's width at s, and the underside's height across it there
+    const half = (s: number) => line.width(s, R.width) / 2;
+    const h = (u: number, s = 0) => R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s));
     const n = Math.max(1, Math.ceil((R.to - R.from) / 2.5));
     const S = (i: number) => R.from + ((R.to - R.from) * i) / n;
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
-    const C = R.columns, mid = C.offset ?? 0, beams = (C.pair ? [-C.pair / 2, C.pair / 2] : [0]).map((u) => u + mid);
+    // the rows of columns across the roof at s, and the beams along them
+    const C = R.columns, mid = C.offset ?? 0;
+    const rows = (s: number) => C.edges !== undefined ? [-(half(s) - C.edges), half(s) - C.edges] : (C.pair ? [-C.pair / 2, C.pair / 2] : [0]).map((u) => u + mid);
+    // (a raised bay's covering stands on the roof's own)
+    const lanterns = (R.lanterns?.at ?? []).map((a) => [a - R.lanterns!.length / 2, a + R.lanterns!.length / 2]);
     for (let i = 0; i < n; i++) {
       const s0 = S(i), s1 = S(i + 1);
+      const covered = lanterns.some(([a, b]) => (s0 + s1) / 2 > a && (s0 + s1) / 2 < b);
       for (const side of [-1, 1]) {
-        const e = side * hw, ei = side * (hw - 0.05);
+        const e0 = side * half(s0), e1 = side * half(s1);
         // the boarding under it (u across, the boards along it; or the ribs across it), and the
         // covering over it
-        const q = (s: number, u: number, dh: number) => [...line.at(s, u, h(u) + dh), ...(across ? [s, u / 2.4] : [u, s / 2.4])];
-        under.poly([q(s0, 0, 0), q(s0, e, 0), q(s1, e, 0), q(s1, 0, 0)], cut);
-        top.poly([q(s0, 0, R.thick), q(s0, e, R.thick), q(s1, e, R.thick), q(s1, 0, R.thick)], cut);
+        const q = (s: number, u: number, dh: number) => [...line.at(s, u, h(u, s) + dh), ...(across ? [s, u / 2.4] : [u, s / 2.4])];
+        under.poly([q(s0, 0, 0), q(s0, e0, 0), q(s1, e1, 0), q(s1, 0, 0)], cut);
+        if (!covered) top.poly([q(s0, 0, R.thick), q(s0, e0, R.thick), q(s1, e1, R.thick), q(s1, 0, R.thick)], cut);
         // the fascia along its edge, down past the underside and back in under it
-        const p = (s: number, u: number, dh: number) => [...line.at(s, u, h(e) + dh), 0, 0];
-        fascia.poly([p(s0, e, lip), p(s1, e, lip), p(s1, e, crest), p(s0, e, crest)], cut);
-        fascia.poly([p(s0, e, lip), p(s1, e, lip), p(s1, ei, lip), p(s0, ei, lip)], cut);
-        fascia.poly([p(s0, ei, lip), p(s1, ei, lip), p(s1, ei, 0), p(s0, ei, 0)], cut);
+        const p = (s: number, u: number, dh: number) => [...line.at(s, u, R.edge + dh), 0, 0];
+        const i0 = e0 - side * 0.05, i1 = e1 - side * 0.05;
+        fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, e1, crest), p(s0, e0, crest)], cut);
+        fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, i1, lip), p(s0, i0, lip)], cut);
+        fascia.poly([p(s0, i0, lip), p(s1, i1, lip), p(s1, i1, 0), p(s0, i0, 0)], cut);
       }
-      // the beam along the valley, or one over each row of columns; and the purlins
-      for (const u of beams) bar(steel, line.at(s0, u, h(u)), line.at(s1, u, h(u)), 0.2, R.beam, cut);
-      for (const u of R.purlins?.at ?? []) bar(steel, line.at(s0, u, h(u)), line.at(s1, u, h(u)), R.purlins!.size[0], R.purlins!.size[1], cut);
+      // the beam along the valley, or one over each row of columns; the purlins; the gutter
+      const r0 = rows(s0), r1 = rows(s1);
+      r0.forEach((u, k) => bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, r1[k], h(r1[k], s1)), 0.2, R.beam, cut));
+      for (const u of R.purlins?.at ?? []) bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
+      if (R.gutter) bar(steel, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
     }
     // and across its ends
     for (const s of [R.from, R.to]) for (const side of [-1, 1]) {
-      const e = side * hw, p = (u: number, dh: number) => [...line.at(s, u, h(u) + dh), 0, 0];
+      const e = side * half(s), p = (u: number, dh: number) => [...line.at(s, u, h(u, s) + dh), 0, 0];
       fascia.poly([p(0, lip), p(e, lip), p(e, crest), p(0, crest)], cut);
+    }
+    // the raised bays: their covering, pitched from the ridge down to the roof's either way, and
+    // the faces along the roof's edges under it
+    for (const [a, b] of lanterns) {
+      const m = (a + b) / 2, ridge = R.lanterns!.ridge - R.middle;
+      for (const side of [-1, 1]) {
+        const e = (s: number) => side * half(s);
+        const t = (s: number, u: number, dh = 0) => [...line.at(s, u, h(u, s) + R.thick + dh), 0, 0];
+        const r = (u: number) => [...line.at(m, u, R.middle + ridge), 0, 0];
+        for (const [s, k] of [[a, 0], [b, 1]] as const) {
+          top.poly(k ? [r(0), r(e(m)), t(s, e(s)), t(s, 0)] : [t(s, 0), t(s, e(s)), r(e(m)), r(0)], cut);
+          fascia.poly([t(s, e(s)), [...line.at(m, e(m), R.edge + R.thick), 0, 0], r(e(m))], cut);
+        }
+      }
     }
     // the rafters across the underside, boarded or steel
     const [rw, rd] = R.rafterSize ?? [0.05, 0.1], rafter = R.rafterColor !== undefined ? on(this.color(R.rafterColor, 0.5, 0.4)) : under;
     const r0 = R.rafterAt !== undefined ? R.rafterAt - Math.floor((R.rafterAt - R.from) / R.rafters) * R.rafters : R.from + R.rafters / 2;
     for (let s = r0; s < R.to; s += R.rafters) {
-      for (const side of [-1, 1]) bar(rafter, line.at(s, 0, h(0)), line.at(s, side * (hw - 0.05), h(hw - 0.05)), rw, rd, cut);
+      for (const side of [-1, 1]) bar(rafter, line.at(s, 0, h(0, s)), line.at(s, side * (half(s) - 0.05), h(half(s) - 0.05, s)), rw, rd, cut);
     }
-    // strip lights, hung under the rafters; or in a long round housing, hung lower
-    const L = R.lamps, rows = L.at ?? [-L.offset, L.offset];
+    // strip lights, hung under the rafters (lying along the platform, or across it); or in a long
+    // round housing, hung lower
+    const L = R.lamps, lampRows = L.at ?? [-L.offset, L.offset];
     const housing = L.tube ? on(this.color(0xdcdedd, 0.4, 0.5)) : under, drop = L.tube ? rd + 0.25 : 0.13;
-    for (let s = R.from + L.every / 2; s < R.to; s += L.every) for (const u of rows) {
+    for (let s = R.from + L.every / 2; s < R.to; s += L.every) for (const u of lampRows) {
       const [fx, fz] = line.dir(s);
-      if (L.tube) box(housing, line.at(s, u, h(u) - drop), fx, fz, 0.26, 0.2, L.every, cut);
-      else box(under, line.at(s, u, h(u) - drop), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
-      box(lamp, line.at(s, u, h(u) - drop - (L.tube ? 0.1 : 0.03)), fx, fz, L.tube ? 0.16 : 0.1, 0.02, L.length, cut);
+      if (L.across) {
+        // (kept in from the roof's edge where it narrows; from the lower end of the fitting, the
+        // underside sloping over it)
+        const a = Math.max(0.3, Math.abs(u) - L.length / 2), b = Math.min(half(s) - 0.4, Math.abs(u) + L.length / 2);
+        if (b - a < 0.6) continue;
+        const c = Math.sign(u) * (a + b) / 2, y = h(a, s) - drop;
+        box(under, line.at(s, c, y), fx, fz, b - a + 0.05, 0.05, 0.16, cut);
+        box(lamp, line.at(s, c, y - 0.03), fx, fz, b - a, 0.02, 0.1, cut);
+        continue;
+      }
+      if (L.tube) box(housing, line.at(s, u, h(u, s) - drop), fx, fz, 0.26, 0.2, L.every, cut);
+      else box(under, line.at(s, u, h(u, s) - drop), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
+      box(lamp, line.at(s, u, h(u, s) - drop - (L.tube ? 0.1 : 0.03)), fx, fz, L.tube ? 0.16 : 0.1, 0.02, L.length, cut);
     }
-    if (L.tube) for (const u of rows) for (let s = R.from + 1; s < R.to; s += R.rafters * 2) box(steel, line.at(s, u, h(u) - (drop - 0.1) / 2), ...line.dir(s), 0.03, drop - 0.1, 0.03, cut);
+    if (L.tube) for (const u of lampRows) for (let s = R.from + 1; s < R.to; s += R.rafters * 2) box(steel, line.at(s, u, h(u, s) - (drop - 0.1) / 2), ...line.dir(s), 0.03, drop - 0.1, 0.03, cut);
     // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
-    // and those the roof cases
+    // and those the roof cases; a beam across over each pair, the columns on up through it to the
+    // rafters
     const foot = R.middle - R.beam;
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
-      for (const u of beams) {
-        const top = h(u) - R.beam;
+      for (const u of rows(s)) {
+        const top = C.cross ? h(u, s) - rd : h(u, s) - R.beam;
         box(concrete, line.at(s, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
         if (cased) box(casing, line.at(s, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
         else box(steel, line.at(s, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
         // knee braces up to the beam, either way along it
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
       }
+      if (C.cross) bar(steel, line.at(s, -half(s) + 0.1, C.cross[0] + C.cross[1]), line.at(s, half(s) - 0.1, C.cross[0] + C.cross[1]), 0.25, C.cross[1], cut);
     }
     // name signs hung under the beam, the way out at each end of the platform to either side
     const W = 2.4, H = 0.6;
     for (const s of R.signs.at) {
       const [fx, fz] = line.dir(s), rx = -fz, rz = fx;
-      const top = R.signs.bottom !== undefined ? R.signs.bottom + H : foot - 0.12, from = R.signs.bottom !== undefined ? h(mid) - rd : foot;
+      const top = R.signs.bottom !== undefined ? R.signs.bottom + H : foot - 0.12, from = R.signs.bottom !== undefined ? h(mid, s) - rd : foot;
       const c = line.at(s, mid, top - H / 2), hang = line.at(s, mid, from)[1] - (c[1] + H / 2);
       box(fascia, c, fx, fz, 0.05, H + 0.02, W + 0.02, cut);
       if (hang > 0.01) for (const k of [-W / 2 + 0.2, W / 2 - 0.2]) box(steel, line.at(s + k, mid, from - hang / 2), fx, fz, 0.03, hang, 0.03);
       for (const side of [1, -1]) {
         // (seen from the right of the line, its back end is to the left)
         const [left, right] = side > 0 ? [R.signs.back, R.signs.ahead] : [R.signs.ahead, R.signs.back];
-        const m = this.mat(`sign:${name}:${left}:${right}`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, left, right) }));
+        const m = this.mat(`sign:${name}:${left}:${right}:${!!R.signs.blue}`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, left, right, R.signs.blue) }));
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, H), m);
         mesh.position.set(c[0] + rx * side * 0.03, c[1], c[2] + rz * side * 0.03);
         mesh.rotation.y = Math.atan2(rx * side, rz * side);
@@ -273,7 +345,7 @@ export class OpenLook {
     // clocks and departure boards hung from the roof on rods, a face each way along the platform
     const dark = on(this.color(0x1c1d1e, 0.5, 0.3));
     const hung = (s: number, u: number, w: number, hh: number, depth: number, face: THREE.Material, round: boolean) => {
-      const [fx, fz] = line.dir(s), top = h(u), rod = round ? 0.1 : 0.15, c = line.at(s, u, top - rod - hh / 2);
+      const [fx, fz] = line.dir(s), top = h(u, s), rod = round ? 0.1 : 0.15, c = line.at(s, u, top - rod - hh / 2);
       if (round) {
         const rim = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, depth, 32).rotateX(Math.PI / 2), this.color(0xd8dad8, 0.4, 0.5));
         rim.position.set(...c);
@@ -539,10 +611,12 @@ export class OpenLook {
           return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.3, roughness: 0.4, side: THREE.DoubleSide });
         }));
         const d = (g.length / 2) / l, t0 = g.at - d, t1 = g.at + d, k = g.inside ? -1 : 1;
-        const Q = (t: number, hh: number) => [...frame.at(s0 + (s1 - s0) * t + ns * k * 0.06, u0 + (u1 - u0) * t + nu * k * 0.06, hh)];
+        const Q = (t: number, hh: number, out = 0.06) => [...frame.at(s0 + (s1 - s0) * t + ns * k * out, u0 + (u1 - u0) * t + nu * k * out, hh)];
         // (read from outside, or inside: its left end the one on the viewer's left)
         const left = ((s1 - s0) * nu - (u1 - u0) * ns) * k > 0 ? [t0, t1] : [t1, t0];
         m.poly([[...Q(left[0], g.bottom), 0, 0], [...Q(left[1], g.bottom), 1, 0], [...Q(left[1], g.bottom + 0.5), 1, 1], [...Q(left[0], g.bottom + 0.5), 0, 1]]);
+        // its back, plain, which shows through a glass wall
+        on(this.color(0x1d2a5e, 0.6, 0.2)).poly([[...Q(t0, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom + 0.5, 0.04), 0, 0], [...Q(t0, g.bottom + 0.5, 0.04), 0, 0]]);
       }
       for (const g of b.lights ?? []) {
         if (g.side !== i) continue;

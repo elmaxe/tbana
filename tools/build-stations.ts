@@ -18,6 +18,7 @@
 // - a part that runs into the trains' space over a track
 // - a platform from which the street can't be walked to, or an exit that can't be reached
 import { readFileSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { subtractAll } from '../src/clip.ts';
 import type { Volume } from '../src/clip.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
@@ -27,6 +28,7 @@ import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT } from '../src/
 import { CANOPY_HEIGHT, ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
 import type { CanopyPart, Exit, FloorPart, InclinePart, Part, StationLayout, StreetPart, VoidPart, XYZ } from '../src/station-layout.ts';
 import { interp } from './lib/graph.ts';
+import { CITY_TILE, deltaDecode } from '../src/city-tile.ts';
 
 const DESCRIPTIONS = 'data/station-descriptions.json';
 const OUT = 'public/data/station-layouts.json';
@@ -110,15 +112,30 @@ function patchHeight(e: Patch, x: number, z: number) {
   return (v[0]! * (1 - b) + v[1]! * b) * (1 - a) + (v[2]! * (1 - b) + v[3]! * b) * a;
 }
 
-// the ground at x, z: from the nearest entrance's square that covers it, or the station's
-function groundAt(station: string, x: number, z: number) {
+// The city's ground (data/ground/city.json, from tools/fetch-terrain.ts), coarser: every 5 m.
+const cityMeta: { step: number; n: number; tiles: [number, number, number][] } = JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
+const cityRaw = new Int16Array(gunzipSync(readFileSync('data/ground/city.bin.gz')).buffer.slice(0));
+const cityGround = new Map<string, Float32Array>();
+cityMeta.tiles.forEach(([i, j, base], t) => cityGround.set(`${i},${j}`, deltaDecode(cityRaw.subarray(t * cityMeta.n ** 2, (t + 1) * cityMeta.n ** 2), cityMeta.n, base)));
+function cityGroundAt(x: number, z: number) {
+  const i = Math.floor(x / CITY_TILE), j = Math.floor(z / CITY_TILE), h = cityGround.get(`${i},${j}`), N = cityMeta.n;
+  if (!h) return null;
+  const u = (x - i * CITY_TILE) / cityMeta.step, v = (z - j * CITY_TILE) / cityMeta.step;
+  const c = Math.min(N - 2, Math.floor(u)), r = Math.min(N - 2, Math.floor(v)), fu = u - c, fv = v - r, k = r * N + c;
+  return (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
+}
+
+// the ground at x, z: from the nearest entrance's square that covers it, or the station's; or, for
+// an exit beyond them all (`far`), the city's
+function groundAt(station: string, x: number, z: number, far = false) {
   const near = ground.entrances.map((e) => ({ e, d: Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) })).sort((a, b) => a.d - b.d);
   for (const { e } of near.slice(0, 3)) {
     const h = patchHeight(e, x, z);
     if (h !== null) return h;
   }
   const st = ground.stations.find((p) => p.station === station);
-  return st ? patchHeight(st, x, z) : null;
+  const h = st ? patchHeight(st, x, z) : null;
+  return h === null && far ? cityGroundAt(x, z) : h;
 }
 
 // One grid of ground per group of exits near each other, 4 m apart on the world grid, out to
@@ -133,6 +150,8 @@ function streets(station: string, exits: { x: number; z: number }[]): StreetPart
     groups.push(merged);
   }
   return groups.map((g) => {
+    // (around exits beyond the squares of samples, the city's ground)
+    const far = g.some((e) => groundAt(station, e.x, e.z) === null);
     const x0 = Math.floor((Math.min(...g.map((e) => e.x)) - STREET) / STREET_STEP) * STREET_STEP;
     const z0 = Math.floor((Math.min(...g.map((e) => e.z)) - STREET) / STREET_STEP) * STREET_STEP;
     const x1 = Math.ceil((Math.max(...g.map((e) => e.x)) + STREET) / STREET_STEP) * STREET_STEP;
@@ -143,7 +162,7 @@ function streets(station: string, exits: { x: number; z: number }[]): StreetPart
       for (let j = 0; j < nx; j++) {
         const x = x0 + j * STREET_STEP, z = z0 + i * STREET_STEP;
         const near = g.some((e) => Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) <= STREET);
-        const v = near ? groundAt(station, x, z) : null;
+        const v = near ? groundAt(station, x, z, far) : null;
         h.push(v === null ? null : r2(v));
       }
     }
@@ -210,13 +229,15 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     }
     // the last step's kind and heading, for the joints between steps
     let last: 'walk' | 'incline' | null = null;
-    const joint = (nx: number, nz: number, w: number, ceiling: number = CEILING.passage) => {
+    const joint = (nx: number, nz: number, w: number, ceiling: number | null = CEILING.passage) => {
       if (!last || hx * nx + hz * nz > Math.cos((10 * Math.PI) / 180)) return;
-      // a square landing where the way turns, so that the corner is floored
+      // a square landing where the way turns, so that the corner is floored (in the open, where
+      // the way on is)
       const s = Math.max(w, width) / 2;
       const rx = -hz, rz = hx;
       const corners: XYZ[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [x + hx * s * i + rx * s * j, y, z + hz * s * i + rz * s * j]);
-      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room: 'passage', label: `${name} · passage` });
+      const room = ceiling === null ? 'platform' : 'passage';
+      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room, label: `${name} · ${room}` });
     };
     const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
@@ -224,7 +245,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
       const nx = dx / l, nz = dz / l;
       if (Math.abs(dh) / l > 1 / 12 + 1e-6) problems.add(`${where}: a ramp of ${(Math.abs(dh) / l * 100).toFixed(0)}% (at most 8%)`);
       // (the landing as high as the way on from it)
-      joint(nx, nz, width, open ? undefined : ceiling);
+      joint(nx, nz, width, open ? null : ceiling);
       const rx = -nz * width / 2, rz = nx * width / 2;
       const room = open ? 'platform' : width >= HALL_WIDTH ? 'hall' : 'passage';
       parts.push({

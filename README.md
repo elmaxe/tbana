@@ -474,9 +474,16 @@ rows of windows, each over an escalator and a wide stair down towards the middle
 them a lift in a black tower that stands up through the roof. The ticket hall under the tracks has
 cream terrazzo in a dark grid, white tiles scattered with blue and windows looking out under the
 viaduct; through the gates in its west wall a passage of shops runs through the white building on
-Farsta torg, out under a blue sign, and a short way out east comes out under the viaduct. The city
-leaves out OpenStreetMap's outlines of the buildings such a station draws itself, and the street
-round its exits doesn't run on inside them.
+Farsta torg, out under a blue sign, and a short way out east comes out under the viaduct. Globen
+(1951) has a butterfly roof that widens with its platform as the tracks curve apart, ribbed sheet
+in pale wood brown on teal steel, two rows of columns near its edges under beams across, three
+raised bays, departure boards and SL's blue name signs, and Joanna Troikowicz's Isfantasi (1989),
+green glass slabs in the fence along Palmfeltsvägen and four tapering stacks of glass sheets by
+the road. Escalators climb in a glazed house to a gabled hall on Globenbron, white panels under a
+dark blue band and a yellow line, its east gable glass doors in brushed steel, and stairs climb in
+a glazed tube at the other end to a smaller one on Slakthusbron; both bridges' decks are drawn,
+with railings. The city leaves out OpenStreetMap's outlines of the buildings such a station draws
+itself, and the street round its exits doesn't run on inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:
@@ -588,7 +595,8 @@ A description lists the ways out, each as a route of steps from a point on the p
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
   by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or
   `open`) or a lift, with the station's sign on a post beside it (none with `"sign": false`,
-  where its name is over the doors).
+  where its name is over the doors). The street there is the ground sampled round the entrances
+  and the station; at a point beyond those (Globen's west exit, on Slakthusbron), the city's.
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,
