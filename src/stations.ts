@@ -100,7 +100,7 @@ export class Stations {
         if (p.kind === 'incline') solids.push(solidOf(p));
       }
       const style = OPEN_STYLES[st.name];
-      if (style) holes.push(...blockVolumes(style, new Frame(st), true));
+      if (style) holes.push(...blockVolumes(style, new Frame(st), 'onPlatform'));
     }
     return { holes, solids };
   }
@@ -116,6 +116,8 @@ export class Stations {
           cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - 0.3), h.map((y) => y + (p.ceiling ?? 3))));
         } else if (p.kind === 'incline' || p.kind === 'lift') cuts.push(spaceOf(p)!);
       }
+      const style = OPEN_STYLES[st.name];
+      if (style) cuts.push(...blockVolumes(style, new Frame(st), 'ground'));
     }
     return cuts;
   }

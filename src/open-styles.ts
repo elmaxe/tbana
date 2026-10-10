@@ -48,21 +48,27 @@ export interface ButterflyRoof {
   rafters: number;             // between the rafters across the underside
   beam: number;                // the beam's depth under the valley
   rafterSize?: [number, number]; // across and deep (0.05 by 0.1 by default)
+  // the underside boarded along the platform, or of ribbed sheet metal, the ribs along it; and
+  // the rafters steel (this colour) rather than boarded
+  deck?: 'boards' | 'ribbed';
+  rafterColor?: number;
   // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
   // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
   // each column up to the beam this far along it either way; `casings`, a dark box round the
-  // columns at these `s`, `size` across and along
+  // columns at these `s`, `size` across and along; `offset`, the columns (and the beams over
+  // them, and the signs) this far to the right of the roof's middle
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
-    between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] };
+    between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
   };
-  // rows of strip lights along the underside, `offset` either side of the beam: fittings
-  // `length` long, `every` apart
-  lamps: { offset: number; length: number; every: number };
+  // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
+  // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
+  // housing hung under the rafters
+  lamps: { offset: number; length: number; every: number; at?: number[]; tube?: boolean };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // name signs hung under the beam at these `s`, with the way out at each end of the platform
-  // (none if empty)
-  signs: { at: number[]; back: string; ahead: string };
+  // (none if empty); or, between a pair of beams, from the rafters, `bottom` over the platform
+  signs: { at: number[]; back: string; ahead: string; bottom?: number };
   // round clocks with a face each way along the platform, and departure boards, hung from the
   // roof at s, u
   clocks?: [number, number][];
@@ -119,7 +125,11 @@ export type Finish =
   | 'darkGlazed'    // glazed from floor to ceiling in tall narrow panes, framed in black
   | 'slate'         // dark blue-grey slate in long slabs
   | 'darkTiles'     // large dark grey tiles
-  | 'greyPanels';   // dark grey sheet-metal panels, standing
+  | 'greyPanels'    // dark grey sheet-metal panels, standing
+  | 'highWindows'   // pale grey wall to 2.5 m, windows in grey steel frames above
+  | 'paleGreenTiles' // small square tiles, a pale green
+  | 'paleTiles'     // pale cream floor tiles, 30 cm
+  | 'asphalt';      // dark grey asphalt
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -131,12 +141,14 @@ export type Finish =
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
 // be walked on inside it (only the station's own floors are). `nameSign`: the station's name in
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
-// up.
+// up (on the side's inner face, `inside`). `eaves`: its roof reaches out this far past its walls,
+// along each side (or all round). `ground`: it is dug into the city's ground, which isn't there
+// inside it.
 export interface Block {
-  name: string; plan: [number, number][]; h: [number, number]; from?: number; low?: number;
+  name: string; plan: [number, number][]; h: [number, number]; from?: number; low?: number; eaves?: number | number[]; ground?: boolean;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
-  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number };
+  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean };
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs;
@@ -157,8 +169,9 @@ export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: nu
 // Lamp posts at the points ([s, u], in the station's frame): a tall red-brown post with a white
 // dome lamp on top and one on an arm to each side, `height` high; or a galvanised one (`color`),
 // with only the two on the arm (`top: false`), and the station's name on a black sign on it
-// (`sign`, so high).
-export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number }
+// (`sign`, so high). `arm`: the arm reaches this far each way (0.6 m by default); `lower`, a
+// second, shorter arm with two small lamps, so high.
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; arm?: number; lower?: number }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts).
@@ -168,8 +181,9 @@ export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken'; s: number; u
 // chairs facing each other across the table along `turn` (as a guardian's).
 export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
 
-// A chain-link fence on posts through the points ([s, u]), from `h[0]` to `h[1]` high.
-export interface Fence { points: [number, number][]; h: [number, number] }
+// A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
+// boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
+export interface Fence { points: [number, number][]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres'; color?: number }
 
 // Gubbängen (1950): an island platform on a low bank on the hillside, along Lingvägen, under a
 // long butterfly roof. Since its renewal the roof's underside is white boarding on white rafters,
@@ -500,6 +514,93 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     fences: [
       { points: [[-76, -6.5], [-50, -7.1], [-30, -7.5], [-10, -7.9], [10, -8.3], [30, -8.6], [50, -8.9], [70, -9.2], [76, -9.3]], h: [-1.4, 0.6] },
       { points: [[-76, 7.7], [-50, 7.7], [-30, 7.9], [-10, 8.0], [10, 8.0], [30, 7.8], [50, 7.2], [70, 6.2], [76, 5.8]], h: [-1.4, 0.6] },
+    ],
+  },
+  // Sandsborg (1 October 1950; renewed in 2004): an island platform on the bank between Enskede's
+  // houses and Dalen, with its way out at its south end, where the tracks cross Stora Gungans
+  // väg's underpass. The laser scan puts a flat roof from 31.5 m south of the platform's middle
+  // to 72.5 m, about 8 m wide, its middle 0.8 m west of the platform's, its top 3.1 m over the
+  // platform. Photographs (2019) show it red steel: columns in pairs west of the middle on
+  // concrete plinths, a beam along each row, deep cross beams reaching out to a red fascia, and
+  // ribbed pale grey sheet between them, the ribs along the platform; a long round light hung down
+  // its east half, black name signs and departure boards, and a glass shelter on the west side
+  // framed in black. The paving: wide pale slabs along the edges, a ribbed strip for the blind,
+  // then grey slabs. Out in the open to the north, red lamp posts down the middle (laser scan:
+  // about 14 m apart, 4.7 m high), each with three white dome lamps at the top and two small ones
+  // lower down, two of them with black name signs.
+  //
+  // At the south end the platform runs into the station's hall, between the tracks, on the bank
+  // over the underpass (OpenStreetMap's outline, laser scan: from 72.8 m to 104 m south, its roof
+  // 4.25 m over the platform and reaching out over the tracks at the platform end): glazed in grey
+  // steel frames, with a pale block wall under windows on the west side and dark grey panels at
+  // the lift's end, a flat roof, and a plant room on it. Through doors from the platform, the
+  // ticket gates; beyond them, stairs down along the west side behind a glass balustrade, and a
+  // walkway along the east side to a lift, both to the underpass (OpenStreetMap's indoor mapping:
+  // 29 steps; laser scan: the street 4.5 m under the platform). Inside: pale tiled floors, white
+  // panels, a white slatted ceiling. The underpass runs straight under the bank, lined in pale
+  // green tiles, between concrete abutments with the station's name on a blue band over each end;
+  // red board fences along the tops of the abutments.
+  //
+  // Beyond the eastern track a fence of weathered boards slanting between concrete posts, beyond
+  // the western a chain-link fence.
+  'Sandsborg': {
+    roof: {
+      kind: 'butterfly',
+      from: -72.5, to: -31.5, width: 8, offset: -0.3,
+      middle: 2.87, edge: 2.87, thick: 0.25, fascia: 0.42,
+      rafters: 2.6, rafterSize: [0.14, 0.32], rafterColor: 0x6f2a25, deck: 'ribbed',
+      beam: 0.4,
+      columns: { every: 8, at: -36, size: 0.22, plinth: { size: 0.5, height: 0.15 }, pair: 1.4, offset: -1.1 },
+      lamps: { offset: 0, at: [1.6], length: 1.2, every: 1.6, tube: true },
+      colors: { underside: 0xc3c6c6, fascia: 0x6f2a25, top: 0x4a4e52, steel: 0x6f2a25 },
+      signs: { at: [-40, -56, -68], back: 'Stora Gungans väg', ahead: '', bottom: 2.05 },
+      boards: [
+        { s: -33, u: -1.8, toward: 'Hässelby strand', trains: ['18 Hässelby strand  3 min', '18 Hässelby strand  13 min'] },
+        { s: -33, u: 1.2, toward: 'Farsta strand', trains: ['18 Farsta strand  7 min', '18 Farsta strand  17 min'] },
+      ],
+    },
+    paving: {
+      edge: 1.4, tactile: [1.4, 1.9], slabs: 1.9, paverSize: [0.6, 0.4], mix: 0.12,
+      colors: { edge: 0xbdbcb6, tactile: 0xa8a7a2, slab: 0xb4b2ac, pavers: 0x8e9092, paler: 0x9c9ea0, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: 'hall', s: [-104.5, -72.4], h: [-0.5, 1], walls: 'whitePanels', floor: 'paleTiles', ceiling: 'slats', stairs: 'paleGreenTiles', sill: 0 },
+      { name: 'stairs', s: [-92.5, -84], h: [-5, -3], walls: 'paleGreenTiles', floor: 'paleTiles', stairs: 'paleGreenTiles', sill: 0 },
+      { name: 'foot of the stairs', s: [-97.5, -92.5], h: [-5, -3], walls: 'paleGreenTiles', floor: 'paleTiles', ceiling: 'whitePanels' },
+      { name: 'west of the underpass', s: [-106, -92], u: [-30, -8.8], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'east of the underpass', s: [-106, -92], u: [7.2, 30], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'underpass', s: [-106, -92], h: [-5, -3], walls: 'paleGreenTiles', floor: 'asphalt', ceiling: 'boardConcrete' },
+    ],
+    // (between the tracks, kept 1.5 m off them; the roof reaches out over them)
+    blocks: [
+      { name: 'gate hall', plan: [[-72.8, -3.85], [-85.0, -3.75], [-85.0, 2.15], [-72.8, 2.2]], h: [-1.3, 3.95], walls: 'glazed',
+        eaves: [1.5, 0, 1.0, 0.3], floor: 'paleTiles', ceiling: 'slats', roof: 0.3, onPlatform: true },
+      { name: 'stair hall', plan: [[-85.0, -3.75], [-104.0, -3.3], [-104.0, 1.8], [-85.0, 2.15]], h: [-1.3, 3.95], walls: 'glazed',
+        sides: ['highWindows', 'greyPanels', undefined, null], eaves: [0.6, 0.4, 0.5, 0], floor: 'paleTiles', ceiling: 'whitePanels', roof: 0.3, onPlatform: true },
+      { name: 'plant room', plan: [[-82.2, -3.3], [-84.0, -3.3], [-84.0, -1.6], [-82.2, -1.6]], h: [4.25, 5.5], from: 4.25, walls: 'greyPanels', roof: 0.1 },
+      // the underpass's ends: a notch in the bank, the abutment's face over the way through and
+      // walls either side, falling with the bank
+      { name: 'west end of the underpass', plan: [[-93.4, -8.8], [-93.4, -15], [-105.4, -15], [-105.4, -8.8]], h: [-4.5, -1.4], from: -4.5, low: -4.1,
+        walls: 'boardConcrete', sides: [undefined, null], floor: 'asphalt', nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
+      { name: 'east end of the underpass', plan: [[-93.4, 7.2], [-93.4, 13], [-105.4, 13], [-105.4, 7.2]], h: [-4.5, -1.4], from: -4.5, low: -4.1,
+        walls: 'boardConcrete', sides: [undefined, null], floor: 'asphalt', nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
+      // (under the bank, where neither the street the laser scan sees under the bridge nor the
+      // ground runs on)
+      { name: 'bank over the underpass', plan: [[-93.4, -8.8], [-105.4, -8.8], [-105.4, 7.2], [-93.4, 7.2]], h: [-4.5, -2.0], from: -4.5, walls: 'boardConcrete', sides: [null, null, null, null],
+        onPlatform: true, ground: true },
+    ],
+    buildings: ['w104431681'],
+    art: [
+      { kind: 'masts', height: 4.7, color: 0xa8262b, arm: 0.9, lower: 3.7, at: [[-24.2, -0.45], [-10, -0.15], [19.8, -0.3], [31.6, -0.45], [60.1, -0.25], [71.8, -0.7]] },
+      { kind: 'masts', height: 4.7, color: 0xa8262b, arm: 0.9, lower: 3.7, sign: 2.6, at: [[6, -0.45], [45.8, -0.45]] },
+    ],
+    shelters: [{ s: [-51, -46], u: [-2.3, -0.7] }],
+    fences: [
+      { points: [[-92, -8.8], [-75, -9.4], [-60, -9.6], [-40, -9.6], [-20, -9.3], [0, -8.8], [20, -8.3], [40, -7.9], [60, -7.5], [75, -7.2]], h: [-1.4, 0] },
+      { points: [[-92, 7.6], [-80, 7.9], [-60, 8.3], [-40, 8.6], [-20, 8.8], [0, 8.9], [20, 8.8], [40, 8.3], [60, 7.6], [75, 7.1]], h: [-1.4, 0.4], kind: 'louvres' },
+      { points: [[-91.5, -8.9], [-107, -8.9]], h: [-1.4, 0.4], kind: 'boards' },
+      { points: [[-91.5, 7.3], [-107, 7.3]], h: [-1.4, 0.4], kind: 'boards' },
     ],
   },
 };

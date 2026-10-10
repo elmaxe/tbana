@@ -441,7 +441,14 @@ roof, galvanised lamp posts with two dome lamps and a glass shelter. At its nort
 platform runs on into a glass building between the tracks' bridges over Sockenvägen, with a
 slatted ceiling: stairs down between dark tiles beside a walkway out to a lift that you walk
 through, into the ticket hall at the street, its glass front under a blue band with the station's
-name. The city leaves out OpenStreetMap's outlines
+name. Sandsborg (1950) has a flat roof of red steel, its columns in pairs on concrete plinths,
+deep cross beams over ribbed pale grey sheet and a long round light hung down it, red lamp posts
+with three dome lamps beyond it, wide pale slabs along the platform's edges, and a fence of
+slanting boards between concrete posts beyond the eastern track. At its south end a glass hall
+between the tracks holds the gates, then stairs down behind a glass balustrade and a walkway to a
+lift, both to the underpass of Stora Gungans väg, lined in pale green tiles between concrete
+abutments with the station's name over each end and red board fences on top. The city leaves out
+OpenStreetMap's outlines
 of the buildings such a station draws itself, and the street round its exits doesn't run on
 inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.

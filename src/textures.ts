@@ -2437,6 +2437,45 @@ export function roofBoards(color: number) {
   return toTexture(c);
 }
 
+// Ribbed sheet metal under a roof, the ribs along the platform, 25 cm apart: u across 1 m, v
+// along 2.4 m.
+export function ribbedSheet(color: number) {
+  const [c, x] = canvas(200, 240);
+  x.fillStyle = css(color); x.fillRect(0, 0, 200, 240);
+  for (let i = 0; i < 4; i++) {
+    const o = i * 50;
+    x.fillStyle = css(color, 18); x.fillRect(o + 2, 0, 14, 240);
+    x.fillStyle = css(color, -30); x.fillRect(o + 16, 0, 3, 240);
+    x.fillStyle = css(color, -12); x.fillRect(o + 30, 0, 4, 240);
+  }
+  speckle(x, 200, 240, 300, 0.04, 79);
+  return toTexture(c);
+}
+
+// A fence of boards, 1.2 m a repeat along it and its whole height up: painted boards standing
+// side by side between two rails; or weathered boards slanting, a gap between each (`louvres`).
+export function fenceBoards(color: number, louvres: boolean) {
+  const W = 192, H = 256, [c, x] = canvas(W, H), r = rng(louvres ? 88 : 87);
+  if (louvres) {
+    x.clearRect(0, 0, W, H);
+    for (let i = -4; i < 12; i++) {
+      const x0 = i * 24;
+      x.fillStyle = css(color, Math.floor(r() * 16) - 8);
+      x.beginPath(); x.moveTo(x0, H); x.lineTo(x0 + 16, H); x.lineTo(x0 + 16 + 60, 0); x.lineTo(x0 + 60, 0); x.closePath(); x.fill();
+      x.fillStyle = css(color, -34); x.beginPath(); x.moveTo(x0 + 14, H); x.lineTo(x0 + 16, H); x.lineTo(x0 + 76, 0); x.lineTo(x0 + 74, 0); x.closePath(); x.fill();
+    }
+    x.fillStyle = css(color, -20); x.fillRect(0, 6, W, 8); x.fillRect(0, H - 14, W, 8);
+  } else {
+    x.fillStyle = css(color, -30); x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 8; i++) {
+      x.fillStyle = css(color, Math.floor(r() * 10) - 5); x.fillRect(i * 24 + 1, 0, 22, H);
+      x.fillStyle = css(color, 14); x.fillRect(i * 24 + 1, 0, 2, H);
+    }
+  }
+  speckle(x, W, H, 900, 0.08, 89);
+  return toTexture(c);
+}
+
 // A chain-link fence: galvanised wire in diamonds 5 cm across, clear between. 0.5 × 0.5 m.
 export function chainLink() {
   const [c, x] = canvas(128);
@@ -2602,9 +2641,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
   darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
+  highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -2776,6 +2816,39 @@ export function finish(name: Finish) {
         x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * W / 2 + 2, 0, 2, H);
       }
       break;
+    case 'highWindows': {
+      // pale grey blocks, 40 by 20 cm, to 2.5 m; above, windows in grey steel frames
+      band(0, 4, '#cfd0cd');
+      const a = 0.4 * PX, b = 0.2 * PX;
+      for (let j = 0; j * b < 2.5 * PX; j++) for (let i = -1; i * a < W; i++) {
+        const v = 196 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v + 1},${v - 1})`; x.fillRect(i * a + (j % 2) * a / 2 + 1, Y(0) - (j + 1) * b + 1, a - 2, b - 2);
+      }
+      band(2.5, 2.6, steel); pane(2.6, 3.9, steel, 0.1); band(3.9, 4, steel);
+      break;
+    }
+    case 'paleGreenTiles': {
+      x.fillStyle = '#93a8a0'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${178 + Math.floor(r() * 10)},${206 + Math.floor(r() * 8)},${194 + Math.floor(r() * 8)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'paleTiles': {
+      x.fillStyle = '#a6a49e'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 222 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 1},${v - 6})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'asphalt':
+      x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
+      break;
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -2784,7 +2857,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

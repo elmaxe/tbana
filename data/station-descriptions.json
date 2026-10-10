@@ -1232,14 +1232,29 @@
     },
     "Sandsborg": {
       "drawing": "sandsborg.png",
-      "note": "An island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "note": "An island platform on the bank, under a flat red steel roof over its southern half. At its south end the platform runs into the station's hall between the tracks, over the underpass of Stora Gungans väg: the ticket gates, then stairs down along its west side and a walkway along its east side to a lift, both to the underpass, which comes out on Stora Gungans väg to the west and towards Dalens allé to the east. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-49.87436714794674, -0.9], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -1.0]},
-          {"walk": [-66.0, -1.1], "width": 6},
-          {"walk": [-66.0, -12.9], "width": 4},
+        { "from": [-72.6, -0.85], "width": 3.0, "go": [
+          {"walk": [-73.4, -0.85], "ceiling": 2.4},
+          {"walk": [-79.0, -0.85], "width": 5.8, "ceiling": 3.7},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -26.9], "name":  "Sandsborg"}}
+          {"walk": [-84.6, -0.85], "ceiling": 3.7}
+        ] },
+        { "from": [-84.6, -2.1], "width": 2.6, "go": [
+          {"stairs": -4.5, "toward": [-100, -2.1], "lanes": "S"},
+          {"walk": [-97.4, -2.1], "ceiling": 2.5},
+          {"walk": [-99.4, -2.1], "width": 4.0, "ceiling": 2.5},
+          {"mark": "under"},
+          {"walk": [-99.4, -9.1], "ceiling": 2.5},
+          {"exit": {"at": [-99.4, -16.5], "name": "Stora Gungans väg"}, "by": "walk", "open": true}
+        ] },
+        { "from": "under", "width": 4.0, "go": [
+          {"walk": [-99.4, 7.5], "ceiling": 2.5},
+          {"exit": {"at": [-99.4, 16.5], "name": "Dalens allé"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-84.6, 0.7], "width": 1.8, "go": [
+          {"walk": [-101.0, 0.7], "ceiling": 3.7},
+          {"lift": -4.5, "above": 5.4}
         ] }
       ]
     },
