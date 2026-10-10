@@ -27,6 +27,7 @@
     "fetch-laser": "node tools/fetch-laser.ts",
     "shot": "node tools/shot.ts",
     "laser-points": "node tools/laser-points.ts",
+    "google-colours": "node tools/google-colours.ts",
     "google-mesh": "node tools/google-mesh.ts"
   },
   "dependencies": {

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Building } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
+import { buildCentralbron, buildPortals, buildRailway, buildSouthEnd, buildStation, stationOutline } from './gamla-stan.ts';
 import { buildKonserthuset, konserthusetOutline } from './konserthuset.ts';
 import { HOTORGSCITY_WEST } from './hotorgscity.ts';
 import { KUNGSTORNEN } from './kungstornen.ts';
@@ -17,7 +18,14 @@ import { buildTower, TOWERS } from './towers.ts';
 // ?nodetail: the plain city everywhere, to compare
 export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nodetail');
 
-export const DETAIL_AREAS = [{ name: 'Hötorget', x: 270, z: -420, r: 165 }];
+export const DETAIL_AREAS = [
+  { name: 'Hötorget', x: 270, z: -420, r: 165 },
+  // what the trains' bridge over Söderström looks out on: Gamla stan's west and south fronts,
+  // Riddarholmen's south end and Söder Mälarstrand
+  { name: 'Gamla stan', x: 560, z: 930, r: 140 },
+  { name: 'Riddarholmen', x: 330, z: 790, r: 80 },
+  { name: 'Söder Mälarstrand', x: 520, z: 1215, r: 160 },
+];
 
 interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
 const LANDMARKS: Landmark[] = [
@@ -26,6 +34,14 @@ const LANDMARKS: Landmark[] = [
   ...KUNGSTORNEN,
   HOTORGSCITY_WEST,
   PUB,
+  // Gamla stan station with Centralbron and the railway over it, in two halves, each built with
+  // the tile it is in
+  { name: 'Gamla stan station', outline: stationOutline(), anchor: [449, 910], build: (B, g) => {
+    buildStation(B, g); buildSouthEnd(B, g); buildCentralbron(B, g, 'north'); buildRailway(B, g, 'north');
+  } },
+  { name: 'Centralbron over Söderström', outline: [], anchor: [480, 1100], build: (B, g) => {
+    buildCentralbron(B, g, 'south'); buildRailway(B, g, 'south'); buildPortals(B);
+  } },
 ];
 
 export interface TileDetail {

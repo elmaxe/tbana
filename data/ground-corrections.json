@@ -1,0 +1,20 @@
+{
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `paved` outline (and an `open` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass.",
+  "open": [
+    {
+      "outline": [[391.2, 856.2], [418.6, 925.2], [434.8, 984.3], [445.6, 1023.6], [484.9, 1003.9], [468.3, 975.3], [496.9, 960.9], [433.7, 834.9]],
+      "ground": 2.6,
+      "why": "Gamla stan station, the railway beside it and Centralbron over it, from the platforms' north end to Söderström. The elevation model takes the decks for the ground: Centralbron's at 7–8 m over the platforms and the railway's at 3.5–6 m along the quay (Lantmäteriet's laser scan, 2021), so the station stood buried in a grassy mound. The street beside it is at 2.6–3.0 m on Munkbroleden and 1.5–1.8 m on the quay (laser scan); the station, the railway and the bridge are drawn in src/detail/gamla-stan.ts."
+    }
+  ],
+  "paved": [
+    {
+      "outline": [[100, 520], [480, 520], [480, 600], [1010, 600], [1010, 1060], [560, 1040], [490, 1008], [455, 1030], [380, 1000], [100, 880]],
+      "why": "Gamla stan and Riddarholmen are stone and asphalt to the water's edge: Munkbroleden, Kornhamnstorg, Munkbrohamnen, Skeppsbron, Riddarholmskajen and Evert Taubes terrass are quays (Google's 3D model). Their rims, and the street under Centralbron, were grass for want of buildings beside them."
+    },
+    {
+      "outline": [[-400, 1120], [900, 1120], [900, 1220], [450, 1220], [420, 1185], [-400, 1185]],
+      "why": "Söder Mälarstrand from the foot of Centralbron to Slussen, and on west towards Hornsgatan: a street and a quay between the water and the houses, 2.2–3.0 m (Lantmäteriet's laser scan), where Mariaberget's slope begins. It was grass for want of buildings beside it."
+    }
+  ]
+}

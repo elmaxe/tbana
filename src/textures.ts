@@ -2523,3 +2523,32 @@ export function neonDigit(d: string) {
   x.strokeStyle = '#d6e0ff'; x.lineWidth = 5; x.strokeText(d, 64, 100);
   return toTexture(c, { repeat: false, aniso: 4 });
 }
+
+// A railing of upright bars on nothing (for an alpha test), white for vertex colours to tint: a
+// handrail at the top, a rail near the foot and a bar every 12.5 cm; covers 1 m along by its
+// height.
+export function railingBars() {
+  const [c, x] = canvas(128, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 128, 9);
+  x.fillRect(0, 110, 128, 6);
+  for (let k = 0; k < 128; k += 16) x.fillRect(k + 6, 0, 4, 128);
+  return toTexture(c, { aniso: 4 });
+}
+
+// The sign over a station's entrance, SL style: a blue band with the T in a white ring on the
+// left, the name in white capitals and a yellow line along its foot. 1024 × 176, about 4.6 × 0.8 m.
+export function entranceSign(text: string) {
+  const [c, x] = canvas(1024, 176);
+  x.fillStyle = '#123f8c'; x.fillRect(0, 0, 1024, 176);
+  x.fillStyle = '#f2c230'; x.fillRect(0, 158, 1024, 18);
+  x.fillStyle = '#ffffff';
+  x.beginPath(); x.arc(110, 80, 52, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#123f8c';
+  x.fillRect(80, 52, 60, 14); x.fillRect(102, 52, 16, 64);
+  x.fillStyle = '#ffffff';
+  x.font = '600 92px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'left'; x.textBaseline = 'middle';
+  x.fillText(text, 200, 84, 800);
+  return toTexture(c, { repeat: false });
+}

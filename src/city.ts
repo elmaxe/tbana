@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL_TRACK, CITY_TILE, WALL_STYLES, decodeTile, photoName, tileName } from './city-tile.ts';
+import { CELL_PAVED, CELL_TRACK, CITY_TILE, WALL_STYLES, decodeTile, photoName, tileName } from './city-tile.ts';
 import type { Building, CityIndex, CityTile, PhotoIndex, WallStyle, Water } from './city-tile.ts';
 import { cutIndexed, insideVolume, prism } from './clip.ts';
 import type { Volume } from './clip.ts';
@@ -447,12 +447,15 @@ export class City {
         const x = t.x0 + k * g.step, z = t.z0 + r * g.step, y = g.heights[r * n + k];
         pos.push(x, y, z);
         uv.push(...toUv(x, z));
-        // beside open track: the cells round the point
-        let track = false;
+        // beside open track, or paved: the cells round the point
+        let track = false, paved = false;
         for (const [a, b] of [[r - 1, k - 1], [r - 1, k], [r, k - 1], [r, k]]) {
-          if (a >= 0 && b >= 0 && a < n - 1 && b < n - 1 && g.flags[a * (n - 1) + b] & CELL_TRACK) track = true;
+          if (a < 0 || b < 0 || a >= n - 1 || b >= n - 1) continue;
+          const f = g.flags[a * (n - 1) + b];
+          if (f & CELL_TRACK) track = true;
+          if (f & CELL_PAVED) paved = true;
         }
-        c.copy(GRASS).lerp(PAVED, THREE.MathUtils.smoothstep(cover[r * n + k], 0.03, 0.18));
+        c.copy(GRASS).lerp(PAVED, paved ? 1 : THREE.MathUtils.smoothstep(cover[r * n + k], 0.03, 0.18));
         if (track) c.lerp(BALLAST, 0.45);
         const v = 0.92 + 0.16 * hash((x * 73856093) ^ (z * 19349663));
         col.push(c.r * v, c.g * v, c.b * v);

@@ -41,8 +41,10 @@ export const CITY_TILE = 500;
 export const CITY_VERSION = 1;
 
 // Cell flags in the ground: where the ground has been shaped for a service's track (lowered under
-// open track, raised over shallow tunnels), which isn't walked on. (A depot's isn't flagged.)
+// open track, raised over shallow tunnels), which isn't walked on (a depot's isn't flagged); and
+// where it is paved though few buildings stand round it, such as a quay (data/ground-corrections.json).
 export const CELL_TRACK = 1;
+export const CELL_PAVED = 2;
 
 export interface Ground {
   step: number;

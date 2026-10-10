@@ -3,9 +3,10 @@
 //   node tools/build-city.ts
 //
 // Reads data/ground/city.json and city.bin.gz (tools/fetch-terrain.ts), data/osm/buildings.json
-// (tools/fetch-city.ts) with the fixes to it in data/building-corrections.json,
-// public/data/track-geometry.json and public/data/station-layouts.json;
-// writes public/data/city/ (see src/city-tile.ts).
+// (tools/fetch-city.ts) with the colours measured for it in data/building-colours.json and the
+// fixes to it in data/building-corrections.json, the fixes to the ground in
+// data/ground-corrections.json, public/data/track-geometry.json and
+// public/data/station-layouts.json; writes public/data/city/ (see src/city-tile.ts).
 //
 // The ground is the elevation model, shaped where the track runs:
 // - Under open track it is lowered below the formation (the bank, the cutting's floor, the bridge
@@ -22,6 +23,9 @@
 //   ground for a few metres either side, where the lowered ground of the open track meets the
 //   raised ground over the tunnel; the portal stands in it. So it is where a tunnel comes out from
 //   under the ground to stand in the open.
+// - Where the elevation model takes a deck for the ground (data/ground-corrections.json, as over
+//   Gamla stan's station under Centralbron), it is brought down to the street under it, and the
+//   tunnels there stand in the open; src/detail/ draws the decks.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
@@ -55,7 +59,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { gunzipSync, gzipSync } from 'node:zlib';
 import polygonClipping from 'polygon-clipping';
 import type { MultiPolygon, Polygon } from 'polygon-clipping';
-import { CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName } from '../src/city-tile.ts';
+import { CELL_PAVED, CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTile, tileName } from '../src/city-tile.ts';
 import type { Building, CityIndex, Door, RoofShape, WallStyle } from '../src/city-tile.ts';
 import { ROOF_SHAPES } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
@@ -97,6 +101,15 @@ const groundMeta: { attribution: string; tile: number; step: number; n: number; 
   JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
 const osm: { attribution: string; extract: string; buildings: { osm: string; tags: Record<string, string>; rings: number[][] }[] } =
   JSON.parse(readFileSync('data/osm/buildings.json', 'utf8'));
+// the colours of walls and roofs, measured from Google's 3D model where it has been (tools/google-colours.ts),
+// over OSM's: building:colour and roof:colour
+const measured: { buildings: Record<string, [string | null, string | null]> } | null =
+  existsSync('data/building-colours.json') ? JSON.parse(readFileSync('data/building-colours.json', 'utf8')) : null;
+for (const b of osm.buildings) {
+  const [wall, roof] = measured?.buildings[b.osm] ?? [null, null];
+  if (wall) b.tags['building:colour'] = wall;
+  if (roof) b.tags['roof:colour'] = roof;
+}
 // fixes to OSM's tags, each with its reason (data/building-corrections.json)
 const corrections: { buildings: { osm: string; tags: Record<string, string>; why: string }[] } | null =
   existsSync('data/building-corrections.json') ? JSON.parse(readFileSync('data/building-corrections.json', 'utf8')) : null;
@@ -120,6 +133,18 @@ const raw = new Int16Array(gunzipSync(readFileSync('data/ground/city.bin.gz')).b
 const ground = new Map<string, Float32Array>();
 groundMeta.tiles.forEach(([i, j, base], t) => ground.set(`${i},${j}`, deltaDecode(raw.subarray(t * N * N, (t + 1) * N * N), N, base)));
 
+// Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
+// height under it there, or null elsewhere. The tunnels there stand in the open.
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[] } | null =
+  existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
+function openGround(x: number, z: number): number | null {
+  for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
+  return null;
+}
+// whether the ground at (x, z) is paved though few buildings stand round it (a quay, a street under
+// a deck)
+const paved = (x: number, z: number) => openGround(x, z) !== null || (groundFixes?.paved ?? []).some((o) => inside([x, z], o.outline));
+
 // the fetched ground at any point of the city (bilinear), or null outside it
 function groundAt(x: number, z: number): number | null {
   const i = Math.floor(x / CITY_TILE), j = Math.floor(z / CITY_TILE);
@@ -128,7 +153,9 @@ function groundAt(x: number, z: number): number | null {
   const u = (x - i * CITY_TILE) / STEP, v = (z - j * CITY_TILE) / STEP;
   const c = Math.min(N - 2, Math.floor(u)), r = Math.min(N - 2, Math.floor(v)), fu = u - c, fv = v - r;
   const k = r * N + c;
-  return (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
+  const g = (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
+  const open = openGround(x, z);
+  return open === null ? g : Math.min(g, open);
 }
 
 // ------------------------------------------------------------------ water
@@ -431,6 +458,7 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     // way or one under a bridge the model leaves out: it stands in the open instead.
     const buried = (i: number) => {
       const g = p.ground[i];
+      if (openGround(p.x[i], p.z[i]) !== null) return false;
       return g === null || g > p.y[i] + crownOf(kindAt(i), p.pair[i], platAt(i)) / 2;
     };
     // (the point at a mouth has the ground low: the segment into the tunnel from it is buried)
@@ -521,6 +549,8 @@ function relate(s: Seg, x: number, z: number) {
 // runs on (and so isn't walked on)]
 function shape(x: number, z: number, h0: number): [number, boolean] {
   let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false, roof = -Infinity;
+  // where the ground is opened under a deck, nothing is raised over the tunnels
+  const open = openGround(x, z) !== null;
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
@@ -529,6 +559,7 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
     const w = halfWidth(s.kind, s.pair, s.plat, side, s.beside);
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
+      if (open) continue;
       lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       // over its own half of the tunnel, the ground stays over its roof
       const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2
@@ -1049,8 +1080,9 @@ for (const [i, j] of groundMeta.tiles) {
   const heights = new Float32Array(N * N), beside = new Uint8Array(N * N), flags = new Uint8Array((N - 1) * (N - 1));
   for (let r = 0; r < N; r++) {
     for (let c = 0; c < N; c++) {
-      const k = r * N + c;
-      const [h, b] = shape(i * CITY_TILE + c * STEP, j * CITY_TILE + r * STEP, h0[k]);
+      const k = r * N + c, x = i * CITY_TILE + c * STEP, z = j * CITY_TILE + r * STEP;
+      const open = openGround(x, z);
+      const [h, b] = shape(x, z, open === null ? h0[k] : Math.min(h0[k], open));
       heights[k] = h;
       beside[k] = b ? 1 : 0;
       if (h < h0[k] - 0.01) lowered++;
@@ -1060,9 +1092,11 @@ for (const [i, j] of groundMeta.tiles) {
   for (let r = 0; r + 1 < N; r++) for (let c = 0; c + 1 < N; c++) {
     const k = r * N + c;
     if (beside[k] || beside[k + 1] || beside[k + N] || beside[k + N + 1]) flags[r * (N - 1) + c] |= CELL_TRACK;
+    if (paved(i * CITY_TILE + (c + 0.5) * STEP, j * CITY_TILE + (r + 0.5) * STEP)) flags[r * (N - 1) + c] |= CELL_PAVED;
   }
   const x0 = i * CITY_TILE, z0 = j * CITY_TILE, m = 30;
-  const holes = mouthHoles.filter((h) => h.x > x0 - m && h.x < x0 + CITY_TILE + m && h.z > z0 - m && h.z < z0 + CITY_TILE + m).map((h) => {
+  // (none where the ground is opened under a deck: no ground lies over the tunnel there to cut)
+  const holes = mouthHoles.filter((h) => h.x > x0 - m && h.x < x0 + CITY_TILE + m && h.z > z0 - m && h.z < z0 + CITY_TILE + m && openGround(h.x, h.z) === null).map((h) => {
     const rx = -h.tz, rz = h.tx;
     // from MOUTH.into back in the tunnel to MOUTH.out along the open track (tx, tz points from the
     // tunnel out)
