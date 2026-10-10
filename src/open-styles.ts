@@ -31,8 +31,8 @@ export interface OpenStyle {
   // fences along the tracks, beyond them
   fences?: Fence[];
   // benches down the middle of the platform at these `s`: along it, or across it, against the
-  // panel between a pair of columns; `double`, two back to back along it
-  benches?: { at: number[]; across?: boolean; double?: boolean };
+  // panel between a pair of columns; `double`, two back to back along it; `wood`, their slats wooden
+  benches?: { at: number[]; across?: boolean; double?: boolean; wood?: boolean };
   // glass shelters on the platform, from s[0] to s[1] and u[0] to u[1] across the line down its
   // middle, glazed along both sides and open at the ends, with a bench inside; out in the open,
   // a flat roof of their own
@@ -177,7 +177,11 @@ export type Finish =
   | 'whiteBranches' // pale stone tiles on end, black branches spreading over them
   | 'darkBranches'  // dark grey slabs on end, staggered, here and there a black branch
   | 'basketTiles'   // white tiles in pairs, each pair turned from its neighbours
-  | 'granite';      // rough granite blocks in courses, in pale mortar
+  | 'granite'       // rough granite blocks in courses, in pale mortar
+  | 'whitePerforated' // white acoustic panels, finely perforated
+  | 'roughcast'     // grey roughcast render
+  | 'hallTiles'     // white tiles, windows in grey frames, white render, tall windows in black frames
+  | 'glassFront';   // glass doors in brushed steel, the name's band, glass in steel frames above
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -202,7 +206,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -220,9 +224,9 @@ export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: nu
 // Lamp posts at the points ([s, u], in the station's frame): a tall red-brown post with a white
 // dome lamp on top and one on an arm to each side, `height` high; or a galvanised one (`color`),
 // with only the two on the arm (`top: false`), and the station's name on a black sign on it
-// (`sign`, so high). `arm`: the arm reaches this far each way (0.6 m by default); `lower`, a
-// second, shorter arm with two small lamps, so high.
-export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; arm?: number; lower?: number }
+// (`sign`, so high; SL's dark blue over a yellow stripe, `blue`). `arm`: the arm reaches this far
+// each way (0.6 m by default); `lower`, a second, shorter arm with two small lamps, so high.
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts).
@@ -251,6 +255,12 @@ export interface GlassPosts { kind: 'glassPosts'; at: [number, number][]; h: [nu
 // hands over its head and its feet behind; `crouch`, squatting on its toes on a ledge `h` high,
 // its knees wide and its hands down on the ledge between its feet, as if about to jump.
 export interface Figure { kind: 'figure'; pose: 'cling' | 'crouch'; s: number; u: number; h: number; turn: number; size: number }
+
+// A boat of concrete, its deck of setts, from its square stern to its bow `turn` as a guardian
+// faces (at s, u, across from the line down the platform's middle); on a post of granite in it a
+// granite slab along it, and on the slab five small figures of bronze in a row, four of them
+// heads and shoulders, one sprawled.
+export interface FoolsShip { kind: 'foolsShip'; s: number; u: number; turn: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`).
@@ -1186,6 +1196,130 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         [90, 0.4], [95, 1.65], [97.31, 3.12], [103.23, 4.1], [106, 4.7], [110, 5.9], [120, 9.1]], h: [-1.1, 1.4] },
       { points: [[-90, 6.75], [-80, 6.9], [-60, 7.2], [-40, 7.5], [-20, 7.8], [0, 8.1], [20, 8.7], [40, 9.8], [60, 11.5], [70, 12.7], [80, 14.2],
         [90, 15.9], [95.13, 16.34], [103.02, 17.65], [106, 19.5], [110, 20.5], [120, 23.4]], h: [-1.1, 1.4] },
+    ],
+  },
+
+  // Sockenplan (9 September 1951, where the Örbybanan tram had stopped at Enskedefältet since
+  // 1930): an island platform on the bank west of Sockenvägen, curving towards its south end,
+  // under the same roof as Enskede gård's over its northern half. The laser scan puts it from
+  // 7.5 m to 73 m north of the platform's middle, 8.75 m wide, its top 4.2 m over the platform
+  // along the valley and 0.25 m higher at the edges. Photographs (2018) show it boarded white on
+  // white rafters, with frames of dark grey steel down the middle, each two columns across the
+  // platform on concrete plinths under a beam each, tied by bars and a slanting brace; round
+  // lights along its edges, departure boards and clocks hung from it (Hässelby strand's on the
+  // eastern half, Hagsätra's on the western), double benches of slats beside the frames.
+  // Beyond it, galvanised lamp posts with three dome lamps down the middle (the laser scan: about
+  // every 15 m, 5.1 m high; some with SL's blue name sign) and a glass shelter. The paving: a pale
+  // band along each edge, a grey ribbed strip, then grey pavers in a running bond.
+  //
+  // Sture Collin's Dårarnas båt (1990) stands on the platform just south of the roof: a boat of
+  // concrete, its deck of setts, and on a granite post in it a granite slab with five small
+  // bronze figures in a row.
+  //
+  // At its north end the platform runs into a glass stair house between the tracks (the laser
+  // scan: from 73.5 m to 91 m north, about 5 m wide, its roof falling from 5.3 m over the
+  // platform to 3.9 m), framed in black, with a ceiling of white perforated panels and a dark
+  // floor: on its west side a walkway on the platform's level, behind a glass balustrade, out to
+  // a lift in a glass shaft; on its east side stairs down between dark grey tiles, 5 m to the
+  // ticket hall at the street (OpenStreetMap's indoor mapping: the stairs from 76 m to 89 m
+  // north, the lift at 88 m, the gates at 93 m). The hall stands under the tracks' two bridges
+  // over the square, rising between them (the laser scan: its roof 1.2 m to 1.8 m over the
+  // platform, to 101 m north): dark stone floor, white tiles below a row of windows in grey
+  // frames, the bridges' edges boxed in white over them and tall windows in black frames at the
+  // top, white perforated ceilings, the gates (the booth beside them isn't drawn). The network's
+  // decks lie lower than the real ones (its platform is about 0.9 m under the laser scan's) and
+  // closer together, so the tiles and windows are drawn lower, and the lift and the stairs
+  // squeezed into the gap. Its doors open north under a glass canopy onto a paved square: a
+  // front of glass in brushed steel under SL's blue band with the station's name, between walls
+  // of grey roughcast under the bridges.
+  //
+  // Chain-link fences beyond both tracks.
+  'Sockenplan': {
+    roof: {
+      kind: 'butterfly',
+      from: 7.5, to: 73.4, width: 8.75, offset: -0.3,
+      middle: 3.4, edge: 3.65, thick: 0.22, fascia: 0.3,
+      rafters: 1.3, rafterSize: [0.08, 0.22],
+      beam: 0.3,
+      columns: { every: 6.5, at: 11, size: 0.14, plinth: { size: 0.4, height: 0.2 }, pair: 1.2, ties: [1.0, 2.35] },
+      lamps: { offset: 3.4, length: 1.6, every: 1.6, tube: true },
+      colors: { underside: 0xf2f2ee, fascia: 0xe6e6e2, top: 0x5a5e60, steel: 0x2a2d30 },
+      signs: { at: [], back: '', ahead: 'Utgång', blue: true },
+      clocks: [[34.5, 3.2], [31, -3.2]],
+      boards: [
+        { s: 34.5, u: 1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
+        { s: 31, u: -1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 0.95], slabs: 0.95, paverSize: [0.3, 0.2], mix: 0.3,
+      colors: { edge: 0xcdcac2, tactile: 0x8a8c8c, slab: 0x6b6e72, pavers: 0x6b6e72, paler: 0x7e8185, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: "platform's north end", s: [66, 73.5], h: [-0.5, 1], walls: null, floor: null },
+      // (the glass stair house's: walls beside the stairs up to the walkway's level, the glass over
+      // them)
+      { name: 'stair house', s: [73.5, 89.6], h: [-5.2, 1], walls: 'darkTiles', floor: 'darkStone', ceiling: 'whitePerforated', stairs: 'darkTiles', sill: 0 },
+      // (the hall's walls are its shell's)
+      { name: 'ticket hall', s: [88.5, 101.4], h: [-5.6, -4.5], walls: 'hallTiles', floor: 'darkStone', ceiling: 'whitePerforated', sill: -5.0 },
+      { name: 'square', s: [101.4, 106], h: [-5.6, -4.5], walls: null, floor: 'greyTiles' },
+    ],
+    blocks: [
+      // between the tracks, kept 2 m off them, open to the platform and to the hall;
+      // roughcast below the platform's level, where it stands under the bridges
+      { name: 'stair house', plan: [[73.5, -1.5], [91, -1.3], [91, 3.5], [73.5, 3.5]], h: [-5.3, 5.3], from: -5.05, low: 3.9,
+        walls: 'roughcast', band: { walls: 'darkGlazed', from: 0 }, sides: [undefined, null, undefined, null],
+        floor: 'darkStone', ceiling: 'whitePerforated', roof: 0.3, onPlatform: true, ground: true },
+      // its glazed gables, over the platform's roof and over the hall's
+      { name: "stair house's south gable", plan: [[73.4, -1.5], [73.6, -1.5], [73.6, 3.5], [73.4, 3.5]], h: [3.3, 5.3], from: 3.3, walls: 'darkGlazed', roof: 0.3 },
+      { name: "stair house's north gable", plan: [[90.9, -1.3], [91.1, -1.3], [91.1, 3.5], [90.9, 3.5]], h: [1.4, 3.9], from: 1.4, walls: 'whitePanels', roof: 0.3 },
+      // (and where it is wider than the hall, beside the western bridge)
+      { name: "stair house's north end", plan: [[90.9, -1.3], [91.1, -1.3], [91.1, -0.95], [90.9, -0.95]], h: [-2.62, 1.4], from: -2.62, walls: 'whitePanels', roof: 0 },
+      // the hall, rising between the bridges, its doors to the north
+      { name: 'ticket hall', plan: [[91, -0.95], [101.3, -0.3], [101.3, 3.1], [91, 3.5]], h: [-5.3, 1.8], from: -5.05, low: 1.2,
+        walls: 'hallTiles', sides: [undefined, 'glassFront', undefined, null], ceiling: 'whitePerforated', roof: 0.25, roofColor: 0x8a8f92,
+        nameSign: { side: 1, at: 0.5, length: 2.8, bottom: -2.65 }, ground: true },
+      // its rooms either side, under the bridges, their windows in a row with the hall's
+      { name: "hall's west side", plan: [[91, -3.0], [101.3, -3.0], [101.3, -0.3], [91, -0.95]], h: [-5.3, -2.62], from: -5.05,
+        walls: 'roughcast', band: { walls: 'hallTiles', from: -3.49 }, sides: [undefined, undefined, null, undefined], roof: 0.02, ground: true },
+      { name: "hall's east side", plan: [[91, 3.5], [101.3, 3.1], [101.3, 4.8], [91, 4.8]], h: [-5.3, -2.62], from: -5.05,
+        walls: 'roughcast', band: { walls: 'hallTiles', from: -3.49 }, sides: [null, undefined, undefined, undefined], roof: 0.02, ground: true },
+      // the bridges' edges over the hall and the lower part of the house, boxed in white (the
+      // network's decks, 2.85 m either side of each track, reach 0.2 m to 0.5 m in over them)
+      { name: "western bridge's edge, in the house", plan: [[82.2, -1.45], [91, -1.35], [91, -0.565], [82.2, -0.94]], h: [-2.77, -2.77], from: -2.77,
+        walls: 'whitePanels', sides: [null, null, null, null], roof: 1.5, roofColor: 0xe9e9e5 },
+      { name: "western bridge's edge, in the hall", plan: [[91, -1.0], [101.25, -0.35], [101.25, -0.09], [91, -0.565]], h: [-2.77, -2.77], from: -2.77,
+        walls: 'whitePanels', sides: [null, null, null, null], roof: 1.5, roofColor: 0xe9e9e5 },
+      { name: "eastern bridge's edge, in the house", plan: [[83.5, 3.17], [91, 3.04], [91, 3.55], [83.5, 3.55]], h: [-2.77, -2.77], from: -2.77,
+        walls: 'whitePanels', sides: [null, null, null, null], roof: 1.5, roofColor: 0xe9e9e5 },
+      { name: "eastern bridge's edge, in the hall", plan: [[91, 3.04], [101.25, 2.84], [101.25, 3.15], [91, 3.55]], h: [-2.77, -2.77], from: -2.77,
+        walls: 'whitePanels', sides: [null, null, null, null], roof: 1.5, roofColor: 0xe9e9e5 },
+      // the glass canopy over the doors, between the bridges
+      { name: 'canopy', plan: [[101.3, 0.05], [103.5, 0.05], [103.5, 2.7], [101.3, 2.7]], h: [-1.9, -1.85], from: -1.9,
+        walls: 'glassFront', sides: [null, null, null, null], roof: 0.05, roofColor: 0xc4cfd0 },
+      // the square paved in front of the doors, on the hall's level (the city's ground, from a 4 m
+      // grid, lies up to 0.2 m higher here, sloping away: a granite kerb up to it)
+      { name: 'square', plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-5.03, -4.85], from: -5.03, low: -4.97,
+        walls: 'granite', sides: [undefined, undefined, undefined, null], floor: 'greyTiles' },
+      // (the ground cut away under it)
+      { name: "square's ground", plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-4.5, -4.5], from: -5.03,
+        walls: 'granite', sides: [null, null, null, null], ground: true },
+    ],
+    buildings: ['w114114819'],
+    art: [
+      { kind: 'foolsShip', s: 3, u: -0.45, turn: 0 },
+      { kind: 'masts', height: 5.1, color: 0x9a9fa3, arm: 1.0, at: [[6.5, 0.0], [-18.8, 0.2], [-35, 0.9], [-66, 3.8]] },
+      { kind: 'masts', height: 5.1, color: 0x9a9fa3, arm: 1.0, sign: 2.6, blue: true, at: [[-5, -0.1], [-50.5, 2.0]] },
+    ],
+    benches: { at: [15.9, 28.9, 41.9, 54.9, -27, -45], double: true, wood: true },
+    shelters: [{ s: [-14.4, -8.7], u: [-0.8, 1.5], roof: true }],
+    // 3.2 m beyond each track
+    fences: [
+      { points: [[-90, 0.5], [-80, -1.6], [-70, -3.4], [-60, -4.9], [-50, -6.2], [-40, -7.2], [-30, -8.1], [-20, -8.7], [-10, -9.0], [0, -9.2],
+        [10, -9.1], [20, -8.9], [30, -8.7], [40, -8.4], [50, -8.1], [60, -7.7], [70, -7.4], [80, -7.1]], h: [-1.1, 1.0] },
+      { points: [[-90, 15.2], [-80, 13.7], [-70, 12.5], [-60, 11.5], [-50, 10.7], [-40, 10.1], [-30, 9.6], [-20, 9.4], [-10, 9.2], [0, 9.2],
+        [10, 9.2], [20, 9.2], [30, 9.3], [40, 9.3], [50, 9.4], [60, 9.4], [70, 9.4], [80, 9.3]], h: [-1.1, 1.0] },
     ],
   },
 };

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Fence, Figure, Finish, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -203,12 +203,13 @@ export class OpenLook {
       else if (a.kind === 'stacks') this.stacks(a, line, on);
       else if (a.kind === 'panels') this.panels(a, roof, line, on);
       else if (a.kind === 'chairs') this.chairs(a, line, on);
+      else if (a.kind === 'foolsShip') this.foolsShip(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
     const B = style.benches;
     for (const s of B?.at ?? []) {
       if (B!.across) this.benchAcross(s, line, on);
-      else if (B!.double) this.benchDouble(s, line, on);
+      else if (B!.double) this.benchDouble(s, line, on, B!.wood);
       else this.bench(s, line, on);
     }
   }
@@ -532,9 +533,9 @@ export class OpenLook {
   }
 
   // Two benches back to back along the platform, of black slats on a steel frame.
-  private benchDouble(s: number, line: Line, on: On) {
+  private benchDouble(s: number, line: Line, on: On, wood = false) {
     const [fx, fz] = line.dir(s);
-    const slat = on(this.color(0x1e1f20, 0.6)), steel = on(this.color(0xa9adb0, 0.35, 0.7));
+    const slat = on(this.color(wood ? 0x8a5a34 : 0x1e1f20, 0.6)), steel = on(this.color(0xa9adb0, 0.35, 0.7));
     for (const side of [-1, 1]) {
       for (const u of [0.17, 0.3, 0.43]) box(slat, line.at(s, side * u, 0.45), fx, fz, 0.11, 0.035, 1.8);
       for (const y of [0.62, 0.78]) box(slat, line.at(s, side * 0.09, y), fx, fz, 0.03, 0.12, 1.8);
@@ -569,6 +570,41 @@ export class OpenLook {
       box(wood, P(c + back, 0, 0.85), dx, dz, 0.86, 1.2, 0.22);
       box(wood, P(c + back * 0.97, 0, 1.5), dx, dz, 0.7, 0.1, 0.2);
     }
+  }
+
+  // Sture Collin's Dårarnas båt (1990): the boat, its deck of setts rising to the bow, the post
+  // and slab of granite, and the five figures on the slab.
+  private foolsShip(a: FoolsShip, line: Line, on: On) {
+    const [fx, fz] = line.dir(a.s), rx = -fz, rz = fx;
+    const dx = fx * Math.cos(a.turn) + rx * Math.sin(a.turn), dz = fz * Math.cos(a.turn) + rz * Math.sin(a.turn);
+    const ex = -dz, ez = dx;
+    const base = line.at(a.s, a.u, 0);
+    // fwd from the middle towards the bow, across to its right
+    const P = (fwd: number, across: number, y: number): XYZ => [base[0] + dx * fwd + ex * across, base[1] + y, base[2] + dz * fwd + ez * across];
+    const concrete = on(this.color(0xa9a69f, 0.9)), granite = on(this.finish('roughcast'));
+    const setts = on(this.mat('cobbles', () => new THREE.MeshStandardMaterial({ map: T.cobbles(), roughness: 0.9, side: THREE.DoubleSide })));
+    const bronze = on(this.color(0x3d4843, 0.45, 0.55));
+    // the hull round its outline, its sides higher towards the bow (a sheer), the deck inset
+    const hull: [number, number][] = [[-2.4, 1.1], [-0.8, 1.0], [0.9, 0.55], [2.6, -0.4], [1.2, -1.05], [-0.5, -1.2], [-2.4, -1.1]];
+    const rim = (f: number) => 0.55 + 0.25 * Math.max(0, (f + 0.5) / 3.1) ** 2;
+    slab(concrete, hull.map(([f, c]) => P(f, c, rim(f))), 0.6);
+    const cx = hull.reduce((t, p) => t + p[0], 0) / hull.length, cy = hull.reduce((t, p) => t + p[1], 0) / hull.length;
+    setts.poly(hull.map(([f, c]) => {
+      const g = cx + (f - cx) * 0.9, k = cy + (c - cy) * 0.86;
+      return [...P(g, k, rim(g) - 0.04), g, k];
+    }));
+    // the post, and the slab on it
+    box(granite, P(-1.1, 0.05, 0.85), dx, dz, 0.5, 0.6, 0.5);
+    box(granite, P(-1.1, 0.05, 1.33), dx, dz, 0.75, 0.36, 1.9);
+    // the figures in a row along the slab: heads on shoulders, and one lying on its side
+    const top = 1.51;
+    for (const [f, h, r, lean] of [[-0.45, 0.4, 0.11, 0.05], [-0.1, 0.36, 0.1, -0.04], [0.25, 0.42, 0.1, 0.03], [0.6, 0.34, 0.11, 0.08]] as const) {
+      const at = -1.1 + f - 0.3;
+      limb(bronze, P(at, 0.05, top), P(at + lean * 0.5, 0.05, top + h - r * 1.6), 0.24, 0.17);
+      ball(bronze, P(at + lean, 0.08, top + h - r), r);
+    }
+    limb(bronze, P(-1.1 + 0.62, 0.0, top + 0.1), P(-1.1 + 0.92, 0.12, top + 0.12), 0.2, 0.16);
+    ball(bronze, P(-1.1 + 0.98, 0.15, top + 0.17), 0.1);
   }
 
   // A glass shelter: glazed along both sides on black posts, open at the ends, a bench inside,
@@ -613,7 +649,7 @@ export class OpenLook {
         const W = 1.5, Hs = 0.375, sc = frame.at(s + 0.15 + W / 2, u, a.sign);
         box(on(this.color(0x161718, 0.5, 0.2)), sc, fx, fz, 0.04, Hs + 0.02, W + 0.02);
         bar(post, frame.at(s, u, a.sign + 0.12), frame.at(s + 0.18, u, a.sign + 0.12), 0.04, 0.04);
-        const m = this.mat(`sign:${name}::`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, '', '') }));
+        const m = this.mat(`sign:${name}:::${!!a.blue}`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, '', '', a.blue) }));
         for (const side of [1, -1]) {
           const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, Hs), m);
           mesh.position.set(sc[0] - fz * side * 0.025, sc[1], sc[2] + fx * side * 0.025);

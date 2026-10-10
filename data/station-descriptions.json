@@ -1545,14 +1545,31 @@
     },
     "Sockenplan": {
       "drawing": "sockenplan.png",
-      "note": "An island platform in the open. At its north end stairs go down to the ticket hall at the street.",
+      "note": "An island platform on the bank, curving towards its south end. At its north end it runs into a glass stair house between the tracks, where they go onto their bridges over the square: a walkway on the platform's level out to a lift on its west side, stairs down on its east, both to the ticket hall under the bridges at the street, its doors to the north. From the laser scan (the house from 73.5 m to 91 m north, the hall's roof between the bridges to 101 m, the street 5 m under the platform), OpenStreetMap's indoor mapping (the stairs from 76 m to 89 m, the lift at 88 m, the gates at 93 m) and photographs (2018).",
       "routes": [
-        { "from": [49.87436714794674, 0.6], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [60.0, 0.8]},
-          {"walk": [66.0, 0.9], "width": 6},
-          {"walk": [66.0, -11.4], "width": 4},
+        { "from": [72.5, 1.0], "width": 4.7, "go": [
+          {"walk": [73.5, 1.0], "open": true},
+          {"walk": [80.0, 1.0], "open": true}
+        ] },
+        { "from": [80.0, -0.95], "width": 0.68, "go": [
+          {"walk": [86.6, -0.95], "open": true}
+        ] },
+        { "from": [79.9, 2.36], "width": 1.34, "go": [
+          {"walk": [80.03, 2.36], "open": true},
+          {"stairs": -5.05, "toward": [100, 2.36], "lanes": "S"},
+          {"walk": [91.0, 2.36], "open": true}
+        ] },
+        { "from": [79.9, 0.52], "width": 2.3, "go": [
+          {"walk": [86.6, 0.52], "open": true},
+          {"lift": -5.05, "through": true, "above": 3.9},
+          {"walk": [91.0, 0.52], "open": true}
+        ] },
+        { "from": [90.9, 1.4], "h": -5.05, "width": 3.2, "go": [
+          {"walk": [93.3, 1.4], "open": true},
           {"gates": true},
-          {"exit": {"at":  [66.0, -25.4], "name":  "Sockenplan"}}
+          {"walk": [101.0, 1.4], "open": true},
+          {"walk": [101.6, 1.4], "width": 2.4, "ceiling": 2.3},
+          {"exit": {"at": [104.5, 1.4], "name": "Sockenplan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

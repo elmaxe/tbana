@@ -2772,6 +2772,25 @@ export function crackle() {
   return toTexture(c);
 }
 
+// Small granite setts, about 10 cm, grey and a few pinkish, laid in rows in dark joints: a
+// metre square.
+export function cobbles() {
+  const W = 160, [c, x] = canvas(W, W), r = rng(1990);
+  x.fillStyle = '#4a4a48'; x.fillRect(0, 0, W, W);
+  const t = 16;
+  for (let j = 0; j < W / t; j++) {
+    let i = -((j * 7) % t);
+    while (i < W) {
+      const l = t - 3 + Math.floor(r() * 6), v = 120 + Math.floor(r() * 50), warm = r() < 0.25 ? 18 : 0;
+      x.fillStyle = `rgb(${v + warm},${v + warm / 3},${v - warm / 3})`;
+      for (const dx of [0, W]) x.fillRect(i + dx + 1.5, j * t + 1.5, l - 3, t - 3);
+      i += l;
+    }
+  }
+  speckle(x, W, W, 1500, 0.2, 73);
+  return toTexture(c);
+}
+
 // The finishes of a styled open station's halls, passages and stairs, each `size` m a repeat
 // (across, and up a wall or along a floor). Walls are drawn as seen, from the floor up; their
 // glass is left clear (the glass itself is drawn apart). `clamp`: drawn to a height, not repeating.
@@ -2786,9 +2805,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   redWindows: [1.2, 4.2], shutter: [1.2, 4.2], redPanels: [1.2, 3], perforated: [2.4, 2.4], lineMosaic: [4.8, 4.8],
   creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
   whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
+  whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3292,6 +3312,53 @@ export function finish(name: Finish) {
       x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
       speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
       break;
+    case 'whitePerforated': {
+      // white acoustic panels 60 cm square, a field of small square holes in each, a plain margin
+      x.fillStyle = '#c9cac6'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX, m = 0.04 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 233 + Math.floor(r() * 6);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+        x.fillStyle = 'rgba(120,122,120,0.55)';
+        for (let a = m; a < t - m; a += 4) for (let b = m; b < t - m; b += 4) x.fillRect(i * t + a, j * t + b, 1.5, 1.5);
+      }
+      break;
+    }
+    case 'roughcast':
+      // grey render thrown on rough
+      x.fillStyle = '#a19e98'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.3, 71); speckle(x, W, H, 16000, 0.25, 72, true);
+      break;
+    case 'hallTiles': {
+      // a hall's high walls: white tiles 15 cm to 1.5 m, a row of windows in grey frames, white
+      // render behind the bridges' edges (boxed over it), and tall windows in black frames above
+      x.fillStyle = '#aeb0ad'; x.fillRect(0, Y(1.5), W, 1.5 * PX);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 10; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1, Y(1.5) + j * t + 1, t - 2, t - 2);
+      }
+      band(1.5, 1.56, '#3b3e41');
+      const g = x.createLinearGradient(0, Y(2.2), 0, Y(1.56));
+      g.addColorStop(0, '#9fb0b8'); g.addColorStop(1, '#6f7f88');
+      x.fillStyle = g; x.fillRect(0, Y(2.2), W, 0.64 * PX);
+      x.fillStyle = '#8d9296'; x.fillRect(0, Y(2.2), 0.05 * PX, 0.64 * PX); x.fillRect(W - 0.05 * PX, Y(2.2), 0.05 * PX, 0.64 * PX);
+      band(2.2, 2.28, '#3b3e41'); band(2.28, 3.78, '#eceae5'); band(3.78, 3.88, '#1c1d1f');
+      pane(3.88, 6.9, '#1c1d1f', 0.1);
+      x.fillStyle = '#1c1d1f'; x.fillRect(0, Y(5.4), W, 0.06 * PX);
+      break;
+    }
+    case 'glassFront': {
+      // a ticket hall's front: glass doors in brushed steel to 2.3 m, a steel transom, the band
+      // the station's name goes on, and glass in steel frames above
+      const st = '#a9aeb1';
+      band(0, 0.1, st); pane(0.1, 2.3, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.3), 0.08 * PX, 2.2 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+      band(2.3, 2.4, st); band(2.4, 2.8, '#22306e'); band(2.8, 2.9, st);
+      pane(2.9, 6.9, st, 0.08);
+      x.fillStyle = st; x.fillRect(0, Y(4.3), W, 0.06 * PX); x.fillRect(0, Y(5.6), W, 0.06 * PX);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -3300,7 +3367,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
