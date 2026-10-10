@@ -25,6 +25,9 @@ Before modelling a real building, research it from the sources below. The skill 
 
 - A landmark worth modelling by hand goes in `src/detail/` (see the skill).
 - A plain city block that is only the wrong height usually has wrong OpenStreetMap tags, which made `tools/build-city.ts` leave out the laser scan's height. Fix the tags in `data/building-corrections.json`, with the reason, and run `npm run build-city`. Only the tiles the building is in change.
+- Blocks in the wrong colours: `npm run google-colours -- <x0,z0,x1,z1>` measures their walls and roofs from Google's mesh into `data/building-colours.json`; then `npm run build-city`.
+- Ground that is grass where it is paved, or where the elevation model took a bridge's deck for the ground: `data/ground-corrections.json`, with the reason.
+- The streets and trees drawn near the camera are only in the areas of `src/detail/areas.ts`. After changing those areas, run `npm run fetch-streets` and `npm run find-trees -- --google <download>` (the mesh finds the trees planted since the 2021 laser scan), then `npm run build-city`.
 
 ## Checking a change
 

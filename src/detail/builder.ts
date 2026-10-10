@@ -82,6 +82,13 @@ export class Builder {
     }
   }
 
+  // Triangles (wound to face out) with a normal and a uv at each corner: smooth shaded.
+  mesh(pts: V3[], nrm: V3[], uvs: V2[], tris: number[], mat: string) {
+    const p = this.part(mat), b = p.pos.length / 3;
+    pts.forEach((v, k) => this.push(p, v, nrm[k], uvs[k]));
+    for (let k = 0; k + 2 < tris.length; k += 3) p.idx.push3(b + tris[k], b + tris[k + 1], b + tris[k + 2]);
+  }
+
   // An axis-aligned box, leaving out the faces in `skip` ('+x', '-y', ...).
   box(lo: V3, hi: V3, mat: string, tile = 2, skip: string[] = []) {
     const [x0, y0, z0] = lo, [x1, y1, z1] = hi;

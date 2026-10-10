@@ -589,11 +589,12 @@ export class Network {
         const u = side * (S.CUTTING.wall + S.CUTTING.thickness), g = groundV(sm);
         return { key: 'cg', pts: side < 0 ? [[side * GROUND_STRIP, g], [u, g]] : [[u, g], [side * GROUND_STRIP, g]] };
       }, { uScale: 0.3, vScale: 0.3 });
-      // bridge deck edge girder and its railing
+      // bridge deck edge girder and its railing, and the deck's underside: to the middle, or where
+      // the deck is shared on the other side, to that end of this track's part
       sweep(b.concrete, run, (sm) => {
         if (sm.kind !== 'bridge' || !outer(sm)) return null;
         const u = side * S.BRIDGE.deck, bottom = S.FLOOR - S.BRIDGE.depth;
-        const inner = sm.pair ? sm.pair / 2 : 0;
+        const own = ownSpan(sm, structureSpan(sm)), inner = continues(sm, -side) ? own[side < 0 ? 1 : 0] : 0;
         return { key: 'deck', pts: [[u, S.FLOOR], [u, S.FLOOR + 0.3], [u + side * 0.25, S.FLOOR + 0.3], [u + side * 0.25, bottom], [inner, bottom]] };
       }, { uScale: 0.25, vScale: 0.25 });
       sweep(b.steel, run, (sm) => {
@@ -602,6 +603,12 @@ export class Network {
         return { key: 'rail', pts: [[u, top - 0.08], [u, top], [u + side * 0.06, top]] };
       });
     }
+    // the underside of a deck shared on both sides, under this track's part
+    sweep(b.concrete, run, (sm) => {
+      if (sm.kind !== 'bridge' || !continues(sm, -1) || !continues(sm, 1)) return null;
+      const [a, c] = ownSpan(sm, structureSpan(sm)), bottom = S.FLOOR - S.BRIDGE.depth;
+      return { key: 'under', pts: [[c, bottom], [a, bottom]] };
+    }, { uScale: 0.25, vScale: 0.25 });
     // bridge piers, every 20 m or so, down to the ground
     let last = -Infinity;
     for (const sm of run) {
@@ -609,7 +616,7 @@ export class Network {
       last = sm.along;
       const bottom = sm.y + S.FLOOR - S.BRIDGE.depth;
       if (sm.ground > bottom - 0.5) continue;
-      const [a, c] = sm.pair ? ownSpan(sm, [-S.BRIDGE.deck, S.BRIDGE.deck]) : [-S.BRIDGE.deck, S.BRIDGE.deck];
+      const [a, c] = sm.pair || sm.beside ? ownSpan(sm, [-S.BRIDGE.deck, S.BRIDGE.deck]) : [-S.BRIDGE.deck, S.BRIDGE.deck];
       const w = (c - a) * 0.8, mid = (a + c) / 2;
       // into the city's ground, which may lie a little lower than the line's
       const foot = sm.ground - (this.city ? 3 : 0);
@@ -1285,8 +1292,9 @@ function structureSpan(sm: Sample, widen = true): [number, number] {
   else if (sm.pair) [a, b] = [-S.ROCK.doubleWall, S.ROCK.doubleWall];
   else [a, b] = sm.third < 0 ? [-S.ROCK.singleNear, S.ROCK.singleFar] : [-S.ROCK.singleFar, S.ROCK.singleNear];
   if (sm.pair > 0) b += sm.pair; else if (sm.pair < 0) a += sm.pair;
-  // another line's track beside it in the same box: as far again beyond it
-  if (sm.beside > 0) b = Math.max(b, sm.beside + S.ROCK.doubleWall); else if (sm.beside < 0) a = Math.min(a, sm.beside - S.ROCK.doubleWall);
+  // another line's track beside it in the same box or on the same deck: as far again beyond it
+  const far = sm.kind === 'bridge' ? S.BRIDGE.deck : S.ROCK.doubleWall;
+  if (sm.beside > 0) b = Math.max(b, sm.beside + far); else if (sm.beside < 0) a = Math.min(a, sm.beside - far);
   // a service's tunnel round a turnout
   if (widen) {
     const wl = widened(sm, -1), wr = widened(sm, 1);

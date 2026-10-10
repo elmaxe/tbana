@@ -741,6 +741,30 @@ npm run build-city
   skillion roofs: a single slope fitted to one side of a gabled roof, where the other side's
   points are few, can fit better: a third of the sloping roofs it finds are skillion.
 
+### Streets and trees near the camera
+
+In the areas drawn in detail (`src/detail/areas.ts`: round Hötorget, and what the bridge out of
+Gamla stan looks out on), the streets, squares and trees are drawn too (`src/detail/streets.ts`):
+
+```sh
+npm run fetch-streets      # OSM's streets, squares and trees there -> data/osm/streets.json
+npm run find-trees -- --google .google/dl/<download>   # the trees in the laser scan and Google's mesh -> data/trees.json
+npm run build-city
+```
+
+- Each street is a ribbon of its surface (asphalt, setts, cobbles, slabs, gravel), as wide as OSM
+  says, or its lanes, or as is usual for its kind, cut along the ground's triangles so that it
+  lies on them. Pavements are raised a kerb's height; main roads get dashed centre lines and
+  one-way roads their lanes; crossings get zebra stripes. Streets on bridges, in tunnels or
+  indoors are left out.
+- OSM maps few trees, so `find-trees` finds them in the laser scan: the tops of what stands over
+  the ground, at least 4.5 m up, kept where the crown is wide, filled and ragged as a tree's (not
+  a lamp's, a roof's or a crane's), and not on bridges. The scan was flown in March 2021, so it
+  misses the trees planted since; with `--google` they are also found in Google's mesh (the
+  green in it, measured over the scan's ground). Only their positions, heights and crown sizes
+  go in the repo. Gamla stan, Riddarholmen and Söder Mälarstrand have 178 trees, Hötorget 51,
+  and OpenStreetMap adds 13 the scan and the mesh missed.
+
 The walls are still drawn from OSM's tags or guessed. Notes on taking their colours and materials
 from Mapillary's street-level photos (CC BY-SA 4.0, unlike Google Street View) are in
 [`docs/mapillary.md`](docs/mapillary.md).
@@ -799,6 +823,8 @@ Aerial photos: Ortofoto © Lantmäteriet, CC BY 4.0 (the city's photos in `publi
 
 Buildings: © OpenStreetMap contributors, ODbL (`data/osm/buildings.json`, from the
 openstreetmap.fr extract of Stockholm county, and the city's buildings in `public/data/city/`).
+
+Trees: found in Laserdata Nedladdning, skog © Lantmäteriet, CC BY 4.0 (`data/trees.json`).
 
 Station layouts: the red and green lines' stations are built from descriptions read off Albert
 Guillaumes' drawings of them ([estacions.albertguillaumes.cat](http://estacions.albertguillaumes.cat/)),
