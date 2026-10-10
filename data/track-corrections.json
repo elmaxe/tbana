@@ -153,8 +153,12 @@
     },
     {
       "station": "Stureby",
-      "extend": true,
-      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [
+        153251.4,
+        6573277.2
+      ],
+      "why": "OSM maps only a 45 m piece of the island platform, at its east end, and lengthening it about its middle put the platform 20 m east of the real one. Lantmäteriet's laser scan has the platform from the stair house at its west end, over the ticket hall, to about 150 m east of it, roofed for its western 105 m; this point is its middle."
     },
     {
       "station": "Hjulsta",

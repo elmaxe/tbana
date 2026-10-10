@@ -1427,7 +1427,7 @@
           {"walk": [38.3, 3.8], "ceiling": 3.0}
         ] },
         { "from": [20.0, 3.8], "h": -5.2, "width": 3.0, "go": [
-          {"walk": [20.0, 9.6], "dh": 0.12, "ceiling": 3.0},
+          {"walk": [20.0, 9.6], "dh": 0.22, "ceiling": 3.0},
           {"walk": [20.0, 10.3], "ceiling": 2.4},
           {"exit": {"at": [20.0, 11.8], "name": "Larsbodavägen"}, "by": "walk", "open": true}
         ] },
@@ -1437,12 +1437,12 @@
           {"walk": [29.0, -11.4], "width": 8.0, "ceiling": 3.0},
           {"walk": [29.0, -23.7], "ceiling": 3.4},
           {"mark": "passage"},
-          {"walk": [29.0, -33.2], "width": 5.0, "ceiling": 3.4},
+          {"walk": [29.0, -33.2], "width": 5.0, "dh": 0.1, "ceiling": 3.4},
           {"walk": [29.0, -34.0], "ceiling": 2.6},
           {"exit": {"at": [29.0, -35.0], "name": "Farsta torg"}, "by": "walk", "open": true}
         ] },
         { "from": "passage", "width": 3.0, "go": [
-          {"walk": [38.6, -23.7], "ceiling": 3.0},
+          {"walk": [38.6, -23.7], "dh": 0.1, "ceiling": 3.0},
           {"walk": [39.6, -23.7], "ceiling": 2.6},
           {"exit": {"at": [40.6, -23.7], "name": "Kroppaplan"}, "by": "walk", "open": true}
         ] }
@@ -1602,14 +1602,33 @@
     },
     "Stureby": {
       "drawing": "stureby.png",
-      "note": "An island platform in the open. At its west end stairs go down to a long passage under the tracks, out to the ticket hall at the street.",
+      "note": "An island platform on a low bank, entered only from its west end. There a glass stair house stands on the platform: a flight down along its south side and a lift at its west end, to the ticket hall under the concrete deck that carries the tracks west of the platform, between them at the street. From the gates the way out is through the hall's west doors into the footway under the deck, out to Munksjövägen on the south and Sågverksgatan on the north. From the laser scan (the deck's edges and the streets 4.45 m under the platform, the stair house's roof and the lift's tower), OpenStreetMap's indoor mapping (the flight from 75 m to 87 m west, the lift at 86 m, the gates at 98 m, the footway at 114 m) and photographs (2008 to 2018).",
       "routes": [
-        { "from": [-49.87436714794674, -1.2], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -1.6]},
-          {"walk": [-66.0, -1.9], "width": 6},
-          {"walk": [-66.0, -13.6], "width": 4},
+        { "from": [-72.5, -0.3], "width": 2.0, "go": [
+          {"walk": [-75.0, -0.3], "open": true},
+          {"stairs": -4.45, "toward": [-200, -0.3]},
+          {"walk": [-88.0, -0.3], "open": true}
+        ] },
+        { "from": [-73.0, -2.9], "width": 2.0, "go": [
+          {"walk": [-84.5, -2.9], "open": true},
+          {"lift": -4.45, "above": 4.2, "through": true},
+          {"walk": [-89.0, -2.9], "open": true}
+        ] },
+        { "from": [-88.0, -2.4], "h": -4.45, "width": 3.6, "go": [
+          {"walk": [-97.4, -2.4], "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -27.6], "name":  "Stureby"}}
+          {"walk": [-111.4, -2.4], "open": true},
+          {"walk": [-112.5, -2.4], "width": 2.2, "ceiling": 2.25},
+          {"walk": [-114.0, -2.4], "width": 2.2, "open": true},
+          {"mark": "footway"}
+        ] },
+        { "from": "footway", "width": 3.8, "go": [
+          {"walk": [-114.0, 5.0], "open": true},
+          {"exit": {"at": [-114.0, 11.0], "name": "Munksjövägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "footway", "width": 3.8, "go": [
+          {"walk": [-114.0, -9.0], "open": true},
+          {"exit": {"at": [-114.0, -14.0], "name": "Sågverksgatan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

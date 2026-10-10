@@ -2907,10 +2907,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
   whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
   whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
-  greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4],
+  greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3478,6 +3478,35 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'bwTiles': {
+      // 15 cm tiles, white, black and grey at random, a third of them doubled into one upright
+      // tile 30 cm tall, in pale grey joints
+      x.fillStyle = '#b4b6b3'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, n = Math.round(H / t);
+      const tone = () => { const k = r(); return k < 0.5 ? 236 + Math.floor(r() * 12) : k < 0.8 ? 22 + Math.floor(r() * 12) : 128 + Math.floor(r() * 30); };
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < n; j++) {
+        const tall = j + 1 < n && r() < 0.33, v = tone();
+        x.fillStyle = `rgb(${v},${v},${v + 1})`;
+        x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, (tall ? 2 * t : t) - 3);
+        if (tall) j++;
+      }
+      break;
+    }
+    case 'tealWindows': {
+      // small tiles 10 cm square, teal green, to 0.9 m; a dark steel sill, windows in dark frames
+      // to 2.2 m, their head, and over them the concrete beam the deck rests on
+      const t = 0.1 * PX, frame = '#26292c';
+      x.fillStyle = '#9fb3ae'; x.fillRect(0, Y(0.9), W, 0.9 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 9; j++) {
+        const v = Math.floor(r() * 14);
+        x.fillStyle = `rgb(${52 + v},${116 + v},${108 + v})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.9, 0.98, frame); pane(0.98, 2.2, frame, 0.1); band(2.2, 2.3, frame);
+      band(2.3, 3.2, '#a6a39b');
+      for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(80,78,72,${0.05 + r() * 0.1})`; x.fillRect(r() * W, Y(2.3) + r() * 0.9 * PX, 2 + r() * 10, 1); }
+      break;
+    }
     case 'whiteRender':
       // smooth white render
       x.fillStyle = '#e8e6e0'; x.fillRect(0, 0, W, H);
@@ -3491,7 +3520,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

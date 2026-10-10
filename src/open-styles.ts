@@ -184,7 +184,9 @@ export type Finish =
   | 'glassFront'    // glass doors in brushed steel, the name's band, glass in steel frames above
   | 'greenTerrazzo' // dark green terrazzo with two thin dark red lines along it
   | 'squareTiles'   // white tiles, 15 cm, in grey joints
-  | 'whiteRender';  // white render
+  | 'whiteRender'   // white render
+  | 'bwTiles'       // tiles black, white and grey at random, 15 cm, some of them doubled upright
+  | 'tealWindows';  // small teal tiles to a sill, windows in dark frames above, a concrete beam over them
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -209,7 +211,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -269,6 +271,12 @@ export interface FoolsShip { kind: 'foolsShip'; s: number; u: number; turn: numb
 // A tall cone of dark bronze, fluted all round and rounding to a point, on short feet at s, u
 // (across from the line down the platform's middle), `height` high and `base` across at its foot.
 export interface Cone { kind: 'cone'; s: number; u: number; height: number; base: number }
+
+// A lamp of dark bronze grown like a tree: strands twisting round each other up out of roots
+// spread over the ground, parting into branches that each hold a lamp, one of them high to the
+// right and one lower to the left (looking `turn` as a guardian faces), a third in the trunk's
+// twist; at s, u (in the station's frame), `height` high, inside a low guard of steel tubes.
+export interface Growth { kind: 'growth'; s: number; u: number; height: number; turn: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
@@ -1216,7 +1224,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
   // white rafters, with frames of dark grey steel down the middle, each two columns across the
   // platform on concrete plinths under a beam each, tied by bars and a slanting brace; round
   // lights along its edges, departure boards and clocks hung from it (Hässelby strand's on the
-  // eastern half, Hagsätra's on the western), double benches of slats beside the frames.
+  // western half, over the track its trains run on, on the left; Hagsätra's on the eastern),
+  // double benches of slats beside the frames.
   // Beyond it, galvanised lamp posts with three dome lamps down the middle (the laser scan: about
   // every 15 m, 5.1 m high; some with SL's blue name sign) and a glass shelter. The paving: a pale
   // band along each edge, a grey ribbed strip, then grey pavers in a running bond.
@@ -1254,10 +1263,10 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       lamps: { offset: 3.4, length: 1.6, every: 1.6, tube: true },
       colors: { underside: 0xf2f2ee, fascia: 0xe6e6e2, top: 0x5a5e60, steel: 0x2a2d30 },
       signs: { at: [], back: '', ahead: 'Utgång', blue: true },
-      clocks: [[34.5, 3.2], [31, -3.2]],
+      clocks: [[34.5, -3.2], [31, 3.2]],
       boards: [
-        { s: 34.5, u: 1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
-        { s: 31, u: -1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
+        { s: 34.5, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
+        { s: 31, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
       ],
     },
     paving: {
@@ -1339,12 +1348,12 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
   // 3.6 m at the edges. Photographs (2009 to 2024) show its underside boarded pale on rafters,
   // a dark fascia, dark steel columns down the middle on concrete plinths, about 10.5 m apart,
   // with knee braces up to a beam along the valley; strip lights either side of the beam,
-  // departure boards hung from it (Hässelby strand's over the eastern half, Hagsätra's over the
-  // western), double benches of slats by the columns. Beyond the roof, galvanised lamp posts
-  // down the middle (some with SL's blue name sign) and a glass shelter at the south end. The
-  // network's track runs about 2 m east of the laser scan's here, so the roof follows the middle
-  // between its tracks rather than the platform's line, and the station's parts keep to the
-  // tracks rather than to the scan.
+  // departure boards hung from it (Hässelby strand's over the western half, over the track its
+  // trains run on, on the left; Hagsätra's over the eastern), double benches of slats by the
+  // columns. Beyond the roof, galvanised lamp posts down the middle (some with SL's blue name
+  // sign) and a glass shelter at the south end. The network's track runs about 2 m east of the
+  // laser scan's here, so the roof follows the middle between its tracks rather than the
+  // platform's line, and the station's parts keep to the tracks rather than to the scan.
   //
   // Along the viaduct the tracks have screens of glass in steel frames, on the western side with
   // a leaf drawn on most panes; chain-link fences beyond them along the bank. On the platform
@@ -1378,8 +1387,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       colors: { underside: 0xe6e2d8, fascia: 0x2b2d30, top: 0x4a4e52, steel: 0x26282b },
       signs: { at: [], back: '', ahead: 'Utgång', blue: true },
       boards: [
-        { s: 33, u: 1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
-        { s: 22, u: -1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  6 min', '19 Hagsätra  16 min'] },
+        { s: 33, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
+        { s: 22, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  6 min', '19 Hagsätra  16 min'] },
       ],
     },
     paving: {
@@ -1459,6 +1468,126 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-10, -8.7], [0, -8.9], [10, -9.4], [20, -10.1], [30, -10.9], [40, -11.8], [50, -12.8], [60, -14.0], [65, -14.7]], h: [-1.6, 0.9], kind: 'glass', leaves: true },
       { points: [[-90, 0.3], [-80, 1.9], [-70, 3.5], [-60, 5.0], [-50, 6.4], [-40, 7.5], [-30, 8.4]], h: [-1.6, 0.3] },
       { points: [[-30, 7.8], [-20, 8.4], [-10, 8.8], [0, 8.9], [10, 8.8], [20, 8.4], [30, 7.6], [40, 6.5], [50, 5.0], [60, 3.1], [70, 0.9]], h: [-1.6, 0.9], kind: 'glass' },
+    ],
+  },
+
+  // Stureby (1 October 1953, where the tram had stopped since 1930): an island platform on a low
+  // bank, under a butterfly roof like Svedmyra's, entered only from its west end (Swedish
+  // Wikipedia). Lantmäteriet's laser scan puts the roof from 74 m west of the platform's middle to
+  // 29 m east, about 7.8 m wide, its top 3.4 m over the platform at the valley and 3.7 m at the
+  // edges. Photographs (2008 to 2018) show it boarded white on white rafters, with a thin dark
+  // fascia, dark steel columns down the middle (at its east end a broad one on a concrete block),
+  // strip lights either side of the beam, SL's blue name signs and older black ones, departure
+  // boards and a clock hung under it; slabs of grey concrete in bond, a pale edge and a ribbed
+  // strip; chain-link fences beyond both tracks along the streets. Out on the open platform
+  // stands Carin Ellberg's Främmande växtlighet (2012), a lamp of bronze grown like a tree (the
+  // laser scan: its lamps 2.9 m up, 67 m east), and galvanised lamp posts, one with the blue sign.
+  //
+  // At its west end the platform narrows to a glass stair house (the laser scan: 12.5 m long, 5 m
+  // wide, its roof 3 m up; the lift's tower at its west end 4.2 m, the T on its corner), a flight
+  // down along its south side, a walkway with a wooden bench along its north side to the lift.
+  // West of it the line runs on a concrete deck 14 m wide over the ticket hall and a footway
+  // through under the tracks (OpenStreetMap's indoor mapping: the flight from 75 m to 87 m west,
+  // the lift at 86 m, the gates at 98 m, the footway at 114 m; the streets 4.45 m under the
+  // platform). The hall lies between the tracks: speckled grey terrazzo, walls of tiles black,
+  // white and grey at random, a white ceiling, raised between the tracks, the ticket booth by the
+  // gates; outside, windows in dark frames over teal tiles towards the footway and the street,
+  // bicycles parked under the deck's edges, its fascia board-marked concrete with SL's blue band
+  // over the footway's mouths, galvanised railings and chain-link on top. Beyond the deck the bank
+  // is held by walls of granite.
+  'Stureby': {
+    roof: {
+      kind: 'butterfly',
+      from: -74.2, to: 29, width: 7.8,
+      middle: 3.2, edge: 3.45, thick: 0.2, fascia: 0.3,
+      rafters: 1.0,
+      beam: 0.3,
+      columns: { every: 10.5, at: 27.5, size: 0.3, plinth: { size: 0.45, height: 0.25 }, casings: { at: [27.5], size: [0.75, 0.45] } },
+      lamps: { offset: 2.5, length: 1.5, every: 3 },
+      colors: { underside: 0xe6e2d8, fascia: 0x2b2d30, top: 0x4a4e52, steel: 0x26282b },
+      signs: { at: [-51, -19.5, 12], back: 'Utgång', ahead: '', blue: true },
+      clocks: [[-41, 0]],
+      // (trains run on the left: Hässelby strand's from the northern track)
+      boards: [
+        { s: -64, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] },
+        { s: -57, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  7 min', '19 Hagsätra  17 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 0.95], slabs: 0.95, paverSize: [0.6, 0.4], mix: 0.25,
+      colors: { edge: 0xcdcac2, tactile: 0x8a8c8c, slab: 0x707377, pavers: 0x707377, paler: 0x83868a, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w149060153', 'w149060144'],
+    rooms: [
+      { name: 'stair house', s: [-87.5, -72], u: [-4.2, 1.2], h: [-0.5, 1], walls: null, floor: 'darkStone' },
+      // (open up to the stair house's roof, a low wall between the flight and the walkway)
+      { name: 'stairs', s: [-84, -74], u: [-1.6, 1.0], h: [-5, -3.5], walls: 'boardConcrete', floor: 'terrazzo', ceiling: 'whiteRender', stairs: 'boardConcrete', sill: 1.0 },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-112.2, -83.4], u: [-4.4, 2.1], h: [-5, -3.5], walls: 'bwTiles', floor: 'terrazzo', ceiling: 'whiteRender', sill: -4.46 },
+      { name: 'footway', s: [-120, -108], u: [-16, 12], h: [-5, -3.5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the stair house on the platform's west end, glazed, open to the platform under the roof
+      { name: 'stair house', plan: [[-87, -4.0], [-74.5, -4.0], [-74.5, 1.0], [-87, 1.0]], h: [-1.6, 2.75],
+        walls: 'darkGlazed', sides: [undefined, null, undefined, 'boardConcrete'], floor: 'darkStone', ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3a3d40 },
+      // the ticket hall under the deck: raised between the tracks, lower under the southern one
+      { name: 'ticket hall', plan: [[-112, -4.3], [-83.5, -4.3], [-83.5, -0.2], [-112, -0.2]], h: [-4.45, -1.3], from: -4.45,
+        walls: 'bwTiles', sides: [undefined, 'boardConcrete', null, 'tealWindows'], floor: 'terrazzo', ceiling: 'whiteRender', roof: 0.5,
+        ground: true, onPlatform: true },
+      { name: "ticket hall's south side", plan: [[-112, -0.2], [-100, -0.2], [-100, 2.0], [-112, 2.0]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'tealWindows', sides: [null, null, undefined, undefined], floor: 'terrazzo', ceiling: 'whiteRender', roof: 0.5, ground: true, onPlatform: true },
+      { name: "ticket hall's south side, east", plan: [[-100, -0.2], [-83.5, -0.2], [-83.5, 2.0], [-100, 2.0]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'bwTiles', sides: [null, 'boardConcrete', undefined, null], floor: 'terrazzo', ceiling: 'whiteRender', roof: 0.5, ground: true, onPlatform: true },
+      { name: "ticket hall's step", plan: [[-112, -0.25], [-83.5, -0.25], [-83.5, -0.2], [-112, -0.2]], h: [-2.15, -1.3], from: -2.15, walls: 'whiteRender' },
+      { name: 'ticket booth', plan: [[-99, -0.55], [-95.8, -0.55], [-95.8, 1.95], [-99, 1.95]], h: [-4.45, -2.25], from: -4.45, walls: 'glazed', roof: 0.05 },
+      // over the flight's foot, the stair house's floor
+      { name: "flight's bulkhead", plan: [[-84, -1.3], [-83.4, -1.3], [-83.4, 0.7], [-84, 0.7]], h: [-1.3, -0.02], from: -1.3,
+        walls: 'boardConcrete', sides: [null, undefined, null, null] },
+      // west of the footway, rooms tiled outside; the footway's own soffit; the deck's undersides
+      // either side of the hall, where bicycles are parked
+      { name: 'rooms', plan: [[-126, -9.05], [-116, -9.45], [-116, 5.45], [-126, 5.8]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'bwTiles', sides: [undefined, undefined, undefined, null], roof: 0.5, ground: true, onPlatform: true },
+      { name: 'footway', plan: [[-116, -9.45], [-112, -9.55], [-112, 5.35], [-116, 5.45]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'pavers', ceiling: 'boardConcrete', roof: 0.5, ground: true, onPlatform: true },
+      { name: 'under the deck, north', plan: [[-112, -9.55], [-87, -9.6], [-87, -4.3], [-112, -4.3]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'boardConcrete', roof: 0.5, ground: true, onPlatform: true },
+      { name: 'under the deck, south', plan: [[-112, 2.0], [-87, 2.0], [-87, 5.6], [-112, 5.35]], h: [-4.45, -2.15], from: -4.45,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'boardConcrete', roof: 0.5, ground: true, onPlatform: true },
+      // the deck's fascia, its blue band over the footway's mouths
+      // (the northern one bent out over the curving track, round the network's girder, which it cuts)
+      { name: "deck's north fascia", plan: [[-126, -9.05], [-106, -9.5], [-106, -9.75], [-126, -9.3]], h: [-2.2, -0.5], from: -2.2,
+        walls: 'boardConcrete', sides: [null, null, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86, onPlatform: true,
+        nameSign: { side: 2, at: 0.4, length: 5, bottom: -1.6 } },
+      { name: "deck's north fascia, east", plan: [[-106, -9.5], [-87, -9.6], [-87, -9.85], [-106, -9.75]], h: [-2.2, -0.5], from: -2.2,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86, onPlatform: true },
+      { name: "deck's south fascia", plan: [[-126, 5.8], [-87, 5.6], [-87, 5.85], [-126, 6.05]], h: [-2.2, -0.5], from: -2.2,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86,
+        nameSign: { side: 2, at: 0.69, length: 5, bottom: -1.6 } },
+      // the bank's walls of granite, east of the deck and west of the rooms
+      { name: "bank's north wall", plan: [[-87, -9.6], [-76, -9.45], [-76, -9.7], [-87, -9.85]], h: [-4.45, -0.5], from: -4.45,
+        walls: 'granite', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86 },
+      { name: "bank's south wall", plan: [[-87, 5.6], [-76, 5.8], [-76, 6.05], [-87, 5.85]], h: [-4.45, -0.5], from: -4.45,
+        walls: 'granite', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86 },
+      { name: "bank's north wall, west", plan: [[-146, -7.85], [-126, -9.05], [-126, -9.3], [-146, -8.1]], h: [-4.45, -0.5], from: -4.45,
+        walls: 'granite', sides: [null, null, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86 },
+      { name: "bank's south wall, west", plan: [[-146, 7.15], [-126, 5.8], [-126, 6.05], [-146, 7.4]], h: [-4.45, -0.5], from: -4.45,
+        walls: 'granite', sides: [null, null, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86 },
+    ],
+    art: [
+      { kind: 'growth', s: 67.5, u: -3.0, height: 3.3, turn: 0 },
+      { kind: 'masts', height: 5.0, color: 0x9a9fa3, arm: 1.2, sign: 2.6, blue: true, at: [[62, -2.6]] },
+      { kind: 'masts', height: 4.3, color: 0x9a9fa3, arm: 1.0, at: [[40.6, -2.5]] },
+      { kind: 'roundel', s: -85.8, u: -1.3, h: 4.55, size: 0.55, foot: 4.15 },
+    ],
+    benches: { at: [-61.5, -51, -30, -9, 12], double: true, wood: true },
+    // railings on the deck's edges (chain-link between galvanised posts), and chain-link beyond the
+    // tracks along the bank, 3.4 m out
+    fences: [
+      { points: [[-146, -7.95], [-126, -9.15], [-106, -9.62], [-87, -9.72], [-76, -9.5]], h: [-0.5, 0.65] },
+      { points: [[-146, 7.25], [-126, 5.9], [-112, 5.45], [-87, 5.7], [-76, 5.9]], h: [-0.5, 0.65] },
+      { points: [[-76, -9.9], [-70, -9.7], [-60, -9.3], [-40, -8.6], [-20, -8.1], [0, -8.0], [20, -8.4], [40, -9.2], [60, -10.4], [80, -11.9]], h: [-1.5, 0.5] },
+      { points: [[-76, 6.4], [-70, 6.6], [-60, 6.9], [-40, 7.5], [-20, 7.9], [0, 8.0], [20, 7.8], [40, 7.0], [60, 5.5], [80, 3.4]], h: [-1.5, 0.5] },
     ],
   },
 };

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -236,6 +236,7 @@ export class OpenLook {
       else if (a.kind === 'glassStacks') this.glassStacks(a, frame, on);
       else if (a.kind === 'glassPosts') this.glassPosts(a, frame, on);
       else if (a.kind === 'figure') this.figure(a, frame, on);
+      else if (a.kind === 'growth') this.growth(a, frame, on);
     }
   }
 
@@ -269,6 +270,71 @@ export class OpenLook {
       ball(m, P('shoulder', side), 0.055 * k); ball(m, P('elbow', side), 0.037 * k); ball(m, P('hand', side), 0.045 * k);
       ball(m, P('hip', side), 0.075 * k); ball(m, P('knee', side), 0.052 * k); ball(m, P('ankle', side), 0.034 * k);
     }
+  }
+
+  // Carin Ellberg's Främmande växtlighet (2012): six strands of bronze twisting round each other
+  // two and a half times up the trunk, out of six roots curling over the ground (gone green), and
+  // parting at two thirds of its height into two branches of three strands, each curling over a
+  // lamp: a ring of green bronze round a white glass; a third lamp held in the twist. Round it a
+  // guard of grey steel tubes, 1.4 by 1.0 m and 0.9 m high.
+  private growth(a: Growth, frame: Frame, on: On) {
+    const bronze = on(this.color(0x34352e, 0.45, 0.6)), green = on(this.color(0x4c6f60, 0.55, 0.4));
+    const steel = on(this.color(0x8d9296, 0.4, 0.6));
+    const glow = on(this.mat('bulb', () => new THREE.MeshBasicMaterial({ color: 0xfff4dc, side: THREE.DoubleSide })));
+    // its own axes: x to its right, y up, z the way it faces
+    const dx = frame.fx * Math.cos(a.turn) - frame.fz * Math.sin(a.turn), dz = frame.fz * Math.cos(a.turn) + frame.fx * Math.sin(a.turn);
+    const o = frame.at(a.s, a.u, 0), H = a.height;
+    const P = (x: number, y: number, z: number): XYZ => [o[0] - dz * x + dx * z, o[1] + y, o[2] + dx * x + dz * z];
+    const strand = (m: Mesh, pts: XYZ[], w0: number, w1: number) => {
+      for (let i = 1; i < pts.length; i++) limb(m, pts[i - 1], pts[i], w0 + (w1 - w0) * (i - 1) / (pts.length - 1), w0 + (w1 - w0) * i / (pts.length - 1));
+    };
+    // the trunk's line, swaying a little, to the fork
+    const fork = 0.64 * H, mid = (t: number): XYZ => [0.1 * Math.sin(2.6 * t + 0.4), t * fork, 0.08 * Math.sin(3.3 * t)];
+    for (let k = 0; k < 6; k++) {
+      const pts: XYZ[] = [];
+      for (let i = 0; i <= 18; i++) {
+        const t = i / 18, q = (k / 6) * Math.PI * 2 + t * Math.PI * 5, r = 0.15 - 0.07 * t + 0.03 * Math.sin(k * 1.7 + t * 9), c = mid(t);
+        pts.push(P(c[0] + Math.cos(q) * r, c[1], c[2] + Math.sin(q) * r));
+      }
+      strand(bronze, pts, 0.09, 0.06);
+      // its root, curling out over the ground
+      const q = (k / 6) * Math.PI * 2 + 0.3, l = 0.45 + 0.25 * ((k * 7) % 3) / 2;
+      strand(green, [0, 0.25, 0.5, 0.75, 1].map((t) => P(Math.cos(q + t * 0.9) * (0.14 + l * t), 0.12 * (1 - t) ** 2 + 0.03, Math.sin(q + t * 0.9) * (0.14 + l * t))), 0.1, 0.035);
+    }
+    // the branches: out from the fork, up over the lamp and down to it
+    const lamp = (c: XYZ, tilt: number) => {
+      const ring: XYZ[] = [], n = 14, r = 0.17;
+      for (let i = 0; i <= n; i++) { const q = (i / n) * Math.PI * 2; ring.push([Math.cos(q) * r, Math.sin(q) * r * Math.sin(tilt), Math.sin(q) * r * Math.cos(tilt)]); }
+      for (let i = 0; i < n; i++) {
+        const A = ring[i], B = ring[i + 1];
+        green.poly([[...P(c[0] + A[0], c[1] + A[1] - 0.07, c[2] + A[2]), 0, 0], [...P(c[0] + B[0], c[1] + B[1] - 0.07, c[2] + B[2]), 1, 0],
+          [...P(c[0] + B[0], c[1] + B[1] + 0.07, c[2] + B[2]), 1, 1], [...P(c[0] + A[0], c[1] + A[1] + 0.07, c[2] + A[2]), 0, 1]]);
+      }
+      glow.poly(ring.slice(0, n).map((p) => [...P(c[0] + p[0] * 0.85, c[1] + p[1] - 0.06, c[2] + p[2] * 0.85), 0, 0]));
+      bronze.poly(ring.slice(0, n).map((p) => [...P(c[0] + p[0] * 0.95, c[1] + p[1] + 0.08, c[2] + p[2] * 0.95), 0, 0]));
+    };
+    const top = mid(1);
+    for (const [side, reach, h] of [[1, 0.55, H - 0.25], [-1, 0.75, 0.86 * H - 0.2]] as const) {
+      const c: XYZ = [side * reach, h, 0.05];
+      lamp(c, 0.25);
+      for (let k = 0; k < 3; k++) {
+        const pts: XYZ[] = [];
+        for (let i = 0; i <= 12; i++) {
+          const t = i / 12, q = k * 2.1 + t * 7, w = 0.05 * (1 - t) + 0.02;
+          // up and out past the lamp, then curling down over it
+          const x = top[0] + (c[0] - top[0]) * Math.sin(t * Math.PI / 2) * 1.1, y = top[1] + (c[1] + 0.3 - top[1]) * Math.sin(t * Math.PI * 0.6) / Math.sin(Math.PI * 0.6);
+          pts.push(P(x + Math.cos(q) * w, y + Math.sin(q) * w, top[2] + Math.sin(q) * w));
+        }
+        pts.push(P(c[0] + side * 0.12, c[1] + 0.12, c[2]));
+        strand(bronze, pts, 0.06, 0.035);
+      }
+    }
+    lamp([0.12, 0.42 * H, 0.1], 0.6);
+    // the guard
+    const [gx, gz, gh] = [0.5, 0.7, 0.9];
+    for (const x of [-gx, gx]) for (const z of [-gz, gz]) bar(steel, P(x, 0, z), P(x, gh, z), 0.05, 0.05);
+    for (const x of [-gx, gx]) { bar(steel, P(x, gh, -gz), P(x, gh, gz), 0.05, 0.05); bar(steel, P(x, 0.45, -gz), P(x, 0.45, gz), 0.04, 0.04); }
+    for (const z of [-gz, gz]) bar(steel, P(-gx, gh, z), P(gx, gh, z), 0.05, 0.05);
   }
 
   // stacked green glass, as an edge-on texture

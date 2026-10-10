@@ -52,6 +52,11 @@
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station (infobox): 5 m deep; the platforms are in a short tunnel under the town centre."
     },
     {
+      "station": "Stureby",
+      "height": 36.65,
+      "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.7 m low. Lantmäteriet's laser scan has the platform's surface at 36.6–36.7 m and the ballast beside it at 35.4 m; the streets under the track deck at the ticket hall are at 32.1–33.0 m."
+    },
+    {
       "station": "Hagsätra",
       "height": 46.2,
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: 46.2 m above sea level, the third highest station of the metro."
@@ -151,6 +156,17 @@
       ],
       "reach": 12,
       "why": "Svedmyra, the platform's north-east half: the ground falls away under it towards the street that passes under the line there, and the platform stands on a bank, level."
+    },
+    {
+      "along": [
+        [-189.5, 6337.7],
+        [-213.2, 6341.8],
+        [-242.5, 6348.3],
+        [-261.8, 6353.5],
+        [-286.8, 6361.5]
+      ],
+      "reach": 7,
+      "why": "Stureby, west of the platform: the line runs on a bank between upright walls, and over the ticket hall on a deck (the viaducts, below), 3.3 m above the streets either side. The elevation model loses the bank where it is this narrow and has the street under the line, which pulled the platform 0.7 m below the laser scan's."
     }
   ],
   "rail": [
@@ -195,6 +211,14 @@
       ],
       "reach": 9,
       "why": "Svedmyra: from the ticket hall north, the platform and both tracks stand on a concrete viaduct, which OSM maps as a bridge only where it crosses Tussmötevägen. Lantmäteriet's laser scan has the street 6 m under the platform right up to the deck's edges (6.5 m east and 11 m west of the platform's middle), the elevation model has no bank there, and photographs show bicycles parked under the deck between its columns."
+    },
+    {
+      "along": [
+        [-239.6, 6347.5],
+        [-199.4, 6339.1]
+      ],
+      "reach": 6.5,
+      "why": "Stureby: west of the platform, over the ticket hall and the footway under the line, both tracks stand on a concrete deck, which OSM doesn't map as a bridge. Lantmäteriet's laser scan has the deck's sharp edges 2.5 m outside the tracks, with the streets 3.3 m below the ballast right up to them, and photographs show the hall's windows and doors and parked bicycles under it."
     }
   ],
   "raised": [
