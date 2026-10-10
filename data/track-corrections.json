@@ -97,7 +97,11 @@
     },
     {
       "station": "Gubbängen",
-      "why": "No platform is mapped at Gubbängen in OSM (October 2026). The station's node lies between the two tracks, at the island platform."
+      "at": [
+        154688.3,
+        6571980
+      ],
+      "why": "No platform is mapped at Gubbängen in OSM (October 2026), and the station's node is 60 m north of the platform's middle. The island platform is placed between the tracks under its roof, which Lantmäteriet's laser scan shows from 7548 to 7696 m south (world z)."
     },
     {
       "station": "Skarpnäck",
@@ -204,6 +208,11 @@
       "station": "Rissne",
       "extend": true,
       "why": "OSM draws the platforms about 60 m long, short of the 145 m of the blue line's platforms (Albert Guillaumes' drawing shows them the full length of a train)."
+    },
+    {
+      "station": "Farsta",
+      "shortRuns": 25,
+      "why": "OSM splits the eastern track 28 m short of the island platform's south end, where its bridge ends, so that piece was left without the platform, and the platform's south end was drawn as a narrow side platform on the western track only."
     }
   ]
 }

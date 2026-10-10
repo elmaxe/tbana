@@ -1,32 +1,45 @@
+import type { Paving } from './open-styles';
 import type { CavePaint } from './textures';
 
 // Platform halls the network draws (src/network.ts) in their own style rather than as a plain
-// vault in rock: Hötorget, as it has looked since 1952, with Gun Gordillo's neon (1998);
-// Karlaplan, as it has looked since 1967, with Tor Hörlin's niches and Larseric Vänerlöf's
-// photomontage; and Östermalmstorg, with Siri Derkert's lines in its concrete walls (1965).
+// vault in rock or box of concrete: Hötorget, as it has looked since 1952, with Gun Gordillo's
+// neon (1998); Farsta strand, under the centre built over it; Karlaplan, as it has looked since
+// 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; and Östermalmstorg, with
+// Siri Derkert's lines in its concrete walls (1965).
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
 
 export interface FlatHall {
   kind: 'flat';
-  // a flat roof: low over the track (the soffit, with the lamps in it), stepping up between the
-  // two rows of columns to the ceiling
+  // a flat roof: low over the track (the soffit), stepping up between the two rows of columns to
+  // the ceiling (the same height for a roof that is flat all over)
   soffit: number;
   ceiling: number;
   step: number;          // across the slope from the soffit up to the ceiling
-  // square tiled columns along the platform, `fromEdge` from the edge to their middle
-  columns: { fromEdge: number; size: number; spacing: number };
-  // the track walls: tiled from `tilesFrom` up to the soffit, plaster below; name plates on
-  // them `plateAt` high, one in the middle of every repeat of their tiles (src/textures.ts)
-  tilesFrom: number;
-  plateAt: number;
+  // columns along the platform, `fromEdge` from the edge to their middle: square; or round
+  // (`round`), in one row down the middle of the platform (`middle`)
+  columns: { fromEdge: number; size: number; spacing: number; round?: boolean; middle?: boolean };
+  finish: TiledHall | ConcreteHall;
   // once along each track wall, near the middle of the platform: a plate with the station's old
   // name between two posters, `apart` from it, with their middles `at` high
   posters?: { name: string; at: number; apart: number };
   // neon tubes hung under the ceiling between the columns
-  neon: { count: number; tones: number[]; reach: number; below: [number, number] };
+  neon?: { count: number; tones: number[]; reach: number; below: [number, number] };
 }
+
+// Hötorget's: the walls and columns in square tiles, the track walls tiled from `tilesFrom` up to
+// the soffit, plaster below, and name plates on them `plateAt` high, one in the middle of every
+// repeat of their tiles (src/textures.ts); plaster overhead with the lamps in the soffit, clinker
+// underfoot.
+export interface TiledHall { kind: 'tiles'; tilesFrom: number; plateAt: number }
+
+// Farsta strand's: the track walls bare concrete, dark between pale pilasters under a beam, with
+// steel rails along them; overhead, dark panels of perforated steel, and lamps hung under them
+// over the platform's edges; the columns in small grey tiles; the platform paved as `paving` says
+// (src/open-styles.ts), and the station's name on signs hung across its middle every `signs.every`
+// m, their middle `signs.at` high.
+export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every: number; at: number } }
 
 export interface VaultHall {
   kind: 'vault';
@@ -56,6 +69,16 @@ export interface VaultHall {
 // Kungsgatan, is up on the walls again, between reproductions of two 1950s posters. Gun Gordillo
 // hung 103 lines of neon in five tones of white from its ceiling in 1998, at different heights.
 //
+// Farsta strand: the end of the line, opened in 1971 with its island platform out in a deep
+// cutting under Glavagatan's hill; built over since, with Centrumhuset and Stieg Trenters torg on
+// top, so that it is a long, low box. A flat ceiling of dark grey perforated steel panels in a
+// grid, on steel beams across; one row of round columns down the platform's middle (about
+// 7 m apart, measured on photographs), clad in small grey tiles; lamps in a row over each edge of
+// the platform, hung just under the ceiling. The track walls are the cutting's: dark concrete
+// between paler pilasters under a beam, with three steel rails along them. The platform is grey
+// concrete pavers, with a pale band along its edge and a strip of studded tiles inside it, and the
+// station's name on dark grey signs hung across it. (Wikimedia Commons' photographs of 2018.)
+//
 // Karlaplan: an island platform in a cavern 23 m down under Fältöversten, opened in 1967. A
 // smooth, pale vault over both tracks, lit by one long row of lamps; the track walls clad in white
 // enamelled steel panels (2006) over a black plinth, with the station's name in small black
@@ -72,10 +95,25 @@ export const HALL_STYLES: Record<string, HallStyle> = {
     ceiling: 4.6,
     step: 0.5,
     columns: { fromEdge: 2.2, size: 0.72, spacing: 8 },
-    tilesFrom: 0.7,
-    plateAt: 2.25,
+    finish: { kind: 'tiles', tilesFrom: 0.7, plateAt: 2.25 },
     posters: { name: 'KUNGSGATAN', at: 2.3, apart: 1.27 },
     neon: { count: 103, tones: [0xffffff, 0xf3f7ff, 0xfff4e2, 0xe6f2ff, 0xfffbe8], reach: 2.6, below: [0.12, 0.75] },
+  },
+  'Farsta strand': {
+    kind: 'flat',
+    soffit: 4.25,
+    ceiling: 4.25,
+    step: 0,
+    columns: { fromEdge: 4.5, size: 0.72, spacing: 7.2, round: true, middle: true },
+    finish: {
+      kind: 'concrete',
+      paving: {
+        edge: 0.3, tactile: [0.3, 0.9], studs: true, slabs: 0.9, paverSize: [0.25, 0.5], mix: 0.12,
+        colors: { edge: 0xd2d0ca, tactile: 0xa9a9a5, slab: 0x8f908d, pavers: 0x8c8d8a, paler: 0x9c9d9a, face: 0x6f6e6a },
+        pattern: 'bond',
+      },
+      signs: { every: 36, at: 3.55 },
+    },
   },
   'Karlaplan': {
     kind: 'vault',

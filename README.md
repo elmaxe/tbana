@@ -262,6 +262,8 @@ each with its reason:
   tracks at Hjulsta, Akalla, Mörby centrum and Hallonbergen
 - platforms drawn short of their 145 m at Bagarmossen, Bandhagen, Blackeberg, Rågsved, Stureby,
   Duvbo and Rissne
+- Farsta's island platform, beside a piece of track at its south end that OpenStreetMap splits
+  off shorter than a platform's usual run (`shortRuns`)
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
@@ -404,6 +406,18 @@ white enamel panels over a black plinth on the track walls, dark granite on the 
 blocks down the middle of the platform with the name and the ways out along their tops and Tor
 Hörlin's green stoneware seating niches in their sides, and Larseric Vänerlöf's black-and-white
 photomontage of old Östermalm (redrawn) along one track wall.
+Farsta strand (1971), its platform once in an open cutting and since built over, is a long, low
+box: a flat ceiling of dark perforated steel panels with lamps hung over the platform's edges,
+one row of round columns in small grey tiles down its middle, the track walls the cutting's dark
+concrete between pale pilasters with steel rails along them, grey pavers on the platform, and
+the station's name on signs hung across it. Its two flights climb towards each other to the
+ticket hall in the pavilion on Stieg Trenters torg (`src/open-styles.ts`): red walls, a floor of
+pale stone crossed by Fredrik Jacobsson's dark lines of mosaic (1993), the same steel ceiling,
+and, outside, red steel and glass under a pale green roof on red brackets, the kiosk's white
+shutter and a glazed annex over the nearer flight, which comes up into it between concrete
+parapets. The further flight climbs into Centrumhuset's ground floor: the city draws that
+building to its gable only (`data/building-corrections.json`), and leaves its wall open where
+the escalators pass through it, rather than cutting it.
 Östermalmstorg's two halls, one for each track, have walls of light, pitted concrete under a
 smooth white vault, a row of lamps over the platform's edge, white name signs on the wall behind
 the platform, and dark terrazzo floors with a band of pale tiles along the edge; on the track
@@ -413,6 +427,63 @@ The blue line's stations (1975–85) are caves: the vault roughened into lumps o
 as each station's artists painted it, from Kungsträdgården's green with red and white zigzags and
 Solna centrum's red sky over a spruce forest to Huvudsta's hanging gardens, Solna strand's
 squares of sky, Tensta's white rock and Hjulsta's frieze of a march (Kista is above ground).
+Some stations out in the open are drawn as they look too (`src/open-styles.ts`, built by
+`src/open-stations.ts`). Gubbängen (1950) has its long butterfly roof, white boarding on white
+rafters under a dark fascia, on dark steel columns down the middle of the platform with strip
+lights and black name signs hung under the beam; grey concrete pavers with pale edge stones and a
+ribbed strip for the blind; chain-link fences beyond the tracks; Ragnhild Alexandersson's two
+bronze Väktare (1994) beside casings round two of the columns; at its south end a hall of grey
+panels under a band of windows in yellow frames, over the stairs down to a passage under the
+tracks lined in small yellow tiles; and at its north end a glass stair house up to the ticket
+hall on its bridge over the tracks, with a floor of black and white terrazzo in triangles.
+Hökarängen (1950, Peter Celsing) curves under the same kind of roof, on pairs of steel columns,
+with Hanns Karlewski's art (1995): lacquered panels in two colours between the columns, two
+bronze columns of stacked slabs, and fans of small setts down the middle of the platform. At its
+south end a glass hall, then stairs down to a passage under the tracks in white tiles with a
+band of yellow and black lozenges; at its north end a glass stair house and escalators down to
+the ticket hall under the tracks' bridge over Örbyleden, dark stone below a white band with lit
+yellow signs, and a glass front towards the road. Tallkrogen (1950, Peter Celsing) has a lower
+roof, braced on its columns at the hall end, with a clock and departure boards hung under it,
+red lamp masts with white globes down the rest of the platform, and double benches. At its south
+end a hall of white panels under a band of glass holds the ticket gates; beyond it a glass stair
+house with a slatted ceiling and red-lined white tiles goes down past Kristina Anshelm's
+Tallkrogsdraken (1998) to a door in the bridge abutment on Victor Balcks väg, and a lift goes
+down to a passage out to Tallkrogsvägen. Skogskyrkogården (1950) has the butterfly roof boarded
+dark brown on dark rafters, black columns under a black beam, the southernmost in a dark grey
+casing with the clock and Hans Bartos' two wooden armchairs and table (1975) beside it; beyond the
+roof, galvanised lamp posts with two dome lamps and a glass shelter. At its north end the
+platform runs on into a glass building between the tracks' bridges over Sockenvägen, with a
+slatted ceiling: stairs down between dark tiles beside a walkway out to a lift that you walk
+through, into the ticket hall at the street, its glass front under a blue band with the station's
+name. Sandsborg (1950) has a flat roof of red steel, its columns in pairs on concrete plinths,
+deep cross beams over ribbed pale grey sheet and a long round light hung down it, red lamp posts
+with three dome lamps beyond it, wide pale slabs along the platform's edges, and a fence of
+slanting boards between concrete posts beyond the eastern track. At its south end a glass hall
+between the tracks holds the gates, then stairs down behind a glass balustrade and a walkway to a
+lift, both to the underpass of Stora Gungans väg, lined in pale green tiles between concrete
+abutments with the station's name over each end and red board fences on top. Blåsut (1950) has a
+pale butterfly roof on white steel rafters, a dark grey beam and columns down its valley and a
+long round light down each half, galvanised lamp posts with three dome lamps beyond it. At its
+south end the platform runs into a hall between the tracks, green sheet metal under a row of
+windows round the gates, then glazed in grey steel frames over stairs down beside a tiled wall and
+a walkway to a glass lift tower with the round T on top, both to the cycle path's underpass,
+lined in Ann Edholm's bands of white and black tiles (2008). Farsta (1960) stands on a viaduct
+under a W of two butterfly roofs of corrugated sheet on dark steel, a row of columns under each
+valley. Between the rows stand two glass halls walled in blue and white checked tiles under two
+rows of windows, each over an escalator and a wide stair down towards the middle, and between
+them a lift in a black tower that stands up through the roof. The ticket hall under the tracks has
+cream terrazzo in a dark grid, white tiles scattered with blue and windows looking out under the
+viaduct; through the gates in its west wall a passage of shops runs through the white building on
+Farsta torg, out under a blue sign, and a short way out east comes out under the viaduct. Globen
+(1951) has a butterfly roof that widens with its platform as the tracks curve apart, ribbed sheet
+in pale wood brown on teal steel, two rows of columns near its edges under beams across, three
+raised bays, departure boards and SL's blue name signs, and Joanna Troikowicz's Isfantasi (1989),
+green glass slabs in the fence along Palmfeltsvägen and four tapering stacks of glass sheets by
+the road. Escalators climb in a glazed house to a gabled hall on Globenbron, white panels under a
+dark blue band and a yellow line, its east gable glass doors in brushed steel, and stairs climb in
+a glazed tube at the other end to a smaller one on Slakthusbron; both bridges' decks are drawn,
+with railings. The city leaves out OpenStreetMap's outlines of the buildings such a station draws
+itself, and the street round its exits doesn't run on inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:
@@ -516,12 +587,16 @@ A description lists the ways out, each as a route of steps from a point on the p
 - `walk` goes to a point, or on for so many metres; with `dh` it is a ramp, and `open` leaves it
   without a ceiling.
 - `stairs` and `escalators` climb a height (down if negative) towards a point, or end at it with
-  `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs.
-- `lift` rises a height; `gates` puts ticket gates across the way; `mark` names a place that
-  another route can start `from`.
+  `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs, `s` narrower
+  stairs.
+- `lift` rises a height, its shaft reaching `above` its top stop (3 m by default), and with
+  `through` you walk through it, out of a door on its far side at the other stop; `gates` puts
+  ticket gates across the way; `mark` names a place that another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
-  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track) or a
-  lift.
+  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or
+  `open`) or a lift, with the station's sign on a post beside it (none with `"sign": false`,
+  where its name is over the doors). The street there is the ground sampled round the entrances
+  and the station; at a point beyond those (Globen's west exit, on Slakthusbron), the city's.
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,

@@ -54,7 +54,9 @@ interface Corrections {
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
   // north), the platform is placed from that point instead of the station's node. With `extend`,
   // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean }[];
+  // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
+  // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean; shortRuns?: number }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
@@ -338,6 +340,7 @@ for (const e of stationEls) {
 }
 
 const MIN_RUN = 30;
+const shortRuns = new Map((corrections.platforms ?? []).filter((c) => c.shortRuns).map((c) => [c.station, c.shortRuns!]));
 const shortPlatforms: number[] = [];
 const toXZ = (g: { lat: number; lon: number }): XZ => { const w = lonLatToWorld(g.lon, g.lat); return [w.x, w.z]; };
 const lineSegs = (pts: XZ[]) => pts.slice(1).map((p, i) => [pts[i], p] as [XZ, XZ]);
@@ -373,6 +376,14 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
       }
     }
   }
+  // the nearest station within 400 m
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  let station: Station | null = null, bestD = 400;
+  for (const st of stations.values()) {
+    const d = Math.hypot(st.x - cx, st.z - cz);
+    if (d < bestD) { bestD = d; station = st; }
+  }
+  const minRun = (station && shortRuns.get(station.name)) ?? MIN_RUN;
   const tracks: PlatformTrack[] = [];
   for (const [piece, list] of near) {
     list.sort((a, b) => a.s - b.s);
@@ -380,7 +391,7 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
     let run = [list[0]];
     const flush = () => {
       const len = run[run.length - 1].s - run[0].s;
-      if (len >= MIN_RUN) {
+      if (len >= minRun) {
         // +z is south, so in plan (x east, z south) a positive cross product means the
         // platform is to the right of the direction of travel
         const sideSum = run.reduce((a, r) => a + r.side, 0);
@@ -398,13 +409,6 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
   if (tracks.reduce((a, t) => a + t.s1 - t.s0, 0) < 50) {
     if (tracks.length) shortPlatforms.push(id);
     return;
-  }
-  // the nearest station within 400 m
-  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  let station: Station | null = null, bestD = 400;
-  for (const st of stations.values()) {
-    const d = Math.hypot(st.x - cx, st.z - cz);
-    if (d < bestD) { bestD = d; station = st; }
   }
   if (station) station.platforms.push({ osm: id, tracks } satisfies Platform);
 }
@@ -425,6 +429,10 @@ for (const e of osm.elements) {
 for (const c of corrections.platforms ?? []) {
   const st = stations.get(c.station);
   if (!st) throw new Error(`correction: no station called ${c.station}`);
+  if (c.shortRuns) {
+    if (!st.platforms.some((p) => p.tracks.some((t) => t.s1 - t.s0 < MIN_RUN))) throw new Error(`correction: ${c.station} has no platform track shorter than ${MIN_RUN} m (${c.why})`);
+    continue;
+  }
   if (c.extend) {
     // OSM's platform is drawn short of the 145 m it is: each of its tracks is lengthened about
     // its middle

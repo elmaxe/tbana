@@ -19,9 +19,11 @@
 //            from above, north up), the rest are courtyards, the other way round.
 //   'HOLE'   holes through the ground: u32 count, then for each: four corners as f32 x, z in
 //            metres from the tile's corner, f32 bottom, f32 top. The ground is cut away inside.
-//   'DOOR'   the doors of the depots' halls (buildings of kind shed): u32 count, then for each
-//            door: u32 building (its index in BLDG), u16 edge (from the outline's point of that
-//            index to the next), u16 0, f32 from, f32 to (metres along the edge), f32 top (RH 2000).
+//   'DOOR'   the doors of the depots' halls (buildings of kind shed), and the openings where a
+//            station's stairs pass through the walls of a building over them: u32 count, then for
+//            each door: u32 building (its index in BLDG), u16 edge (from the outline's point of
+//            that index to the next, along the walls' tops where it has a roof of its shape),
+//            u16 0, f32 from, f32 to (metres along the edge), f32 top (RH 2000).
 //   'LOOK'   how the buildings look, one for each in BLDG: u32 roof colour (0xRRGGBB, 0: none
 //            given), u8 wall style (WALL_STYLES), u8 0, u16 0.
 //   'ROOF'   roofs of their shapes (tools/lib/roofs.ts): u32 count, then for each: u32 building,
@@ -73,7 +75,7 @@ export interface Building {
   roofHeight: number; // the roof's height above `top`, for other shapes (0 for flat)
   colour: number | null;
   rings: [number, number][][]; // world x, z: the outline anticlockwise, then courtyards
-  doors?: Door[];  // a shed's doors
+  doors?: Door[];  // a shed's doors, or openings where a station's stairs pass through the walls
   roofColour?: number | null;
   wall?: WallStyle;
   roofMesh?: RoofMesh; // a roof of its shape; without one, the roof is flat
@@ -88,8 +90,8 @@ export interface RoofMesh {
   tops: [number, number, number][][];
 }
 
-// A door in a shed's outline, from its corner `edge` to the next: `from` to `to` metres along that
-// wall, from the bottom of the wall up to `top`.
+// A door in a shed's outline (or an opening in a building's), from its corner `edge` to the next:
+// `from` to `to` metres along that wall, from the bottom of the wall up to `top`.
 export interface Door { edge: number; from: number; to: number; top: number }
 
 // A hole through the ground: between four corners in plan (in order around it) and two heights,

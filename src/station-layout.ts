@@ -33,8 +33,9 @@ export interface InclinePart {
 }
 
 // A lift shaft standing at x, z, its door facing `yaw` (radians, as the player's: 0 looks north),
-// stopping at each of `levels`.
-export interface LiftPart { kind: 'lift'; x: number; z: number; yaw: number; levels: number[] }
+// stopping at each of `levels`, and reaching `above` its top stop (LIFT.above by default).
+// `through`: a car you walk through, its door at the second stop on the far side.
+export interface LiftPart { kind: 'lift'; x: number; z: number; yaw: number; levels: number[]; above?: number; through?: boolean }
 
 // A row of ticket gates across a passage, centred at x, y, z, facing along `yaw`.
 export interface GatesPart { kind: 'gates'; x: number; y: number; z: number; yaw: number; width: number }
@@ -47,8 +48,10 @@ export interface StreetPart { kind: 'street'; x0: number; z0: number; step: numb
 // into: up to where the hall's vault or roof begins.
 export interface VoidPart { kind: 'void'; corners: [number, number][]; y0: number; y1: number }
 
-// A roof over an open platform: along the points, `width` wide, its underside at their heights.
+// A roof over an open platform: along the points, `width` wide, its underside at their heights,
+// CANOPY_HEIGHT over the platform's top.
 export interface CanopyPart { kind: 'canopy'; points: XYZ[]; width: number }
+export const CANOPY_HEIGHT = 3.2;
 
 // A sign at an exit: the station's name over the way down, facing `yaw`.
 export interface SignPart { kind: 'sign'; x: number; y: number; z: number; yaw: number; text: string }
@@ -71,7 +74,7 @@ export interface StationLayouts { attribution: string; note: string; stations: S
 // Slopes: stairs rise 0.16 m in 0.30 m, escalators at 30°.
 export const STAIR_SLOPE = 0.16 / 0.3;
 export const ESCALATOR_SLOPE = Math.tan(Math.PI / 6);
-export const LANE = { E: 1.6, S: 2.0 };
+export const LANE = { E: 1.6, S: 2.0, s: 1.5 }; // escalators, stairs, narrower stairs
 export const LIFT = { width: 2.2, depth: 2.4, above: 3.0, below: 0.6 };
 
 // The plan of an incline: its corners, left and right at the bottom, then right and left at the top.
@@ -107,7 +110,7 @@ export function spaceOf(p: Part): Volume | null {
   }
   if (p.kind === 'lift') {
     const y0 = Math.min(...p.levels), y1 = Math.max(...p.levels);
-    return prism(liftCorners(p), [0, 1, 2, 3].map(() => y0 - LIFT.below), [0, 1, 2, 3].map(() => y1 + LIFT.above));
+    return prism(liftCorners(p), [0, 1, 2, 3].map(() => y0 - LIFT.below), [0, 1, 2, 3].map(() => y1 + (p.above ?? LIFT.above)));
   }
   if (p.kind === 'void') return prism(p.corners, p.corners.map(() => p.y0), p.corners.map(() => p.y1));
   return null;

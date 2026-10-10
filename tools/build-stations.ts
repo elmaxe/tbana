@@ -10,22 +10,25 @@
 // OpenStreetMap's subway entrances. Points are [s, u] in the station's frame: s metres along the
 // platforms from their middle (towards `axis`, by default north or east), u metres to the right.
 // Heights are metres above the platform. An exit comes up to the street at the entrance, at the
-// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts).
+// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts), with a sign
+// on a post beside it (`sign: false`, none: the station's name is over its doors).
 //
 // The build fails on:
 // - a step that can't be made: stairs that don't fit before their point, an exit too close
 // - a part that runs into the trains' space over a track
 // - a platform from which the street can't be walked to, or an exit that can't be reached
 import { readFileSync, writeFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { subtractAll } from '../src/clip.ts';
 import type { Volume } from '../src/clip.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, TrackGeometry } from '../src/track-geometry.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
 import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT } from '../src/sections.ts';
-import { ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
+import { CANOPY_HEIGHT, ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
 import type { CanopyPart, Exit, FloorPart, InclinePart, Part, StationLayout, StreetPart, VoidPart, XYZ } from '../src/station-layout.ts';
 import { interp } from './lib/graph.ts';
+import { CITY_TILE, deltaDecode } from '../src/city-tile.ts';
 
 const DESCRIPTIONS = 'data/station-descriptions.json';
 const OUT = 'public/data/station-layouts.json';
@@ -35,10 +38,10 @@ type Segment =
   | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
-  | { lift: number }
+  | { lift: number; above?: number; through?: boolean }
   | { gates: true }
   | { mark: string }
-  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number };
+  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean; sign?: boolean };
 interface RouteDesc { from: SU | string; h?: number; width?: number; go: Segment[] }
 interface Description {
   drawing?: string;
@@ -109,15 +112,30 @@ function patchHeight(e: Patch, x: number, z: number) {
   return (v[0]! * (1 - b) + v[1]! * b) * (1 - a) + (v[2]! * (1 - b) + v[3]! * b) * a;
 }
 
-// the ground at x, z: from the nearest entrance's square that covers it, or the station's
-function groundAt(station: string, x: number, z: number) {
+// The city's ground (data/ground/city.json, from tools/fetch-terrain.ts), coarser: every 5 m.
+const cityMeta: { step: number; n: number; tiles: [number, number, number][] } = JSON.parse(readFileSync('data/ground/city.json', 'utf8'));
+const cityRaw = new Int16Array(gunzipSync(readFileSync('data/ground/city.bin.gz')).buffer.slice(0));
+const cityGround = new Map<string, Float32Array>();
+cityMeta.tiles.forEach(([i, j, base], t) => cityGround.set(`${i},${j}`, deltaDecode(cityRaw.subarray(t * cityMeta.n ** 2, (t + 1) * cityMeta.n ** 2), cityMeta.n, base)));
+function cityGroundAt(x: number, z: number) {
+  const i = Math.floor(x / CITY_TILE), j = Math.floor(z / CITY_TILE), h = cityGround.get(`${i},${j}`), N = cityMeta.n;
+  if (!h) return null;
+  const u = (x - i * CITY_TILE) / cityMeta.step, v = (z - j * CITY_TILE) / cityMeta.step;
+  const c = Math.min(N - 2, Math.floor(u)), r = Math.min(N - 2, Math.floor(v)), fu = u - c, fv = v - r, k = r * N + c;
+  return (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
+}
+
+// the ground at x, z: from the nearest entrance's square that covers it, or the station's; or, for
+// an exit beyond them all (`far`), the city's
+function groundAt(station: string, x: number, z: number, far = false) {
   const near = ground.entrances.map((e) => ({ e, d: Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) })).sort((a, b) => a.d - b.d);
   for (const { e } of near.slice(0, 3)) {
     const h = patchHeight(e, x, z);
     if (h !== null) return h;
   }
   const st = ground.stations.find((p) => p.station === station);
-  return st ? patchHeight(st, x, z) : null;
+  const h = st ? patchHeight(st, x, z) : null;
+  return h === null && far ? cityGroundAt(x, z) : h;
 }
 
 // One grid of ground per group of exits near each other, 4 m apart on the world grid, out to
@@ -132,6 +150,8 @@ function streets(station: string, exits: { x: number; z: number }[]): StreetPart
     groups.push(merged);
   }
   return groups.map((g) => {
+    // (around exits beyond the squares of samples, the city's ground)
+    const far = g.some((e) => groundAt(station, e.x, e.z) === null);
     const x0 = Math.floor((Math.min(...g.map((e) => e.x)) - STREET) / STREET_STEP) * STREET_STEP;
     const z0 = Math.floor((Math.min(...g.map((e) => e.z)) - STREET) / STREET_STEP) * STREET_STEP;
     const x1 = Math.ceil((Math.max(...g.map((e) => e.x)) + STREET) / STREET_STEP) * STREET_STEP;
@@ -142,7 +162,7 @@ function streets(station: string, exits: { x: number; z: number }[]): StreetPart
       for (let j = 0; j < nx; j++) {
         const x = x0 + j * STREET_STEP, z = z0 + i * STREET_STEP;
         const near = g.some((e) => Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) <= STREET);
-        const v = near ? groundAt(station, x, z) : null;
+        const v = near ? groundAt(station, x, z, far) : null;
         h.push(v === null ? null : r2(v));
       }
     }
@@ -209,20 +229,23 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     }
     // the last step's kind and heading, for the joints between steps
     let last: 'walk' | 'incline' | null = null;
-    const joint = (nx: number, nz: number, w: number) => {
+    const joint = (nx: number, nz: number, w: number, ceiling: number | null = CEILING.passage) => {
       if (!last || hx * nx + hz * nz > Math.cos((10 * Math.PI) / 180)) return;
-      // a square landing where the way turns, so that the corner is floored
+      // a square landing where the way turns, so that the corner is floored (in the open, where
+      // the way on is)
       const s = Math.max(w, width) / 2;
       const rx = -hz, rz = hx;
       const corners: XYZ[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [x + hx * s * i + rx * s * j, y, z + hz * s * i + rz * s * j]);
-      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling: CEILING.passage, room: 'passage', label: `${name} · passage` });
+      const room = ceiling === null ? 'platform' : 'passage';
+      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room, label: `${name} · ${room}` });
     };
     const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
       if (l < 0.01) return;
       const nx = dx / l, nz = dz / l;
       if (Math.abs(dh) / l > 1 / 12 + 1e-6) problems.add(`${where}: a ramp of ${(Math.abs(dh) / l * 100).toFixed(0)}% (at most 8%)`);
-      joint(nx, nz, width);
+      // (the landing as high as the way on from it)
+      joint(nx, nz, width, open ? null : ceiling);
       const rx = -nz * width / 2, rz = nx * width / 2;
       const room = open ? 'platform' : width >= HALL_WIDTH ? 'hall' : 'passage';
       parts.push({
@@ -237,7 +260,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     const incline = (kind: 'stairs' | 'escalators', dh: number, nx: number, nz: number, lanes: string, ceiling = CEILING.incline, open?: number) => {
       const slope = kind === 'stairs' ? STAIR_SLOPE : ESCALATOR_SLOPE;
       const run = Math.abs(dh) / slope;
-      const w = [...lanes].reduce((a, c) => a + LANE[c as 'E' | 'S'], 0);
+      const w = [...lanes].reduce((a, c) => a + LANE[c as keyof typeof LANE], 0);
       joint(nx, nz, w);
       const ex = x + nx * run, ez = z + nz * run;
       const lo: XYZ = dh > 0 ? [x, y, z] : [ex, y + dh, ez];
@@ -275,11 +298,17 @@ function buildStation(name: string, d: Description, problems: Problems): Station
           incline(kind, dh, nx, nz, lanes, sg.ceiling);
         }
       } else if ('lift' in sg) {
-        // the shaft just beyond where the way ends, its door facing back along it
+        // the shaft just beyond where the way ends, its door facing back along it (and, walked
+        // through, on the far side at the other stop, where the way goes on)
         const yaw = Math.atan2(hx, hz);
         const dist = 0.3 + 2.4 / 2;
-        parts.push({ kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)] });
+        parts.push({
+          kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)],
+          ...(sg.above === undefined ? {} : { above: sg.above }), ...(sg.through ? { through: true } : {}),
+        });
         y += sg.lift;
+        // (from just inside its far side, where the car hides the floor's end)
+        if (sg.through) { x += hx * (dist + 0.7); z += hz * (dist + 0.7); }
       } else if ('gates' in sg) {
         parts.push({ kind: 'gates', x: r2(x), y: r2(y), z: r2(z), yaw: r2(Math.atan2(-hx, -hz)), width: r2(width) });
       } else if ('mark' in sg) {
@@ -291,7 +320,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         const by = sg.by ?? 'stairs';
         const dh = ey - y, l = Math.hypot(e.x - x, e.z - z);
         const nx = l > 0.01 ? (e.x - x) / l : hx, nz = l > 0.01 ? (e.z - z) / l : hz;
-        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling);
+        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling, sg.open);
         else if (by === 'lift') {
           walkTo(e.x, e.z);
           const yaw = Math.atan2(hx, hz);
@@ -309,12 +338,12 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         exits.push({ name: label, x: r2(x), y: r2(y), z: r2(z), yaw: r2(yaw) });
         // the sign beside the way down, facing the street
         const rx = -hz, rz = hx;
-        parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: name });
+        if (sg.sign !== false) parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: name });
       }
     }
   }
   parts.push(...hallVoids(name), ...canopies(name, d));
-  return { name, x: r2(f.x), z: r2(f.z), yaw: r2(Math.atan2(-f.tx, -f.tz)), platformY: r2(f.y), parts, exits };
+  return { name, x: r2(f.x), z: r2(f.z), yaw: +Math.atan2(-f.tx, -f.tz).toFixed(5), platformY: r2(f.y), parts, exits };
 }
 
 // The insides of the platform halls the network draws, in 10 m pieces along each platform track:
@@ -349,7 +378,6 @@ function hallVoids(name: string): VoidPart[] {
 function canopies(name: string, d: Description): CanopyPart[] {
   if (d.canopy === false) return [];
   const out: CanopyPart[] = [];
-  const mids: { x: number; z: number }[] = [];
   for (const t of platformTracks(name)) {
     const { g } = t;
     const points: XYZ[] = [];
@@ -359,16 +387,23 @@ function canopies(name: string, d: Description): CanopyPart[] {
       if (kind === 'rock' || kind === 'box') continue;
       const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1), l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
       const u = t.side * (PLATFORM_EDGE + t.width / 2);
-      points.push(p3([g.x[k] - ((g.z[b] - g.z[a]) / l) * u, g.y[k] + PLATFORM_HEIGHT + 3.2, g.z[k] + ((g.x[b] - g.x[a]) / l) * u]));
+      points.push(p3([g.x[k] - ((g.z[b] - g.z[a]) / l) * u, g.y[k] + PLATFORM_HEIGHT + CANOPY_HEIGHT, g.z[k] + ((g.x[b] - g.x[a]) / l) * u]));
     }
     if (points.length < 2) continue;
     const mid = points[Math.floor(points.length / 2)];
-    // an island platform has a track on each side: one roof
-    if (mids.some((m) => Math.hypot(m.x - mid[0], m.z - mid[2]) < 4)) continue;
-    mids.push({ x: mid[0], z: mid[2] });
+    // an island platform has a track on each side: one roof (its points needn't fall at the same
+    // places along the two tracks)
+    if (out.some((c) => c.points.some((p, i) => i > 0 && segmentDistance(mid, c.points[i - 1], p) < 4))) continue;
     out.push({ kind: 'canopy', points, width: r2(Math.min(t.width, ISLAND_WIDTH + 4) - 0.6) });
   }
   return out;
+}
+
+// how far p is from the segment a–b, across the ground
+function segmentDistance(p: XYZ, a: XYZ, b: XYZ) {
+  const dx = b[0] - a[0], dz = b[2] - a[2], l2 = dx * dx + dz * dz || 1;
+  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[2] - a[2]) * dz) / l2));
+  return Math.hypot(p[0] - a[0] - dx * t, p[2] - a[2] - dz * t);
 }
 
 // ------------------------------------------------------------------ checks
@@ -510,10 +545,10 @@ function checkWalk(st: StationLayout, problems: Problems) {
     }
   }
   // lifts join their levels
-  const liftLinks: { x: number; z: number; levels: number[] }[] = [];
+  const liftLinks: { at: { x: number; z: number; y: number }[] }[] = [];
   for (const p of parts) if (p.kind === 'lift') {
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    liftLinks.push({ x: p.x + fx * 2, z: p.z + fz * 2, levels: p.levels });
+    liftLinks.push({ at: p.levels.map((y, i) => { const k = p.through && i === 1 ? -2 : 2; return { x: p.x + fx * k, z: p.z + fz * k, y }; }) });
   }
   // flood from one platform point; then every platform point, and every exit, must be reached
   const reached = new Set<number>();
@@ -534,10 +569,10 @@ function checkWalk(st: StationLayout, problems: Problems) {
         for (const q of cells.get(k2) ?? []) if (Math.abs(q.y - me.y) <= STEP) next.push([k2, q]);
       }
       for (const l of liftLinks) {
-        if (Math.hypot(i * CELL - l.x, j * CELL - l.z) > 1.5 || !l.levels.some((y) => Math.abs(y - me.y) < 0.3)) continue;
-        for (const y of l.levels) {
-          const q = nodeAt(l.x, l.z, y, 0.5);
-          if (q) next.push([`${Math.round(l.x / CELL)},${Math.round(l.z / CELL)}`, q]);
+        if (!l.at.some((a) => Math.hypot(i * CELL - a.x, j * CELL - a.z) <= 1.5 && Math.abs(a.y - me.y) < 0.3)) continue;
+        for (const a of l.at) {
+          const q = nodeAt(a.x, a.z, a.y, 0.5);
+          if (q) next.push([`${Math.round(a.x / CELL)},${Math.round(a.z / CELL)}`, q]);
         }
       }
       for (const [k2, q] of next) if (!reached.has(q.id)) { reached.add(q.id); queue.push([k2, q.id]); }
