@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Fence, Finish, Guardian, Masts, Mural, OpenStyle, Panels, Room, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Fence, Finish, Guardian, Masts, Mural, OpenStyle, Panels, Room, Stacks } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -134,7 +134,9 @@ export class OpenLook {
       if (a.kind === 'guardian') this.guardian(a, line, on);
       else if (a.kind === 'stacks') this.stacks(a, line, on);
       else if (a.kind === 'panels') this.panels(a, style.roof, line, on);
+      else if (a.kind === 'chairs') this.chairs(a, line, on);
     }
+    for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
     const B = style.benches;
     for (const s of B?.at ?? []) {
       if (B!.across) this.benchAcross(s, line, on);
@@ -152,12 +154,13 @@ export class OpenLook {
 
   // The shells of its buildings, its fences, and what stands in the station's own frame: lamp
   // posts, pictures on its walls.
-  build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[]) {
+  // (the walls cut by all the station's spaces, their roofs and ceilings not by its open floors')
+  build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[], group: THREE.Group, roofCut = cut) {
     const frame = new Frame(st);
-    for (const b of style.blocks ?? []) this.block(b, frame, on, cut);
+    for (const b of style.blocks ?? []) this.block(b, frame, on, cut, st.name, roofCut);
     for (const f of style.fences ?? []) this.fence(f, frame, on);
     for (const a of style.art ?? []) {
-      if (a.kind === 'masts') this.masts(a, frame, on);
+      if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
       else if (a.kind === 'mural') this.mural(a, frame, on);
     }
   }
@@ -212,14 +215,16 @@ export class OpenLook {
       box(under, line.at(s, u, h(u) - 0.13), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
       box(lamp, line.at(s, u, h(u) - 0.16), fx, fz, 0.1, 0.02, L.length, cut);
     }
-    // the columns, on plinths, under the beams; a casing round those with a sculpture beside them
+    // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
+    // and those the roof cases
     const foot = R.middle - R.beam;
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
+      const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
       for (const u of beams) {
         const top = h(u) - R.beam;
         box(concrete, line.at(s, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
-        if (art) box(casing, line.at(s, u, top / 2), fx, fz, art.casing[0], top, art.casing[1], cut);
+        if (cased) box(casing, line.at(s, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
         else box(steel, line.at(s, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
         // knee braces up to the beam, either way along it
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
@@ -363,17 +368,80 @@ export class OpenLook {
     }
   }
 
+  // Two big armchairs of thick timbers facing each other across a low table of the same: each
+  // chair a block to sit on, a block for each arm and a tall back.
+  private chairs(a: Chairs, line: Line, on: On) {
+    const [fx, fz] = line.dir(a.s), rx = -fz, rz = fx;
+    const dx = fx * Math.cos(a.turn) + rx * Math.sin(a.turn), dz = fz * Math.cos(a.turn) + rz * Math.sin(a.turn);
+    const ex = -dz, ez = dx;
+    const wood = on(this.mat('laminatedWood', () => new THREE.MeshStandardMaterial({ map: T.laminatedWood(), roughness: 0.85, side: THREE.DoubleSide })));
+    const steel = on(this.color(0x3a3d40, 0.5, 0.5));
+    const base = line.at(a.s, a.u, 0);
+    // fwd along `turn` from the middle, across to its right
+    const P = (fwd: number, across: number, y: number): XYZ => [base[0] + dx * fwd + ex * across, base[1] + y, base[2] + dz * fwd + ez * across];
+    // the table: a thick top on a block
+    box(wood, P(0, 0, 0.17), dx, dz, 0.5, 0.26, 0.6);
+    box(wood, P(0, 0, 0.38), dx, dz, 0.75, 0.2, 1.05);
+    for (const side of [-1, 1]) {
+      // facing the table: its back away from it, on a low steel foot
+      const c = side * 1.25, back = side * 0.42;
+      box(steel, P(c, 0, 0.03), dx, dz, 0.7, 0.06, 0.7);
+      box(wood, P(c, 0, 0.29), dx, dz, 0.86, 0.46, 0.86);
+      for (const k of [-1, 1]) box(wood, P(c - side * 0.06, k * 0.35, 0.64), dx, dz, 0.18, 0.26, 0.74);
+      box(wood, P(c + back, 0, 0.85), dx, dz, 0.86, 1.2, 0.22);
+      box(wood, P(c + back * 0.97, 0, 1.5), dx, dz, 0.7, 0.1, 0.2);
+    }
+  }
+
+  // A glass shelter: glazed along both sides on black posts, open at the ends, a bench inside,
+  // and a flat roof of its own out in the open.
+  private shelter(sh: { s: [number, number]; u: [number, number]; roof?: boolean }, line: Line, on: On, cut: Volume[]) {
+    const frame = on(this.color(0x1e1f20, 0.5, 0.4)), slat = on(this.color(0x1e1f20, 0.6));
+    const [s0, s1] = sh.s, [u0, u1] = sh.u, H = 2.3;
+    const n = Math.max(1, Math.round((s1 - s0) / 1.25));
+    for (const u of [u0, u1]) {
+      for (let k = 0; k <= n; k++) {
+        const s = s0 + ((s1 - s0) * k) / n, [fx, fz] = line.dir(s);
+        box(frame, line.at(s, u, H / 2), fx, fz, 0.06, H, 0.06, cut);
+      }
+      for (const y of [0.1, H - 0.05]) bar(frame, line.at(s0, u, y), line.at(s1, u, y), 0.05, 0.05, cut);
+      const q = (s: number, y: number) => [...line.at(s, u, y), 0, 0];
+      on(this.pane).poly([q(s0, 0.1), q(s1, 0.1), q(s1, H - 0.05), q(s0, H - 0.05)], cut);
+    }
+    // the bench along the far side from the line down the platform's middle
+    const ub = Math.abs(u1) > Math.abs(u0) ? u1 - Math.sign(u1 - u0) * 0.3 : u0 + Math.sign(u1 - u0) * 0.3;
+    for (let s = s0 + 0.6; s < s1 - 0.5; s += 1.9) {
+      const sm = Math.min(s + 0.8, s1 - 0.4), [fx, fz] = line.dir(sm);
+      for (const du of [-0.12, 0, 0.12]) box(slat, line.at(sm, ub + du, 0.45), fx, fz, 0.1, 0.035, 1.6, cut);
+      for (const k of [-0.65, 0.65]) box(frame, line.at(sm + k, ub, 0.22), fx, fz, 0.36, 0.44, 0.05, cut);
+    }
+    if (sh.roof) slab(on(this.roofing), [[s0 - 0.2, u0 - 0.2], [s1 + 0.2, u0 - 0.2], [s1 + 0.2, u1 + 0.2], [s0 - 0.2, u1 + 0.2]].map(([s, u]) => line.at(s, u, H + 0.12)), 0.12, 0.5, cut);
+  }
+
   // Lamp posts: a red-brown post, a white dome lamp on top and one at each end of an arm across
-  // the platform.
-  private masts(a: Masts, frame: Frame, on: On) {
-    const post = on(this.color(0x6b2c24, 0.5, 0.3)), shade = on(this.color(0xe9ebea, 0.35, 0.2));
+  // the platform; or a galvanised one with only the two on its arm, and a name sign.
+  private masts(a: Masts, frame: Frame, on: On, name: string, group: THREE.Group) {
+    const post = on(this.color(a.color ?? 0x6b2c24, 0.5, a.color ? 0.6 : 0.3)), shade = on(this.color(0xe9ebea, 0.35, 0.2));
     const bulb = on(this.mat('bulb', () => new THREE.MeshBasicMaterial({ color: 0xfff4dc, side: THREE.DoubleSide })));
-    const H = a.height;
+    const H = a.height, lamps = a.top === false ? [[-0.6, H - 0.42], [0.6, H - 0.42]] : [[0, H - 0.08], [-0.6, H - 0.42], [0.6, H - 0.42]];
     for (const [s, u] of a.at) {
       const c = frame.at(s, u, 0), fx = frame.fx, fz = frame.fz;
       box(post, [c[0], c[1] + (H - 0.3) / 2, c[2]], fx, fz, 0.12, H - 0.3, 0.12);
       bar(post, frame.at(s, u - 0.6, H - 0.38), frame.at(s, u + 0.6, H - 0.38), 0.06, 0.06);
-      for (const [du, y] of [[0, H - 0.08], [-0.6, H - 0.42], [0.6, H - 0.42]]) {
+      // the sign along the platform, on a bracket, its face to each track
+      if (a.sign !== undefined) {
+        const W = 1.5, Hs = 0.375, sc = frame.at(s + 0.15 + W / 2, u, a.sign);
+        box(on(this.color(0x161718, 0.5, 0.2)), sc, fx, fz, 0.04, Hs + 0.02, W + 0.02);
+        bar(post, frame.at(s, u, a.sign + 0.12), frame.at(s + 0.18, u, a.sign + 0.12), 0.04, 0.04);
+        const m = this.mat(`sign:${name}::`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, '', '') }));
+        for (const side of [1, -1]) {
+          const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, Hs), m);
+          mesh.position.set(sc[0] - fz * side * 0.025, sc[1], sc[2] + fx * side * 0.025);
+          mesh.rotation.y = Math.atan2(-fz * side, fx * side);
+          group.add(mesh);
+        }
+      }
+      for (const [du, y] of lamps) {
         const p = frame.at(s, u + du, y);
         dome(shade, p, 0.23, 0.2);
         const ring: number[][] = [];
@@ -395,7 +463,7 @@ export class OpenLook {
     m.poly([P(-w, a.bottom, 0, 0), P(w, a.bottom, 1, 0), P(w, a.top, 1, 1), P(-w, a.top, 0, 1)]);
   }
 
-  private block(b: Block, frame: Frame, on: On, cut: Volume[]) {
+  private block(b: Block, frame: Frame, on: On, cut: Volume[], name: string, roofCut: Volume[]) {
     const corners = b.plan, from = b.from ?? 0;
     const base = on(this.finish('boardConcrete'));
     for (let i = 0; i < 4; i++) {
@@ -421,6 +489,18 @@ export class OpenLook {
       const cs = corners.reduce((t, c) => t + c[0], 0) / 4, cu = corners.reduce((t, c) => t + c[1], 0) / 4;
       let ns = (u1 - u0) / l, nu = -(s1 - s0) / l;
       if (ns * ((s0 + s1) / 2 - cs) + nu * ((u0 + u1) / 2 - cu) < 0) { ns = -ns; nu = -nu; }
+      // the name over the doors, on a blue band
+      if (b.nameSign?.side === i) {
+        const g = b.nameSign, m = on(this.mat(`nameBand:${name}:${g.length}`, () => {
+          const map = T.nameBand(name, g.length);
+          return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.3, roughness: 0.4, side: THREE.DoubleSide });
+        }));
+        const d = (g.length / 2) / l, t0 = g.at - d, t1 = g.at + d;
+        const Q = (t: number, hh: number) => [...frame.at(s0 + (s1 - s0) * t + ns * 0.06, u0 + (u1 - u0) * t + nu * 0.06, hh)];
+        // (read from outside: its left end the one on the viewer's left)
+        const left = (s1 - s0) * nu - (u1 - u0) * ns > 0 ? [t0, t1] : [t1, t0];
+        m.poly([[...Q(left[0], g.bottom), 0, 0], [...Q(left[1], g.bottom), 1, 0], [...Q(left[1], g.bottom + 0.5), 1, 1], [...Q(left[0], g.bottom + 0.5), 0, 1]]);
+      }
       for (const g of b.lights ?? []) {
         if (g.side !== i) continue;
         const sc = s0 + (s1 - s0) * g.at + ns * 0.05, uc = u0 + (u1 - u0) * g.at + nu * 0.05;
@@ -428,10 +508,10 @@ export class OpenLook {
         box(on(this.lightbox), a, e[0] - a[0], e[2] - a[2], 0.1, 0.42, g.length);
       }
     }
-    if (b.roof) slab(on(this.roofing), corners.map(([s, u], i) => frame.at(s, u, blockTop(b, i) + b.roof!)), b.roof, 0.5, cut);
+    if (b.roof) slab(on(this.roofing), corners.map(([s, u], i) => frame.at(s, u, blockTop(b, i) + b.roof!)), b.roof, 0.5, roofCut);
     if (b.ceiling) {
       const [cw] = T.FINISH_SIZE[b.ceiling];
-      on(this.finish(b.ceiling, true)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]), cut);
+      on(this.finish(b.ceiling, true)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]), roofCut);
     }
     if (b.floor) {
       const [fw] = T.FINISH_SIZE[b.floor];

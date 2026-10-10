@@ -434,7 +434,14 @@ red lamp masts with white globes down the rest of the platform, and double bench
 end a hall of white panels under a band of glass holds the ticket gates; beyond it a glass stair
 house with a slatted ceiling and red-lined white tiles goes down past Kristina Anshelm's
 Tallkrogsdraken (1998) to a door in the bridge abutment on Victor Balcks väg, and a lift goes
-down to a passage out to Tallkrogsvägen. The city leaves out OpenStreetMap's outlines
+down to a passage out to Tallkrogsvägen. Skogskyrkogården (1950) has the butterfly roof boarded
+dark brown on dark rafters, black columns under a black beam, the southernmost in a dark grey
+casing with the clock and Hans Bartos' two wooden armchairs and table (1975) beside it; beyond the
+roof, galvanised lamp posts with two dome lamps and a glass shelter. At its north end the
+platform runs on into a glass building between the tracks' bridges over Sockenvägen, with a
+slatted ceiling: stairs down between dark tiles beside a walkway out to a lift that you walk
+through, into the ticket hall at the street, its glass front under a blue band with the station's
+name. The city leaves out OpenStreetMap's outlines
 of the buildings such a station draws itself, and the street round its exits doesn't run on
 inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
@@ -542,7 +549,8 @@ A description lists the ways out, each as a route of steps from a point on the p
 - `stairs` and `escalators` climb a height (down if negative) towards a point, or end at it with
   `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs, `s` narrower
   stairs.
-- `lift` rises a height, its shaft reaching `above` its top stop (3 m by default); `gates` puts
+- `lift` rises a height, its shaft reaching `above` its top stop (3 m by default), and with
+  `through` you walk through it, out of a door on its far side at the other stop; `gates` puts
   ticket gates across the way; `mark` names a place that another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
   by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or

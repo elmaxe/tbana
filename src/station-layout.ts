@@ -34,7 +34,8 @@ export interface InclinePart {
 
 // A lift shaft standing at x, z, its door facing `yaw` (radians, as the player's: 0 looks north),
 // stopping at each of `levels`, and reaching `above` its top stop (LIFT.above by default).
-export interface LiftPart { kind: 'lift'; x: number; z: number; yaw: number; levels: number[]; above?: number }
+// `through`: a car you walk through, its door at the second stop on the far side.
+export interface LiftPart { kind: 'lift'; x: number; z: number; yaw: number; levels: number[]; above?: number; through?: boolean }
 
 // A row of ticket gates across a passage, centred at x, y, z, facing along `yaw`.
 export interface GatesPart { kind: 'gates'; x: number; y: number; z: number; yaw: number; width: number }

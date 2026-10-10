@@ -167,7 +167,10 @@ export class Stations {
         this.lifts.push({
           center: new THREE.Vector3(p.x, p.levels[0], p.z), radius: LIFT.width / 2,
           minY: Math.min(...p.levels), maxY: Math.max(...p.levels),
-          levels: p.levels.map((y) => ({ y, pos: new THREE.Vector3(p.x + fx * door, y, p.z + fz * door), yaw: p.yaw })),
+          levels: p.levels.map((y, i) => {
+            const k = p.through && i === 1 ? -1 : 1;
+            return { y, pos: new THREE.Vector3(p.x + fx * door * k, y, p.z + fz * door * k), yaw: k > 0 ? p.yaw : p.yaw + Math.PI };
+          }),
         });
       }
     }
@@ -272,7 +275,10 @@ export class Stations {
     }
     for (const p of st.parts) if (p.kind === 'floor' || p.kind === 'incline') this.buildWalls(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
-    if (this.open) this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids]);
+    if (this.open) {
+      const closed = spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol);
+      this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids], group, [...closed, ...voids]);
+    }
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));
     }
@@ -548,8 +554,9 @@ export class Stations {
     const dx = p.b[0] - p.a[0], dz = p.b[2] - p.a[2], run = Math.hypot(dx, dz) || 1;
     const fx = dx / run, fz = dz / run, rx = -fz, rz = fx;
     const rise = p.b[1] - p.a[1], top = p.b[1];
-    // the opening: from where the flight's ceiling passes up through the floor at the top
-    const t0 = Math.max(0, 1 - p.ceiling / (rise || 1));
+    // the opening: from where the flight's ceiling passes up through the floor at the top (all of
+    // it in a glass building, where the flight has no ceiling of its own)
+    const t0 = this.roomOf(p)?.sill !== undefined ? 0 : Math.max(0, 1 - p.ceiling / (rise || 1));
     const floorAt = (x: number, z: number) => this.walk.query(x, z, this._hits).some((h) => Math.abs(h.y - top) < 0.15)
       || !!this.platforms?.query(x, z, this._plat).some((h) => Math.abs(h.y - top) < 0.15);
     const panel = (ax: number, az: number, bx: number, bz: number) => {
@@ -591,8 +598,9 @@ export class Stations {
     // the car, standing at the lowest stop, and a frame round the door at each
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     box(m.steel, [p.x, Math.min(...p.levels) + 1.2, p.z], fx, fz, LIFT.width - 0.3, 2.4, LIFT.depth - 0.3);
-    for (const y of p.levels) {
-      const d: XYZ = [p.x + fx * (LIFT.depth / 2 + 0.02), y + 1.1, p.z + fz * (LIFT.depth / 2 + 0.02)];
+    for (const [i, y] of p.levels.entries()) {
+      const k = (p.through && i === 1 ? -1 : 1) * (LIFT.depth / 2 + 0.02);
+      const d: XYZ = [p.x + fx * k, y + 1.1, p.z + fz * k];
       box(m.steel, d, fx, fz, 1.2, 2.2, 0.06);
     }
   }

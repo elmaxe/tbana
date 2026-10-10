@@ -35,7 +35,7 @@ type Segment =
   | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
-  | { lift: number; above?: number }
+  | { lift: number; above?: number; through?: boolean }
   | { gates: true }
   | { mark: string }
   | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean };
@@ -276,11 +276,17 @@ function buildStation(name: string, d: Description, problems: Problems): Station
           incline(kind, dh, nx, nz, lanes, sg.ceiling);
         }
       } else if ('lift' in sg) {
-        // the shaft just beyond where the way ends, its door facing back along it
+        // the shaft just beyond where the way ends, its door facing back along it (and, walked
+        // through, on the far side at the other stop, where the way goes on)
         const yaw = Math.atan2(hx, hz);
         const dist = 0.3 + 2.4 / 2;
-        parts.push({ kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)], ...(sg.above === undefined ? {} : { above: sg.above }) });
+        parts.push({
+          kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)],
+          ...(sg.above === undefined ? {} : { above: sg.above }), ...(sg.through ? { through: true } : {}),
+        });
         y += sg.lift;
+        // (from just inside its far side, where the car hides the floor's end)
+        if (sg.through) { x += hx * (dist + 0.7); z += hz * (dist + 0.7); }
       } else if ('gates' in sg) {
         parts.push({ kind: 'gates', x: r2(x), y: r2(y), z: r2(z), yaw: r2(Math.atan2(-hx, -hz)), width: r2(width) });
       } else if ('mark' in sg) {
@@ -517,10 +523,10 @@ function checkWalk(st: StationLayout, problems: Problems) {
     }
   }
   // lifts join their levels
-  const liftLinks: { x: number; z: number; levels: number[] }[] = [];
+  const liftLinks: { at: { x: number; z: number; y: number }[] }[] = [];
   for (const p of parts) if (p.kind === 'lift') {
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
-    liftLinks.push({ x: p.x + fx * 2, z: p.z + fz * 2, levels: p.levels });
+    liftLinks.push({ at: p.levels.map((y, i) => { const k = p.through && i === 1 ? -2 : 2; return { x: p.x + fx * k, z: p.z + fz * k, y }; }) });
   }
   // flood from one platform point; then every platform point, and every exit, must be reached
   const reached = new Set<number>();
@@ -541,10 +547,10 @@ function checkWalk(st: StationLayout, problems: Problems) {
         for (const q of cells.get(k2) ?? []) if (Math.abs(q.y - me.y) <= STEP) next.push([k2, q]);
       }
       for (const l of liftLinks) {
-        if (Math.hypot(i * CELL - l.x, j * CELL - l.z) > 1.5 || !l.levels.some((y) => Math.abs(y - me.y) < 0.3)) continue;
-        for (const y of l.levels) {
-          const q = nodeAt(l.x, l.z, y, 0.5);
-          if (q) next.push([`${Math.round(l.x / CELL)},${Math.round(l.z / CELL)}`, q]);
+        if (!l.at.some((a) => Math.hypot(i * CELL - a.x, j * CELL - a.z) <= 1.5 && Math.abs(a.y - me.y) < 0.3)) continue;
+        for (const a of l.at) {
+          const q = nodeAt(a.x, a.z, a.y, 0.5);
+          if (q) next.push([`${Math.round(a.x / CELL)},${Math.round(a.z / CELL)}`, q]);
         }
       }
       for (const [k2, q] of next) if (!reached.has(q.id)) { reached.add(q.id); queue.push([k2, q.id]); }

@@ -2336,12 +2336,14 @@ export function openPaving(p: Paving) {
   const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
   const joint = css(C.pavers, -34);
-  // pavers: rectangles 24 × 12 cm, in a running bond along the platform, or in herringbone
+  // pavers: rectangles 24 × 12 cm (or as given), in a running bond along the platform, or in
+  // herringbone; some of them paler
   x.fillStyle = joint; x.fillRect(0, 0, W, H);
-  const pw = 0.12 * PX, pl = 0.24 * PX;
+  const [plm, pwm] = p.paverSize ?? [0.24, 0.12], pw = pwm * PX, pl = plm * PX;
+  const tone = () => css(p.mix && r() < p.mix ? C.paler ?? C.pavers : C.pavers, Math.floor(r() * 14) - 7);
   if (p.pattern === 'bond') {
     for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
-      x.fillStyle = css(C.pavers, Math.floor(r() * 14) - 7);
+      x.fillStyle = tone();
       x.fillRect(i * pw + 0.6, j * pl + (i % 2) * pl / 2 + 0.6, pw - 1.2, pl - 1.2);
     }
   } else if (p.pattern === 'fans') {
@@ -2486,6 +2488,37 @@ export function clockFace() {
   return toTexture(c, { repeat: false });
 }
 
+// The station's name in white capitals on a blue enamel band, the T in a white ring before it and
+// a thin yellow line under it. `length` m long, 0.5 m high.
+export function nameBand(name: string, length: number) {
+  const H = 100, W = Math.round(length * 200), [c, x] = canvas(W, H);
+  x.fillStyle = '#18408f'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#e8c33a'; x.fillRect(0, H - 9, W, 5);
+  x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textBaseline = 'middle';
+  const text = name.toUpperCase().split('').join(String.fromCharCode(8202)), tw = Math.min(x.measureText(text).width, W - 140);
+  const x0 = (W - tw - 60) / 2;
+  x.strokeStyle = '#f4f4f0'; x.lineWidth = 4; x.beginPath(); x.arc(x0 + 20, H / 2 - 3, 20, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#f4f4f0'; x.font = '700 30px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center'; x.fillText('T', x0 + 20, H / 2 - 2);
+  x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'left'; x.fillText(text, x0 + 60, H / 2 - 2, W - 140);
+  return toTexture(c, { repeat: false });
+}
+
+// Pine timbers glued up in thick layers, weathered to a pale grey-brown: the layers 12 cm deep,
+// their grain along them, a dark knot here and there. 1.2 m a repeat.
+export function laminatedWood() {
+  const N = 240, [c, x] = canvas(N);
+  const r = rng(1975);
+  for (let j = 0; j < 10; j++) {
+    const v = Math.floor(r() * 18);
+    x.fillStyle = `rgb(${168 + v},${136 + v},${98 + v})`; x.fillRect(0, j * 24, N, 24);
+    for (let k = 0; k < 14; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '110,84,58' : '210,188,150'},0.25)`; x.fillRect(0, j * 24 + r() * 24, N, 1); }
+    x.fillStyle = 'rgba(70,52,36,0.6)'; x.fillRect(0, j * 24, N, 1.5);
+    if (r() < 0.6) { x.fillStyle = 'rgba(80,56,36,0.7)'; x.beginPath(); x.ellipse(r() * N, j * 24 + 12, 4 + r() * 4, 3, 0, 0, Math.PI * 2); x.fill(); }
+  }
+  speckle(x, N, N, 900, 0.08, 1976);
+  return toTexture(c);
+}
+
 // A departure board: a pale strip naming the trains' direction, and the next two trains in
 // orange lights on black.
 export function departureBoard(toward: string, trains: [string, string]) {
@@ -2568,8 +2601,9 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
+  darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
@@ -2707,6 +2741,41 @@ export function finish(name: Finish) {
       x.fillStyle = '#7a2622'; x.fillRect(0, Y(1.23), W, 0.03 * PX);
       break;
     }
+    case 'darkGlazed':
+      // two panes 0.7 m wide, the frames all but black; a sill rail at the foot
+      pane(0, h, '#26282a', 0.07);
+      x.fillStyle = '#26282a'; x.fillRect(W / 2 - 0.035 * PX, 0, 0.07 * PX, H); x.fillRect(0, Y(0.12), W, 0.12 * PX); x.fillRect(0, 0, W, 0.05 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0, Y(0.12), W, 1.5);
+      break;
+    case 'slate': {
+      // 60 by 30 cm, in a running bond, each slab a slightly different dark blue-grey, riven
+      x.fillStyle = '#2b2e31'; x.fillRect(0, 0, W, H);
+      const a = 0.6 * PX, b = 0.3 * PX;
+      for (let j = 0; j * b < H; j++) for (let i = -1; i * a < W; i++) {
+        const v = 74 + Math.floor(r() * 16), ox = i * a + (j % 2) * a / 2;
+        x.fillStyle = `rgb(${v - 4},${v + 1},${v + 8})`; x.fillRect(ox + 1.5, j * b + 1.5, a - 3, b - 3);
+        for (let k = 0; k < 6; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '30,32,36' : '140,146,152'},0.12)`; x.fillRect(ox + r() * a, j * b + r() * b, 8 + r() * 30, 1.5); }
+      }
+      break;
+    }
+    case 'darkTiles': {
+      // 30 by 60 cm, laid on end
+      x.fillStyle = '#26282a'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.6 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = 66 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v + 2},${v + 5})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+      }
+      break;
+    }
+    case 'greyPanels':
+      // standing panels 0.6 m wide, dark grey, with a seam between them
+      x.fillStyle = '#5a5f63'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 2; i++) {
+        x.fillStyle = 'rgba(30,32,34,0.6)'; x.fillRect(i * W / 2, 0, 2, H);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * W / 2 + 2, 0, 2, H);
+      }
+      break;
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -2715,7 +2784,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (name !== 'triangles' && name !== 'glazed' && name !== 'clerestory' && name !== 'windows') speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

@@ -27,6 +27,10 @@ export interface OpenStyle {
   // benches down the middle of the platform at these `s`: along it, or across it, against the
   // panel between a pair of columns; `double`, two back to back along it
   benches?: { at: number[]; across?: boolean; double?: boolean };
+  // glass shelters on the platform, from s[0] to s[1] and u[0] to u[1] across the line down its
+  // middle, glazed along both sides and open at the ends, with a bench inside; out in the open,
+  // a flat roof of their own
+  shelters?: { s: [number, number]; u: [number, number]; roof?: boolean }[];
 }
 
 // A roof whose two halves slope down to a valley along its middle, held up by a row of columns
@@ -46,10 +50,11 @@ export interface ButterflyRoof {
   rafterSize?: [number, number]; // across and deep (0.05 by 0.1 by default)
   // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
   // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
-  // each column up to the beam this far along it either way
+  // each column up to the beam this far along it either way; `casings`, a dark box round the
+  // columns at these `s`, `size` across and along
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
-    between?: [number, number]; braces?: number;
+    between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] };
   };
   // rows of strip lights along the underside, `offset` either side of the beam: fittings
   // `length` long, `every` apart
@@ -66,14 +71,17 @@ export interface ButterflyRoof {
 
 // The platform's top, across from its edge: a pale band of edge stones, a strip of ribbed or
 // studded tiles for the blind (`tactile`, from and to), pale slabs out to `slabs` (30 cm square,
-// or `slabSize` across and along), then pavers.
+// or `slabSize` across and along), then pavers (24 by 12 cm, or `paverSize` along and across;
+// `mix` of them in the colour `paler`, at random).
 export interface Paving {
   edge: number;
   tactile: [number, number];
   studs?: boolean;
   slabs: number;
   slabSize?: [number, number];
-  colors: { edge: number; tactile: number; slab: number; pavers: number; face: number };
+  paverSize?: [number, number];
+  mix?: number;
+  colors: { edge: number; tactile: number; slab: number; pavers: number; face: number; paler?: number };
   // herringbone pavers, rectangular ones in a running bond, or small setts laid in fans
   pattern: 'herringbone' | 'bond' | 'fans';
 }
@@ -107,7 +115,11 @@ export type Finish =
   | 'terrazzo'      // pale grey terrazzo in large squares
   | 'whitePanels'   // white sheet-metal panels
   | 'greyTiles'     // grey square tiles, 30 cm
-  | 'redLineTiles'; // small square tiles, white, with a thin dark red line
+  | 'redLineTiles'  // small square tiles, white, with a thin dark red line
+  | 'darkGlazed'    // glazed from floor to ceiling in tall narrow panes, framed in black
+  | 'slate'         // dark blue-grey slate in long slabs
+  | 'darkTiles'     // large dark grey tiles
+  | 'greyPanels';   // dark grey sheet-metal panels, standing
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -117,15 +129,17 @@ export type Finish =
 // or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a finish of
 // their own all round from a height up; `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
-// be walked on inside it (only the station's own floors are).
+// be walked on inside it (only the station's own floors are). `nameSign`: the station's name in
+// white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
+// up.
 export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; low?: number;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
-  onPlatform?: boolean;
+  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -141,12 +155,18 @@ export interface Stacks { kind: 'stacks'; s: number; u: number; turn: number; he
 export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: number; top: number }
 
 // Lamp posts at the points ([s, u], in the station's frame): a tall red-brown post with a white
-// dome lamp on top and one on an arm to each side, `height` high.
-export interface Masts { kind: 'masts'; at: [number, number][]; height: number }
+// dome lamp on top and one on an arm to each side, `height` high; or a galvanised one (`color`),
+// with only the two on the arm (`top: false`), and the station's name on a black sign on it
+// (`sign`, so high).
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts).
 export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+
+// Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
+// chairs facing each other across the table along `turn` (as a guardian's).
+export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
 
 // A chain-link fence on posts through the points ([s, u]), from `h[0]` to `h[1]` high.
 export interface Fence { points: [number, number][]; h: [number, number] }
@@ -392,5 +412,94 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-80, 6.6], [-60, 6.9], [-40, 7.1], [-20, 7.2], [30, 7.2], [60, 7.4], [88, 7.5]], h: [-2, 0] },
     ],
     benches: { at: [-45, -36, -23], double: true },
+  },
+
+  // Skogskyrkogården (1 October 1950, as Kyrkogården; renamed in 1958): an island platform on a
+  // low bank between the woods of the cemetery to the east and Enskede's workshops to the west,
+  // its north end on the tracks' two bridges over Sockenvägen. The laser scan puts its butterfly
+  // roof from 10.5 m south of the platform's middle to 72 m north, about 8.6 m wide and half a
+  // metre west of the line down the platform's middle, its top 3.25 m over the platform along the
+  // valley and 3.6 m at the edges. Photographs show it boarded dark brown underneath on dark
+  // brown rafters, a dark fascia, black steel columns under a black beam along the valley, the
+  // southernmost cased in a big dark grey box with the clock beside it; rows of round strip
+  // lights either side of the beam, black name signs and departure boards hung under it, and a
+  // glass shelter; dark grey pavers with paler ones among them, a pale ribbed strip for the blind
+  // and pale edge stones. Out in the open to the south, galvanised lamp posts down the middle
+  // (laser scan: about 4.8 m high, every 12.5 m), each with two white dome lamps on an arm across
+  // and some with a black name sign, and a glass shelter with a flat roof (laser scan: 34 m to
+  // 29 m south, 2.5 m high).
+  //
+  // Hans Bartos' sculpture (1975, wood): two big armchairs of thick pine timbers facing each other
+  // across a low table, beside the cased column at the roof's south end (photographs from 2018).
+  //
+  // At its north end the platform runs on into a glass building between the two bridges
+  // (OpenStreetMap's outline; laser scan: its roof 2.65 m over the platform, from 72 m to 91 m
+  // north), framed in black, with a white slatted ceiling and pendant lamps: on its west side a
+  // walkway at the platform's level out to a lift; on its east side stairs down, between walls of
+  // dark grey tiles with the glass over them and a glass balustrade, to the ticket hall at the
+  // street (OpenStreetMap's indoor mapping: the stairs from 77 m to 86 m north, the lift at 90 m,
+  // the gates at 93 m, the door at 97 m; laser scan: the street 5.3 m below the platform). The
+  // lift is walked through, out into the hall. The hall has a floor of grey tiles, a white
+  // slatted ceiling and the gates, and a front of glass doors in steel frames under a blue band
+  // with the station's name; over it, between the bridges, a box of dark grey panels (laser scan:
+  // up to 0.7 m over the platform), and the bridges' decks over the doors on either side.
+  //
+  // Chain-link fences beyond both tracks, and the cemetery's stone wall beyond the eastern one.
+  'Skogskyrkogården': {
+    roof: {
+      kind: 'butterfly',
+      from: -10.5, to: 72, width: 8.6, offset: -0.6,
+      middle: 3.03, edge: 3.38, thick: 0.22, fascia: 0.3,
+      rafters: 1.5, rafterSize: [0.08, 0.18],
+      beam: 0.35,
+      columns: { every: 9, at: -8.5, size: 0.2, plinth: { size: 0.3, height: 0.06 }, casings: { at: [-8.5], size: [0.9, 1.2] } },
+      lamps: { offset: 1.0, length: 1.5, every: 1.6 },
+      colors: { underside: 0x4c3628, fascia: 0x2b2623, top: 0x3b3d3f, steel: 0x1f2021 },
+      signs: { at: [-1, 27, 55], back: '', ahead: 'Sockenvägen' },
+      clocks: [[-8.5, 0.85]],
+      boards: [
+        { s: 44, u: 1.4, toward: 'Farsta strand', trains: ['18 Farsta strand  3 min', '18 Farsta strand  13 min'] },
+        { s: 44, u: -1.4, toward: 'Hässelby strand', trains: ['18 Hässelby strand  6 min', '18 Hässelby strand  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.3, tactile: [0.5, 0.9], slabs: 0.9, paverSize: [0.3, 0.2], mix: 0.15,
+      colors: { edge: 0xc9c7c1, tactile: 0xb4b2ac, slab: 0xb4b2ac, pavers: 0x5c5e61, paler: 0x6c6e71, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: "platform's north end", s: [68, 72.4], h: [-0.5, 1], walls: null, floor: 'pavers' },
+      // (the glass building's: walls beside the stairs up to the walkway's level, the glass over
+      // them)
+      { name: 'stair house', s: [72.4, 89.25], h: [-5.6, 1], walls: 'darkTiles', floor: 'slate', ceiling: 'slats', stairs: 'darkTiles', sill: 0 },
+      { name: 'ticket hall', s: [89.25, 102], h: [-6, -4.5], walls: 'whitePanels', floor: 'greyTiles', ceiling: 'slats' },
+    ],
+    // (between the bridges, the stair house narrowing with the gap between the tracks; it and the
+    // box over the hall cut into the bridges' decks, which are drawn wider than they are)
+    blocks: [
+      { name: 'stair house', plan: [[72.4, -5.0], [91.4, -5.25], [91.4, 0.15], [72.4, 1.15]], h: [0, 2.4], walls: 'darkGlazed', sides: [undefined, 'greyPanels', undefined, null],
+        floor: 'slate', ceiling: 'slats', roof: 0.25, onPlatform: true },
+      { name: 'stair house, under the walkway', plan: [[75.5, -5.05], [89.25, -5.22], [89.25, 0.27], [75.5, 0.99]], h: [-5.3, 0], from: -5.3, walls: 'greyPanels', sides: [undefined, null],
+        onPlatform: true },
+      { name: 'ticket hall', plan: [[89.2, -5.1], [98.5, -5.1], [98.5, 0.45], [89.2, 0.45]], h: [-5.3, -2.45], from: -5.3, walls: 'greyPanels', sides: [undefined, 'glazed'], roof: 0.1,
+        nameSign: { side: 1, at: 0.5, length: 4.6, bottom: -2.95 }, onPlatform: true },
+      { name: 'box over the hall', plan: [[91.4, -5.1], [96.6, -5.1], [96.6, 0.25], [91.4, 0.25]], h: [-2.35, 0.5], from: -2.35, walls: 'greyPanels', roof: 0.2, onPlatform: true },
+    ],
+    buildings: ['w104431682'],
+    art: [
+      { kind: 'masts', height: 5.1, color: 0xa3a8ab, top: false, at: [[-72, 0.6], [-62.8, 0.6], [-37.3, 0.4]] },
+      { kind: 'masts', height: 5.1, color: 0xa3a8ab, top: false, sign: 2.6, at: [[-49.8, 0.5], [-24.8, 0.4]] },
+      { kind: 'chairs', s: -6.6, u: 1.4, turn: Math.PI / 2 },
+    ],
+    // (where along the roof the shelter under it stands isn't known)
+    shelters: [
+      { s: [-34, -29], u: [-0.9, 1.5], roof: true },
+      { s: [30, 34.5], u: [0.5, 2.4] },
+    ],
+    // 2.6 m beyond each track
+    fences: [
+      { points: [[-76, -6.5], [-50, -7.1], [-30, -7.5], [-10, -7.9], [10, -8.3], [30, -8.6], [50, -8.9], [70, -9.2], [76, -9.3]], h: [-1.4, 0.6] },
+      { points: [[-76, 7.7], [-50, 7.7], [-30, 7.9], [-10, 8.0], [10, 8.0], [30, 7.8], [50, 7.2], [70, 6.2], [76, 5.8]], h: [-1.4, 0.6] },
+    ],
   },
 };
