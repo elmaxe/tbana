@@ -2651,10 +2651,11 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
   darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
   highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
-  stripes: [2.4, 2.4], greenWindows: [1.2, 4],
+  stripes: [2.4, 2.4], greenWindows: [1.2, 4], checkWindows: [1.5, 2.8], blueTiles: [1.2, 3], tiledWindows: [1.2, 3],
+  gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -2879,6 +2880,117 @@ export function finish(name: Finish) {
       band(2.5, 2.6, steel); pane(2.6, 3.9, steel, 0.1); band(3.9, 4, steel);
       break;
     }
+    case 'checkWindows': {
+      // 15 cm tiles checked in blue and white (now and then a pale blue or beige one) to 1.05 m; a
+      // dark steel sill, then two rows of panes in dark frames, and a steel head
+      const t = 0.15 * PX, dark = '#2a2e33';
+      x.fillStyle = '#9a9c9a'; x.fillRect(0, Y(1.05), W, 1.05 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 1.05 * PX + 1; j++) {
+        const k = r();
+        x.fillStyle = (i + j) % 2 ? (k < 0.12 ? '#d9cdb0' : '#eceeec') : (k < 0.2 ? '#8fb1d6' : '#2f5ea6');
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(1.05, 1.13, dark); pane(1.13, 1.95, dark, 0.08); band(1.95, 2.03, dark); pane(2.03, 2.7, dark, 0.08); band(2.7, 2.8, dark);
+      x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0, Y(1.13), W, 1.5);
+      break;
+    }
+    case 'blueTiles': {
+      // 15 cm tiles, white, a scattering of blue, pale blue and beige ones; from 2.4 m to 2.85 m a
+      // band checked in dark blue and white
+      x.fillStyle = '#a3a6a6'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = ['#2f5ea6', '#8fb1d6', '#d9cdb0', '#a7bcc6'];
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= H; j++) {
+        const y = (j + 0.5) * 0.15, k = r(), c = cols[Math.floor(r() * cols.length)], v = 232 + Math.floor(r() * 10);
+        x.fillStyle = y > 2.4 && y < 2.85 ? ((i + j) % 2 ? `rgb(${v},${v},${v})` : '#2a4f94') : k < 0.12 ? c : `rgb(${v},${v},${v - 2})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'tiledWindows': {
+      // 15 cm tiles in white, pale blue, beige and grey to 0.9 m; above, tall windows in dark blue
+      // frames
+      const t = 0.15 * PX, frame = '#1f2940', cols = ['#eceeec', '#eceeec', '#a9c3dc', '#ddd0b4', '#c3c8c8', '#e2b78e'];
+      x.fillStyle = '#9a9c9a'; x.fillRect(0, Y(0.9), W, 0.9 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 6; j++) {
+        x.fillStyle = cols[Math.floor(r() * cols.length)];
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.9, 0.98, frame); pane(0.98, 2.92, frame, 0.1); band(2.92, 3, frame);
+      break;
+    }
+    case 'gridTerrazzo': {
+      // cream terrazzo squares, 25 cm, set in a grid of dark grey strips 5 cm wide
+      x.fillStyle = '#4c4d4e'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, g = 0.05 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 214 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 6},${v - 22})`; x.fillRect(i * t + g / 2, j * t + g / 2, t - g, t - g);
+      }
+      speckle(x, W, H, 14000, 0.22, 68); speckle(x, W, H, 5000, 0.18, 69, true);
+      break;
+    }
+    case 'shopWindows': {
+      // two shop fronts 2.4 m wide: a steel plinth, a lit window to 2.5 m, the frame, a sign board
+      // on a band over it, and white render above
+      band(0, 3.6, '#e4e2dc');
+      const shop = x.createLinearGradient(0, Y(2.5), 0, Y(0.1));
+      shop.addColorStop(0, '#e2dccb'); shop.addColorStop(1, '#b8b09e');
+      x.fillStyle = shop; x.fillRect(0, Y(2.5), W, 2.4 * PX);
+      const bay = 2.4 * PX;
+      [['#7a2b2e', '#efe6d2'], ['#2b4a7a', '#f2f2ee']].forEach(([board, text], k) => {
+        const x0 = k * bay;
+        // shelves and goods behind the glass
+        for (const y of [0.7, 1.3, 1.9]) {
+          x.fillStyle = 'rgba(90,84,74,0.5)'; x.fillRect(x0 + 0.15 * PX, Y(y), bay - 0.3 * PX, 3);
+          for (let n = 0; n < 9; n++) {
+            x.fillStyle = ['#b2483c', '#3f6f9a', '#d6a640', '#5c8a52', '#efeae0'][Math.floor(r() * 5)];
+            x.fillRect(x0 + 0.2 * PX + r() * (bay - 0.5 * PX), Y(y + 0.12 + r() * 0.2), 0.08 * PX + r() * 0.12 * PX, 0.1 * PX + r() * 0.1 * PX);
+          }
+        }
+        x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(x0, Y(2.5), bay * 0.35, 2.4 * PX);
+        x.fillStyle = '#8e9498';
+        x.fillRect(x0, Y(2.5), 0.06 * PX, 2.4 * PX); x.fillRect(x0 + bay / 2 - 0.02 * PX, Y(2.5), 0.04 * PX, 2.4 * PX);
+        x.fillStyle = board; x.fillRect(x0 + 0.3 * PX, Y(3.02), bay - 0.6 * PX, 0.34 * PX);
+        x.fillStyle = text; x.fillRect(x0 + 0.6 * PX, Y(2.88), bay - 1.2 * PX, 0.06 * PX);
+      });
+      band(0, 0.1, '#7e8488'); band(2.5, 2.6, '#8e9498');
+      break;
+    }
+    case 'storeys': {
+      // a building of three storeys over its street: shop fronts under a dark band, then white
+      // render with a ribbon of windows along each floor, a dark box over the top one, and a coping
+      band(0, 10.8, '#d9d5cb');
+      // (the shops' glass grey-blue with the light of the shop behind it)
+      const shop = x.createLinearGradient(0, Y(3.3), 0, Y(0.2));
+      shop.addColorStop(0, '#a9b6bd'); shop.addColorStop(0.55, '#c9c3b3'); shop.addColorStop(1, '#8f9a9f');
+      x.fillStyle = shop; x.fillRect(0, Y(3.3), W, 3.1 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.22)'; x.fillRect(0.1 * PX, Y(3.2), W * 0.3, 2.9 * PX);
+      x.fillStyle = '#8e9498'; x.fillRect(0, Y(3.3), 0.06 * PX, 3.1 * PX); x.fillRect(W - 0.06 * PX, Y(3.3), 0.06 * PX, 3.1 * PX);
+      x.fillRect(W / 2 - 0.02 * PX, Y(3.3), 0.04 * PX, 3.1 * PX); x.fillRect(0, Y(2.6), W, 0.05 * PX);
+      band(0, 0.2, '#6f7376'); band(3.3, 4.1, '#3d4043');
+      const ribbon = (from: number, to: number) => {
+        const g = x.createLinearGradient(0, Y(to), 0, Y(from));
+        g.addColorStop(0, '#9fb0bc'); g.addColorStop(0.5, '#7d8c97'); g.addColorStop(1, '#8a97a0');
+        x.fillStyle = g; x.fillRect(0, Y(to), W, (to - from) * PX);
+        x.fillStyle = '#eceae4';
+        for (let k = 0; k <= 2; k++) x.fillRect(k * W / 2 - 0.04 * PX, Y(to), 0.08 * PX, (to - from) * PX);
+        x.fillRect(0, Y(to), W, 0.06 * PX); x.fillRect(0, Y(from + 0.06), W, 0.06 * PX);
+      };
+      ribbon(4.9, 6.6); ribbon(7.6, 9.3);
+      band(9.3, 9.6, '#3d4043'); band(10.6, 10.8, '#9a9a96');
+      break;
+    }
+    case 'liftWindows': {
+      // black steel panels on a concrete plinth, and two windows one over the other in pale frames
+      band(0, 3.9, '#1c1e21');
+      band(0, 0.4, '#a29e96');
+      for (const [from, to] of [[0.6, 1.75], [1.95, 3.05]]) {
+        x.fillStyle = '#d9d5ca'; x.fillRect(0.2 * PX, Y(to), W - 0.4 * PX, (to - from) * PX);
+        x.clearRect(0.26 * PX, Y(to - 0.06), W - 0.52 * PX, (to - from - 0.12) * PX);
+      }
+      x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(0, 0, 2, H);
+      break;
+    }
     case 'asphalt':
       x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
       speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
@@ -2891,7 +3003,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

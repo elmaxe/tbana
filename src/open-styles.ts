@@ -11,6 +11,8 @@
 
 export interface OpenStyle {
   roof: ButterflyRoof;
+  // more roofs beside it, along the same line: a W of two butterflies side by side
+  roofs?: ButterflyRoof[];
   paving: Paving;
   // the finishes of the station's halls, passages and stairs: each part takes the first room
   // whose box holds the middle of its floor
@@ -48,10 +50,13 @@ export interface ButterflyRoof {
   rafters: number;             // between the rafters across the underside
   beam: number;                // the beam's depth under the valley
   rafterSize?: [number, number]; // across and deep (0.05 by 0.1 by default)
-  // the underside boarded along the platform, or of ribbed sheet metal, the ribs along it; and
-  // the rafters steel (this colour) rather than boarded
-  deck?: 'boards' | 'ribbed';
+  rafterAt?: number;           // one of the rafters at this `s` (by default half the gap in from `from`)
+  // the underside boarded along the platform, or of ribbed sheet metal, the ribs along it (or
+  // across it, `ribbedAcross`); and the rafters steel (this colour) rather than boarded
+  deck?: 'boards' | 'ribbed' | 'ribbedAcross';
   rafterColor?: number;
+  // steel purlins along the underside at these `u` across the roof's middle, `size` across and deep
+  purlins?: { at: number[]; size: [number, number] };
   // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
   // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
   // each column up to the beam this far along it either way; `casings`, a dark box round the
@@ -131,7 +136,14 @@ export type Finish =
   | 'paleTiles'     // pale cream floor tiles, 30 cm
   | 'asphalt'       // dark grey asphalt
   | 'stripes'       // tiles in bands of white and black, the bands of different depths
-  | 'greenWindows'; // green sheet-metal panels to 2.5 m, windows in grey steel frames above
+  | 'greenWindows'  // green sheet-metal panels to 2.5 m, windows in grey steel frames above
+  | 'checkWindows'  // tiles checked in blue and white to a sill, two rows of windows in dark frames above
+  | 'blueTiles'     // small square tiles, white with a scattering of blue and beige, and a checked band
+  | 'tiledWindows'  // small square tiles in pale colours to a sill, tall windows in dark blue frames above
+  | 'gridTerrazzo'  // cream terrazzo squares in a grid of dark grey strips
+  | 'shopWindows'   // shop fronts: lit windows, a sign board over each, white render above
+  | 'storeys'       // a building of three storeys: shops under a dark band, ribbon windows in white render
+  | 'liftWindows';  // black steel panels on a concrete plinth, windows in pale frames
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -704,6 +716,135 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     fences: [
       { points: [[-88, -6.9], [-77.5, -6.9], [-70, -7.6], [-60, -8.4], [-40, -8.8], [-10, -9.0], [20, -9.0], [60, -8.8], [95, -8.6]], h: [-1.2, 0.6] },
       { points: [[-88, 7.0], [-77.5, 7.0], [-70, 7.6], [-60, 8.3], [-40, 8.6], [0, 8.6], [40, 8.4], [70, 7.8], [95, 7.6]], h: [-1.2, 0.6] },
+    ],
+  },
+  // Farsta (4 November 1960; Gunnar Larson's Förvandlingar i luftrummet in the hall since 1982):
+  // an island platform on the viaduct over Munkforsplan and Kroppaplan in Farsta centrum. The laser
+  // scan puts a roof from 22.5 m south of the platform's middle to 77.9 m north, a W of two
+  // butterflies side by side, each 7.3 m wide: its top 3.25 m over the platform at the valleys and
+  // 3.6 m at the edges and along the ridge between them. Photographs (2018) show its underside of
+  // galvanised corrugated sheet, the ribs across the platform, on purlins and rafters of dark steel,
+  // a row of dark steel columns under each valley, strip lights, departure boards for Hässelby strand
+  // on the western half and Farsta strand on the eastern, and clocks; the top pale grey. Out in the
+  // open at each end, galvanised lamp posts with two dome lamps and black name signs, and fences
+  // across the platform short of its ends. The paving: pale edge stones, a ribbed strip for the
+  // blind, then grey concrete slabs in a running bond.
+  //
+  // Under the roof, between its two rows of columns, two glass halls over the stairs (laser scan and
+  // photographs: about 23 m long), walled in tiles checked in blue and white to a sill, two rows of
+  // windows in dark frames above, glazed up to the roof at the ends; in the south one's south end
+  // and the north one's north end, glass doors, and inside, pale terrazzo and a waiting room with
+  // benches along the walls. In each, an escalator on the west side and a wide stair on the east
+  // (OpenStreetMap: from 14.8 m and 38.3 m north) go down towards the middle to the ticket hall under
+  // the tracks, past walls of white tiles with a scattering of blue and beige ones. Between the halls
+  // a lift, in a tower of dark steel and glass that stands up through the roof (laser scan: 3.85 m
+  // over the platform). The hall, under the viaduct: a floor of cream terrazzo squares in a grid of
+  // dark strips, the same tiles on its walls, a white ceiling, windows looking east under the
+  // viaduct, and the ticket gates in its west wall. Beyond them a passage runs west between shops
+  // through the white building on Farsta torg (OpenStreetMap's outline; laser scan: its roof 10.8 m
+  // over the square), out under a blue sign, with a way out to Kroppaplan on its north side. To the
+  // east, a short way out under the viaduct to Larsbodavägen through a glazed front with the
+  // station's name over it.
+  'Farsta': {
+    roof: {
+      kind: 'butterfly',
+      from: -22.5, to: 77.9, width: 7.3, offset: -4.2,
+      middle: 3.05, edge: 3.45, thick: 0.15, fascia: 0.3,
+      rafters: 4.2, rafterAt: 22.3, rafterSize: [0.1, 0.3], rafterColor: 0x2a2d31,
+      deck: 'ribbedAcross', purlins: { at: [-2.5, -1.2, 1.2, 2.5], size: [0.08, 0.14] },
+      beam: 0.3,
+      columns: { every: 8.4, at: 22.3, size: 0.2, plinth: { size: 0.3, height: 0.05 } },
+      lamps: { offset: 1.9, length: 1.5, every: 4.2 },
+      colors: { underside: 0xb8bcbd, fascia: 0x2e3135, top: 0xc9cbc8, steel: 0x2a2d31 },
+      signs: { at: [], back: '', ahead: '' },
+      clocks: [[17.5, 2.6]],
+      boards: [
+        { s: -10, u: -1.8, toward: 'Hässelby strand', trains: ['18 Hässelby strand  2 min', '18 Hässelby strand  12 min'] },
+        { s: 66, u: -1.8, toward: 'Hässelby strand', trains: ['18 Hässelby strand  2 min', '18 Hässelby strand  12 min'] },
+      ],
+    },
+    roofs: [{
+      kind: 'butterfly',
+      from: -22.5, to: 77.9, width: 7.3, offset: 3.1,
+      middle: 3.05, edge: 3.45, thick: 0.15, fascia: 0.3,
+      rafters: 4.2, rafterAt: 22.3, rafterSize: [0.1, 0.3], rafterColor: 0x2a2d31,
+      deck: 'ribbedAcross', purlins: { at: [-2.5, -1.2, 1.2, 2.5], size: [0.08, 0.14] },
+      beam: 0.3,
+      columns: { every: 8.4, at: 22.3, size: 0.2, plinth: { size: 0.3, height: 0.05 } },
+      lamps: { offset: 1.9, length: 1.5, every: 4.2 },
+      colors: { underside: 0xb8bcbd, fascia: 0x2e3135, top: 0xc9cbc8, steel: 0x2a2d31 },
+      signs: { at: [], back: '', ahead: '' },
+      clocks: [[35.5, -2.6]],
+      boards: [
+        { s: -10, u: 1.8, toward: 'Farsta strand', trains: ['18 Farsta strand  6 min', '18 Farsta strand  16 min'] },
+        { s: 66, u: 1.8, toward: 'Farsta strand', trains: ['18 Farsta strand  6 min', '18 Farsta strand  16 min'] },
+      ],
+    }],
+    paving: {
+      edge: 0.35, tactile: [0.35, 0.9], slabs: 0.9, paverSize: [0.3, 0.6], mix: 0.1,
+      colors: { edge: 0xc8c7c2, tactile: 0x9a9b98, slab: 0xa8a9a8, pavers: 0x8f9193, paler: 0x9da0a2, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: 'south glass hall', s: [-10, 15], h: [-0.5, 1], walls: 'checkWindows', floor: 'terrazzo', sill: 0 },
+      { name: 'north glass hall', s: [37, 63], h: [-0.5, 1], walls: 'checkWindows', floor: 'terrazzo', sill: 0 },
+      { name: "lift's door", s: [26, 30], h: [-0.5, 1], walls: null, floor: 'terrazzo' },
+      { name: 'south stairs', s: [5, 14.6], h: [-6, -4], walls: 'blueTiles', floor: 'gridTerrazzo', stairs: 'blueTiles', sill: 1.05 },
+      { name: 'north stairs', s: [38.5, 48], h: [-6, -4], walls: 'blueTiles', floor: 'gridTerrazzo', stairs: 'blueTiles', sill: 1.05 },
+      { name: 'hall, by the windows', s: [14, 39], u: [3.2, 5], h: [-6, -4], walls: 'tiledWindows', floor: 'gridTerrazzo', ceiling: 'whitePanels' },
+      { name: 'Larsbodavägen', s: [14, 39], u: [10, 14], h: [-6, -4], walls: null, floor: 'pavers' },
+      { name: 'way out to Larsbodavägen', s: [14, 39], u: [5, 10], h: [-6, -4], walls: 'blueTiles', floor: 'gridTerrazzo', ceiling: 'whitePanels' },
+      { name: 'hall', s: [14, 39], u: [-9.55, 3.2], h: [-6, -4], walls: 'blueTiles', floor: 'gridTerrazzo', ceiling: 'whitePanels' },
+      { name: 'Farsta torg', s: [5, 45], u: [-40, -33.7], h: [-6, -4], walls: null, floor: 'pavers' },
+      { name: 'Kroppaplan', s: [39.2, 45], u: [-40, -9.55], h: [-6, -4], walls: null, floor: 'pavers' },
+      { name: 'passage', s: [5, 45], u: [-40, -9.55], h: [-6, -4], walls: 'shopWindows', floor: 'gridTerrazzo', ceiling: 'whitePanels' },
+    ],
+    // (the glass halls between the rows of columns, which follow the roof's line, and up to its
+    // valley beams; glazed above their ends up to the roof)
+    blocks: [
+      { name: 'south glass hall', plan: [[-8, -4.51], [14.8, -4.39], [14.8, 2.91], [-8, 2.79]], h: [0, 2.75], walls: 'checkWindows',
+        sides: [undefined, undefined, undefined, 'glazed'], floor: 'terrazzo', onPlatform: true },
+      { name: 'south glass hall, south gable west', plan: [[-8, -0.86], [-8, -4.51], [-7.9, -4.51], [-7.9, -0.86]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'south glass hall, south gable east', plan: [[-8, -0.86], [-8, 2.79], [-7.9, 2.79], [-7.9, -0.86]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'south glass hall, north gable west', plan: [[14.7, -0.74], [14.7, -4.39], [14.8, -4.39], [14.8, -0.74]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'south glass hall, north gable east', plan: [[14.7, -0.74], [14.7, 2.91], [14.8, 2.91], [14.8, -0.74]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'north glass hall', plan: [[38.3, -4.25], [61.1, -4.25], [61.1, 3.05], [38.3, 3.05]], h: [0, 2.75], walls: 'checkWindows',
+        sides: [undefined, 'glazed'], floor: 'terrazzo', onPlatform: true },
+      { name: 'north glass hall, south gable west', plan: [[38.3, -0.6], [38.3, -4.25], [38.4, -4.25], [38.4, -0.6]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'north glass hall, south gable east', plan: [[38.3, -0.6], [38.3, 3.05], [38.4, 3.05], [38.4, -0.6]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'north glass hall, north gable west', plan: [[61.0, -0.6], [61.0, -4.25], [61.1, -4.25], [61.1, -0.6]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      { name: 'north glass hall, north gable east', plan: [[61.0, -0.6], [61.0, 3.05], [61.1, 3.05], [61.1, -0.6]], h: [2.75, 3.45], from: 2.75, low: 3.05, walls: 'glazed' },
+      // the tiled walls over the stairs' feet, up through the viaduct's deck
+      { name: 'wall over the south stairs', plan: [[14.8, -2.6], [15.0, -2.6], [15.0, 2.5], [14.8, 2.5]], h: [-2.2, 0], from: -2.2, walls: 'blueTiles' },
+      { name: 'wall over the north stairs', plan: [[38.1, -2.4], [38.3, -2.4], [38.3, 2.7], [38.1, 2.7]], h: [-2.2, 0], from: -2.2, walls: 'blueTiles' },
+      { name: "lift's tower", plan: [[24.95, -0.15], [28.0, -0.15], [28.0, 2.55], [24.95, 2.55]], h: [0, 3.85], walls: 'liftWindows', floor: 'terrazzo', roof: 0.12, onPlatform: true },
+      // the building on Farsta torg, its shops and offices over the passage; its south wing
+      { name: 'Farsta torg building', plan: [[16.6, -11.0], [39.2, -11.0], [39.2, -33.7], [16.6, -33.4]], h: [-5.6, 5.6], from: -5.2, walls: 'storeys', roof: 0.3,
+        nameSign: { side: 2, at: 0.45, length: 3.6, bottom: -2.55 } },
+      { name: 'Farsta torg building, south wing', plan: [[9.5, -11.0], [16.6, -11.0], [16.6, -15.7], [9.5, -15.6]], h: [-5.6, 2.8], from: -5.2, walls: 'storeys', roof: 0.3 },
+      { name: 'Larsbodavägen front', plan: [[18.0, 9.7], [18.0, 10.0], [22.0, 10.0], [22.0, 9.7]], h: [-5.6, -2.2], from: -5.2, walls: 'glazed',
+        nameSign: { side: 1, at: 0.5, length: 3.4, bottom: -2.75 } },
+      // the hall's outside under the viaduct, and round the stairs where they come down under it
+      { name: 'hall, outside', plan: [[14.65, -9.65], [38.45, -9.65], [38.45, 4.45], [14.65, 4.45]], h: [-5.6, -2.2], from: -5.2, walls: 'boardConcrete', sides: [undefined, undefined, null] },
+      { name: 'way out to Larsbodavägen, outside', plan: [[18.35, 4.45], [21.65, 4.45], [21.65, 9.7], [18.35, 9.7]], h: [-5.6, -2.2], from: -5.2, walls: 'boardConcrete', sides: [null, undefined, null] },
+      { name: 'south stairs, outside', plan: [[9.5, -2.75], [14.65, -2.75], [14.65, 2.65], [9.5, 2.65]], h: [-5.6, -2.2], from: -5.2, walls: 'boardConcrete', sides: [undefined, null] },
+      { name: 'north stairs, outside', plan: [[38.45, -2.55], [43.6, -2.55], [43.6, 2.85], [38.45, 2.85]], h: [-5.6, -2.2], from: -5.2, walls: 'boardConcrete', sides: [undefined, undefined, undefined, null] },
+      // (under the viaduct, where the street doesn't run on through the hall and under the stairs)
+      { name: 'street over the hall', plan: [[13.8, -11.2], [39.3, -11.2], [39.3, 5.2], [13.8, 5.2]], h: [-5.6, -2.0], from: -5.6, walls: 'boardConcrete', sides: [null, null, null, null] },
+      { name: 'street over the way out', plan: [[17.6, 5.2], [22.4, 5.2], [22.4, 10.0], [17.6, 10.0]], h: [-5.6, -2.0], from: -5.6, walls: 'boardConcrete', sides: [null, null, null, null] },
+      { name: 'street under the south stairs', plan: [[8.8, -3.4], [13.8, -3.4], [13.8, 3.3], [8.8, 3.3]], h: [-5.6, -2.0], from: -5.6, walls: 'boardConcrete', sides: [null, null, null, null] },
+      { name: 'street under the north stairs', plan: [[39.3, -3.2], [44.3, -3.2], [44.3, 3.5], [39.3, 3.5]], h: [-5.6, -2.0], from: -5.6, walls: 'boardConcrete', sides: [null, null, null, null] },
+    ],
+    buildings: ['w185409292'],
+    art: [
+      { kind: 'masts', height: 4.8, color: 0x9a9fa3, top: false, sign: 2.5, at: [[-31, -3.1], [-31, 2.4], [82.2, -2.8], [82.2, 2.6]] },
+      { kind: 'masts', height: 4.8, color: 0x9a9fa3, top: false, at: [[-43.5, 3.0], [91, 2.3]] },
+      { kind: 'roundel', s: 34, u: -36, h: -1.7, size: 0.8, foot: -5.15 },
+    ],
+    shelters: [{ s: [-20.5, -17], u: [2.5, 4.3] }, { s: [70, 73.5], u: [2.5, 4.3] }],
+    fences: [
+      { points: [[-48.8, -6.0], [-48.8, 6.3]], h: [0, 1.8] },
+      { points: [[93.4, -6.4], [93.4, 6.3]], h: [0, 1.8] },
     ],
   },
 };

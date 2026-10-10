@@ -126,11 +126,21 @@ export class OpenLook {
   }
   get roofing() { return this.color(0x4a4e52, 0.8, 0.2); }
 
+  // The canopy the roof follows, of a platform's (each of its pieces has one): the one under the
+  // roof's middle, or the longest.
+  canopyFor(st: StationLayout, style: OpenStyle, canopies: CanopyPart[]): CanopyPart | undefined {
+    const frame = new Frame(st), mid = (style.roof.from + style.roof.to) / 2;
+    const span = (c: CanopyPart) => { const s = c.points.map(([x, , z]) => frame.s(x, z)); return [Math.min(...s), Math.max(...s)]; };
+    return canopies.find((c) => { const [a, b] = span(c); return a <= mid && b >= mid; })
+      ?? canopies.reduce<CanopyPart | undefined>((a, c) => (!a || span(c)[1] - span(c)[0] > span(a)[1] - span(a)[0] ? c : a), undefined);
+  }
+
   // The roof over a platform, and its columns, lamps and signs, the art and benches under it;
   // `cut` by the station's spaces.
   roofOver(st: StationLayout, style: OpenStyle, canopy: CanopyPart, on: On, cut: Volume[], group: THREE.Group) {
-    const line = new Line(new Frame(st), canopy, style.roof.offset);
-    this.butterfly(st.name, style, line, on, cut, group);
+    const frame = new Frame(st), line = new Line(frame, canopy, style.roof.offset);
+    this.butterfly(st.name, style.roof, style, line, on, cut, group);
+    for (const R of style.roofs ?? []) this.butterfly(st.name, R, style, new Line(frame, canopy, R.offset), on, cut, group);
     for (const a of style.art ?? []) {
       if (a.kind === 'guardian') this.guardian(a, line, on);
       else if (a.kind === 'stacks') this.stacks(a, line, on);
@@ -167,10 +177,10 @@ export class OpenLook {
     }
   }
 
-  private butterfly(name: string, style: OpenStyle, line: Line, on: On, cut: Volume[], group: THREE.Group) {
-    const R: ButterflyRoof = style.roof, hw = R.width / 2;
+  private butterfly(name: string, R: ButterflyRoof, style: OpenStyle, line: Line, on: On, cut: Volume[], group: THREE.Group) {
+    const hw = R.width / 2, across = R.deck === 'ribbedAcross';
     const under = on(this.mat(`under:${R.deck ?? 'boards'}:${R.colors.underside}`, () => {
-      const map = R.deck === 'ribbed' ? T.ribbedSheet(R.colors.underside) : T.roofBoards(R.colors.underside);
+      const map = R.deck === 'ribbed' || across ? T.ribbedSheet(R.colors.underside) : T.roofBoards(R.colors.underside);
       return new THREE.MeshStandardMaterial({ map, emissive: 0x3a3a38, emissiveMap: map, roughness: 0.8, side: THREE.DoubleSide });
     }));
     const top = on(this.color(R.colors.top, 0.6, 0.3)), fascia = on(this.color(R.colors.fascia, 0.6, 0.2));
@@ -187,8 +197,9 @@ export class OpenLook {
       const s0 = S(i), s1 = S(i + 1);
       for (const side of [-1, 1]) {
         const e = side * hw, ei = side * (hw - 0.05);
-        // the boarding under it (u across, the boards along it), and the covering over it
-        const q = (s: number, u: number, dh: number) => [...line.at(s, u, h(u) + dh), u, s / 2.4];
+        // the boarding under it (u across, the boards along it; or the ribs across it), and the
+        // covering over it
+        const q = (s: number, u: number, dh: number) => [...line.at(s, u, h(u) + dh), ...(across ? [s, u / 2.4] : [u, s / 2.4])];
         under.poly([q(s0, 0, 0), q(s0, e, 0), q(s1, e, 0), q(s1, 0, 0)], cut);
         top.poly([q(s0, 0, R.thick), q(s0, e, R.thick), q(s1, e, R.thick), q(s1, 0, R.thick)], cut);
         // the fascia along its edge, down past the underside and back in under it
@@ -197,8 +208,9 @@ export class OpenLook {
         fascia.poly([p(s0, e, lip), p(s1, e, lip), p(s1, ei, lip), p(s0, ei, lip)], cut);
         fascia.poly([p(s0, ei, lip), p(s1, ei, lip), p(s1, ei, 0), p(s0, ei, 0)], cut);
       }
-      // the beam along the valley, or one over each row of columns
+      // the beam along the valley, or one over each row of columns; and the purlins
       for (const u of beams) bar(steel, line.at(s0, u, h(u)), line.at(s1, u, h(u)), 0.2, R.beam, cut);
+      for (const u of R.purlins?.at ?? []) bar(steel, line.at(s0, u, h(u)), line.at(s1, u, h(u)), R.purlins!.size[0], R.purlins!.size[1], cut);
     }
     // and across its ends
     for (const s of [R.from, R.to]) for (const side of [-1, 1]) {
@@ -207,7 +219,8 @@ export class OpenLook {
     }
     // the rafters across the underside, boarded or steel
     const [rw, rd] = R.rafterSize ?? [0.05, 0.1], rafter = R.rafterColor !== undefined ? on(this.color(R.rafterColor, 0.5, 0.4)) : under;
-    for (let s = R.from + R.rafters / 2; s < R.to; s += R.rafters) {
+    const r0 = R.rafterAt !== undefined ? R.rafterAt - Math.floor((R.rafterAt - R.from) / R.rafters) * R.rafters : R.from + R.rafters / 2;
+    for (let s = r0; s < R.to; s += R.rafters) {
       for (const side of [-1, 1]) bar(rafter, line.at(s, 0, h(0)), line.at(s, side * (hw - 0.05), h(hw - 0.05)), rw, rd, cut);
     }
     // strip lights, hung under the rafters; or in a long round housing, hung lower

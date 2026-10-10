@@ -262,6 +262,8 @@ each with its reason:
   tracks at Hjulsta, Akalla, Mörby centrum and Hallonbergen
 - platforms drawn short of their 145 m at Bagarmossen, Bandhagen, Blackeberg, Rågsved, Stureby,
   Duvbo and Rissne
+- Farsta's island platform, beside a piece of track at its south end that OpenStreetMap splits
+  off shorter than a platform's usual run (`shortRuns`)
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
@@ -453,10 +455,16 @@ long round light down each half, galvanised lamp posts with three dome lamps bey
 south end the platform runs into a hall between the tracks, green sheet metal under a row of
 windows round the gates, then glazed in grey steel frames over stairs down beside a tiled wall and
 a walkway to a glass lift tower with the round T on top, both to the cycle path's underpass,
-lined in Ann Edholm's bands of white and black tiles (2008). The city leaves out
-OpenStreetMap's outlines
-of the buildings such a station draws itself, and the street round its exits doesn't run on
-inside them.
+lined in Ann Edholm's bands of white and black tiles (2008). Farsta (1960) stands on a viaduct
+under a W of two butterfly roofs of corrugated sheet on dark steel, a row of columns under each
+valley. Between the rows stand two glass halls walled in blue and white checked tiles under two
+rows of windows, each over an escalator and a wide stair down towards the middle, and between
+them a lift in a black tower that stands up through the roof. The ticket hall under the tracks has
+cream terrazzo in a dark grid, white tiles scattered with blue and windows looking out under the
+viaduct; through the gates in its west wall a passage of shops runs through the white building on
+Farsta torg, out under a blue sign, and a short way out east comes out under the viaduct. The city
+leaves out OpenStreetMap's outlines of the buildings such a station draws itself, and the street
+round its exits doesn't run on inside them.
 All of it is drawn in code (`src/textures.ts`), with no photos.
 
 The crossovers, sidings and depots are drawn too:

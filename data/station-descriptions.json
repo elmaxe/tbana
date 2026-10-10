@@ -1391,18 +1391,60 @@
     },
     "Farsta": {
       "drawing": "farsta.png",
-      "note": "A wide island platform on a viaduct by Farsta centrum. In the middle stairs go down to the ticket hall under the tracks, which opens onto the street on the west side.",
+      "note": "An island platform on the viaduct over Munkforsplan and Kroppaplan, under a long W-shaped roof. Two glass halls on the platform each stand over an escalator and a wide stair down towards the middle, to the ticket hall under the tracks; between them a lift. The ticket gates are in the hall's west wall, and beyond them a passage runs west between shops through the building on Farsta torg, with a way out to Kroppaplan on its north side; to the east a short way out under the viaduct comes out on Larsbodavägen. Laid out from Lantmäteriet's laser scan, OpenStreetMap and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-5, 2.5], "width": 4, "go": [
-          {"stairs": -5.6, "toward": [150, 2.5]},
-          {"walk": [12, 2.5], "width": 6},
-          {"gates": true},
-          {"walk": [16, -12]},
-          {"mark": "hall"},
-          {"exit": 1960123595, "by": "walk"}
+        { "from": [-8.8, -0.85], "width": 3.0, "go": [
+          {"walk": [-7.6, -0.85], "ceiling": 2.4},
+          {"walk": [5.8, -0.85], "width": 7.1, "open": true}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 1960123582, "by": "walk"}
+        { "from": [5.8, -3.5], "width": 1.8, "go": [
+          {"walk": [14.8, -3.5], "open": true}
+        ] },
+        { "from": [5.8, -0.05], "width": 5.1, "go": [
+          {"escalators": -5.2, "toward": [100, -0.05], "lanes": "ESs", "ceiling": 2.6},
+          {"walk": [16.0, -0.05], "ceiling": 3.0}
+        ] },
+        { "from": [61.9, -0.6], "width": 3.0, "go": [
+          {"walk": [60.7, -0.6], "ceiling": 2.4},
+          {"walk": [47.3, -0.6], "width": 7.1, "open": true}
+        ] },
+        { "from": [47.3, -3.3], "width": 1.8, "go": [
+          {"walk": [38.3, -3.3], "open": true}
+        ] },
+        { "from": [47.3, 0.15], "width": 5.1, "go": [
+          {"escalators": -5.2, "toward": [-100, 0.15], "lanes": "sSE", "ceiling": 2.6},
+          {"walk": [37.0, 0.15], "ceiling": 3.0}
+        ] },
+        { "from": [28.6, 1.2], "width": 2.0, "go": [
+          {"walk": [27.9, 1.2], "ceiling": 2.3},
+          {"lift": -5.2, "above": 3.85, "through": true},
+          {"walk": [23.0, 1.2], "ceiling": 3.0}
+        ] },
+        { "from": [14.8, -3.1], "h": -5.2, "width": 12.8, "go": [
+          {"walk": [38.3, -3.1], "ceiling": 3.0}
+        ] },
+        { "from": [14.8, 3.8], "h": -5.2, "width": 1.0, "go": [
+          {"walk": [38.3, 3.8], "ceiling": 3.0}
+        ] },
+        { "from": [20.0, 3.8], "h": -5.2, "width": 3.0, "go": [
+          {"walk": [20.0, 9.6], "dh": 0.12, "ceiling": 3.0},
+          {"walk": [20.0, 10.3], "ceiling": 2.4},
+          {"exit": {"at": [20.0, 11.8], "name": "Larsbodavägen"}, "by": "walk", "open": true}
+        ] },
+        { "from": [29.0, -8.6], "h": -5.2, "width": 6.0, "go": [
+          {"walk": [29.0, -9.6], "ceiling": 3.0},
+          {"gates": true},
+          {"walk": [29.0, -11.4], "width": 8.0, "ceiling": 3.0},
+          {"walk": [29.0, -23.7], "ceiling": 3.4},
+          {"mark": "passage"},
+          {"walk": [29.0, -33.2], "width": 5.0, "ceiling": 3.4},
+          {"walk": [29.0, -34.0], "ceiling": 2.6},
+          {"exit": {"at": [29.0, -35.0], "name": "Farsta torg"}, "by": "walk", "open": true}
+        ] },
+        { "from": "passage", "width": 3.0, "go": [
+          {"walk": [38.6, -23.7], "ceiling": 3.0},
+          {"walk": [39.6, -23.7], "ceiling": 2.6},
+          {"exit": {"at": [40.6, -23.7], "name": "Kroppaplan"}, "by": "walk", "open": true}
         ] }
       ]
     },

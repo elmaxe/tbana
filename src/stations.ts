@@ -256,6 +256,8 @@ export class Stations {
     }
     // what cuts a part's walls and ceiling: every other part's space, and the network's halls
     const others = (p: Part) => [...spaces.filter((s) => s.part !== p).map((s) => s.vol), ...voids];
+    // (a styled station's roof is drawn once, along one of its platform's canopies)
+    const roofCanopy = this.open && this.look.canopyFor(st, this.open.style, st.parts.filter((p): p is CanopyPart => p.kind === 'canopy'));
     for (const p of st.parts) {
       switch (p.kind) {
         case 'floor': this.buildFloor(p, m, others(p), spaces); break;
@@ -268,8 +270,9 @@ export class Stations {
         } break;
         case 'canopy':
           // (not cut by the floors out in the open under it, which reach up to it)
-          if (this.open) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol), group);
-          else this.buildCanopy(p, m, spaces.map((s) => s.vol));
+          if (this.open) {
+            if (p === roofCanopy) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol), group);
+          } else this.buildCanopy(p, m, spaces.map((s) => s.vol));
           break;
         case 'sign': group.add(this.buildSign(p, m)); break;
         default: break;
