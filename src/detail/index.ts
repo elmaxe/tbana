@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Building } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
-import { buildCentralbron, buildPortals, buildRailway, buildSouthEnd, buildStation, stationOutline } from './gamla-stan.ts';
+import { buildCentralbron, buildMetroBridge, buildPortals, buildRailway, buildSouthEnd, buildStation, stationOutline } from './gamla-stan.ts';
 import { buildKonserthuset, konserthusetOutline } from './konserthuset.ts';
 import { HOTORGSCITY_WEST } from './hotorgscity.ts';
 import { KUNGSTORNEN } from './kungstornen.ts';
@@ -42,6 +42,8 @@ const LANDMARKS: Landmark[] = [
   { name: 'Centralbron over Söderström', outline: [], anchor: [480, 1100], build: (B, g) => {
     buildCentralbron(B, g, 'south'); buildRailway(B, g, 'south'); buildPortals(B);
   } },
+  // the metro's bridge to Slussen: its railings, girders and walkway (the network draws the rest)
+  { name: 'Söderströmsbron', outline: [], anchor: [580, 1100], build: buildMetroBridge },
 ];
 
 export interface TileDetail {

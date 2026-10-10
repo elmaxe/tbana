@@ -221,6 +221,7 @@ addMaterial('gs-paint', () => standard(null, 0.75));
 addMaterial('gs-glass', () => standard(null, 0.12, 0.5));
 addMaterial('gs-dark', () => standard(null, 1));
 addMaterial('gs-sign', () => standard(T.entranceSign('GAMLA STAN'), 0.5));
+addMaterial('gs-boards', () => standard(T.boardWalk(), 0.9));
 
 // colours
 const ASPHALT = 0x6d7076, FASCIA = 0x5f6265, CONCRETE = 0xa8a59f, PIER = 0xb3b0a8, WHITE_WALL = 0xf0eee8;
@@ -641,7 +642,7 @@ export function buildSouthEnd(B: Builder, ground: Ground) {
     return [p(t.wg, -WALK), p(t.wg, 0), p(t.wg, w), p(t.wr, -w), p(t.wr, 0), p(t.er, 0), p(t.er, e), p(t.eg, -e), p(t.eg, 0), p(t.eg, WALK)];
   };
   B.tint(BALLAST);
-  loft(B, zs.map(floor), 'gs-bed', () => UP, 3);
+  loft(B, zs.map(floor), 'stone', () => UP, 3);
   B.tint(0xa9a69f);
   for (const side of [-1, 1]) {
     const k = side < 0 ? 'wg' : 'eg';
@@ -692,6 +693,68 @@ export function buildSouthEnd(B: Builder, ground: Ground) {
     }
   }
   B.place([0, 0, 0], 0);
+}
+
+// ------------------------------------------------------------------ Söderströmsbron
+// The metro's bridge to Slussen. The network draws its deck, tracks and piers; near the camera this
+// adds what its edges look like since the rebuild of 2015–19 (Commons photos): galvanised railings
+// of upright bars along both edges, the steel spans' dark grey edge girders over the water (the
+// spans over Söder Mälarstrand are concrete), and the timber walkway along the west edge.
+// Its deck edges, 2.6 m out from the outer tracks (S.BRIDGE.deck) as the network draws them, from
+// track-geometry.json: world x, z and the rail's y, from Gamla stan to Söder.
+type EdgeRow = [number, number, number];
+const METRO_WEST: EdgeRow[] = [
+  [497.8, 1017.3, 3.87], [503.6, 1024.1, 4.13], [509.3, 1030.9, 4.38], [515.1, 1037.7, 4.64], [520.9, 1044.4, 4.9],
+  [526.6, 1051.4, 5.15], [532.9, 1057.6, 5.41], [538.6, 1065.1, 5.65], [544.8, 1072.4, 5.89], [551.0, 1079.6, 6.13],
+  [557.2, 1086.8, 6.37], [563.3, 1093.9, 6.61], [569.5, 1101.1, 6.85], [575.7, 1108.3, 7.09], [581.9, 1115.5, 7.27],
+  [588.0, 1122.7, 7.41], [594.2, 1129.9, 7.54], [600.3, 1137.1, 7.68], [606.3, 1144.4, 7.79], [612.3, 1151.7, 7.86],
+  [618.2, 1159.1, 7.92], [624.0, 1166.6, 7.95], [629.7, 1174.1, 7.97], [635.3, 1181.7, 7.95], [640.9, 1189.3, 7.94],
+  [646.4, 1197.0, 7.92],
+];
+const METRO_EAST: EdgeRow[] = [
+  [518.8, 1007.4, 3.94], [524.5, 1015.5, 4.22], [530.6, 1023.5, 4.5], [535.9, 1031.8, 4.82], [542.5, 1039.1, 5.11],
+  [548.8, 1046.8, 5.41], [555.1, 1054.4, 5.63], [561.5, 1061.9, 5.85], [568.0, 1069.4, 6.06], [574.5, 1076.9, 6.27],
+  [581.0, 1084.4, 6.49], [587.5, 1091.9, 6.7], [594.0, 1099.4, 6.92], [600.4, 1106.9, 7.13], [606.9, 1114.5, 7.34],
+  [613.3, 1122.0, 7.56], [619.7, 1129.6, 7.77], [626.0, 1137.3, 7.84], [632.3, 1144.9, 7.92], [638.6, 1152.7, 7.95],
+  [644.8, 1160.4, 7.98], [651.1, 1168.1, 7.97], [657.3, 1175.8, 7.95], [663.6, 1183.6, 7.94],
+];
+const GIRDER_GREY = 0x55595c, RAILING_GALVANISED = 0xb9bdbf, WALKWAY = 0x8c7a62;
+
+export function buildMetroBridge(B: Builder, ground: Ground) {
+  B.place([0, 0, 0], 0);
+  // the edge girder's top and foot, as the network draws it (to 0.25 m out from the edge)
+  const top = S.FLOOR + 0.3, foot = S.FLOOR - S.BRIDGE.depth;
+  for (const [side, edge] of [[-1, METRO_WEST], [1, METRO_EAST]] as const) {
+    // outward, square to the edge (going south, east is (dz, −dx))
+    const outs = edge.map((_, i): V3 => {
+      const a = edge[Math.max(0, i - 1)], b = edge[Math.min(edge.length - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      return [(side * (b[1] - a[1])) / l, 0, (-side * (b[0] - a[0])) / l];
+    });
+    const at = (i: number, d: number, dy: number): V3 => [edge[i][0] + outs[i][0] * d, edge[i][2] + dy, edge[i][1] + outs[i][2] * d];
+    const along = edge.reduce<number[]>((s, r, i) => s.concat(i ? s[i - 1] + Math.hypot(r[0] - edge[i - 1][0], r[1] - edge[i - 1][1]) : 0), []);
+    const idx = edge.map((_, i) => i);
+
+    // the railing, under the network's handrail
+    B.tint(RAILING_GALVANISED);
+    railing(B, idx.map((i) => at(i, 0.12, top)), S.BRIDGE.railing - 0.3, (i) => outs[i]);
+
+    // the steel spans' edge girder, a little proud of the network's, where the bridge is over water
+    const water = idx.map((i) => (ground(edge[i][0], edge[i][1]) ?? 0) < 1.6);
+    B.tint(GIRDER_GREY);
+    for (let i = 0; i + 1 < edge.length; i++) {
+      if (!water[i] || !water[i + 1]) continue;
+      loft(B, [i, i + 1].map((k) => [at(k, 0.28, top + 0.02), at(k, 0.28, foot - 0.1)]), 'gs-paint', () => outs[i], 2);
+      loft(B, [i, i + 1].map((k) => [at(k, 0, top + 0.02), at(k, 0.28, top + 0.02)]), 'gs-paint', () => UP, 2);
+    }
+
+    // the walkway, inside the west edge's railing
+    if (side < 0) {
+      B.tint(WALKWAY);
+      loft(B, idx.map((i) => [at(i, -0.95, -0.2), at(i, -0.1, -0.2)]), 'gs-boards', () => UP, 2, (i, k) => [k, along[i] / 2]);
+      loft(B, idx.map((i) => [at(i, -0.95, -0.2), at(i, -0.95, S.FLOOR)]), 'gs-boards', () => [-outs[0][0], 0, -outs[0][2]], 2, (i, k) => [k * 0.1, along[i] / 2]);
+      loft(B, idx.map((i) => [at(i, -0.1, -0.2), at(i, 0, top)]), 'gs-boards', () => outs[0], 2, (i, k) => [k * 0.1, along[i] / 2]);
+    }
+  }
 }
 
 // The station's plan, for the landmarks' outline (the city's own roofs over it are left out).

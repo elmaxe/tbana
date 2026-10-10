@@ -2536,6 +2536,20 @@ export function railingBars() {
   return toTexture(c, { aniso: 4 });
 }
 
+// A timber walkway's boards, white for vertex colours to tint: eight boards across it, each a
+// little lighter or darker, with a dark gap after each; covers 2 m along it.
+export function boardWalk() {
+  const [c, x] = canvas(128, 256);
+  const r = rng(53);
+  for (let i = 0; i < 8; i++) {
+    const v = 205 + Math.floor(r() * 45);
+    x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(0, i * 32, 128, 29);
+    x.fillStyle = '#3a3a3a'; x.fillRect(0, i * 32 + 29, 128, 3);
+  }
+  speckle(x, 128, 256, 1500, 0.15, 54);
+  return toTexture(c, { aniso: 4 });
+}
+
 // The sign over a station's entrance, SL style: a blue band with the T in a white ring on the
 // left, the name in white capitals and a yellow line along its foot. 1024 × 176, about 4.6 × 0.8 m.
 export function entranceSign(text: string) {
