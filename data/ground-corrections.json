@@ -46,6 +46,18 @@
     {
       "outline": [[640, 1215], [900, 1215], [900, 1320], [640, 1320]],
       "why": "Södermalmstorg, Slussplan's approaches, Katarinavägen and the foot of Katarinahissen are stone and asphalt (Google's 3D model); the open quays and the square were grass for want of buildings beside them."
+    },
+    {
+      "outline": [[2073, -3091], [2081, -3097], [2121, -3110], [2150, -3120], [2162, -3124], [2192, -3146], [2242, -3160], [2254, -3161], [2266, -3155], [2271, -3149], [2272, -3120], [2277, -3112], [2288, -3114], [2316, -3110], [2342, -3106], [2404, -3102], [2448, -3098], [2533, -3098], [2548, -3097], [2559, -3090], [2557, -3077], [2583, -3054], [2594, -3044], [2604, -3046], [2615, -3057], [2625, -3057], [2640, -3040], [2658, -3017], [2648, -3010], [2666, -2963], [2667, -2958], [2638, -2935], [2616, -2906], [2617, -2885], [2614, -2882], [2577, -2856], [2543, -2853], [2536, -2865], [2529, -2867], [2519, -2863], [2512, -2851], [2502, -2843], [2489, -2839], [2478, -2843], [2470, -2848], [2477, -2840], [2491, -2827], [2485, -2821], [2474, -2824], [2460, -2833], [2446, -2831], [2440, -2835], [2419, -2855], [2404, -2869], [2393, -2905], [2382, -2921], [2374, -2925], [2381, -2940], [2357, -2952], [2300, -2978], [2238, -3005], [2206, -3011], [2178, -3008], [2117, -2989], [2087, -2979], [2060, -3087]],
+      "why": "Round the red line's end at Ropsten: Ropstensplan and the bus stops under the platforms, the roads, the tram's tracks and the car park under Lidingöbron, and west of the station the old gasworks being built over (Norra Djurgårdsstaden), all asphalt, stone and site gravel (Google's 3D model; OpenStreetMap's construction, industrial, parking and square outlines, leaving out its lawns and woods). With few buildings beside them they were grass."
+    },
+    {
+      "outline": [[2648, -3010], [2692, -2998], [2702, -2955], [2722, -2908], [2705, -2914], [2663, -2895], [2638, -2935], [2667, -2958], [2666, -2963]],
+      "why": "The yard and the quay at the foot of Lidingöbron on the Ropsten side, under the bridges (Google's 3D model)."
+    },
+    {
+      "outline": [[2687, -2494], [2682, -2505], [2662, -2560], [2648, -2595], [2609, -2682], [2603, -2696], [2598, -2710], [2594, -2725], [2591, -2740], [2589, -2754], [2590, -2761], [2592, -2768], [2597, -2776], [2603, -2782], [2609, -2787], [2616, -2791], [2627, -2795], [2656, -2807], [2625, -2871], [2663, -2895], [2705, -2914], [2722, -2908], [2744, -2919], [2796, -2812], [2773, -2802], [2842, -2655], [2872, -2668], [2920, -2560], [2920, -2480]],
+      "why": "Energihamnen east of Ropsten: the power station's tanks, yards and quays (OpenStreetMap's industrial outline, closed out over the water; Google's 3D model). It was grass between the tanks."
     }
   ]
 }

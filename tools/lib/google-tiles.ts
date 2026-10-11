@@ -162,6 +162,18 @@ export async function fromIon(token: string, box: Box, above = 25.9): Promise<Pi
   const { mid, reach } = sphere(box, ecef);
 
   interface Tile { boundingVolume: { box: number[] }; content?: { uri: string }; children?: Tile[] }
+  // a few tries: with hundreds of tiles fetched at once, a connection now and then times out
+  const fetch = async (u: URL | string): Promise<Response> => {
+    for (let k = 0; ; k++) {
+      try {
+        const r = await globalThis.fetch(u);
+        if (r.ok || k >= 3 || r.status < 500) return r;
+      } catch (e) {
+        if (k >= 3) throw e;
+      }
+      await new Promise((ok) => setTimeout(ok, 1000 * 2 ** k));
+    }
+  };
   const endpoint = await (await fetch(`https://api.cesium.com/v1/assets/2275207/endpoint?access_token=${token}`)).json();
   const rootUrl = new URL(endpoint.options.url);
   const key = rootUrl.searchParams.get('key')!;
@@ -218,7 +230,10 @@ export async function fromIon(token: string, box: Box, above = 25.9): Promise<Pi
           const gz = m[2] * p[i] + m[6] * p[i + 1] + m[10] * p[i + 2] + m[14];
           pos.set(fromEcef(gx, -gz, gy), i);
         }
-        const tex = gl.textures[gl.materials[prim.material].pbrMetallicRoughness.baseColorTexture.index];
+        // (a few pieces, out over open water, come without a texture)
+        const texRef = gl.materials[prim.material]?.pbrMetallicRoughness?.baseColorTexture;
+        if (!texRef || prim.attributes.TEXCOORD_0 === undefined) continue;
+        const tex = gl.textures[texRef.index];
         const jpg = view(gl.images[tex.source].bufferView);
         pieces.push({
           pos, uv: Float32Array.from(accessor(prim.attributes.TEXCOORD_0)), idx: Uint32Array.from(accessor(prim.indices)),

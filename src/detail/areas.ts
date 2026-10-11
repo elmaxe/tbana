@@ -14,6 +14,10 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Söder Mälarstrand', x: 520, z: 1215, r: 160 },
   // east of the bridge: Guldbron, the lock and Katarinahissen (src/detail/slussen.ts), Slussplan
   { name: 'Slussen', x: 765, z: 1235, r: 150 },
+  // the red line's end: Ropsten's bus square and tram stop under the platforms, Hjorthagen's hill
+  // over them, and the shore at the foot of Lidingöbron (src/detail/ropsten.ts)
+  { name: 'Ropsten', x: 2480, z: -2905, r: 200 },
+  { name: 'Lidingöbron', x: 2690, z: -2990, r: 110 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one
