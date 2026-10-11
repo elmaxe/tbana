@@ -67,6 +67,11 @@
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: 46.2 m above sea level, the third highest station of the metro."
     },
     {
+      "station": "Björkhagen",
+      "height": 41.82,
+      "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.45 m low. Lantmäteriet's laser scan has the platform's surface at 41.8–41.9 m at both ends beyond the roof, the ballast beside it at 40.5 m, and the ground at the foot of the retaining walls by the underpass at 37.2 m."
+    },
+    {
       "station": "Näckrosen",
       "depth": 21,
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: in a rock cavern 21 m under the ground, under the old film studios."

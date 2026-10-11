@@ -2573,13 +2573,15 @@ export function chainLink() {
 
 // A black name sign hung under a platform's roof: the name in white, and under it the ways out,
 // to the left and to the right. 2.4 × 0.6 m.
-export function hangingSign(name: string, left: string, right: string, blue = false) {
+export function hangingSign(name: string, left: string, right: string, blue = false, plain = false) {
   const W = 960, H = 240, [c, x] = canvas(W, H);
   x.fillStyle = blue ? '#24307a' : '#161718'; x.fillRect(0, 0, W, H);
   // (SL's blue ones: a yellow stripe along the foot)
   if (blue) { x.fillStyle = '#f2c230'; x.fillRect(0, H - 22, W, 22); }
   x.fillStyle = '#f2f2ee'; x.textBaseline = 'middle';
   x.font = '600 108px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center';
+  // (`plain`: the name alone, in the middle)
+  if (plain) { x.fillText(name, W / 2, blue ? 112 : 124, W - 80); return toTexture(c, { repeat: false }); }
   x.fillText(name, W / 2, 82, W - 80);
   x.fillStyle = blue ? '#e8e8e2' : '#5a5c5e'; x.fillRect(30, 150, W - 60, 3);
   x.fillStyle = '#f2f2ee'; x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
@@ -2592,6 +2594,19 @@ export function hangingSign(name: string, left: string, right: string, blue = fa
   if (left) { arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, y, W / 2 - 100); }
   if (right) { arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, y, W / 2 - 100); }
   return toTexture(c, { repeat: false });
+}
+
+// Birch bark round a trunk (across) and 0.4 m along it (up): chalk white, dark lenticels across the
+// trunk, and here and there a black patch.
+export function birchBark() {
+  const W = 64, H = 128, [c, x] = canvas(W, H), r = rng(1991);
+  x.fillStyle = '#e2dfd6'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 46; k++) { x.fillStyle = `rgba(42,40,36,${0.45 + r() * 0.45})`; x.fillRect(r() * W, r() * H, 4 + r() * 16, 1 + r() * 2.5); }
+  for (let k = 0; k < 3; k++) {
+    const cx = r() * W, cy = r() * H;
+    x.fillStyle = 'rgba(30,28,26,0.85)'; x.beginPath(); x.ellipse(cx, cy, 6 + r() * 8, 3 + r() * 6, r() * 0.5, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
 }
 
 // The metro's round sign: a blue T on white in a blue ring.
@@ -2914,9 +2929,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
   blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4], brownWindows: [1.2, 3.2],
   terracottaPanels: [1.2, 2.4], orangeTiles: [1.2, 1.2], redGranite: [2.4, 2.4], brick: [1.2, 1.2],
+  steelGlazed: [1.2, 3], darkTerrazzo: [2.4, 2.4], birchX: [5.4, 2.6],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3736,6 +3752,47 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'steelGlazed': {
+      // a glass hall's walls: small white tiles to a steel sill at 0.85 m, every fourth a shade
+      // greyer; then windows in brushed steel frames 1.2 m apart, a transom at 2.25 m, to the head
+      // at 2.9 m
+      const st = '#a3a9ac', t = 0.1 * PX;
+      x.fillStyle = '#a7aaa8'; x.fillRect(0, Y(0.85), W, 0.85 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 0.85 * PX; j++) {
+        const v = 228 + Math.floor(r() * 10) - ((i + j) % 4 === 0 ? 16 : 0);
+        x.fillStyle = `rgb(${v},${v},${v - 1})`; x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.85, 0.95, st); pane(0.95, 2.25, st, 0.1); band(2.25, 2.33, st); pane(2.33, 2.9, st, 0.1); band(2.9, 3, st);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, Y(0.95), W, 2);
+      break;
+    }
+    case 'darkTerrazzo':
+      // dark grey terrazzo, chips of white and black in it
+      x.fillStyle = '#4e4f50'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.35, 91); speckle(x, W, H, 12000, 0.3, 92, true);
+      break;
+    case 'birchX': {
+      // dark grey stone slabs, 0.9 by 0.65 m; over them a broad X of birch bark from corner to
+      // corner, chalk white with dark lenticels across it
+      x.fillStyle = '#2f3133'; x.fillRect(0, 0, W, H);
+      const sw = W / 6, sh = H / 4;
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) {
+        const v = 58 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 3})`; x.fillRect(i * sw + 2, j * sh + 2, sw - 4, sh - 4);
+      }
+      const bw = 0.5 * PX;
+      for (const [ax, ay, bx, by] of [[0, H, W, 0], [0, 0, W, H]]) {
+        x.strokeStyle = '#ddd8cc'; x.lineWidth = bw; x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke();
+        const l = Math.hypot(bx - ax, by - ay), nx = -(by - ay) / l, ny = (bx - ax) / l;
+        for (let k = 0; k < 260; k++) {
+          const t = r(), o = (r() - 0.5) * bw * 0.9, cx = ax + (bx - ax) * t + nx * o, cy = ay + (by - ay) * t + ny * o;
+          x.save(); x.translate(cx, cy); x.rotate(Math.atan2(ny, nx));
+          x.fillStyle = `rgba(36,34,30,${0.5 + r() * 0.4})`; x.fillRect(-(4 + r() * 10), -1, 8 + r() * 20, 2 + r() * 2);
+          x.restore();
+        }
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -3744,7 +3801,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

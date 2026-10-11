@@ -1205,22 +1205,42 @@
     },
     "Björkhagen": {
       "drawing": "bjorkhagen.png",
-      "note": "An island platform in the open. In the middle stairs go down to a passage under the tracks, with an exit on each side.",
+      "note": "An island platform on a bank (1958), with a glass hall on the platform in its middle. From the glass hall an escalator and stairs go down a long well to the ticket hall under the platform's northern part, and a lift runs down to it from the platform beyond the glass hall; from the gates the way out is through the hall's glass front onto the underpass under the tracks, west to Falsterbovägen and east to Malmövägen. From OpenStreetMap's indoor mapping (the glass hall's doors 17 m south of the platform's middle, the escalator and stairs from 5.4 m to 22.6 m north, the lift at 28.7 m, the gates at 30.5 m, the hall's door at 38.2 m), the laser scan (the ground at the underpass 4.9 m under the platform) and photographs (2008 to 2026).",
       "routes": [
-        { "from": [-10, 0], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [150, 0]},
-          {"walk": [6, 0], "width": 6},
-          {"mark": "under"}
+        { "from": [-16.92, 0.18], "width": 6.0, "go": [
+          {"walk": [5.2, -0.23], "open": true}
         ] },
-        { "from": "under", "width": 4, "go": [
-          {"walk": [6, -12]},
-          {"gates": true},
-          {"exit": {"at":  [6, -24], "name":  "Björkhagen"}}
+        { "from": [5.2, -2.35], "width": 1.6, "go": [
+          {"walk": [5.9, -2.35], "open": true},
+          {"escalators": -4.9, "toward": [40.0, -2.35], "lanes": "E"},
+          {"walk": [22.3, -2.35], "open": true}
         ] },
-        { "from": "under", "width": 4, "go": [
-          {"walk": [6, 12]},
+        { "from": [5.2, 0.9], "width": 2.0, "go": [
+          {"walk": [5.9, 0.9], "open": true},
+          {"stairs": -4.9, "toward": [40.0, 0.9]},
+          {"walk": [22.3, 0.9], "open": true}
+        ] },
+        { "from": [25.0, 0.1], "width": 2.2, "go": [
+          {"walk": [27.2, 0.1], "open": true},
+          {"lift": -4.9, "above": 3.0}
+        ] },
+        { "from": [22.3, 0.45], "h": -4.9, "width": 3.2, "go": [
+          {"walk": [27.4, 0.45], "open": true}
+        ] },
+        { "from": [22.3, -2.2], "h": -4.9, "width": 2.0, "go": [
+          {"walk": [30.2, -2.2], "open": true},
+          {"walk": [30.6, -2.2], "width": 3.6, "open": true},
           {"gates": true},
-          {"exit": {"at":  [6, 24], "name":  "Björkhagen"}}
+          {"walk": [38.35, -2.2], "open": true},
+          {"walk": [38.9, -2.2], "width": 2.2, "open": true},
+          {"walk": [41.5, -2.2], "width": 5.6, "open": true},
+          {"mark": "underpass"},
+          {"walk": [41.5, -12.6], "open": true},
+          {"exit": {"at": [37.5, -19.5], "name": "Falsterbovägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "underpass", "go": [
+          {"walk": [41.5, 9.3], "open": true},
+          {"exit": {"at": [41.5, 14.5], "name": "Malmövägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

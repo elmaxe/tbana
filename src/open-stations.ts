@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Block, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -71,8 +71,10 @@ export function roomOf(style: OpenStyle, frame: Frame, p: FloorPart | InclinePar
   return style.rooms.find((r) => s >= r.s[0] && s <= r.s[1] && h >= r.h[0] && h <= r.h[1] && (!r.u || (u >= r.u[0] && u <= r.u[1]))) ?? null;
 }
 
-// The height of a block's top at its corner i.
-const blockTop = (b: Block, i: number) => (i === 1 || i === 2) && b.low !== undefined ? b.low : b.h[1];
+// The height of a block's floor at its corner i, and of its top (both lower at the last two
+// corners by as much as its floor falls).
+const blockFrom = (b: Block, i: number) => i >= 2 && b.fall !== undefined ? b.fall : b.from ?? 0;
+const blockTop = (b: Block, i: number) => ((i === 1 || i === 2) && b.low !== undefined ? b.low : b.h[1]) - (b.from ?? 0) + blockFrom(b, i);
 
 // The style's building shells as volumes: the street around an exit runs on under a
 // street-level hall, but isn't there to be stepped onto from inside it; nor is the platform under
@@ -80,9 +82,8 @@ const blockTop = (b: Block, i: number) => (i === 1 || i === 2) && b.low !== unde
 // (`ground`, only those).
 export function blockVolumes(style: OpenStyle, frame: Frame, only?: 'onPlatform' | 'ground'): Volume[] {
   return (style.blocks ?? []).filter((b) => !only || b[only]).map((b) => {
-    const y0 = frame.st.platformY + (b.from ?? 0) - 1;
     const c = b.plan.map(([s, u]): [number, number] => { const p = frame.at(s, u, 0); return [p[0], p[2]]; });
-    return prism(c, c.map(() => y0), c.map((_, i) => frame.st.platformY + blockTop(b, i)));
+    return prism(c, c.map((_, i) => frame.st.platformY + blockFrom(b, i) - 1), c.map((_, i) => frame.st.platformY + blockTop(b, i)));
   });
 }
 
@@ -257,7 +258,9 @@ export class OpenLook {
   // Where the roof's columns stand along the platform.
   private columns(R: ButterflyRoof) {
     const C = R.columns, out: number[] = [], [lo, hi] = C.between ?? [R.from, R.to];
-    for (let s = C.at - Math.floor((C.at - R.from) / C.every) * C.every; s < R.to - 0.5; s += C.every) if (s >= R.from + 0.5 && s >= lo && s <= hi) out.push(s);
+    for (let s = C.at - Math.floor((C.at - R.from) / C.every) * C.every; s < R.to - 0.5; s += C.every) {
+      if (s >= R.from + 0.5 && s >= lo && s <= hi && !C.gaps?.some(([a, b]) => s > a && s < b)) out.push(s);
+    }
     return out;
   }
 
@@ -282,6 +285,7 @@ export class OpenLook {
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
       else if (a.kind === 'bird') this.bird(a, frame, on);
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
+      else if (a.kind === 'birches') this.birches(a, frame, on);
     }
   }
 
@@ -384,6 +388,31 @@ export class OpenLook {
       }
       dome(shell, [c[0], frame.st.platformY + a.top + 0.15 + r * 0.4, c[2]], r + 0.08, r * 0.4);
     }
+  }
+
+  // Lenka Jonesson's Björkar (1991): a cube of rusted steel bars standing on four short feet on a
+  // concrete plinth, birch trunks leaning through it from a bottom edge up past the opposite top
+  // edge, their sawn ends standing out of it.
+  private birches(a: Birches, frame: Frame, on: On) {
+    const rust = on(this.color(0x6a3a26, 0.8, 0.3));
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const bark = on(this.mat('birch', () => new THREE.MeshStandardMaterial({ map: T.birchBark(), roughness: 0.8, side: THREE.DoubleSide })));
+    const cd = Math.cos(a.turn), sd = Math.sin(a.turn);
+    // forward and across the cube, and up, in the station's frame
+    const at = (x: number, y: number, h: number): XYZ => frame.at(a.s + cd * x - sd * y, a.u + sd * x + cd * y, h);
+    const o = at(0, 0, 0), f = at(1, 0, 0), fx = f[0] - o[0], fz = f[2] - o[2];
+    const S = a.size, e = S / 2, P = 0.42, z0 = P + 0.1, z1 = z0 + S, b = 0.07;
+    box(concrete, at(0, 0, P / 2), fx, fz, S + 0.3, P, S + 0.3);
+    for (const x of [-e, e]) for (const y of [-e, e]) {
+      box(rust, at(x, y, (z0 + z1) / 2), fx, fz, b, z1 - z0 + b, b);
+      box(rust, at(x, y, (P + z0) / 2), fx, fz, 0.12, z0 - P, 0.12);
+    }
+    for (const z of [z0, z1]) for (const k of [-e, e]) {
+      bar(rust, at(-e, k, z), at(e, k, z), b, b);
+      bar(rust, at(k, -e, z), at(k, e, z), b, b);
+    }
+    const ys = a.trunks === 3 ? [-0.32, 0, 0.32] : [0];
+    ys.forEach((y, i) => limb(bark, at(-e + 0.12, y, z0 + 0.06), at(e + 0.22, y + 0.04 * (i - 1), z1 + 0.28), 0.24, 0.2));
   }
 
   private roundColumns(a: Columns, frame: Frame, on: On) {
@@ -605,6 +634,7 @@ export class OpenLook {
     const top = on(this.color(R.colors.top, 0.6, 0.3)), fascia = on(this.color(R.colors.fascia, 0.6, 0.2));
     const steel = on(this.color(R.colors.steel, 0.5, 0.4)), casing = on(this.color(0x3a3d41, 0.7, 0.2));
     const gutter = R.gutterColor !== undefined ? on(this.color(R.gutterColor, 0.5, 0.3)) : steel;
+    const purlin = R.purlins?.color !== undefined ? on(this.color(R.purlins.color, 0.5, 0.4)) : steel;
     const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
     // half the roof's width at s, and the underside's height across it there
@@ -638,7 +668,7 @@ export class OpenLook {
       // the beam along the valley, or one over each row of columns; the purlins; the gutter
       const r0 = rows(s0), r1 = rows(s1);
       r0.forEach((u, k) => bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, r1[k], h(r1[k], s1)), 0.2, R.beam, cut));
-      for (const u of R.purlins?.at ?? []) bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
+      for (const u of R.purlins?.at ?? []) bar(purlin, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
       if (R.gutter) bar(gutter, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
     }
     // and across its ends
@@ -715,6 +745,23 @@ export class OpenLook {
     const W = 2.4, H = 0.6;
     for (const s of R.signs.at) {
       const [fx, fz] = line.dir(s), rx = -fz, rz = fx;
+      if (R.signs.across !== undefined) {
+        // across the platform, hung from the underside on two rods, a face each way along it
+        const u = R.signs.across, top = (R.signs.bottom ?? h(u, s) - rd - 0.35 - H) + H, c = line.at(s, u, top - H / 2);
+        box(fascia, c, fx, fz, W + 0.02, H + 0.02, 0.05, cut);
+        for (const k of [-W / 2 + 0.2, W / 2 - 0.2]) {
+          const t = h(u + k, s) - rd;
+          if (t - top > 0.01) box(steel, line.at(s, u + k, (t + top) / 2), fx, fz, 0.03, t - top, 0.03);
+        }
+        for (const side of [1, -1]) {
+          const m = this.mat(`sign:${name}:plain:${!!R.signs.blue}`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, '', '', R.signs.blue, true) }));
+          const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, H), m);
+          mesh.position.set(c[0] + fx * side * 0.03, c[1], c[2] + fz * side * 0.03);
+          mesh.rotation.y = Math.atan2(fx * side, fz * side);
+          group.add(mesh);
+        }
+        continue;
+      }
       const top = R.signs.bottom !== undefined ? R.signs.bottom + H : foot - 0.12, from = R.signs.bottom !== undefined ? h(mid, s) - rd : foot;
       const c = line.at(s, mid, top - H / 2), hang = line.at(s, mid, from)[1] - (c[1] + H / 2);
       box(fascia, c, fx, fz, 0.05, H + 0.02, W + 0.02, cut);
@@ -1068,18 +1115,18 @@ export class OpenLook {
       const f = b.sides?.[i] === undefined ? b.walls : b.sides[i];
       // the side's own finish up to the band, if there is one, and the band's above it, up to the
       // top at each end
-      const ta = blockTop(b, i), tb = blockTop(b, (i + 1) % 4);
-      const wall = (f: Finish, h0: number, ha: number, hb: number) => {
+      const ta = blockTop(b, i), tb = blockTop(b, (i + 1) % 4), fa = blockFrom(b, i), fb = blockFrom(b, (i + 1) % 4);
+      const wall = (f: Finish, h0a: number, h0b: number, ha: number, hb: number) => {
         const [w, hh] = T.FINISH_SIZE[f];
-        const q = [[...P(0, h0), 0, (h0 - from) / hh], [...P(1, h0), l / w, (h0 - from) / hh], [...P(1, hb), l / w, (hb - from) / hh], [...P(0, ha), 0, (ha - from) / hh]];
+        const q = [[...P(0, h0a), 0, (h0a - fa) / hh], [...P(1, h0b), l / w, (h0b - fb) / hh], [...P(1, hb), l / w, (hb - fb) / hh], [...P(0, ha), 0, (ha - fa) / hh]];
         on(this.finish(f)).poly(q, cut);
         if (T.FINISH_GLASS.includes(f)) on(this.pane).poly(q, cut);
       };
       const band = b.band && b.band.from < Math.min(ta, tb) ? Math.max(from, b.band.from) : null;
-      if (f && band === null && Math.max(ta, tb) > from) wall(f, from, ta, tb);
-      if (f && band !== null && band > from) wall(f, from, band, band);
-      if (b.band && band !== null) wall(b.band.walls, band, ta, tb);
-      if (b.h[0] < from) base.poly([[...P(0, b.h[0]), 0, b.h[0] / 2.4], [...P(1, b.h[0]), l / 2.4, b.h[0] / 2.4], [...P(1, from), l / 2.4, from / 2.4], [...P(0, from), 0, from / 2.4]], cut);
+      if (f && band === null && Math.max(ta - fa, tb - fb) > 0) wall(f, fa, fb, ta, tb);
+      if (f && band !== null && band > from) wall(f, from, from, band, band);
+      if (b.band && band !== null) wall(b.band.walls, band, band, ta, tb);
+      if (b.h[0] < Math.max(fa, fb)) base.poly([[...P(0, b.h[0]), 0, b.h[0] / 2.4], [...P(1, b.h[0]), l / 2.4, b.h[0] / 2.4], [...P(1, fb), l / 2.4, fb / 2.4], [...P(0, fa), 0, fa / 2.4]], cut);
       // lit signs on the side, halfway up the band (or the wall), standing out from it
       const mid = band !== null ? (band + b.h[1]) / 2 : (from + b.h[1]) / 2;
       const cs = corners.reduce((t, c) => t + c[0], 0) / 4, cu = corners.reduce((t, c) => t + c[1], 0) / 4;
@@ -1139,7 +1186,7 @@ export class OpenLook {
     }
     if (b.floor) {
       const [fw] = T.FINISH_SIZE[b.floor];
-      on(this.finish(b.floor)).poly(corners.map(([s, u]) => [...frame.at(s, u, from - 0.02), u / fw, s / fw]), cut);
+      on(this.finish(b.floor)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockFrom(b, i) - 0.02), u / fw, s / fw]), cut);
     }
   }
 
@@ -1153,6 +1200,7 @@ export class OpenLook {
   private fence(f: Fence, frame: Frame, on: On) {
     if (f.kind === 'boards' || f.kind === 'louvres') return this.boardFence(f, frame, on);
     if (f.kind === 'glass') return this.glassFence(f, frame, on);
+    if (f.kind === 'rails') return this.railFence(f, frame, on);
     const link = on(this.mat('chainLink', () => new THREE.MeshStandardMaterial({ map: T.chainLink(), alphaTest: 0.35, roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide })));
     const post = on(this.color(0x9aa0a4, 0.45, 0.6));
     const [h0, h1] = f.h;
@@ -1170,6 +1218,19 @@ export class OpenLook {
       link.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
       bar(post, frame.at(sa, ua, h1 + 0.02 + da), frame.at(sb, ub, h1 + 0.02 + db), 0.04, 0.04);
       along += l;
+    }
+  }
+
+  // Three round rails on posts about 2 m apart, the top one at h[1].
+  private railFence(f: Fence, frame: Frame, on: On) {
+    const m = on(this.color(f.color ?? 0xa08a52, 0.4, 0.6)), [h0, h1] = f.h, rails = [h1, h0 + (h1 - h0) * 0.62, h0 + (h1 - h0) * 0.25];
+    for (let i = 0; i + 1 < f.points.length; i++) {
+      const [sa, ua, da = 0] = f.points[i], [sb, ub, db = 0] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 2));
+      for (let k = i === 0 ? 0 : 1; k <= n; k++) {
+        const t = k / n, s = sa + (sb - sa) * t, u = ua + (ub - ua) * t, d = da + (db - da) * t;
+        limb(m, frame.at(s, u, h0 + d), frame.at(s, u, h1 + 0.03 + d), 0.05, 0.05);
+      }
+      for (const r of rails) limb(m, frame.at(sa, ua, r + da), frame.at(sb, ub, r + db), 0.04, 0.04);
     }
   }
 

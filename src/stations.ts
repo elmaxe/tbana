@@ -31,6 +31,7 @@ const PROBE = 0.15;   // how far beyond a floor's edge to look for the next floo
 const STEP = 0.65;    // a floor within this height there can be stepped onto
 const PIECE = 0.5;    // walls are found in pieces this long
 const PARAPET = 1.1;  // walls around stairs coming up into the street stand this high
+const UNDER = 0.3;    // the city's ground is cut out from this far under a floor
 // the light of a row of lamps down a room's ceiling, per metre (see src/lamps.ts), and how far it
 // lights
 const ROOM_LIGHT = { power: 1.4, reach: 14 };
@@ -113,7 +114,7 @@ export class Stations {
       for (const p of st.parts) {
         if (p.kind === 'floor') {
           const h = p.corners.map((c) => c[1]);
-          cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - 0.3), h.map((y) => y + (p.ceiling ?? 3))));
+          cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - UNDER), h.map((y) => y + (p.ceiling ?? 3))));
         } else if (p.kind === 'incline' || p.kind === 'lift') cuts.push(spaceOf(p)!);
       }
       const style = OPEN_STYLES[st.name];
@@ -279,6 +280,7 @@ export class Stations {
       }
     }
     for (const p of st.parts) if (p.kind === 'floor' || p.kind === 'incline') this.buildWalls(p, m, others(p));
+    for (const p of st.parts) if (p.kind === 'floor' && p.ceiling === null) this.buildEdges(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
     if (this.open) {
       const closed = spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol);
@@ -475,6 +477,32 @@ export class Stations {
         }
       }
       flush();
+    }
+  }
+
+  // A floor out in the open: its edge where no floor goes on beyond it, from the floor down past
+  // where the city's ground is cut out under it, so that the ground beside it, where it is lower,
+  // doesn't show the hole under the floor.
+  private buildEdges(p: FloorPart, m: Meshes, cut: Volume[]) {
+    const c = p.corners, n = c.length;
+    for (let e = 0; e < n; e++) {
+      const a = c[e], b = c[(e + 1) % n], len = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      if (len < 0.05) continue;
+      let ox = (b[2] - a[2]) / len, oz = -(b[0] - a[0]) / len;
+      const cx = c.reduce((t, v) => t + v[0], 0) / n, cz = c.reduce((t, v) => t + v[2], 0) / n;
+      if (ox * ((a[0] + b[0]) / 2 - cx) + oz * ((a[2] + b[2]) / 2 - cz) < 0) { ox = -ox; oz = -oz; }
+      const pieces = Math.max(1, Math.round(len / PIECE));
+      const at = (t: number, dy: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + dy, a[2] + (b[2] - a[2]) * t];
+      let t0: number | null = null;
+      for (let i = 0; i <= pieces; i++) {
+        const [x, y, z] = at((i + 0.5) / pieces, 0), open = i < pieces && !this.nextFloor(x + ox * PROBE, z + oz * PROBE, y);
+        if (open && t0 === null) t0 = i / pieces;
+        if (!open && t0 !== null) {
+          const t1 = i / pieces, d = UNDER + 0.1;
+          m.stairs.poly([[...at(t0, 0), 0, 0], [...at(t1, 0), (t1 - t0) * len / 2, 0], [...at(t1, -d), (t1 - t0) * len / 2, d / 2], [...at(t0, -d), 0, d / 2]], cut);
+          t0 = null;
+        }
+      }
     }
   }
 
