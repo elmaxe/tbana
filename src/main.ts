@@ -16,6 +16,7 @@ import { Input } from './input';
 import { Sound } from './sound';
 import { LINES } from './lines';
 import { mountBuildSwitcher } from './build-switcher';
+import { mountOffline } from './offline';
 import { Network } from './network';
 import type { PlatformFloorData } from './network';
 import { StationJoin } from './station-join';
@@ -165,6 +166,10 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   }
   $('loading').hidden = true;
   $('start').hidden = false;
+  // saved for offline play once the game is in, so as not to slow its first start
+  void mountOffline($('offline'), () => {
+    if (running) toast(`A new version is ready: ${touchMode() ? '☰' : 'Esc'} to update`, 4000);
+  });
   (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
 }
 

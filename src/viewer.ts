@@ -5,12 +5,14 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { createTrain } from './rolling-stock/index';
 import type { C20InteriorStyle, Train, TrainType } from './rolling-stock/index';
 import { mountBuildSwitcher } from './build-switcher';
+import { mountOffline } from './offline';
 
 // Model viewer for the procedural C20 and C30 trains (trains.html).
 
 const $ = (id: string) => document.getElementById(id)!;
 const params = new URLSearchParams(location.search);
 mountBuildSwitcher($('buildSwitch'));
+void mountOffline($('offline'));
 
 interface TypeInfo { title: string; blurb: string; rows: [string, string][]; dest: string }
 

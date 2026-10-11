@@ -168,6 +168,14 @@ h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: 
   background: var(--sl); color: #fff; font: 700 17px system-ui, sans-serif;
 }
 #start:hover { background: #1460c4; }
+#offline { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+#offline[hidden] { display: none; }
+#offline button {
+  padding: 5px 14px; border: 0; border-radius: 6px; cursor: pointer;
+  background: var(--sl); color: #fff; font: 600 14px system-ui, sans-serif;
+}
+#offline button:hover { background: #1460c4; }
+#offline button[hidden] { display: none; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
 ul { list-style: none; margin: 0; padding: 0; }
 .keys li { margin: 5px 0; color: #d4dbe4; }

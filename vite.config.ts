@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { serviceWorker } from './tools/lib/service-worker.ts';
 
 // The site root is the working directory, so the Pages workflow can build a pull request's
 // checkout with this (main's) config: see .github/scripts/assemble-site.sh.
@@ -11,6 +12,8 @@ export default defineConfig({
   base: './',
   // an inline PostCSS config stops Vite from loading (and running) one from the checkout
   css: { postcss: {} },
+  // sw.js, which keeps the build in the browser for offline play (src/sw.ts)
+  plugins: [serviceWorker()],
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 1500,
