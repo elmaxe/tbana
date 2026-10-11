@@ -36,6 +36,24 @@
       "outline": [-1781.44, 8327.01, -1768.54, 8343.2, -1745.46, 8327.24, -1759.54, 8309.56],
       "heights": [33.73, 34.38, 34.23, 33.53],
       "why": "North-east of the bridge Rågsved's bank is held on its western side by a retaining wall straight up from the pavement of Rågsvedsvägen to the tracks, 5.5 m high. The elevation model's grid, 5 m apart, makes the wall a slope, which rose up the pavement and the street. The pavement is at the laser scan's height at the wall's foot, 34.2–34.4 m, falling to 33.5–33.7 m at the street's far side; the deck reaches in under the bank behind the wall (drawn by the station), short of the western track, so that the ground stays level up to the wall's face."
+    },
+    {
+      "name": "Gullmarsplan: Johanneshovsvägen's deck",
+      "outline": [1185.23, 3588.95, 1197.34, 3628.12, 1289.06, 3599.77, 1277.24, 3561.55, 1242.96, 3575.92],
+      "heights": [42.59, 43.0, 43.57, 43.17, 42.99],
+      "why": "The southern half of Gullmarsplan's platforms, from 20–25 m south of their middle to the bus terminal's front 61 m south of it, lies under the deck that carries Johanneshovsvägen and the square in front of the terminal over the tracks, 77 m across them. The elevation model leaves the deck out and has the cutting's floor under it, so that the street fell 5.5 m into a trench at the deck's edges and the terminal's doors opened onto it. The laser scan has the deck (its points classed as a bridge's) from its edge over the platforms, which runs askew, 20 m south of their middle at its western end and 25 m south over the tracks between them, to the terminal's front, and from 47 m west of the platforms' middle to 41 m east of it, where the roundabout's well opens in it: a plane fits its 6,300 points over the platforms to 11 cm, rising from 42.6 m at its north-western corner to 43.6 m at its south-eastern, and the street west of it, at grade, is at the same height. Over the open track the city's ground stays lowered; the station draws the deck there."
+    },
+    {
+      "name": "Gullmarsplan: the bus terminal",
+      "outline": [1200.21, 3627.24, 1206.71, 3648.26, 1279.32, 3625.81, 1272.82, 3604.79],
+      "heights": [43.1, 43.15, 43.3, 43.3],
+      "why": "Gullmarsplan's ticket hall is in the bus terminal, which stands over the tracks south of Johanneshovsvägen's deck, from 61 m to 83 m south of the platforms' middle, its floor level with the square in front of it (43.3 m, the laser scan's points on the deck at its front). The elevation model has the cutting's floor under it, 6 m down. The street along its western side, at grade, is at 43.1–43.2 m in the scan."
+    },
+    {
+      "name": "Gullmarsplan: the ramp beside the bus terminal",
+      "outline": [1272.82, 3604.79, 1279.32, 3625.81, 1295.56, 3620.78, 1289.06, 3599.77],
+      "heights": [43.3, 42.55, 42.55, 43.3],
+      "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
     }
   ]
 }

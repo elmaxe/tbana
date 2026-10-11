@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -289,7 +289,58 @@ export class OpenLook {
       else if (a.kind === 'lightBoxes') this.lightBoxes(a, frame, on);
       else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
       else if (a.kind === 'bronzeFrames') this.bronzeFrames(a, frame, on);
+      else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
+      else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
     }
+  }
+
+  // Gullmarsplan's columns under the deck: a square casing of glossy tiles, black and then red, and
+  // over it a round concrete shaft, flaring in a curve into a broad head under the ceiling.
+  private mushrooms(a: Mushrooms, frame: Frame, on: On) {
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const e = a.size / 2, sq: [number, number][] = [[-e, -e], [e, -e], [e, e], [-e, e]], n = 16;
+    for (const [s, u] of a.at) {
+      // the casing's sides, its tiles in metres over the finish's repeat, and its top round the shaft
+      const casing = (f: Finish, h0: number, h1: number) => {
+        const m = on(this.finish(f)), [w, hh] = T.FINISH_SIZE[f];
+        for (let k = 0; k < 4; k++) {
+          const [p0, q0] = sq[k], [p1, q1] = sq[(k + 1) % 4];
+          m.poly([[...frame.at(s + p0, u + q0, h0), 0, h0 / hh], [...frame.at(s + p1, u + q1, h0), a.size / w, h0 / hh],
+            [...frame.at(s + p1, u + q1, h1), a.size / w, h1 / hh], [...frame.at(s + p0, u + q0, h1), 0, h1 / hh]]);
+        }
+        return m;
+      };
+      casing('blackTiles', 0, a.red[0]);
+      casing('redTiles', a.red[0], a.red[1]).poly(sq.map(([p, q]) => [...frame.at(s + p, u + q, a.red[1]), p, q]));
+      // the shaft, and its head: the radius growing with the square of the height over the flare
+      const r0 = a.shaft / 2, r1 = a.head / 2, rings = [a.red[1], a.flare, ...[0.25, 0.5, 0.75, 1].map((t) => a.flare + (a.ceiling - a.flare) * t)];
+      const radius = (h: number) => h <= a.flare ? r0 : r0 + (r1 - r0) * ((h - a.flare) / (a.ceiling - a.flare)) ** 2;
+      const P = (i: number, h: number) => { const t = (i / n) * Math.PI * 2, r = radius(h); return [...frame.at(s + Math.cos(t) * r, u + Math.sin(t) * r, h), (i / n) * Math.PI * a.shaft, h]; };
+      for (let j = 0; j + 1 < rings.length; j++) for (let i = 0; i < n; i++) concrete.poly([P(i, rings[j]), P(i + 1, rings[j]), P(i + 1, rings[j + 1]), P(i, rings[j + 1])]);
+    }
+  }
+
+  // Leif Tjerned's boxes of neon (1995): dark boxes hung on rods under the ceiling, the coloured glass
+  // in their undersides lit; and strokes of neon, red or yellow, hung on wires at heights in turn.
+  private neonBoxes(a: NeonBoxes, frame: Frame, on: On) {
+    const dark = on(this.color(0x1a1b1d, 0.5, 0.3)), [L, W, D] = a.size, top = a.ceiling - 0.25;
+    a.at.forEach(([s, u], i) => {
+      box(dark, frame.at(s, u, top - D / 2), frame.fx, frame.fz, W, D, L);
+      for (const k of [-L / 2 + 0.3, L / 2 - 0.3]) box(dark, frame.at(s + k, u, (top + a.ceiling) / 2), frame.fx, frame.fz, 0.03, a.ceiling - top, 0.03);
+      const glass = on(this.mat(`neonGlass:${i % 4}`, () => {
+        const map = T.neonGlass(i % 4);
+        return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.9, roughness: 0.3, side: THREE.DoubleSide });
+      }));
+      const y = top - D - 0.005, e = 0.06;
+      glass.poly([[...frame.at(s - L / 2 + e, u - W / 2 + e, y), 0, 0], [...frame.at(s + L / 2 - e, u - W / 2 + e, y), 1, 0],
+        [...frame.at(s + L / 2 - e, u + W / 2 - e, y), 1, 1], [...frame.at(s - L / 2 + e, u + W / 2 - e, y), 0, 1]]);
+    });
+    const tube = [0xff3020, 0xffd020].map((c) => on(this.mat(`neon:${c}`, () => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }))));
+    (a.tubes ?? []).forEach(([s, u, turn, c], i) => {
+      const h = a.ceiling - 0.35 - 0.2 * (i % 3), ds = Math.cos(turn) * 0.8, du = Math.sin(turn) * 0.8;
+      limb(tube[c], frame.at(s - ds, u - du, h), frame.at(s + ds, u + du, h), 0.04, 0.04);
+      for (const k of [-0.6, 0.6]) box(dark, frame.at(s + ds * k, u + du * k, (h + a.ceiling) / 2), frame.fx, frame.fz, 0.01, a.ceiling - h, 0.01);
+    });
   }
 
   // Carl Magnus's sculptures (1990): square bronze bars gone green, on a concrete plinth; a
@@ -1191,8 +1242,11 @@ export class OpenLook {
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
     const m = on(this.mat(`mural:${a.picture}`, () => {
-      const map = a.picture === 'forestFloor' ? T.forestFloor() : T.tallkrogsdraken();
-      return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.4, side: THREE.DoubleSide });
+      const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel() : T.tallkrogsdraken();
+      // (an angel cut out round its outline)
+      return new THREE.MeshStandardMaterial({
+        map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.4, alphaTest: a.picture === 'angel' ? 0.5 : 0, side: THREE.DoubleSide,
+      });
     }));
     // (its left edge on the viewer's left, looking at it)
     const ds = Math.cos(a.turn), du = Math.sin(a.turn), rs = du, ru = -ds, w = a.width / 2;
@@ -1301,6 +1355,22 @@ export class OpenLook {
     const e = 0.2 / Math.hypot(c[2][0] - c[1][0], c[2][1] - c[1][1]), q = (p: XYZ) => [...p, 0, 0];
     for (let k = 0; k < G.count; k++) {
       const t0 = k / G.count, tm = (k + 0.5) / G.count, t1 = (k + 1) / G.count;
+      if (G.round) {
+        // a vault: its covering in strips round a half-ellipse, glass along its crown, its ends
+        // fans under a trim round their edges
+        const n = 12, arc = (j: number): [number, number] => [t0 + (t1 - t0) * (1 - Math.cos((j / n) * Math.PI)) / 2, base + G.rise * Math.sin((j / n) * Math.PI)];
+        for (let j = 0; j < n; j++) {
+          const [ta, ha] = arc(j), [tb, hb] = arc(j + 1);
+          slope.poly([q(P(ta, -e, ha)), q(P(tb, -e, hb)), q(P(tb, 1 + e, hb)), q(P(ta, 1 + e, ha))], cut);
+          if (j >= n / 2 - 2 && j < n / 2 + 2) glass.poly([q(P(ta, 0.04, ha + 0.03)), q(P(tb, 0.04, hb + 0.03)), q(P(tb, 0.96, hb + 0.03)), q(P(ta, 0.96, ha + 0.03))], cut);
+          for (const v of [0, 1]) {
+            end.poly([q(P(tm, v, base)), q(P(ta, v, ha)), q(P(tb, v, hb))], cut);
+            const w = v ? 1 + e : -e;
+            bar(trim, P(ta, w, ha + 0.06), P(tb, w, hb + 0.06), 0.1, 0.2);
+          }
+        }
+        continue;
+      }
       for (const [a, z] of [[t0, tm], [t1, tm]]) {
         slope.poly([q(P(a, -e, base)), q(P(z, -e, top)), q(P(z, 1 + e, top)), q(P(a, 1 + e, base))], cut);
         // (the glass a little over the slope, from a third of the way up to two thirds)

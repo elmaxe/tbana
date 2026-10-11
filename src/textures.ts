@@ -2903,6 +2903,99 @@ export function forestFloor() {
   return toTexture(c, { repeat: false });
 }
 
+// Leif Tjerned's boxes of neon at Gullmarsplan (1995): the coloured glass in a box's underside,
+// lit from within: shards of saturated colour, oblongs, triangles and slivers, scattered over
+// the dark (`seed`, one box from another).
+export function neonGlass(seed: number) {
+  const W = 256, H = 128, [c, x] = canvas(W, H), r = rng(1995 + seed * 53);
+  x.fillStyle = '#121316'; x.fillRect(0, 0, W, H);
+  const colours = ['#2457ff', '#ffd21a', '#ff2e1f', '#1fc25e', '#f4f4ee', '#9a3cff', '#1fc8e6', '#ff7a1a'];
+  for (let k = 0; k < 26; k++) {
+    const cx = 10 + r() * (W - 20), cy = 8 + r() * (H - 16), a = r() * Math.PI, l = 10 + r() * 42, w = 4 + r() * 16;
+    const ca = Math.cos(a), sa = Math.sin(a), kind = r();
+    x.fillStyle = colours[Math.floor(r() * colours.length)];
+    x.shadowColor = x.fillStyle; x.shadowBlur = 6;
+    x.beginPath();
+    if (kind < 0.45) {
+      // an oblong
+      for (const [p, q] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * w / 2, cy + sa * p * l / 2 + ca * q * w / 2);
+    } else if (kind < 0.8) {
+      // a triangle
+      for (const [p, q] of [[-1, -1], [1, 0], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * w, cy + sa * p * l / 2 + ca * q * w);
+    } else {
+      // a sliver, slanting
+      for (const [p, q] of [[-1, -0.3], [1, -1], [1, 0.3], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * 3, cy + sa * p * l / 2 + ca * q * 3);
+    }
+    x.closePath(); x.fill();
+  }
+  x.shadowBlur = 0;
+  return toTexture(c, { repeat: false });
+}
+
+// One of Leif Tjerned's angels at Gullmarsplan (Änglarna, 1997), cut out of aluminium and painted:
+// a woman lying back along the wall, her head at the upper left, in a red dress laced at the
+// bodice, its pleated skirt hemmed in a zigzag of blue, her arm hanging down beside it and her bare
+// legs stretched out to the right to red high-heeled shoes; behind her shoulders a great wing of
+// gold flaring up and back, and round its root a fan of feathers, red, blue, yellow, green and
+// white. Drawn on a clear ground, to be cut out (1.6 by 1, its foot along the bottom).
+export function angel() {
+  const W = 1024, H = 640, [c, x] = canvas(W, H);
+  const P = (u: number, v: number): [number, number] => [u * W, (1 - v) * H];
+  const shape = (fill: string, pts: [number, number][], stroke?: string) => {
+    x.fillStyle = fill; x.beginPath();
+    pts.forEach(([u, v], k) => { const [px, py] = P(u, v); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+    x.closePath(); x.fill();
+    if (stroke) { x.strokeStyle = stroke; x.lineWidth = 3; x.stroke(); }
+  };
+  // a limb from a to b, wa thick at a and wb at b (in parts of the height)
+  const limb = (fill: string, a: [number, number], b: [number, number], wa: number, wb: number, stroke: string) => {
+    const du = (b[0] - a[0]) * W, dv = (b[1] - a[1]) * H, l = Math.hypot(du, dv), nu = -dv / l / W * H, nv = du / l;
+    shape(fill, [[a[0] + nu * wa / 2, a[1] + nv * wa / 2], [b[0] + nu * wb / 2, b[1] + nv * wb / 2], [b[0] - nu * wb / 2, b[1] - nv * wb / 2], [a[0] - nu * wa / 2, a[1] - nv * wa / 2]], stroke);
+  };
+  // the feathers fanned round the wing's root, then the wing
+  const root: [number, number] = [0.24, 0.6], colours = ['#d8261c', '#2348b8', '#f2c21a', '#2f9a46', '#f4f2ea', '#d8261c', '#2348b8', '#f2c21a', '#2f9a46', '#d8261c', '#2348b8'];
+  colours.forEach((f, k) => {
+    const t = 1.85 + k * 0.16, r = 0.27 + (k % 3) * 0.07, w = 0.07;
+    const tip: [number, number] = [root[0] + Math.cos(t) * r * 0.62, root[1] + Math.sin(t) * r];
+    const side = (d: number): [number, number] => [root[0] + Math.cos(t + d) * r * 0.3, root[1] + Math.sin(t + d) * r * 0.48];
+    shape(f, [side(-w * 3), tip, side(w * 3)], '#1b1b1b');
+    if (f === '#f4f2ea') { x.fillStyle = '#1b1b1b'; for (let j = 1; j < 4; j++) { const [px, py] = P(root[0] + (tip[0] - root[0]) * j / 4, root[1] + (tip[1] - root[1]) * j / 4); x.beginPath(); x.arc(px, py, 5, 0, Math.PI * 2); x.fill(); } }
+  });
+  shape('#d9a521', [[0.22, 0.6], [0.15, 0.76], [0.1, 0.99], [0.27, 0.86], [0.31, 0.99], [0.37, 0.84], [0.5, 0.93], [0.4, 0.72], [0.33, 0.6]], '#6b4a10');
+  x.fillStyle = 'rgba(255,240,180,0.45)';
+  x.beginPath(); x.moveTo(...P(0.14, 0.94)); x.lineTo(...P(0.25, 0.8)); x.lineTo(...P(0.2, 0.74)); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(...P(0.45, 0.89)); x.lineTo(...P(0.33, 0.76)); x.lineTo(...P(0.36, 0.7)); x.closePath(); x.fill();
+  // her legs, stretched out to the right, and the shoes
+  const skin = '#e3b391', shade = '#b98466';
+  limb(skin, [0.54, 0.31], [0.86, 0.17], 0.1, 0.06, shade);
+  limb(skin, [0.53, 0.22], [0.83, 0.07], 0.1, 0.06, shade);
+  shape('#c8141e', [[0.85, 0.13], [0.97, 0.15], [0.98, 0.21], [0.87, 0.21]], '#5a0508');
+  shape('#c8141e', [[0.82, 0.03], [0.94, 0.04], [0.95, 0.1], [0.84, 0.11]], '#5a0508');
+  limb('#5a0508', [0.86, 0.13], [0.85, 0.08], 0.012, 0.012, '#5a0508');
+  // her arm hanging down beside her
+  limb(skin, [0.25, 0.54], [0.13, 0.2], 0.07, 0.05, shade);
+  shape(skin, [[0.1, 0.22], [0.15, 0.22], [0.14, 0.13], [0.11, 0.13]], shade);
+  // the dress: the bodice and its lacing, the pleated skirt and its blue zigzag hem
+  shape('#c0182a', [[0.19, 0.57], [0.34, 0.63], [0.44, 0.45], [0.3, 0.36]], '#5a0610');
+  x.strokeStyle = '#f2e6d8'; x.lineWidth = 3;
+  for (let k = 0; k < 5; k++) { const t = 0.2 + k * 0.15; x.beginPath(); x.moveTo(...P(0.25 + t * 0.1, 0.6 - t * 0.2)); x.lineTo(...P(0.31 + t * 0.1, 0.55 - t * 0.17)); x.stroke(); }
+  shape('#c0182a', [[0.3, 0.36], [0.44, 0.45], [0.58, 0.36], [0.57, 0.15], [0.36, 0.1], [0.27, 0.2]], '#5a0610');
+  x.strokeStyle = 'rgba(70,0,10,0.55)'; x.lineWidth = 4;
+  for (let k = 0; k < 9; k++) { const t = k / 9; x.beginPath(); x.moveTo(...P(0.33 + t * 0.12, 0.38 + t * 0.06)); x.lineTo(...P(0.3 + t * 0.26, 0.17 - t * 0.02 + Math.abs(t - 0.4) * 0.05)); x.stroke(); }
+  // (along the skirt's lower edge, from its back by her hip round to its front)
+  const edge = (t: number): [number, number] => t < 0.35 ? [0.27 + (t / 0.35) * 0.09, 0.2 - (t / 0.35) * 0.1] : [0.36 + ((t - 0.35) / 0.65) * 0.21, 0.1 + ((t - 0.35) / 0.65) * 0.05];
+  const top = Array.from({ length: 15 }, (_, k): [number, number] => { const [u, v] = edge(k / 14); return [u, v + 0.035 + (k % 2) * 0.035]; });
+  const foot = Array.from({ length: 15 }, (_, k): [number, number] => { const [u, v] = edge(1 - k / 14); return [u, v - 0.015]; });
+  shape('#2348b8', [...top, ...foot], '#101a50');
+  // her neck and head thrown back, her dark hair
+  shape(skin, [[0.18, 0.62], [0.24, 0.62], [0.24, 0.56], [0.18, 0.56]]);
+  x.fillStyle = '#2a1a12'; x.beginPath(); x.ellipse(...P(0.13, 0.68), 0.055 * W, 0.13 * H, -0.4, 0, Math.PI * 2); x.fill();
+  x.fillStyle = skin; x.beginPath(); x.ellipse(...P(0.155, 0.655), 0.035 * W, 0.095 * H, -0.4, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#7a2a20'; x.fillRect(...P(0.16, 0.61), 0.014 * W, 0.01 * H);
+  x.fillStyle = '#2a1a12'; x.fillRect(...P(0.15, 0.68), 0.01 * W, 0.008 * H); x.fillRect(...P(0.17, 0.675), 0.01 * W, 0.008 * H);
+  return toTexture(c, { repeat: false });
+}
+
 // Glass wind screens on a viaduct's edge, in steel frames 1.25 m apart: some panes printed with a
 // big green leaf (maple, lime, horse chestnut, rowan, oak, birch) outlined in white, the rest
 // plain. Eight panes across, 2.2 m high; the glass itself faintly tinted.
@@ -2989,7 +3082,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
   splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
   redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
-  pineBoards: [1.2, 1.2],
+  pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
@@ -4012,6 +4105,30 @@ export function finish(name: Finish) {
         for (let k = 0; k < 10; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '110,64,26' : '214,160,96'},0.25)`; x.fillRect(r() * W, j * 0.1 * PX + 2 + r() * (0.1 * PX - 5), 20 + r() * 80, 1); }
       }
       break;
+    case 'redTiles': {
+      // Gullmarsplan's walls: glossy red tiles 30 cm square, in pale grey joints, a glint on each
+      x.fillStyle = '#a9a5a0'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 22);
+        x.fillStyle = `rgb(${178 + v},${18 + v * 0.4},${26 + v * 0.4})`; x.fillRect(i * t + 2, j * t + 2, t - 4, t - 4);
+        x.fillStyle = 'rgba(255,255,255,0.13)'; x.fillRect(i * t + 5, j * t + 5, t * 0.5, 3);
+        x.fillStyle = 'rgba(60,0,0,0.12)'; x.fillRect(i * t + 2, j * t + t * 0.6, t - 4, t * 0.4 - 2);
+      }
+      break;
+    }
+    case 'bronzeGlass': {
+      // Gullmarsplan's bus terminal: a curtain wall of tinted glass, bronze-grey, in dark frames
+      // 1.5 m apart, a transom every 1.8 m; drawn as seen from outside, the sky's grey in the glass
+      x.fillStyle = '#2e2a26'; x.fillRect(0, 0, W, H);
+      for (const [a, b] of [[0.04, 1.76], [1.84, 3.56]]) {
+        const g = x.createLinearGradient(0, Y(b), 0, Y(a));
+        g.addColorStop(0, '#8a8278'); g.addColorStop(1, '#4f4943');
+        x.fillStyle = g; x.fillRect(0.04 * PX, Y(b), W - 0.08 * PX, (b - a) * PX);
+        x.fillStyle = 'rgba(255,250,240,0.1)'; x.fillRect(0.04 * PX, Y(b), W * 0.28, (b - a) * PX);
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -4020,7 +4137,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

@@ -74,6 +74,105 @@
       ],
       "structure": "surface",
       "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783459,
+        1283480525
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480525,
+        1283480533
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480533,
+        1283480535
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783335,
+        1283480535
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783290,
+        1279783407
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783342,
+        1279783429
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480535,
+        146909367
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        146909367,
+        254888808
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        254888808,
+        146909365
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        146909365,
+        1258848581
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1258848581,
+        1258848560
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
     }
   ],
   "crossovers": [

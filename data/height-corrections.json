@@ -57,6 +57,11 @@
       "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.7 m low. Lantmäteriet's laser scan has the platform's surface at 36.6–36.7 m and the ballast beside it at 35.4 m; the streets under the track deck at the ticket hall are at 32.1–33.0 m."
     },
     {
+      "station": "Gullmarsplan",
+      "height": 38.3,
+      "why": "Wikidata has no height, and the platform tracks came out 2.5 m under the ground, so the station sat in a trench. Lantmäteriet's laser scan (2021) has both platforms' surface at 38.2–38.4 m and the ballast beside them at 36.9–37.2 m, falling a little to the north; Johanneshovsvägen's deck over the platforms' south end is at 42.7–43.5 m."
+    },
+    {
       "station": "Bandhagen",
       "height": 36.72,
       "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.5 m low. Lantmäteriet's laser scan has the platform's surface at 36.7–36.8 m over its southern half and 36.5 m at its north end, the ballast beside it about 1.2 m lower, and the street under the bridge at its south end at 30.2 m."
@@ -116,6 +121,38 @@
       ],
       "reach": 25,
       "why": "Gullmarsplan, south of the platforms: the tracks run on under the bus terminal's deck and Nynäsvägen in a concrete box, not a bored tunnel, so they need no cover of rock."
+    },
+    {
+      "along": [
+        [1266, 3641],
+        [1271, 3658],
+        [1277, 3674],
+        [1285, 3691],
+        [1295, 3707],
+        [1306, 3722],
+        [1318, 3736],
+        [1331, 3750],
+        [1345, 3762],
+        [1360, 3774],
+        [1377, 3784]
+      ],
+      "reach": 10,
+      "why": "Gullmarsplan, south-east of the platforms: the northbound track from Skärmarbrink runs under the bus terminal's deck from its portal by Nynäsvägen, in a concrete box at the level of the station's cutting, not a bored tunnel. The elevation model has the cutting's floor under the deck, at the rails' level, so cover of rock would put the track 6 m under the station and drag the platforms down with it."
+    },
+    {
+      "along": [
+        [1229, 3629],
+        [1238, 3656],
+        [1250, 3681],
+        [1265, 3704],
+        [1283, 3726],
+        [1304, 3745],
+        [1328, 3762],
+        [1353, 3778],
+        [1379, 3791]
+      ],
+      "reach": 10,
+      "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, under the bus terminal's deck to the same portal as the northbound one beside it."
     }
   ],
   "offGround": [
@@ -199,6 +236,26 @@
       ],
       "reach": 15,
       "why": "The bridge from Gamla stan to Slussen, over Söderström: Google Earth's 3D model, tied to Lantmäteriet's elevation model on Södermalm and Munkbroleden, has its rails climbing from 4 m at Gamla stan's quay to 8 m at Slussen. Bridges get no anchor of their own, so without this the line hung between the stations, level at 6.5–7 m."
+    },
+    {
+      "along": [
+        [1378, 3786, 36.35],
+        [1395, 3793, 36.95],
+        [1412, 3800, 37.6],
+        [1431, 3805, 38.25],
+        [1449, 3811, 38.85]
+      ],
+      "reach": 8,
+      "why": "South-east of Gullmarsplan, where the tracks to Skärmarbrink come out from under the bus terminal and Nynäsvägen: Lantmäteriet's laser scan has their ballast at 36.1 m at the tunnel's mouth, rising to 38.6 m 50 m on. With the platforms at their real height, the solve otherwise kept the tunnel level and brought the track out 1.6 m above the ground."
+    },
+    {
+      "along": [
+        [1276.6, 3730.9, 34.7],
+        [1289.6, 3746.8, 34.8],
+        [1306.8, 3758.2, 34.9]
+      ],
+      "reach": 4,
+      "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, after it has passed under the tracks to Globen, stays in its deeper tunnel (OpenStreetMap: layer -3) for another 50 m before it climbs to the portal it shares with the northbound track. Left to the solve, it rose to within 1.5 m of the northbound track at once, so the two were drawn as one pair in a single tunnel, though OpenStreetMap has them 25 m apart there, and the plan bent them tighter than the line's 200 m curves."
     }
   ],
   "toBridge": [
@@ -272,6 +329,17 @@
       "reach": 15,
       "clearance": 6.5,
       "why": "Hjorthagen, between Gärdet and Ropsten: the line comes out of the rock face below Gärdet on to a 300 m concrete beam bridge (OpenStreetMap: bridge, layer 2) over Tegeluddsvägen, Lidingövägen and the ramps of Norra länken, and goes into the hill again before Ropsten. Bridges get no anchor of their own, so without this it ran level from Gärdet's platforms at the height of the tunnel, 3 m under the ground at the streets. Not held at the ends, where the ground rises to the mouths."
+    }
+  ],
+  "stacked": [
+    {
+      "along": [
+        [1250, 3681],
+        [1268, 3707]
+      ],
+      "reach": 20,
+      "clearance": 5.0,
+      "why": "Gullmarsplan, south of the platforms: the southbound track to Skärmarbrink passes under the two tracks to Globen (OpenStreetMap: layer -3 under -2) about 70 m from the platforms' south ends, which the laser scan puts at 38.3 m. Held level that far, the tracks can part by only about 5.2 m at the line's gradient, so with the usual 6.5 m the junction dragged the whole station 2.5 m down. Concrete boxes with a thin slab between them need about 5 m: a C20 is 3.7 m tall over the rail."
     }
   ]
 }

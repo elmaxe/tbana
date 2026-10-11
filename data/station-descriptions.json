@@ -1106,22 +1106,52 @@
     },
     "Gullmarsplan": {
       "drawing": "gullmarsplan.png",
-      "note": "Two island platforms where the line divides, their south end under the bus terminal's deck. From the south end of each, stairs climb to a ticket hall over the tracks, which opens onto the terminal.",
+      "note": "Two island platforms where the line divides, the southern half of each under the deck that carries Johanneshovsvägen over the tracks and its southern end under the bus terminal beyond it. From the south end of each, stairs and an escalator side by side climb into the terminal, and a lift from its very end; through the gates the way out is north through the terminal's doors onto the square on the deck. From OpenStreetMap's indoor mapping (the flights from 62 m to 73 m south of the platforms' middle, the lifts at 73 m, the gates at 76 m, the doors at 61 m), the laser scan (the deck and the square, 4.4–5.2 m over the platforms; the terminal from 61 m to 83 m south) and photographs (2008 to 2025).",
       "routes": [
-        { "from": [-5, 9.5], "width": 3, "go": [
-          {"stairs": 6, "toward": [-150, 9.5]},
-          {"walk": [-30, 9.5], "width": 4},
-          {"walk": [-30, -9.6], "width": 6},
-          {"mark": "hall"}
+        { "from": [-55, -13.4], "width": 5.1, "go": [
+          {"walk": [-62, -13.4], "open": true},
+          {"stairs": 5.0, "toward": [-200, -13.4], "lanes": "SsE"},
+          {"walk": [-73.5, -13.4], "open": true}
         ] },
-        { "from": [-5, -9.6], "width": 3, "go": [
-          {"stairs": 6, "toward": [-150, -9.6]},
-          {"walk": [-30, -9.6], "width": 4}
+        { "from": [-55, 10.1], "width": 5.1, "go": [
+          {"walk": [-62, 10.1], "open": true},
+          {"stairs": 5.0, "toward": [-200, 10.1], "lanes": "ESs"},
+          {"walk": [-73.5, 10.1], "open": true}
         ] },
-        { "from": "hall", "width": 6, "go": [
-          {"walk": [-30, -27]},
+        { "from": [-64, -18.4], "width": 2.0, "go": [
+          {"walk": [-71, -18.4], "open": true},
+          {"lift": 5.0, "through": true},
+          {"walk": [-74.6, -18.4], "open": true}
+        ] },
+        { "from": [-64, 13.9], "width": 2.0, "go": [
+          {"walk": [-71, 13.9], "open": true},
+          {"lift": 5.0, "through": true},
+          {"walk": [-74.6, 13.9], "open": true}
+        ] },
+        { "from": [-74.6, -19.6], "h": 5.0, "width": 2.8, "go": [
+          {"walk": [-74.6, -10.4], "open": true}
+        ] },
+        { "from": [-74.6, 7.1], "h": 5.0, "width": 2.8, "go": [
+          {"walk": [-74.6, 15.0], "open": true}
+        ] },
+        { "from": [-75.7, -15.5], "h": 5.0, "width": 3.0, "go": [
+          {"walk": [-76.1, -15.5], "open": true},
           {"gates": true},
-          {"exit": 247214892}
+          {"walk": [-76.6, -15.5], "open": true}
+        ] },
+        { "from": [-75.7, 12.2], "h": 5.0, "width": 3.0, "go": [
+          {"walk": [-76.1, 12.2], "open": true},
+          {"gates": true},
+          {"walk": [-76.6, 12.2], "open": true}
+        ] },
+        { "from": [-79.1, -24.6], "h": 5.0, "width": 5.6, "go": [
+          {"walk": [-79.1, 16], "open": true}
+        ] },
+        { "from": [-76.6, 0.4], "h": 5.0, "width": 6.0, "go": [
+          {"exit": {"at": [-58.6, 0.4], "name": "Gullmarsplan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-76.6, -22.4], "h": 5.0, "width": 4.4, "go": [
+          {"exit": {"at": [-58.6, -22.4], "name": "Johanneshovsvägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },
