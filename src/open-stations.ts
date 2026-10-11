@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -129,6 +129,16 @@ function ball(m: Mesh, c: XYZ, r: number) {
   for (let i = 0; i < n; i++) for (let j = 0; j < rings; j++) m.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
 }
 
+// An ellipsoid round c, its half-axes the vectors a, b and n.
+function blob(m: Mesh, c: XYZ, a: XYZ, b: XYZ, n: XYZ) {
+  const seg = 12, rings = 8;
+  const P = (i: number, j: number) => {
+    const t = (i / seg) * Math.PI * 2, p = (j / rings) * Math.PI, k = [Math.cos(p), Math.sin(p) * Math.cos(t), Math.sin(p) * Math.sin(t)];
+    return [0, 1, 2].map((q) => c[q] + a[q] * k[0] + b[q] * k[1] + n[q] * k[2]).concat([i / seg, j / rings]);
+  };
+  for (let i = 0; i < seg; i++) for (let j = 0; j < rings; j++) m.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
+}
+
 // A length of folding ruler from a to b: its broad faces `w` wide, upright with `side` (level,
 // square to it) through them, or lying (`flat`), facing up and down; `t` thick. Its uvs run along
 // it in metres from `from` (over the ruler's texture, T.RULER_REPEAT long) and across its broad
@@ -190,7 +200,7 @@ export class OpenLook {
     return this.mat(`finish:${f}:${ceiling}`, () => {
       const map = T.finish(f);
       return new THREE.MeshStandardMaterial({
-        map, roughness: f === 'triangles' || f === 'darkStone' ? 0.4 : 0.8, alphaTest: T.FINISH_GLASS.includes(f) ? 0.5 : 0,
+        map, roughness: f === 'triangles' || f === 'darkStone' || f === 'blackTiles' ? 0.4 : 0.8, alphaTest: T.FINISH_GLASS.includes(f) ? 0.5 : 0,
         // (a ceiling lit by the lamps under it: the dark steel panels more)
         emissive: ceiling ? (f === 'perforated' ? 0x6a6a6a : 0x3a3936) : 0x000000, emissiveMap: ceiling ? map : null, side: THREE.DoubleSide,
       });
@@ -269,6 +279,7 @@ export class OpenLook {
       else if (a.kind === 'stone') this.stone(a, frame, on);
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
+      else if (a.kind === 'bird') this.bird(a, frame, on);
     }
   }
 
@@ -411,6 +422,34 @@ export class OpenLook {
     };
     for (let i = 0; i < seg; i++) for (let j = 0; j < rows; j++) red.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
     red.poly(Array.from({ length: seg }, (_, i) => P(seg - i, 0)));
+  }
+
+  // Björn Selder's Fågel Grön (1983): its lobes as [right, up, forward] from the knot, how long
+  // each is and how wide its club, read from photographs
+  private bird(a: Bird, frame: Frame, on: On) {
+    const bronze = on(this.color(0x2f2d29, 0.45, 0.5)), cd = Math.cos(a.turn), sd = Math.sin(a.turn);
+    // forward (the way it faces), across to its right, and up, in the station's frame
+    const at = (fwd: number, side: number, h: number): XYZ => frame.at(a.s + cd * fwd - sd * side, a.u + sd * fwd + cd * side, h);
+    const o = at(0, 0, 0), vec = (side: number, up: number, fwd: number): XYZ => { const p = at(fwd, side, up); return [p[0] - o[0], p[1] - o[1], p[2] - o[2]]; };
+    const unit = (v: number[]): XYZ => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+    const cross = (p: XYZ, q: XYZ): XYZ => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
+    const knot = a.height - 0.75, c = at(0, 0, knot), ahead = vec(0, 0, 1);
+    box(bronze, at(0, 0, (knot - 0.1) / 2), ahead[0], ahead[2], 0.15, knot - 0.1, 0.15);
+    ball(bronze, c, 0.2);
+    const LOBES: [number, number, number, number, number][] = [
+      [-1, 0.12, 0.05, 1.1, 0.24], [1, 0.45, -0.15, 1.05, 0.23], [-0.25, 1, 0.1, 0.68, 0.21], [0.25, 0.85, 0.45, 0.6, 0.21],
+      [-0.75, -0.65, 0.2, 0.82, 0.22], [0.45, -0.85, 0.25, 0.68, 0.2], [0.1, 0.2, -1, 0.66, 0.2],
+    ];
+    for (const [x, y, z, L, w] of LOBES) {
+      const d = unit(vec(x, y, z)), P = (t: number): XYZ => [c[0] + d[0] * L * t, c[1] + d[1] * L * t, c[2] + d[2] * L * t];
+      // (its broad faces to the front, or up where it reaches forward or back)
+      const f = Math.abs(z) > 0.8 ? vec(0, 1, 0) : ahead, k = f[0] * d[0] + f[1] * d[1] + f[2] * d[2];
+      const n = unit([f[0] - k * d[0], f[1] - k * d[1], f[2] - k * d[2]]), b = cross(d, n);
+      limb(bronze, P(0), P(0.38), 0.14, 0.1);
+      limb(bronze, P(0.38), P(0.52), 0.1, w * 0.85);
+      const half = 0.33 * L;
+      blob(bronze, P(0.69), [d[0] * half, d[1] * half, d[2] * half], [b[0] * w, b[1] * w, b[2] * w], [n[0] * w * 0.55, n[1] * w * 0.55, n[2] * w * 0.55]);
+    }
   }
 
   // polished aluminium, crazed
@@ -898,12 +937,12 @@ export class OpenLook {
     const post = on(this.color(a.color ?? 0x6b2c24, 0.5, a.color ? 0.6 : 0.3)), shade = on(this.color(0xe9ebea, 0.35, 0.2));
     const bulb = on(this.mat('bulb', () => new THREE.MeshBasicMaterial({ color: 0xfff4dc, side: THREE.DoubleSide })));
     const H = a.height, A = a.arm ?? 0.6, lamps = a.top === false ? [[-A, H - 0.42, 0.23], [A, H - 0.42, 0.23]] : [[0, H - 0.08, 0.23], [-A, H - 0.42, 0.23], [A, H - 0.42, 0.23]];
-    if (a.lower !== undefined) lamps.push([-0.35, a.lower - 0.04, 0.14], [0.35, a.lower - 0.04, 0.14]);
+    if (a.lower !== undefined) lamps.push([-0.35, a.lower - 0.04, 0.14], ...(a.lowerOne ? [] : [[0.35, a.lower - 0.04, 0.14]]));
     for (const [s, u] of a.at) {
       const c = frame.at(s, u, 0), fx = frame.fx, fz = frame.fz;
       box(post, [c[0], c[1] + (H - 0.3) / 2, c[2]], fx, fz, 0.12, H - 0.3, 0.12);
       bar(post, frame.at(s, u - A, H - 0.38), frame.at(s, u + A, H - 0.38), 0.06, 0.06);
-      if (a.lower !== undefined) bar(post, frame.at(s, u - 0.35, a.lower), frame.at(s, u + 0.35, a.lower), 0.05, 0.05);
+      if (a.lower !== undefined) bar(post, frame.at(s, u - 0.35, a.lower), frame.at(s, u + (a.lowerOne ? 0 : 0.35), a.lower), 0.05, 0.05);
       // the sign along the platform, on a bracket, its face to each track
       if (a.sign !== undefined) {
         const W = 1.5, Hs = 0.375, sc = frame.at(s + 0.15 + W / 2, u, a.sign);
@@ -931,7 +970,7 @@ export class OpenLook {
   private roundel(a: Roundel, frame: Frame, on: On, group: THREE.Group) {
     const steel = on(this.color(0x9aa0a4, 0.45, 0.6)), r = a.size / 2;
     box(steel, frame.at(a.s, a.u, (a.foot + a.h - r) / 2), frame.fx, frame.fz, 0.08, a.h - r - a.foot, 0.08);
-    const c = frame.at(a.s, a.u, a.h), rx = -frame.fz, rz = frame.fx;
+    const c = frame.at(a.s, a.u, a.h), rx = a.along ? frame.fx : -frame.fz, rz = a.along ? frame.fz : frame.fx;
     const rim = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.08, 32).rotateZ(Math.PI / 2), this.color(0xdfe1df, 0.4, 0.4));
     rim.position.set(...c);
     rim.rotation.y = Math.atan2(rx, rz) - Math.PI / 2;

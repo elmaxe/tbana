@@ -1691,14 +1691,23 @@
     },
     "Rågsved": {
       "drawing": "ragsved.png",
-      "note": "An island platform in the open. At its south-west end stairs go down to the ticket hall under the tracks.",
+      "note": "An island platform on a bank, its south-western end on a bridge over the passage under the tracks. Under its W-shaped roof a glazed stair house: an escalator, and stairs beside it, go down from its north-eastern door to the ticket hall at the street under the platform, and from the gates the way out is through the doors in the hall's south-western front onto the passage. A lift in a glazed tower at the roof's south-western end goes down to the hall. From the laser scan (the platform from 58 m south-west of its middle to 90 m north-east, the roof from 19 m south-west to 49 m north-east, the passage 6.95 m under the platform), OpenStreetMap's indoor mapping (the flights, the gates at 27 m south-west, the lift at 19 m) and photographs (2008 to 2025).",
       "routes": [
-        { "from": [-49.87436714794674, -2.9], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -3.8]},
-          {"walk": [-66.0, -4.4], "width": 6},
-          {"walk": [-66.0, -19.1], "width": 4},
+        { "from": [17.5, 2.1], "width": 3.6, "go": [
+          {"walk": [16.3, 2.03], "open": true},
+          {"escalators": -6.95, "to": [-4.5, 0.8], "lanes": "SE"},
+          {"walk": [-9.0, 0.56], "open": true},
+          {"walk": [-15.7, -0.3], "width": 6.0, "open": true},
+          {"walk": [-26.3, -0.8], "width": 7.4, "open": true},
           {"gates": true},
-          {"exit": 3531858631}
+          {"walk": [-36.0, -2.6], "width": 5.0, "open": true},
+          {"exit": 3531858631, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-12.6, -3.95], "width": 2.2, "go": [
+          {"walk": [-18.2, -3.95], "open": true},
+          {"lift": -6.95, "above": 4.1},
+          {"walk": [-15.4, -3.95], "open": true},
+          {"walk": [-15.4, -1.0], "open": true}
         ] }
       ]
     },

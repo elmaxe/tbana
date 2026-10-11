@@ -129,10 +129,11 @@ export interface Paving {
 //
 // `sill`: in a glass building (a block's), the walls beside its floors and stairs rise only to
 // this height, the building's glass above them, and its stairs have no ceiling of their own.
+// `left`: the walls on the left (facing −u, looking along the platform) in this finish instead.
 export interface Room {
   name: string;
   s: [number, number]; u?: [number, number]; h: [number, number];
-  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish;
+  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish; left?: Finish;
   roof?: number; slab?: number; sill?: number;
 }
 
@@ -199,7 +200,11 @@ export type Finish =
   | 'silverPerforated' // silver-grey sheet-metal panels, finely perforated, 1.2 by 3 m
   | 'libraryFront'  // shop fronts under a canopy, white panels, a band of windows between dark blue piers, white panels
   | 'libraryBack'   // as libraryFront, white panels in place of the shop fronts
-  | 'libraryEntrance'; // as libraryFront, glass doors in brushed steel under SL's dark blue band in place of the shop fronts
+  | 'libraryEntrance' // as libraryFront, glass doors in brushed steel under SL's dark blue band in place of the shop fronts
+  | 'blackTiles'    // glossy black tiles, 15 cm, in pale grey joints
+  | 'glassBlocks'   // glass blocks, 20 cm, pale green, in grey mortar
+  | 'blueMosaic'    // a mosaic of small rectangles in greys, blues and white
+  | 'warmMosaic';   // a mosaic of small rectangles in creams, browns, rust, teal and dark blue
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -224,7 +229,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -243,8 +248,9 @@ export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: nu
 // dome lamp on top and one on an arm to each side, `height` high; or a galvanised one (`color`),
 // with only the two on the arm (`top: false`), and the station's name on a black sign on it
 // (`sign`, so high; SL's dark blue over a yellow stripe, `blue`). `arm`: the arm reaches this far
-// each way (0.6 m by default); `lower`, a second, shorter arm with two small lamps, so high.
-export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number }
+// each way (0.6 m by default); `lower`, a second, shorter arm with two small lamps, so high (or
+// reaching only to the left, with one, `lowerOne`).
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number; lowerOne?: boolean }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts): the dragon of Tallkrogen's, or a
@@ -256,8 +262,8 @@ export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloo
 export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
 
 // The metro's round sign on a post on a roof at s, u, its middle `h` high and `size` across, its
-// faces across the platform; the post from `foot` up.
-export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number }
+// faces across the platform (or, `along`, along it); the post from `foot` up.
+export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number; along?: boolean }
 
 // Stacks of green glass sheets, each tapering on all sides to a narrow ridge, `count` of them side
 // by side along the platform with their middle at s, u, standing on the ground `foot` high, the
@@ -308,6 +314,12 @@ export interface Columns { kind: 'columns'; at: [number, number][]; from: number
 // broad leaf on its foot, patinated green, rising behind it and twisting, its stem climbs, leaning
 // `turn` (radians, as a guardian's) and nodding forward at its top, to a flower lacquered red.
 export interface Tulip { kind: 'tulip'; s: number; u: number; height: number; turn: number }
+
+// A bird of dark bronze on a square post, `height` high, at s, u (in the station's frame): from a
+// knot on the post's top seven lobes reach out, each a narrow neck swelling to a flattened, rounded
+// club, two long ones out to the sides, two up, two hanging and one back; facing `turn` (radians,
+// as a guardian's).
+export interface Bird { kind: 'bird'; s: number; u: number; height: number; turn: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
@@ -1838,9 +1850,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: "eastern stair house's west side", plan: [[-93.8, 1.78], [-73.0, 1.78], [-73.0, 1.88], [-93.8, 1.88]], h: [0, 10.3], low: 3.2, walls: 'silverPerforated' },
       { name: "eastern stair house's east side", plan: [[-93.8, 8.32], [-73.0, 8.32], [-73.0, 8.42], [-93.8, 8.42]], h: [0, 10.3], low: 3.2, walls: 'silverPerforated' },
       // the landings at the stair heads, beside the flights and the lifts
-      { name: "western stair head", plan: [[-93.8, -8.8], [-90.76, -8.8], [-90.76, -2.55], [-93.8, -2.55]], h: [5.6, 5.6], from: 5.6,
+      { name: "western stair head", plan: [[-93.8, -8.8], [-92.3, -8.8], [-92.3, -2.55], [-93.8, -2.55]], h: [5.6, 5.6], from: 5.6,
         walls: 'darkStone', sides: [null, null, null, null], floor: 'darkStone' },
-      { name: "eastern stair head", plan: [[-93.8, 1.9], [-90.25, 1.9], [-90.25, 8.3], [-93.8, 8.3]], h: [5.6, 5.6], from: 5.6,
+      { name: "eastern stair head", plan: [[-93.8, 1.9], [-92.3, 1.9], [-92.3, 8.3], [-93.8, 8.3]], h: [5.6, 5.6], from: 5.6,
         walls: 'darkStone', sides: [null, null, null, null], floor: 'darkStone' },
       // the building: its shell, white panels round the library's band of windows, shop windows
       // under the canopy at its ends, its ground floor dark at the back over the tracks, where the
@@ -1904,6 +1916,145 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-95, 15.8], [-50, 15.8]], h: [-0.6, 1.4] },
       { points: [[-50, 15.8], [-30, 15.8]], h: [-1.3, 0.7] },
       { points: [[-30, 15.8], [0, 15.6], [30, 15.6], [50, 15.8], [75, 16.0]], h: [-1.65, 0.35] },
+    ],
+  },
+
+  // Rågsved (14 November 1959, the line's end until 1960): an island platform on a bank, its
+  // south-western 42 m on the bridge over the passage under the tracks. Lantmäteriet's laser scan
+  // puts its roof from 19 m south-west of the platform's middle to 49 m north-east: a W of two
+  // butterflies side by side, each 6 m wide, 3 m over the platform at its valley and 3.2 m at its
+  // edges. Photographs (2008 to 2025) show the undersides boarded white on white rafters, a dark
+  // fascia, pairs of black columns along each valley, each pair under a beam; between the valleys,
+  // over the escalator and the stairs, a stair house glazed in dark frames on a concrete base, its
+  // door at its north-eastern end; at the roof's south-western end a lift in a glazed tower, the
+  // metro's round sign on a post on its top; pale edge stones, a dark ribbed strip and grey slabs
+  // in a bond. Out in the open, galvanised lamp posts with two dome lamps on an arm and a third
+  // lower down on one side (the laser scan: 4.5 m high), SL's blue sign on some; beyond the
+  // western track a retaining wall down to Rågsvedsvägen's pavement, chain-link on it and on along
+  // the bank, and a rock face beyond the eastern.
+  //
+  // Under the platform (OpenStreetMap's indoor mapping, photographs): the flights come down to the
+  // ticket hall at the street, the escalator's side tiled white, the stairs' black; the hall's
+  // floor dark terrazzo, glass blocks along its west side and black tiles along its east, the gates
+  // 27 m south-west of the platform's middle; in its front onto the passage, glass doors in brushed
+  // steel under SL's blue band, between mosaics of small rectangles, blue and grey to the west and
+  // in warm colours on the concrete pier to the east. West of the hall, shops facing Rågsvedsvägen
+  // under the bridge; across the passage a parapet over the cycle path's trough (the cycle path's
+  // tunnel under the bridge and the road isn't drawn); east of the bridge the kiosk, shuttered.
+  //
+  // Björn Selder's Fågel Grön (1983): a bird of dark bronze on a post near the platform's
+  // north-eastern end, 5.4 m high (the laser scan), its lobes about 2 m across.
+  'Rågsved': {
+    // the eastern butterfly (its middle along the eastern valley)
+    roof: {
+      kind: 'butterfly',
+      from: -18.6, to: 48.9, width: 6,
+      shape: [[-18.6, 3.45, 6], [0, 3.2, 6], [24, 3.25, 6], [48.9, 3.0, 6]],
+      middle: 3.0, edge: 3.22, thick: 0.15, fascia: 0.22,
+      rafters: 1.2, rafterSize: [0.06, 0.18], deck: 'boards', rafterColor: 0xefeee9,
+      beam: 0.4,
+      columns: { every: 8.0, at: 47.15, size: 0.12, plinth: { size: 0.22, height: 0.1 }, pair: 0.45 },
+      lamps: { offset: 1.9, length: 1.2, every: 4.0 },
+      colors: { underside: 0xe6e4de, fascia: 0x2b2e31, top: 0x4f5357, steel: 0x1d1f21 },
+      signs: { at: [], back: 'Utgång', ahead: '', blue: true },
+      clocks: [[35.15, 0]],
+      // (trains run on the left: Hagsätra's from the eastern track)
+      boards: [{ s: 12, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  3 min', '19 Hagsätra  13 min'] }],
+    },
+    // the western, beside it
+    roofs: [{
+      kind: 'butterfly',
+      from: -18.6, to: 48.9, width: 6,
+      shape: [[-18.6, -2.55, 6], [0, -2.8, 6], [24, -2.75, 6], [48.9, -3.0, 6]],
+      middle: 3.0, edge: 3.22, thick: 0.15, fascia: 0.22,
+      rafters: 1.2, rafterSize: [0.06, 0.18], deck: 'boards', rafterColor: 0xefeee9,
+      beam: 0.4,
+      columns: { every: 8.0, at: 47.15, size: 0.12, plinth: { size: 0.22, height: 0.1 }, pair: 0.45 },
+      lamps: { offset: 1.9, length: 1.2, every: 4.0 },
+      colors: { underside: 0xe6e4de, fascia: 0x2b2e31, top: 0x4f5357, steel: 0x1d1f21 },
+      signs: { at: [], back: 'Utgång', ahead: '', blue: true },
+      boards: [{ s: 30, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] }],
+    }],
+    paving: {
+      edge: 0.7, tactile: [0.7, 1.1], slabs: 1.1, slabSize: [0.4, 0.4], paverSize: [0.4, 0.4], mix: 0.2,
+      colors: { edge: 0xd0cec8, tactile: 0x63666a, slab: 0x707479, pavers: 0x707479, paler: 0x7b7f84, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w146396291', 'w146396290', 'w222139641'],
+    rooms: [
+      // (the stair house's walls and roof are its shell's)
+      { name: 'stair house', s: [-14.5, 16.6], u: [-3, 6], h: [-0.5, 0.5], walls: null, floor: 'darkStone' },
+      { name: 'platform', s: [-60, 95], h: [-0.5, 0.5], walls: null, floor: null },
+      // (open up to the stair house, its glass over them)
+      { name: 'flights', s: [-6, 9], u: [-3, 6], h: [-7.3, -6.5], walls: 'squareTiles', left: 'squareTiles', stairs: 'blackTiles', floor: 'darkStone', sill: 0 },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-38, -4], u: [-9, 6], h: [-7.3, -6.5], walls: null, floor: 'darkStone' },
+    ],
+    blocks: [
+      // the stair house between the roof's valleys, inside the pairs of columns, open down to the
+      // flights
+      { name: 'stair house', plan: [[-14, -1.97], [16.5, -0.15], [16.5, 4.95], [-14, 3.13]], h: [0, 2.85],
+        walls: 'boardConcrete', sides: [undefined, 'darkGlazed', undefined, undefined], band: { walls: 'darkGlazed', from: 0.8 },
+        floor: 'darkStone', ceiling: 'slats', roof: 0.15, roofColor: 0x2b2e31, onPlatform: true },
+      // the lift's tower (its door side the lift's own)
+      { name: 'lift tower', plan: [[-18.45, -5.1], [-20.95, -5.1], [-20.95, -2.8], [-18.45, -2.8]], h: [0, 4.1],
+        walls: 'darkGlazed', sides: [undefined, undefined, undefined, null], roof: 0.15, roofColor: 0x26282a },
+      // the ticket hall under the platform, dug into the bank; over the escalator's foot, the
+      // bulkhead up to the platform
+      { name: 'ticket hall', plan: [[-4.5, -5.4], [-37.3, -5.4], [-37.3, 3.8], [-4.5, 3.8]], h: [-7.5, -3.1], from: -6.95,
+        walls: 'blackTiles', sides: ['glassBlocks', null, undefined, undefined], floor: 'darkStone', ceiling: 'whitePanels', ground: true },
+      { name: 'bulkhead', plan: [[-4.45, -1.2], [-4.55, -1.2], [-4.55, 2.8], [-4.45, 2.8]], h: [-3.1, 0], from: -3.1, walls: 'whitePanels' },
+      // its front onto the passage: the doors under the name, the mosaics either side
+      { name: 'doors', plan: [[-37.25, -5.4], [-37.35, -5.4], [-37.35, 0.05], [-37.25, 0.05]], h: [-7.5, -2.6], from: -6.95, walls: 'glassFront',
+        nameSign: { side: 1, at: 0.5, length: 4.6, bottom: -4.6 } },
+      { name: 'mosaic, west', plan: [[-37.25, -13.5], [-37.35, -13.5], [-37.35, -5.4], [-37.25, -5.4]], h: [-7.5, -2.6], from: -6.95,
+        walls: 'boardConcrete', band: { walls: 'blueMosaic', from: -6.65 } },
+      { name: 'pier', plan: [[-37.25, 0.05], [-37.35, 0.05], [-37.35, 3.8], [-37.25, 3.8]], h: [-7.5, -2.6], from: -6.95, walls: 'boardConcrete' },
+      { name: 'mosaic, east', plan: [[-37.35, 0.6], [-37.38, 0.6], [-37.38, 2.0], [-37.35, 2.0]], h: [-6.45, -3.0], from: -6.45, walls: 'warmMosaic' },
+      // the shops west of it, their fronts to Rågsvedsvägen
+      { name: 'shops', plan: [[-18.0, -13.5], [-37.25, -13.5], [-37.25, -5.4], [-18.0, -5.4]], h: [-7.5, -2.6], from: -6.95,
+        walls: 'shopWindows', sides: [undefined, null, null, 'boardConcrete'], ground: true },
+      // east of it, the hall's side and the bank's face under the bridge
+      { name: "hall's east side", plan: [[-37.3, 3.82], [-34.0, 3.82], [-34.0, 3.9], [-37.3, 3.9]], h: [-7.5, -2.6], from: -6.95, walls: 'boardConcrete' },
+      { name: 'abutment', plan: [[-34.0, 3.9], [-33.7, 3.9], [-33.7, 7.4], [-34.0, 7.4]], h: [-7.5, -2.6], from: -6.8, walls: 'boardConcrete' },
+      // the parapet over the cycle path's trough, and the kiosk
+      { name: 'parapet', plan: [[-40.2, -16.0], [-43.5, 9.5], [-43.75, 9.5], [-40.45, -16.0]], h: [-9.5, -5.85], from: -9.0,
+        walls: 'boardConcrete', roof: 0.04, roofColor: 0x9a978f },
+      { name: 'kiosk', plan: [[-36.8, 6.8], [-31.0, 7.6], [-31.7, 14.5], [-37.7, 13.8]], h: [-7.3, -4.05], from: -6.8,
+        walls: 'shutter', roof: 0.2, eaves: 0.3, roofColor: 0xd9d7d1 },
+      // the name on the bridge's faces over the passage
+      { name: 'name, east', plan: [[-43.6, 7.0], [-36.6, 7.0], [-36.6, 7.05], [-43.6, 7.05]], h: [-2.6, -2.6], from: -2.6,
+        walls: 'boardConcrete', sides: [null, null, null, null], nameSign: { side: 2, at: 0.5, length: 4.0, bottom: -2.55 } },
+      { name: 'name, west', plan: [[-43.6, -13.1], [-36.6, -13.1], [-36.6, -13.05], [-43.6, -13.05]], h: [-2.6, -2.6], from: -2.6,
+        walls: 'boardConcrete', sides: [null, null, null, null], nameSign: { side: 0, at: 0.5, length: 4.0, bottom: -2.55 } },
+      // the retaining wall holding the bank over Rågsvedsvägen's pavement, north-east of the shops
+      // (the laser scan: its face 10.5 m west of the platform's middle at the shops, 9.3 m at 16 m
+      // north-east, where the pavement climbs; its top 1.3–1.65 m under the platform's)
+      { name: 'retaining wall, south', plan: [[-18, -10.55], [0, -10.2], [0, -8.5], [-18, -9.85]], h: [-7.6, -1.3], low: -1.4, from: -7.6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x8f8d86, ground: true },
+      { name: 'retaining wall, north', plan: [[0, -10.2], [16, -9.3], [16, -7.5], [0, -8.5]], h: [-7.6, -1.4], low: -1.65, from: -7.6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x8f8d86, ground: true },
+      // the pavement at its foot, in place of the city's ground, which rises against the wall
+      // where the elevation model's grid, 5 m apart, reaches from the pavement up to the tracks
+      { name: 'pavement under the wall', plan: [[-18, -14.3], [8, -13.5], [8, -9.5], [-18, -10.3]], h: [-7.0, -1.3], from: -7.0,
+        walls: 'asphalt', sides: [null, null, null, null], floor: 'asphalt', ground: true },
+    ],
+    art: [
+      { kind: 'roundel', s: -19.7, u: -3.95, h: 5.45, size: 0.8, foot: 4.25, along: true },
+      { kind: 'bird', s: 84, u: 3.4, height: 5.4, turn: 0.4 },
+      { kind: 'masts', height: 4.5, color: 0x9a9fa3, top: false, arm: 1.4, lower: 3.7, lowerOne: true,
+        at: [[-49.6, -4.57], [-40, -3.03], [-22.5, -0.75], [66.5, 1.88], [88, 0.97]] },
+      { kind: 'masts', height: 4.5, color: 0x9a9fa3, top: false, arm: 1.4, lower: 3.7, lowerOne: true, sign: 2.6, blue: true,
+        at: [[-31.5, -1.85], [57.9, 2.15], [77, 1.46]] },
+    ],
+    // between the pairs of columns, down the middle of each butterfly
+    benches: [
+      { at: [27.15, 43.15], double: true, wood: true },
+      { at: [35.15], double: true, wood: true, roof: 0 },
+    ],
+    // chain-link along the top of the retaining wall and the bank beyond the western track
+    fences: [
+      { points: [[-15.7, -10.35], [0, -10.05], [16, -9.15], [24, -8.0], [40, -7.2], [60, -6.3], [80, -5.4], [95, -4.7]], h: [-1.5, 0.3] },
     ],
   },
 };

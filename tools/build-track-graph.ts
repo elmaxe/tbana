@@ -470,7 +470,11 @@ for (const c of corrections.platforms ?? []) {
     tracks.push({ piece: p.id, s0: round(s0), s1: round(s1), side });
   }
   if (!tracks.length) throw new Error(`correction: no running line without a platform within ${reach} m of ${c.at ? c.at.join(', ') : c.station} (${c.why})`);
-  st.platforms.push({ osm: 0, tracks });
+  // (a second `at` for the same platform, on the tracks of a bridge at its end, which OSM maps as
+  // pieces of their own, adds them to the platform the first made)
+  const made = st.platforms.find((p) => p.osm === 0);
+  if (made) made.tracks.push(...tracks);
+  else st.platforms.push({ osm: 0, tracks });
 }
 
 // ------------------------------------------------------------------ 4. routes

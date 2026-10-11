@@ -155,8 +155,14 @@
     },
     {
       "station": "Rågsved",
-      "extend": true,
-      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [151632.7, 6571273.0],
+      "why": "OSM draws the island platform 42 m long, at its north-eastern end, and lengthening it about its middle put the platform 40 m north-east of the real one. Lantmäteriet's laser scan has the platform 145 m long, from its south-western end on the bridge over the passage under the tracks to 32 m beyond the north-eastern end of its roof; this point is its middle."
+    },
+    {
+      "station": "Rågsved",
+      "at": [151588.7, 6571243.0],
+      "why": "The platform's south-western 38 m stand on the bridge over the passage, which OSM maps as tracks of their own; this point is between them there, so that they get the platform too."
     },
     {
       "station": "Stureby",

@@ -2910,6 +2910,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
   greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
   silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
+  blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance'];
@@ -3620,6 +3621,60 @@ export function finish(name: Finish) {
       band(8.15, 8.3, '#b8bab8');
       break;
     }
+    case 'blackTiles': {
+      // glossy black tiles 15 cm square, in pale grey joints, a glint on each
+      x.fillStyle = '#8d908f'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 18 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v + 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(i * t + 3, j * t + 3, t * 0.45, 2);
+      }
+      break;
+    }
+    case 'glassBlocks': {
+      // glass blocks 20 cm square in grey mortar, each pale green, brightest at its middle, with
+      // the ribs moulded in its face
+      x.fillStyle = '#b4b7b1'; x.fillRect(0, 0, W, H);
+      const t = 0.2 * PX, j0 = 0.015 * PX, s = t - 2 * j0;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const X = i * t + j0, Z = j * t + j0, v = Math.floor(r() * 12);
+        const g = x.createRadialGradient(X + s / 2, Z + s / 2, s * 0.1, X + s / 2, Z + s / 2, s * 0.72);
+        g.addColorStop(0, `rgb(${222 + v},${236 + v},${226 + v})`); g.addColorStop(1, `rgb(${146 + v},${168 + v},${158 + v})`);
+        x.fillStyle = g; x.fillRect(X, Z, s, s);
+        x.fillStyle = 'rgba(255,255,255,0.2)';
+        for (let k = 1; k < 4; k++) x.fillRect(X + (s * k) / 4, Z + 3, 1.2, s - 6);
+      }
+      break;
+    }
+    case 'blueMosaic':
+    case 'warmMosaic': {
+      // Rågsved's entrance: rectangles from 5 to 40 cm, cut on a 5 cm grid, each of small tesserae
+      // in one colour, in dark joints
+      const colors = name === 'blueMosaic'
+        ? ['#5b6670', '#7d8a94', '#a9b6bf', '#3f4c5a', '#c9d2d6', '#e4e7e6', '#8b9ba8', '#4e6a85', '#6f7f8c', '#9aa5a3', '#2f3a46', '#b8c4cc']
+        : ['#d9cbb0', '#c4a77d', '#b4612f', '#8a3b22', '#1f2c4a', '#2f6f74', '#6b6a3a', '#e9e2d2', '#4b4d4f', '#a68b5b', '#d78a3d', '#7a7f80'];
+      x.fillStyle = '#3c3d3c'; x.fillRect(0, 0, W, H);
+      const g = 0.05 * PX;
+      const cut = (x0: number, y0: number, w: number, h: number) => {
+        const most = (0.1 + r() * 0.3) * PX;
+        if ((w <= most && h <= most) || (w <= g && h <= g)) {
+          const v = Math.floor(r() * 14) - 7;
+          x.fillStyle = colors[Math.floor(r() * colors.length)]; x.fillRect(x0 + 1.5, y0 + 1.5, w - 3, h - 3);
+          x.fillStyle = `rgba(${v > 0 ? '255,255,255' : '0,0,0'},${Math.abs(v) / 60})`; x.fillRect(x0 + 1.5, y0 + 1.5, w - 3, h - 3);
+          x.fillStyle = 'rgba(30,30,30,0.22)';
+          for (let k = 0.025 * PX; k < w - 2; k += 0.025 * PX) x.fillRect(x0 + k, y0 + 1.5, 1, h - 3);
+          for (let k = 0.025 * PX; k < h - 2; k += 0.025 * PX) x.fillRect(x0 + 1.5, y0 + k, w - 3, 1);
+          return;
+        }
+        // (split the longer way, on the grid)
+        const across = w > h ? true : w < h ? false : r() < 0.5, len = across ? w : h, n = Math.round(len / g);
+        const k = Math.max(1, Math.min(n - 1, 1 + Math.floor(r() * (n - 1)))) * g;
+        if (across) { cut(x0, y0, k, h); cut(x0 + k, y0, w - k, h); } else { cut(x0, y0, w, k); cut(x0, y0 + k, w, h - k); }
+      };
+      cut(0, 0, W, H);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -3628,7 +3683,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

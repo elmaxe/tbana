@@ -297,7 +297,9 @@ function buildStation(name: string, d: Description, problems: Problems): Station
           const run = Math.abs(dh) / (kind === 'stairs' ? STAIR_SLOPE : ESCALATOR_SLOPE);
           if (l < run - 0.5) problems.add(`${where}: ${kind} of ${dh} m need ${run.toFixed(1)} m to ${JSON.stringify(sg.to)}, but it is ${l.toFixed(1)} m away`);
           if (l > run + 0.1) walkTo(x + ((tx - x) / l) * (l - run), z + ((tz - z) / l) * (l - run));
-          incline(kind, dh, (tx - x) / l || hx, (tz - z) / l || hz, lanes, sg.ceiling);
+          // (heading for the point from where that walk ended)
+          const m = Math.hypot(tx - x, tz - z);
+          incline(kind, dh, (tx - x) / m || hx, (tz - z) / m || hz, lanes, sg.ceiling);
         } else {
           const [nx, nz] = heading(sg.toward);
           incline(kind, dh, nx, nz, lanes, sg.ceiling);

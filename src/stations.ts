@@ -440,6 +440,8 @@ export class Stations {
     const n = corners.length;
     const room = this.roomOf(p), finish = (p.kind === 'incline' ? room?.stairs : undefined) ?? room?.walls ?? undefined;
     const sill = room?.sill === undefined ? undefined : this.open!.frame.st.platformY + room.sill;
+    // (the walls facing left, to −u, in the room's `left` finish if it has one)
+    const facing = (ox: number, oz: number) => (room?.left && ox * -this.open!.frame.fz + oz * this.open!.frame.fx < -0.5 ? room.left : finish);
     if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
@@ -453,7 +455,7 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, finish, sill);
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz), sill);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {
