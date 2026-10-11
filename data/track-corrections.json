@@ -1,5 +1,5 @@
 {
-  "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts, checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
+  "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts (and the platform widths by tools/build-track-geometry.ts), checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
   "links": [
     {
       "op": "retag",
@@ -204,6 +204,13 @@
       "station": "Rissne",
       "extend": true,
       "why": "OSM draws the platforms about 60 m long, short of the 145 m of the blue line's platforms (Albert Guillaumes' drawing shows them the full length of a train)."
+    }
+  ],
+  "widths": [
+    {
+      "station": "Ropsten",
+      "width": 5.8,
+      "why": "Each of Ropsten's two viaducts carries one track and one side platform, 5.8 m from the platform edge to the railing over the open gap between them (Lantmäteriet's laser scan, 2021: the roofs and the parked train's roof)."
     }
   ]
 }

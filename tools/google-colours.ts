@@ -3,6 +3,8 @@
 //
 //   npm run google-colours -- <x0,z0,x1,z1>          world box, metres
 //   npm run google-colours -- … --dir <download>
+//   npm run google-colours -- … --ion [--above m]   through Cesium ion (CESIUM_ION_TOKEN), where the
+//                                                    download doesn't reach; --above as in google-mesh
 //
 // It reads Axel's download of the mesh as tools/google-mesh.ts does (the sthlm repo beside this
 // one, or --dir; a cloud session copies the node files the box needs, which
@@ -20,14 +22,14 @@
 // the mesh stays out of the repo.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fromDownload } from './lib/google-tiles.ts';
+import { fromDownload, fromIon } from './lib/google-tiles.ts';
 import { meshRays, type RGB } from './lib/mesh-rays.ts';
 
 const args = process.argv.slice(2);
 const option = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
-const box = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--dir')?.split(',').map(Number);
+const box = args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--dir' && args[i - 1] !== '--above')?.split(',').map(Number);
 if (!box || box.length !== 4 || box.some(Number.isNaN)) {
-  console.error('usage: npm run google-colours -- <x0,z0,x1,z1> [--dir download]');
+  console.error('usage: npm run google-colours -- <x0,z0,x1,z1> [--dir download] [--ion [--above m]]');
   process.exit(1);
 }
 const [X0, Z0, X1, Z1] = [Math.min(box[0], box[2]), Math.min(box[1], box[3]), Math.max(box[0], box[2]), Math.max(box[1], box[3])];
@@ -41,15 +43,16 @@ function download() {
     .map((d) => ({ d, level: JSON.parse(readFileSync(join(d, 'tileset.json'), 'utf8')).maxLevel as number }))
     .sort((a, b) => b.level - a.level)[0]?.d;
 }
-const dir = download();
-if (!dir) {
-  console.error('no download of Google\'s mesh in ../sthlm (or --dir)');
+const ion = args.includes('--ion'), dir = ion ? undefined : download(), token = process.env.CESIUM_ION_TOKEN;
+if (!dir && !(ion && token)) {
+  console.error(ion ? '--ion needs CESIUM_ION_TOKEN' : 'no download of Google\'s mesh in ../sthlm (or --dir); or --ion');
   process.exit(1);
 }
 // the mesh round the box, far enough out to see the outer buildings' sides
 const M = 40;
-const { pieces } = await fromDownload(dir, [X0 - M, Z0 - M, X1 + M, Z1 + M]);
-console.log(`${pieces.length} pieces of mesh from ${dir}`);
+const above = option('--above') === undefined ? undefined : Number(option('--above'));
+const pieces = dir ? (await fromDownload(dir, [X0 - M, Z0 - M, X1 + M, Z1 + M], above)).pieces : await fromIon(token!, [X0 - M, Z0 - M, X1 + M, Z1 + M], above);
+console.log(`${pieces.length} pieces of mesh from ${dir ?? 'Cesium ion'}`);
 
 const { ray } = meshRays(pieces, [X0 - M, Z0 - M, X1 + M, Z1 + M]);
 

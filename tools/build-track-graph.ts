@@ -55,6 +55,8 @@ interface Corrections {
   // north), the platform is placed from that point instead of the station's node. With `extend`,
   // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
   platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean }[];
+  // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
+  widths?: { station: string; width: number; why: string }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));

@@ -278,7 +278,7 @@ export class Stations {
         default: break;
       }
     }
-    for (const p of st.parts) if (p.kind === 'floor' || p.kind === 'incline') this.buildWalls(p, m, others(p));
+    for (const p of st.parts) if ((p.kind === 'floor' && p.edges !== false) || p.kind === 'incline') this.buildWalls(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));

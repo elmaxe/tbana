@@ -2754,3 +2754,218 @@ export function ledBand() {
   for (let y = 0; y < 128; y += 4) x.fillRect(0, y, 1024, 1);
   return toTexture(c, { aniso: 4 });
 }
+
+// ------------------------------------------------------------------ Ropsten's station
+// (src/detail/ropsten-station.ts) As photographs on Wikimedia Commons show them (2009–2026).
+
+// Trapezoidal steel sheet, near white for vertex colours to tint: a rib every 20 cm, lit on one
+// side and shaded on the other, across v (or, `upright`, across u: cladding on a wall). Covers
+// 1 × 1 m.
+export function corrugated(upright = false) {
+  const [c, x] = upright ? canvas(160, 64) : canvas(64, 160);
+  const band = (at: number, w: number, fill: string) => {
+    x.fillStyle = fill;
+    if (upright) x.fillRect(at, 0, w, 64); else x.fillRect(0, at, 64, w);
+  };
+  for (let k = 0; k < 5; k++) {
+    const p = k * 32;
+    band(p, 32, '#e4e4e4');
+    band(p + 3, 9, '#fbfbfb');
+    band(p + 12, 3, '#b9b9b9');
+    band(p + 15, 15, '#d2d2d2');
+    band(p + 30, 2, '#c8c8c8');
+  }
+  speckle(x, upright ? 160 : 64, upright ? 64 : 160, 400, 0.08, 91);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Roland Kempe's snake (1971) on the red wall between the platforms at the concourse's end: a
+// winding snake banded black and white, blue in its middle, an arrowhead with an eye at each end
+// and eyes along its body, over a black skirting. Covers the wall's 10.8 × 3.04 m.
+export function kempeSnake() {
+  const W = 2048, H = 576;
+  const [c, x] = canvas(W, H);
+  x.fillStyle = '#a3383a'; x.fillRect(0, 0, W, H);
+  const r = rng(93);
+  for (let k = 0; k < 60; k++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '60,10,10' : '220,120,110'},${0.03 + r() * 0.04})`;
+    x.beginPath(); x.ellipse(r() * W, r() * H, 40 + r() * 160, 20 + r() * 80, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, W, H, 6000, 0.1, 94);
+  x.fillStyle = '#1b1b1d'; x.fillRect(0, H - 36, W, 36);
+  // the body's middle line, read off a photograph of the wall (1150 × 320 px there)
+  const P = (px: number, py: number): [number, number] => [((px - 65) / 1150) * W, ((py - 60) / 320) * H];
+  const body = ([[190, 212], [160, 258], [176, 300], [212, 296], [236, 250], [256, 160], [292, 100], [350, 85], [400, 108], [415, 160],
+    [400, 222], [382, 272], [392, 315], [440, 322], [500, 302], [535, 256], [540, 200], [512, 150], [496, 110], [522, 80], [580, 74],
+    [640, 90], [666, 132], [666, 200], [652, 262], [642, 300], [666, 320], [702, 300], [722, 250], [746, 180], [770, 102], [790, 72],
+    [812, 120], [826, 200], [844, 270], [856, 318], [886, 290], [906, 240], [930, 160], [962, 100], [1002, 76], [1046, 86], [1062, 122],
+    [1050, 172], [1030, 210], [1052, 234], [1100, 228], [1136, 216]] as [number, number][]).map(([a, b]) => P(a, b));
+  // a smooth line through the points (Catmull–Rom), every few pixels
+  const line: [number, number][] = [];
+  for (let i = 0; i + 1 < body.length; i++) {
+    const p0 = body[Math.max(0, i - 1)], p1 = body[i], p2 = body[i + 1], p3 = body[Math.min(body.length - 1, i + 2)];
+    for (let t = 0; t < 1; t += 0.1) {
+      const t2 = t * t, t3 = t2 * t;
+      line.push([0, 1].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)) as [number, number]);
+    }
+  }
+  line.push(body[body.length - 1]);
+  const along = [0];
+  for (let i = 1; i < line.length; i++) along.push(along[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+  const total = along[along.length - 1];
+  const normal = (i: number) => {
+    const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    return [-(b[1] - a[1]) / l, (b[0] - a[0]) / l];
+  };
+  // its width: thin at the necks, full along the body
+  const width = (d: number) => {
+    const end = Math.min(d, total - d);
+    return 26 + 54 * Math.min(1, Math.max(0, (end - 30) / 50));
+  };
+  // the bands, each a strip square to the line
+  const BAND = 46;
+  for (let k = 0; k * BAND < total; k++) {
+    const d0 = k * BAND, d1 = Math.min(total, (k + 1) * BAND + 1.5);
+    const pts = line.map((p, i) => ({ p, i, d: along[i] })).filter((q) => q.d >= d0 && q.d <= d1);
+    if (pts.length < 2) continue;
+    const mid = (d0 + d1) / 2 / total;
+    const blue = mid > 0.45 && mid < 0.78 && k % 4 === 1;
+    x.fillStyle = k % 2 === 0 ? '#151516' : blue ? '#2c4c9c' : '#f1ece1';
+    x.beginPath();
+    pts.forEach(({ p, i, d }, j) => { const n = normal(i), w = width(d) / 2; (j ? x.lineTo : x.moveTo).call(x, p[0] + n[0] * w, p[1] + n[1] * w); });
+    for (let j = pts.length - 1; j >= 0; j--) { const { p, i, d } = pts[j], n = normal(i), w = width(d) / 2; x.lineTo(p[0] - n[0] * w, p[1] - n[1] * w); }
+    x.closePath(); x.fill();
+    // thin blue stripes in the white bands of the middle
+    if (k % 2 === 1 && !blue && mid > 0.42 && mid < 0.8) {
+      const q = pts[Math.floor(pts.length / 2)], n = normal(q.i), w = width(q.d) / 2;
+      const t: [number, number] = [n[1], -n[0]];
+      x.strokeStyle = '#2c4c9c'; x.lineWidth = 6;
+      x.beginPath(); x.moveTo(q.p[0] + n[0] * w + t[0] * 8, q.p[1] + n[1] * w + t[1] * 8); x.lineTo(q.p[0] - n[0] * w + t[0] * 8, q.p[1] - n[1] * w + t[1] * 8); x.stroke();
+    }
+  }
+  // an eye: almond, lashes over it
+  const eye = (cx: number, cy: number, s: number) => {
+    x.fillStyle = '#f6f3ea'; x.strokeStyle = '#111'; x.lineWidth = 3;
+    x.beginPath(); x.ellipse(cx, cy, 26 * s, 12 * s, 0, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.fillStyle = '#111'; x.beginPath(); x.arc(cx, cy, 8 * s, 0, Math.PI * 2); x.fill();
+    x.lineWidth = 2.5;
+    for (let k = -3; k <= 3; k++) {
+      const a = -Math.PI / 2 + k * 0.32;
+      x.beginPath(); x.moveTo(cx + Math.cos(a) * 24 * s, cy + Math.sin(a) * 11 * s); x.lineTo(cx + Math.cos(a) * 34 * s, cy + Math.sin(a) * 20 * s); x.stroke();
+    }
+  };
+  for (const [px, py] of [[412, 160], [830, 205]]) { const [a, b] = P(px, py); eye(a, b, 1); }
+  // the heads: pale arrowheads pointing out along the wall, with an eye; a collar of dots behind
+  for (const side of [-1, 1]) {
+    const neck = side < 0 ? line[0] : line[line.length - 1];
+    const tip: [number, number] = side < 0 ? P(75, 220) : P(1206, 210);
+    const base = neck[0] + side * 8;
+    x.fillStyle = '#f1ece1'; x.strokeStyle = '#1a1a1a'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(base, neck[1]);
+    x.lineTo(base + side * 24, neck[1] - 74); x.lineTo(tip[0], tip[1]); x.lineTo(base + side * 24, neck[1] + 74);
+    x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#1a1a1a';
+    // the neck from the body to the head, banded thin
+    const n0 = side < 0 ? P(130, 216) : P(1140, 214);
+    x.fillStyle = '#f1ece1';
+    x.fillRect(Math.min(n0[0], base), neck[1] - 11, Math.abs(base - n0[0]), 22);
+    x.fillStyle = '#151516';
+    for (let k = 0; k < 4; k++) x.fillRect(Math.min(n0[0], base) + 6 + k * Math.abs(base - n0[0]) / 4, neck[1] - 11, 7, 22);
+    for (let k = -2; k <= 2; k++) { x.beginPath(); x.arc(neck[0] - side * 2, neck[1] + k * 9, 3.5, 0, Math.PI * 2); x.fill(); }
+    eye(base + side * 44, neck[1] - 2, 0.62);
+  }
+  return toTexture(c, { repeat: false, aniso: 8 });
+}
+
+// The name boards hung over the platforms: the name in white on a navy band, and over it on
+// white the ways out with navy arrows. They face the track; on the north-west platform the
+// arrows to the north-east point left (`mirrored`). 1024 × 288, about 3.8 × 1.07 m.
+export function ropstenBoard(mirrored: boolean) {
+  const [c, x] = canvas(1024, 288);
+  const NAVY = '#1f3470';
+  x.fillStyle = '#f7f7f4'; x.fillRect(0, 0, 1024, 156);
+  x.fillStyle = NAVY; x.fillRect(0, 156, 1024, 132);
+  x.strokeStyle = '#5c6474'; x.lineWidth = 4; x.strokeRect(2, 2, 1020, 284);
+  x.fillStyle = '#ffffff';
+  x.font = '600 92px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '18px';
+  x.fillText('ROPSTEN', 512, 226);
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '1px';
+  x.fillStyle = NAVY;
+  x.font = '600 34px "Helvetica Neue", Arial, sans-serif';
+  const arrow = (cx: number, cy: number, dir: number) => {
+    x.beginPath(); x.moveTo(cx + dir * 14, cy); x.lineTo(cx - dir * 12, cy - 15); x.lineTo(cx - dir * 12, cy + 15); x.closePath(); x.fill();
+  };
+  // south-west: Hjorthagen and the tram museum; north-east: the trams to Lidingö, the buses, the boat
+  const sw = ['HJORTHAGEN', 'SPÅRVÄGSMUSEET'], ne = ['ROPSTEN', 'LIDINGÖTÅGEN', 'BUSSAR · PENDELBÅT'];
+  const column = (lines: string[], left: boolean) => {
+    const ys = lines.length === 2 ? [52, 104] : [36, 80, 124];
+    lines.forEach((t, i) => {
+      x.textAlign = left ? 'left' : 'right';
+      x.fillText(t, left ? 70 : 954, ys[i] + 2);
+      arrow(left ? 36 : 988, ys[i], left ? -1 : 1);
+    });
+  };
+  column(mirrored ? ne : sw, true);
+  column(mirrored ? sw : ne, false);
+  return toTexture(c, { repeat: false, aniso: 8 });
+}
+
+// The fascia over the glazed hall's doors at the platforms' north-east end: "↓ Lidingöbanan ↓" in
+// white on navy, a yellow line along its foot. 1024 × 96, about 6.1 × 0.57 m.
+export function lidingobananFascia() {
+  const [c, x] = canvas(1024, 96);
+  x.fillStyle = '#1f3c88'; x.fillRect(0, 0, 1024, 96);
+  x.fillStyle = '#f2c230'; x.fillRect(0, 88, 1024, 8);
+  x.fillStyle = '#ffffff';
+  x.font = '600 42px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('Lidingöbanan', 512, 46);
+  for (const ax of [330, 694]) {
+    x.fillRect(ax - 2, 26, 4, 30);
+    x.beginPath(); x.moveTo(ax - 12, 48); x.lineTo(ax + 12, 48); x.lineTo(ax, 62); x.closePath(); x.fill();
+  }
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// The light box over the north-east landing: "LIDINGÖTÅGEN" in pale capitals on white, in a navy
+// frame. 1024 × 160, about 3.2 × 0.5 m.
+export function lidingotagenBox() {
+  const [c, x] = canvas(1024, 160);
+  x.fillStyle = '#1f3470'; x.fillRect(0, 0, 1024, 160);
+  x.fillStyle = '#f4f4f0'; x.fillRect(14, 14, 996, 132);
+  x.fillStyle = '#b4b8bf';
+  x.font = '500 80px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '8px';
+  x.fillText('LIDINGÖTÅGEN', 512, 84);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A departure board: amber dots on black, the next train and the one after. 512 × 128, 1.6 × 0.4 m.
+export function departureBoard() {
+  const [c, x] = canvas(512, 128);
+  x.fillStyle = '#0d0e10'; x.fillRect(0, 0, 512, 128);
+  x.fillStyle = '#c92a2a'; x.fillRect(14, 14, 40, 40);
+  x.fillStyle = '#ffffff';
+  x.font = '700 26px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('13', 34, 35);
+  x.fillStyle = '#ffb43a';
+  x.textAlign = 'left';
+  x.font = '600 28px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('Norsborg', 66, 26);
+  x.font = '500 18px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('via T-Centralen', 66, 50);
+  x.font = '600 24px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('Norsborg', 66, 96);
+  x.textAlign = 'right';
+  x.font = '600 28px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('2 min', 496, 30);
+  x.font = '600 24px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('12 min', 496, 96);
+  x.fillStyle = 'rgba(0,0,0,0.35)';
+  for (let y = 0; y < 128; y += 3) x.fillRect(0, y, 512, 1);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}

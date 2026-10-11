@@ -5,6 +5,9 @@
 //   npm run find-trees                               -> data/trees.json
 //   npm run find-trees -- --points <laser-points.json>   from points npm run laser-points saved
 //   npm run find-trees -- … --google <download>      and in Google's mesh (tools/google-mesh.ts)
+//   npm run find-trees -- … --google ion             … read through Cesium ion (CESIUM_ION_TOKEN),
+//                                                    where the download doesn't reach (Ropsten)
+//   npm run find-trees -- … --areas Ropsten,Lidingöbron   only these areas; the others' trees are kept
 //
 // (In a cloud session, with NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt.)
 //
@@ -36,7 +39,7 @@ import { GRID_TM, worldToGrid } from '../src/geo.ts';
 import { DETAIL_AREAS } from '../src/detail/areas.ts';
 import { nodesOver, openCopc, readNode } from './lib/copc.ts';
 import { authHeaders, findFiles, tmToWorld } from './lib/lantmateriet.ts';
-import { fromDownload } from './lib/google-tiles.ts';
+import { fromDownload, fromIon, type Piece } from './lib/google-tiles.ts';
 import { meshRays } from './lib/mesh-rays.ts';
 
 const OUT = 'data/trees.json';
@@ -48,6 +51,19 @@ const WATER_TOP = 1.3;
 const args = process.argv.slice(2);
 const option = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const cached = option('--points'), google = option('--google');
+const only = option('--areas')?.split(',');
+const areas = only ? DETAIL_AREAS.filter((a) => only.includes(a.name)) : DETAIL_AREAS;
+if (only && areas.length !== only.length) throw new Error(`no such area: ${only.filter((n) => !DETAIL_AREAS.some((a) => a.name === n)).join(', ')}`);
+// the mesh over a box: from Axel's download, or through Cesium ion (`--google ion`)
+async function mesh(box: [number, number, number, number]): Promise<{ pieces: Piece[]; scraps: boolean }> {
+  if (google === 'ion') {
+    if (!process.env.CESIUM_ION_TOKEN) throw new Error('--google ion needs CESIUM_ION_TOKEN');
+    return { pieces: await fromIon(process.env.CESIUM_ION_TOKEN, box), scraps: false };
+  }
+  const { pieces, files } = await fromDownload(google!, box);
+  // (where the download has only the coarse tiles over the area, its green can't be trusted)
+  return { pieces, scraps: files.filter((f) => !existsSync(f)).length > files.length / 2 };
+}
 
 // ------------------------------------------------------------------ the points
 async function scan(x0: number, z0: number, x1: number, z1: number): Promise<number[]> {
@@ -119,7 +135,7 @@ const inRing = (x: number, z: number, ring: [number, number][]) => {
 // ------------------------------------------------------------------ the trees
 type Tree = [number, number, number, number]; // x, z, height above the ground, crown radius
 const trees: Tree[] = [];
-for (const a of DETAIL_AREAS) {
+for (const a of areas) {
   const x0 = Math.floor(a.x - a.r - MARGIN), z0 = Math.floor(a.z - a.r - MARGIN);
   const W = Math.ceil(2 * (a.r + MARGIN)), H = W;
   console.log(`${a.name}: ${W} × ${H} m`);
@@ -240,12 +256,10 @@ for (const a of DETAIL_AREAS) {
   // ground (its heights drift, so the ground is taken from the scan and the drift from the paved
   // ground round about)
   if (google) {
-    const { pieces, files } = await fromDownload(google, [x0, z0, x0 + W, z0 + H]).catch((e) => {
+    const { pieces, scraps } = await mesh([x0, z0, x0 + W, z0 + H]).catch((e) => {
       console.log(`  no mesh here (${(e as Error).message.slice(0, 80)})`);
-      return { pieces: [], files: [] };
+      return { pieces: [], scraps: true };
     });
-    // (where the download has only the coarse tiles over the area, its green can't be trusted)
-    const scraps = files.filter((f) => !existsSync(f)).length > files.length / 2;
     const { ray } = meshRays(pieces, [x0 - 3, z0 - 3, x0 + W + 3, z0 + H + 3]);
     const seenY = new Float32Array(W * H).fill(NaN), green = new Uint8Array(W * H);
     // the drift, in 20 m blocks: the mesh's paved ground against the scan's
@@ -283,6 +297,15 @@ for (const a of DETAIL_AREAS) {
   }
   for (const tr of found) trees.push([round(x0 + tr.i, 1), round(z0 + tr.j, 1), round(tr.h, 1), round(tr.radius, 1)]);
   console.log(`  ${fromScan.length} trees in the scan, ${found.length} in all`);
+}
+
+// with --areas, the other areas' trees as they were (and OpenStreetMap's are added by build-city)
+if (only && existsSync(OUT)) {
+  const box = (a: (typeof areas)[number]) => [a.x - a.r - MARGIN, a.z - a.r - MARGIN, a.x + a.r + MARGIN, a.z + a.r + MARGIN];
+  const searched = areas.map(box);
+  const had: { trees: Tree[]; flown: string[] } = JSON.parse(readFileSync(OUT, 'utf8'));
+  for (const f of had.flown) flights.add(f);
+  trees.push(...had.trees.filter(([x, z]) => !searched.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)));
 }
 
 // a tree on two areas' edge is found twice

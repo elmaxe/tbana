@@ -3,6 +3,9 @@
 // (src/detail/streets.ts), which tools/fetch-streets.ts and tools/find-trees.ts fetch for these
 // areas only. It imports nothing, so the tools can use it on Node too.
 
+// ?nodetail: the plain city everywhere, to compare
+export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nodetail');
+
 export interface DetailArea { name: string; x: number; z: number; r: number }
 
 export const DETAIL_AREAS: DetailArea[] = [
@@ -14,6 +17,10 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Söder Mälarstrand', x: 520, z: 1215, r: 160 },
   // east of the bridge: Guldbron, the lock and Katarinahissen (src/detail/slussen.ts), Slussplan
   { name: 'Slussen', x: 765, z: 1235, r: 150 },
+  // the red line's end: Ropsten's bus square and tram stop under the platforms, Hjorthagen's hill
+  // over them, and the shore at the foot of Lidingöbron (src/detail/ropsten.ts)
+  { name: 'Ropsten', x: 2480, z: -2905, r: 200 },
+  { name: 'Lidingöbron', x: 2690, z: -2990, r: 110 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

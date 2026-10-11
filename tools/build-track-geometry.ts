@@ -106,6 +106,8 @@ const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) =>
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
+// side platforms measured wider than SIDE_PLATFORM_WIDTH, from data/track-corrections.json
+const sideWidths = new Map<string, number>((JSON.parse(readFileSync('data/track-corrections.json', 'utf8')).widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -934,7 +936,8 @@ for (const [id, list] of besideAt) {
 console.log(`${besideShared} points share a box or deck with another line's track beside them`);
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
-// another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
+// another platform is as wide as SIDE_PLATFORM_WIDTH (or its width in data/track-corrections.json),
+// or as fits before the next track.
 // The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
@@ -975,7 +978,7 @@ for (const p of pieces) {
     }
     found.sort((a, b) => a.lateral - b.lateral);
     const { lateral: across, island } = found.length ? found[Math.floor(found.length / 2)] : { lateral: Infinity, island: false };
-    const width = island ? across - 2 * PLATFORM_EDGE : Math.min(SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
+    const width = island ? across - 2 * PLATFORM_EDGE : Math.min(sideWidths.get(r.station) ?? SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
     g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island });
   }
