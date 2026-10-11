@@ -38,6 +38,10 @@
     .build-switcher span { width: 100%; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
     .build-switcher select { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px;
       background: #1a212c; color: var(--text); font: 14px system-ui, sans-serif; }
+    .offline { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+    .offline[hidden] { display: none; }
+    .offline button { flex: none; padding: 4px 12px; }
+    .offline button[hidden] { display: none; }
     @media (max-width: 600px) {
       #panel { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 46vh; }
       #hint { display: none; }
@@ -67,6 +71,7 @@
         <button id="spin">Turntable</button><button id="cut">Cutaway</button><button id="doors">Doors</button><button id="glb">Download .glb</button>
       </div>
       <div class="row" id="buildSwitch" hidden></div>
+      <div class="offline" id="offline" hidden></div>
       <div id="spec" class="spec"></div>
     </div>
   </div>

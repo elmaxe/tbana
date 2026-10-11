@@ -150,6 +150,19 @@ The **Build** menu, on the start/pause screen and in the train viewer's panel, s
 `build.json` in each build, which the workflow writes, so it doesn't show when you run the site
 locally.
 
+### Offline play
+
+The built site has a service worker (`src/sw.ts`, which `tools/lib/service-worker.ts` turns into
+`sw.js` with the list of the build's files and a hash of each). Once the game is in, the browser
+saves every file of the build, some 25 MB, and from then on the game starts from the saved copy
+and plays without a connection. When a new version is published, the browser downloads the files
+that changed in the background, and the start/pause screen says *A new version is ready* with an
+**Update** button; the next time the game is opened, after all its tabs were closed, it starts on
+the new version anyway. Only the build's own files are saved, nothing from other sites.
+
+The dev server has no worker, and neither do the PR previews, which always load fresh. To try it
+locally, run `npm run build && npm run preview`.
+
 ## What's generated
 
 The source model is a diagram: extruded floor slabs, stairs, escalators and lift shafts, ticket
