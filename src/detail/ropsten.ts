@@ -96,7 +96,7 @@ function table(rows: [number, number][]) {
 }
 
 // Quads between rows of points (each row across, the rows along), each facing the side of `hint`.
-function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number) => V3, tile: number | V2 = 4) {
+function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number) => V3, tile: number | V2 = 4, uv?: (i: number, k: number) => V2) {
   for (let i = 0; i + 1 < rows.length; i++) {
     for (let k = 0; k + 1 < rows[i].length; k++) {
       const p = [rows[i][k], rows[i][k + 1], rows[i + 1][k + 1], rows[i + 1][k]];
@@ -105,7 +105,7 @@ function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number
       if (Math.hypot(...n) < 1e-9) continue;
       const h = hint(i, k);
       if (n[0] * h[0] + n[1] * h[1] + n[2] * h[2] < 0) n = [-n[0], -n[1], -n[2]];
-      B.poly(p, n, mat, tile);
+      B.poly(p, n, mat, tile, uv && [uv(i, k), uv(i, k + 1), uv(i + 1, k + 1), uv(i + 1, k)]);
     }
   }
 }
@@ -696,7 +696,8 @@ function groundTrack(B: Builder, ground: Ground, line: Line, top: (s: number) =>
     return [v3(line.at(s, -2.7), Math.min(gAt(s, -2.7), y - 0.3)), v3(line.at(s, -1.6), y), v3(line.at(s, 1.6), y), v3(line.at(s, 2.7), Math.min(gAt(s, 2.7), y - 0.3))];
   }), 'stone', () => UP, 3);
   B.tint(0xffffff);
-  loft(B, ss.map((s) => [v3(line.at(s, -1.3), top(s) + 0.02), v3(line.at(s, 1.3), top(s) + 0.02)]), 'gs-bed', () => UP, 4);
+  // (the sleepers across the track, four to 2.6 m, as at Gamla stan)
+  loft(B, ss.map((s) => [v3(line.at(s, -1.5), top(s) + 0.02), v3(line.at(s, 1.5), top(s) + 0.02)]), 'gs-bed', () => UP, 4, (i, k) => [k, ss[i] / 2.6]);
   B.tint(RAIL_STEEL);
   for (const g of [-0.7175, 0.7175]) {
     for (let i = 0; i + 1 < ss.length; i++) railBar(B, v3(line.at(ss[i], g), top(ss[i]) + 0.17), v3(line.at(ss[i + 1], g), top(ss[i + 1]) + 0.17));

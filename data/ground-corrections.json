@@ -25,6 +25,11 @@
       "outline": [[655, 1150], [700, 1105], [790, 1062], [838, 1076], [885, 1098], [893, 1125], [872, 1182], [862, 1202], [842, 1228], [811, 1268], [766, 1252], [770, 1236], [765.5, 1228.5], [756, 1221.5], [727.9, 1207.9], [727, 1238], [716.7, 1236], [712.5, 1199.5], [710.2, 1196.2], [671.6, 1178.6], [664.3, 1183.7], [657, 1172]],
       "ground": 1.8,
       "why": "Slussen's water square, from the metro bridge's end to Slussplan and Guldbron's foot. The elevation model is from the rebuilding (2020–2024), when the lock was dug to −4 m and the ground round it stood at 2–6 m, and takes Guldbron's deck for the ground at its Söder end. The finished quays round the lock and its basins are at 1.8 m (Lantmäteriet's laser scan of the east quay, 2021; the square's design level); Guldbron, the lock, the quays and the pavilions on them are drawn in src/detail/slussen.ts."
+    },
+    {
+      "outline": [[2512.6, -2960.9], [2557.7, -2988.6], [2566.9, -2973.7], [2521.7, -2946.0]],
+      "ground": 7.8,
+      "why": "Lidingöbanan's stop at Ropsten, on its terrace beside the tram's hall: the elevation model smooths the ground between its three platforms up to 8.0–8.06 m, over the tracks' tops (7.85–7.95 m, 0.4 m under the platforms' 8.35 m; Lantmäteriet's laser scan, 2021), so it came up through the southern track. The tracks and platforms are drawn in src/detail/ropsten.ts."
     }
   ],
   "fill": [
