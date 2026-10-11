@@ -306,9 +306,10 @@ export class Trains {
     const c30 = svc.L.train === 'C30';
     if (ev === 'arrived') this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
     else if (ev === 'closing') {
-      // the C30 has its own warning (the chime until it has loaded)
+      // the C20 and C30 have their own warnings (the C30's the chime until it has loaded)
       const d = this.distanceTo(svc, playerPos);
-      if (!c30 || !this.sound?.play('closing', d)) this.sound?.chime(d, 'close');
+      if (svc.L.train === 'C20') this.sound?.c20Closing(d);
+      else if (!c30 || !this.sound?.play('closing', d)) this.sound?.chime(d, 'close');
     } else if (ev === 'shutting' && c30) {
       // the doors meet as they finish closing
       this.sound?.play('shut', this.distanceTo(svc, playerPos), DOORS_SHUT - SHUT_SLAM);

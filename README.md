@@ -114,8 +114,10 @@ through the car and, on the C30 and between the sections of a C20, into the next
 standing in a doorway when the doors close, you step inside or back onto the platform.
 
 A chime sounds on the platform just before a train comes in, and inside the train just before it
-comes into the next station. The C30 has its own door warning instead of the chime, and its doors
-shut as the warning drops at the end. The recordings are in `public/sounds/`.
+comes into the next station. The C20 and C30 have their own door warnings instead of the chime,
+and their doors shut as the warning ends. The C30's is a recording, like the chimes (in
+`public/sounds/`). The C20's is built in code (`c20Warning` in `src/sound.ts`) from a recording made
+on one: a whistle, then a buzz that swells while the doors close and stops as they meet.
 
 On the red, green and blue lines the trains run the whole line on a timetable (see [Trains on the
 network](#trains-on-the-network)), so you ride on from station to station through the real tunnels
