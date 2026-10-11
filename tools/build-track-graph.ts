@@ -43,7 +43,8 @@ interface OsmElement {
 }
 interface Corrections {
   // links between OSM nodes to add or remove before the graph is built, or to retag (`service`,
-  // `line`) where OSM's tags change halfway along a platform
+  // `line`) where OSM's tags change halfway along a platform, or (`structure`) where OSM's isn't
+  // the game's
   links?: { op: 'add' | 'remove' | 'retag'; nodes: [number, number]; why: string; structure?: Structure; service?: Service; line?: string }[];
   // crossovers missing from OSM, between two points given in SWEREF 99 18 00 (east, north); each
   // point is snapped onto the nearest track within 5 m
@@ -111,7 +112,7 @@ for (const c of corrections.links ?? []) {
     const i = links.findIndex((l) => (l.a === a && l.b === b) || (l.a === b && l.b === a));
     if (i < 0) throw new Error(`correction: no link ${a}–${b} to ${c.op} (${c.why})`);
     if (c.op === 'remove') links.splice(i, 1);
-    else links[i] = { ...links[i], service: c.service ?? links[i].service, line: c.line ?? links[i].line };
+    else links[i] = { ...links[i], structure: c.structure ?? links[i].structure, service: c.service ?? links[i].service, line: c.line ?? links[i].line };
   } else {
     if (!pos.has(a) || !pos.has(b)) throw new Error(`correction: node ${pos.has(a) ? b : a} is not on a track (${c.why})`);
     links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0, covered: false, layer: null });

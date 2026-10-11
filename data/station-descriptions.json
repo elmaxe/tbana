@@ -1127,22 +1127,51 @@
     },
     "Skärmarbrink": {
       "drawing": "skarmarbrink.png",
-      "note": "Two island platforms where the Farsta and Skarpnäck branches part. From the south-east end of each, stairs climb to a bridge over the tracks, and down from it to the street.",
+      "note": "Two island platforms in the open where the Farsta and Skarpnäck branches part. At their south-east ends glass stair houses climb from each platform to the ticket hall on its bridge over the tracks, and a lift from each; from the gates the way out is through the hall's doors onto the footbridge in front of it, south-west to Pelargatan or north-east over Palandergatan. From the laser scan (the hall from 65 m to 74 m south-east of the platforms' middle, its floor and the footbridge's 4.7 m over the platforms, the footbridge rising to 5.05 m at its south-western end and falling to 4.36 m at its north-eastern), OpenStreetMap's indoor mapping (the flights from 56 m to 65 m, the lifts at 68 m and 70 m, the gates at 72 m) and photographs (2008 to 2025).",
       "routes": [
-        { "from": [30, -7.6], "width": 3, "go": [
-          {"stairs": 6.5, "toward": [150, -7.6]},
-          {"walk": [50, -7.6], "width": 4},
-          {"walk": [50, 11]},
-          {"mark": "bridge"}
+        { "from": [52.65, -8.8], "width": 2.8, "go": [
+          {"walk": [56.45, -8.8], "open": true},
+          {"stairs": 4.7, "toward": [100, -8.8], "lanes": "ss"},
+          {"walk": [65.75, -8.8], "open": true}
         ] },
-        { "from": [30, 11], "width": 3, "go": [
-          {"stairs": 6.5, "toward": [150, 11]},
-          {"walk": [50, 11], "width": 4}
+        { "from": [52.65, 8.4], "width": 2.8, "go": [
+          {"walk": [56.45, 8.4], "open": true},
+          {"stairs": 4.7, "toward": [100, 8.4], "lanes": "ss"},
+          {"walk": [65.75, 8.4], "open": true}
         ] },
-        { "from": "bridge", "width": 4, "go": [
-          {"walk": [50, 30]},
+        { "from": [61.15, -5.2], "width": 1.8, "go": [
+          {"walk": [69.25, -5.2], "open": true},
+          {"walk": [69.25, -7.6], "open": true},
+          {"lift": 4.7},
+          {"walk": [69.25, -6.2], "open": true}
+        ] },
+        { "from": [63.65, 4.8], "width": 1.8, "go": [
+          {"walk": [67.75, 4.8], "open": true},
+          {"walk": [67.75, 11.1], "open": true},
+          {"lift": 4.7, "above": 3.1},
+          {"walk": [67.75, 9.6], "open": true}
+        ] },
+        { "from": [67.65, -10.8], "h": 4.7, "width": 5.0, "go": [
+          {"walk": [67.65, 10.6], "open": true}
+        ] },
+        { "from": [69.65, 0.8], "h": 4.7, "width": 6.0, "go": [
+          {"walk": [71.35, 0.8], "open": true},
           {"gates": true},
-          {"exit": {"at":  [50, 44], "name":  "Skärmarbrink"}}
+          {"walk": [74.15, 0.8], "open": true},
+          {"walk": [76.65, 0.8], "open": true}
+        ] },
+        { "from": [76.65, -11], "h": 4.7, "width": 4.6, "go": [
+          {"walk": [76.65, 10.8], "open": true}
+        ] },
+        { "from": [76.65, 10.8], "h": 4.7, "width": 4.6, "go": [
+          {"walk": [76.65, 21.8], "dh": 0.11, "open": true},
+          {"walk": [76.65, 33.3], "dh": 0.2, "open": true},
+          {"exit": {"at": [76.65, 37.3], "name": "Pelargatan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [76.65, -11], "h": 4.7, "width": 4.6, "go": [
+          {"walk": [76.65, -24.2], "dh": -0.17, "open": true},
+          {"walk": [76.65, -47.2], "dh": -0.17, "open": true},
+          {"exit": {"at": [76.65, -60.2], "name": "Palandergatan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -288,6 +288,31 @@ export class OpenLook {
       else if (a.kind === 'birches') this.birches(a, frame, on);
       else if (a.kind === 'lightBoxes') this.lightBoxes(a, frame, on);
       else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
+      else if (a.kind === 'bronzeFrames') this.bronzeFrames(a, frame, on);
+    }
+  }
+
+  // Carl Magnus's sculptures (1990): square bronze bars gone green, on a concrete plinth; a
+  // slanting bar's section square across the plinth and level, as cast.
+  private bronzeFrames(a: BronzeFrames, frame: Frame, on: On) {
+    const green = on(this.mat('greenBronze', () => new THREE.MeshStandardMaterial({ map: T.verdigris(), color: 0x7f948c, metalness: 0.35, roughness: 0.6, side: THREE.DoubleSide })));
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const cd = Math.cos(a.turn), sd = Math.sin(a.turn), [L, Wd, P] = a.plinth, t = a.bar;
+    // along the plinth and across it, and up, in the station's frame
+    const at = (x: number, d: number, y: number): XYZ => frame.at(a.s + cd * x - sd * d, a.u + sd * x + cd * d, y);
+    const o = at(0, 0, 0), f = at(1, 0, 0), fx = f[0] - o[0], fz = f[2] - o[2];
+    box(concrete, at(0, 0, P / 2), fx, fz, Wd, P, L);
+    for (const [x0, y0, x1, y1, d] of a.bars) {
+      const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy);
+      if (Math.abs(dy) < 0.3 * l) {
+        // (lying: a beam under the line through its top face)
+        const k = (t / 2) / (l || 1);
+        bar(green, at(x0 - dx * k, d, P + Math.max(y0, y1) + t / 2), at(x1 + dx * k, d, P + Math.max(y0, y1) + t / 2), t, t + Math.abs(dy));
+        continue;
+      }
+      const [lo, hi] = y0 < y1 ? [[x0, y0], [x1, y1]] : [[x1, y1], [x0, y0]];
+      const along = t * l / Math.abs(dy);
+      taper(green, at(lo[0], d, P + lo[1]), at(hi[0], d, P + hi[1]), [t, along], [t, along], fx, fz);
     }
   }
 
@@ -706,7 +731,9 @@ export class OpenLook {
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
     // half the roof's width at s, and the underside's height across it there
     const half = (s: number) => line.width(s, R.width) / 2;
-    const h = (u: number, s = 0) => R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s));
+    const h = (u: number, s = 0) => R.lean
+      ? R.middle + (R.edge - R.middle) * Math.min(1, Math.max(0, (1 - R.lean * u / half(s)) / 2))
+      : R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s));
     const n = Math.max(1, Math.ceil((R.to - R.from) / 2.5));
     const S = (i: number) => R.from + ((R.to - R.from) * i) / n;
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
@@ -726,7 +753,7 @@ export class OpenLook {
         under.poly([q(s0, 0, 0), q(s0, e0, 0), q(s1, e1, 0), q(s1, 0, 0)], cut);
         if (!covered) top.poly([q(s0, 0, R.thick), q(s0, e0, R.thick), q(s1, e1, R.thick), q(s1, 0, R.thick)], cut);
         // the fascia along its edge, down past the underside and back in under it
-        const p = (s: number, u: number, dh: number) => [...line.at(s, u, R.edge + dh), 0, 0];
+        const p = (s: number, u: number, dh: number) => [...line.at(s, u, (R.lean ? h(side * half(s), s) : R.edge) + dh), 0, 0];
         const i0 = e0 - side * 0.05, i1 = e1 - side * 0.05;
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, e1, crest), p(s0, e0, crest)], cut);
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, i1, lip), p(s0, i0, lip)], cut);
@@ -787,7 +814,7 @@ export class OpenLook {
     // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
     // and those the roof cases; a beam across over each pair, the columns on up through it to the
     // rafters
-    const foot = R.middle - R.beam;
+    const foot = (R.lean ? h(mid) : R.middle) - R.beam;
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
@@ -1247,6 +1274,7 @@ export class OpenLook {
         }
       }
     }
+    if (b.gables) this.gables(b, frame, on, roofCut);
     if (b.ceiling) {
       const [cw] = T.FINISH_SIZE[b.ceiling];
       on(this.finish(b.ceiling, true)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]), roofCut);
@@ -1254,6 +1282,38 @@ export class OpenLook {
     if (b.floor) {
       const [fw] = T.FINISH_SIZE[b.floor];
       on(this.finish(b.floor)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockFrom(b, i) - 0.02), u / fw, s / fw]), cut);
+    }
+  }
+
+  // Gables side by side on a block's roof along its first side, their ridges across it: the
+  // slopes reaching 0.2 m past the ends, a strip of glass down the middle of each, the ends'
+  // triangles under a trim along their edges.
+  private gables(b: Block, frame: Frame, on: On, cut: Volume[]) {
+    const G = b.gables!, c = b.plan, base = blockTop(b, 0) + (b.roof ?? 0), top = base + G.rise;
+    const slope = on(b.roofColor === undefined ? this.roofing : this.color(b.roofColor, 0.7, 0.2));
+    const end = on(this.color(G.color, 0.75, 0.05)), trim = on(this.color(G.trim, 0.6, 0.05)), glass = on(this.color(0x8d9ba6, 0.15, 0.5));
+    // t along the first side, v along the second, the height over the platform
+    const P = (t: number, v: number, h: number): XYZ => {
+      const s0 = c[0][0] + (c[1][0] - c[0][0]) * t, u0 = c[0][1] + (c[1][1] - c[0][1]) * t;
+      const s1 = c[3][0] + (c[2][0] - c[3][0]) * t, u1 = c[3][1] + (c[2][1] - c[3][1]) * t;
+      return frame.at(s0 + (s1 - s0) * v, u0 + (u1 - u0) * v, h);
+    };
+    const e = 0.2 / Math.hypot(c[2][0] - c[1][0], c[2][1] - c[1][1]), q = (p: XYZ) => [...p, 0, 0];
+    for (let k = 0; k < G.count; k++) {
+      const t0 = k / G.count, tm = (k + 0.5) / G.count, t1 = (k + 1) / G.count;
+      for (const [a, z] of [[t0, tm], [t1, tm]]) {
+        slope.poly([q(P(a, -e, base)), q(P(z, -e, top)), q(P(z, 1 + e, top)), q(P(a, 1 + e, base))], cut);
+        // (the glass a little over the slope, from a third of the way up to two thirds)
+        const g = (f: number) => [a + (z - a) * f, base + G.rise * f + 0.03] as const;
+        const [ga, ha] = g(0.3), [gb, hb] = g(0.62);
+        glass.poly([q(P(ga, 0.08, ha)), q(P(gb, 0.08, hb)), q(P(gb, 0.92, hb)), q(P(ga, 0.92, ha))], cut);
+      }
+      for (const v of [0, 1]) {
+        end.poly([q(P(t0, v, base)), q(P(t1, v, base)), q(P(tm, v, top))], cut);
+        const w = v ? 1 + e : -e;
+        bar(trim, P(t0, w, base + 0.06), P(tm, w, top + 0.06), 0.1, 0.2);
+        bar(trim, P(tm, w, top + 0.06), P(t1, w, base + 0.06), 0.1, 0.2);
+      }
     }
   }
 
@@ -1268,6 +1328,7 @@ export class OpenLook {
     if (f.kind === 'boards' || f.kind === 'louvres') return this.boardFence(f, frame, on);
     if (f.kind === 'glass') return this.glassFence(f, frame, on);
     if (f.kind === 'rails') return this.railFence(f, frame, on);
+    if (f.kind === 'bars') return this.barFence(f, frame, on);
     const link = on(this.mat('chainLink', () => new THREE.MeshStandardMaterial({ map: T.chainLink(), alphaTest: 0.35, roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide })));
     const post = on(this.color(0x9aa0a4, 0.45, 0.6));
     const [h0, h1] = f.h;
@@ -1298,6 +1359,23 @@ export class OpenLook {
         limb(m, frame.at(s, u, h0 + d), frame.at(s, u, h1 + 0.03 + d), 0.05, 0.05);
       }
       for (const r of rails) limb(m, frame.at(sa, ua, r + da), frame.at(sb, ub, r + db), 0.04, 0.04);
+    }
+  }
+
+  // Upright bars between rails (drawn in the texture), on posts about 2 m apart.
+  private barFence(f: Fence, frame: Frame, on: On) {
+    const bars = on(this.mat('fence:bars', () => new THREE.MeshStandardMaterial({ map: T.barRailing(), alphaTest: 0.5, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide })));
+    const post = on(this.color(0x1d1f21, 0.5, 0.4)), [h0, h1] = f.h;
+    let along = 0;
+    for (let i = 0; i + 1 < f.points.length; i++) {
+      const [sa, ua, da = 0] = f.points[i], [sb, ub, db = 0] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 2));
+      for (let k = i === 0 ? 0 : 1; k <= n; k++) {
+        const t = k / n, s = sa + (sb - sa) * t, u = ua + (ub - ua) * t, d = da + (db - da) * t;
+        box(post, frame.at(s, u, (h0 + h1) / 2 + d + 0.02), 1, 0, 0.06, h1 - h0 + 0.04, 0.06);
+      }
+      const P = (t: number, h: number, a: number) => [...frame.at(sa + (sb - sa) * t, ua + (ub - ua) * t, h + da + (db - da) * t), a / 1.2, (h - h0) / (h1 - h0)];
+      bars.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
+      along += l;
     }
   }
 

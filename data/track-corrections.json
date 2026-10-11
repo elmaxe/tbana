@@ -20,6 +20,60 @@
       "service": "main",
       "line": "blue",
       "why": "Kungsträdgården: OSM tags the platform tracks as sidings from halfway along the platform, where they run on as the tail tracks. The stretch along the platform, to the first switch beyond it, is the running line."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1260090258,
+        12541559473
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541559473,
+        1258848480
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1258848609,
+        12541559474
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541559474,
+        12541559475
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541586175,
+        12541586176
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541586177,
+        12541586178
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
     }
   ],
   "crossovers": [
