@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground (Lantmäteriet's Markhöjdmodell, data/ground), for tools/build-city.ts and tools/build-stations.ts, each with its reason. `decks`: a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Högdalen: Högdalsgången",
@@ -54,6 +54,71 @@
       "outline": [1272.82, 3604.79, 1279.32, 3625.81, 1295.56, 3620.78, 1289.06, 3599.77],
       "heights": [43.3, 42.55, 42.55, 43.3],
       "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
+    }
+  ],
+  "open": [
+    {
+      "outline": [[391.2, 856.2], [418.6, 925.2], [434.8, 984.3], [445.6, 1023.6], [484.9, 1003.9], [468.3, 975.3], [496.9, 960.9], [433.7, 834.9]],
+      "ground": 2.6,
+      "why": "Gamla stan station, the railway beside it and Centralbron over it, from the platforms' north end to Söderström. The elevation model takes the decks for the ground: Centralbron's at 7–8 m over the platforms and the railway's at 3.5–6 m along the quay (Lantmäteriet's laser scan, 2021), so the station stood buried in a grassy mound. The street beside it is at 2.6–3.0 m on Munkbroleden and 1.5–1.8 m on the quay (laser scan); the station, the railway and the bridge are drawn in src/detail/gamla-stan.ts."
+    },
+    {
+      "outline": [[726.7, 1112.5], [737.6, 1118.3], [747.3, 1122.7], [848.6, 1170.3], [858.7, 1175.2], [868.2, 1178.7], [859.2, 1196.8], [850.8, 1191.6], [840.8, 1186.8], [739.4, 1139.1], [728.3, 1133.6]],
+      "ground": -1,
+      "why": "The lock, Victoriaslussen, mouth to mouth, with 3 m of the quays round it so that the ground's slope down into it (the grid is 5 m) lies under the quays' paving drawn in src/detail/slussen.ts, whose water is at 0.25 m."
+    },
+    {
+      "outline": [[751.6, 1122.3], [767.4, 1089.1], [823.6, 1116.1], [807.6, 1148.9]],
+      "ground": -1,
+      "why": "The lock's north basin with 3 m of the quays round it, as for the lock."
+    },
+    {
+      "outline": [[727.2, 1173.9], [742.3, 1142.6], [798.6, 1169.1], [783.3, 1200.3]],
+      "ground": -1,
+      "why": "The lock's south basin with 3 m of the quays round it, as for the lock."
+    },
+    {
+      "outline": [[655, 1150], [700, 1105], [790, 1062], [838, 1076], [885, 1098], [893, 1125], [872, 1182], [862, 1202], [842, 1228], [811, 1268], [766, 1252], [770, 1236], [765.5, 1228.5], [756, 1221.5], [727.9, 1207.9], [727, 1238], [716.7, 1236], [712.5, 1199.5], [710.2, 1196.2], [671.6, 1178.6], [664.3, 1183.7], [657, 1172]],
+      "ground": 1.8,
+      "why": "Slussen's water square, from the metro bridge's end to Slussplan and Guldbron's foot. The elevation model is from the rebuilding (2020–2024), when the lock was dug to −4 m and the ground round it stood at 2–6 m, and takes Guldbron's deck for the ground at its Söder end. The finished quays round the lock and its basins are at 1.8 m (Lantmäteriet's laser scan of the east quay, 2021; the square's design level); Guldbron, the lock, the quays and the pavilions on them are drawn in src/detail/slussen.ts."
+    },
+    {
+      "outline": [[2512.6, -2960.9], [2557.7, -2988.6], [2566.9, -2973.7], [2521.7, -2946.0]],
+      "ground": 7.8,
+      "why": "Lidingöbanan's stop at Ropsten, on its terrace beside the tram's hall: the elevation model smooths the ground between its three platforms up to 8.0–8.06 m, over the tracks' tops (7.85–7.95 m, 0.4 m under the platforms' 8.35 m; Lantmäteriet's laser scan, 2021), so it came up through the southern track. The tracks and platforms are drawn in src/detail/ropsten.ts."
+    }
+  ],
+  "fill": [
+    {
+      "outline": [[669, 1184.5], [707, 1202], [707, 1241], [733, 1241], [733, 1218], [752, 1227], [753, 1229], [758, 1241], [761, 1252], [767, 1250], [808, 1269], [800, 1283], [790, 1288], [740, 1290], [700, 1292], [655, 1290], [655, 1200]],
+      "ground": 12.5,
+      "why": "Södermalmstorg, from the pavilions over the water square to Slussbrogatan and Guldbron's Söder end. The elevation model is from the rebuilding of Slussen, when the square was a pit 2–11 m deep with ramps and spoil in it; the finished square is paved and level with Guldbron's Söder end at 12.5 m (Lantmäteriet's laser scan of the bridge, 2021), rising to the south-west towards Hornsgatan, where the model's ground still stands above this and is kept. The outline reaches to Guldbron's end (the deck covers the ground beyond it) and keeps a grid cell (5 m) back from the pavilions' walls over the water square and from the stairs' flights, so that the ground's slope down from it lies under the pavilions' roofs and the stairs' landing (src/detail/slussen.ts)."
+    }
+  ],
+  "paved": [
+    {
+      "outline": [[100, 520], [480, 520], [480, 600], [1010, 600], [1010, 1060], [560, 1040], [505, 1055], [440, 1055], [380, 1000], [100, 880]],
+      "why": "Gamla stan and Riddarholmen are stone and asphalt to the water's edge: Munkbroleden, Kornhamnstorg, Munkbrohamnen, Skeppsbron, Riddarholmskajen and Evert Taubes terrass are quays (Google's 3D model). Their rims, and the street under Centralbron, were grass for want of buildings beside them."
+    },
+    {
+      "outline": [[-400, 1120], [900, 1120], [900, 1220], [450, 1220], [420, 1185], [-400, 1185]],
+      "why": "Söder Mälarstrand from the foot of Centralbron to Slussen, and on west towards Hornsgatan: a street and a quay between the water and the houses, 2.2–3.0 m (Lantmäteriet's laser scan), where Mariaberget's slope begins. It was grass for want of buildings beside it."
+    },
+    {
+      "outline": [[640, 1215], [900, 1215], [900, 1320], [640, 1320]],
+      "why": "Södermalmstorg, Slussplan's approaches, Katarinavägen and the foot of Katarinahissen are stone and asphalt (Google's 3D model); the open quays and the square were grass for want of buildings beside them."
+    },
+    {
+      "outline": [[2073, -3091], [2081, -3097], [2121, -3110], [2150, -3120], [2162, -3124], [2192, -3146], [2242, -3160], [2254, -3161], [2266, -3155], [2271, -3149], [2272, -3120], [2277, -3112], [2288, -3114], [2316, -3110], [2342, -3106], [2404, -3102], [2448, -3098], [2533, -3098], [2548, -3097], [2559, -3090], [2557, -3077], [2583, -3054], [2594, -3044], [2604, -3046], [2615, -3057], [2625, -3057], [2640, -3040], [2658, -3017], [2648, -3010], [2666, -2963], [2667, -2958], [2638, -2935], [2616, -2906], [2617, -2885], [2614, -2882], [2577, -2856], [2543, -2853], [2536, -2865], [2529, -2867], [2519, -2863], [2512, -2851], [2502, -2843], [2489, -2839], [2478, -2843], [2470, -2848], [2477, -2840], [2491, -2827], [2485, -2821], [2474, -2824], [2460, -2833], [2446, -2831], [2440, -2835], [2419, -2855], [2404, -2869], [2393, -2905], [2382, -2921], [2374, -2925], [2381, -2940], [2357, -2952], [2300, -2978], [2238, -3005], [2206, -3011], [2178, -3008], [2117, -2989], [2087, -2979], [2060, -3087]],
+      "why": "Round the red line's end at Ropsten: Ropstensplan and the bus stops under the platforms, the roads, the tram's tracks and the car park under Lidingöbron, and west of the station the old gasworks being built over (Norra Djurgårdsstaden), all asphalt, stone and site gravel (Google's 3D model; OpenStreetMap's construction, industrial, parking and square outlines, leaving out its lawns and woods). With few buildings beside them they were grass."
+    },
+    {
+      "outline": [[2648, -3010], [2692, -2998], [2702, -2955], [2722, -2908], [2705, -2914], [2663, -2895], [2638, -2935], [2667, -2958], [2666, -2963]],
+      "why": "The yard and the quay at the foot of Lidingöbron on the Ropsten side, under the bridges (Google's 3D model)."
+    },
+    {
+      "outline": [[2687, -2494], [2682, -2505], [2662, -2560], [2648, -2595], [2609, -2682], [2603, -2696], [2598, -2710], [2594, -2725], [2591, -2740], [2589, -2754], [2590, -2761], [2592, -2768], [2597, -2776], [2603, -2782], [2609, -2787], [2616, -2791], [2627, -2795], [2656, -2807], [2625, -2871], [2663, -2895], [2705, -2914], [2722, -2908], [2744, -2919], [2796, -2812], [2773, -2802], [2842, -2655], [2872, -2668], [2920, -2560], [2920, -2480]],
+      "why": "Energihamnen east of Ropsten: the power station's tanks, yards and quays (OpenStreetMap's industrial outline, closed out over the water; Google's 3D model). It was grass between the tanks."
     }
   ]
 }

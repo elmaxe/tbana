@@ -304,11 +304,12 @@ export class Trains {
 
   private event(svc: Service, ev: ServiceEvent, playerPos: THREE.Vector3 | null) {
     const c30 = svc.L.train === 'C30';
-    if (ev === 'arrived') this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
-    else if (ev === 'closing') {
-      // the C30 has its own warning (the chime until it has loaded)
+    // the doors open without a sound
+    if (ev === 'closing') {
+      // the C20 and C30 have their own warnings (the C30's the chime until it has loaded)
       const d = this.distanceTo(svc, playerPos);
-      if (!c30 || !this.sound?.play('closing', d)) this.sound?.chime(d, 'close');
+      if (svc.L.train === 'C20') this.sound?.c20Closing(d);
+      else if (!c30 || !this.sound?.play('closing', d)) this.sound?.chime(d, 'close');
     } else if (ev === 'shutting' && c30) {
       // the doors meet as they finish closing
       this.sound?.play('shut', this.distanceTo(svc, playerPos), DOORS_SHUT - SHUT_SLAM);
@@ -549,6 +550,15 @@ export class Trains {
   // Next departures from the station model's platform the player is standing on.
   departuresFor(platformRec: SurfaceRecord) {
     return this.calls.filter((c) => c.tr.platform.rec === platformRec).flatMap((c) => this.next(c)).sort((a, b) => a.eta - b.eta);
+  }
+
+  // The trains calling at each track beside a station model's platform: the line, its number and
+  // where it goes (for the map's caption, src/minimap.ts).
+  callsAt(platformRec: SurfaceRecord): { line: LineId; number: string; dest: string }[][] {
+    return this.calls.filter((c) => c.tr.platform.rec === platformRec).map((c) => [
+      ...(c.shuttle?.shuttle?.destSet ?? []).map(([number, dest]) => ({ line: c.tr.line, number, dest })),
+      ...c.stops.map(({ route }) => ({ line: route.line, number: route.dest[0], dest: route.dest[1] })),
+    ]);
   }
 
   // Next departures from a station of the network, both ways, by its name.

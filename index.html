@@ -14,6 +14,7 @@
     <div id="where"></div>
     <div id="departures" hidden></div>
     <canvas id="minimap" width="220" height="220"></canvas>
+    <div id="mapCaption" hidden></div>
     <div id="crosshair"></div>
     <div id="prompt" hidden></div>
     <div id="toast"></div>
@@ -28,6 +29,7 @@
         <button data-hold="down" aria-label="Sink">⇣</button>
       </div>
       <div class="row">
+        <button id="lightsBtn" data-key="KeyL" aria-pressed="false">Lights</button>
         <button data-key="KeyM">Map</button>
         <button data-key="KeyF">Fly</button>
       </div>
@@ -38,7 +40,7 @@
 
   <div id="bigmapWrap" hidden>
     <canvas id="bigmap"></canvas>
-    <p><span class="mouseonly">Map — press <kbd>M</kbd> to close</span><span class="touchonly-inline">Map — tap to close</span></p>
+    <p><span class="mouseonly">Wheel or <kbd>+</kbd> <kbd>−</kbd> to zoom · drag to move · <kbd>M</kbd> to close</span><span class="touchonly-inline">Pinch to zoom · drag to move · tap to close</span></p>
   </div>
 
   <div id="fade"><p id="fadeText"></p></div>
@@ -49,6 +51,7 @@
       <p class="sub">Stockholm City · Stockholm C — a first-person walk through the station drawing</p>
       <div id="loading">Loading station… <div class="bar"><div id="progress"></div></div></div>
       <button id="start" hidden>Enter the station</button>
+      <div id="offline" hidden></div>
       <div class="cols">
         <div>
           <h2>Controls</h2>
@@ -56,12 +59,13 @@
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Shift</kbd> run</li>
             <li><kbd>Mouse</kbd> look · <kbd>Esc</kbd> pause</li>
             <li><kbd>E</kbd>/<kbd>Q</kbd> lift up / down (stand next to a blue shaft)</li>
-            <li><kbd>M</kbd> map · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> sound · <kbd>L</kbd> lights up</li>
+            <li><kbd>M</kbd> map (<kbd>+</kbd> <kbd>−</kbd> zoom) · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> sound · <kbd>L</kbd> lights up</li>
           </ul>
           <ul class="keys touchonly-block">
             <li><b>Left side</b>: drag to walk (push far to run)</li>
             <li><b>Right side</b>: drag to look around</li>
             <li><b>Lift ▲ ▼</b> appear next to lift shafts</li>
+            <li><b>Lights</b> lights everything evenly</li>
             <li>Tap the minimap for the full map, ☰ for this menu</li>
             <li class="rotate">Turn your phone sideways for a wider view</li>
           </ul>

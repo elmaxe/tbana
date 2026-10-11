@@ -1,5 +1,5 @@
 {
-  "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts, checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
+  "note": "Fixes applied to the OpenStreetMap data by tools/build-track-graph.ts (and the platform widths by tools/build-track-geometry.ts), checked against Gleisplanweb's track plan (gleisplanweb.eu, used as a reference only). Each says why; remove an entry once OSM has the fix, and the build will fail if it no longer applies.",
   "links": [
     {
       "op": "retag",
@@ -394,6 +394,13 @@
       "station": "Farsta",
       "shortRuns": 25,
       "why": "OSM splits the eastern track 28 m short of the island platform's south end, where its bridge ends, so that piece was left without the platform, and the platform's south end was drawn as a narrow side platform on the western track only."
+    }
+  ],
+  "widths": [
+    {
+      "station": "Ropsten",
+      "width": 5.8,
+      "why": "Each of Ropsten's two viaducts carries one track and one side platform, 5.8 m from the platform edge to the railing over the open gap between them (Lantmäteriet's laser scan, 2021: the roofs and the parked train's roof)."
     }
   ]
 }

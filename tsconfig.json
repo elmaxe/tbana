@@ -15,5 +15,7 @@
     // src/station-layout.ts imports src/clip.ts with its extension, for the tools on Node
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // the service worker has a worker's globals, not a page's: tsconfig.sw.json
+  "exclude": ["src/sw.ts"]
 }

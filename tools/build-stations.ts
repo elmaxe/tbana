@@ -38,7 +38,7 @@ const OUT = 'public/data/station-layouts.json';
 
 type SU = [number, number];
 type Segment =
-  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
+  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean; edges?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
   | { lift: number; above?: number; through?: boolean }
@@ -245,7 +245,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
       const room = ceiling === null ? 'platform' : 'passage';
       parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room, label: `${name} · ${room}` });
     };
-    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false) => {
+    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false, edges = true) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
       if (l < 0.01) return;
       const nx = dx / l, nz = dz / l;
@@ -259,6 +259,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         corners: [[x - rx, y, z - rz], [x + rx, y, z + rz], [tx + rx, y + dh, tz + rz], [tx - rx, y + dh, tz - rz]].map((p) => p3(p as XYZ)),
         ceiling: open ? null : ceiling ?? CEILING[room as 'hall' | 'passage'], room,
         label: `${name} · ${{ platform: 'platform', hall: 'ticket hall', passage: 'passage' }[room]}`,
+        ...(edges ? {} : { edges: false as const }),
       });
       x = tx; z = tz; y += dh; hx = nx; hz = nz; last = 'walk';
     };
@@ -286,8 +287,8 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     for (const sg of r.go) {
       if ('walk' in sg) {
         if (sg.width) width = sg.width;
-        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open);
-        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open);
+        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
+        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
       } else if ('stairs' in sg || 'escalators' in sg) {
         const kind = 'stairs' in sg ? 'stairs' : 'escalators';
         const dh = 'stairs' in sg ? sg.stairs : sg.escalators;

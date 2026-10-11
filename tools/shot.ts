@@ -65,7 +65,8 @@ const views: { file: string; fov: number; pos: number[]; quat: number[] }[] = []
 async function shoot(file: string, cam: string, extra: string) {
   const page = await browser.newPage({ viewport: { width, height } });
   page.on('pageerror', (e) => console.warn(`  ${file}: ${e.message}`));
-  await page.goto(`${base}/?cam=${cam}&fly${extra}`);
+  // (three pages loading at once on a software renderer can take longer than Playwright's 30 s)
+  await page.goto(`${base}/?cam=${cam}&fly${extra}`, { timeout: 180_000 });
   await page.waitForFunction(() => (window as unknown as { __game?: unknown }).__game, null, { timeout: 240_000 });
   await page.waitForTimeout(wait);
   const data = await page.evaluate(() => {

@@ -14,13 +14,15 @@ export const DWELL = 22;     // seconds at least at a stop, from stopping to the
 export const DOORS_OPEN = 2.2, DOORS_SHUT = 2.8;     // seconds for the doors to open / close
 export const OPEN_DELAY = 0.8, SHUT_DELAY = 1.2;     // after stopping / after the closing chime
 export const LEAVE_DELAY = 1.0;                      // from closed doors to pulling away
-// The C30's doors shut this long after the closing chime: at the end of its warning, when the
-// warning drops in level (the closing clip of src/sound.ts).
-export const C30_SHUT = 6.6;
+// The C20's and C30's doors shut this long after their warning starts: as the C20's buzz stops
+// (c20Warning in src/sound.ts), and at the end of the C30's, when it drops in level (the closing
+// clip of src/sound.ts).
+export const C20_SHUT = 4.2, C30_SHUT = 6.6;
 
 // Seconds from the closing chime to the doors starting to close, and to pulling away.
 export function closingTimes(svc: Service) {
-  const shut = svc.L.train === 'C30' ? C30_SHUT - DOORS_SHUT : SHUT_DELAY;
+  const at = svc.L.train === 'C30' ? C30_SHUT : svc.L.train === 'C20' ? C20_SHUT : 0;
+  const shut = at ? at - DOORS_SHUT : SHUT_DELAY;
   return { shut, leave: shut + DOORS_SHUT + LEAVE_DELAY };
 }
 

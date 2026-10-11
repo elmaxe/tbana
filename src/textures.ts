@@ -2726,7 +2726,7 @@ export function laminatedWood() {
 
 // A departure board: a pale strip naming the trains' direction, and the next two trains in
 // orange lights on black.
-export function departureBoard(toward: string, trains: [string, string]) {
+export function trainsBoard(toward: string, trains: [string, string]) {
   const W = 680, H = 200, [c, x] = canvas(W, H);
   x.fillStyle = '#0e0f10'; x.fillRect(0, 0, W, H);
   x.fillStyle = '#d6d9d6'; x.fillRect(0, 0, W, 44);
@@ -3041,7 +3041,8 @@ export function leafGlass(leaves: boolean) {
   return toTexture(c);
 }
 
-export function cobbles() {
+// Small square setts in rows, grey with a few warmer.
+export function smallSetts() {
   const W = 160, [c, x] = canvas(W, W), r = rng(1990);
   x.fillStyle = '#4a4a48'; x.fillRect(0, 0, W, W);
   const t = 16;
@@ -4459,5 +4460,451 @@ export function neonDigit(d: string) {
   x.lineJoin = 'round';
   x.strokeStyle = '#2f5cf0'; x.lineWidth = 16; x.strokeText(d, 64, 100);
   x.strokeStyle = '#d6e0ff'; x.lineWidth = 5; x.strokeText(d, 64, 100);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A railing of upright bars on nothing (for an alpha test), white for vertex colours to tint: a
+// handrail at the top, a rail near the foot and a bar every 12.5 cm; covers 1 m along by its
+// height.
+export function railingBars() {
+  const [c, x] = canvas(128, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 128, 9);
+  x.fillRect(0, 110, 128, 6);
+  for (let k = 0; k < 128; k += 16) x.fillRect(k + 6, 0, 4, 128);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A timber walkway's boards, white for vertex colours to tint: eight boards across it, each a
+// little lighter or darker, with a dark gap after each; covers 2 m along it.
+export function boardWalk() {
+  const [c, x] = canvas(128, 256);
+  const r = rng(53);
+  for (let i = 0; i < 8; i++) {
+    const v = 205 + Math.floor(r() * 45);
+    x.fillStyle = `rgb(${v},${v},${v})`; x.fillRect(0, i * 32, 128, 29);
+    x.fillStyle = '#3a3a3a'; x.fillRect(0, i * 32 + 29, 128, 3);
+  }
+  speckle(x, 128, 256, 1500, 0.15, 54);
+  return toTexture(c, { aniso: 4 });
+}
+
+// The sign over a station's entrance, SL style: a blue band with the T in a white ring on the
+// left, the name in white capitals and a yellow line along its foot. 1024 × 176, about 4.6 × 0.8 m.
+export function entranceSign(text: string) {
+  const [c, x] = canvas(1024, 176);
+  x.fillStyle = '#123f8c'; x.fillRect(0, 0, 1024, 176);
+  x.fillStyle = '#f2c230'; x.fillRect(0, 158, 1024, 18);
+  x.fillStyle = '#ffffff';
+  x.beginPath(); x.arc(110, 80, 52, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#123f8c';
+  x.fillRect(80, 52, 60, 14); x.fillRect(102, 52, 16, 64);
+  x.fillStyle = '#ffffff';
+  x.font = '600 92px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'left'; x.textBaseline = 'middle';
+  x.fillText(text, 200, 84, 800);
+  return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ streets and trees
+// (src/detail/streets.ts) Light and near neutral, for the vertex colours to tint.
+
+// Granite setts (gatsten) in rows, as in Gamla stan's streets: stones 12.5 cm across the row and
+// 14–24 cm along it, each its own shade, in dark joints. Covers 2 × 2 m.
+export function setts() {
+  const S = 512, px = S / 2;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#5a5855'; x.fillRect(0, 0, S, S);
+  const r = rng(71), row = px / 8;
+  for (let y = 0; y < S; y += row) {
+    let u = -r() * px * 0.2;
+    while (u < S) {
+      const len = Math.min(S - u, px * (0.14 + r() * 0.1)), v = 165 + Math.floor(r() * 60), warm = Math.floor(r() * 10);
+      x.fillStyle = `rgb(${v + warm},${v},${v - warm})`;
+      const j = 2 + r() * 1.5;
+      // (wrapping round the repeat's edge)
+      for (const o of [0, S]) x.fillRect(u + j - o, y + j, len - 2 * j, row - 2 * j);
+      u += len;
+    }
+  }
+  speckle(x, S, S, 9000, 0.22, 72);
+  speckle(x, S, S, 3000, 0.12, 73, true);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Round cobbles (kullersten): stones of 8–14 cm, packed, in dark gaps. Covers 1.5 × 1.5 m.
+export function cobbles() {
+  const S = 256, px = S / 1.5;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#4e4b47'; x.fillRect(0, 0, S, S);
+  const r = rng(75);
+  for (let k = 0; k < 520; k++) {
+    const cx = r() * S, cy = r() * S, rad = px * (0.04 + r() * 0.03), v = 150 + Math.floor(r() * 80), warm = Math.floor(r() * 14);
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      const g = x.createRadialGradient(cx + ox - rad * 0.3, cy + oy - rad * 0.3, rad * 0.1, cx + ox, cy + oy, rad);
+      g.addColorStop(0, `rgb(${v + 30 + warm},${v + 30},${v + 30 - warm})`); g.addColorStop(1, `rgb(${v - 30 + warm},${v - 30},${v - 30 - warm})`);
+      x.fillStyle = g;
+      x.beginPath(); x.ellipse(cx + ox, cy + oy, rad, rad * (0.8 + r() * 0.2), r() * 3, 0, Math.PI * 2); x.fill();
+    }
+  }
+  return toTexture(c, { aniso: 8 });
+}
+
+// Concrete paving slabs (betongplattor), 35 × 35 cm, four by four, each a shade apart. Covers 1.4 ×
+// 1.4 m.
+export function pavingSlabs() {
+  const S = 256, n = 4, w = S / n;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#707070'; x.fillRect(0, 0, S, S);
+  const r = rng(77);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const v = 200 + Math.floor(r() * 30);
+    x.fillStyle = `rgb(${v},${v},${v - 3})`;
+    x.fillRect(i * w + 1, j * w + 1, w - 2, w - 2);
+  }
+  speckle(x, S, S, 4000, 0.14, 78);
+  speckle(x, S, S, 1500, 0.1, 79, true);
+  // stains
+  for (let k = 0; k < 14; k++) {
+    x.fillStyle = `rgba(60,60,55,${r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * S, r() * S, 5 + r() * 30, 5 + r() * 30, 0, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { aniso: 8 });
+}
+
+// Asphalt: fine grit, lighter stones in it, darker patches and seams. Covers 4 × 4 m.
+export function asphalt() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#c4c4c4'; x.fillRect(0, 0, S, S);
+  const r = rng(81);
+  for (let k = 0; k < 10; k++) {
+    x.fillStyle = `rgba(40,40,40,${0.03 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * S, r() * S, 10 + r() * 50, 8 + r() * 40, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, S, S, 9000, 0.3, 82);
+  speckle(x, S, S, 5000, 0.25, 83, true);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Gravel: grit and small stones. Covers 2 × 2 m.
+export function gravel() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#cfc8bb'; x.fillRect(0, 0, S, S);
+  speckle(x, S, S, 12000, 0.35, 85);
+  speckle(x, S, S, 6000, 0.3, 86, true);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A tree's leaves, packed: clumps of small leaves in lighter and darker greens on shadow. Near
+// white-green for the vertex colours to tint. Covers 2 × 2 m.
+export function leaves() {
+  const S = 256;
+  const [c, x] = canvas(S);
+  x.fillStyle = '#7d8a74'; x.fillRect(0, 0, S, S);
+  leafClumps(x, S, 2600, 87);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A spray of leaves on nothing, for an alpha test: thick in the middle, ragged at the edge. A
+// crown's outside is made of many of them (src/detail/streets.ts).
+export function leafCard() {
+  const S = 128;
+  const [c, x] = canvas(S);
+  const r = rng(89);
+  for (let k = 0; k < 150; k++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * S * 0.4, len = 6 + r() * 6, v = r(), shade = 0.7 + r() * 0.3;
+    const g = Math.floor(165 + v * 90);
+    x.fillStyle = `rgb(${Math.floor(g * 0.86 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.74 * shade)})`;
+    x.beginPath(); x.ellipse(S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, len, len * 0.5, r() * Math.PI, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+function leafClumps(x: CanvasRenderingContext2D, S: number, n: number, seed: number) {
+  const r = rng(seed);
+  for (let k = 0; k < n; k++) {
+    const cx = r() * S, cy = r() * S, len = 3 + r() * 5, a = r() * Math.PI, v = r();
+    const g = Math.floor(170 + v * 85), shade = 0.75 + r() * 0.25;
+    x.fillStyle = `rgb(${Math.floor(g * 0.88 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.78 * shade)})`;
+    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
+      x.beginPath(); x.ellipse(cx + ox, cy + oy, len, len * 0.55, a, 0, Math.PI * 2); x.fill();
+    }
+  }
+}
+
+// ------------------------------------------------------------------ Slussen
+// Granite ashlar, as the new Slussen's quay walls and pavilions are clad: blocks about 1 × 0.5 m
+// in staggered courses, near white for the vertex colour to tint, with darker joints. Covers 2 × 2 m.
+export function graniteBlocks() {
+  const [c, x] = canvas(256);
+  const r = rng(71);
+  x.fillStyle = '#8e8a84'; x.fillRect(0, 0, 256, 256);
+  for (let row = 0; row < 4; row++) {
+    const off = row % 2 ? 64 : 0;
+    for (let k = -1; k < 3; k++) {
+      const v = 205 + Math.floor(r() * 40);
+      x.fillStyle = `rgb(${v},${v - 3},${v - 9})`;
+      x.fillRect(k * 128 + off + 2, row * 64 + 2, 124, 60);
+    }
+  }
+  speckle(x, 256, 256, 2500, 0.12, 72);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A railing of slender posts with a top rail and three wires, as along Guldbron's edges and the
+// new quays, on nothing (alpha test): one post every 2 m, the texture 2 m long and 1 m high.
+export function wireRails() {
+  const [c, x] = canvas(256, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 7, 128);
+  x.fillRect(0, 0, 256, 9);
+  for (const y of [40, 72, 104]) x.fillRect(0, y, 256, 3);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A steel lattice, as Katarinahissen's tower and the truss under its walkway: two uprights, a
+// bar across top and bottom and a cross of diagonals, on nothing (alpha test). One panel.
+export function lattice() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 14, 256); x.fillRect(242, 0, 14, 256);
+  x.fillRect(0, 0, 256, 10); x.fillRect(0, 246, 256, 10);
+  x.lineWidth = 9; x.strokeStyle = '#ffffff';
+  x.beginPath(); x.moveTo(7, 5); x.lineTo(249, 251); x.moveTo(249, 5); x.lineTo(7, 251); x.stroke();
+  return toTexture(c, { aniso: 4 });
+}
+
+// The band of lights under Katarinahissen's walkway, red with a running line of pale letters
+// too small to read, which the material lights up by itself. Covers about 8 × 1 m.
+export function ledBand() {
+  const [c, x] = canvas(1024, 128);
+  const r = rng(77);
+  x.fillStyle = '#c81e2a'; x.fillRect(0, 0, 1024, 128);
+  x.fillStyle = '#ffd9d0';
+  let px = 20;
+  while (px < 1000) {
+    const w = 10 + Math.floor(r() * 18);
+    if (r() < 0.82) x.fillRect(px, 40, w, 48);
+    px += w + 8;
+  }
+  x.fillStyle = 'rgba(0,0,0,0.25)';
+  for (let y = 0; y < 128; y += 4) x.fillRect(0, y, 1024, 1);
+  return toTexture(c, { aniso: 4 });
+}
+
+// ------------------------------------------------------------------ Ropsten's station
+// (src/detail/ropsten-station.ts) As photographs on Wikimedia Commons show them (2009–2026).
+
+// Trapezoidal steel sheet, near white for vertex colours to tint: a rib every 20 cm, lit on one
+// side and shaded on the other, across v (or, `upright`, across u: cladding on a wall). Covers
+// 1 × 1 m.
+export function corrugated(upright = false) {
+  const [c, x] = upright ? canvas(160, 64) : canvas(64, 160);
+  const band = (at: number, w: number, fill: string) => {
+    x.fillStyle = fill;
+    if (upright) x.fillRect(at, 0, w, 64); else x.fillRect(0, at, 64, w);
+  };
+  for (let k = 0; k < 5; k++) {
+    const p = k * 32;
+    band(p, 32, '#e4e4e4');
+    band(p + 3, 9, '#fbfbfb');
+    band(p + 12, 3, '#b9b9b9');
+    band(p + 15, 15, '#d2d2d2');
+    band(p + 30, 2, '#c8c8c8');
+  }
+  speckle(x, upright ? 160 : 64, upright ? 64 : 160, 400, 0.08, 91);
+  return toTexture(c, { aniso: 8 });
+}
+
+// Roland Kempe's snake (1971) on the red wall between the platforms at the concourse's end: a
+// winding snake banded black and white, blue in its middle, an arrowhead with an eye at each end
+// and eyes along its body, over a black skirting. Covers the wall's 10.8 × 3.04 m.
+export function kempeSnake() {
+  const W = 2048, H = 576;
+  const [c, x] = canvas(W, H);
+  x.fillStyle = '#a3383a'; x.fillRect(0, 0, W, H);
+  const r = rng(93);
+  for (let k = 0; k < 60; k++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '60,10,10' : '220,120,110'},${0.03 + r() * 0.04})`;
+    x.beginPath(); x.ellipse(r() * W, r() * H, 40 + r() * 160, 20 + r() * 80, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, W, H, 6000, 0.1, 94);
+  x.fillStyle = '#1b1b1d'; x.fillRect(0, H - 36, W, 36);
+  // the body's middle line, read off a photograph of the wall (1150 × 320 px there)
+  const P = (px: number, py: number): [number, number] => [((px - 65) / 1150) * W, ((py - 60) / 320) * H];
+  const body = ([[190, 212], [160, 258], [176, 300], [212, 296], [236, 250], [256, 160], [292, 100], [350, 85], [400, 108], [415, 160],
+    [400, 222], [382, 272], [392, 315], [440, 322], [500, 302], [535, 256], [540, 200], [512, 150], [496, 110], [522, 80], [580, 74],
+    [640, 90], [666, 132], [666, 200], [652, 262], [642, 300], [666, 320], [702, 300], [722, 250], [746, 180], [770, 102], [790, 72],
+    [812, 120], [826, 200], [844, 270], [856, 318], [886, 290], [906, 240], [930, 160], [962, 100], [1002, 76], [1046, 86], [1062, 122],
+    [1050, 172], [1030, 210], [1052, 234], [1100, 228], [1136, 216]] as [number, number][]).map(([a, b]) => P(a, b));
+  // a smooth line through the points (Catmull–Rom), every few pixels
+  const line: [number, number][] = [];
+  for (let i = 0; i + 1 < body.length; i++) {
+    const p0 = body[Math.max(0, i - 1)], p1 = body[i], p2 = body[i + 1], p3 = body[Math.min(body.length - 1, i + 2)];
+    for (let t = 0; t < 1; t += 0.1) {
+      const t2 = t * t, t3 = t2 * t;
+      line.push([0, 1].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3)) as [number, number]);
+    }
+  }
+  line.push(body[body.length - 1]);
+  const along = [0];
+  for (let i = 1; i < line.length; i++) along.push(along[i - 1] + Math.hypot(line[i][0] - line[i - 1][0], line[i][1] - line[i - 1][1]));
+  const total = along[along.length - 1];
+  const normal = (i: number) => {
+    const a = line[Math.max(0, i - 1)], b = line[Math.min(line.length - 1, i + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    return [-(b[1] - a[1]) / l, (b[0] - a[0]) / l];
+  };
+  // its width: thin at the necks, full along the body
+  const width = (d: number) => {
+    const end = Math.min(d, total - d);
+    return 26 + 54 * Math.min(1, Math.max(0, (end - 30) / 50));
+  };
+  // the bands, each a strip square to the line
+  const BAND = 46;
+  for (let k = 0; k * BAND < total; k++) {
+    const d0 = k * BAND, d1 = Math.min(total, (k + 1) * BAND + 1.5);
+    const pts = line.map((p, i) => ({ p, i, d: along[i] })).filter((q) => q.d >= d0 && q.d <= d1);
+    if (pts.length < 2) continue;
+    const mid = (d0 + d1) / 2 / total;
+    const blue = mid > 0.45 && mid < 0.78 && k % 4 === 1;
+    x.fillStyle = k % 2 === 0 ? '#151516' : blue ? '#2c4c9c' : '#f1ece1';
+    x.beginPath();
+    pts.forEach(({ p, i, d }, j) => { const n = normal(i), w = width(d) / 2; (j ? x.lineTo : x.moveTo).call(x, p[0] + n[0] * w, p[1] + n[1] * w); });
+    for (let j = pts.length - 1; j >= 0; j--) { const { p, i, d } = pts[j], n = normal(i), w = width(d) / 2; x.lineTo(p[0] - n[0] * w, p[1] - n[1] * w); }
+    x.closePath(); x.fill();
+    // thin blue stripes in the white bands of the middle
+    if (k % 2 === 1 && !blue && mid > 0.42 && mid < 0.8) {
+      const q = pts[Math.floor(pts.length / 2)], n = normal(q.i), w = width(q.d) / 2;
+      const t: [number, number] = [n[1], -n[0]];
+      x.strokeStyle = '#2c4c9c'; x.lineWidth = 6;
+      x.beginPath(); x.moveTo(q.p[0] + n[0] * w + t[0] * 8, q.p[1] + n[1] * w + t[1] * 8); x.lineTo(q.p[0] - n[0] * w + t[0] * 8, q.p[1] - n[1] * w + t[1] * 8); x.stroke();
+    }
+  }
+  // an eye: almond, lashes over it
+  const eye = (cx: number, cy: number, s: number) => {
+    x.fillStyle = '#f6f3ea'; x.strokeStyle = '#111'; x.lineWidth = 3;
+    x.beginPath(); x.ellipse(cx, cy, 26 * s, 12 * s, 0, 0, Math.PI * 2); x.fill(); x.stroke();
+    x.fillStyle = '#111'; x.beginPath(); x.arc(cx, cy, 8 * s, 0, Math.PI * 2); x.fill();
+    x.lineWidth = 2.5;
+    for (let k = -3; k <= 3; k++) {
+      const a = -Math.PI / 2 + k * 0.32;
+      x.beginPath(); x.moveTo(cx + Math.cos(a) * 24 * s, cy + Math.sin(a) * 11 * s); x.lineTo(cx + Math.cos(a) * 34 * s, cy + Math.sin(a) * 20 * s); x.stroke();
+    }
+  };
+  for (const [px, py] of [[412, 160], [830, 205]]) { const [a, b] = P(px, py); eye(a, b, 1); }
+  // the heads: pale arrowheads pointing out along the wall, with an eye; a collar of dots behind
+  for (const side of [-1, 1]) {
+    const neck = side < 0 ? line[0] : line[line.length - 1];
+    const tip: [number, number] = side < 0 ? P(75, 220) : P(1206, 210);
+    const base = neck[0] + side * 8;
+    x.fillStyle = '#f1ece1'; x.strokeStyle = '#1a1a1a'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(base, neck[1]);
+    x.lineTo(base + side * 24, neck[1] - 74); x.lineTo(tip[0], tip[1]); x.lineTo(base + side * 24, neck[1] + 74);
+    x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = '#1a1a1a';
+    // the neck from the body to the head, banded thin
+    const n0 = side < 0 ? P(130, 216) : P(1140, 214);
+    x.fillStyle = '#f1ece1';
+    x.fillRect(Math.min(n0[0], base), neck[1] - 11, Math.abs(base - n0[0]), 22);
+    x.fillStyle = '#151516';
+    for (let k = 0; k < 4; k++) x.fillRect(Math.min(n0[0], base) + 6 + k * Math.abs(base - n0[0]) / 4, neck[1] - 11, 7, 22);
+    for (let k = -2; k <= 2; k++) { x.beginPath(); x.arc(neck[0] - side * 2, neck[1] + k * 9, 3.5, 0, Math.PI * 2); x.fill(); }
+    eye(base + side * 44, neck[1] - 2, 0.62);
+  }
+  return toTexture(c, { repeat: false, aniso: 8 });
+}
+
+// The name boards hung over the platforms: the name in white on a navy band, and over it on
+// white the ways out with navy arrows. They face the track; on the north-west platform the
+// arrows to the north-east point left (`mirrored`). 1024 × 288, about 3.8 × 1.07 m.
+export function ropstenBoard(mirrored: boolean) {
+  const [c, x] = canvas(1024, 288);
+  const NAVY = '#1f3470';
+  x.fillStyle = '#f7f7f4'; x.fillRect(0, 0, 1024, 156);
+  x.fillStyle = NAVY; x.fillRect(0, 156, 1024, 132);
+  x.strokeStyle = '#5c6474'; x.lineWidth = 4; x.strokeRect(2, 2, 1020, 284);
+  x.fillStyle = '#ffffff';
+  x.font = '600 92px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '18px';
+  x.fillText('ROPSTEN', 512, 226);
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '1px';
+  x.fillStyle = NAVY;
+  x.font = '600 34px "Helvetica Neue", Arial, sans-serif';
+  const arrow = (cx: number, cy: number, dir: number) => {
+    x.beginPath(); x.moveTo(cx + dir * 14, cy); x.lineTo(cx - dir * 12, cy - 15); x.lineTo(cx - dir * 12, cy + 15); x.closePath(); x.fill();
+  };
+  // south-west: Hjorthagen and the tram museum; north-east: the trams to Lidingö, the buses, the boat
+  const sw = ['HJORTHAGEN', 'SPÅRVÄGSMUSEET'], ne = ['ROPSTEN', 'LIDINGÖTÅGEN', 'BUSSAR · PENDELBÅT'];
+  const column = (lines: string[], left: boolean) => {
+    const ys = lines.length === 2 ? [52, 104] : [36, 80, 124];
+    lines.forEach((t, i) => {
+      x.textAlign = left ? 'left' : 'right';
+      x.fillText(t, left ? 70 : 954, ys[i] + 2);
+      arrow(left ? 36 : 988, ys[i], left ? -1 : 1);
+    });
+  };
+  column(mirrored ? ne : sw, true);
+  column(mirrored ? sw : ne, false);
+  return toTexture(c, { repeat: false, aniso: 8 });
+}
+
+// The fascia over the glazed hall's doors at the platforms' north-east end: "↓ Lidingöbanan ↓" in
+// white on navy, a yellow line along its foot. 1024 × 96, about 6.1 × 0.57 m.
+export function lidingobananFascia() {
+  const [c, x] = canvas(1024, 96);
+  x.fillStyle = '#1f3c88'; x.fillRect(0, 0, 1024, 96);
+  x.fillStyle = '#f2c230'; x.fillRect(0, 88, 1024, 8);
+  x.fillStyle = '#ffffff';
+  x.font = '600 42px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('Lidingöbanan', 512, 46);
+  for (const ax of [330, 694]) {
+    x.fillRect(ax - 2, 26, 4, 30);
+    x.beginPath(); x.moveTo(ax - 12, 48); x.lineTo(ax + 12, 48); x.lineTo(ax, 62); x.closePath(); x.fill();
+  }
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// The light box over the north-east landing: "LIDINGÖTÅGEN" in pale capitals on white, in a navy
+// frame. 1024 × 160, about 3.2 × 0.5 m.
+export function lidingotagenBox() {
+  const [c, x] = canvas(1024, 160);
+  x.fillStyle = '#1f3470'; x.fillRect(0, 0, 1024, 160);
+  x.fillStyle = '#f4f4f0'; x.fillRect(14, 14, 996, 132);
+  x.fillStyle = '#b4b8bf';
+  x.font = '500 80px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '8px';
+  x.fillText('LIDINGÖTÅGEN', 512, 84);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A departure board: amber dots on black, the next train and the one after. 512 × 128, 1.6 × 0.4 m.
+export function departureBoard() {
+  const [c, x] = canvas(512, 128);
+  x.fillStyle = '#0d0e10'; x.fillRect(0, 0, 512, 128);
+  x.fillStyle = '#c92a2a'; x.fillRect(14, 14, 40, 40);
+  x.fillStyle = '#ffffff';
+  x.font = '700 26px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('13', 34, 35);
+  x.fillStyle = '#ffb43a';
+  x.textAlign = 'left';
+  x.font = '600 28px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('Norsborg', 66, 26);
+  x.font = '500 18px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('via T-Centralen', 66, 50);
+  x.font = '600 24px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('Norsborg', 66, 96);
+  x.textAlign = 'right';
+  x.font = '600 28px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('2 min', 496, 30);
+  x.font = '600 24px "Helvetica Neue", Arial, sans-serif';
+  x.fillText('12 min', 496, 96);
+  x.fillStyle = 'rgba(0,0,0,0.35)';
+  for (let y = 0; y < 128; y += 3) x.fillRect(0, y, 512, 1);
   return toTexture(c, { repeat: false, aniso: 4 });
 }

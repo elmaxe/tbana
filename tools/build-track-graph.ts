@@ -61,6 +61,8 @@ interface Corrections {
   // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
   // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
   platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean; shortRuns?: number }[];
+  // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
+  widths?: { station: string; width: number; why: string }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));

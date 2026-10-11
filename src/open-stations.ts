@@ -569,7 +569,7 @@ export class OpenLook {
     const H = a.height, cd = Math.cos(a.turn), sd = Math.sin(a.turn);
     // forward (the way it leans), across, and up, in the station's frame: [s, u, h]
     const at = (fwd: number, side: number, h: number): XYZ => frame.at(a.s + cd * fwd - sd * side, a.u + sd * fwd + cd * side, h);
-    const setts = on(this.mat('cobbles', () => new THREE.MeshStandardMaterial({ map: T.cobbles(), roughness: 0.9, side: THREE.DoubleSide })));
+    const setts = on(this.mat('smallSetts', () => new THREE.MeshStandardMaterial({ map: T.smallSetts(), roughness: 0.9, side: THREE.DoubleSide })));
     const ring = 20, R = 0.9;
     setts.poly(Array.from({ length: ring }, (_, i) => {
       const k = (i / ring) * Math.PI * 2, p = at(Math.cos(k) * R, Math.sin(k) * R, 0.012);
@@ -941,7 +941,7 @@ export class OpenLook {
     };
     for (const [s, u] of R.clocks ?? []) hung(s, u, 0.62, 0.62, 0.1, this.mat('clock', () => new THREE.MeshBasicMaterial({ map: T.clockFace() })), true);
     for (const b of R.boards ?? []) {
-      const m = this.mat(`board:${b.toward}:${b.trains.join('/')}`, () => new THREE.MeshBasicMaterial({ map: T.departureBoard(b.toward, b.trains) }));
+      const m = this.mat(`board:${b.toward}:${b.trains.join('/')}`, () => new THREE.MeshBasicMaterial({ map: T.trainsBoard(b.toward, b.trains) }));
       hung(b.s, b.u, 1.7, 0.5, 0.12, m, false);
     }
   }
@@ -1116,7 +1116,7 @@ export class OpenLook {
     // fwd from the middle towards the bow, across to its right
     const P = (fwd: number, across: number, y: number): XYZ => [base[0] + dx * fwd + ex * across, base[1] + y, base[2] + dz * fwd + ez * across];
     const concrete = on(this.color(0xa9a69f, 0.9)), granite = on(this.finish('roughcast'));
-    const setts = on(this.mat('cobbles', () => new THREE.MeshStandardMaterial({ map: T.cobbles(), roughness: 0.9, side: THREE.DoubleSide })));
+    const setts = on(this.mat('smallSetts', () => new THREE.MeshStandardMaterial({ map: T.smallSetts(), roughness: 0.9, side: THREE.DoubleSide })));
     const bronze = on(this.color(0x3d4843, 0.45, 0.55));
     // the hull round its outline, its sides higher towards the bow (a sheer), the deck inset
     const hull: [number, number][] = [[-2.4, 1.1], [-0.8, 1.0], [0.9, 0.55], [2.6, -0.4], [1.2, -1.05], [-0.5, -1.2], [-2.4, -1.1]];

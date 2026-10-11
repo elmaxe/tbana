@@ -7,7 +7,7 @@
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "inspect": "node tools/inspect.ts",
-    "typecheck": "tsc && tsc -p tsconfig.node.json && tsc -p tsconfig.tools.json",
+    "typecheck": "tsc && tsc -p tsconfig.node.json && tsc -p tsconfig.tools.json && tsc -p tsconfig.sw.json",
     "fetch-osm": "node tools/fetch-osm.ts",
     "fetch-model": "node tools/fetch-model.ts",
     "fit-station": "node tools/fit-station.ts",
@@ -22,12 +22,16 @@
     "fetch-terrain": "node tools/fetch-terrain.ts",
     "fetch-city": "node tools/fetch-city.ts",
     "fetch-water": "node tools/fetch-water.ts",
-    "build-city": "node tools/build-city.ts",
+    "build-city": "node tools/build-city.ts && node tools/build-map.ts",
+    "build-map": "node tools/build-map.ts",
     "fetch-ortho": "node tools/fetch-ortho.ts",
     "fetch-laser": "node tools/fetch-laser.ts",
     "shot": "node tools/shot.ts",
     "laser-points": "node tools/laser-points.ts",
-    "google-mesh": "node tools/google-mesh.ts"
+    "google-colours": "node tools/google-colours.ts",
+    "google-mesh": "node tools/google-mesh.ts",
+    "fetch-streets": "node tools/fetch-streets.ts",
+    "find-trees": "node tools/find-trees.ts"
   },
   "dependencies": {
     "three": "0.170.0"

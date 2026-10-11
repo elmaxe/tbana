@@ -279,8 +279,8 @@ export class Stations {
         default: break;
       }
     }
-    for (const p of st.parts) if (p.kind === 'floor' || p.kind === 'incline') this.buildWalls(p, m, others(p));
-    for (const p of st.parts) if (p.kind === 'floor' && p.ceiling === null) this.buildEdges(p, m, others(p));
+    for (const p of st.parts) if ((p.kind === 'floor' && p.edges !== false) || p.kind === 'incline') this.buildWalls(p, m, others(p));
+    for (const p of st.parts) if (p.kind === 'floor' && p.ceiling === null && p.edges !== false) this.buildEdges(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
     if (this.open) {
       const closed = spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol);

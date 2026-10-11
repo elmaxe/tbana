@@ -40,8 +40,9 @@
 // - bridge: a bridge, and surface track on a viaduct OpenStreetMap doesn't map as one (the
 //   `viaducts` of data/height-corrections.json)
 // Where the two tracks of a line run side by side at one level, they share the structure; where
-// another line's track runs beside them in a concrete box, the box takes it in too (the four
-// tracks from Gamla stan to where they part to T-Centralen's two levels).
+// another line's track runs beside them in a concrete box or on a bridge, the box or deck takes it
+// in too (the four tracks from Gamla stan to where they part to T-Centralen's two levels, and to
+// Slussen over Söderström).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
@@ -92,6 +93,9 @@ const CUTTING = 1.5, EMBANKMENT = 1.0;
 // two tracks share a structure where they are this close (or across a shared island platform),
 // and their rails this close in height
 const SHARE_REACH = 7.5, SHARE_DY = 2.0;
+// ... or on a bridge, whose deck may be wider (the metro's over Söderström from Gamla stan to
+// Slussen has the red line's tracks 7.5–7.7 m apart, with the green line's outside them)
+const BRIDGE_SHARE_REACH = 8;
 // how far across the widest island platform two tracks may be, and how far apart in length its
 // ends may be on the two
 const ISLAND_REACH = Math.max(ISLAND_WIDTH, ...Object.values(ISLAND_WIDTHS)) * 2 + 2 * PLATFORM_EDGE, ISLAND_ENDS = 8;
@@ -104,6 +108,8 @@ const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) =>
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
+// side platforms measured wider than SIDE_PLATFORM_WIDTH, from data/track-corrections.json
+const sideWidths = new Map<string, number>((JSON.parse(readFileSync('data/track-corrections.json', 'utf8')).widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -770,6 +776,11 @@ for (const p of pieces) {
     const x = g.x[k], z = g.z[k], y = g.y[k];
     const here = platformNear(p.id, g.s[k], k ? (g.s[k] - g.s[k - 1]) / 2 : 0, k + 1 < g.s.length ? (g.s[k + 1] - g.s[k]) / 2 : 0);
     let b = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, SHARE_REACH, SHARE_DY, 0, true);
+    if (!b && STRUCTURE_KINDS[g.kind[k]] === 'bridge') {
+      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, BRIDGE_SHARE_REACH, SHARE_DY, 0, true);
+      const o = c && out[c.piece.id];
+      if (o && STRUCTURE_KINDS[o.kind[o.s.reduce((m, v, j) => (Math.abs(v - c.s) < Math.abs(o.s[m] - c.s) ? j : m), 0)]] === 'bridge') b = c;
+    }
     // across an island platform they share (whose ends OpenStreetMap puts a few metres apart on
     // the two tracks)
     if (!b && here) {
@@ -863,21 +874,24 @@ for (const p of pieces) {
 }
 console.log(`${besideCount} points beside another track within ${NEIGHBOUR_REACH} m`);
 
-// Another line's track beside a service's track in a concrete box, at much the same level (its
-// floor a step up or down), on the side away from its own line's other track:
+// Another line's track beside a service's track in a concrete box or on a bridge, at much the same
+// level (its floor a step up or down), on the side away from its own line's other track:
 // the four tracks from Gamla stan to where they part for T-Centralen's two levels, which run side
 // by side in one box, and at Gamla stan across the
-// island platforms each line's track shares with the other line's. Each track's part of the box
+// island platforms each line's track shares with the other line's; and the four over Söderström
+// from Gamla stan to Slussen, on one deck. Each track's part of the box or deck
 // reaches halfway to the next. Kept only where the other track has this one beside it too.
 const SHARE_BESIDE = 6.5, SHARE_ISLAND = ISLAND_WIDTH * 2 + 2 * PLATFORM_EDGE, BESIDE_DY = 2.5;
 const isBox = (kind: number) => STRUCTURE_KINDS[kind] === 'box';
+const isBridge = (kind: number) => STRUCTURE_KINDS[kind] === 'bridge';
 const besideAt = new Map<number, { piece: number; s: number; lat: number; dy: number }[]>();
 for (const p of pieces) {
-  if (!run.has(p.id) || p.structure !== 'tunnel') continue;
+  if (!run.has(p.id) || p.structure === 'surface') continue;
   const g = out[p.id];
   besideAt.set(p.id, g.s.map((_, k) => {
     const none = { piece: 0, s: 0, lat: 0, dy: 0 };
-    if (!isBox(g.kind[k])) return none;
+    const alike = isBox(g.kind[k]) ? isBox : isBridge(g.kind[k]) ? isBridge : null;
+    if (!alike) return none;
     const at = platformAt(p.id, g.s[k]), near = platformNear(p.id, g.s[k], STEP, STEP);
     const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
     const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
@@ -894,7 +908,7 @@ for (const p of pieces) {
       const t = da / (da - db);
       const lat = -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t);
       const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k], s = o.s[m] + (o.s[m + 1] - o.s[m]) * t;
-      if (Math.abs(lat) < 1 || Math.abs(dy) > BESIDE_DY || !isBox(o.kind[t < 0.5 ? m : m + 1])) continue;
+      if (Math.abs(lat) < 1 || Math.abs(dy) > BESIDE_DY || !alike(o.kind[t < 0.5 ? m : m + 1])) continue;
       // (at a platform, only the other track across it: OpenStreetMap may end it a few metres
       // apart on the two tracks)
       const there = platformNear(q.id, s, STEP, STEP);
@@ -924,11 +938,12 @@ for (const [id, list] of besideAt) {
     besideShared += beside.filter((v) => v).length;
   }
 }
-console.log(`${besideShared} points share a box with another line's track beside them`);
+console.log(`${besideShared} points share a box or deck with another line's track beside them`);
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
-// another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track, or at a
-// station with a middle track (MIDDLE_TRACK_STATIONS) reaches to that track (`reach`).
+// another platform is as wide as SIDE_PLATFORM_WIDTH (or its width in data/track-corrections.json),
+// or as fits before the next track, or at a station with a middle track (MIDDLE_TRACK_STATIONS)
+// reaches to that track (`reach`).
 // The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
@@ -970,7 +985,7 @@ for (const p of pieces) {
     found.sort((a, b) => a.lateral - b.lateral);
     const { lateral: across, island } = found.length ? found[Math.floor(found.length / 2)] : { lateral: Infinity, island: false };
     const reach = !island && MIDDLE_TRACK_STATIONS.has(r.station);
-    const width = island || reach ? across - 2 * PLATFORM_EDGE : Math.min(SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
+    const width = island || reach ? across - 2 * PLATFORM_EDGE : Math.min(sideWidths.get(r.station) ?? SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
     g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island, ...(reach ? { reach } : {}) });
   }

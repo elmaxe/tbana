@@ -68,7 +68,6 @@ export interface Station {
   lifts: Lift[];
   teleports: Teleport[];
   spawn: Teleport;
-  bounds: THREE.Box3; // the home station's (src/station-models.ts), for the minimap
   areas: StationArea[];
   records: SurfaceRecord[];
 }
@@ -462,9 +461,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
     if (!a) areas.push(a = { name: r.station, bounds: new THREE.Box3() });
     a.bounds.union(r.box);
   }
-  const bounds = (areas.find((a) => a.name === HOME_STATION) ?? areas[0]).bounds;
-
-  return { group, mapGroup, walk, trackIdx, tracks, lifts, teleports, spawn, bounds, areas, records };
+  return { group, mapGroup, walk, trackIdx, tracks, lifts, teleports, spawn, areas, records };
 }
 
 // Light over the models' concourses: rows of tubes 3 m over each floor, 8 m apart down its longer
