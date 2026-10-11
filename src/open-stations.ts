@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -286,6 +286,7 @@ export class OpenLook {
       else if (a.kind === 'bird') this.bird(a, frame, on);
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
       else if (a.kind === 'birches') this.birches(a, frame, on);
+      else if (a.kind === 'lightBoxes') this.lightBoxes(a, frame, on);
     }
   }
 
@@ -413,6 +414,50 @@ export class OpenLook {
     }
     const ys = a.trunks === 3 ? [-0.32, 0, 0.32] : [0];
     ys.forEach((y, i) => limb(bark, at(-e + 0.12, y, z0 + 0.06), at(e + 0.22, y + 0.04 * (i - 1), z1 + 0.28), 0.24, 0.2));
+  }
+
+  // Björn Olsén's Ljuslådor med hemliga tecken (1994): boxes with rounded corners, a frame of
+  // steel round panes of coloured glass on both faces, a sign on each, lit from inside; each on a
+  // steel post, on a small concrete plinth where it stands on paving.
+  private lightBoxes(a: LightBoxes, frame: Frame, on: On) {
+    const steel = on(this.color(a.frameColor ?? 0xbfc3c5, 0.5, 0.35)), post = on(this.color(0x7f8b93, 0.5, 0.4));
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const cd = Math.cos(a.turn), sd = Math.sin(a.turn), g = a.ground ?? 0, d = a.depth;
+    // the outline round the frame, and round the glass inside it: [across, up] from the box's foot
+    const round = (w: number, h: number, r: number) => {
+      const out: [number, number][] = [];
+      for (const [cx, cy, a0] of [[w / 2 - r, h - r, 0], [-w / 2 + r, h - r, 0.5], [-w / 2 + r, r, 1], [w / 2 - r, r, 1.5]] as const)
+        for (let k = 0; k <= 4; k++) { const t = (a0 + k / 8) * Math.PI; out.push([cx + Math.cos(t) * r, cy + Math.sin(t) * r]); }
+      return out;
+    };
+    const R = Math.min(a.w, a.h) * 0.16, fw = 0.07;
+    const outer = round(a.w, a.h, R), inner = round(a.w - 2 * fw, a.h - 2 * fw, R - fw * 0.6).map(([y, z]): [number, number] => [y, z + fw]);
+    a.at.forEach(([s, u], i) => {
+      // forward (the way its faces look), across, and up from its foot
+      const at = (x: number, y: number, h: number): XYZ => frame.at(s + cd * x - sd * y, u + sd * x + cd * y, g + h);
+      const o = at(0, 0, 0), f = at(1, 0, 0), fx = f[0] - o[0], fz = f[2] - o[2];
+      const z0 = a.bottom, n = outer.length;
+      const P = (c: [number, number], x: number) => at(x, c[0], z0 + c[1]);
+      for (let k = 0; k < n; k++) {
+        const c0 = outer[k], c1 = outer[(k + 1) % n], i0 = inner[k], i1 = inner[(k + 1) % n];
+        steel.poly([[...P(c0, d / 2), 0, 0], [...P(c1, d / 2), 1, 0], [...P(c1, -d / 2), 1, 1], [...P(c0, -d / 2), 0, 1]]);
+        for (const x of [d / 2, -d / 2]) {
+          steel.poly([[...P(c0, x), 0, 0], [...P(c1, x), 1, 0], [...P(i1, x), 1, 1], [...P(i0, x), 0, 1]]);
+          const xi = x - Math.sign(x) * 0.03;
+          steel.poly([[...P(i0, x), 0, 0], [...P(i1, x), 1, 0], [...P(i1, xi), 1, 1], [...P(i0, xi), 0, 1]]);
+        }
+      }
+      const color = a.colors[i % a.colors.length], sign = (a.sign ?? 0) + i;
+      const glass = on(this.mat(`lightBox:${color}:${sign}`, () => {
+        const map = T.lightBoxGlass(color, sign);
+        return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.45, roughness: 0.25, side: THREE.DoubleSide });
+      }));
+      const iw = a.w - 2 * fw, ih = a.h - 2 * fw;
+      for (const x of [d / 2 - 0.03, -(d / 2 - 0.03)])
+        glass.poly(inner.map((c) => [...P(c, x), (c[0] + iw / 2) / iw * (x > 0 ? 1 : -1) + (x > 0 ? 0 : 1), (c[1] - fw) / ih]));
+      limb(post, at(0, 0, a.plinth ? a.plinth[1] : -0.3), at(0, 0, z0 + 0.1), 0.12, 0.12);
+      if (a.plinth) box(concrete, at(0, 0, a.plinth[1] / 2), fx, fz, a.plinth[0], a.plinth[1], a.plinth[0]);
+    });
   }
 
   private roundColumns(a: Columns, frame: Frame, on: On) {
@@ -1134,8 +1179,8 @@ export class OpenLook {
       if (ns * ((s0 + s1) / 2 - cs) + nu * ((u0 + u1) / 2 - cu) < 0) { ns = -ns; nu = -nu; }
       // the name over the doors, on a blue band
       if (b.nameSign?.side === i) {
-        const g = b.nameSign, m = on(this.mat(`nameBand:${name}:${g.length}`, () => {
-          const map = T.nameBand(name, g.length);
+        const g = b.nameSign, m = on(this.mat(`nameBand:${name}:${g.length}:${!!g.black}`, () => {
+          const map = T.nameBand(name, g.length, g.black);
           return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.3, roughness: 0.4, side: THREE.DoubleSide });
         }));
         const d = (g.length / 2) / l, t0 = g.at - d, t1 = g.at + d, k = g.inside ? -1 : 1;
@@ -1144,7 +1189,7 @@ export class OpenLook {
         const left = ((s1 - s0) * nu - (u1 - u0) * ns) * k > 0 ? [t0, t1] : [t1, t0];
         m.poly([[...Q(left[0], g.bottom), 0, 0], [...Q(left[1], g.bottom), 1, 0], [...Q(left[1], g.bottom + 0.5), 1, 1], [...Q(left[0], g.bottom + 0.5), 0, 1]]);
         // its back, plain, which shows through a glass wall
-        on(this.color(0x1d2a5e, 0.6, 0.2)).poly([[...Q(t0, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom + 0.5, 0.04), 0, 0], [...Q(t0, g.bottom + 0.5, 0.04), 0, 0]]);
+        on(this.color(g.black ? 0x151618 : 0x1d2a5e, 0.6, 0.2)).poly([[...Q(t0, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom, 0.04), 0, 0], [...Q(t1, g.bottom + 0.5, 0.04), 0, 0], [...Q(t0, g.bottom + 0.5, 0.04), 0, 0]]);
       }
       for (const g of b.lights ?? []) {
         if (g.side !== i) continue;

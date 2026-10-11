@@ -2639,16 +2639,51 @@ export function clockFace() {
 
 // The station's name in white capitals on a blue enamel band, the T in a white ring before it and
 // a thin yellow line under it. `length` m long, 0.5 m high.
-export function nameBand(name: string, length: number) {
+// (`black`: the older black band, the name in white as written, without the yellow stripe)
+export function nameBand(name: string, length: number, black = false) {
   const H = 100, W = Math.round(length * 200), [c, x] = canvas(W, H);
-  x.fillStyle = '#18408f'; x.fillRect(0, 0, W, H);
-  x.fillStyle = '#e8c33a'; x.fillRect(0, H - 9, W, 5);
+  x.fillStyle = black ? '#151618' : '#18408f'; x.fillRect(0, 0, W, H);
+  if (!black) { x.fillStyle = '#e8c33a'; x.fillRect(0, H - 9, W, 5); }
   x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textBaseline = 'middle';
-  const text = name.toUpperCase().split('').join(String.fromCharCode(8202)), tw = Math.min(x.measureText(text).width, W - 140);
+  const text = black ? name : name.toUpperCase().split('').join(String.fromCharCode(8202)), tw = Math.min(x.measureText(text).width, W - 140);
   const x0 = (W - tw - 60) / 2;
   x.strokeStyle = '#f4f4f0'; x.lineWidth = 4; x.beginPath(); x.arc(x0 + 20, H / 2 - 3, 20, 0, Math.PI * 2); x.stroke();
   x.fillStyle = '#f4f4f0'; x.font = '700 30px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center'; x.fillText('T', x0 + 20, H / 2 - 2);
   x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'left'; x.fillText(text, x0 + 60, H / 2 - 2, W - 140);
+  return toTexture(c, { repeat: false });
+}
+
+// A pane of Björn Olsén's light boxes (Kärrtorp, 1994): coloured glass, its tone mottled, lit from
+// behind, and on it a secret sign, a broad stroke curling and hooking in a paler shade with a darker
+// rim, a different one for each `sign`. The picture is the whole pane, 1 by 2.
+export function lightBoxGlass(color: number, sign: number) {
+  const W = 128, H = 256, [c, x] = canvas(W, H), r = rng(1994 + sign * 37);
+  const R = (color >> 16) & 255, G = (color >> 8) & 255, B = color & 255;
+  x.fillStyle = `rgb(${R},${G},${B})`; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 40; k++) {
+    const d = (r() - 0.5) * 50;
+    x.fillStyle = `rgba(${d > 0 ? '255,255,240' : '20,24,20'},${0.04 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * W, r() * H, 10 + r() * 40, 10 + r() * 60, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  // the sign: a stroke through four to six points, its ends hooked
+  const n = 4 + Math.floor(r() * 3), pts: [number, number][] = [], bend: number[] = [];
+  for (let k = 0; k < n; k++) { pts.push([W * (0.22 + r() * 0.56), H * (0.12 + (0.76 * k) / (n - 1)) + (r() - 0.5) * H * 0.08]); bend.push((r() - 0.5) * 60); }
+  const tone = (k: number) => `rgb(${Math.min(255, R + k)},${Math.min(255, G + k)},${Math.min(255, B + k)})`;
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  const draw = (w: number, style: string) => {
+    x.strokeStyle = style; x.lineWidth = w;
+    x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k < n; k++) { const [a, b] = pts[k - 1], [cx, cy] = pts[k]; x.quadraticCurveTo(a + bend[k], (b + cy) / 2, cx, cy); }
+    x.stroke();
+  };
+  draw(26, `rgba(${Math.max(0, R - 50)},${Math.max(0, G - 50)},${Math.max(0, B - 50)},0.7)`);
+  draw(20, tone(70));
+  // a blot or two where the stroke swells
+  for (let k = 0; k < 2; k++) {
+    const [px, py] = pts[1 + Math.floor(r() * (n - 2))];
+    x.fillStyle = tone(60); x.beginPath(); x.ellipse(px, py, 12 + r() * 14, 8 + r() * 10, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, W, H, 900, 0.12, 1995 + sign);
   return toTexture(c, { repeat: false });
 }
 
@@ -2930,9 +2965,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4], brownWindows: [1.2, 3.2],
   terracottaPanels: [1.2, 2.4], orangeTiles: [1.2, 1.2], redGranite: [2.4, 2.4], brick: [1.2, 1.2],
   steelGlazed: [1.2, 3], darkTerrazzo: [2.4, 2.4], birchX: [5.4, 2.6],
+  tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3793,6 +3829,50 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'tealTiles': {
+      // Kärrtorp's ticket hall: pale teal tiles, 15 cm, to 2.35 m, a steel strip, and over them a
+      // band of black glass panels 1.2 m wide to the ceiling
+      x.fillStyle = '#5f8783'; x.fillRect(0, Y(2.35), W, 2.35 * PX);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.35 * PX + 1; j++) {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = `rgb(${112 + v},${168 + v},${164 + v})`; x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      band(2.35, 2.42, '#8d9396');
+      band(2.42, 3.4, '#121416');
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(4, Y(3.4), W * 0.35, 0.98 * PX);
+      x.fillStyle = '#2c3033'; x.fillRect(0, Y(3.4), 2, 0.98 * PX); x.fillRect(W - 2, Y(3.4), 2, 0.98 * PX);
+      break;
+    }
+    case 'darkWindows': {
+      // Kärrtorp's stair house: a dark grey-green panel to 0.95 m, then windows 0.6 m wide in
+      // frames all but black, a transom at 2.3 m, glass on up to the roof
+      const frame = '#1f2324';
+      band(0, 0.95, '#2f3a38');
+      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, Y(0.95), W, 0.95 * PX);
+      band(0.95, 1.03, frame); pane(1.03, 2.3, frame, 0.07); band(2.3, 2.36, frame); pane(2.36, 3.2, frame, 0.07);
+      x.fillStyle = frame; x.fillRect(W / 2 - 0.035 * PX, 0, 0.07 * PX, Y(0.95));
+      break;
+    }
+    case 'blackFront': {
+      // Kärrtorp's ticket hall's front: glass doors in brushed steel to 2.35 m, SL's blue bands
+      // across them; the black band the station's name goes on, a steel ledge, and a band of
+      // glass in steel frames above
+      const st = '#a9aeb1';
+      band(0, 0.1, st); pane(0.1, 2.35, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.35), 0.08 * PX, 2.25 * PX);
+      x.fillStyle = '#25408f'; x.fillRect(0.07 * PX, Y(1.45), W - 0.14 * PX, 0.12 * PX);
+      band(2.35, 2.8, '#151618'); band(2.8, 3.1, st);
+      x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, Y(2.82), W, 2);
+      pane(3.1, 3.8, st, 0.08); band(3.8, 3.9, st);
+      break;
+    }
+    case 'orangePanels':
+      // flat steel panels painted orange, 1.2 m square
+      x.fillStyle = '#d0782c'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(3, 3, W * 0.4, H - 6);
+      x.fillStyle = 'rgba(60,24,8,0.5)'; x.fillRect(0, 0, 2, H); x.fillRect(0, 0, W, 2);
+      break;
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -3801,7 +3881,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

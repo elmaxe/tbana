@@ -221,7 +221,11 @@ export type Finish =
   | 'brick'         // red-brown brick in a running bond
   | 'steelGlazed'   // small white tiles to a sill, two rows of windows in brushed steel frames above
   | 'darkTerrazzo'  // dark grey terrazzo, speckled white
-  | 'birchX';       // dark grey stone, a pale X of birch bark from corner to corner of each 5.4 by 2.6 m
+  | 'birchX'        // dark grey stone, a pale X of birch bark from corner to corner of each 5.4 by 2.6 m
+  | 'tealTiles'     // pale teal tiles, 15 cm, to 2.35 m, a band of black glass above
+  | 'darkWindows'   // a dark panel to 0.95 m, windows 0.6 m wide in black frames above, a transom at 2.3 m
+  | 'blackFront'    // glass doors in brushed steel, the black band the name goes on, a steel ledge, glass above
+  | 'orangePanels'; // flat steel panels painted orange
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -234,7 +238,7 @@ export type Finish =
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
 // be walked on inside it (only the station's own floors are). `nameSign`: the station's name in
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
-// up (on the side's inner face, `inside`). `eaves`: its roof reaches out this far past its walls,
+// up (on the side's inner face, `inside`; black, as SL's older signs are, `black`). `eaves`: its roof reaches out this far past its walls,
 // along each side (or all round). `ground`: it is dug into the city's ground, which isn't there
 // inside it. `roofColor`: its roof this colour (dark grey by default); `brackets`, steel brackets
 // of this colour under the eaves, from the walls' top out to the roof's edge, about `every` m
@@ -243,11 +247,11 @@ export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; eaves?: number | number[]; ground?: boolean;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
-  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean };
+  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -353,6 +357,16 @@ export interface Checks { kind: 'checks'; at: [number, number][]; rows: number; 
 // concrete plinth, turned `turn` from the platform's line, with birch trunks (one, or three side by
 // side) leaning through it from a bottom corner up to the opposite top edge.
 export interface Birches { kind: 'birches'; s: number; u: number; turn: number; size: number; trunks: 1 | 3 }
+
+// Björn Olsén's Ljuslådor med hemliga tecken (Kärrtorp, 1994): boxes of light at the points ([s, u],
+// in the station's frame), each `w` wide, `h` high and `depth` deep with rounded corners, a steel
+// frame (pale grey, or `frameColor`) round coloured glass on both faces (`colors`, in turn), a sign
+// on each (numbered from `sign`), facing `turn` as a guardian does; its foot `bottom` over the
+// ground (`ground` high), on a steel post, on a concrete plinth (`plinth`: size across, height).
+export interface LightBoxes {
+  kind: 'lightBoxes'; at: [number, number][]; w: number; h: number; depth: number; bottom: number; turn: number;
+  colors: number[]; sign?: number; ground?: number; plinth?: [number, number]; frameColor?: number;
+}
 
 // A fence through the points ([s, u], or [s, u, dh] where the ground it stands on is dh higher
 // than at the first point), from `h[0]` to `h[1]` high: chain-link on posts; or boards, standing
@@ -2579,6 +2593,150 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[4.0, 8.2], [51.0, 8.2]], h: [-0.8, 0.3], kind: 'rails' },
       { points: [[14.0, -3.2], [22.0, -3.2]], h: [0, 1.0], kind: 'glass' },
       { points: [[15.0, 2.1], [22.0, 2.1]], h: [0, 1.0], kind: 'glass' },
+    ],
+  },
+
+  // Kärrtorp (19 November 1958): an island platform out in the open between Björkhagen and
+  // Bagarmossen, beside Kärrtorps centrum, under a butterfly roof of the same design as
+  // Björkhagen's; at its south end a glazed stair house between the tracks, down to the ticket hall
+  // at the street on Kärrtorpsplan, under and between the tracks' two bridges. Lantmäteriet's laser
+  // scan puts the roof from 72.5 m south of the platform's middle to 36.5 m north, 9.8 m wide at
+  // its south end, 10 m over the middle and 6.6 m at its north end, its covering 3.5 m over the
+  // platform at the valley and 4.1 m at the edges. Photographs (2007 to 2021) show its underside of
+  // pale sheet ribbed across the platform on grey purlins, on teal steel: pairs of columns on
+  // concrete plinths, a beam along over each, a rafter across over each pair; a pale fascia, lamps
+  // in long tubes, black name signs hung across the platform, clocks, departure boards and wooden
+  // benches back to back; the paving grey squares, a pale edge and a dark strip for the blind.
+  // Beyond the roof, galvanised lamp posts with three domes (the laser scan: 4.3 m high). The
+  // columns' spacing isn't known: Björkhagen's is used.
+  //
+  // Björn Olsén's Ljuslådor med hemliga tecken (1994): boxes of light in rounded steel frames, a
+  // coloured glass on each face with a sign drawn on it. Three tall ones stand side by side on the
+  // platform near the roof's north end, by the eastern edge, turned to each other like a screen;
+  // a row of five on tall posts beyond the western track by the fence, two of them narrow; one on a
+  // concrete plinth on the rocks east of the eastern track; one between the tracks beyond the
+  // platform's north end. Where along the platform the row and the single ones stand isn't known.
+  //
+  // The stair house (the laser scan: from 73 m to 90 m south, its dark roof falling from 2.95 m
+  // over the platform at its north end to 1.6 m at its south end; along its east side the
+  // corridor to the lift under a flat roof 3 m up, to the lift's tower at 94 m, 5.2 m high, its top
+  // clad in orange and red panels, the metro's roundel on it): glazed in dark frames above a dark
+  // panel, a ribbed ceiling, open to the platform at its north end. Two escalators (west) and stairs
+  // (east) go down from it to the ticket hall, 6.3 m down: pale tiles, a slatted ceiling, the
+  // western wall teal tiles under a band of black glass, the eastern concrete; the gates 93.6 m
+  // south, the lift's glass shaft at their east end. Its front, 103 m south, under the bridges'
+  // ends: glass doors in brushed steel under a black band with the name, and over it, between the
+  // bridges, a band of white panels to the deck. Under the western bridge Pressbyrån, under the
+  // eastern a takeaway. The bridges stand on pale round columns in pairs over the square, not on
+  // piers (photographs, 2021); where along them isn't known.
+  //
+  // Not drawn: the retaining wall along the western track from the middle to 35 m north (the laser
+  // scan: the centrum's car park 3.6 m below), the rocks east of the eastern track and the fence
+  // on them, and the kiosks east of the eastern bridge.
+  'Kärrtorp': {
+    roof: {
+      kind: 'butterfly',
+      from: -72.5, to: 36.5, width: 9.8,
+      shape: [[-72.5, 1.1, 9.8], [-60, 0.75, 9.9], [-45, 0.3, 10.0], [-30, -0.2, 9.9], [-18, -0.5, 9.5], [-8, -0.45, 8.9],
+        [3, -0.15, 8.4], [12, 0.1, 8.0], [20, 0.55, 7.5], [28, 1.1, 7.1], [36.5, 1.5, 6.6]],
+      middle: 3.5, edge: 4.1, thick: 0.1, fascia: 0.3,
+      rafters: 7.75, rafterAt: -68.5, rafterSize: [0.2, 0.45], deck: 'ribbedAcross', rafterColor: 0x3f8790,
+      purlins: { at: [-3.0, -1.5, 1.5, 3.0], size: [0.1, 0.16], color: 0x8d9296 },
+      beam: 0.45,
+      columns: { every: 7.75, at: -68.5, size: 0.25, plinth: { size: 0.45, height: 0.3 }, pair: 1.4 },
+      lamps: { offset: 2.9, length: 1.5, every: 1.6, tube: true },
+      colors: { underside: 0xc6c9c9, fascia: 0xb4b8b8, top: 0x5f6467, steel: 0x3f8790 },
+      signs: { at: [-56.9, -33.6, -10.4, 12.9], back: '', ahead: '', across: 1.6 },
+      clocks: [[-41.4, 0], [20.6, 0]],
+      // (trains towards T-Centralen stop on the western track)
+      boards: [
+        { s: -25.9, u: -1.7, toward: 'T-Centralen', trains: ['17 Åkeshov  4 min', '17 Åkeshov  14 min'] },
+        { s: -25.9, u: 1.7, toward: 'Skarpnäck', trains: ['17 Skarpnäck  2 min', '17 Skarpnäck  12 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.4, tactile: [0.4, 0.95], slabs: 0.95, paverSize: [0.5, 0.5], mix: 0.15,
+      colors: { edge: 0xb9b7b1, tactile: 0x5f6266, slab: 0x85878a, pavers: 0x85878a, paler: 0x929497, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    buildings: ['w161808790'],
+    rooms: [
+      { name: 'ticket hall', s: [-104, -89.8], u: [-1, 7.6], h: [-6.5, -6.1], walls: null, floor: 'paleTiles' },
+      // (the walls and glass are the stair house's)
+      { name: 'stair house', s: [-93.4, -70.3], u: [-3.5, 6.6], h: [-6.35, 0.3], walls: null, stairs: 'boardConcrete', floor: 'greyTiles', sill: 0 },
+      { name: 'Kärrtorpsplan', s: [-116, -103], u: [-10, 14], h: [-7, -6], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the stair house between the tracks: the well, its walls concrete cast against boards; over
+      // it the glazed house, open to the platform, its roof falling to the south
+      // (reaching a little under the corridor, to clear the network's platform there)
+      { name: 'well', plan: [[-73.0, -2.5], [-90.0, -0.6], [-90.0, 4.35], [-73.0, 4.35]], h: [-6.3, 0], from: -6.3,
+        walls: 'boardConcrete', sides: [undefined, undefined, null, null], onPlatform: true, ground: true },
+      { name: 'stair house', plan: [[-73.0, -2.5], [-90.0, -0.6], [-90.0, 4.2], [-73.0, 4.2]], h: [0, 2.95], low: 1.6,
+        walls: 'darkWindows', sides: [undefined, undefined, null, null], ceiling: 'ribbedMetal', roof: 0.25, roofColor: 0x3a3c3e },
+      // the platform's western half up to the house (the network's ends 2.5 m short of it), its edge
+      // concrete, and the floor beside the escalators' heads
+      { name: "platform's end", plan: [[-70.4, -3.41], [-73.0, -3.25], [-73.0, 1.42], [-70.4, 1.22]], h: [-1.6, 0],
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'greyTiles' },
+      { name: 'beside the escalators', plan: [[-73.0, -2.5], [-79.0, -1.83], [-79.0, -0.55], [-73.0, -0.55]], h: [0, 0],
+        walls: 'greyTiles', sides: [null, null, null, null], floor: 'greyTiles' },
+      // the corridor along its east side to the lift, glazed on both sides, under a flat roof
+      { name: 'corridor', plan: [[-73.0, 4.2], [-90.0, 4.2], [-90.0, 6.4], [-73.0, 6.05]], h: [-6.3, 3.0],
+        walls: 'darkWindows', sides: [undefined, null, undefined, null], floor: 'greyTiles', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x3a3c3e },
+      { name: 'corridor on the deck', plan: [[-90.0, 4.2], [-93.3, 4.2], [-93.3, 6.4], [-90.0, 6.4]], h: [-1.0, 3.0],
+        walls: 'darkWindows', sides: [undefined, null, undefined, null], floor: 'greyTiles', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x3a3c3e },
+      // the top of the lift's tower over its glass shaft, orange and red panels
+      { name: "lift tower's top", plan: [[-93.25, 3.95], [-95.75, 3.95], [-95.75, 6.25], [-93.25, 6.25]], h: [3.0, 5.2], from: 3.0,
+        walls: 'redPanels', sides: [undefined, 'orangePanels', undefined, 'orangePanels'], roof: 0.08, roofColor: 0x3a3c3e },
+      // the ticket hall under the bridges' ends, its front onto Kärrtorpsplan
+      { name: 'ticket hall', plan: [[-90.05, -0.6], [-103.0, -0.6], [-103.0, 7.45], [-90.05, 7.45]], h: [-6.3, -2.9], from: -6.3,
+        walls: 'boardConcrete', sides: ['tealTiles', 'blackFront', undefined, undefined], floor: 'paleTiles', ceiling: 'slats',
+        roof: 0.05, roofColor: 0x77787a, onPlatform: true, ground: true, nameSign: { side: 1, at: 0.45, length: 3.0, bottom: -3.95, black: true } },
+      // the deck between the bridges over it, white panels in its face (its east edge along the
+      // eastern bridge's)
+      { name: 'deck between the bridges', plan: [[-90.05, 0.9], [-103.0, 0.9], [-103.0, 7.49], [-90.05, 6.16]], h: [-2.9, -1.0], from: -2.9,
+        walls: 'boardConcrete', sides: [null, 'whitePanels', null, null], roof: 0.05, roofColor: 0x8f8d86 },
+      // the shops under the bridges either side of it
+      { name: 'Pressbyrån', plan: [[-98.0, -4.4], [-103.0, -4.4], [-103.0, -0.6], [-98.0, -0.6]], h: [-6.3, -2.85], from: -6.3,
+        walls: 'boardConcrete', sides: [undefined, 'shopWindows', null, undefined], roof: 0.05, roofColor: 0x77787a, ground: true },
+      { name: 'takeaway', plan: [[-98.0, 7.45], [-103.0, 7.45], [-103.0, 11.5], [-98.0, 11.5]], h: [-6.3, -2.85], from: -6.3,
+        walls: 'boardConcrete', sides: [null, 'shopWindows', undefined, undefined], roof: 0.05, roofColor: 0x77787a, ground: true },
+      // the bridges over the square stand on pairs of round columns under a crosshead, not on piers
+      { name: 'no piers, west', plan: [[-95.0, -5.5], [-125.0, -2.1], [-125.0, 3.9], [-95.0, 0.2]], h: [-9.4, -2.88], from: -9.4, low: -3.24,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'no piers, east', plan: [[-91.0, 6.7], [-125.0, 10.3], [-125.0, 16.0], [-91.0, 12.0]], h: [-9.4, -2.72], from: -9.4, low: -3.07,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'crosshead, west', plan: [[-114.18, -3.03], [-115.76, -2.80], [-115.06, 2.15], [-113.48, 1.92]], h: [-3.45, -3.01], from: -3.45,
+        walls: 'boardConcrete', floor: 'boardConcrete' },
+      { name: 'crosshead, east', plan: [[-112.25, 8.92], [-113.83, 9.11], [-113.25, 14.08], [-111.67, 13.89]], h: [-3.28, -2.84], from: -3.28,
+        walls: 'boardConcrete', floor: 'boardConcrete' },
+    ],
+    art: [
+      // the three on the platform, turned to each other like a screen facing west
+      { kind: 'lightBoxes', at: [[29.29, 3.2]], w: 0.85, h: 1.8, depth: 0.25, bottom: 0.45, turn: -Math.PI / 2 - 0.25, colors: [0xd6a628], sign: 0, plinth: [0.4, 0.06] },
+      { kind: 'lightBoxes', at: [[28.4, 3.3]], w: 0.85, h: 1.8, depth: 0.25, bottom: 0.45, turn: -Math.PI / 2, colors: [0xa8402e], sign: 1, plinth: [0.4, 0.06] },
+      { kind: 'lightBoxes', at: [[27.51, 3.2]], w: 0.85, h: 1.8, depth: 0.25, bottom: 0.45, turn: -Math.PI / 2 + 0.25, colors: [0x4fb3c0], sign: 2, plinth: [0.4, 0.06] },
+      // the row beyond the western track, facing the platform
+      { kind: 'lightBoxes', at: [[-34.0, -8.8], [-30.6, -8.8], [-29.3, -8.8]], w: 1.0, h: 0.9, depth: 0.25, bottom: 3.0, ground: -1.95, turn: Math.PI / 2,
+        colors: [0x3fa596, 0x45a88a, 0x2f9aa0], sign: 3, frameColor: 0x8a9096 },
+      { kind: 'lightBoxes', at: [[-32.75, -8.8], [-31.85, -8.8]], w: 0.5, h: 0.9, depth: 0.25, bottom: 3.0, ground: -1.95, turn: Math.PI / 2,
+        colors: [0x8a5a2a, 0xc47a2a], sign: 6, frameColor: 0x8a9096 },
+      // on its plinth east of the eastern track, and between the tracks north of the platform
+      { kind: 'lightBoxes', at: [[-20.0, 10.6]], w: 0.7, h: 1.2, depth: 0.22, bottom: 1.6, ground: -1.3, turn: -Math.PI / 2, colors: [0xd9b43a], sign: 8, plinth: [0.55, 0.6] },
+      { kind: 'lightBoxes', at: [[95.0, 10.0]], w: 0.75, h: 0.65, depth: 0.2, bottom: 1.2, ground: -1.6, turn: Math.PI, colors: [0x9cc9a8], sign: 9, frameColor: 0x8a9096 },
+      { kind: 'masts', height: 4.3, color: 0x9a9fa3, at: [[47.3, 2.9], [67.0, 5.2]] },
+      { kind: 'roundel', s: -94.5, u: 5.1, h: 6.0, size: 0.8, foot: 5.28, along: true },
+      // the bridges' columns over the square, a pair under each
+      { kind: 'columns', at: [[-114.44, 0.85], [-114.80, -1.73]], from: -6.4, to: -3.45, size: 0.7, color: 0xbab7b0 },
+      { kind: 'columns', at: [[-112.60, 12.79], [-112.90, 10.21]], from: -6.4, to: -3.28, size: 0.7, color: 0xbab7b0 },
+    ],
+    benches: { at: [-64.6, -49.1, -18.1, -2.6], double: true, wood: true },
+    // chain-link beyond the western track, on the formation and then a little down the bank; a
+    // railing along the deck's edge over the hall's front
+    fences: [
+      { points: [[-85, -7.3, 0], [-68, -8.4, 0], [-48, -9.3, -0.4], [-28, -9.5, -0.4], [-8, -9.1, -0.4], [12, -8.0, -0.4], [32, -6.2, 0], [52, -3.8, 0],
+        [72, -0.6, 0], [92, 3.4, 0]], h: [-1.6, 0.4] },
+      { points: [[-103.1, 0.95], [-103.1, 7.45]], h: [-0.95, 0.15], kind: 'rails', color: 0x6a6e72 },
     ],
   },
 };

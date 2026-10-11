@@ -1246,14 +1246,21 @@
     },
     "Kärrtorp": {
       "drawing": "karrtorp.png",
-      "note": "An island platform in the open. At its south end stairs go down to the ticket hall at the street.",
+      "note": "An island platform in the open, beside Kärrtorps centrum. At its south end a glazed stair house stands between the tracks: two escalators and stairs go down it to the ticket hall at the street, under and between the tracks' two bridges, and a corridor along its east side leads to the lift. From the gates the way out is through the hall's doors onto Kärrtorpsplan. From the laser scan (the stair house from 73 m to 90 m south of the platform's middle, the lift's tower at 94 m, the street 6.3 m under the platform) and photographs (2007 to 2021).",
       "routes": [
-        { "from": [-48.74929683105194, 0.2], "width": 3, "go": [
-          {"stairs": -6, "toward": [-60.0, 0.8]},
-          {"walk": [-66.0, 1.1], "width": 6},
-          {"walk": [-66.0, -12.1], "width": 4},
+        { "from": [-72.3, 1.8], "width": 4.7, "go": [
+          {"walk": [-79.0, 1.8], "open": true},
+          {"escalators": -6.3, "toward": [-200, 1.8], "lanes": "sEE", "ceiling": 2.3},
+          {"walk": [-93.6, 1.8], "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -26.1], "name":  "Kärrtorp"}}
+          {"walk": [-102.6, 1.8], "open": true},
+          {"walk": [-103.4, 1.8], "width": 3.0, "ceiling": 2.4},
+          {"exit": {"at": [-107.0, 1.8], "name": "Kärrtorpsplan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-72.3, 5.1], "width": 1.8, "go": [
+          {"walk": [-93.0, 5.1], "open": true},
+          {"lift": -6.3},
+          {"walk": [-91.8, 5.1], "open": true}
         ] }
       ]
     },
