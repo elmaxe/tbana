@@ -57,6 +57,11 @@
       "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.7 m low. Lantmäteriet's laser scan has the platform's surface at 36.6–36.7 m and the ballast beside it at 35.4 m; the streets under the track deck at the ticket hall are at 32.1–33.0 m."
     },
     {
+      "station": "Bandhagen",
+      "height": 36.72,
+      "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.5 m low. Lantmäteriet's laser scan has the platform's surface at 36.7–36.8 m over its southern half and 36.5 m at its north end, the ballast beside it about 1.2 m lower, and the street under the bridge at its south end at 30.2 m."
+    },
+    {
       "station": "Hagsätra",
       "height": 46.2,
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: 46.2 m above sea level, the third highest station of the metro."

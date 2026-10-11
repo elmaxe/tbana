@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Stacks } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -129,6 +129,31 @@ function ball(m: Mesh, c: XYZ, r: number) {
   for (let i = 0; i < n; i++) for (let j = 0; j < rings; j++) m.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
 }
 
+// A length of folding ruler from a to b: its broad faces `w` wide, upright with `side` (level,
+// square to it) through them, or lying (`flat`), facing up and down; `t` thick. Its uvs run along
+// it in metres from `from` (over the ruler's texture, T.RULER_REPEAT long) and across its broad
+// faces from 0 to 1, its scale's edge on top (or ahead, where it stands upright); its narrow faces
+// take a plain strip of the texture.
+function rulerLength(m: Mesh, a: XYZ, b: XYZ, side: XYZ, w: number, t: number, flat: boolean, from: number) {
+  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], l = Math.hypot(d[0], d[1], d[2]) || 1, f = d.map((v) => v / l);
+  // the way through its broad faces (level), and the way across them (up, or ahead)
+  let up = [side[1] * f[2] - side[2] * f[1], side[2] * f[0] - side[0] * f[2], side[0] * f[1] - side[1] * f[0]];
+  const ul = Math.hypot(up[0], up[1], up[2]) || 1;
+  up = up.map((v) => v / ul);
+  const [hs, hu] = flat ? [w / 2, t / 2] : [t / 2, w / 2];
+  const P = (k: number, i: number, j: number): XYZ => [0, 1, 2].map((c) => a[c] + d[c] * k + side[c] * hs * i + up[c] * hu * j) as XYZ;
+  const U = (k: number) => (from + k * l) / T.RULER_REPEAT;
+  // the broad faces, then the narrow ones, then the ends
+  const broad: [number, number][][] = flat ? [[[-1, 1], [1, 1]], [[-1, -1], [1, -1]]] : [[[1, -1], [1, 1]], [[-1, -1], [-1, 1]]];
+  const narrow: [number, number][][] = flat ? [[[1, -1], [1, 1]], [[-1, -1], [-1, 1]]] : [[[-1, 1], [1, 1]], [[-1, -1], [1, -1]]];
+  for (const [p, q] of broad) {
+    const v = (e: [number, number]) => (flat ? (e[0] + 1) / 2 : (e[1] + 1) / 2);
+    m.poly([[...P(0, ...p), U(0), v(p)], [...P(1, ...p), U(1), v(p)], [...P(1, ...q), U(1), v(q)], [...P(0, ...q), U(0), v(q)]]);
+  }
+  for (const [p, q] of narrow) m.poly([[...P(0, ...p), U(0), 0.08], [...P(1, ...p), U(1), 0.08], [...P(1, ...q), U(1), 0.16], [...P(0, ...q), U(0), 0.16]]);
+  for (const k of [0, 1]) m.poly([[...P(k, -1, -1), 0, 0.08], [...P(k, 1, -1), 0.05, 0.08], [...P(k, 1, 1), 0.05, 0.16], [...P(k, -1, 1), 0, 0.16]]);
+}
+
 // The figures' joints in their poses (x to the right, for its right side; y up; z the way it
 // faces), in metres for a grown person: crouching, from the ledge under its toes; clinging, from
 // the underside of the beam over it, its head the way it faces.
@@ -237,7 +262,96 @@ export class OpenLook {
       else if (a.kind === 'glassPosts') this.glassPosts(a, frame, on);
       else if (a.kind === 'figure') this.figure(a, frame, on);
       else if (a.kind === 'growth') this.growth(a, frame, on);
+      else if (a.kind === 'ruler') this.ruler(a, frame, on);
+      else if (a.kind === 'stone') this.stone(a, frame, on);
+      else if (a.kind === 'columns') this.roundColumns(a, frame, on);
     }
+  }
+
+  // Freddy Fraek's folding rulers (1983, clad in copper in 1987): each length a long box from point
+  // to point, run on past each fold far enough to fill its outer corner, the scale along its broad
+  // faces; brass at the ends.
+  private ruler(a: Ruler, frame: Frame, on: On) {
+    const copper = on(this.mat('ruler', () => new THREE.MeshStandardMaterial({ map: T.ruler(), roughness: 0.55, metalness: 0.3, side: THREE.DoubleSide })));
+    const brass = on(this.color(0x9a7a44, 0.4, 0.6));
+    const P = a.points.map(([s, u, h]) => frame.at(s, u, h)), n = P.length - 1;
+    const D = P.slice(1).map((b, i): XYZ => { const d = [0, 1, 2].map((k) => b[k] - P[i][k]), l = Math.hypot(d[0], d[1], d[2]); return [d[0] / l, d[1] / l, d[2] / l]; });
+    const flat = (i: number) => a.flat?.includes(i) ?? false;
+    // each length's way across, level: square to its own heading, or to a neighbour's where it
+    // stands upright
+    const side = (i: number): XYZ => {
+      for (const k of [i, i - 1, i + 1, i - 2, i + 2]) {
+        const l = k >= 0 && k < n ? Math.hypot(D[k][0], D[k][2]) : 0;
+        if (l > 0.1) return [-D[k][2] / l, 0, D[k][0] / l];
+      }
+      return [-frame.fz, 0, frame.fx];
+    };
+    // how deep a length is in the plane it folds in: its broad face's width, or lying, its thickness
+    const deep = (i: number) => (flat(i) ? a.thick : a.width);
+    const over = (i: number, j: number) => {
+      if (j < 0 || j >= n) return 0;
+      const c = D[i][0] * D[j][0] + D[i][1] * D[j][1] + D[i][2] * D[j][2];
+      return Math.min(a.width, (deep(j) / 2) * Math.tan(Math.acos(Math.max(-1, Math.min(1, c))) / 2));
+    };
+    let run = 0;
+    for (let i = 0; i < n; i++) {
+      const d = D[i], e0 = over(i, i - 1), e1 = over(i, i + 1), l = Math.hypot(...([0, 1, 2].map((k) => P[i + 1][k] - P[i][k]) as XYZ));
+      const A = [0, 1, 2].map((k) => P[i][k] - d[k] * e0) as XYZ, B = [0, 1, 2].map((k) => P[i + 1][k] + d[k] * e1) as XYZ;
+      rulerLength(copper, A, B, side(i), a.width, a.thick, flat(i), run - e0);
+      run += l;
+    }
+    const cap = 0.3;
+    for (const [p, d, i] of [[P[0], D[0], 0], [P[n], D[n - 1].map((v) => -v), n - 1]] as [XYZ, XYZ, number][]) {
+      rulerLength(brass, p, [p[0] + d[0] * cap, p[1] + d[1] * cap, p[2] + d[2] * cap], side(i), a.width + 0.012, a.thick + 0.012, flat(i), 0);
+    }
+  }
+
+  // A rough-hewn stone: a box whose faces are broken by a smooth random field, its edges and corners
+  // worn round, turned, leaning to its right from its foot, and sunk a little into the ground.
+  private stone(a: Stone, frame: Frame, on: On) {
+    const m = on(this.mat('limestone', () => new THREE.MeshStandardMaterial({ map: T.limestone(), roughness: 0.9, side: THREE.DoubleSide })));
+    const [L, Wd, H] = a.size, r = T.rng(Math.round(a.s * 1000 + a.u * 100));
+    const bumps = Array.from({ length: 16 }, () => [r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, (r() - 0.45) * 0.08]);
+    // the planes it was split along: its corners and edges knocked off flat (none from underneath)
+    const cuts = Array.from({ length: 10 }, () => {
+      const n = [r() * 2 - 1, r() * 1.3 - 0.3, r() * 2 - 1], l = Math.hypot(n[0], n[1], n[2]) || 1;
+      const [nx, ny, nz] = n.map((v) => v / l);
+      return [nx, ny, nz, (Math.abs(nx) * Wd + Math.abs(ny) * H + Math.abs(nz) * L) / 2 * (0.66 + 0.2 * r())];
+    });
+    const dx = frame.fx * Math.cos(a.turn) - frame.fz * Math.sin(a.turn), dz = frame.fz * Math.cos(a.turn) + frame.fx * Math.sin(a.turn);
+    const o = frame.at(a.s, a.u, 0), cl = Math.cos(a.lean), sl = Math.sin(a.lean);
+    // a point on the unit cube's surface to the world: rounded, bumped out from its middle, cut
+    // back to the split planes, leant
+    const P = (q: XYZ): XYZ => {
+      const k = 1 - 0.05 * (Math.abs(q[0] * q[1]) + Math.abs(q[1] * q[2]) + Math.abs(q[2] * q[0]));
+      let b = 0;
+      for (const [x, y, z, h] of bumps) b += h * Math.exp(-((q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2) / 0.35);
+      const f = k * (1 + b);
+      // across (to its right), up, along, from its middle
+      let x = q[0] * f * Wd / 2, y = q[1] * f * H / 2, z = q[2] * f * L / 2;
+      for (const [nx, ny, nz, d] of cuts) {
+        const e = x * nx + y * ny + z * nz - d;
+        if (e > 0) { x -= nx * e; y -= ny * e; z -= nz * e; }
+      }
+      y += H / 2 - 0.05;
+      const xl = x * cl + y * sl, yl = -x * sl + y * cl;
+      return [o[0] - dz * xl + dx * z, o[1] + yl, o[2] + dx * xl + dz * z];
+    };
+    const N = 10;
+    // each face of the cube: its normal's axis and sign, and the two axes across it
+    for (const [ax, sg] of [[0, 1], [0, -1], [1, 1], [1, -1], [2, 1], [2, -1]] as const) {
+      const a1 = (ax + 1) % 3, a2 = (ax + 2) % 3, size = [Wd, H, L];
+      const Q = (i: number, j: number): XYZ => { const q: XYZ = [0, 0, 0]; q[ax] = sg; q[a1] = -1 + (2 * i) / N; q[a2] = -1 + (2 * j) / N; return q; };
+      for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+        const V = (ii: number, jj: number) => [...P(Q(ii, jj)), ((-1 + (2 * ii) / N) * size[a1]) / 2, ((-1 + (2 * jj) / N) * size[a2]) / 2];
+        m.poly([V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1)]);
+      }
+    }
+  }
+
+  private roundColumns(a: Columns, frame: Frame, on: On) {
+    const m = on(this.color(a.color, 0.85, 0));
+    for (const [s, u] of a.at) limb(m, frame.at(s, u, a.from), frame.at(s, u, a.to), a.size, a.size);
   }
 
   // polished aluminium, crazed

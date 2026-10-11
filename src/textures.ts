@@ -2908,9 +2908,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
   whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
   greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
+  greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3507,6 +3508,57 @@ export function finish(name: Finish) {
       for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(80,78,72,${0.05 + r() * 0.1})`; x.fillRect(r() * W, Y(2.3) + r() * 0.9 * PX, 2 + r() * 10, 1); }
       break;
     }
+    case 'greenGlazed': {
+      // a glazed hall's walls: glass from a kick panel at 0.3 m to its head at 2.9 m, in dark
+      // green steel frames 1.2 m apart, and a steel handrail across them at 1 m
+      const g = '#2c4637';
+      band(0, 0.3, g); pane(0.3, 2.9, g, 0.09); band(2.9, 3, g);
+      x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(0, Y(0.3), W, 1.5);
+      x.fillStyle = '#9ba2a4'; x.fillRect(0, Y(1.04), W, 0.05 * PX);
+      break;
+    }
+    case 'greenFront':
+    case 'greenDoors':
+    case 'creamClerestory': {
+      // a ticket hall's walls: to 2.95 m, dark green steel panels on a grey plinth (or glass doors
+      // in brushed steel to 2.4 m under a green band, the doors'; or cream tiles inside); then
+      // windows in dark green frames, a transom at 4 m, to 4.95 m, and green steel (white render
+      // inside) above
+      const g = '#2c4637', st = '#a9aeb1';
+      if (name === 'greenFront') {
+        band(0, 2.95, g);
+        for (let i = 0; i * 0.3 * PX < W; i++) {
+          x.fillStyle = 'rgba(10,22,16,0.5)'; x.fillRect(i * 0.3 * PX, Y(2.95), 2, 2.95 * PX);
+          x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * 0.3 * PX + 2, Y(2.95), 2, 2.95 * PX);
+        }
+        band(0, 0.15, '#7d7f7c');
+      } else if (name === 'greenDoors') {
+        band(0, 0.1, st); pane(0.1, 2.4, st, 0.12);
+        x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 0.08 * PX, 2.3 * PX); x.fillRect(0, Y(1.08), W, 0.07 * PX);
+        band(2.4, 2.95, g); band(2.4, 2.46, st);
+      } else {
+        x.fillStyle = '#b9b3a6'; x.fillRect(0, Y(2.95), W, 2.95 * PX);
+        const t = 0.15 * PX;
+        for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.95 * PX; j++) {
+          const v = Math.floor(r() * 10);
+          x.fillStyle = `rgb(${220 + v},${212 + v},${194 + v})`; x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+        }
+      }
+      band(2.95, 3.05, g); pane(3.05, 4.95, g, 0.1); band(4.95, 5.05, g);
+      x.fillStyle = g; x.fillRect(0, Y(4.03), W, 0.06 * PX);
+      band(5.05, 5.4, name === 'creamClerestory' ? '#e8e6e0' : g);
+      break;
+    }
+    case 'creamTiles': {
+      // cream tiles 15 cm square, in pale grey joints
+      x.fillStyle = '#b9b3a6'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 10);
+        x.fillStyle = `rgb(${220 + v},${212 + v},${194 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
     case 'whiteRender':
       // smooth white render
       x.fillStyle = '#e8e6e0'; x.fillRect(0, 0, W, H);
@@ -3520,7 +3572,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
@@ -3553,6 +3605,47 @@ export function bronze(patina = false) {
     else x.fillStyle = r() < 0.5 ? `rgba(120,92,58,${r() * 0.3})` : `rgba(30,26,22,${r() * 0.35})`;
     x.fillRect(r() * 128, r() * 128, 2 + r() * 10, 2 + r() * 30);
   }
+  return toTexture(c);
+}
+
+// A folding ruler's copper, darkened to brown and black, over 3 m of it (uv u in metres / 3, v
+// across its broad face): seams across the cladding every metre with rivets down them, the scale's
+// ticks along its top edge (every 10 cm, longer every 50), and its numbers along the middle,
+// black, and every third red, as a ruler's tens.
+export const RULER_REPEAT = 3;
+export function ruler() {
+  const PX = 128, W = RULER_REPEAT * PX, H = 128, [c, x] = canvas(W, H), r = rng(1983);
+  x.fillStyle = '#35332d'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 700; i++) {
+    const k = r();
+    x.fillStyle = k < 0.35 ? `rgba(110,88,60,${r() * 0.2})` : k < 0.7 ? `rgba(16,16,14,${r() * 0.35})` : k < 0.85 ? `rgba(78,108,92,${r() * 0.18})` : `rgba(150,128,96,${r() * 0.12})`;
+    x.fillRect(r() * W, r() * H, 4 + r() * 40, 2 + r() * 14);
+  }
+  for (let m = 0; m < RULER_REPEAT; m++) {
+    const sx = m * PX + 0.37 * PX;
+    x.fillStyle = 'rgba(12,12,10,0.7)'; x.fillRect(sx, 0, 2, H);
+    x.fillStyle = 'rgba(160,140,110,0.25)'; x.fillRect(sx + 2, 0, 1, H);
+    for (let k = 0; k < 10; k++) { x.fillStyle = 'rgba(190,170,130,0.45)'; x.fillRect(sx - 4, k * H / 10 + 5, 2, 2); x.fillRect(sx + 5, k * H / 10 + 5, 2, 2); }
+  }
+  x.fillStyle = 'rgba(8,8,8,0.85)';
+  for (let k = 0; k < RULER_REPEAT * 10; k++) x.fillRect(k * PX / 10, 0, 2, k % 5 === 0 ? 0.22 * H : 0.12 * H);
+  x.font = `${Math.round(0.36 * H)}px Georgia, "Times New Roman", serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  ['7', '8', '20'].forEach((t, m) => {
+    x.fillStyle = m === 2 ? '#c8261c' : 'rgba(8,8,8,0.9)';
+    x.fillText(t, (m + 0.75) * PX, 0.52 * H);
+  });
+  return toTexture(c);
+}
+
+// Pale Öland limestone, rough-hewn: grey-white, beds of it a little darker across it, speckled,
+// stained brown in places. A metre square.
+export function limestone() {
+  const [c, x] = canvas(128), r = rng(1984);
+  x.fillStyle = '#cbc8c0'; x.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128;) { const h = 3 + r() * 14; x.fillStyle = `rgba(${r() < 0.5 ? '110,104,94' : '235,232,226'},${0.06 + r() * 0.12})`; x.fillRect(0, y, 128, h); y += h; }
+  for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(140,112,80,${r() * 0.12})`; x.fillRect(r() * 128, r() * 128, 6 + r() * 30, 4 + r() * 20); }
+  speckle(x, 128, 128, 1500, 0.25, 1985);
   return toTexture(c);
 }
 

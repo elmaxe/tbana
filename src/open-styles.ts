@@ -186,7 +186,12 @@ export type Finish =
   | 'squareTiles'   // white tiles, 15 cm, in grey joints
   | 'whiteRender'   // white render
   | 'bwTiles'       // tiles black, white and grey at random, 15 cm, some of them doubled upright
-  | 'tealWindows';  // small teal tiles to a sill, windows in dark frames above, a concrete beam over them
+  | 'tealWindows'   // small teal tiles to a sill, windows in dark frames above, a concrete beam over them
+  | 'greenGlazed'   // glazed above a kick panel in dark green steel frames, a handrail across at 1 m
+  | 'greenFront'    // dark green steel panels to 2.95 m, windows in dark green frames above
+  | 'greenDoors'    // glass doors in brushed steel under a green band, windows in dark green frames above
+  | 'creamTiles'    // cream tiles, 15 cm, in pale grey joints
+  | 'creamClerestory'; // cream tiles to 2.95 m, windows in dark green frames above, white render over them
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -211,7 +216,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -277,6 +282,19 @@ export interface Cone { kind: 'cone'; s: number; u: number; height: number; base
 // right and one lower to the left (looking `turn` as a guardian faces), a third in the trunk's
 // twist; at s, u (in the station's frame), `height` high, inside a low guard of steel tubes.
 export interface Growth { kind: 'growth'; s: number; u: number; height: number; turn: number }
+
+// A folding ruler of copper, `width` across its broad faces and `thick` thick, its lengths from
+// point to point ([s, u, h] in the station's frame, its middle) folded into each other at the
+// points: each length's broad faces upright, or (by its index in `flat`) lying, facing up and
+// down; brass at its two ends.
+export interface Ruler { kind: 'ruler'; points: [number, number, number][]; width: number; thick: number; flat?: number[] }
+
+// A block of pale limestone, rough-hewn, standing at s, u (in the station's frame), `size` along,
+// across and high, turned `turn` (radians, as a guardian's) and leaning `lean` to its right.
+export interface Stone { kind: 'stone'; s: number; u: number; size: [number, number, number]; turn: number; lean: number }
+
+// Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`.
+export interface Columns { kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
@@ -1588,6 +1606,129 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-146, 7.25], [-126, 5.9], [-112, 5.45], [-87, 5.7], [-76, 5.9]], h: [-0.5, 0.65] },
       { points: [[-76, -9.9], [-70, -9.7], [-60, -9.3], [-40, -8.6], [-20, -8.1], [0, -8.0], [20, -8.4], [40, -9.2], [60, -10.4], [80, -11.9]], h: [-1.5, 0.5] },
       { points: [[-76, 6.4], [-70, 6.6], [-60, 6.9], [-40, 7.5], [-20, 7.9], [0, 8.0], [20, 7.8], [40, 7.0], [60, 5.5], [80, 3.4]], h: [-1.5, 0.5] },
+    ],
+  },
+
+  // Bandhagen (22 November 1954, Magnus Ahlgren): an island platform on a bank, its south end on a
+  // bridge over Trollesundsvägen, where a hall glazed in dark green frames stands between the
+  // tracks' decks; the way out is down to the ticket hall under them at the street, its doors south
+  // onto Bandhagsplan (Swedish Wikipedia). Lantmäteriet's laser scan puts the platform from 76 m
+  // south of its middle to 73 m north, about 10 m wide, and its butterfly roof from 77 m south to
+  // 14.5 m south, 9.5 m wide and half a metre west of the platform's middle, its top 3.8 m over the
+  // platform at the valley and 4.2 m at the edges at its south end, falling to 3.4 m and 3.8 m at
+  // its north end. Photographs (2009 to 2018) show its underside of pale ribbed sheet on dark green
+  // steel beams, a thin pale fascia, columns down the middle with knee braces, at its north end a
+  // dark green casing; SL's blue name signs, a clock, departure boards; grey concrete pavers in
+  // bond, a pale edge and a ribbed strip; galvanised lamp posts out in the open, three dome lamps
+  // on each (the laser scan: 5 m high, 10 m south and 15, 34 and 52 m north), the blue sign on one;
+  // wooden benches; chain-link along the bank.
+  //
+  // Out on the open platform stands Freddy Fraek's folding ruler and stone of Öland limestone
+  // (1983; the ruler was of wood, and so worn that four years later it was clad in copper): a leg
+  // 2.5 m high 13.5 m north of the middle, a length sloping down south from its top to a fold
+  // that rises and turns over the stone, 2.2 m high, and comes down beside it to a length lying
+  // on edge on the platform, 0.9 m high, to 5.6 m south (the laser scan and Google's mesh, seen
+  // from above, place each, the fold over the stone turned to lie flat). Its scale's ticks run
+  // along its edges, its numbers black, its tens red; its ends are brass. A second, L-shaped,
+  // stands at the ticket hall's front: a leg 3.6 m high and an arm from its top into the front.
+  //
+  // The glazed hall (the laser scan: its roof 3.5 m over the platform, from 72 m south to 97 m,
+  // then a walkway on along its east side to the lift's tower, 4.7 m high, at 104 m): glass
+  // between dark green frames over a green kick panel, a steel handrail, a ceiling of white
+  // panels, speckled terrazzo, wooden benches; an escalator down its west side, stairs beside it,
+  // in a well under the glass roof, and the walkway past it with a sign to the lift. The ticket
+  // hall under it, 6.4 m under the platform, from 85 m south to 114 m, between the decks (the
+  // laser scan, and OpenStreetMap's outline): cream tiles, a ceiling of white panels 5.4 m up,
+  // windows high in its west wall, terrazzo; the gates, the ticket booth by them. Outside, green
+  // steel panels and windows in dark green frames above them, and in its south front glass doors
+  // in brushed steel under SL's blue band with the station's name. Trollesundsvägen runs under
+  // the bridge north of it, 4 m clear. Over the square in front, the tracks' decks stand on slender
+  // round columns (photographs; two under each deck, on a crosshead, is a guess).
+  'Bandhagen': {
+    roof: {
+      kind: 'butterfly',
+      from: -72.4, to: -14.5, width: 9.4, offset: -0.45,
+      middle: 3.35, edge: 3.75, thick: 0.25, fascia: 0.25,
+      rafters: 2.6, rafterSize: [0.12, 0.25], deck: 'ribbed', rafterColor: 0x26332c,
+      beam: 0.35,
+      columns: { every: 11, at: -19.5, size: 0.25, plinth: { size: 0.45, height: 0.2 }, braces: 1.4, casings: { at: [-19.5], size: [0.9, 1.4] } },
+      lamps: { offset: 2.4, length: 1.5, every: 3 },
+      colors: { underside: 0xcfd1ce, fascia: 0xd8d8d2, top: 0x4a4e52, steel: 0x26332c },
+      signs: { at: [-25, -47, -58], back: 'Utgång', ahead: '', blue: true },
+      clocks: [[-36, 0]],
+      // (trains run on the left: Hässelby strand's from the western track)
+      boards: [
+        { s: -66, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  2 min', '19 Hässelby strand  12 min'] },
+        { s: -61, u: 1.6, toward: 'Hagsätra', trains: ['19 Hagsätra  5 min', '19 Hagsätra  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 0.95], slabs: 0.95, paverSize: [0.6, 0.3], mix: 0.25,
+      colors: { edge: 0xd6d4ce, tactile: 0x8a8c8c, slab: 0x8c8e90, pavers: 0x8c8e90, paler: 0x9c9ea0, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w160969281', 'w160969278'],
+    rooms: [
+      // (the glazed hall's walls and roof are its shell's)
+      { name: 'glazed hall', s: [-103, -71], u: [-3.1, 2.6], h: [-0.5, 1], walls: null, floor: 'terrazzo' },
+      // (open up to the glazed hall, glass beside it to a handrail over the hall's floor)
+      { name: 'escalator', s: [-93, -80], u: [-3.1, 0.2], h: [-6.6, -6.2], walls: 'greenGlazed', stairs: 'greenGlazed', floor: 'terrazzo', sill: 1.0 },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-114.6, -84.5], u: [-3.5, 2.6], h: [-6.6, -6.2], walls: 'creamTiles', floor: 'terrazzo', ceiling: 'whitePanels', sill: -6.42 },
+      { name: 'Bandhagsplan', s: [-125, -114.6], u: [-8, 8], h: [-7, -6], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the glazed hall between the tracks' decks: over the street, on its own deck, and over the
+      // ticket hall, open to the platform; the walkway on to the lift
+      { name: 'glazed hall', plan: [[-72.3, -3.0], [-84.7, -3.0], [-84.7, 2.55], [-72.3, 2.55]], h: [-2.4, 3.0],
+        walls: 'greenGlazed', sides: [undefined, null, undefined, null], ceiling: 'whitePanels', roof: 0.4, roofColor: 0x3a3d40 },
+      { name: 'glazed hall, south', plan: [[-84.7, -3.0], [-97, -3.0], [-97, 2.55], [-84.7, 2.55]], h: [-1.0, 3.0],
+        walls: 'greenGlazed', sides: [undefined, undefined, undefined, null], ceiling: 'whitePanels', roof: 0.4, roofColor: 0x3a3d40 },
+      { name: 'walkway', plan: [[-97, 0.1], [-102.8, 0.1], [-102.8, 2.55], [-97, 2.55]], h: [-1.0, 3.0],
+        walls: 'greenGlazed', sides: [undefined, null, undefined, null], ceiling: 'whitePanels', roof: 0.4, roofColor: 0x3a3d40 },
+      // the hall's floor over the escalator's foot, and its edge over the well
+      { name: "well's edge", plan: [[-87.3, -3.0], [-87.4, -3.0], [-87.4, 0.1], [-87.3, 0.1]], h: [-1.0, 0], from: -1.0, walls: 'whitePanels' },
+      { name: "hall's floor over the escalator", plan: [[-87.3, -3.0], [-97, -3.0], [-97, 0.1], [-87.3, 0.1]], h: [0, 0],
+        walls: 'terrazzo', sides: [null, null, null, null], floor: 'terrazzo' },
+      // the ticket hall, cream-tiled inside, and its walls outside: green steel and windows, the
+      // doors in its south front
+      { name: 'ticket hall', plan: [[-84.7, -3.4], [-113.7, -3.4], [-113.7, 2.4], [-84.7, 2.4]], h: [-6.4, -1.0], from: -6.4,
+        walls: 'creamTiles', sides: ['creamClerestory', 'greenFront', undefined, undefined], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.7,
+        ground: true, onPlatform: true },
+      { name: "hall's west side", plan: [[-84.58, -3.52], [-113.82, -3.52], [-113.82, -3.42], [-84.58, -3.42]], h: [-6.4, -0.3], from: -6.4, walls: 'greenFront', onPlatform: true },
+      { name: "hall's east side", plan: [[-84.58, 2.42], [-113.82, 2.42], [-113.82, 2.52], [-84.58, 2.52]], h: [-6.4, -0.3], from: -6.4, walls: 'greenFront', onPlatform: true },
+      { name: "hall's north side", plan: [[-84.58, -3.42], [-84.68, -3.42], [-84.68, 2.42], [-84.58, 2.42]], h: [-6.4, -0.3], from: -6.4, walls: 'greenFront', onPlatform: true },
+      { name: "hall's front, west", plan: [[-113.72, -3.42], [-113.82, -3.42], [-113.82, -3.0], [-113.72, -3.0]], h: [-6.4, -0.3], from: -6.4, walls: 'greenFront' },
+      { name: "hall's doors", plan: [[-113.72, -3.0], [-113.82, -3.0], [-113.82, 0.3], [-113.72, 0.3]], h: [-6.4, -0.3], from: -6.4, walls: 'greenDoors',
+        nameSign: { side: 1, at: 0.5, length: 3.2, bottom: -3.92 } },
+      { name: "hall's front, east", plan: [[-113.72, 0.3], [-113.82, 0.3], [-113.82, 2.42], [-113.72, 2.42]], h: [-6.4, -0.3], from: -6.4, walls: 'greenFront' },
+      { name: 'ticket booth', plan: [[-108.3, 0.5], [-110.8, 0.5], [-110.8, 2.35], [-108.3, 2.35]], h: [-6.4, -4.2], from: -6.4, walls: 'glazed', roof: 0.05 },
+      // the street under the bridge: the deck's underside, and the bank's face north of it
+      { name: 'deck over the street', plan: [[-74.7, -3.5], [-84.6, -3.5], [-84.6, 2.75], [-74.7, 2.75]], h: [-6.4, -2.4], from: -6.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
+      { name: 'abutment', plan: [[-74.4, -3.5], [-74.7, -3.5], [-74.7, 2.75], [-74.4, 2.75]], h: [-6.4, -2.4], from: -6.4, walls: 'boardConcrete' },
+      // the tracks' decks over the square stand on slender round columns, not on piers
+      { name: 'no pier, east', plan: [[-113.6, 3.0], [-115.6, 3.0], [-115.6, 7.6], [-113.6, 7.6]], h: [-9.4, -2.63], from: -9.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'no pier, west', plan: [[-113.6, -9.2], [-115.4, -9.2], [-115.4, -4.6], [-113.6, -4.6]], h: [-9.4, -2.63], from: -9.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'crosshead, east', plan: [[-113.85, 2.6], [-115.55, 2.6], [-115.55, 7.9], [-113.85, 7.9]], h: [-3.0, -2.6], from: -3.0, walls: 'boardConcrete', floor: 'boardConcrete' },
+      { name: 'crosshead, west', plan: [[-113.65, -9.5], [-115.35, -9.5], [-115.35, -4.2], [-113.65, -4.2]], h: [-3.0, -2.6], from: -3.0, walls: 'boardConcrete', floor: 'boardConcrete' },
+    ],
+    art: [
+      { kind: 'columns', at: [[-114.7, 3.75], [-114.7, 6.75], [-114.5, -8.35], [-114.5, -5.35]], from: -6.6, to: -3.0, size: 0.4, color: 0xbab7b0 },
+      { kind: 'ruler', width: 0.88, thick: 0.28, flat: [2, 3],
+        points: [[-5.6, -0.1, 0.44], [3.0, -0.1, 0.44], [3.0, -0.1, 2.31], [5.7, 0.2, 2.66], [6.6, 0.85, 1.31], [13.5, 0.85, 2.0], [13.5, 0.85, 0]] },
+      { kind: 'stone', s: 4.2, u: 0.85, size: [1.6, 1.0, 2.5], turn: 0.1, lean: 0.1 },
+      { kind: 'ruler', width: 0.88, thick: 0.28, points: [[-117.4, 1.8, -6.4], [-117.4, 1.8, -3.24], [-113.75, 1.8, -3.24]] },
+      { kind: 'masts', height: 5.0, color: 0x9a9fa3, arm: 1.4, at: [[-10.5, 0], [33.8, -0.2], [52.5, 0.3]] },
+      { kind: 'masts', height: 5.0, color: 0x9a9fa3, arm: 1.4, sign: 2.6, blue: true, at: [[15.5, -0.25]] },
+    ],
+    benches: { at: [-58, -47, -36, -25, 24, 42, 60], double: true, wood: true },
+    // chain-link along the bank, 3.4 m beyond each track
+    fences: [
+      { points: [[-72, -9.67], [-50, -9.46], [-30, -9.26], [-10, -9.07], [10, -8.88], [30, -8.7], [50, -8.51], [70, -8.3], [85, -8.12]], h: [-1.1, 0.6] },
+      { points: [[-72, 9.1], [-50, 9.03], [-30, 8.98], [-10, 8.96], [10, 8.96], [30, 8.98], [50, 8.97], [70, 8.85], [85, 8.68]], h: [-1.1, 0.6] },
     ],
   },
 };

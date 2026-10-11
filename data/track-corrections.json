@@ -138,8 +138,9 @@
     },
     {
       "station": "Bandhagen",
-      "extend": true,
-      "why": "OSM draws the island platform 90 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [152843.9, 6572847.6],
+      "why": "OSM draws the open part of the island platform, 87 m long, and lengthening it about its middle put the platform 13 m north of the real one. Lantmäteriet's laser scan has the platform 148 m long, from the glazed hall on the bridge over Trollesundsvägen at its south end, and roofed for its southern 62 m; this point is its middle."
     },
     {
       "station": "Blackeberg",
