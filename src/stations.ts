@@ -305,17 +305,21 @@ export class Stations {
     else if (room?.floor !== null) m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
     // (in a styled open station: a slab under it where it stands on a bridge, a roof over it)
     if (room?.slab) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] - 0.02, v[2]]), room.slab, 0.5, through);
-    if (p.ceiling === null) return;
-    const top = c.map((v): number[] => [v[0], v[1] + p.ceiling!, v[2], v[0] / 3, v[2] / 3]);
-    if (room?.ceiling) this.flat(room.ceiling, top, cut, true);
-    else m.ceiling.poly(top, cut);
-    if (room?.roof) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] + p.ceiling! + 0.02 + room.roof!, v[2]]), room.roof, 0.5, cut);
     // lights down the middle, along the longer side
     const [a, b, cc, d] = c;
     const l1 = Math.hypot(b[0] - a[0], b[2] - a[2]), l2 = Math.hypot(d[0] - a[0], d[2] - a[2]);
     const [p0, p1, q0, q1] = l2 >= l1 ? [a, d, b, cc] : [a, b, d, cc];
     const s0: XYZ = [(p0[0] + q0[0]) / 2, (p0[1] + q0[1]) / 2, (p0[2] + q0[2]) / 2];
     const s1: XYZ = [(p1[0] + q1[0]) / 2, (p1[1] + q1[1]) / 2, (p1[2] + q1[2]) / 2];
+    if (p.ceiling === null) {
+      // (open, under a block's roof: lamps hung from it, if the room has them)
+      if (room?.lamps) this.lampRow(m, s0, s1, room.lamps, cut);
+      return;
+    }
+    const top = c.map((v): number[] => [v[0], v[1] + p.ceiling!, v[2], v[0] / 3, v[2] / 3]);
+    if (room?.ceiling) this.flat(room.ceiling, top, cut, true);
+    else m.ceiling.poly(top, cut);
+    if (room?.roof) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] + p.ceiling! + 0.02 + room.roof!, v[2]]), room.roof, 0.5, cut);
     this.lampRow(m, s0, s1, p.ceiling - 0.04, cut);
   }
 
@@ -423,7 +427,7 @@ export class Stations {
     if (this.throughFloor(p)) tEnd = Math.min(tEnd, Math.max(0, 1 - p.ceiling / (rise || 1)));
     // (in a glass building, under its roof)
     const room = this.roomOf(p);
-    if (room?.sill !== undefined) tEnd = 0;
+    if (room?.sill !== undefined || room?.parapet !== undefined) tEnd = 0;
     if (tEnd > 0) {
       const w2 = p.width / 2;
       const c0 = ceil(-w2, 0), c1 = ceil(w2, 0), c2 = ceil(w2, tEnd), c3 = ceil(-w2, tEnd);
@@ -442,8 +446,11 @@ export class Stations {
     const n = corners.length;
     const room = this.roomOf(p), finish = (p.kind === 'incline' ? room?.stairs : undefined) ?? room?.walls ?? undefined;
     const sill = room?.sill === undefined ? undefined : this.open!.frame.st.platformY + room.sill;
-    // (the walls facing left, to −u, in the room's `left` finish if it has one)
-    const facing = (ox: number, oz: number) => (room?.left && ox * -this.open!.frame.fz + oz * this.open!.frame.fx < -0.5 ? room.left : finish);
+    const parapet = p.kind === 'incline' ? room?.parapet : undefined;
+    // (the walls facing left, to −u, in the room's `left` finish if it has one; those facing
+    // back, to −s, in its `back` finish)
+    const facing = (ox: number, oz: number) => (room?.left && ox * -this.open!.frame.fz + oz * this.open!.frame.fx < -0.5 ? room.left
+      : room?.back && ox * this.open!.frame.fx + oz * this.open!.frame.fz < -0.5 ? room.back : finish);
     if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
@@ -457,7 +464,7 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz), sill);
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz), sill, parapet);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {
@@ -521,7 +528,7 @@ export class Stations {
   }
 
   private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number,
-    finish?: Finish, sill?: number) {
+    finish?: Finish, sill?: number, parapet?: number) {
     const P = (t: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
     // in a glass building, only up to the glass's sill: none where the floor is above it, and
     // only the part below it where the floor rises through it
@@ -530,8 +537,8 @@ export class Stations {
       if (Math.min(ya, yb) >= sill - 0.01) return;
       if (Math.max(ya, yb) > sill + 0.01) {
         const tk = t0 + ((t1 - t0) * (sill - ya)) / (yb - ya);
-        if (ya < yb) this.wallQuad(p, m, a, b, t0, tk, bottom, ceiling, cut, len, finish, sill);
-        else this.wallQuad(p, m, a, b, tk, t1, bottom, ceiling, cut, len, finish, sill);
+        if (ya < yb) this.wallQuad(p, m, a, b, t0, tk, bottom, ceiling, cut, len, finish, sill, parapet);
+        else this.wallQuad(p, m, a, b, tk, t1, bottom, ceiling, cut, len, finish, sill, parapet);
         return;
       }
     }
@@ -543,6 +550,7 @@ export class Stations {
     const cap = p.kind === 'incline' && this.throughFloor(p) ? p.b[1] : Infinity;
     const top = (q: number[]) => {
       if (sill !== undefined) return sill;
+      if (parapet !== undefined) return q[1] + parapet;
       if (ceiling === null) return q[1] + PARAPET;
       if (open !== undefined) return Math.min(q[1] + ceiling, Math.max(open + PARAPET, q[1] + PARAPET));
       return Math.min(cap, q[1] + ceiling);
@@ -591,8 +599,9 @@ export class Stations {
     const fx = dx / run, fz = dz / run, rx = -fz, rz = fx;
     const rise = p.b[1] - p.a[1], top = p.b[1];
     // the opening: from where the flight's ceiling passes up through the floor at the top (all of
-    // it in a glass building, where the flight has no ceiling of its own)
-    const t0 = this.roomOf(p)?.sill !== undefined ? 0 : Math.max(0, 1 - p.ceiling / (rise || 1));
+    // it in a glass building, or between parapets, where the flight has no ceiling of its own)
+    const room = this.roomOf(p);
+    const t0 = room?.sill !== undefined || room?.parapet !== undefined ? 0 : Math.max(0, 1 - p.ceiling / (rise || 1));
     const floorAt = (x: number, z: number) => this.walk.query(x, z, this._hits).some((h) => Math.abs(h.y - top) < 0.15)
       || !!this.platforms?.query(x, z, this._plat).some((h) => Math.abs(h.y - top) < 0.15);
     const panel = (ax: number, az: number, bx: number, bz: number) => {

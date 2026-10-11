@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -287,6 +287,23 @@ export class OpenLook {
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
       else if (a.kind === 'birches') this.birches(a, frame, on);
       else if (a.kind === 'lightBoxes') this.lightBoxes(a, frame, on);
+      else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
+    }
+  }
+
+  // Richard Nonas's benches (1994): each two slabs of granite on end and a thick seat between
+  // them, split stones as Stone draws them, the seat a little off the floor.
+  private slabBenches(a: SlabBenches, frame: Frame, on: On) {
+    const T0 = 0.38, D = 0.6, seat = 0.36, top = 0.5;
+    for (const [s, u] of a.at) {
+      const turn = a.along ? Math.PI / 2 : 0;
+      // across the bench (along the seat) from its middle, to s, u
+      const at = (k: number): [number, number] => (a.along ? [s + k, u] : [s, u + k]);
+      for (const k of [-1, 1]) {
+        const [ss, uu] = at(k * (a.span / 2 + T0 / 2));
+        this.stone({ kind: 'stone', s: ss, u: uu, size: [D, T0, a.height], turn, lean: 0, granite: true }, frame, on);
+      }
+      this.stone({ kind: 'stone', s, u, size: [D - 0.08, a.span + 0.12, seat], turn, lean: 0, granite: true, y: top - seat + 0.05 }, frame, on);
     }
   }
 
@@ -331,23 +348,28 @@ export class OpenLook {
   // A rough-hewn stone: a box whose faces are broken by a smooth random field, its edges and corners
   // worn round, turned, leaning to its right from its foot, and sunk a little into the ground.
   private stone(a: Stone, frame: Frame, on: On) {
-    const m = on(this.mat('limestone', () => new THREE.MeshStandardMaterial({ map: T.limestone(), roughness: 0.9, side: THREE.DoubleSide })));
+    const m = a.granite
+      ? on(this.mat('granite', () => new THREE.MeshStandardMaterial({ map: T.granite(), roughness: 0.85, side: THREE.DoubleSide })))
+      : on(this.mat('limestone', () => new THREE.MeshStandardMaterial({ map: T.limestone(), roughness: 0.9, side: THREE.DoubleSide })));
     const [L, Wd, H] = a.size, r = T.rng(Math.round(a.s * 1000 + a.u * 100));
     const bumps = Array.from({ length: 16 }, () => [r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, (r() - 0.45) * 0.08]);
     // the planes it was split along: its corners and edges knocked off flat (none from underneath)
     const cuts = Array.from({ length: 10 }, () => {
       const n = [r() * 2 - 1, r() * 1.3 - 0.3, r() * 2 - 1], l = Math.hypot(n[0], n[1], n[2]) || 1;
       const [nx, ny, nz] = n.map((v) => v / l);
-      return [nx, ny, nz, (Math.abs(nx) * Wd + Math.abs(ny) * H + Math.abs(nz) * L) / 2 * (0.66 + 0.2 * r())];
+      // (granite: only its edges knocked off)
+      return [nx, ny, nz, (Math.abs(nx) * Wd + Math.abs(ny) * H + Math.abs(nz) * L) / 2 * (a.granite ? 0.86 + 0.1 * r() : 0.66 + 0.2 * r())];
     });
     const dx = frame.fx * Math.cos(a.turn) - frame.fz * Math.sin(a.turn), dz = frame.fz * Math.cos(a.turn) + frame.fx * Math.sin(a.turn);
-    const o = frame.at(a.s, a.u, 0), cl = Math.cos(a.lean), sl = Math.sin(a.lean);
+    const o = frame.at(a.s, a.u, a.y ?? 0), cl = Math.cos(a.lean), sl = Math.sin(a.lean);
     // a point on the unit cube's surface to the world: rounded, bumped out from its middle, cut
     // back to the split planes, leant
+    // (granite split into slabs: its faces flatter, its edges sharper)
+    const round = a.granite ? 0.012 : 0.05, rough = a.granite ? 0.25 : 1;
     const P = (q: XYZ): XYZ => {
-      const k = 1 - 0.05 * (Math.abs(q[0] * q[1]) + Math.abs(q[1] * q[2]) + Math.abs(q[2] * q[0]));
+      const k = 1 - round * (Math.abs(q[0] * q[1]) + Math.abs(q[1] * q[2]) + Math.abs(q[2] * q[0]));
       let b = 0;
-      for (const [x, y, z, h] of bumps) b += h * Math.exp(-((q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2) / 0.35);
+      for (const [x, y, z, h] of bumps) b += rough * h * Math.exp(-((q[0] - x) ** 2 + (q[1] - y) ** 2 + (q[2] - z) ** 2) / 0.35);
       const f = k * (1 + b);
       // across (to its right), up, along, from its middle
       let x = q[0] * f * Wd / 2, y = q[1] * f * H / 2, z = q[2] * f * L / 2;

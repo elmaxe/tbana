@@ -12,7 +12,8 @@
 // Heights are metres above the platform. An exit comes up to the street at the entrance, at the
 // height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts, or a deck's
 // in data/ground-corrections.json), with a sign
-// on a post beside it (`sign: false`, none: the station's name is over its doors).
+// on a post beside it (`sign: false`, none: the station's name is over its doors). Stairs or
+// escalators `open` come up through a hall's floor at their top, with no ceiling over the opening.
 //
 // The build fails on:
 // - a step that can't be made: stairs that don't fit before their point, an exit too close
@@ -38,8 +39,8 @@ const OUT = 'public/data/station-layouts.json';
 type SU = [number, number];
 type Segment =
   | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
-  | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
-  | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
+  | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
+  | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
   | { lift: number; above?: number; through?: boolean }
   | { gates: true }
   | { mark: string }
@@ -299,10 +300,10 @@ function buildStation(name: string, d: Description, problems: Problems): Station
           if (l > run + 0.1) walkTo(x + ((tx - x) / l) * (l - run), z + ((tz - z) / l) * (l - run));
           // (heading for the point from where that walk ended)
           const m = Math.hypot(tx - x, tz - z);
-          incline(kind, dh, (tx - x) / m || hx, (tz - z) / m || hz, lanes, sg.ceiling);
+          incline(kind, dh, (tx - x) / m || hx, (tz - z) / m || hz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined);
         } else {
           const [nx, nz] = heading(sg.toward);
-          incline(kind, dh, nx, nz, lanes, sg.ceiling);
+          incline(kind, dh, nx, nz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined);
         }
       } else if ('lift' in sg) {
         // the shaft just beyond where the way ends, its door facing back along it (and, walked

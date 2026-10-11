@@ -1286,13 +1286,32 @@
     },
     "Skarpnäck": {
       "drawing": "skarpnack.png",
-      "note": "The end of T17: an island platform in a cavern 25 m down, the tracks ending at buffers just past it. From its south end long escalators climb to a passage that leads to the ticket hall at Skarpnäcks allé.",
+      "note": "The end of the green line: an island platform in a cave 25 m down, the tracks running on past its south end to buffers. At its north end stairs, an escalator and a lift climb 4.4 m to a landing over the platform; from it a passage leads west into the rock to the foot of three long escalators, an inclined lift beside them, which climb 20.5 m to the ticket hall in the brick station building on Skarpnäcks allé; from the gates the way out is through its glass front under the deep canopy. From OpenStreetMap's indoor mapping (the short flights and the lift at the platform's north end, the passage, the long escalators and the inclined lift, the building and its door), the laser scan (the street 24.9 m over the platform, the building's two parts and its clerestory) and photographs (2008 to 2022).",
       "routes": [
-        { "from": [-45, 0], "width": 5, "go": [
-          {"escalators": 23, "toward": [-150, -30], "lanes": "EES"},
-          {"walk": 4, "width": 8},
+        { "from": [72.5, -2.2], "width": 3.0, "go": [
+          {"stairs": 4.4, "toward": [100, -2.2], "lanes": "ss", "ceiling": 3.0}
+        ] },
+        { "from": [72.5, 3.2], "width": 1.6, "go": [
+          {"walk": [73.13, 3.2], "open": true},
+          {"escalators": 4.4, "toward": [100, 3.2], "lanes": "E", "ceiling": 3.0}
+        ] },
+        { "from": [72.5, 1.0], "width": 2.2, "go": [
+          {"walk": [75.8, 1.0], "ceiling": 2.4},
+          {"lift": 4.4, "above": 3.0, "through": true},
+          {"walk": [80.75, 1.0], "open": true}
+        ] },
+        { "from": [80.75, 0.1], "h": 4.4, "width": 8.0, "go": [
+          {"walk": [93.5, 0.1], "open": true}
+        ] },
+        { "from": [91.0, -3.9], "h": 4.4, "width": 5.0, "go": [
+          {"walk": [91.0, -25.29], "ceiling": 3.4},
+          {"walk": [89.03, -26.21], "width": 4.8, "ceiling": 3.4},
+          {"escalators": 20.5, "toward": [56.88, -41.27], "lanes": "EEE", "ceiling": 3.6, "open": true},
+          {"walk": [54.61, -42.33], "width": 6.0, "open": true},
           {"gates": true},
-          {"exit": 1737367944, "by": "walk"}
+          {"walk": [50.9, -44.07], "open": true},
+          {"walk": [49.63, -44.67], "width": 3.0, "open": true},
+          {"exit": {"at": [47.46, -45.68], "name": "Skarpnäck"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

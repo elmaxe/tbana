@@ -48,6 +48,9 @@ interface Corrections {
   // crossovers missing from OSM, between two points given in SWEREF 99 18 00 (east, north); each
   // point is snapped onto the nearest track within 5 m
   crossovers?: { a: [number, number]; b: [number, number]; why: string }[];
+  // tracks OSM ends short: the end node moves to `to` (SWEREF 99 18 00 east, north), so the
+  // track's last link runs on to it
+  ends?: { node: number; to: [number, number]; why: string }[];
   // stations whose platform OSM doesn't put beside every track: each running line passing within
   // `reach` m (default 12) of the station's node gets a 145 m platform track centred on its
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
@@ -113,6 +116,12 @@ for (const c of corrections.links ?? []) {
     if (!pos.has(a) || !pos.has(b)) throw new Error(`correction: node ${pos.has(a) ? b : a} is not on a track (${c.why})`);
     links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0, covered: false, layer: null });
   }
+}
+
+for (const c of corrections.ends ?? []) {
+  const at = links.filter((l) => l.a === c.node || l.b === c.node);
+  if (at.length !== 1) throw new Error(`correction: node ${c.node} doesn't end a track (${c.why})`);
+  pos.set(c.node, { x: c.to[0] - ORIGIN.e, z: ORIGIN.n - c.to[1] });
 }
 
 // Each missing crossover: split the nearest link at both ends and join the new nodes.

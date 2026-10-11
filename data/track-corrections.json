@@ -79,6 +79,18 @@
       "why": "Akalla: the scissors crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's south end and Husby."
     }
   ],
+  "ends": [
+    {
+      "node": 1969701190,
+      "to": [157640.4, 6572215.2],
+      "why": "Skarpnäck: OSM ends the eastern track 85 m short of the platform's south end. OSM's indoor mapping (2026) and Albert Guillaumes' drawing have the escalators climb from the platform's north end to the station's building on Skarpnäcks allé, which puts the platform south of it, and Gleisplanweb has the tracks ending at buffers just past it. The track runs on parallel to the platform to 13 m beyond its end."
+    },
+    {
+      "node": 1969701189,
+      "to": [157623.0, 6572215.8],
+      "why": "Skarpnäck: as for the eastern track, OSM ends the western one 85 m short of the platform's south end."
+    }
+  ],
   "platforms": [
     {
       "station": "Norsborg",
@@ -105,11 +117,9 @@
     },
     {
       "station": "Skarpnäck",
-      "at": [
-        157634,
-        6572400
-      ],
-      "why": "No platform is mapped at Skarpnäck in OSM (October 2026), and the station's node is 50 m west of the tracks. The island platform is placed between the tracks, its south end near the buffer stops."
+      "replace": true,
+      "at": [157631.8, 6572300.5],
+      "why": "OSM's platform (2026) is drawn 8 m wide between tracks 17 m apart, so it reaches only the eastern one. The island platform is placed between the tracks from OSM's: its north end at the foot of the flight up to the escalators, its south end 13 m short of the buffers."
     },
     {
       "station": "Medborgarplatsen",

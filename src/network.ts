@@ -1295,9 +1295,10 @@ export class Network {
   // single-track tunnel joins the other track's), a wall between the two outlines.
   private ends(samples: Sample[], i0: number, i1: number, b: Record<MaterialName, MeshBuilder>) {
     const tunnel = (sm: Sample) => (sm.kind === 'rock' || sm.kind === 'box') && !bare(sm);
-    const ring = (sm: Sample, inner: [number, number][], outer: [number, number][], mb = b.concrete) => {
+    const ring = (sm: Sample, inner: [number, number][], outer: [number, number][], mb = b.concrete,
+      uv = (u: number, v: number): [number, number] => [u * 0.25, v * 0.25]) => {
       const first = mb.pos.length / 3;
-      for (const outline of [inner, outer]) for (const [u, v] of outline) { at(sm, u, v, _w); mb.vertex(_w.x, _w.y, _w.z, u * 0.25, v * 0.25); }
+      for (const outline of [inner, outer]) for (const [u, v] of outline) { at(sm, u, v, _w); mb.vertex(_w.x, _w.y, _w.z, ...uv(u, v)); }
       mb.grid(2, inner.length, first);
     };
     // (into a station, only a little over the crown: the station's other levels may be over it)
@@ -1352,8 +1353,14 @@ export class Network {
         const a = closedOutline(p), c = closedOutline(q);
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {
           const [ra, rc] = rays(a, c, middles(p), middles(q));
-          // in rock, of rock
-          ring(p, ra, rc, p.kind === 'rock' && q.kind === 'rock' ? b.rock : b.concrete);
+          // in rock, of rock; at a painted cave's end, its rock painted as the cave's is (round from
+          // the floor as on its walls, across the end as along them)
+          const cave = caveStyle(p) ? p : caveStyle(q) ? q : null;
+          if (cave) {
+            const key: MaterialName = `cave:${cave.plat!.station}`;
+            this.mats[key] ??= this.caveMaterial(cave.plat!.station);
+            ring(p, ra, rc, b[key] ??= new MeshBuilder(), (u, v) => [caveAcross(cave, u, v) / T.CAVE_ACROSS, (caveAlong(cave, 0, 0) + u) / T.CAVE_REPEAT]);
+          } else ring(p, ra, rc, p.kind === 'rock' && q.kind === 'rock' ? b.rock : b.concrete);
         }
       } else if (tunnel(p) !== tunnel(q) && !bare(p) && !bare(q)) portal(tunnel(p) ? p : q);
     }

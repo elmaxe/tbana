@@ -242,6 +242,26 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
     },
     signs: { every: 36 },
   },
+  // Skarpnäck (15 August 1994), the end of the green line: an island platform 145 m long in a
+  // cave 25 m down (Swedish Wikipedia). Photographs (2008 to 2022): the whole cave painted a deep
+  // brick red, mottled darker in its hollows, the track walls darker still towards their foot, an
+  // orange ledge along them about as high as the trains' roofs. Over each edge of the platform a
+  // long fitting of lamps hung from the rock, the station's name on black signs under them; the
+  // floor red clinker in a running bond along the platform, a pale cream edge and a strip of
+  // studs for the blind.
+  'Skarpnäck': {
+    paint: { seed: 1995, bands: [{ from: 0, color: '#3a1a12' }, { from: 2.2, color: '#7a2a16', edge: 'ragged' }, { from: 4.3, color: '#a33b1d', edge: 'soft' }],
+      motifs: [{ kind: 'dabs', colors: ['#2a140e', '#4a2016'], from: 0, to: 2.2, size: 0.5, count: 100 },
+        { kind: 'ribbon', color: '#d0601f', at: 4.0, width: 0.14 },
+        { kind: 'dabs', colors: ['#b8471f', '#8a2e18', '#c0502a', '#6e2414'], from: 2.4, to: 18, size: 0.9, count: 220 },
+        { kind: 'cracks', colors: ['#5a1c10'], from: 5, to: 18, count: 12 }] },
+    paving: {
+      edge: 0.3, tactile: [0.3, 0.6], studs: true, slabs: 0.6, paverSize: [0.25, 0.125], mix: 0.3,
+      colors: { edge: 0xd8cdb6, tactile: 0xcfc4ac, slab: 0x9a4632, pavers: 0x9a4632, paler: 0xa85440, face: 0x4a3530 },
+      pattern: 'bond',
+    },
+    signs: { every: 36 },
+  },
   // Kungsträdgården (1977, Ulrik Samuelson): the garden and the palace Makalös that stood
   // above; the vault sprayed green, the walls' foot the bare grey-violet rock, and stripes of
   // red, white and green zigzagging along it

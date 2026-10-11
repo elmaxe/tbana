@@ -2977,9 +2977,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   steelGlazed: [1.2, 3], darkTerrazzo: [2.4, 2.4], birchX: [5.4, 2.6],
   tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
   splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
+  redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3913,6 +3914,43 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'redRock': {
+      // the rock sprayed with concrete and painted red, as Skarpnäck's cave: a deep brick red,
+      // mottled darker and lighter in soft patches, the hollows near black
+      x.fillStyle = '#9a3519'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 70; i++) {
+        const cx = r() * W, cy = r() * H, rr = (0.15 + r() * 0.5) * PX, dark = r() < 0.4;
+        const g = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
+        g.addColorStop(0, dark ? 'rgba(80,24,12,0.45)' : 'rgba(190,76,38,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        for (const [ox, oy] of [[0, 0], [W, 0], [-W, 0], [0, H], [0, -H]]) { x.save(); x.translate(ox, oy); x.fillStyle = g; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2); x.restore(); }
+      }
+      speckle(x, W, H, 14000, 0.25, 93); speckle(x, W, H, 5000, 0.12, 94, true);
+      break;
+    }
+    case 'redBand': {
+      // Skarpnäck's hall: a band of windows high up in red steel frames, 1.2 m apart, a red
+      // sill under them and a red fascia over them; drawn as the photographs show it from the
+      // street, the sky's blue-grey in the glass rather than the hall behind
+      const red = '#a8342a';
+      band(0, h, red);
+      const a = 0.32, b = 1.62, g = x.createLinearGradient(0, Y(b), 0, Y(a));
+      g.addColorStop(0, '#c4ced5'); g.addColorStop(1, '#8b9aa7');
+      x.fillStyle = g; x.fillRect(0.05 * PX, Y(b), W - 0.1 * PX, (b - a) * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(b), W * 0.3, (b - a) * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(a) - 2, W, 2); x.fillRect(0, Y(1.75), W, 2);
+      break;
+    }
+    case 'redFront': {
+      // Skarpnäck's front: glass doors in brushed steel to 2.3 m, a steel transom, SL's dark blue
+      // band, and glass in red steel frames above
+      const st = '#a9aeb1', red = '#a8342a';
+      band(0, 0.1, st); pane(0.1, 2.3, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.3), 0.08 * PX, 2.2 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+      band(2.3, 2.4, st); band(2.4, 2.8, '#22306e'); band(2.8, 2.9, red);
+      pane(2.9, 6.9, red, 0.1);
+      x.fillStyle = red; x.fillRect(0, Y(4.3), W, 0.08 * PX); x.fillRect(0, Y(5.6), W, 0.08 * PX);
+      break;
+    }
     case 'frostedPanels':
       // Bagarmossen's pavilion: panels of frosted glass, white, in bronze frames on a concrete
       // plinth, three rows of them, a transom at 2.6 m
@@ -3938,7 +3976,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
@@ -4044,6 +4082,17 @@ export function limestone() {
   for (let y = 0; y < 128;) { const h = 3 + r() * 14; x.fillStyle = `rgba(${r() < 0.5 ? '110,104,94' : '235,232,226'},${0.06 + r() * 0.12})`; x.fillRect(0, y, 128, h); y += h; }
   for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(140,112,80,${r() * 0.12})`; x.fillRect(r() * 128, r() * 128, 6 + r() * 30, 4 + r() * 20); }
   speckle(x, 128, 128, 1500, 0.25, 1985);
+  return toTexture(c);
+}
+
+// Dark granite, split: grey with a warm brown cast, a coarse grain of black, white and pink
+// crystals, patches a little darker or paler. A metre square.
+export function granite() {
+  const N = 256, [c, x] = canvas(N), r = rng(1987);
+  x.fillStyle = '#7d7871'; x.fillRect(0, 0, N, N);
+  for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(${r() < 0.5 ? '70,62,56' : '190,182,170'},${0.04 + r() * 0.08})`; x.fillRect(r() * N, r() * N, 20 + r() * 80, 16 + r() * 60); }
+  speckle(x, N, N, 9000, 0.32, 1988); speckle(x, N, N, 5000, 0.22, 1989, true);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(176,124,108,${0.15 + r() * 0.25})`; x.fillRect(r() * N, r() * N, 1 + r() * 1.5, 1 + r() * 1.5); }
   return toTexture(c);
 }
 

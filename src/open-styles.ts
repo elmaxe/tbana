@@ -140,12 +140,16 @@ export interface Paving {
 //
 // `sill`: in a glass building (a block's), the walls beside its floors and stairs rise only to
 // this height, the building's glass above them, and its stairs have no ceiling of their own.
-// `left`: the walls on the left (facing −u, looking along the platform) in this finish instead.
+// `parapet`: its stairs and escalators climb open under a ceiling over them all (a block's), the
+// walls beside them only this high over their steps, with no ceiling of their own. `lamps`: its
+// open floors, under a block's roof, lit by a row of lamps hung this high over them.
+// `left`: the walls on the left (facing −u, looking along the platform) in this finish instead;
+// `back`, those at the back (facing −s).
 export interface Room {
   name: string;
   s: [number, number]; u?: [number, number]; h: [number, number];
-  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish; left?: Finish;
-  roof?: number; slab?: number; sill?: number;
+  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish; left?: Finish; back?: Finish;
+  roof?: number; slab?: number; sill?: number; parapet?: number; lamps?: number;
 }
 
 export type Finish =
@@ -231,7 +235,10 @@ export type Finish =
   | 'splitBlocks'   // grey concrete blocks with a split face, 40 by 20 cm
   | 'cladding'      // silver-grey sheet metal, ribbed upright
   | 'cladClerestory' // as cladding to 4.5 m, four rows of glass in grey frames above, to 7.6 m
-  | 'frostedPanels'; // white frosted glass panels in bronze frames on a concrete plinth
+  | 'frostedPanels' // white frosted glass panels in bronze frames on a concrete plinth
+  | 'redRock'       // the rock sprayed with concrete and painted a deep red, mottled
+  | 'redBand'       // a band of windows in red steel frames, the sky in their glass
+  | 'redFront';     // glass doors in brushed steel, the name's band, glass in red steel frames above
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -257,7 +264,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -332,8 +339,14 @@ export interface Growth { kind: 'growth'; s: number; u: number; height: number; 
 export interface Ruler { kind: 'ruler'; points: [number, number, number][]; width: number; thick: number; flat?: number[] }
 
 // A block of pale limestone, rough-hewn, standing at s, u (in the station's frame), `size` along,
-// across and high, turned `turn` (radians, as a guardian's) and leaning `lean` to its right.
-export interface Stone { kind: 'stone'; s: number; u: number; size: [number, number, number]; turn: number; lean: number }
+// across and high, turned `turn` (radians, as a guardian's) and leaning `lean` to its right; or a
+// slab of split grey granite (`granite`); its foot `y` over the platform (on it by default).
+export interface Stone { kind: 'stone'; s: number; u: number; size: [number, number, number]; turn: number; lean: number; granite?: boolean; y?: number }
+
+// Richard Nonas's benches (Skarpnäck, 1994): each a U of split dark granite at s, u (in the
+// station's frame), two slabs on end `height` high, `span` apart inside, and a thick slab between
+// them for the seat; the seat across the platform (or, `along`, along it).
+export interface SlabBenches { kind: 'slabBenches'; at: [number, number][]; span: number; height: number; along?: boolean }
 
 // Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`.
 export interface Columns { kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number }
@@ -2810,6 +2823,88 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // inside, along the hall's west side, the wall of split-face blocks
       { name: 'block wall', plan: [[102.07, -17.78], [102.1, -17.63], [114.19, -19.57], [114.17, -19.71]], h: [18.6, 21.9], from: 18.6,
         walls: 'splitBlocks' },
+    ],
+  },
+  // Skarpnäck (15 August 1994), the end of the green line (src/hall-styles.ts has its cave). From
+  // OpenStreetMap's indoor mapping, the laser scan and photographs (2008 to 2022): at the platform's
+  // north end, under a white vault, stairs between concrete parapets, the lift's tower and an
+  // escalator climb 4.4 m to a landing over the platform; from it a passage leads west into the
+  // rock, its north wall white render with a row of granite slabs leaning on it, its vault the
+  // cave's red, to the foot of three long escalators in a tunnel of board-marked concrete under red
+  // rock, an inclined lift beside them. They climb 20.5 m to the ticket hall: red clinker on the
+  // floor, brick walls, a ribbed metal ceiling, the gates just in front of the escalators' top.
+  // The station's building on Skarpnäcks allé is red brick, of two parts (the laser scan): the
+  // hall's front part, its roof rising gently to the back, with a deep canopy over the glass front
+  // between two brick piers, red along its fascia, SL's blue band with the name over the doors;
+  // and behind it, over the escalators' top, a taller part whose roof falls away to the back, a
+  // band of windows in red frames along its front over the front part's roof. Its sub-frame is
+  // turned 25° from the platform's.
+  //
+  // Richard Nonas's seventeen benches of dark granite (1994) stand down the middle of the platform,
+  // each a U of two slabs on end and a seat between them, across the platform.
+  'Skarpnäck': {
+    buildings: ['w161775758'],
+    rooms: [
+      { name: 'flights', s: [72, 81.5], u: [-4, 4.2], h: [-0.5, 0.5], walls: 'boardConcrete', floor: 'brick', ceiling: 'whiteRender', parapet: 1.1 },
+      { name: 'landing', s: [77, 96], u: [-4.5, 4.5], h: [4, 5], walls: 'boardConcrete', floor: 'brick', ceiling: 'whiteRender', lamps: 3.2 },
+      { name: 'escalators', s: [50, 92], u: [-46, -26.5], h: [4, 5], walls: 'boardConcrete', stairs: 'boardConcrete', ceiling: 'redRock' },
+      // (white render along its north side, the slabs leaning on it; the cave's red rock to the south)
+      { name: 'passage', s: [84, 96], u: [-30, -4.5], h: [4, 5], walls: 'whiteRender', back: 'redRock', floor: 'brick', ceiling: 'redRock' },
+      { name: 'ticket hall', s: [40, 75], u: [-60, -28], h: [24, 26], walls: null, floor: 'brick', lamps: 3.0 },
+    ],
+    blocks: [
+      // the white vault over the flights beyond the platform's north end, between the tracks
+      // running on into their tunnels, open to the platform through the cave's end wall
+      { name: 'north vault', plan: [[72.6, -4.6], [96.0, -4.6], [96.0, 4.6], [72.6, 4.6]], h: [0, 8.0], from: 0,
+        walls: 'whiteRender', sides: [undefined, undefined, undefined, null], floor: 'brick', ceiling: 'whiteRender', roof: 0.6, roofColor: 0x6e2416,
+        onPlatform: true },
+      // the hall's front part, its roof rising to the back, the deep canopy over its front
+      { name: 'ticket hall', plan: [[55.88, -36.77], [48.18, -40.38], [53.48, -51.7], [61.18, -48.09]], h: [24.3, 29.85], from: 24.9, low: 28.55,
+        walls: 'brick', sides: [undefined, 'redFront', undefined, null], eaves: [0.4, 3.0, 0.4, 0],
+        nameSign: { side: 1, at: 0.5, length: 3.6, bottom: 27.3 },
+        floor: 'brick', ceiling: 'ribbedMetal', roof: 0.45, roofColor: 0x9e3426, ground: true },
+      // behind it, over the escalators' top, the tall part, its roof falling to the back
+      { name: 'escalator hall', plan: [[60.54, -46.73], [71.86, -41.43], [67.2, -31.47], [55.88, -36.77]], h: [24.3, 32.0], from: 24.9, low: 27.8,
+        walls: 'brick', sides: [undefined, undefined, undefined, null], eaves: [0.3, 0.3, 0.3, 0],
+        floor: 'brick', ceiling: 'ribbedMetal', roof: 0.4, roofColor: 0x9e3426, ground: true },
+      // (where its west wall steps in from the front part's)
+      { name: 'west step', plan: [[61.18, -48.09], [61.09, -48.13], [60.45, -46.78], [60.54, -46.73]], h: [24.3, 29.85], from: 24.9,
+        walls: 'brick', roof: 0.45, roofColor: 0x9e3426 },
+      // its windows in red frames over the front part's roof
+      { name: 'clerestory', plan: [[60.45, -46.78], [60.54, -46.73], [55.88, -36.77], [55.78, -36.81]], h: [29.85, 32.0], from: 29.85,
+        walls: 'redBand', roof: 0.05, roofColor: 0x9e3426 },
+      // the brick piers either side of the front, out to the canopy's edge
+      { name: 'west pier', plan: [[53.48, -51.7], [50.76, -52.97], [49.7, -50.71], [52.42, -49.43]], h: [24.3, 28.6], from: 24.9,
+        walls: 'brick', roof: 0.1, roofColor: 0x7a6a62, ground: true },
+      { name: 'east pier', plan: [[49.24, -42.64], [46.52, -43.91], [45.46, -41.65], [48.18, -40.38]], h: [24.3, 28.6], from: 24.9,
+        walls: 'brick', roof: 0.1, roofColor: 0x7a6a62, ground: true },
+      // the glass ticket booth by the gates
+      { name: 'ticket booth', plan: [[57.47, -49.61], [54.93, -50.8], [54.04, -48.89], [56.58, -47.71]], h: [24.9, 27.2], from: 24.9,
+        walls: 'glazed', roof: 0.05, roofColor: 0xa9aeb1 },
+      // the inclined lift's shaft beside the escalators, from the ticket hall down to the passage
+      { name: "inclined lift's shaft", plan: [[58.07, -43.81], [59.0, -45.8], [91.15, -30.74], [90.22, -28.75]], h: [24.9, 27.5], from: 24.9, fall: 4.4,
+        walls: 'boardConcrete', sides: ['glazed', undefined, undefined, undefined], floor: 'boardConcrete', roof: 0.1, roofColor: 0x8a9095 },
+    ],
+    art: [
+      // the round T on its post in front of the west pier
+      { kind: 'roundel', s: 50.95, u: -54.54, h: 28.9, size: 0.9, foot: 24.9, along: true },
+      { kind: 'slabBenches', span: 1.5, height: 1.9,
+        at: [[-62.0, 0], [-54.38, 0], [-46.75, 0], [-39.12, 0], [-31.5, 0], [-23.88, 0], [-16.25, 0], [-8.62, 0], [-1.0, 0], [6.62, 0], [14.25, 0], [21.88, 0], [29.5, 0], [37.12, 0], [44.75, 0], [52.38, 0], [60.0, 0]] },
+      // the granite slabs leaning on the passage's north wall
+      { kind: 'stone', s: 92.7, u: -8.0, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -9.05, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -10.1, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -11.15, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -12.2, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -13.25, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -14.3, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -15.35, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -16.4, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -17.45, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -18.5, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -19.55, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -20.6, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
+      { kind: 'stone', s: 92.7, u: -21.65, size: [0.9, 0.22, 1.8], turn: -1.27, lean: 0.3, granite: true, y: 4.4 },
     ],
   },
 };
