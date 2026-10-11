@@ -1,0 +1,9 @@
+{
+ "note": "The city's land and water for the map, from public/data/city/ (tools/build-map.ts): 10 m a pixel, north up; 0 none, 1 land, 2 water.",
+ "image": "map.png",
+ "x0": -16000,
+ "z0": -10500,
+ "step": 10,
+ "width": 2150,
+ "height": 2250
+}

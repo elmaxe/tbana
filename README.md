@@ -85,7 +85,8 @@ to each, and exports them:
 | `E` / `Q` | Ride a lift up / down (stand next to a light-blue shaft) |
 | Walk through an open door | Board a metro train and ride it |
 | `1`–`9` | Jump to a platform |
-| `M` | Full map |
+| `M` | Full map: the wheel zooms it, dragging moves it |
+| `+` / `−` | Zoom the map (the minimap, or the full map while it's open) |
 | `F` | Free flight (`Space` / `C` to rise and sink) |
 | `R` | Back to the start |
 | `N` | Sound on/off |
@@ -99,7 +100,8 @@ Touch controls switch on automatically:
 - **Right half:** drag to look around. You can walk and look at the same time with two fingers.
 - **Lift ▲ / Lift ▼** buttons appear when you stand next to a lift shaft.
 - **⇡ / ⇣** appear in free flight.
-- **Map** opens the full map, and so does tapping the minimap.
+- **Map** opens the full map, and so does tapping the minimap. Pinch to zoom it, drag to move it,
+  tap to close it.
 - Board a train by walking through an open door, as on a computer.
 - **☰** opens the menu and the list of platforms to jump to.
 
@@ -168,7 +170,15 @@ gates and tracks, identified by colour. `src/station.ts` reads it and adds:
   trains. Departure boards and the HUD show the next trains. The red line runs C30 trains and the
   blue and green lines run C20s (see below). The pendeltåg are still plain boxes.
 - **Lifts**: each shaft links the floors next to it.
-- A **minimap** rendered once from above.
+- **The map** (`src/minimap.ts`, `src/map-layers.ts`): in the corner, the minimap follows you,
+  north up, and the full map (`M`) shows the whole network. Both draw the lines in their colours
+  (fainter in a tunnel), the trains running on them, the stations' names, their platforms, halls,
+  stairs and exits (those on other levels than yours fainter), the station models' plans from
+  above, and the city round you: its land, water and buildings, and beyond the tiles that are
+  loaded, the whole city's land and water (`public/data/map.png`). The platform you stand on is
+  yellow, and under the minimap a caption names the station and the trains calling at each track
+  of your platform, the train you ride and its next stop, or out in the city the nearest station.
+  The minimap draws closer in a station and further out on the street, on a train and flying.
 
 Destinations are picked from the direction of travel.
 
@@ -559,7 +569,7 @@ wherever you look out from a train, a bridge or a station's exit:
 LM_USER=… LM_PASSWORD=… npm run fetch-terrain  # the ground, every 5 m -> data/ground/city.json, city.bin.gz
 npm run fetch-city                             # OSM's buildings -> data/osm/buildings.json
 npm run fetch-water                            # OSM's lakes and shores -> data/osm/water.json
-npm run build-city                             # -> public/data/city/
+npm run build-city                             # -> public/data/city/, public/data/map.png
 ```
 
 - `fetch-terrain` reads Lantmäteriet's elevation model at 2 m (the overviews in its 10 km files)
@@ -574,6 +584,8 @@ npm run build-city                             # -> public/data/city/
 - `build-city` shapes the ground round the track and writes one gzipped binary file per tile
   (format in `src/city-tile.ts`), 17.3 MB in all. The format is in tagged sections, so streets can
   be added later as new sections without breaking the game, as the roofs and the water were.
+  Then it runs `build-map` (`tools/build-map.ts`), which draws the whole city's land and water from
+  the tiles, 10 m a pixel, for the map to show beyond the tiles that are loaded (30 kB).
 
 The water: the elevation model has every lake and the sea flattened to the one level it stands
 at (Saltsjön +0.10 m, Mälaren +0.89 m, Brunnsviken +0.05 m in RH 2000), so `build-city` takes as

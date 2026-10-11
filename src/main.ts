@@ -10,6 +10,8 @@ import { DAYLIGHT, lightWithLamps, setDaylight, updateLamps } from './lamps';
 import type { CarFloorData, Ride } from './trains';
 import { nextStation } from './service';
 import { MiniMap } from './minimap';
+import type { MapHere } from './minimap';
+import { buildLayers } from './map-layers';
 import { Input } from './input';
 import { Sound } from './sound';
 import { LINES } from './lines';
@@ -80,7 +82,6 @@ fitCamera();
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
   fitCamera();
-  sizeBigMap();
 });
 
 // How far the city is built round the camera: less on phones and tablets.
@@ -108,7 +109,7 @@ let showMap = false;
 
 const input = new Input(canvas, {
   onLook: (dx, dy) => { if (game && running) game.player.look(dx, dy); },
-  onKey: (code) => handleKey(code),
+  onKey: (code, e) => handleKey(code, e.key),
   onModeChange: (touch) => document.body.classList.toggle('touch', touch),
 });
 const touchMode = () => input.touchMode;
@@ -142,9 +143,10 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   // the cars of the trains are floors too, so the player can board them through open doors, and
   // so are the network's platforms, to get off on
   const player = new Player<Floor>(camera, station.walk, (x, z, out) => floorsAt(trains, network, stations, city, x, z, out));
-  const minimap = new MiniMap(renderer, station.mapGroup, station.bounds, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
+  // the map of the network round the player, and of the city round them
+  const layers = net ? buildLayers(net.graph, net.geometry, net.layouts) : null;
+  const minimap = new MiniMap(renderer, station, layers, city, trains, $<HTMLCanvasElement>('minimap'), $<HTMLCanvasElement>('bigmap'));
   game = { station, network, stations, city, player, trains, minimap };
-  sizeBigMap();
   buildTeleportList(station);
   buildStationList(stations, station, net?.graph ?? null);
 
@@ -261,14 +263,69 @@ function pause() {
   }
   $('menuBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); if (running) pause(); });
   $('minimap').addEventListener('pointerdown', (e) => { if (touchMode()) { e.preventDefault(); toggleMap(); } });
-  $('bigmapWrap').addEventListener('pointerdown', (e) => { if (touchMode()) { e.preventDefault(); toggleMap(); } });
+}
+
+// ------------------------------------------------------------------ the full map
+// The wheel or a pinch zooms it, dragging moves it; a tap closes it on a touch screen (M with a
+// keyboard).
+{
+  const wrap = $('bigmapWrap'), big = $('bigmap');
+  const pointers = new Map<number, { x: number; y: number }>();
+  let tap: { x: number; y: number; t: number } | null = null;
+  const at = (e: { clientX: number; clientY: number }) => {
+    const r = big.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  wrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    game?.minimap.zoomBig(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)), at(e));
+  }, { passive: false });
+  wrap.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    wrap.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    tap = pointers.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+  });
+  wrap.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p || !game) return;
+    if (pointers.size === 2) {
+      // pinch: zoom about the middle of the two fingers, and move with it
+      const [a, b] = [...pointers.values()];
+      const before = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid0 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      p.x = e.clientX; p.y = e.clientY;
+      const after = Math.hypot(a.x - b.x, a.y - b.y);
+      const mid1 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      game.minimap.panBig(mid1.x - mid0.x, mid1.y - mid0.y);
+      if (before > 10) game.minimap.zoomBig(after / before, at({ clientX: mid1.x, clientY: mid1.y }));
+    } else {
+      game.minimap.panBig(e.clientX - p.x, e.clientY - p.y);
+      p.x = e.clientX; p.y = e.clientY;
+    }
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 8) tap = null;
+  });
+  const end = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (e.type === 'pointerup' && tap && touchMode() && performance.now() - tap.t < 400) toggleMap();
+    tap = null;
+  };
+  wrap.addEventListener('pointerup', end);
+  wrap.addEventListener('pointercancel', end);
 }
 
 // ------------------------------------------------------------------ keys
-function handleKey(code: string) {
+function handleKey(code: string, key?: string) {
   if (!game) return;
   const { station, player, trains } = game;
   if (code === 'KeyM') { toggleMap(); return; }
+  // + and − zoom the map (by the character typed, wherever the keyboard has them)
+  const zoom = key === '+' || key === '=' ? 1 : key === '-' ? -1 : 0;
+  if (zoom) {
+    if (showMap) game.minimap.zoomBig(zoom > 0 ? 1.5 : 1 / 1.5);
+    else game.minimap.zoomMini(zoom);
+    return;
+  }
   if (!running) return;
   switch (code) {
     case 'KeyF':
@@ -315,14 +372,12 @@ function toggleMap() {
   if (!game) return;
   showMap = !showMap;
   $('bigmapWrap').hidden = !showMap;
-  if (showMap) game.minimap.drawBig(game.player);
-}
-
-function sizeBigMap() {
-  const c = $<HTMLCanvasElement>('bigmap');
-  c.width = Math.round(innerWidth * 0.9 * Math.min(devicePixelRatio, 2));
-  c.height = Math.round(innerHeight * 0.85 * Math.min(devicePixelRatio, 2));
-  if (showMap && game) game.minimap.drawBig(game.player);
+  if (showMap) {
+    game.minimap.openBig(game.player);
+    game.minimap.drawBig(game.player, mapHere());
+    // the mouse is for the map while it's open
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
+  } else if (running && !touchMode()) canvas.requestPointerLock?.();
 }
 
 function buildTeleportList(station: Station) {
@@ -544,11 +599,29 @@ function rideNotices(ride: Ride | null) {
 
 // ------------------------------------------------------------------ HUD
 let hudNext = 0;
+let shownCaption = '';
 // "near Östermalmstorg · ", in free flight along the network
 function nearby(pos: THREE.Vector3) {
   const st = game?.network?.nearestStation(pos.x, pos.z);
   return st && st.d < 1500 ? `near ${st.name} · ` : '';
 }
+// Where the player is, for the map: the station they are in, what they stand on, the train they ride.
+function mapHere(): MapHere {
+  const here: MapHere = { station: null, floor: null, label: null, ride: journey?.ride.svc ?? null };
+  const s = game?.player.surface;
+  if (here.ride || !s || game?.player.fly) return here;
+  if (s.kind === 'train') here.ride = s.svc;
+  else if (s.kind === 'platform' || s.kind === 'station') {
+    // (the street round a station's exits is the city's)
+    if (!(s.kind === 'station' && s.street)) { here.station = s.station; here.label = s.rec.label; }
+  } else if (s.kind !== 'city') {
+    here.station = s.rec.station;
+    here.floor = s.rec;
+    here.label = s.rec.label ?? null;
+  }
+  return here;
+}
+
 function updateHud() {
   if (!game) return;
   const { player, trains } = game;
@@ -565,6 +638,12 @@ function updateHud() {
   const now = performance.now();
   if (now < hudNext) return;
   hudNext = now + 250;
+  const caption = game.minimap.caption(player, mapHere());
+  if (caption !== shownCaption) {
+    shownCaption = caption;
+    $('mapCaption').innerHTML = caption;
+    $('mapCaption').hidden = !caption;
+  }
   const surface = player.surface;
   $('where').textContent = player.fly
     ? `Free flight · ${nearby(player.pos)}${player.pos.y.toFixed(0)} m`
@@ -588,11 +667,6 @@ const SKY = new THREE.Color(0x8193ad), DARK = new THREE.Color(FOG);
 let outdoor = 0;
 const inBox = (b: THREE.Box3, pos: THREE.Vector3, margin: number) =>
   pos.x > b.min.x - margin && pos.x < b.max.x + margin && pos.z > b.min.z - margin && pos.z < b.max.z + margin;
-// in the home station's box (the minimap's)
-function inStation(pos: THREE.Vector3, margin = 0) {
-  const b = game?.station.bounds;
-  return !!b && inBox(b, pos, margin);
-}
 // lit evenly everywhere, to see what is in the dark (L, or ?light)
 let lightsUp = params.has('light');
 // the station model whose box the player is in
@@ -678,14 +752,15 @@ function frame() {
   simulate(dt);
   if (game) {
     const { player, minimap } = game;
-    if (running) {
-      // the minimap is of the station: away from it, it is hidden
-      const near = inStation(player.pos, 60);
-      $('minimap').hidden = !near;
-      if (near) minimap.draw(player);
-      updateHud();
+    if (running || showMap) {
+      const here = mapHere();
+      if (running) {
+        // (the minimap is under the full map while that's open)
+        if (!showMap) minimap.draw(player, here, dt);
+        updateHud();
+      }
+      if (showMap) minimap.drawBig(player, here);
     }
-    if (showMap) minimap.drawBig(player);
   }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
