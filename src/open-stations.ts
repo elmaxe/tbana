@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -280,6 +280,7 @@ export class OpenLook {
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
       else if (a.kind === 'bird') this.bird(a, frame, on);
+      else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
     }
   }
 
@@ -361,6 +362,26 @@ export class OpenLook {
         const V = (ii: number, jj: number) => [...P(Q(ii, jj)), ((-1 + (2 * ii) / N) * size[a1]) / 2, ((-1 + (2 * jj) / N) * size[a2]) / 2];
         m.poly([V(i, j), V(i + 1, j), V(i + 1, j + 1), V(i, j + 1)]);
       }
+    }
+  }
+
+  // Round rooflights: under each, a disc of daylight in a white rim, just under the ceiling; over it,
+  // a pale dome on a low curb on the roof.
+  private rooflights(a: Rooflights, frame: Frame, on: On) {
+    const light = on(this.mat('daylight', () => new THREE.MeshBasicMaterial({ color: 0xeef3f5, side: THREE.DoubleSide })));
+    const rim = on(this.color(0xf2f1ec, 0.6, 0)), curb = on(this.color(0x8f8d86, 0.9, 0)), shell = on(this.color(0xdde3e2, 0.3, 0.1));
+    const r = a.size / 2, n = 24;
+    for (const [s, u] of a.at) {
+      const c = frame.at(s, u, 0), ring = (rr: number, h: number, k: number) => {
+        const t = (k / n) * Math.PI * 2;
+        return [c[0] + Math.cos(t) * rr, frame.st.platformY + h, c[2] + Math.sin(t) * rr, Math.cos(t) * rr, Math.sin(t) * rr];
+      };
+      light.poly(Array.from({ length: n }, (_, k) => ring(r, a.ceiling - 0.015, n - k)));
+      for (let k = 0; k < n; k++) {
+        rim.poly([ring(r, a.ceiling - 0.012, k), ring(r + 0.07, a.ceiling - 0.012, k), ring(r + 0.07, a.ceiling - 0.012, k + 1), ring(r, a.ceiling - 0.012, k + 1)]);
+        curb.poly([ring(r + 0.08, a.top, k), ring(r + 0.08, a.top + 0.15, k), ring(r + 0.08, a.top + 0.15, k + 1), ring(r + 0.08, a.top, k + 1)]);
+      }
+      dome(shell, [c[0], frame.st.platformY + a.top + 0.15 + r * 0.4, c[2]], r + 0.08, r * 0.4);
     }
   }
 

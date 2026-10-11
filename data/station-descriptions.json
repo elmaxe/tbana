@@ -1713,14 +1713,50 @@
     },
     "Hagsätra": {
       "drawing": "hagsatra.png",
-      "note": "The end of T19: a wide island platform in the open. At its south end stairs go down to the ticket hall under the tracks.",
+      "note": "The end of T19 (1960): a wide island platform out in the open, the tracks on bridges at its south-eastern end. From the roof's south-eastern end a ramp goes down a well in the middle of the platform, and a stair hall beyond it, between two flights of stairs, to the ticket hall under the tracks, where the lift (2011, in place of a moving walkway) comes down in a glass shaft; from the gates the way out is through the hall's glass front onto the passage under the tracks, to Hagsätra torg. From the laser scan (the well from 27.5 m south-east of the platform's middle to 63.5 m, the stair hall's roof falling from 3 m over the platform to the ticket hall's, the passage 4 m under the platform), OpenStreetMap and photographs (2018).",
       "routes": [
-        { "from": [-49.87436714794674, -1.0], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -1.3]},
-          {"walk": [-66.0, -1.5], "width": 6},
-          {"walk": [-66.0, -15.4], "width": 4},
+        { "from": [-27.5, 0.84], "width": 2.35, "go": [
+          {"walk": [-63.6, -0.17], "dh": -2.831, "open": true},
+          {"walk": [-78.5, -0.59], "dh": -1.169, "open": true},
+          {"walk": [-80.45, -0.64], "open": true},
+          {"walk": [-80.95, -0.65], "width": 1.8, "ceiling": 2.3}
+        ] },
+        { "from": [-27.5, -1.31], "width": 1.95, "go": [
+          {"walk": [-63.4, -2.31], "dh": -2.816, "open": true}
+        ] },
+        { "from": [-64.95, -5.93], "width": 2.7, "go": [
+          {"walk": [-64.95, 3.17], "open": true}
+        ] },
+        { "from": [-65.0, -4.93], "width": 2.0, "go": [
+          {"walk": [-66.3, -4.97], "open": true},
+          {"stairs": -0.64, "ceiling": 2.4},
+          {"walk": 1.4, "open": true},
+          {"stairs": -3.36, "ceiling": 2.4},
+          {"walk": [-80.45, -5.37], "open": true},
+          {"walk": [-80.95, -4.95], "width": 1.5, "ceiling": 2.3}
+        ] },
+        { "from": [-65.0, 2.17], "width": 2.0, "go": [
+          {"walk": [-66.3, 2.13], "open": true},
+          {"stairs": -0.64, "ceiling": 2.4},
+          {"walk": 1.4, "open": true},
+          {"stairs": -3.36, "ceiling": 2.4},
+          {"walk": [-80.45, 1.73], "open": true},
+          {"walk": [-80.95, 1.4], "width": 1.4, "ceiling": 2.3}
+        ] },
+        { "from": [-65.2, -2.54], "width": 2.2, "go": [
+          {"walk": [-66.0, -2.56], "open": true},
+          {"lift": -4.0, "above": 4.2, "through": true},
+          {"walk": [-80.45, -2.97], "open": true},
+          {"walk": [-80.95, -2.98], "width": 1.6, "ceiling": 2.3}
+        ] },
+        { "from": [-80.9, -1.85], "h": -4.0, "width": 7.6, "go": [
+          {"walk": [-86.0, -2.0], "open": true},
+          {"walk": [-90.8, -2.2], "width": 7.4, "open": true},
+          {"walk": [-94.4, -1.6], "width": 5.4, "open": true},
           {"gates": true},
-          {"exit": 2623384628}
+          {"walk": [-98.0, -2.2], "width": 6.4, "open": true},
+          {"walk": [-98.8, -2.4], "width": 3, "ceiling": 2.3},
+          {"exit": 2623384628, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

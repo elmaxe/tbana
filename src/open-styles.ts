@@ -204,7 +204,8 @@ export type Finish =
   | 'blackTiles'    // glossy black tiles, 15 cm, in pale grey joints
   | 'glassBlocks'   // glass blocks, 20 cm, pale green, in grey mortar
   | 'blueMosaic'    // a mosaic of small rectangles in greys, blues and white
-  | 'warmMosaic';   // a mosaic of small rectangles in creams, browns, rust, teal and dark blue
+  | 'warmMosaic'    // a mosaic of small rectangles in creams, browns, rust, teal and dark blue
+  | 'brownWindows'; // small brown tiles to a sill, windows in dark frames above, a concrete beam over them
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -229,7 +230,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -320,6 +321,11 @@ export interface Tulip { kind: 'tulip'; s: number; u: number; height: number; tu
 // club, two long ones out to the sides, two up, two hanging and one back; facing `turn` (radians,
 // as a guardian's).
 export interface Bird { kind: 'bird'; s: number; u: number; height: number; turn: number }
+
+// Round rooflights in a flat roof at the points ([s, u], in the station's frame), `size` across: in
+// the ceiling, `ceiling` high, a disc of daylight in a white rim; on the roof, `top` high, a pale
+// dome on a low curb.
+export interface Rooflights { kind: 'rooflights'; at: [number, number][]; size: number; ceiling: number; top: number }
 
 // A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
 // boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
@@ -2055,6 +2061,185 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     // chain-link along the top of the retaining wall and the bank beyond the western track
     fences: [
       { points: [[-15.7, -10.35], [0, -10.05], [16, -9.15], [24, -8.0], [40, -7.2], [60, -6.3], [80, -5.4], [95, -4.7]], h: [-1.5, 0.3] },
+    ],
+  },
+
+  // Hagsätra (1 December 1960, the end of T19): a wide island platform out in the open, the tracks
+  // on bridges over the passage at its south-eastern end. Lantmäteriet's laser scan puts its roof
+  // from 65 m south-east of the platform's middle to 78.5 m north-west: a W of two butterflies side
+  // by side, each over a row of columns 4.9 m apart, the whole 9.8 m wide at its south-eastern half
+  // and narrowing with the platform to 5.4 m at its north-western end, its underside 3.35 m over
+  // the platform at the valleys. Photographs (2018) show the undersides boarded white on white
+  // rafters, a dark fascia, slender dark columns under dark beams along the valleys, long tube
+  // lamps either side of them, SL's blue name signs with the way out, grey square slabs, a pale
+  // edge and a ribbed strip; chain-link fences beyond the tracks.
+  //
+  // From the roof's south-eastern half a ramp goes down a well in the middle of the platform, its
+  // walls concrete cast against boards, to a crossing at platform level, and on under it, between
+  // two flights of stairs, into a stair hall: its walls the same concrete to a parapet, glazed above
+  // it, under a roof of its own falling with the stairs (the laser scan: 3 m over the platform at
+  // the crossing, 0.1 m at its south-eastern end). Between the west flight and the ramp the lift in
+  // a glass shaft (2011, where a moving walkway was), rising through the roof. At the bottom a glass
+  // wall with doors into the ticket hall under the tracks, between the bridges' decks: terrazzo,
+  // white tiles, a white ceiling with round rooflights (Google's mesh: eight in the hall, nine over
+  // the passage, domes on the roof), the gates and a glazed booth; its glass front onto the passage
+  // under the tracks, which opens east to a court and west to Hagsätra torg. Under the eastern deck
+  // a shop, its windows onto the hall, the passage and the court; under the western deck rooms,
+  // brown tiles under a band of windows outside. Over the passage's mouths the decks' faces, the
+  // name on a blue band, the metro's round sign at the eastern corner, a tall chain-link fence on
+  // top (the laser scan: the faces 11.6 m west and 7.5 m east of the middle).
+  //
+  // Britta Simonsson-Örtenholm's mosaics on a theme of music (1960) and Per Carm's three paintings
+  // by the ramp aren't drawn: no photograph of them was found.
+  'Hagsätra': {
+    // the western butterfly (its middle along the western valley)
+    roof: {
+      kind: 'butterfly',
+      from: -65, to: 78.5, width: 4.9,
+      shape: [[-65, -2.41, 4.93], [-40, -2.5, 4.9], [-20, -2.47, 4.85], [0, -2.43, 4.85], [20, -1.97, 4.55], [40, -1.12, 4.0], [60, -0.2, 3.4], [78.5, 0.85, 2.7]],
+      middle: 3.35, edge: 3.45, thick: 0.3, fascia: 0.35,
+      rafters: 3.0, rafterSize: [0.15, 0.25], deck: 'boards', rafterColor: 0xefeee9,
+      beam: 0.35,
+      columns: { every: 7.5, at: -28, size: 0.2, plinth: { size: 0.3, height: 0.1 }, offset: -0.2 },
+      lamps: { offset: 0.7, length: 1.5, every: 1.6, tube: true },
+      colors: { underside: 0xe8e8e4, fascia: 0x2d3033, top: 0x4a4d50, steel: 0x2f3236 },
+      signs: { at: [-16.75, 13.25, 43.25], back: 'Utgång', ahead: '', blue: true },
+      // (the end of the line: trains from both tracks go back to Hässelby strand)
+      boards: [{ s: -50, u: -1.5, toward: 'Hässelby strand', trains: ['19 Hässelby strand  2 min', '19 Hässelby strand  12 min'] }],
+    },
+    // the eastern, beside it
+    roofs: [{
+      kind: 'butterfly',
+      from: -65, to: 78.5, width: 4.9,
+      shape: [[-65, 2.51, 4.93], [-40, 2.4, 4.9], [-20, 2.39, 4.85], [0, 2.43, 4.85], [20, 2.59, 4.55], [40, 2.88, 4.0], [60, 3.2, 3.4], [78.5, 3.55, 2.7]],
+      middle: 3.35, edge: 3.45, thick: 0.3, fascia: 0.35,
+      rafters: 3.0, rafterSize: [0.15, 0.25], deck: 'boards', rafterColor: 0xefeee9,
+      beam: 0.35,
+      columns: { every: 7.5, at: -28, size: 0.2, plinth: { size: 0.3, height: 0.1 }, offset: 0.2 },
+      lamps: { offset: 0.7, length: 1.5, every: 1.6, tube: true },
+      colors: { underside: 0xe8e8e4, fascia: 0x2d3033, top: 0x4a4d50, steel: 0x2f3236 },
+      signs: { at: [-1.75, 28.25, 58.25], back: 'Utgång', ahead: '', blue: true },
+      boards: [{ s: -50, u: 1.5, toward: 'Hässelby strand', trains: ['19 Hässelby strand  7 min', '19 Hässelby strand  17 min'] }],
+    }],
+    paving: {
+      edge: 0.35, tactile: [0.35, 0.8], slabs: 0.8, slabSize: [0.45, 0.45], paverSize: [0.45, 0.45], mix: 0.25,
+      colors: { edge: 0xb9b7b0, tactile: 0x7a7c7e, slab: 0x5f6266, pavers: 0x5f6266, paler: 0x6c6f73, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w146396281', 'w146396284'],
+    rooms: [
+      // (the well's walls are its parapets')
+      { name: 'ramp', s: [-63.5, -27], u: [-5, 4], h: [-3, 0.1], walls: null, floor: 'greyTiles' },
+      { name: 'crossing', s: [-66.5, -63.5], u: [-8, 6], h: [-0.3, 0.3], walls: null, floor: 'greyTiles', slab: 0.35 },
+      // (a glass railing over the corridor to the lift, the eastern flight's parapet on its other side)
+      { name: 'ramp under the crossing', s: [-78.6, -63.5], u: [-1.5, 0.8], h: [-4.1, -2.5], walls: 'boardConcrete', left: 'glazed', floor: 'greyTiles' },
+      // (the walls and parapets are the stair hall's shell's)
+      { name: 'stair hall', s: [-80.5, -63.5], u: [-8, 6], h: [-4.1, 0.1], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'terrazzo', sill: -3.99 },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-98.9, -80.5], u: [-8, 4], h: [-4.1, -3.5], walls: null, floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'passage', s: [-112, -98.9], u: [-30, 30], h: [-4.3, -3.5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the well's parapets (its floor falls from the platform to 2.8 m under it at the crossing)
+      { name: "well's west parapet", plan: [[-27.5, -2.48], [-63.45, -3.49], [-63.45, -3.29], [-27.5, -2.28]], h: [-2.9, 1.1],
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: "well's east parapet", plan: [[-27.5, 2.02], [-63.6, 1.01], [-63.6, 1.21], [-27.5, 2.22]], h: [-2.9, 1.1],
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      // the crossing: its parapet over the ramp, the end of the well's west half, and the walls under it
+      { name: "crossing's parapet", plan: [[-63.6, -1.34], [-63.8, -1.35], [-63.8, 1.0], [-63.6, 1.01]], h: [-0.35, 1.1], from: -0.35,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: "well's west end", plan: [[-63.45, -3.29], [-63.8, -3.3], [-63.8, -1.35], [-63.45, -1.34]], h: [-2.9, 1.1],
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'under the crossing, west', plan: [[-63.8, -3.9], [-66.3, -3.97], [-66.3, -1.42], [-63.8, -1.35]], h: [-3.1, -0.35], from: -3.1,
+        walls: 'boardConcrete' },
+      { name: 'under the crossing, east', plan: [[-63.6, 1.01], [-66.3, 0.93], [-66.3, 1.13], [-63.6, 1.21]], h: [-3.1, -0.35], from: -3.1,
+        walls: 'boardConcrete' },
+      // (the platform's paving isn't there under the crossing's floor)
+      { name: 'crossing', plan: [[-63.6, -5.94], [-65.0, -5.98], [-65.0, 3.22], [-63.6, 3.26]], h: [-0.35, 0.05], from: -0.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the stair hall: concrete walls to a parapet over the platform, falling at its end to the
+      // ticket hall's roof; glazed above, under its roof
+      { name: "stair hall's walls", plan: [[-65.0, -5.98], [-74.8, -6.26], [-74.8, 2.94], [-65.0, 3.22]], h: [-4.0, 1.0], from: -4.0,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], onPlatform: true, ground: true },
+      { name: "stair hall's walls, south", plan: [[-74.8, -6.26], [-80.7, -6.42], [-80.7, 2.78], [-74.8, 2.94]], h: [-4.0, 1.17], low: 0.1, from: -4.0,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], onPlatform: true, ground: true },
+      { name: "stair hall's windows", plan: [[-65.0, -5.98], [-74.8, -6.26], [-74.8, 2.94], [-65.0, 3.22]], h: [1.0, 2.95], low: 1.17, from: 1.0,
+        walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: "stair hall's roof", plan: [[-65.0, -6.08], [-80.7, -6.52], [-80.7, 2.88], [-65.0, 3.32]], h: [0, 2.95], low: 0.1,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.3, roofColor: 0x3a3d40 },
+      // the flights' parapets beside the corridor to the lift and beside the ramp, a metre over the steps
+      { name: 'west parapet, top', plan: [[-66.3, -3.92], [-67.5, -3.95], [-67.5, -3.75], [-66.3, -3.72]], h: [-4.0, 1.0], low: 0.36, from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'west parapet, landing', plan: [[-67.5, -3.95], [-68.9, -3.99], [-68.9, -3.79], [-67.5, -3.75]], h: [-4.0, 0.36], from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'west parapet', plan: [[-68.9, -3.99], [-75.4, -4.17], [-75.4, -3.97], [-68.9, -3.79]], h: [-4.0, 0.36], low: -3.0, from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'east parapet, top', plan: [[-66.3, 0.98], [-67.5, 0.95], [-67.5, 1.1], [-66.3, 1.13]], h: [-4.0, 1.0], low: 0.36, from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'east parapet, landing', plan: [[-67.5, 0.95], [-68.9, 0.91], [-68.9, 1.06], [-67.5, 1.1]], h: [-4.0, 0.36], from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      { name: 'east parapet', plan: [[-68.9, 0.91], [-75.4, 0.73], [-75.4, 0.88], [-68.9, 1.06]], h: [-4.0, 0.36], low: -3.0, from: -4.0,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x9a978f },
+      // the ramp's side over the corridor, under its glass railing
+      { name: "ramp's side", plan: [[-66.3, -1.47], [-78.5, -1.81], [-78.5, -1.76], [-66.3, -1.42]], h: [-4.0, -3.1], low: -3.95, from: -4.0,
+        walls: 'boardConcrete' },
+      // the glass wall with doors into the ticket hall, concrete above the hall's ceiling
+      { name: 'glass wall', plan: [[-80.6, -6.42], [-80.8, -6.43], [-80.8, 2.77], [-80.6, 2.78]], h: [-4.0, 0.1], from: -4.0,
+        walls: 'glazed', band: { walls: 'boardConcrete', from: -1.15 } },
+      // (nor the platform's end beyond it, over the ticket hall's roof)
+      { name: "platform's end", plan: [[-80.7, -5.85], [-83.5, -5.9], [-83.5, 3.6], [-80.7, 3.6]], h: [-0.8, 0.5], from: -0.8,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the ticket hall between the bridges' decks, under its flat roof, dug into the bank
+      { name: 'ticket hall', plan: [[-80.8, -5.82], [-91.5, -6.13], [-91.5, 1.62], [-80.8, 2.16]], h: [-4.4, -1.15], from: -4.0,
+        walls: 'squareTiles', sides: [undefined, null, undefined, null], floor: 'terrazzo', ceiling: 'whiteRender', roof: 0.35, roofColor: 0x77787a,
+        onPlatform: true, ground: true },
+      { name: "ticket hall's front", plan: [[-91.5, -6.13], [-98.4, -6.27], [-98.4, 1.28], [-91.5, 1.62]], h: [-4.4, -1.15], from: -4.0,
+        walls: 'squareTiles', sides: [undefined, 'glassFront', null, null], floor: 'terrazzo', ceiling: 'whiteRender', roof: 0.35, roofColor: 0x77787a,
+        onPlatform: true, ground: true },
+      { name: 'ticket booth', plan: [[-90.9, -6.12], [-94.5, -6.2], [-94.5, -4.4], [-90.9, -4.4]], h: [-4.0, -1.6], from: -4.0, walls: 'glazed', roof: 0.05 },
+      // the shop under the eastern deck, its windows onto the hall, the passage and the court
+      { name: 'shop', plan: [[-91.5, 1.62], [-99.0, 1.25], [-99.0, 7.1], [-91.5, 7.47]], h: [-4.4, -1.6], from: -4.0,
+        walls: 'shopWindows', sides: [undefined, undefined, undefined, 'boardConcrete'], roof: 0.2, onPlatform: true, ground: true },
+      // rooms under the western deck, their outside tiled brown under a band of windows
+      { name: 'rooms', plan: [[-80.8, -11.67], [-98.4, -12.12], [-98.4, -6.27], [-80.8, -5.82]], h: [-4.4, -1.6], from: -4.4,
+        walls: 'brownWindows', sides: [undefined, undefined, null, 'boardConcrete'], roof: 0.2, onPlatform: true, ground: true },
+      // the passage under the tracks: between the decks under the ticket hall's roof, and under the decks
+      { name: 'passage', plan: [[-98.4, -6.27], [-106.3, -6.49], [-106.3, 0.82], [-98.4, 1.28]], h: [-4.4, -1.15], from: -4.05,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'whiteRender', roof: 0.35, roofColor: 0x77787a,
+        onPlatform: true, ground: true },
+      { name: 'passage, west', plan: [[-98.4, -12.12], [-106.3, -12.34], [-106.3, -6.49], [-98.4, -6.27]], h: [-4.4, -1.6], from: -4.2,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'boardConcrete', roof: 0.2, onPlatform: true, ground: true },
+      { name: 'passage, east', plan: [[-99.0, 1.25], [-106.3, 0.82], [-106.3, 6.67], [-99.0, 7.1]], h: [-4.4, -1.6], from: -4.1,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'boardConcrete', roof: 0.2, onPlatform: true, ground: true },
+      { name: "passage's step, west", plan: [[-98.4, -6.29], [-106.3, -6.51], [-106.3, -6.49], [-98.4, -6.27]], h: [-1.6, -1.15], from: -1.6, walls: 'boardConcrete' },
+      { name: "passage's step, east", plan: [[-98.4, 1.28], [-106.3, 0.82], [-106.3, 0.84], [-98.4, 1.3]], h: [-1.6, -1.15], from: -1.6, walls: 'boardConcrete' },
+      // the decks' faces over the passage's mouths
+      { name: "western deck's face", plan: [[-80.7, -11.67], [-106.3, -12.34], [-106.3, -12.14], [-80.7, -11.47]], h: [-1.6, -0.9], from: -1.6,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x8f8d86, onPlatform: true, nameSign: { side: 0, at: 0.846, length: 4.4, bottom: -1.5 } },
+      { name: "eastern deck's face", plan: [[-90, 7.35], [-106.3, 6.47], [-106.3, 6.67], [-90, 7.55]], h: [-1.6, -0.9], from: -1.6,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x8f8d86, onPlatform: true, nameSign: { side: 2, at: 0.224, length: 4.4, bottom: -1.5 } },
+      // the bank's retaining wall along the court's north side, east of the deck (Mapillary's
+      // panoramas, the laser scan)
+      { name: "bank over the court", plan: [[-86, 7.6], [-90.6, 7.4], [-90.6, 22], [-86, 22]], h: [-4.4, -0.8], from: -4.4,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, null], roof: 0.05, roofColor: 0x6b7a4a, ground: true },
+    ],
+    art: [
+      { kind: 'rooflights', size: 1.3, ceiling: -1.15, top: -0.8,
+        at: [[-83.5, -4.0], [-83.5, -0.1], [-87.5, -4.0], [-87.5, -0.1], [-91.5, -4.0], [-91.5, -0.1], [-95.5, -4.0], [-95.5, -0.1],
+          [-99.25, -4.1], [-99.25, -2.2], [-99.25, -0.25], [-101.25, -4.1], [-101.25, -2.2], [-101.25, -0.25], [-103.25, -4.1], [-103.25, -2.2], [-103.25, -0.25]] },
+      { kind: 'roundel', s: -97.0, u: 7.25, h: -0.3, size: 1.0, foot: -0.95 },
+    ],
+    // between the columns, down the middle of each butterfly
+    benches: [
+      { at: [-9.25, 28.25] },
+      { at: [5.75, 43.25], roof: 0 },
+    ],
+    // chain-link beyond both tracks, and tall on the decks' faces
+    fences: [
+      { points: [[-78, -11.34], [-60, -10.8], [-40, -10.3], [-20, -9.9], [0, -9.6], [20, -9.1], [40, -8.5], [60, -7.8], [80, -7.2], [90, -7.0]], h: [-1.5, 0.5] },
+      { points: [[-88, 7.9], [-78, 7.9], [-60, 8.5], [-40, 9.1], [-20, 9.4], [0, 9.6], [20, 9.4], [40, 9.0], [60, 8.3], [80, 7.4], [90, 6.9]], h: [-1.5, 0.5] },
+      { points: [[-80.7, -11.57], [-90, -11.85], [-100, -12.05], [-106.3, -12.24]], h: [-0.9, 1.3] },
+      { points: [[-90, 7.45], [-100, 6.95], [-106.3, 6.57]], h: [-0.9, 1.3] },
     ],
   },
 };

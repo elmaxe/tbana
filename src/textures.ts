@@ -2910,10 +2910,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
   greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
   silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
-  blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4],
+  blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4], brownWindows: [1.2, 3.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3510,6 +3510,22 @@ export function finish(name: Finish) {
       for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(80,78,72,${0.05 + r() * 0.1})`; x.fillRect(r() * W, Y(2.3) + r() * 0.9 * PX, 2 + r() * 10, 1); }
       break;
     }
+    case 'brownWindows': {
+      // small tiles 10 cm square in browns, dark and pale at random, to 1.6 m; a dark steel sill,
+      // windows in dark frames to 2.25 m, their head, and over them concrete cast against boards
+      const t = 0.1 * PX, frame = '#2a2b2c';
+      x.fillStyle = '#5b4a3c'; x.fillRect(0, Y(1.6), W, 1.6 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 16; j++) {
+        const v = r(), k = Math.floor(r() * 18);
+        const [cr, cg, cb] = v < 0.3 ? [92, 62, 42] : v < 0.65 ? [124, 86, 58] : v < 0.9 ? [150, 112, 78] : [70, 52, 40];
+        x.fillStyle = `rgb(${cr + k},${cg + k},${cb + k})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(1.6, 1.66, frame); pane(1.66, 2.25, frame, 0.08); band(2.25, 2.3, frame);
+      band(2.3, 3.2, '#a6a39b');
+      for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(70,68,62,${0.06 + r() * 0.08})`; x.fillRect(0, Y(2.3) + r() * 0.9 * PX, W, 1); }
+      break;
+    }
     case 'greenGlazed': {
       // a glazed hall's walls: glass from a kick panel at 0.3 m to its head at 2.9 m, in dark
       // green steel frames 1.2 m apart, and a steel handrail across them at 1 m
@@ -3683,7 +3699,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
