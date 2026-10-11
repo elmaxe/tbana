@@ -2401,6 +2401,81 @@ export function mosaicColumn() {
   return toTexture(c);
 }
 
+// ------------------------------------------------------------------ Skanstull's hall
+// (src/hall-styles.ts)
+
+// The track walls, from the floor beside the track up to the ceiling, `height` m: small square
+// tiles, `tile` m, in `color` (each a shade lighter or darker, a few crazed), from `from` up; below
+// them a black band down to the floor; and along them posters in thin steel frames, `run` of them
+// `every` m apart, then `gap` m of bare tiles, three such groups to a repeat (heights from the
+// floor). The posters are made up: a pale ground, a block of colour, lines of type. Turned for a
+// sweep along the track, as Hötorget's: u up the wall, v along the track.
+type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
+export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
+export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters) {
+  const repeat = beamedWallRepeat(posters);
+  const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
+  const r = rng(1933), Y = (h: number) => H - h * PX;
+  // the tiles, in grey joints
+  x.fillStyle = css(color, -46); x.fillRect(0, 0, W, Y(from));
+  const n = Math.round(repeat / tile), t = W / n;
+  for (let i = 0; i < n; i++) for (let j = 0; (j * tile) < height - from; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 12) - 6);
+    x.fillRect(i * t + 0.7, Y(from + (j + 1) * tile) + 0.7, t - 1.4, tile * PX - 1.4);
+  }
+  // a sheen across them, and the grime of ninety years low down
+  const g = x.createLinearGradient(0, Y(from + 1.2), 0, Y(from));
+  g.addColorStop(0, 'rgba(90,80,60,0)'); g.addColorStop(1, 'rgba(90,80,60,0.12)');
+  x.fillStyle = g; x.fillRect(0, Y(from + 1.2), W, 1.2 * PX);
+  // the black band, its top edge a little paler
+  x.fillStyle = '#1e1e1f'; x.fillRect(0, Y(from), W, from * PX);
+  x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
+  speckle(x, W, from * PX, 900, 0.12, 1934, true);
+  // the posters
+  const grounds = ['#f1efe9', '#e9eef2', '#f4ead8', '#1f2a3a', '#f2f0f0', '#dfe8e1'];
+  const blocks = ['#d9472b', '#2f6db3', '#f0b429', '#3a8f5c', '#8e3f8f', '#e66b9a', '#1b1b1b', '#4fb3c9'];
+  for (let k = 0; k < 3 * posters.run; k++) {
+    const group = Math.floor(k / posters.run), along = group * (posters.run * posters.every + posters.gap) + (k % posters.run) * posters.every;
+    const x0 = (along + (posters.every - posters.width) / 2) * PX, y0 = Y(posters.bottom + posters.height);
+    const w = posters.width * PX, h = posters.height * PX;
+    x.fillStyle = '#9ea2a4'; x.fillRect(x0 - 3, y0 - 3, w + 6, h + 6);
+    const ground = grounds[Math.floor(r() * grounds.length)], dark = ground === '#1f2a3a';
+    x.fillStyle = ground; x.fillRect(x0, y0, w, h);
+    if (r() < 0.4) {
+      // a photograph to the edges: a sky over a darker land or sea, and a line of type over it
+      const sky = x.createLinearGradient(0, y0, 0, y0 + h);
+      const top = blocks[Math.floor(r() * blocks.length)];
+      sky.addColorStop(0, top); sky.addColorStop(0.6, '#e8eef2'); sky.addColorStop(1, '#5b6a73');
+      x.fillStyle = sky; x.fillRect(x0, y0, w, h);
+      x.fillStyle = `rgba(30,40,45,${0.5 + r() * 0.4})`;
+      x.beginPath(); x.moveTo(x0, y0 + h * 0.75);
+      for (let s = 0; s <= 6; s++) x.lineTo(x0 + (w * s) / 6, y0 + h * (0.62 + r() * 0.12));
+      x.lineTo(x0 + w, y0 + h); x.lineTo(x0, y0 + h); x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.9)'; x.fillRect(x0 + w * 0.1, y0 + h * 0.1, w * (0.5 + r() * 0.3), h * 0.05);
+      continue;
+    }
+    // a picture: a block of colour, or a disc on it
+    const bh = h * (0.35 + r() * 0.3), by = y0 + h * (0.08 + r() * 0.12);
+    x.fillStyle = blocks[Math.floor(r() * blocks.length)];
+    if (r() < 0.6) x.fillRect(x0 + w * 0.1, by, w * 0.8, bh);
+    else { x.beginPath(); x.arc(x0 + w / 2, by + bh / 2, Math.min(w, bh) * 0.42, 0, Math.PI * 2); x.fill(); }
+    if (r() < 0.5) {
+      x.fillStyle = blocks[Math.floor(r() * blocks.length)];
+      x.beginPath(); x.arc(x0 + w * (0.65 + r() * 0.2), by + bh * (0.1 + r() * 0.3), w * 0.12, 0, Math.PI * 2); x.fill();
+    }
+    // lines of type under it
+    x.fillStyle = dark ? 'rgba(255,255,255,0.85)' : 'rgba(30,30,30,0.8)';
+    x.fillRect(x0 + w * 0.1, by + bh + h * 0.06, w * (0.5 + r() * 0.3), h * 0.045);
+    for (let l = 0; l < 3; l++) x.fillRect(x0 + w * 0.1, by + bh + h * (0.15 + l * 0.04), w * (0.4 + r() * 0.4), h * 0.012);
+  }
+  speckle(x, W, H, 2500, 0.06, 1935);
+  const [c, y] = canvas(H, W);
+  // (along, up) → (up from the left, along)
+  y.setTransform(0, 1, -1, 0, H, 0);
+  y.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
 // ------------------------------------------------------------------ styled open stations
 // (src/open-styles.ts)
 

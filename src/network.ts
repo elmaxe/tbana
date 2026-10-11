@@ -10,7 +10,7 @@ import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
-import type { CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultHall, VaultStyle } from './hall-styles';
+import type { BeamedHall, CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultHall, VaultStyle } from './hall-styles';
 import { OPEN_STYLES } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
@@ -142,7 +142,9 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // a cave's panels of glass along its walls, the eastern's and the western's, and their backing
   | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
-  | `pave:${string}` | `face:${string}`;
+  | `pave:${string}` | `face:${string}`
+  // a beamed hall's walls, ceiling and beams, and columns (src/hall-styles.ts)
+  | `beam${'Wall' | 'Ceiling' | 'Column'}:${string}`;
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -527,6 +529,28 @@ export class Network {
       { is: styled('concrete'), walls: [b.fsWall, b.fsWall], roof: b.fsCeiling, top: FARSTA_STRAND.soffit, repeat: T.FS_WALL_REPEAT, overhead: 2.4 },
       { is: styled('vault'), walls: [b.kpWall, b.kpWallMirror], roof: b.kpVault, top: KARLAPLAN.spring, repeat: T.KARLAPLAN_REPEAT, overhead: 4 },
     ];
+    // (a beamed hall's, each its own)
+    for (const station of new Set(run.filter((sm) => beamedHall(sm)).map((sm) => sm.plat!.station))) {
+      const st = HALL_STYLES[station] as FlatHall, f = st.finish as BeamedHall, w = f.walls;
+      const wall: MaterialName = `beamWall:${station}`, roof: MaterialName = `beamCeiling:${station}`;
+      this.mats[wall] ??= new THREE.MeshStandardMaterial({
+        map: T.beamedHallWall(st.soffit - S.FLOOR, w.color, w.tile, w.from - S.FLOOR, { ...w.posters, bottom: w.posters.bottom - S.FLOOR }),
+        roughness: 0.45, side: THREE.DoubleSide,
+      });
+      // (lit from below by its lamps, which light nothing: so it glows a little)
+      if (!this.mats[roof]) {
+        const plaster = T.plaster();
+        this.mats[roof] = new THREE.MeshStandardMaterial({ map: plaster, color: f.ceiling, emissive: 0x7a7870, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide });
+      }
+      halls.push({ is: (sm) => hallStyle(sm) === st, walls: [b[wall] ??= new MeshBuilder(), b[wall]], roof: b[roof] ??= new MeshBuilder(), top: st.soffit, repeat: T.beamedWallRepeat(w.posters), overhead: 2.4 });
+      // the beam along over the row of columns, drawn with one of the two tracks
+      const { depth, along } = f.beams;
+      sweep(b[roof], run, (sm) => {
+        if (hallStyle(sm) !== st || !leads(sm)) return null;
+        const m = sm.pair / 2, v = st.soffit + sm.pairDy / 2;
+        return { key: 'along', pts: [[m - along / 2, v], [m - along / 2, v - 2 * depth], [m + along / 2, v - 2 * depth], [m + along / 2, v]] };
+      }, { uScale: 1 / 2.4, vScale: 1 / 2.4 });
+    }
     for (const { is, walls, roof, top, repeat, overhead } of halls) {
       for (const [mb, sign] of [[walls[0], -1], [walls[1], 1]] as const) {
         sweep(mb, run, (sm) => {
@@ -788,7 +812,9 @@ export class Network {
       } else if (concrete) {
         // (in a flat hall in concrete, fittings hung just under the ceiling over the platform's
         // edge, nearly end to end)
-        const u = p.side * (S.PLATFORM_EDGE + 0.5), top = concrete.soffit, v = top - 0.32;
+        // (in a beamed one, under its beams)
+        const f = concrete.finish, u = p.side * (S.PLATFORM_EDGE + 0.5);
+        const top = concrete.soffit - (f.kind === 'beams' ? f.beams.depth : 0), v = top - 0.32;
         box(b.fitting, at(sm, u, v + 0.05), sm, 0.24, 0.1, STEP - 0.6);
         box(b.lamp, light = at(sm, u, v - 0.006), sm, 0.16, 0.012, STEP - 0.7);
         box(b.fitting, at(sm, u, (v + 0.1 + top) / 2), sm, 0.03, top - v - 0.1, 0.03);
@@ -871,8 +897,8 @@ export class Network {
     const first = run.find((sm) => hallStyle(sm)?.kind === 'flat');
     if (!first) return;
     const st = hallStyle(first) as FlatHall, p = first.plat!, { fromEdge, size, spacing, round, middle } = st.columns;
-    // (one row down the middle: along the track with the other to its right)
-    if (middle && first.pair < 0) return;
+    // (one row down the middle: along one of the two tracks)
+    if (middle && !leads(first)) return;
     const on = all.filter((sm) => sm.plat === p);
     const a0 = on[0].along, a1 = on[on.length - 1].along;
     const n = Math.floor((a1 - a0 - 2 * spacing / 2) / spacing);
@@ -891,19 +917,80 @@ export class Network {
       const q = at(sm, u + i * h, v);
       return this.holes.some((o) => insideVolume(o, q.x + sm.rz * k * h, q.y, q.z - sm.rx * k * h));
     }));
-    const concrete = st.finish.kind === 'concrete';
+    const f = st.finish;
+    let column = f.kind === 'concrete' ? b.fsColumn : b.hallColumn;
+    if (f.kind === 'beams') {
+      const key: MaterialName = `beamColumn:${p.station}`;
+      this.mats[key] ??= new THREE.MeshStandardMaterial({ color: f.column, roughness: 0.18 });
+      column = b[key] ??= new MeshBuilder();
+    }
     for (let k = 0; k <= n; k++) {
       const sm = sampleAt(start + k * spacing);
       if (!sm) continue;
       const u = across(sm);
       // none where the stairs or escalators come down into the hall
       if (open(sm, u, size / 2, S.PLATFORM_HEIGHT + 1) || open(sm, u, size / 2, st.soffit - 0.05)) continue;
-      if (round) roundPillar(concrete ? b.fsColumn : b.hallColumn, at(sm, u, 0), size, S.PLATFORM_HEIGHT, st.soffit);
-      else pillar(concrete ? b.fsColumn : b.hallColumn, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
+      if (round) roundPillar(column, at(sm, u, 0), size, S.PLATFORM_HEIGHT, st.soffit);
+      else pillar(column, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
+      if (f.kind === 'beams') {
+        // a steel ring at its foot, and a collar under the beam
+        roundPillar(b.fitting, at(sm, u, 0), size + 0.04, S.PLATFORM_HEIGHT, S.PLATFORM_HEIGHT + 0.14);
+        roundPillar(column, at(sm, u, 0), size + 0.08, st.soffit - 2 * f.beams.depth - 0.12, st.soffit - 2 * f.beams.depth);
+      }
     }
-    if (st.finish.kind !== 'concrete' || (!middle && first.pair < 0)) return;
+    if (f.kind === 'beams') {
+      // the beams across the hall, from wall to wall: over every column and so many between two,
+      // the whole length of the platform
+      const roof = b[`beamCeiling:${p.station}`] ??= new MeshBuilder(), m = f.beams.between + 1;
+      const k0 = Math.ceil((a0 - start) / (spacing / m)), k1 = Math.floor((a1 - start) / (spacing / m));
+      for (let k = k0; k <= k1; k++) {
+        const sm = sampleAt(start + (k * spacing) / m);
+        if (!sm) continue;
+        const [a] = structureSpan(sm), width = sm.pair - 2 * a;
+        box(roof, at(sm, sm.pair / 2, st.soffit + sm.pairDy / 2 - f.beams.depth / 2), sm, width, f.beams.depth, f.beams.width);
+      }
+    }
+    if (f.kind === 'beams' && (f.clocks || f.boards)) {
+      // clocks either side of the middle column, and departure boards across the platform a few
+      // columns either way from it, hung on rods from the beams over them, a face each way along
+      // the platform
+      const mid = Math.floor(n / 2), d = st.soffit - f.beams.depth;
+      const hang = (sm: Sample, u: number, w: number, h: number, depth: number, face: THREE.Material, round: boolean) => {
+        const t = new THREE.Vector3(sm.rz, 0, -sm.rx), rod = round ? 0.2 : 0.3, c = at(sm, u, d - rod - h / 2);
+        if (round) {
+          const rim = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, depth, 32).rotateX(Math.PI / 2), this.mats.fitting);
+          rim.position.copy(c);
+          rim.lookAt(c.clone().add(t));
+          group.add(rim);
+        } else box(b.glassBack, c, sm, w, h, depth);
+        for (const k of round ? [0] : [-w / 2 + 0.15, w / 2 - 0.15]) box(b.fitting, at(sm, u + k, d - rod / 2), sm, 0.03, rod, 0.03);
+        for (const side of [1, -1]) {
+          const m = new THREE.Mesh(round ? new THREE.CircleGeometry(w / 2 - 0.03, 32) : new THREE.PlaneGeometry(w - 0.04, h - 0.04), face);
+          m.position.copy(c).addScaledVector(t, side * (depth / 2 + 0.005));
+          m.lookAt(m.position.clone().addScaledVector(t, side));
+          group.add(m);
+        }
+      };
+      const material = (key: string, map: () => THREE.Texture) => {
+        let m = this.signs.get(key);
+        if (!m) this.signs.set(key, (m = new THREE.MeshBasicMaterial({ map: map() })));
+        return m;
+      };
+      const sm = sampleAt(start + mid * spacing);
+      if (f.clocks && sm) for (const k of [-1.2, 1.2]) hang(sm, sm.pair / 2 + k, 0.5, 0.5, 0.1, material('clock', () => T.clockFace()), true);
+      for (const k of f.boards ? [mid - f.boards.from, mid + f.boards.from] : []) {
+        const sb = sampleAt(start + k * spacing);
+        if (!sb || !f.boards) continue;
+        // (east of the middle: the way the other track lies from this one, which leads)
+        for (const east of [true, false]) {
+          const bd = east ? f.boards.east : f.boards.west, u = sb.pair / 2 + Math.sign(sb.pair) * (east ? 1.6 : -1.6);
+          hang(sb, u, 1.7, 0.5, 0.12, material(`board:${bd.toward}:${bd.trains.join('/')}`, () => T.trainsBoard(bd.toward, bd.trains)), false);
+        }
+      }
+    }
+    if ((f.kind !== 'concrete' && f.kind !== 'beams') || (!middle && first.pair < 0)) return;
     // the name signs: halfway between two columns, every so many gaps out from the middle one
-    const { every, at: h } = st.finish.signs, m = Math.max(1, Math.round(every / spacing)), mid = Math.floor(n / 2);
+    const { every, at: h } = f.signs, m = Math.max(1, Math.round(every / spacing)), mid = Math.floor(n / 2);
     for (let k = mid % m; k < n; k += m) {
       const sm = sampleAt(start + (k + 0.5) * spacing);
       if (!sm) continue;
@@ -1618,15 +1705,28 @@ function openStyle(sm: Sample): OpenStyle | null {
   const p = sm.plat;
   return p && sm.kind !== 'rock' && sm.kind !== 'box' ? OPEN_STYLES[p.station] ?? null : null;
 }
-// A flat hall in concrete (src/hall-styles.ts): Farsta strand's.
+// A flat hall in concrete (src/hall-styles.ts): Farsta strand's; or a beamed one, Skanstull's, which
+// is paved, lit and signed as one.
 function concreteHall(sm: Sample): FlatHall | null {
   const st = hallStyle(sm);
-  return st?.kind === 'flat' && st.finish.kind === 'concrete' ? st : null;
+  return st?.kind === 'flat' && (st.finish.kind === 'concrete' || st.finish.kind === 'beams') ? st : null;
+}
+// Of two tracks sharing a hall, the one that draws what stands down the middle between them: the
+// one with the other to its east (or, due north–south of each other, to its south). (Not by the
+// sign of `pair`: two tracks laid in opposite directions each have the other to their left.)
+function leads(sm: Sample) {
+  const dx = sm.rx * sm.pair, dz = sm.rz * sm.pair;
+  return Math.abs(dx) > 1e-3 ? dx > 0 : dz > 0;
+}
+// A beamed hall (src/hall-styles.ts): Skanstull's.
+function beamedHall(sm: Sample): FlatHall | null {
+  const st = hallStyle(sm);
+  return st?.kind === 'flat' && st.finish.kind === 'beams' ? st : null;
 }
 // A platform paved in its own style (src/open-styles.ts): a styled open station's, a flat hall's
-// in concrete, or a cave's.
+// in concrete or on beams, or a cave's.
 function pavingOf(sm: Sample): Paving | null {
-  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? null);
+  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | BeamedHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? null);
 }
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down

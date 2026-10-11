@@ -282,7 +282,12 @@
     {
       "station": "Skanstull",
       "replace": true,
-      "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place). Both tracks are placed from the station's node, which lies between them."
+      "at": [
+        154318.9,
+        6577095.5
+      ],
+      "length": 180,
+      "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place beside the tracks). Along the line, though, it runs from the foot of the south hall's escalators to the foot of the stairs down to the passage towards Allhelgonagatan, as OSM's indoor mapping (2024–26) and Albert Guillaumes' drawing have them, 180 m with the narrower stretch at its south end. Both tracks are placed from this point between them, the middle of that, 36 m north of the station's node, and the platform is made that long rather than the usual 145 m."
     },
     {
       "station": "Svedmyra",

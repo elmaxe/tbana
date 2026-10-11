@@ -1106,26 +1106,86 @@
     },
     "Skanstull": {
       "drawing": "skanstull.png",
-      "note": "An island platform in a concrete box under Götgatan, just north of the bridge. Escalators climb from the south end to a ticket hall with exits round Ringvägen; a long passage leads from the north end to Götgatan.",
+      "note": "An island platform 180 m long in the concrete box of the old tram tunnel under Götgatan (1933, lengthened for the metro in 1950). At its south end an escalator and stairs side by side, and a lift beside them, climb 3.55 m to a low ticket hall under the street, just above the trains; through the gates a lift rises to Götgatan's median, a passage leads east over the northbound track and down a few steps into a sunken court with stairs up to the pavement at each end, one of them in a glass stair house with a lift beside it, and a passage leads south-west under the building on the corner and Ringvägen to a glass stair house on Ringvägen's north side and to open stairs at its south-west corner. At the north end stairs lead down under the southbound track to a passage west, and three escalators climb 10.2 m to the hall under the end of Allhelgonagatan, whose glass front, under the street's railing, opens onto Götgatan. From OpenStreetMap's indoor mapping (the flights, lifts, gates, passages and entrances), the laser scan (the court's floor 2.6 m over the platform and the pavement round it at 4.6 m; Allhelgonagatan's end 3.2 m above Götgatan's pavement; the stair houses' roofs; the open stairs at Ringvägen) and photographs (2013).",
       "routes": [
-        { "from": [-50, 0], "width": 5, "go": [
-          {"escalators": 5, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-89.9, 1.4], "width": 3.6, "go": [
+          {"escalators": 3.55, "toward": [-200, 1.4], "lanes": "SE", "ceiling": 2.2}
+        ] },
+        { "from": [-84.0, -2.4], "width": 2.2, "go": [
+          {"walk": [-87.4, -2.4], "open": true},
+          {"lift": 3.55, "above": 2.2, "through": true},
+          {"walk": [-96.05, -2.4], "ceiling": 2.1}
+        ] },
+        { "from": [-96.05, 0.5], "h": 3.55, "width": 7.0, "go": [
+          {"walk": [-104.0, 0.5], "ceiling": 2.1},
           {"gates": true},
-          {"mark": "south"},
-          {"exit": 9558088612}
+          {"walk": [-112.6, 0.5], "ceiling": 2.1}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 247214690, "by": "walk"}
+        { "from": [-112.6, 0.8], "h": 3.55, "width": 2.4, "go": [
+          {"walk": [-115.4, 0.8], "ceiling": 2.1},
+          {"exit": 9558088612, "by": "lift"}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 247214709}
+        { "from": [-110.5, 4.0], "h": 3.55, "width": 3.0, "go": [
+          {"walk": [-110.5, 9.0], "ceiling": 2.1},
+          {"stairs": -0.95, "toward": [-110.5, 40], "ceiling": 2.1},
+          {"walk": [-110.5, 18.4], "ceiling": 1.95}
         ] },
-        { "from": [50, 0], "width": 5, "go": [
-          {"escalators": 5, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-108.4, 20.6], "h": 2.6, "width": 4.4, "go": [
+          {"walk": [-114.0, 20.6], "open": true, "edges": false}
+        ] },
+        { "from": [-114.0, 20.6], "h": 2.6, "width": 3.5, "go": [
+          {"exit": {"at": [-117.9, 20.6], "name": "Götgatan"}, "by": "stairs", "lanes": "Ss", "sign": false}
+        ] },
+        { "from": [-108.4, 19.4], "h": 2.6, "width": 2.0, "go": [
+          {"exit": {"at": [-103.5, 19.4], "name": "Götgatan"}, "by": "stairs", "lanes": "S", "sign": false}
+        ] },
+        { "from": [-108.4, 21.6], "h": 2.6, "width": 2.2, "go": [
+          {"walk": [-108.2, 21.6], "open": true, "edges": false},
+          {"lift": 2.0, "through": true},
+          {"exit": {"at": [-103.4, 21.6], "name": "Götgatan"}, "by": "walk", "sign": false}
+        ] },
+        { "from": [-111.0, -3.0], "h": 3.55, "width": 3.0, "go": [
+          {"walk": [-111.0, -8.0], "ceiling": 2.1},
+          {"walk": [-121.5, -11.5], "dh": -0.85, "ceiling": 2.3},
+          {"walk": [-128.0, -14.5], "dh": -0.3, "ceiling": 2.3},
+          {"mark": "ringvagen"},
+          {"walk": [-140.0, -18.5], "dh": -0.2, "ceiling": 2.3},
+          {"walk": [-157.0, -22.5], "ceiling": 2.3},
+          {"walk": [-164.5, -26.5], "ceiling": 2.3},
+          {"exit": {"at": [-165.0, -19.8], "name": "Ringvägen"}, "by": "stairs", "lanes": "SS"}
+        ] },
+        { "from": "ringvagen", "width": 3.6, "go": [
+          {"walk": [-126.9, -16.0], "ceiling": 2.3},
+          {"walk": [-126.9, -19.2], "ceiling": 2.3},
+          {"escalators": 2.8, "toward": [-126.9, -100], "lanes": "SE", "ceiling": 2.6, "open": true},
+          {"walk": [-126.9, -29.2], "open": true},
+          {"exit": {"at": [-126.9, -29.9], "name": "Ringvägen"}, "by": "walk", "sign": false}
+        ] },
+        { "from": [90.0, -0.6], "width": 4.0, "go": [
+          {"stairs": -4.5, "toward": [200, -0.6], "lanes": "SS", "ceiling": 2.6},
+          {"walk": [99.7, -0.6], "ceiling": 2.4},
+          {"walk": [99.7, -27.5], "width": 4.8, "ceiling": 2.4},
+          {"escalators": 10.2, "toward": [99.7, -200], "lanes": "EEE", "ceiling": 3.0, "open": true},
+          {"walk": [99.7, -47.3], "width": 9.8, "open": true}
+        ] },
+        { "from": [103.4, -45.17], "h": 5.7, "width": 2.4, "go": [
+          {"walk": [103.4, -39.8], "open": true}
+        ] },
+        { "from": [96.0, -45.17], "h": 5.7, "width": 2.4, "go": [
+          {"walk": [96.0, -39.8], "open": true}
+        ] },
+        { "from": [99.7, -39.8], "h": 5.7, "width": 9.8, "go": [
+          {"walk": [99.7, -24.0], "open": true},
           {"gates": true},
-          {"exit": 8099384, "by": "walk"}
+          {"walk": [99.7, -18.3], "open": true},
+          {"walk": [99.7, -18.25], "width": 3.6, "open": true},
+          {"exit": {"at": [99.7, -14.5], "name": "Allhelgonagatan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [96.35, -18.1], "h": 5.7, "width": 3.1, "go": [
+          {"walk": [96.35, -14.5], "open": true}
+        ] },
+        { "from": [103.05, -18.1], "h": 5.7, "width": 3.1, "go": [
+          {"walk": [103.05, -14.5], "open": true}
         ] }
       ]
     },

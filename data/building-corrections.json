@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to OpenStreetMap's buildings, for tools/build-city.ts, each with its reason: their tags; an outline in place of OSM's (`outline`, world x, z in turn); and `overStation`, a building whose ground floor a station's stairs climb into, which isn't cut where they pass under it, its walls open where they pass through them instead. Checked against Lantmäteriet's laser scan (tools/laser-points.ts) and Google's 3D mesh of the city (tools/google-mesh.ts).",
+  "note": "Fixes to OpenStreetMap's buildings, for tools/build-city.ts, each with its reason: their tags; an outline in place of OSM's (`outline`, world x, z in turn); and `overStation`, a building whose ground floor a station's stairs climb into, or under which a passage runs just below the ground, which isn't cut where they pass under it, its walls open where they pass through them instead. Checked against Lantmäteriet's laser scan (tools/laser-points.ts) and Google's 3D mesh of the city (tools/google-mesh.ts).",
   "buildings": [
     {
       "osm": "w18779937",
@@ -12,6 +12,16 @@
       "outline": [2451.65, 10721.68, 2488.2, 10763.1, 2484.9, 10766, 2486.6, 10768, 2474, 10779.1, 2471.4, 10776.1, 2467.8, 10779.3, 2432.6, 10739.53],
       "overStation": true,
       "why": "Centrumhuset at Farsta strand. OSM's outline takes in the metro station's low pavilion on Stieg Trenters torg, so the whole stood five storeys high over the ticket hall; the outline ends at its south gable, which the laser scan puts 29.6 m south-east of the platform's middle (the station draws the pavilion, src/open-styles.ts). The laser scan has its eaves at 53.6 m and its ridge at 59.0 m (RH 2000), along the building, and Google's mesh a cream render and a pale grey roof. The station's southern escalators climb into its ground floor."
+    },
+    {
+      "osm": "w75120309",
+      "overStation": true,
+      "why": "Ringen centrum's long block on the corner of Götgatan and Ringvägen, over Skanstull's passage from its southern ticket hall south-west to Ringvägen, which runs under its corner just below the pavement (its ceiling at most 0.15 m above the 5 m elevation model there): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1560006146",
+      "overStation": true,
+      "why": "The part of Ringen centrum on Götgatan's west side over the start of Skanstull's passage to Ringvägen, as for its long block (w75120309)."
     }
   ]
 }

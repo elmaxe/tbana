@@ -3321,4 +3321,66 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-22, 19.3], [0, 18.9], [20, 18.4], [40, 17.9], [60, 17.5], [76, 17.4]], h: [-1.2, 0.8] },
     ],
   },
+
+  // Skanstull (1 October 1933, as Ringvägen, for the trams; lengthened for the metro in 1950;
+  // its south end rebuilt 2003–04). Its platform hall is in src/hall-styles.ts. From
+  // OpenStreetMap's indoor mapping, the laser scan and photographs (2013): at the platform's south
+  // end an escalator and stairs, and a lift beside them, climb to a low ticket hall just under
+  // Götgatan, in the dark finish of the rebuilding: dark grey tiles, dark stone floors, a dark
+  // perforated ceiling. From its unpaid side a lift rises to the street's median, a passage leads
+  // east into a court sunk into the pavement east of Götgatan, open stairs up from its south end
+  // and stairs in a glass stair house from its north end, a lift beside them, the station's name
+  // in black over the stair house's foot; and a passage leads south-west under Ringen's corner to
+  // a glass stair house on Ringvägen's north side and to open stairs on its far side. At the north
+  // end stairs go down under the southbound track to a passage in the old cream tiles, and three
+  // escalators climb into the hall under the end of Allhelgonagatan: cream tiles, grey tiled
+  // floors, the gates just inside its glass front onto Götgatan, the name over it on a black band,
+  // Allhelgonagatan's railing along its top.
+  'Skanstull': {
+    buildings: ['w352354225', 'w151083844', 'w940440762', 'w940440763'],
+    rooms: [
+      { name: 'lift on the platform', s: [-88, -83], u: [-4, 0], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'south flights', s: [-97, -84], u: [-4, 4], h: [-0.5, 2.5], walls: 'darkTiles', stairs: 'darkTiles', floor: 'darkStone', ceiling: 'perforated' },
+      { name: 'south hall', s: [-113, -89], u: [-4, 4.5], h: [3, 4], walls: 'darkTiles', floor: 'darkStone', ceiling: 'perforated' },
+      { name: 'east passage', s: [-113, -108], u: [4, 18.5], h: [2, 4], walls: 'darkTiles', stairs: 'darkTiles', floor: 'darkStone', ceiling: 'perforated' },
+      { name: 'east court', s: [-118.5, -103], u: [18, 23.5], h: [2, 5], walls: null, floor: 'pavers', stairs: 'darkStone' },
+      { name: 'west stair house', s: [-130.5, -123.5], u: [-30.5, -18.8], h: [2.5, 6], walls: null, floor: 'greyTiles', stairs: 'darkTiles', parapet: 1.1 },
+      { name: 'south-west passage', s: [-170, -110], u: [-32, -3], h: [1.5, 4], walls: 'darkTiles', stairs: 'darkTiles', floor: 'darkStone', ceiling: 'perforated' },
+      { name: 'north flights', s: [86, 99], u: [-4, 3], h: [-5, 0.5], walls: 'creamTiles', stairs: 'creamTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'north passage', s: [97, 103], u: [-28, 2], h: [-5, -4], walls: 'creamTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'north escalators', s: [96, 104], u: [-46, -27], h: [-5, 5], walls: 'creamTiles', stairs: 'creamTiles', ceiling: 'whiteRender' },
+      { name: 'north hall', s: [94, 106], u: [-48, -18.2], h: [5, 6.5], walls: null, floor: 'greyTiles', lamps: 2.6 },
+      { name: 'north forecourt', s: [94, 106], u: [-18.2, -14], h: [5, 6.5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the hall under the end of Allhelgonagatan, its glass front onto Götgatan's pavement
+      { name: 'north hall', plan: [[94.7, -18.2], [104.7, -18.2], [104.7, -47.4], [94.7, -47.4]], h: [5.7, 8.6], from: 5.7,
+        walls: 'creamTiles', sides: ['blackFront'], band: { walls: 'darkStone', from: 8.5 },
+        nameSign: { side: 0, at: 0.5, length: 4.4, bottom: 8.05, black: true },
+        ceiling: 'whiteRender', roof: 0.25, roofColor: 0x4a4c4e, ground: true },
+      // the cheeks of the stairs up to Allhelgonagatan either side of its front
+      { name: 'north stairs south cheek', plan: [[94.3, -14.5], [94.7, -14.5], [94.7, -18.2], [94.3, -18.2]], h: [5.2, 6.5], from: 5.2, walls: 'darkStone' },
+      { name: 'north stairs north cheek', plan: [[104.7, -14.5], [105.1, -14.5], [105.1, -18.2], [104.7, -18.2]], h: [5.2, 6.5], from: 5.2, walls: 'darkStone' },
+      // the court sunk into the pavement east of Götgatan, open at its north end to the stairs and
+      // the lift, the name over the stair house's foot
+      { name: 'east court', plan: [[-108.4, 18.4], [-108.4, 22.8], [-118.0, 22.8], [-118.0, 18.4]], h: [2.6, 4.6], from: 2.6,
+        walls: 'darkStone', sides: [null], nameSign: { side: 0, at: 0.5, length: 3.4, bottom: 4.0, black: true, inside: true }, ground: true },
+      // the glass stair house over the court's north end, open to the north
+      { name: 'east stair house', plan: [[-103.6, 18.4], [-103.6, 22.8], [-108.4, 22.8], [-108.4, 18.4]], h: [4.6, 7.4], from: 4.6,
+        walls: 'glazed', sides: [null], floor: 'greyTiles', roof: 0.25, roofColor: 0x2e3033 },
+      // the glass stair house on Ringvägen's north side, its doors at its west end
+      { name: 'west stair house', plan: [[-124.0, -19.0], [-124.0, -30.0], [-129.9, -30.0], [-129.9, -19.0]], h: [5.2, 7.95], from: 5.2,
+        walls: 'glazed', floor: 'greyTiles', roof: 0.25, roofColor: 0x2e3033,
+        nameSign: { side: 1, at: 0.5, length: 3.0, bottom: 7.3, black: true } },
+    ],
+    fences: [
+      // Allhelgonagatan's railing along its end over the hall's front
+      { kind: 'rails', points: [[94.7, -18.3], [104.7, -18.3]], h: [8.9, 10.0], color: 0x2a2c2e },
+      // the court's railings
+      { kind: 'rails', points: [[-108.4, 18.3], [-118.0, 18.3]], h: [4.6, 5.6], color: 0x2a2c2e },
+      { kind: 'rails', points: [[-108.4, 22.9], [-118.0, 22.9]], h: [4.6, 5.6], color: 0x2a2c2e },
+      // round the open stairs on Ringvägen
+      { kind: 'rails', points: [[-162.9, -19.8], [-162.9, -24.6], [-167.1, -24.6], [-167.1, -19.8]], h: [4.65, 5.65], color: 0x2a2c2e },
+    ],
+  },
 };

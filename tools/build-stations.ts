@@ -417,8 +417,10 @@ function segmentDistance(p: XYZ, a: XYZ, b: XYZ) {
 
 // ------------------------------------------------------------------ checks
 // Nothing may stand in the trains' way: over each track, from the ballast up to the top of the
-// trains, this far either side of the centre line.
+// trains, this far either side of the centre line. A floor over a track stands on a slab this
+// thick.
 const TRAIN = { half: 1.5, below: 0.6, above: 4.0 };
+const SLAB = 0.3;
 
 function checkClearance(st: StationLayout, problems: Problems) {
   const near = Object.values(geometry.pieces).filter((g) => g.x.some((x, k) => Math.hypot(x - st.x, g.z[k] - st.z) < 600));
@@ -428,7 +430,7 @@ function checkClearance(st: StationLayout, problems: Problems) {
     const vol = spaceOf(p)!;
     const corners = p.kind === 'floor' ? p.corners.map((c): [number, number] => [c[0], c[2]]) : inclineCorners(p);
     const h = floorHeights(p);
-    const bottom = Math.min(...h) - 0.6, top = vol.max[1] + 0.3;
+    const bottom = Math.min(...h) - SLAB, top = vol.max[1] + 0.3;
     for (const g of near) {
       for (let k = 0; k + 1 < g.s.length; k++) {
         const n = Math.ceil(Math.hypot(g.x[k + 1] - g.x[k], g.z[k + 1] - g.z[k]) / 1);
@@ -439,7 +441,7 @@ function checkClearance(st: StationLayout, problems: Problems) {
           // the part's own floor and ceiling where the track passes
           const fy = heightOn(p, x, z);
           const c = p.kind === 'floor' ? (p.ceiling ?? 3) : p.ceiling;
-          if (fy - 0.6 > y + TRAIN.above || fy + c + 0.3 < y - TRAIN.below) continue;
+          if (fy - SLAB > y + TRAIN.above || fy + c + 0.3 < y - TRAIN.below) continue;
           // where, in the station's frame
           const tx = -Math.sin(st.yaw), tz = -Math.cos(st.yaw), dx = x - st.x, dz = z - st.z;
           const su = `[${(tx * dx + tz * dz).toFixed(0)}, ${(-tz * dx + tx * dz).toFixed(0)}]`;

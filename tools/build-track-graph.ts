@@ -56,11 +56,12 @@ interface Corrections {
   // `reach` m (default 12) of the station's node gets a 145 m platform track centred on its
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
-  // north), the platform is placed from that point instead of the station's node. With `extend`,
+  // north), the platform is placed from that point instead of the station's node, and with
+  // `length` it is that long rather than 145 m. With `extend`,
   // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
   // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
   // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean; shortRuns?: number }[];
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; extend?: boolean; shortRuns?: number }[];
   // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
   widths?: { station: string; width: number; why: string }[];
 }
@@ -475,7 +476,8 @@ for (const c of corrections.platforms ?? []) {
     }
     if (best.d > reach) continue;
     // the platform is on the side of the track facing the station's node (or `at`)
-    const s0 = Math.max(0, best.s - 72.5), s1 = Math.min(p.length, best.s + 72.5);
+    const half = (c.length ?? 145) / 2;
+    const s0 = Math.max(0, best.s - half), s1 = Math.min(p.length, best.s + half);
     const smp = pointAt(p, best.s), ahead = pointAt(p, Math.min(p.length, best.s + 1)), back = pointAt(p, Math.max(0, best.s - 1));
     const tx = ahead[0] - back[0], tz = ahead[1] - back[1];
     const side = tx * (at.z - smp[1]) - tz * (at.x - smp[0]) >= 0 ? 'right' : 'left';

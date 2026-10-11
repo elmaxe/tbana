@@ -4,8 +4,9 @@ import type { CavePaint } from './textures';
 // Platform halls the network draws (src/network.ts) in their own style rather than as a plain
 // vault in rock or box of concrete: Hötorget, as it has looked since 1952, with Gun Gordillo's
 // neon (1998); Farsta strand, under the centre built over it; Karlaplan, as it has looked since
-// 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; and Östermalmstorg, with
-// Siri Derkert's lines in its concrete walls (1965).
+// 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; Östermalmstorg, with
+// Siri Derkert's lines in its concrete walls (1965); and Skanstull, the trams' station of 1933,
+// on its beams.
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -20,7 +21,7 @@ export interface FlatHall {
   // columns along the platform, `fromEdge` from the edge to their middle: square; or round
   // (`round`), in one row down the middle of the platform (`middle`)
   columns: { fromEdge: number; size: number; spacing: number; round?: boolean; middle?: boolean };
-  finish: TiledHall | ConcreteHall;
+  finish: TiledHall | ConcreteHall | BeamedHall;
   // once along each track wall, near the middle of the platform: a plate with the station's old
   // name between two posters, `apart` from it, with their middles `at` high
   posters?: { name: string; at: number; apart: number };
@@ -40,6 +41,32 @@ export interface TiledHall { kind: 'tiles'; tilesFrom: number; plateAt: number }
 // (src/open-styles.ts), and the station's name on signs hung across its middle every `signs.every`
 // m, their middle `signs.at` high.
 export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every: number; at: number } }
+
+// Skanstull's, the trams' of 1933: the track walls in small square tiles of `walls.color`,
+// `walls.tile` across, from `walls.from` up to the ceiling, over a black band down to the track
+// bed, with posters in thin frames along them (`posters.run` of them, `posters.every` apart, then
+// `posters.gap` of bare tiles, and so on; `width` × `height`, from `bottom` up);
+// overhead, a plain ceiling of `ceiling` colour on beams across the hall, over every column and
+// `beams.between` more between two, `beams.depth` deep and `beams.width` wide, and a beam along
+// over the row of columns, `beams.along` wide and as deep again; the columns painted `column`,
+// with a steel ring at their feet; lamps in a row over each edge of the platform, under the beams;
+// the platform paved as `paving` says, and the station's name on signs hung across it, as in
+// concrete. `clocks`: two round clocks hung from the beam either side of the middle column;
+// `boards`: departure boards hung across the platform `boards.from` columns either side of the
+// middle one, over each half of the platform the board for the trains along the track beside it
+// (`east`: the track on the east side, or on the south side of a hall running east–west).
+export interface BeamedHall {
+  kind: 'beams';
+  walls: { color: number; tile: number; from: number; posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number } };
+  beams: { depth: number; width: number; between: number; along: number };
+  ceiling: number;
+  column: number;
+  paving: Paving;
+  signs: { every: number; at: number };
+  clocks?: boolean;
+  boards?: { from: number; east: Board; west: Board };
+}
+export interface Board { toward: string; trains: [string, string] }
 
 export interface VaultHall {
   kind: 'vault';
@@ -88,6 +115,19 @@ export interface VaultHall {
 // north-east); in their sides Tor Hörlin's niches (1967), lined in green stoneware with a band of
 // coloured tiles over a yellow wooden bench. Along one track wall, Larseric Vänerlöf's
 // photomontage (1983, renewed 2009) of old Östermalm in black and white, 96 m long.
+//
+// Skanstull: opened on 1 October 1933 as Ringvägen, with Medborgarplatsen the oldest of the
+// underground stations, for the trams through Södertunneln (architects Holger Blom and Gunnar
+// Lené, after Berlin's U-Bahn); lengthened for the metro and reopened under its present name in
+// 1950, and done up in 2009. An island platform about five metres under Götgatan in the tunnel's
+// concrete box: a low, flat ceiling, painted cream, on deep beams across from wall to wall, over
+// a beam along the middle of the platform carried by one row of round columns, glossy white with
+// a steel ring at their feet; long lamps under the beams over each edge of the platform. Much of
+// the track walls' tiling is still the 1930s': small square tiles, cream with a little yellow,
+// over a black band, and posters in frames along them. The platform is grey tiles, with a band of
+// white ones along its edge and a ribbed strip inside it. Heights are read off photographs (2013)
+// against the trains (C20, 3.68 m tall): the ceiling about 4.4 m over the rails, the beams'
+// undersides about 4.0, the posters almost from the black band up to them.
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
     kind: 'flat',
@@ -124,6 +164,33 @@ export const HALL_STYLES: Record<string, HallStyle> = {
     frieze: { wall: 1, length: 96, from: 2.2, to: 3.4 },
     blocks: { width: 3.2, height: 3.3, length: 11, gap: 6, spread: 0.62 },
     exits: [{ name: 'KARLAPLAN', x: 1790, z: -765 }, { name: 'VALHALLAVÄGEN', x: 1950, z: -1010 }],
+  },
+  'Skanstull': {
+    kind: 'flat',
+    soffit: 4.4,
+    ceiling: 4.4,
+    step: 0,
+    columns: { fromEdge: 3, size: 0.5, spacing: 7.5, round: true, middle: true },
+    finish: {
+      kind: 'beams',
+      walls: { color: 0xe8dfb8, tile: 0.15, from: 1.7, posters: { width: 1.3, height: 2.05, bottom: 1.8, every: 1.9, run: 5, gap: 1.9 } },
+      beams: { depth: 0.4, width: 0.3, between: 2, along: 0.6 },
+      ceiling: 0xe9e5d8,
+      column: 0xf3f3ef,
+      paving: {
+        edge: 0.75, tactile: [0.75, 1.05], slabs: 1.05, paverSize: [0.3, 0.3], mix: 0.1,
+        colors: { edge: 0xe6e4de, tactile: 0x9c927a, slab: 0x86817a, pavers: 0x86817a, paler: 0x928d86, face: 0x3a3a3a },
+        pattern: 'grid',
+      },
+      signs: { every: 30, at: 3.45 },
+      clocks: true,
+      // (trains keep left: the southbound on the east track)
+      boards: {
+        from: 2,
+        east: { toward: 'Farsta strand · Hagsätra · Skarpnäck', trains: ['17 Skarpnäck  2 min', '19 Hagsätra  7 min'] },
+        west: { toward: 'T-Centralen · Hässelby', trains: ['19 Hässelby strand  4 min', '18 Alvik  6 min'] },
+      },
+    },
   },
 };
 
