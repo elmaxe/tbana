@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL_TRACK, CITY_TILE, WALL_STYLES, decodeTile, photoName, tileName } from './city-tile.ts';
+import { CELL_PAVED, CELL_TRACK, CITY_TILE, WALL_STYLES, decodeTile, photoName, tileName } from './city-tile.ts';
 import type { Building, CityIndex, CityTile, PhotoIndex, WallStyle, Water } from './city-tile.ts';
 import { cutIndexed, insideVolume, prism } from './clip.ts';
 import type { Volume } from './clip.ts';
@@ -334,6 +334,26 @@ export class City {
       : h[k] + (h[k + g.n] - h[k]) * fv + (h[k + g.n + 1] - h[k + g.n]) * fu;
   }
 
+  // Whether the ground at (x, z) is there to draw on (src/detail/streets.ts): not the track's, nor
+  // cut away. `t` is the tile being built, for a point whose own tile isn't loaded.
+  private bare(t: Tile, x: number, z: number) {
+    const u = this.tileAt(x, z) ?? t, g = u.data?.ground;
+    if (!g) return false;
+    const c = Math.min(g.n - 2, Math.max(0, Math.floor((x - u.x0) / g.step))), r = Math.min(g.n - 2, Math.max(0, Math.floor((z - u.z0) / g.step)));
+    if (g.flags[r * (g.n - 1) + c] & CELL_TRACK) return false;
+    const y = this.heightIn(u, x, z)!;
+    return !u.cuts.some((v) => insideVolume(v, x, y + 0.05, z));
+  }
+
+  // The level of the water over the ground's cell at (x, z), or null for none.
+  private waterAt(t: Tile, x: number, z: number) {
+    const u = this.tileAt(x, z) ?? t, g = u.data?.ground, w = u.data?.water;
+    if (!g || !w) return null;
+    const c = Math.min(g.n - 2, Math.max(0, Math.floor((x - u.x0) / g.step))), r = Math.min(g.n - 2, Math.max(0, Math.floor((z - u.z0) / g.step)));
+    const k = w.cells[r * (g.n - 1) + c];
+    return k ? w.levels[k - 1] : null;
+  }
+
   // Whether (x, z) is inside a building standing on the ground.
   insideBuilding(x: number, z: number) {
     const t = this.tileAt(x, z) ?? this.tileAt(x + 30, z) ?? this.tileAt(x - 30, z);
@@ -404,10 +424,14 @@ export class City {
     const water = d.ground && d.water ? waterGeometry(t, d.ground.step, d.ground.n - 1, d.water) : null;
     if (water) group.add(new THREE.Mesh(water, this.mats.water));
     // near the camera, the areas drawn in detail (src/detail/)
+    const height = (x: number, z: number) => this.heightAt(x, z) ?? this.heightIn(t, x, z);
+    const streets = d.ground && (d.streets || d.squares || d.trees)
+      ? { streets: d.streets, squares: d.squares, trees: d.trees, ground: { step: d.ground.step, height: (x: number, z: number) => height(x, z) ?? 0, bare: (x: number, z: number) => this.bare(t, x, z), water: (x: number, z: number) => this.waterAt(t, x, z) } }
+      : undefined;
     const detail = t.lod === 1 && DETAIL_ON ? tileDetail(d.buildings, t.x0, t.z0, CITY_TILE, (k) => {
       const c = wallColour(d.buildings[k], t, k, new THREE.Color());
       return [c.r, c.g, c.b];
-    }, (x, z) => this.heightAt(x, z) ?? this.heightIn(t, x, z)) : null;
+    }, height, streets) : null;
     const { walls, roofs, plain } = buildingGeometry(d.buildings, t, t.photo ? this.photoUv(t) : null, detail);
     const meshes: [THREE.BufferGeometry | null, THREE.Material][] = [
       ...WALL_STYLES.map((st) => [walls[st], this.mats.walls[st]] as [THREE.BufferGeometry | null, THREE.Material]),
@@ -447,12 +471,15 @@ export class City {
         const x = t.x0 + k * g.step, z = t.z0 + r * g.step, y = g.heights[r * n + k];
         pos.push(x, y, z);
         uv.push(...toUv(x, z));
-        // beside open track: the cells round the point
-        let track = false;
+        // beside open track, or paved: the cells round the point
+        let track = false, paved = false;
         for (const [a, b] of [[r - 1, k - 1], [r - 1, k], [r, k - 1], [r, k]]) {
-          if (a >= 0 && b >= 0 && a < n - 1 && b < n - 1 && g.flags[a * (n - 1) + b] & CELL_TRACK) track = true;
+          if (a < 0 || b < 0 || a >= n - 1 || b >= n - 1) continue;
+          const f = g.flags[a * (n - 1) + b];
+          if (f & CELL_TRACK) track = true;
+          if (f & CELL_PAVED) paved = true;
         }
-        c.copy(GRASS).lerp(PAVED, THREE.MathUtils.smoothstep(cover[r * n + k], 0.03, 0.18));
+        c.copy(GRASS).lerp(PAVED, paved ? 1 : THREE.MathUtils.smoothstep(cover[r * n + k], 0.03, 0.18));
         if (track) c.lerp(BALLAST, 0.45);
         const v = 0.92 + 0.16 * hash((x * 73856093) ^ (z * 19349663));
         col.push(c.r * v, c.g * v, c.b * v);
