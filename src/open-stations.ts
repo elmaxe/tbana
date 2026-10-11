@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Block, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -241,6 +241,7 @@ export class OpenLook {
       else if (a.kind === 'chairs') this.chairs(a, line, on);
       else if (a.kind === 'foolsShip') this.foolsShip(a, line, on);
       else if (a.kind === 'cone') this.cone(a, line, on);
+      else if (a.kind === 'checks') this.checks(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
     for (const B of [style.benches ?? []].flat()) {
@@ -603,6 +604,7 @@ export class OpenLook {
     }));
     const top = on(this.color(R.colors.top, 0.6, 0.3)), fascia = on(this.color(R.colors.fascia, 0.6, 0.2));
     const steel = on(this.color(R.colors.steel, 0.5, 0.4)), casing = on(this.color(0x3a3d41, 0.7, 0.2));
+    const gutter = R.gutterColor !== undefined ? on(this.color(R.gutterColor, 0.5, 0.3)) : steel;
     const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
     // half the roof's width at s, and the underside's height across it there
@@ -637,7 +639,7 @@ export class OpenLook {
       const r0 = rows(s0), r1 = rows(s1);
       r0.forEach((u, k) => bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, r1[k], h(r1[k], s1)), 0.2, R.beam, cut));
       for (const u of R.purlins?.at ?? []) bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
-      if (R.gutter) bar(steel, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
+      if (R.gutter) bar(gutter, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
     }
     // and across its ends
     for (const s of [R.from, R.to]) for (const side of [-1, 1]) {
@@ -707,6 +709,7 @@ export class OpenLook {
         for (const t of ties) bar(steel, line.at(s, ua, t + 0.03), line.at(s, ub, t + 0.03), 0.06, 0.06, cut);
         bar(steel, line.at(s, ua, Math.max(...ties)), line.at(s, ub, Math.min(...ties) + 0.06), 0.05, 0.06, cut);
       }
+      if (C.portal && ub !== undefined) this.portal(C.portal, s, ua + C.size / 2, ub - C.size / 2, R.middle, line, steel, on, cut);
     }
     // name signs hung under the beam, the way out at each end of the platform to either side
     const W = 2.4, H = 0.6;
@@ -748,6 +751,45 @@ export class OpenLook {
     for (const b of R.boards ?? []) {
       const m = this.mat(`board:${b.toward}:${b.trains.join('/')}`, () => new THREE.MeshBasicMaterial({ map: T.departureBoard(b.toward, b.trains) }));
       hung(b.s, b.u, 1.7, 0.5, 0.12, m, false);
+    }
+  }
+
+  // The pale tiles of check patches in the paving, laid just over it.
+  private checks(a: Checks, line: Line, on: On) {
+    const m = on(this.mat(`checks:${a.color}`, () => new THREE.MeshStandardMaterial({
+      color: a.color, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide,
+    })));
+    const t = a.tile, g = 0.006;
+    for (const [s, u] of a.at) {
+      const s0 = s - (a.rows * t) / 2, u0 = u - (a.cols * t) / 2;
+      for (let i = 0; i < a.rows; i++) for (let j = 0; j < a.cols; j++) {
+        if ((i + j) % 2) continue;
+        const P = (k: number, l: number) => [...line.at(s0 + (i + k) * t, u0 + (j + l) * t, 0.004), 0, 0];
+        m.poly([P(g, g), P(1 - g, g), P(1 - g, 1 - g), P(g, 1 - g)]);
+      }
+    }
+  }
+
+  // A steel plate across between a pair of columns, from u0 to u1 (their inner faces) at s, from
+  // `top` down to an arch cut out of it; flat bars across below it, and a downpipe between them
+  // from the valley (`valley` high) to the platform.
+  private portal(P: NonNullable<ButterflyRoof['columns']['portal']>, s: number, u0: number, u1: number, valley: number, line: Line, steel: Mesh, on: On, cut: Volume[]) {
+    const n = 12, half = (u1 - u0) / 2, mid = (u0 + u1) / 2, rise = P.crown - P.spring;
+    // the arch: a segment of a circle through both springings and the crown
+    const r = rise > 0 ? (half * half + rise * rise) / (2 * rise) : 0;
+    const arch = (u: number) => rise > 0 ? P.crown - r + Math.sqrt(Math.max(0, r * r - (u - mid) * (u - mid))) : P.spring;
+    // both faces, 16 mm apart
+    for (const side of [-1, 1]) {
+      const at = (u: number, h: number) => [...line.at(s + side * 0.008, u, h), 0, 0];
+      for (let k = 0; k < n; k++) {
+        const a = u0 + (2 * half * k) / n, b = u0 + (2 * half * (k + 1)) / n;
+        steel.poly([at(a, arch(a)), at(b, arch(b)), at(b, P.top), at(a, P.top)], cut);
+      }
+    }
+    for (const b of P.bars ?? []) bar(steel, line.at(s, u0, b), line.at(s, u1, b), 0.1, 0.05, cut);
+    if (P.pipe) {
+      const black = on(this.color(0x1b1c1d, 0.5, 0.4));
+      box(black, line.at(s, mid, valley / 2), ...line.dir(s), 0.11, valley, 0.11, cut);
     }
   }
 
@@ -1116,16 +1158,17 @@ export class OpenLook {
     const [h0, h1] = f.h;
     let along = 0;
     for (let i = 0; i + 1 < f.points.length; i++) {
-      const [sa, ua] = f.points[i], [sb, ub] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 2.5));
+      const [sa, ua, da = 0] = f.points[i], [sb, ub, db = 0] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 2.5));
       const fs = (sb - sa) / l, fu = (ub - ua) / l;
       const d = frame.at(sb, ub, 0), c = frame.at(sa, ua, 0), fx = (d[0] - c[0]) / l, fz = (d[2] - c[2]) / l;
       for (let k = i === 0 ? 0 : 1; k <= n; k++) {
         const t = k / n;
-        box(post, frame.at(sa + (sb - sa) * t, ua + (ub - ua) * t, (h0 + h1) / 2), fx, fz, 0.05, h1 - h0, 0.05);
+        box(post, frame.at(sa + (sb - sa) * t, ua + (ub - ua) * t, (h0 + h1) / 2 + da + (db - da) * t), fx, fz, 0.05, h1 - h0, 0.05);
       }
-      const P = (t: number, h: number, a: number) => [...frame.at(sa + fs * l * t, ua + fu * l * t, h), a / 0.5, (h - h0) / 0.5];
+      // (the mesh's texture square to the ground it stands on)
+      const P = (t: number, h: number, a: number) => [...frame.at(sa + fs * l * t, ua + fu * l * t, h + da + (db - da) * t), a / 0.5, (h - h0) / 0.5];
       link.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
-      bar(post, frame.at(sa, ua, h1 + 0.02), frame.at(sb, ub, h1 + 0.02), 0.04, 0.04);
+      bar(post, frame.at(sa, ua, h1 + 0.02 + da), frame.at(sb, ub, h1 + 0.02 + db), 0.04, 0.04);
       along += l;
     }
   }

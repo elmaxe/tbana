@@ -2422,10 +2422,12 @@ export function openPaving(p: Paving) {
   x.fillStyle = joint; x.fillRect(0, 0, W, H);
   const [plm, pwm] = p.paverSize ?? [0.24, 0.12], pw = pwm * PX, pl = plm * PX;
   const tone = () => css(p.mix && r() < p.mix ? C.paler ?? C.pavers : C.pavers, Math.floor(r() * 14) - 7);
-  if (p.pattern === 'bond') {
+  if (p.pattern === 'bond' || p.pattern === 'grid') {
+    // (a grid: the same, without the half offset; square tiles in straight rows both ways)
+    const off = p.pattern === 'bond' ? pl / 2 : 0;
     for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
       x.fillStyle = tone();
-      x.fillRect(i * pw + 0.6, j * pl + (i % 2) * pl / 2 + 0.6, pw - 1.2, pl - 1.2);
+      x.fillRect(i * pw + 0.6, j * pl + (i % 2) * off + 0.6, pw - 1.2, pl - 1.2);
     }
   } else if (p.pattern === 'fans') {
     // small setts, 8 cm, in rows of fans 0.8 m wide, each row overlapping the one before it
@@ -2911,6 +2913,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
   silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
   blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4], brownWindows: [1.2, 3.2],
+  terracottaPanels: [1.2, 2.4], orangeTiles: [1.2, 1.2], redGranite: [2.4, 2.4], brick: [1.2, 1.2],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows'];
@@ -3689,6 +3692,48 @@ export function finish(name: Finish) {
         if (across) { cut(x0, y0, k, h); cut(x0 + k, y0, w - k, h); } else { cut(x0, y0, w, k); cut(x0, y0 + k, w, h - k); }
       };
       cut(0, 0, W, H);
+      break;
+    }
+    case 'terracottaPanels':
+      // flat panels of terracotta-red enamel, 0.6 by 1.2 m, in fine dark joints
+      x.fillStyle = '#5a2a1e'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        const v = Math.floor(r() * 10) - 5;
+        x.fillStyle = `rgb(${150 + v},${70 + v},${50 + v})`;
+        x.fillRect(i * 0.6 * PX + 1, j * 1.2 * PX + 1, 0.6 * PX - 2, 1.2 * PX - 2);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * 0.6 * PX + 3, j * 1.2 * PX + 3, 0.18 * PX, 1.2 * PX - 6);
+      }
+      break;
+    case 'orangeTiles':
+      // glazed orange-red tiles, 20 cm square, in pale grout
+      x.fillStyle = '#b9a99a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
+        const v = Math.floor(r() * 18) - 9;
+        x.fillStyle = `rgb(${190 + v},${82 + v},${46 + v})`;
+        x.fillRect(i * 0.2 * PX + 1.5, j * 0.2 * PX + 1.5, 0.2 * PX - 3, 0.2 * PX - 3);
+      }
+      break;
+    case 'redGranite': {
+      // polished red-brown granite in slabs 0.6 by 1.2 m, the grain black and pink
+      x.fillStyle = '#3a2420'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+        const v = Math.floor(r() * 12) - 6;
+        x.fillStyle = `rgb(${128 + v},${66 + v},${54 + v})`;
+        x.fillRect(i * 0.6 * PX + 1, j * 1.2 * PX + 1, 0.6 * PX - 2, 1.2 * PX - 2);
+      }
+      speckle(x, W, H, 26000, 0.35, 81); speckle(x, W, H, 9000, 0.2, 82, true);
+      break;
+    }
+    case 'brick': {
+      // red-brown brick, about 23 by 7.5 cm with 1 cm joints, in a running bond (five to the
+      // repeat across, fourteen courses up it)
+      x.fillStyle = '#9a9188'; x.fillRect(0, 0, W, H);
+      const bl = W / 5, bh = H / 14;
+      for (let j = 0; j * bh < H; j++) for (let i = -1; i * bl < W; i++) {
+        const v = Math.floor(r() * 26) - 13, ox = (j % 2) * bl / 2;
+        x.fillStyle = `rgb(${142 + v},${66 + v * 0.7},${48 + v * 0.5})`;
+        x.fillRect(i * bl + ox + 1, j * bh + 1, bl - 2, bh - 1.6);
+      }
       break;
     }
     case 'slats':

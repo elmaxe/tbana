@@ -68,8 +68,9 @@ export interface ButterflyRoof {
   rafterColor?: number;
   // steel purlins along the underside at these `u` across the roof's middle, `size` across and deep
   purlins?: { at: number[]; size: [number, number] };
-  // a steel channel along the valley, wide and deep
+  // a steel channel along the valley, wide and deep (in `gutterColor`, the steel's by default)
   gutter?: [number, number];
+  gutterColor?: number;
   // raised bays across the roof, each `length` long with its middle at one of `at`: a covering
   // pitched both ways along the platform from a ridge across it, `ridge` over the platform
   lanterns?: { at: number[]; length: number; ridge: number };
@@ -82,11 +83,15 @@ export interface ButterflyRoof {
   // roof over each pair, from edge to edge, its underside `cross[0]` over the platform and
   // `cross[1]` deep (and the columns on up through it to the rafters over them); `ties`, steel
   // bars across between each pair at these heights, and one slanting from the lowest at one
-  // column to the highest at the other
+  // column to the highest at the other; `portal`, a steel plate across between each pair from
+  // `top` down to an arch cut out of it, springing from the columns `spring` high, its crown
+  // `crown` high, with flat bars across lower down at `bars`, and (`pipe`) a black downpipe from
+  // the valley to the platform between them
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
     between?: [number, number]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
+    portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean };
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
   // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
@@ -116,8 +121,9 @@ export interface Paving {
   paverSize?: [number, number];
   mix?: number;
   colors: { edge: number; tactile: number; slab: number; pavers: number; face: number; paler?: number };
-  // herringbone pavers, rectangular ones in a running bond, or small setts laid in fans
-  pattern: 'herringbone' | 'bond' | 'fans';
+  // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, or small setts
+  // laid in fans
+  pattern: 'herringbone' | 'bond' | 'grid' | 'fans';
 }
 
 // The finishes in a box: from `s[0]` to `s[1]` along, across `u` (all of it by default), and
@@ -205,7 +211,11 @@ export type Finish =
   | 'glassBlocks'   // glass blocks, 20 cm, pale green, in grey mortar
   | 'blueMosaic'    // a mosaic of small rectangles in greys, blues and white
   | 'warmMosaic'    // a mosaic of small rectangles in creams, browns, rust, teal and dark blue
-  | 'brownWindows'; // small brown tiles to a sill, windows in dark frames above, a concrete beam over them
+  | 'brownWindows'  // small brown tiles to a sill, windows in dark frames above, a concrete beam over them
+  | 'terracottaPanels' // flat panels, terracotta red, 0.6 by 1.2 m
+  | 'orangeTiles'   // orange-red tiles, 20 cm
+  | 'redGranite'    // polished red-brown granite in large slabs
+  | 'brick';        // red-brown brick in a running bond
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -230,7 +240,7 @@ export interface Block {
   roofColor?: number; brackets?: { every: number; color: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -327,10 +337,16 @@ export interface Bird { kind: 'bird'; s: number; u: number; height: number; turn
 // dome on a low curb.
 export interface Rooflights { kind: 'rooflights'; at: [number, number][]; size: number; ceiling: number; top: number }
 
-// A fence through the points ([s, u]), from `h[0]` to `h[1]` high: chain-link on posts; or
-// boards, standing side by side (`color`), or slanting between concrete posts (`louvres`); or
-// panes of glass in steel frames (`glass`), on most of them a leaf drawn in white (`leaves`).
-export interface Fence { points: [number, number][]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass'; color?: number; leaves?: boolean }
+// Patches of the platform's paving laid in a check of its own tiles and pale ones, `rows` tiles
+// along and `cols` across, `tile` m square, their middles at the points ([s, u], across from the
+// roof's middle), the pale ones `color`.
+export interface Checks { kind: 'checks'; at: [number, number][]; rows: number; cols: number; tile: number; color: number }
+
+// A fence through the points ([s, u], or [s, u, dh] where the ground it stands on is dh higher
+// than at the first point), from `h[0]` to `h[1]` high: chain-link on posts; or boards, standing
+// side by side (`color`), or slanting between concrete posts (`louvres`); or panes of glass in
+// steel frames (`glass`), on most of them a leaf drawn in white (`leaves`).
+export interface Fence { points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass'; color?: number; leaves?: boolean }
 
 // Gubbängen (1950): an island platform on a low bank on the hillside, along Lingvägen, under a
 // long butterfly roof. Since its renewal the roof's underside is white boarding on white rafters,
@@ -2240,6 +2256,151 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-88, 7.9], [-78, 7.9], [-60, 8.5], [-40, 9.1], [-20, 9.4], [0, 9.6], [20, 9.4], [40, 9.0], [60, 8.3], [80, 7.4], [90, 6.9]], h: [-1.5, 0.5] },
       { points: [[-80.7, -11.57], [-90, -11.85], [-100, -12.05], [-106.3, -12.24]], h: [-0.9, 1.3] },
       { points: [[-90, 7.45], [-100, 6.95], [-106.3, 6.57]], h: [-0.9, 1.3] },
+    ],
+  },
+
+  // Hammarbyhöjden (17 April 1958, rebuilt 2003): an island platform out in the open between
+  // Finn Malmgrens plan and Ulricehamnsvägen, with a ticket hall at each end. Lantmäteriet's laser
+  // scan puts its butterfly roof from 73.5 m west of the platform's middle to 69 m east, 10 m wide,
+  // its valley 3.4 m over the platform and its edges 3.8 m. Photographs (2009 to 2025) show the
+  // underside of pale ribbed sheet metal on dark purlins along it, dark rafters across only over the
+  // columns, a cream box gutter along the valley, a dark fascia; pairs of grey steel columns down the
+  // middle on concrete plinths, a steel plate across the top of each pair with an arch cut out of
+  // it, two flat bars across lower down and a black downpipe between them; white lamps, SL's blue
+  // name signs, clocks, wooden benches. The paving is red tiles 40 cm square in rows, a pale grey
+  // edge and a dark ribbed strip, and patches of white tiles checked into the red between the pairs
+  // of columns on both sides; chain-link fences beyond both tracks.
+  //
+  // At the west end, a stair house beyond the platform's end between the tracks (the laser scan:
+  // its roof 3 m over the platform from 73.4 m to 89.5 m west): red-orange tiles to a parapet, tall
+  // glazing in black frames above it, a red granite floor; the stairs go down its north half (a
+  // railing round the opening) to the ticket hall under the tracks, and a corridor along its south
+  // half leads to the lift (OpenStreetMap: 83 m west), whose machine room stands up through the roof
+  // (to 5.8 m). The hall, 4.35 m under the platform, has walls of terracotta-red panels, a dark
+  // ceiling, a red granite floor, the gates (OpenStreetMap: 98 m west) with the booth on the north
+  // side and a kiosk on the south; its glass front, under SL's dark blue band with the name, faces
+  // west onto the underpass under the tracks (5.6 m wide), whose walls are the same terracotta red
+  // under a dark ceiling, with the name on a blue band over each mouth. From its north mouth a few
+  // steps between brick wing walls go up to Finn Malmgrens plan; from its south mouth the path goes
+  // on to the steps up to Tidaholmsplan.
+  //
+  // At the east end, a walkway 3 m wide between the tracks, fenced with chain-link on both sides,
+  // goes down 2 m from the platform's end to a glass house standing between the tracks' two bridges
+  // (the laser scan: its roof falling from 2.5 m over the platform at its west end to 0.6 m over
+  // the stairs); from it the stairs go down in two flights between the bridges, beside a brick tower
+  // round the lift (to 5.6 m), to the hall under the bridges at the street, 8.5 m under the platform:
+  // glazed, with a brick end, its door onto Ulricehamnsvägen on the north side (OpenStreetMap's
+  // indoor mapping). Where its gates stand isn't known: they are drawn in the hall.
+  //
+  // Not drawn: the small brick goat (30 by 40 cm) by the booth, the lamps on curved posts along the
+  // walkway, the information pillars on the platform and the strip lights in the underpass.
+  'Hammarbyhöjden': {
+    roof: {
+      kind: 'butterfly',
+      from: -73.5, to: 69, width: 10.0,
+      shape: [[-73.5, 0.1, 10.0], [0, 0.25, 10.0], [40, 0.25, 10.0], [69, 0.3, 10.0]],
+      middle: 3.3, edge: 3.7, thick: 0.12, fascia: 0.3,
+      rafters: 9.5, rafterAt: -68.75, rafterSize: [0.2, 0.4], deck: 'ribbedAcross', rafterColor: 0x44484c,
+      purlins: { at: [-4.0, -2.7, -1.4, 1.4, 2.7, 4.0], size: [0.12, 0.22] },
+      gutter: [0.55, 0.45], gutterColor: 0xe4dbc2,
+      beam: 0.35,
+      columns: { every: 9.5, at: -68.75, size: 0.3, plinth: { size: 0.45, height: 0.45 }, pair: 1.0,
+        portal: { spring: 1.95, crown: 2.3, top: 2.95, bars: [0.76, 0.92], pipe: true } },
+      lamps: { offset: 2.6, length: 1.4, every: 4.75 },
+      colors: { underside: 0xc5c8c7, fascia: 0x313437, top: 0x55595c, steel: 0x7d8287 },
+      signs: { at: [-45, -7, 31], back: 'Finn Malmgrens plan', ahead: 'Ulricehamnsvägen', blue: true },
+      clocks: [[-11.75, 0.5], [45.25, 0.5]],
+      // (trains towards T-Centralen stop on the southern track)
+      boards: [
+        { s: -16.5, u: -1.7, toward: 'Skarpnäck', trains: ['17 Skarpnäck  5 min', '17 Skarpnäck  15 min'] },
+        { s: -16.5, u: 1.7, toward: 'Åkeshov', trains: ['17 Åkeshov  3 min', '17 Åkeshov  13 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.7, tactile: [0.7, 1.0], slabs: 1.0, paverSize: [0.4, 0.4], mix: 0,
+      colors: { edge: 0xc4c2bc, tactile: 0x5f6163, slab: 0x7d3b2e, pavers: 0x7d3b2e, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    buildings: ['w162241061', 'w187699797'],
+    rooms: [
+      { name: 'west stairs', s: [-86, -75.5], u: [-2.6, 0], h: [-4.4, 0.1], walls: 'orangeTiles', stairs: 'orangeTiles', floor: 'redGranite' },
+      // (the walls and glass are the stair house's)
+      { name: 'west stair house', s: [-89.5, -73.3], u: [-3, 3], h: [-0.5, 0.5], walls: null, floor: 'redGranite' },
+      { name: 'west ticket hall', s: [-104.7, -84.9], u: [-3, 3], h: [-4.5, -3.5], walls: null, floor: 'redGranite' },
+      { name: 'underpass', s: [-110.5, -104.6], u: [-14, 30], h: [-4.5, -3], walls: null, floor: 'pavers' },
+      { name: 'walkway', s: [73.7, 134.4], u: [-1.5, 2.1], h: [-2.2, 0.1], walls: null, floor: 'pavers', slab: 0.5 },
+      { name: 'east stairs', s: [136, 152], u: [1.3, 3.7], h: [-8.6, -2.1], walls: 'orangeTiles', stairs: 'orangeTiles', floor: 'redGranite' },
+      { name: 'glass house', s: [134.4, 146], u: [-2, 4], h: [-2.2, -1.8], walls: null, floor: 'redGranite' },
+      { name: 'east ticket hall', s: [141, 153.5], u: [-9, 5], h: [-8.7, -8.0], walls: null, floor: 'redGranite' },
+    ],
+    blocks: [
+      // the west stair house: red-orange tiles to a parapet, glazed above in black frames, under a
+      // flat roof; open to the platform
+      { name: "stair house's parapets", plan: [[-73.4, -2.9], [-89.5, -2.9], [-89.5, 2.9], [-73.4, 2.9]], h: [-0.3, 1.0], from: -0.3,
+        walls: 'orangeTiles', sides: [undefined, undefined, undefined, null], onPlatform: true },
+      { name: "stair house's windows", plan: [[-73.4, -2.9], [-89.5, -2.9], [-89.5, 2.9], [-73.4, 2.9]], h: [1.0, 2.65], from: 1.0,
+        walls: 'darkGlazed', sides: [undefined, undefined, undefined, null] },
+      { name: "stair house's roof", plan: [[-73.4, -3.0], [-89.6, -3.0], [-89.6, 3.0], [-73.4, 3.0]], h: [0, 2.65],
+        walls: 'darkGlazed', sides: [null, null, null, null], ceiling: 'perforated', roof: 0.3, roofColor: 0x3c3f42 },
+      // the ticket hall under the tracks, its roof between them; its glass front onto the underpass
+      { name: 'ticket hall', plan: [[-85.6, -2.85], [-104.7, -2.85], [-104.7, 2.85], [-85.6, 2.85]], h: [-4.35, -1.55], from: -4.35,
+        walls: 'terracottaPanels', sides: [undefined, 'glassFront', undefined, undefined], floor: 'redGranite', ceiling: 'perforated',
+        roof: 1.35, roofColor: 0x7e4a40, onPlatform: true, ground: true, nameSign: { side: 1, at: 0.5, length: 4.6, bottom: -2.3 } },
+      { name: 'ticket booth', plan: [[-95.0, -2.85], [-99.0, -2.85], [-99.0, -1.55], [-95.0, -1.55]], h: [-4.35, -2.05], from: -4.35,
+        walls: 'glazed', roof: 0.05 },
+      { name: 'kiosk', plan: [[-100.5, 2.0], [-104.4, 2.0], [-104.4, 2.85], [-100.5, 2.85]], h: [-4.35, -1.95], from: -4.35,
+        walls: 'glazed', roof: 0.05 },
+      // the underpass under the tracks, open at both ends
+      { name: 'underpass', plan: [[-104.7, -10.0], [-110.3, -10.0], [-110.3, 12.5], [-104.7, 12.5]], h: [-4.35, -1.75], from: -4.35,
+        walls: 'terracottaPanels', sides: [null, undefined, null, null], floor: 'pavers', ceiling: 'perforated', roof: 0.2, roofColor: 0x77787a,
+        onPlatform: true, ground: true },
+      { name: "underpass's east wall, north", plan: [[-104.7, -10.0], [-104.9, -10.0], [-104.9, -2.85], [-104.7, -2.85]], h: [-4.35, -1.75], from: -4.35,
+        walls: 'terracottaPanels' },
+      { name: "underpass's east wall, south", plan: [[-104.7, 2.85], [-104.9, 2.85], [-104.9, 12.5], [-104.7, 12.5]], h: [-4.35, -1.75], from: -4.35,
+        walls: 'terracottaPanels' },
+      // the deck's faces over its mouths, the name on a blue band on each
+      { name: "deck's north face", plan: [[-111.0, -10.2], [-104.0, -10.2], [-104.0, -10.0], [-111.0, -10.0]], h: [-1.75, -0.75], from: -1.75,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x8f8d86, onPlatform: true, nameSign: { side: 0, at: 0.5, length: 4.4, bottom: -1.62 } },
+      { name: "deck's south face", plan: [[-111.0, 12.5], [-104.0, 12.5], [-104.0, 12.7], [-111.0, 12.7]], h: [-1.75, -0.75], from: -1.75,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x8f8d86, onPlatform: true, nameSign: { side: 2, at: 0.5, length: 4.4, bottom: -1.62 } },
+      // the steps up from its north mouth between brick wing walls
+      { name: 'north steps', plan: [[-104.7, -13.8], [-110.3, -13.8], [-110.3, -10.0], [-104.7, -10.0]], h: [-4.35, -2.6], from: -4.35,
+        walls: 'brick', sides: [null, undefined, null, undefined], floor: 'pavers', roof: 0.05, roofColor: 0x6e3b2e, ground: true },
+      // the east glass house between the bridges, its roof falling towards the stairs
+      { name: 'glass house', plan: [[134.5, -1.8], [146.0, -1.8], [146.0, 3.8], [134.5, 3.8]], h: [-2.6, 2.4], low: 0.45, from: -2.0,
+        walls: 'glazed', sides: [undefined, null, undefined, undefined], roof: 0.15, roofColor: 0x5b6066, eaves: 0.2 },
+      // between the bridges, under it and over the street hall
+      { name: 'between the bridges', plan: [[136.0, -2.0], [141.5, -2.0], [141.5, 4.2], [136.0, 4.2]], h: [-8.5, -2.1], from: -8.5,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], ground: true },
+      { name: 'over the street hall', plan: [[141.5, -2.0], [146.0, -2.0], [146.0, 4.2], [141.5, 4.2]], h: [-5.6, -2.1], from: -5.6,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null] },
+      // the brick tower round the lift, and the stairs' shaft beyond it
+      { name: 'lift tower', plan: [[144.0, -1.9], [147.6, -1.9], [147.6, 1.4], [144.0, 1.4]], h: [-5.6, 1.0], from: -5.6,
+        walls: 'brick', sides: [undefined, undefined, undefined, null] },
+      { name: "lift tower's top", plan: [[144.0, -1.9], [147.6, -1.9], [147.6, 1.4], [144.0, 1.4]], h: [1.0, 5.4], from: 1.0,
+        walls: 'brick', roof: 0.2, roofColor: 0x3a3c3e },
+      { name: 'stair shaft', plan: [[146.0, -2.0], [152.6, -2.0], [152.6, 4.2], [146.0, 4.2]], h: [-5.6, -1.55], low: -2.25, from: -5.6,
+        walls: 'boardConcrete', sides: [undefined, 'brick', undefined, null], roof: 0.15, roofColor: 0x4a4d50 },
+      // the hall at the street under the bridges: glazed, its ends brick, its door on the north side
+      { name: 'street hall', plan: [[141.5, -8.4], [153.0, -8.4], [153.0, 4.6], [141.5, 4.6]], h: [-8.8, -5.75], from: -8.5,
+        walls: 'glazed', sides: ['glassFront', 'brick', undefined, 'brick'], floor: 'redGranite', ceiling: 'perforated', roof: 0.15, roofColor: 0x4a4d50,
+        ground: true, nameSign: { side: 0, at: 0.7, length: 4.4, bottom: -6.1 } },
+    ],
+    art: [
+      // the white tiles checked into the red between the pairs of columns
+      { kind: 'checks', rows: 5, cols: 7, tile: 0.4, color: 0xc9c4b8,
+        at: [[-64.0, -2.0], [-54.5, -2.0], [-45.0, -2.0], [-35.5, -2.0], [-26.0, -2.0], [-16.5, -2.0], [-7.0, -2.0], [2.5, -2.0], [12.0, -2.0], [21.5, -2.0], [31.0, -2.0], [40.5, -2.0], [50.0, -2.0], [59.5, -2.0]] },
+      { kind: 'checks', rows: 5, cols: 5, tile: 0.4, color: 0xc9c4b8,
+        at: [[-64.0, 1.65], [-54.5, 1.65], [-45.0, 1.65], [-35.5, 1.65], [-26.0, 1.65], [-16.5, 1.65], [-7.0, 1.65], [2.5, 1.65], [12.0, 1.65], [21.5, 1.65], [31.0, 1.65], [40.5, 1.65], [50.0, 1.65], [59.5, 1.65]] },
+    ],
+    benches: { at: [-54.5, -26.0, 2.5, 21.5, 50.0], double: true, wood: true },
+    // chain-link beyond both tracks, falling with the ground east of the platform; along both sides
+    // of the walkway
+    fences: [
+      { points: [[-111, -9.0, 0.25], [-72, -9.3, 0], [0, -9.5, 0], [60, -9.3, -0.2], [100, -9.0, -0.5], [130, -8.9, -0.9]], h: [-1.1, 0.9] },
+      { points: [[-111, 8.8, 0.25], [-72, 9.1, 0], [0, 9.5, 0], [60, 9.8, -0.2], [100, 10.4, -0.5], [130, 10.5, -0.9]], h: [-1.1, 0.9] },
+      { points: [[74, -1.25, 0], [98, -1.25, -1.0], [132, -1.25, -2.0], [134.5, -1.25, -2.0]], h: [0, 1.9] },
+      { points: [[74, 1.85, 0], [98, 1.85, -1.0], [132, 1.85, -2.0], [134.5, 1.85, -2.0]], h: [0, 1.9] },
     ],
   },
 };
