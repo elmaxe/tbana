@@ -133,8 +133,9 @@
     },
     {
       "station": "Bagarmossen",
-      "extend": true,
-      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [157542.1, 6573352.4],
+      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms, and lengthening it about its middle put the platform's north end 28 m beyond the foot of the escalators. OSM's indoor mapping (2026) and Albert Guillaumes' drawing have the escalators and the inclined lift climbing from a lobby at the platform's north end, which is blind at its south end (photographs, 2019 and 2022); this point is the middle of a 145 m platform ending 3.5 m short of the escalators."
     },
     {
       "station": "Bandhagen",

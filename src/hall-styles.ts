@@ -156,6 +156,16 @@ export interface CaveStyle {
   paint: CavePaint;
   // an island platform with the rock left standing down its middle (Stadion's)
   island?: CaveIsland;
+  // along each track wall, panels of coloured glass lit from behind, one to each of the network's
+  // samples along the platform, from `from` to `to` high (above the rails), on a dark backing
+  // standing out from the rock over a steel ledge; their colours fading along the wall through
+  // `east`'s or `west`'s (CSS colours, from its northern end to its southern)
+  glass?: { from: number; to: number; east: string[]; west: string[] };
+  // the platform paved as an open station's (src/open-styles.ts), rather than in the network's tiles
+  paving?: Paving;
+  // the station's name on dark grey signs hung across the platform under its fittings, about
+  // `every` m apart, rather than SL's blue ones on the walls
+  signs?: { every: number };
 }
 
 // Heights here are above the top of the rail, as for the styled halls above.
@@ -203,6 +213,34 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
       ceiling: 4.4,
       panels: 2.2,
     },
+  },
+  // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in
+  // the open on Lagavägen was closed): an island platform 145 m long in a cave 19 m down (Swedish
+  // Wikipedia). Photographs (2014 to 2022): the rock sprayed a light grey, darker in patches; the
+  // track walls dark below and, all along them over a steel ledge, Gert Marcus's glass (1994):
+  // 114 panels of screen-printed glass lit from behind, about 2.4 m wide and 1.3 m high, in
+  // colours that fade into each other along the walls: greens to the north, the eastern wall
+  // turning teal and then blue, the western violet, purple and pink and then blue towards the
+  // south (the order is read from photographs, so it is approximate). Over each edge of the
+  // platform a long fitting of lamps hung from the rock, the station's name on dark grey signs
+  // under them; the floor polished grey stone in long slabs, a pale edge and a strip of brass
+  // studs for the blind.
+  'Bagarmossen': {
+    paint: { seed: 1994, bands: [{ from: 0, color: '#232425' }, { from: 4.15, color: '#76777a', edge: 'ragged' }, { from: 6.5, color: '#9c9d9a', edge: 'soft' }],
+      motifs: [{ kind: 'dabs', colors: ['#1a1b1c', '#323334'], from: 0, to: 4, size: 0.5, count: 120 },
+        { kind: 'dabs', colors: ['#7f8082', '#929390', '#adada9'], from: 4.2, to: 18, size: 0.9, count: 200 },
+        { kind: 'cracks', colors: ['#6f7071'], from: 6, to: 18, count: 12 }] },
+    glass: {
+      from: 2.3, to: 3.6,
+      east: ['#3aa84e', '#2fa86a', '#22a39a', '#1f8fd0', '#2464e0', '#2c52e6'],
+      west: ['#2aa26a', '#20a0a0', '#5b4fd0', '#8a3cc4', '#c03aa0', '#d9487c', '#6a52d6', '#2f6ae2'],
+    },
+    paving: {
+      edge: 0.3, tactile: [0.36, 0.66], studs: true, slabs: 0.66, paverSize: [1.0, 0.6], mix: 0.25, veins: true,
+      colors: { edge: 0xcdcac2, tactile: 0xcbbf98, slab: 0xa6a8a7, pavers: 0xa2a4a3, paler: 0xadafad, face: 0x3e3f40 },
+      pattern: 'bond',
+    },
+    signs: { every: 36 },
   },
   // Kungsträdgården (1977, Ulrik Samuelson): the garden and the palace Makalös that stood
   // above; the vault sprayed green, the walls' foot the bare grey-violet rock, and stripes of

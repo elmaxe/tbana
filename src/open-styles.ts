@@ -124,6 +124,8 @@ export interface Paving {
   paverSize?: [number, number];
   mix?: number;
   colors: { edge: number; tactile: number; slab: number; pavers: number; face: number; paler?: number };
+  // pale veins wandering across it, as in polished stone
+  veins?: boolean;
   // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, or small setts
   // laid in fans
   pattern: 'herringbone' | 'bond' | 'grid' | 'fans';
@@ -225,7 +227,11 @@ export type Finish =
   | 'tealTiles'     // pale teal tiles, 15 cm, to 2.35 m, a band of black glass above
   | 'darkWindows'   // a dark panel to 0.95 m, windows 0.6 m wide in black frames above, a transom at 2.3 m
   | 'blackFront'    // glass doors in brushed steel, the black band the name goes on, a steel ledge, glass above
-  | 'orangePanels'; // flat steel panels painted orange
+  | 'orangePanels'  // flat steel panels painted orange
+  | 'splitBlocks'   // grey concrete blocks with a split face, 40 by 20 cm
+  | 'cladding'      // silver-grey sheet metal, ribbed upright
+  | 'cladClerestory' // as cladding to 4.5 m, four rows of glass in grey frames above, to 7.6 m
+  | 'frostedPanels'; // white frosted glass panels in bronze frames on a concrete plinth
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -2737,6 +2743,73 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-85, -7.3, 0], [-68, -8.4, 0], [-48, -9.3, -0.4], [-28, -9.5, -0.4], [-8, -9.1, -0.4], [12, -8.0, -0.4], [32, -6.2, 0], [52, -3.8, 0],
         [72, -0.6, 0], [92, 3.4, 0]], h: [-1.6, 0.4] },
       { points: [[-103.1, 0.95], [-103.1, 7.45]], h: [-0.95, 0.15], kind: 'rails', color: 0x6a6e72 },
+    ],
+  },
+
+  // Bagarmossen (15 August 1994): the platform is in the rock, a cave the network draws in its own
+  // style (src/hall-styles.ts); here, the way up to the street. OpenStreetMap's indoor mapping and
+  // Albert Guillaumes' drawing: from a lobby at the platform's north end three escalators climb
+  // 32 m to the ticket hall in the pavilion on Bagarmossen's square, an inclined lift beside them
+  // on their east side. Photographs (2014 to 2022): the escalators' west wall in large white tiles
+  // hung with posters, the lift's glass shaft along their east side behind curved steel frames,
+  // a ceiling of bare concrete; in the hall a floor of dark grey tiles, a wall of split-face
+  // concrete blocks, the gates in front of the doors.
+  //
+  // The pavilion, from the laser scan (its axis turned 9° from the platform's): the street 18.6 m
+  // over the platform; a low back part over the escalators' top, 4 m high; then the hall's tall
+  // part, from 103.5 m to 110.3 m along the axis, its glazed top falling from 7.5 m at the front to
+  // 4.5 m at the back; the low front under a roof pitched both ways from a ridge along the axis
+  // (3.4 m at the eaves, 4 m at the ridge), its middle running out to a point between two faces of
+  // glass doors, and lower wings pointed on both sides. Photographs: the front's roof of pale
+  // standing-seam metal reaching out over the walls; the doors under SL's blue band with the name;
+  // the front's east wing glazed in grey steel, its west wing white frosted panels in bronze frames;
+  // the tall part glazed above silver-grey cladding.
+  'Bagarmossen': {
+    buildings: ['w93325519'],
+    rooms: [
+      // the lift's car at the lobby, glazed (the lift itself isn't walked: its shaft is a block)
+      { name: "lift's car", s: [74.7, 77.5], u: [-4.5, -0.5], h: [-0.5, 0.5], walls: 'glazed', floor: 'greyTiles', ceiling: 'ribbedMetal' },
+      { name: 'lobby', s: [71, 74.7], u: [-10, 1], h: [-0.5, 0.5], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'roughcast' },
+      // (the east wall glazed onto the lift's shaft)
+      { name: 'escalators', s: [76, 104], u: [-18, 0], h: [-0.5, 0.5], walls: 'squareTiles', stairs: 'glazed', left: 'squareTiles', ceiling: 'roughcast' },
+      // out of the doors onto the square, and the hall (its walls and roofs the pavilion's)
+      { name: 'square', s: [117.5, 135], u: [-25, 0], h: [17, 20], walls: null, floor: 'pavers' },
+      { name: 'ticket hall', s: [100, 125], u: [-25, 0], h: [17, 20], walls: null, floor: 'darkTiles' },
+    ],
+    blocks: [
+      // the lift's shaft, glazed towards the escalators (whose wall is the glass), up from behind
+      // its car to the hall
+      { name: "lift's shaft", plan: [[105.72, -11.08], [106.24, -9.15], [77.1, -1.23], [76.57, -3.16]], h: [18.6, 21.2], from: 18.6, fall: 0,
+        walls: 'glazed', sides: [undefined, 'boardConcrete', null, null], floor: 'boardConcrete', roof: 0.1, roofColor: 0x8a9095, onPlatform: true },
+      // the back part over the escalators' top
+      { name: 'back', plan: [[94.2, -6.24], [92.57, -16.41], [101.95, -17.91], [103.58, -7.74]], h: [18.0, 22.7], from: 18.6,
+        walls: 'cladding', sides: [undefined, undefined, null, undefined], roof: 0.12, roofColor: 0x6e7478 },
+      // the hall's tall part, its top falling to the back, open under the front's roof
+      { name: 'tall part', plan: [[108.67, -18.99], [101.95, -17.91], [103.62, -7.45], [110.34, -8.52]], h: [18.0, 26.0], from: 18.6, low: 23.1,
+        walls: 'cladClerestory', sides: [undefined, undefined, undefined, null], band: { walls: 'cladClerestory', from: 22.0 },
+        floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x6e7478, ground: true },
+      // the front, its roof pitched from the ridge down to the eaves either side, its middle out to
+      // the point between the two faces of doors
+      { name: 'front, west wing', plan: [[108.98, -17.01], [108.62, -19.28], [114.25, -20.18], [114.61, -17.91]], h: [18.0, 22.15], from: 18.6, low: 21.9,
+        walls: 'frostedPanels', sides: [null, undefined, undefined, null], eaves: [0, 0.7, 0.7, 0],
+        floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x9a9ea0, ground: true },
+      { name: 'front, west doors', plan: [[109.45, -14.05], [108.98, -17.01], [114.61, -17.91], [118.05, -15.42]], h: [18.0, 22.5], from: 18.6, low: 22.15,
+        walls: 'steelFront', sides: [null, null, undefined, null], eaves: [0, 0, 0.7, 0], nameSign: { side: 2, at: 0.5, length: 3.2, bottom: 21.4 },
+        floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x9a9ea0, ground: true },
+      { name: 'front, east doors', plan: [[118.05, -15.42], [115.57, -11.89], [109.94, -10.99], [109.45, -14.05]], h: [18.0, 22.5], from: 18.6, low: 22.15,
+        walls: 'steelFront', sides: [undefined, null, null, null], eaves: [0.7, 0, 0, 0], nameSign: { side: 0, at: 0.5, length: 3.2, bottom: 21.4 },
+        floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x9a9ea0, ground: true },
+      { name: 'front, east wing', plan: [[115.57, -11.89], [115.94, -9.62], [110.31, -8.72], [109.94, -10.99]], h: [18.0, 22.15], from: 18.6, low: 21.9,
+        walls: 'glazed', sides: [undefined, undefined, null, null], eaves: [0.7, 0.7, 0, 0],
+        floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x9a9ea0, ground: true },
+      // the lower wings pointed out either side, west in frosted panels, east glazed
+      { name: 'west point', plan: [[105.8, -18.53], [108.29, -22.27], [111.88, -19.8], [108.64, -19.13]], h: [18.0, 21.9], from: 18.6,
+        walls: 'frostedPanels', sides: [undefined, undefined, null, null], eaves: [0.4, 0.4, 0, 0], roof: 0.12, roofColor: 0x9a9ea0 },
+      { name: 'east point', plan: [[107.57, -8.08], [111.39, -5.75], [113.76, -9.27], [110.32, -8.62]], h: [18.0, 21.9], from: 18.6,
+        walls: 'glazed', sides: [undefined, undefined, null, null], eaves: [0.4, 0.4, 0, 0], roof: 0.12, roofColor: 0x9a9ea0 },
+      // inside, along the hall's west side, the wall of split-face blocks
+      { name: 'block wall', plan: [[102.07, -17.78], [102.1, -17.63], [114.19, -19.57], [114.17, -19.71]], h: [18.6, 21.9], from: 18.6,
+        walls: 'splitBlocks' },
     ],
   },
 };

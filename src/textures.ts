@@ -2455,6 +2455,16 @@ export function openPaving(p: Paving) {
       x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + pw + 1, pw - 2, pl - 2);
     }
   }
+  // (polished stone: pale veins wandering across it)
+  if (p.veins) {
+    for (let k = 0; k < 90; k++) {
+      let px = r() * W, py = r() * H, a = r() * Math.PI * 2;
+      x.strokeStyle = `rgba(228,230,230,${0.12 + r() * 0.2})`; x.lineWidth = 0.6 + r() * 1.2;
+      x.beginPath(); x.moveTo(px, py);
+      for (let s = 0; s < 8; s++) { a += (r() - 0.5) * 0.9; px += Math.cos(a) * 9; py += Math.sin(a) * 9; x.lineTo(px, py); }
+      x.stroke();
+    }
+  }
   // pale slabs out to `slabs`, 30 cm square, or in courses along the platform, their joints across
   // it staggered
   const [sa, sl] = p.slabSize ?? [0.3, 0.3];
@@ -2966,9 +2976,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   terracottaPanels: [1.2, 2.4], orangeTiles: [1.2, 1.2], redGranite: [2.4, 2.4], brick: [1.2, 1.2],
   steelGlazed: [1.2, 3], darkTerrazzo: [2.4, 2.4], birchX: [5.4, 2.6],
   tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
+  splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3867,6 +3878,52 @@ export function finish(name: Finish) {
       pane(3.1, 3.8, st, 0.08); band(3.8, 3.9, st);
       break;
     }
+    case 'splitBlocks': {
+      // Bagarmossen's ticket hall: grey concrete blocks with a split face, 40 by 20 cm, in a
+      // running bond
+      x.fillStyle = '#6c6b68'; x.fillRect(0, 0, W, H);
+      const bw = 0.4 * PX, bh = 0.2 * PX;
+      for (let j = 0; j * bh < H; j++) for (let i = -1; i * bw < W; i++) {
+        const v = 128 + Math.floor(r() * 18);
+        x.fillStyle = `rgb(${v},${v - 1},${v - 4})`; x.fillRect(i * bw + (j % 2) * bw / 2 + 2, j * bh + 2, bw - 4, bh - 4);
+      }
+      speckle(x, W, H, 9000, 0.25, 41); speckle(x, W, H, 5000, 0.2, 42, true);
+      break;
+    }
+    case 'cladding':
+    case 'cladClerestory': {
+      // silver-grey sheet metal, ribbed upright every 20 cm; Bagarmossen's pavilion's tall part
+      // has it to 4.5 m, and over it four rows of glass in grey frames, drawn as the photographs
+      // show it from the street, the sky's blue-grey in it rather than the hall behind
+      const top = name === 'cladding' ? h : 4.5;
+      band(0, top, '#aeb3b6');
+      for (let i = 0; i * 0.2 * PX < W; i++) {
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * 0.2 * PX, Y(top), 0.03 * PX, top * PX);
+        x.fillStyle = 'rgba(40,44,48,0.35)'; x.fillRect(i * 0.2 * PX + 0.03 * PX, Y(top), 0.015 * PX, top * PX);
+      }
+      if (name === 'cladClerestory') {
+        const fr = '#8c9296', rows = [4.62, 5.34, 6.06, 6.78, 7.5];
+        band(4.5, 7.6, fr);
+        for (let k = 0; k + 1 < rows.length; k++) {
+          const a = rows[k] + 0.03, b = rows[k + 1] - 0.03, g = x.createLinearGradient(0, Y(b), 0, Y(a));
+          g.addColorStop(0, '#c3ced6'); g.addColorStop(1, '#8e9ead');
+          x.fillStyle = g; x.fillRect(0.05 * PX, Y(b), W - 0.1 * PX, (b - a) * PX);
+          x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(b), W * 0.3, (b - a) * PX);
+        }
+      }
+      break;
+    }
+    case 'frostedPanels':
+      // Bagarmossen's pavilion: panels of frosted glass, white, in bronze frames on a concrete
+      // plinth, three rows of them, a transom at 2.6 m
+      band(0, h, '#8d7b5e');
+      band(0, 0.3, '#9a9890');
+      for (const [a, b] of [[0.36, 1.5], [1.56, 2.55], [2.65, 3.34]]) {
+        x.fillStyle = '#dfe2df'; x.fillRect(0.04 * PX, Y(b), W - 0.08 * PX, (b - a) * PX);
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(0.04 * PX, Y(b), W * 0.35, (b - a) * PX);
+        x.fillStyle = 'rgba(90,80,60,0.25)'; x.fillRect(0.04 * PX, Y(a) - 2, W - 0.08 * PX, 2);
+      }
+      break;
     case 'orangePanels':
       // flat steel panels painted orange, 1.2 m square
       x.fillStyle = '#d0782c'; x.fillRect(0, 0, W, H);
@@ -3881,10 +3938,42 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
+}
+
+// Gert Marcus's glass at Bagarmossen (1994): `n` panels side by side, screen-printed in colours
+// that fade from each to the next through `colors` (CSS, from the first panel to the last), lit
+// from behind: cloudy, brighter across the middle, with faint streaks, and a thin dark seam at
+// each panel's ends. One panel to each 1/n of u, v up it.
+export function caveGlass(colors: string[], n: number) {
+  const PW = 48, PH = 32, [c, x] = canvas(PW * n, PH), r = rng(1994 + n);
+  const rgb = colors.map((s) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16)));
+  const at = (t: number) => {
+    const q = Math.max(0, Math.min(1, t)) * (rgb.length - 1), i = Math.min(rgb.length - 2, Math.floor(q)), f = q - i;
+    return rgb[i].map((v, j) => Math.round(v + (rgb[i + 1][j] - v) * f));
+  };
+  for (let px = 0; px < PW * n; px++) {
+    const [cr, cg, cb] = at(px / (PW * n - 1));
+    const g = x.createLinearGradient(0, 0, 0, PH);
+    g.addColorStop(0, `rgb(${cr * 0.7 | 0},${cg * 0.7 | 0},${cb * 0.7 | 0})`);
+    g.addColorStop(0.5, `rgb(${Math.min(255, cr * 1.15 + 30) | 0},${Math.min(255, cg * 1.15 + 30) | 0},${Math.min(255, cb * 1.15 + 30) | 0})`);
+    g.addColorStop(1, `rgb(${cr * 0.75 | 0},${cg * 0.75 | 0},${cb * 0.75 | 0})`);
+    x.fillStyle = g; x.fillRect(px, 0, 1, PH);
+  }
+  // clouds of lighter and darker colour, and streaks along
+  for (let k = 0; k < n * 14; k++) {
+    const cx = r() * PW * n, cy = r() * PH, rr = 3 + r() * 9, light = r() < 0.5;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    g.addColorStop(0, light ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,20,0.14)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+  }
+  for (let k = 0; k < n * 4; k++) { x.fillStyle = `rgba(255,255,255,${0.05 + r() * 0.08})`; x.fillRect(r() * PW * n, 2 + r() * (PH - 4), 8 + r() * 30, 1); }
+  for (let k = 0; k < n; k++) { x.fillStyle = 'rgba(10,12,16,0.7)'; x.fillRect(k * PW, 0, 1, PH); x.fillRect(k * PW + PW - 1, 0, 1, PH); }
+  const tx = toTexture(c, { repeat: false });
+  return tx;
 }
 
 // Sheets of green glass stacked flat, seen edge on: a streak for each sheet's edge, eight of them

@@ -138,6 +138,8 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // a painted cave's rock, one for each station (src/hall-styles.ts), and the rock of its pillars
   // and of the walls over its passage, where it has them
   | `cave:${string}` | `pillar:${string}` | `fenced:${string}` | `portal${0 | 1}:${string}`
+  // a cave's panels of glass along its walls, the eastern's and the western's, and their backing
+  | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
   | `pave:${string}` | `face:${string}`;
 
@@ -186,6 +188,7 @@ function materials() {
     vaultFloor: new THREE.MeshStandardMaterial({ map: T.terrazzo(), roughness: 0.35 }),
     vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
     fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
+    glassBack: new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.6 }),
     // Stadion's (src/hall-styles.ts)
     stFloor: new THREE.MeshStandardMaterial({ map: T.stadionFloor(), roughness: 0.3 }),
     stEdge: new THREE.MeshStandardMaterial({ map: T.stadionEdge(), roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -1 }),
@@ -738,12 +741,25 @@ export class Network {
         sign.position.copy(at(sm, back - p.side * 0.05, vs.signAt));
         sign.lookAt(at(sm, back - p.side * 1.05, vs.signAt));
         group.add(sign);
-      } else if (!vs && sm.along - lastSign >= 30) {
+      } else if (!vs && sm.along - lastSign >= (caveStyle(sm)?.signs?.every ?? 30)) {
         lastSign = sm.along;
         const span = structureSpan(sm);
         const wall = p.side > 0 ? span[0] : span[1];
+        if (caveStyle(sm)?.signs) {
+          // a cave's own: dark grey, hung across the platform under the fitting over its edge
+          const [a, c] = span, u = p.side * (S.PLATFORM_EDGE + 0.7);
+          const roof = S.archHeight(a, c, S.HALL.spring, (c - a) * S.HALL.risePerWidth, u), v = Math.min(roof - CAVE_ROUGH - 0.4, H + 3.2);
+          const t = new THREE.Vector3(sm.rz, 0, -sm.rx), o = at(sm, u, v - 0.42);
+          for (const d of [1, -1]) {
+            const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.5), this.signMaterial(p.station, 'dark'));
+            sign.position.copy(o).addScaledVector(t, d * 0.01);
+            sign.lookAt(o.clone().addScaledVector(t, d));
+            group.add(sign);
+          }
+          for (const d of [-0.7, 0.7]) box(b.fitting, at(sm, u + d, v - 0.085), sm, 0.012, 0.17, 0.012);
+        }
         // (a styled hall has its own name plates)
-        if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm) && !islandStyle(sm)) {
+        else if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm) && !islandStyle(sm)) {
           // (on a painted cave's rock, where it is)
           const w = caveStyle(sm) ? wall - Math.sign(wall) * caveInward(sm, wall, 2.4) : wall;
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
@@ -772,6 +788,21 @@ export class Network {
         if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
         // (a styled open station's hang under its roof: src/stations.ts)
         else if (!vs && !caveStyle(sm) && !openStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+      }
+      const glass = caveStyle(sm)?.glass;
+      if (glass && sm.kind === 'rock') {
+        // a cave's panels of glass along the wall across the track, each a sample long, its
+        // colour from how far it is along the wall from its northern end
+        const span = structureSpan(sm), wall = p.side > 0 ? span[0] : span[1], east = sm.rx * wall > 0;
+        const n = Math.max(1, Math.round((p.s1 - p.s0) / STEP)), f = (sm.s - p.s0) / (p.s1 - p.s0);
+        const k = Math.max(0, Math.min(n - 1, Math.floor((-sm.rx < 0 ? 1 - f : f) * n)));
+        const key: MaterialName = `glass${east ? 'E' : 'W'}:${p.station}`;
+        this.mats[key] ??= new THREE.MeshBasicMaterial({ map: T.caveGlass(east ? glass.east : glass.west, n), side: THREE.DoubleSide });
+        const t = new THREE.Vector3(sm.rz, 0, -sm.rx), l = STEP / 2 - 0.015, u = wall + p.side * 0.5;
+        const P = (d: number, v: number) => at(sm, u, v).addScaledVector(t, d);
+        (b[key] ??= new MeshBuilder()).quad(P(-l, glass.from), P(l, glass.from), P(l, glass.to), P(-l, glass.to), [k / n, 0], [(k + 1) / n, 0], [(k + 1) / n, 1], [k / n, 1]);
+        box(b.glassBack, at(sm, wall + p.side * 0.24, (glass.from + glass.to) / 2), sm, 0.48, glass.to - glass.from + 0.08, STEP - 0.005);
+        box(b.fitting, at(sm, wall + p.side * 0.32, glass.from - 0.07), sm, 0.64, 0.06, STEP - 0.005);
       }
       if (caveStyle(sm) && !islandStyle(sm)) {
         // in a painted cave, a row of fittings hung on rods well under the rock, over the
@@ -1574,10 +1605,10 @@ function concreteHall(sm: Sample): FlatHall | null {
   const st = hallStyle(sm);
   return st?.kind === 'flat' && st.finish.kind === 'concrete' ? st : null;
 }
-// A platform paved in its own style (src/open-styles.ts): a styled open station's, or a flat hall's
-// in concrete.
+// A platform paved in its own style (src/open-styles.ts): a styled open station's, a flat hall's
+// in concrete, or a cave's.
 function pavingOf(sm: Sample): Paving | null {
-  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | undefined)?.paving ?? null);
+  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? null);
 }
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down

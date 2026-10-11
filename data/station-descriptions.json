@@ -1266,13 +1266,21 @@
     },
     "Bagarmossen": {
       "drawing": "bagarmossen.png",
-      "note": "An island platform in the rock, 19 m down. Long escalators climb from its north end to the ticket hall at Bagarmossen's centre.",
+      "note": "An island platform in the rock, 19 m down. From a lobby at its north end three escalators climb 32 m to the ticket hall in the pavilion on Bagarmossen's square, an inclined lift beside them (its car at the lobby; the lift itself isn't walked); from the gates the way out is through the doors at the pavilion's point. From OpenStreetMap's indoor mapping (the escalators and the lift climbing from the platform's north end, the ticket validators at the tall part's front), the laser scan (the street 18.6 m over the platform, the pavilion's axis 9° from the platform's) and photographs (2014 to 2022).",
       "routes": [
-        { "from": [40, 0], "width": 5, "go": [
-          {"escalators": 18, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [72.0, -5.0], "width": 4.8, "go": [
+          {"walk": [74.0, -5.0], "ceiling": 3.2},
+          {"escalators": 18.6, "toward": [105.07, -13.44], "lanes": "EEE"},
+          {"walk": [108.3, -13.96], "open": true},
+          {"walk": [108.94, -14.07], "width": 6.0, "open": true},
           {"gates": true},
-          {"exit": 7519687621}
+          {"walk": [115.08, -14.95], "open": true},
+          {"walk": [116.86, -15.23], "width": 2.4, "open": true},
+          {"exit": {"at": [120.51, -15.82], "name": "Bagarmossen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [72.3, -0.96], "width": 2.0, "go": [
+          {"walk": [74.9, -1.67], "ceiling": 3.2},
+          {"walk": [76.83, -2.2], "ceiling": 2.4}
         ] }
       ]
     },
