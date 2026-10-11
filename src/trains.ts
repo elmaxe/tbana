@@ -304,8 +304,8 @@ export class Trains {
 
   private event(svc: Service, ev: ServiceEvent, playerPos: THREE.Vector3 | null) {
     const c30 = svc.L.train === 'C30';
-    if (ev === 'arrived') this.sound?.chime(this.distanceTo(svc, playerPos), 'open');
-    else if (ev === 'closing') {
+    // the doors open without a sound
+    if (ev === 'closing') {
       // the C20 and C30 have their own warnings (the C30's the chime until it has loaded)
       const d = this.distanceTo(svc, playerPos);
       if (svc.L.train === 'C20') this.sound?.c20Closing(d);
