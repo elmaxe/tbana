@@ -288,6 +288,7 @@ function handleKey(code: string) {
     case 'KeyQ': useLift(-1); break;
     case 'KeyL':
       lightsUp = !lightsUp;
+      $('lightsBtn').setAttribute('aria-pressed', String(lightsUp));
       toast(lightsUp ? 'Lights up' : 'Lights as built');
       break;
     case 'KeyN':
@@ -593,8 +594,9 @@ function inStation(pos: THREE.Vector3, margin = 0) {
   const b = game?.station.bounds;
   return !!b && inBox(b, pos, margin);
 }
-// lit evenly everywhere, to see what is in the dark (L, or ?light)
+// lit evenly everywhere, to see what is in the dark (L, the Lights button on touch screens, or ?light)
 let lightsUp = params.has('light');
+$('lightsBtn').setAttribute('aria-pressed', String(lightsUp));
 // the station model whose box the player is in
 const modelAt = (pos: THREE.Vector3) => game?.station.areas.find((a) => inBox(a.bounds, pos, 0)) ?? null;
 function updateAtmosphere(player: Player<Floor>, dt: number) {
