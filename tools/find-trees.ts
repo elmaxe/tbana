@@ -13,7 +13,8 @@
 // grid:
 // - the ground under each cell, from the ground points round it;
 // - the canopy: the highest unclassified point over the ground in each cell, leaving out cells in
-//   or within 1.5 m of a building (data/osm/buildings.json), over water, and on bridges;
+//   or within 1.5 m of a building (data/osm/buildings.json), over water (the scan's, or
+//   OpenStreetMap's in data/osm/water.json: a lock dug since the scan was flown), and on bridges;
 // - a tree for each top of it at least 4.5 m up that is the highest within 2.5 m, its crown as far
 //   out as the canopy stays above half its height, and the lower tops in a crown left out;
 // - kept only if its crown is as a tree's: at least 1.8 m in radius (and a sixth of its height,
@@ -99,6 +100,21 @@ const outlines = osm.buildings.map((b) => {
   for (let k = 0; k + 1 < r.length; k += 2) ring.push([r[k], r[k + 1]]);
   return ring;
 });
+const waterRings: [number, number][][] = existsSync('data/osm/water.json')
+  ? (JSON.parse(readFileSync('data/osm/water.json', 'utf8')) as { water: { rings: number[][] }[] }).water.flatMap((w) => w.rings.map((r) => {
+    const ring: [number, number][] = [];
+    for (let k = 0; k + 1 < r.length; k += 2) ring.push([r[k], r[k + 1]]);
+    return ring;
+  }))
+  : [];
+const inRing = (x: number, z: number, ring: [number, number][]) => {
+  let c = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c;
+  }
+  return c;
+};
 
 // ------------------------------------------------------------------ the trees
 type Tree = [number, number, number, number]; // x, z, height above the ground, crown radius
@@ -121,6 +137,17 @@ for (const a of DETAIL_AREAS) {
     if (c < 0 || (cls !== GROUND && cls !== WATER)) continue;
     if (cls === WATER) water[c] = 1;
     if (!(ground[c] <= pts[k + 2])) ground[c] = pts[k + 2];
+  }
+  // and OpenStreetMap's water (by even-odd over each body's rings, so an island in it stays dry)
+  for (const ring of waterRings) {
+    let bx0 = Infinity, bz0 = Infinity, bx1 = -Infinity, bz1 = -Infinity;
+    for (const [x, z] of ring) { bx0 = Math.min(bx0, x); bz0 = Math.min(bz0, z); bx1 = Math.max(bx1, x); bz1 = Math.max(bz1, z); }
+    if (bx1 < x0 || bz1 < z0 || bx0 > x0 + W || bz0 > z0 + H) continue;
+    for (let j = Math.max(0, Math.floor(bz0 - z0)); j < Math.min(H, Math.ceil(bz1 - z0)); j++) {
+      for (let i = Math.max(0, Math.floor(bx0 - x0)); i < Math.min(W, Math.ceil(bx1 - x0)); i++) {
+        if (inRing(x0 + i + 0.5, z0 + j + 0.5, ring)) water[j * W + i] ^= 1;
+      }
+    }
   }
   for (let pass = 0, empty = 1; empty && pass < 60; pass++) {
     empty = 0;

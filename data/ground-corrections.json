@@ -1,10 +1,37 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `paved` outline (and an `open` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass.",
   "open": [
     {
       "outline": [[391.2, 856.2], [418.6, 925.2], [434.8, 984.3], [445.6, 1023.6], [484.9, 1003.9], [468.3, 975.3], [496.9, 960.9], [433.7, 834.9]],
       "ground": 2.6,
       "why": "Gamla stan station, the railway beside it and Centralbron over it, from the platforms' north end to Söderström. The elevation model takes the decks for the ground: Centralbron's at 7–8 m over the platforms and the railway's at 3.5–6 m along the quay (Lantmäteriet's laser scan, 2021), so the station stood buried in a grassy mound. The street beside it is at 2.6–3.0 m on Munkbroleden and 1.5–1.8 m on the quay (laser scan); the station, the railway and the bridge are drawn in src/detail/gamla-stan.ts."
+    },
+    {
+      "outline": [[726.7, 1112.5], [737.6, 1118.3], [747.3, 1122.7], [848.6, 1170.3], [858.7, 1175.2], [868.2, 1178.7], [859.2, 1196.8], [850.8, 1191.6], [840.8, 1186.8], [739.4, 1139.1], [728.3, 1133.6]],
+      "ground": -1,
+      "why": "The lock, Victoriaslussen, mouth to mouth, with 3 m of the quays round it so that the ground's slope down into it (the grid is 5 m) lies under the quays' paving drawn in src/detail/slussen.ts, whose water is at 0.25 m."
+    },
+    {
+      "outline": [[751.6, 1122.3], [767.4, 1089.1], [823.6, 1116.1], [807.6, 1148.9]],
+      "ground": -1,
+      "why": "The lock's north basin with 3 m of the quays round it, as for the lock."
+    },
+    {
+      "outline": [[727.2, 1173.9], [742.3, 1142.6], [798.6, 1169.1], [783.3, 1200.3]],
+      "ground": -1,
+      "why": "The lock's south basin with 3 m of the quays round it, as for the lock."
+    },
+    {
+      "outline": [[655, 1150], [700, 1105], [790, 1062], [838, 1076], [885, 1098], [893, 1125], [872, 1182], [862, 1202], [842, 1228], [811, 1268], [766, 1252], [770, 1236], [765.5, 1228.5], [756, 1221.5], [727.9, 1207.9], [727, 1238], [716.7, 1236], [712.5, 1199.5], [710.2, 1196.2], [671.6, 1178.6], [664.3, 1183.7], [657, 1172]],
+      "ground": 1.8,
+      "why": "Slussen's water square, from the metro bridge's end to Slussplan and Guldbron's foot. The elevation model is from the rebuilding (2020–2024), when the lock was dug to −4 m and the ground round it stood at 2–6 m, and takes Guldbron's deck for the ground at its Söder end. The finished quays round the lock and its basins are at 1.8 m (Lantmäteriet's laser scan of the east quay, 2021; the square's design level); Guldbron, the lock, the quays and the pavilions on them are drawn in src/detail/slussen.ts."
+    }
+  ],
+  "fill": [
+    {
+      "outline": [[669, 1184.5], [707, 1202], [707, 1241], [733, 1241], [733, 1218], [752, 1227], [753, 1229], [758, 1241], [761, 1252], [767, 1250], [808, 1269], [800, 1283], [790, 1288], [740, 1290], [700, 1292], [655, 1290], [655, 1200]],
+      "ground": 12.5,
+      "why": "Södermalmstorg, from the pavilions over the water square to Slussbrogatan and Guldbron's Söder end. The elevation model is from the rebuilding of Slussen, when the square was a pit 2–11 m deep with ramps and spoil in it; the finished square is paved and level with Guldbron's Söder end at 12.5 m (Lantmäteriet's laser scan of the bridge, 2021), rising to the south-west towards Hornsgatan, where the model's ground still stands above this and is kept. The outline reaches to Guldbron's end (the deck covers the ground beyond it) and keeps a grid cell (5 m) back from the pavilions' walls over the water square and from the stairs' flights, so that the ground's slope down from it lies under the pavilions' roofs and the stairs' landing (src/detail/slussen.ts)."
     }
   ],
   "paved": [
@@ -15,6 +42,10 @@
     {
       "outline": [[-400, 1120], [900, 1120], [900, 1220], [450, 1220], [420, 1185], [-400, 1185]],
       "why": "Söder Mälarstrand from the foot of Centralbron to Slussen, and on west towards Hornsgatan: a street and a quay between the water and the houses, 2.2–3.0 m (Lantmäteriet's laser scan), where Mariaberget's slope begins. It was grass for want of buildings beside it."
+    },
+    {
+      "outline": [[640, 1215], [900, 1215], [900, 1320], [640, 1320]],
+      "why": "Södermalmstorg, Slussplan's approaches, Katarinavägen and the foot of Katarinahissen are stone and asphalt (Google's 3D model); the open quays and the square were grass for want of buildings beside them."
     }
   ]
 }

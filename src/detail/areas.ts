@@ -12,6 +12,8 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Gamla stan', x: 560, z: 930, r: 140 },
   { name: 'Riddarholmen', x: 330, z: 790, r: 80 },
   { name: 'Söder Mälarstrand', x: 520, z: 1215, r: 160 },
+  // east of the bridge: Guldbron, the lock and Katarinahissen (src/detail/slussen.ts), Slussplan
+  { name: 'Slussen', x: 765, z: 1235, r: 150 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

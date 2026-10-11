@@ -744,7 +744,8 @@ npm run build-city
 ### Streets and trees near the camera
 
 In the areas drawn in detail (`src/detail/areas.ts`: round Hötorget, and what the bridge out of
-Gamla stan looks out on), the streets, squares and trees are drawn too (`src/detail/streets.ts`):
+Gamla stan looks out on, from Riddarholmen to Slussen), the streets, squares and trees are drawn
+too (`src/detail/streets.ts`):
 
 ```sh
 npm run fetch-streets      # OSM's streets, squares and trees there -> data/osm/streets.json
@@ -761,9 +762,10 @@ npm run build-city
   the ground, at least 4.5 m up, kept where the crown is wide, filled and ragged as a tree's (not
   a lamp's, a roof's or a crane's), and not on bridges. The scan was flown in March 2021, so it
   misses the trees planted since; with `--google` they are also found in Google's mesh (the
-  green in it, measured over the scan's ground). Only their positions, heights and crown sizes
-  go in the repo. Gamla stan, Riddarholmen and Söder Mälarstrand have 178 trees, Hötorget 51,
-  and OpenStreetMap adds 13 the scan and the mesh missed.
+  green in it, measured over the scan's ground), and none is kept over OpenStreetMap's water
+  (Slussen's lock was a dry pit when the scan was flown). Only their positions, heights and crown
+  sizes go in the repo. The areas from Riddarholmen to Slussen have 219 trees, Hötorget 42, and
+  OpenStreetMap adds 13 the scan and the mesh missed.
 
 The walls are still drawn from OSM's tags or guessed. Notes on taking their colours and materials
 from Mapillary's street-level photos (CC BY-SA 4.0, unlike Google Street View) are in

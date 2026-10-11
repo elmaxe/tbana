@@ -8,6 +8,7 @@ import { HOTORGSCITY_WEST } from './hotorgscity.ts';
 import { KUNGSTORNEN } from './kungstornen.ts';
 import { PUB } from './pub.ts';
 import { detailMaterial } from './materials.ts';
+import { buildCycleBridge, buildGuldbron, buildKatarinahissen, buildMalartrappan, buildVattentorget, KATARINAHISSEN_OUTLINE, MALARTRAPPAN_OUTLINE } from './slussen.ts';
 import { inDetailArea } from './areas.ts';
 import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
@@ -38,6 +39,12 @@ const LANDMARKS: Landmark[] = [
   } },
   // the metro's bridge to Slussen: its railings, girders and walkway (the network draws the rest)
   { name: 'Söderströmsbron', outline: [], anchor: [580, 1100], build: buildMetroBridge },
+  // Slussen, in view east of the bridge (src/detail/slussen.ts)
+  { name: 'Lilla Söderströmsbron', outline: [], anchor: [600, 1062], build: buildCycleBridge },
+  { name: 'Guldbron', outline: [], anchor: [836, 1176], build: buildGuldbron },
+  { name: 'Vattentorget', outline: [], anchor: [780, 1160], build: buildVattentorget },
+  { name: 'Mälartrappan', outline: MALARTRAPPAN_OUTLINE, anchor: [700, 1210], build: buildMalartrappan },
+  { name: 'Katarinahissen', outline: KATARINAHISSEN_OUTLINE, anchor: [800, 1292], build: buildKatarinahissen },
 ];
 
 export interface TileDetail {

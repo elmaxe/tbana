@@ -2694,3 +2694,63 @@ function leafClumps(x: CanvasRenderingContext2D, S: number, n: number, seed: num
     }
   }
 }
+
+// ------------------------------------------------------------------ Slussen
+// Granite ashlar, as the new Slussen's quay walls and pavilions are clad: blocks about 1 × 0.5 m
+// in staggered courses, near white for the vertex colour to tint, with darker joints. Covers 2 × 2 m.
+export function graniteBlocks() {
+  const [c, x] = canvas(256);
+  const r = rng(71);
+  x.fillStyle = '#8e8a84'; x.fillRect(0, 0, 256, 256);
+  for (let row = 0; row < 4; row++) {
+    const off = row % 2 ? 64 : 0;
+    for (let k = -1; k < 3; k++) {
+      const v = 205 + Math.floor(r() * 40);
+      x.fillStyle = `rgb(${v},${v - 3},${v - 9})`;
+      x.fillRect(k * 128 + off + 2, row * 64 + 2, 124, 60);
+    }
+  }
+  speckle(x, 256, 256, 2500, 0.12, 72);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A railing of slender posts with a top rail and three wires, as along Guldbron's edges and the
+// new quays, on nothing (alpha test): one post every 2 m, the texture 2 m long and 1 m high.
+export function wireRails() {
+  const [c, x] = canvas(256, 128);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 7, 128);
+  x.fillRect(0, 0, 256, 9);
+  for (const y of [40, 72, 104]) x.fillRect(0, y, 256, 3);
+  return toTexture(c, { aniso: 4 });
+}
+
+// A steel lattice, as Katarinahissen's tower and the truss under its walkway: two uprights, a
+// bar across top and bottom and a cross of diagonals, on nothing (alpha test). One panel.
+export function lattice() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, 14, 256); x.fillRect(242, 0, 14, 256);
+  x.fillRect(0, 0, 256, 10); x.fillRect(0, 246, 256, 10);
+  x.lineWidth = 9; x.strokeStyle = '#ffffff';
+  x.beginPath(); x.moveTo(7, 5); x.lineTo(249, 251); x.moveTo(249, 5); x.lineTo(7, 251); x.stroke();
+  return toTexture(c, { aniso: 4 });
+}
+
+// The band of lights under Katarinahissen's walkway, red with a running line of pale letters
+// too small to read, which the material lights up by itself. Covers about 8 × 1 m.
+export function ledBand() {
+  const [c, x] = canvas(1024, 128);
+  const r = rng(77);
+  x.fillStyle = '#c81e2a'; x.fillRect(0, 0, 1024, 128);
+  x.fillStyle = '#ffd9d0';
+  let px = 20;
+  while (px < 1000) {
+    const w = 10 + Math.floor(r() * 18);
+    if (r() < 0.82) x.fillRect(px, 40, w, 48);
+    px += w + 8;
+  }
+  x.fillStyle = 'rgba(0,0,0,0.25)';
+  for (let y = 0; y < 128; y += 4) x.fillRect(0, y, 1024, 1);
+  return toTexture(c, { aniso: 4 });
+}

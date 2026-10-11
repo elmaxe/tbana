@@ -140,15 +140,27 @@ groundMeta.tiles.forEach(([i, j, base], t) => ground.set(`${i},${j}`, deltaDecod
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
   return null;
 }
+// Where the model has a hole for the ground (a square dug up when it was flown): the square's
+// level, which the ground is raised to where it is lower.
+function fillGround(x: number, z: number): number | null {
+  for (const o of groundFixes?.fill ?? []) if (inside([x, z], o.outline)) return o.ground;
+  return null;
+}
+// the model's ground with these fixes
+function fixed(x: number, z: number, g: number) {
+  const fill = fillGround(x, z), open = openGround(x, z);
+  if (fill !== null) g = Math.max(g, fill);
+  return open === null ? g : Math.min(g, open);
+}
 // whether the ground at (x, z) is paved though few buildings stand round it (a quay, a street under
 // a deck)
-const paved = (x: number, z: number) => openGround(x, z) !== null || (groundFixes?.paved ?? []).some((o) => inside([x, z], o.outline));
+const paved = (x: number, z: number) => openGround(x, z) !== null || fillGround(x, z) !== null || (groundFixes?.paved ?? []).some((o) => inside([x, z], o.outline));
 
 // the fetched ground at any point of the city (bilinear), or null outside it
 function groundAt(x: number, z: number): number | null {
@@ -159,8 +171,7 @@ function groundAt(x: number, z: number): number | null {
   const c = Math.min(N - 2, Math.floor(u)), r = Math.min(N - 2, Math.floor(v)), fu = u - c, fv = v - r;
   const k = r * N + c;
   const g = (1 - fv) * ((1 - fu) * h[k] + fu * h[k + 1]) + fv * ((1 - fu) * h[k + N] + fu * h[k + N + 1]);
-  const open = openGround(x, z);
-  return open === null ? g : Math.min(g, open);
+  return fixed(x, z, g);
 }
 
 // ------------------------------------------------------------------ water
@@ -459,11 +470,13 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
   };
   for (let k = 0; k + 1 < n; k++) {
     const ka = kindAt(k), kb = kindAt(k + 1);
-    // A tunnel whose ground (by the elevation model) is below half its height is a short covered
-    // way or one under a bridge the model leaves out: it stands in the open instead.
+    // A tunnel whose ground (by the elevation model, raised where a `fill` fix raises it) is below
+    // half its height is a short covered way or one under a bridge the model leaves out: it stands
+    // in the open instead.
     const buried = (i: number) => {
-      const g = p.ground[i];
       if (openGround(p.x[i], p.z[i]) !== null) return false;
+      const g0 = p.ground[i], fill = fillGround(p.x[i], p.z[i]);
+      const g = g0 === null ? null : fill === null ? g0 : Math.max(g0, fill);
       return g === null || g > p.y[i] + crownOf(kindAt(i), p.pair[i], platAt(i)) / 2;
     };
     // (the point at a mouth has the ground low: the segment into the tunnel from it is buried)
@@ -1167,8 +1180,7 @@ for (const [i, j] of groundMeta.tiles) {
   for (let r = 0; r < N; r++) {
     for (let c = 0; c < N; c++) {
       const k = r * N + c, x = i * CITY_TILE + c * STEP, z = j * CITY_TILE + r * STEP;
-      const open = openGround(x, z);
-      const [h, b] = shape(x, z, open === null ? h0[k] : Math.min(h0[k], open));
+      const [h, b] = shape(x, z, fixed(x, z, h0[k]));
       heights[k] = h;
       beside[k] = b ? 1 : 0;
       if (h < h0[k] - 0.01) lowered++;
