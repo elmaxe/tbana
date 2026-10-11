@@ -143,6 +143,12 @@
       "why": "OSM draws the open part of the island platform, 87 m long, and lengthening it about its middle put the platform 13 m north of the real one. Lantmäteriet's laser scan has the platform 148 m long, from the glazed hall on the bridge over Trollesundsvägen at its south end, and roofed for its southern 62 m; this point is its middle."
     },
     {
+      "station": "Högdalen",
+      "replace": true,
+      "at": [152482.5, 6572115.2],
+      "why": "OSM maps the two island platforms 117 m long, short of their southern 28 m under the roofs, and with the middle track between them as a platform track, which leaves it undrawn. Lantmäteriet's laser scan and Google's mesh have both platforms 145 m long, from the stair houses at their south end, with the middle track (no service stops there; it leads to the depot) running between them; this point is their middle, on the middle track."
+    },
+    {
       "station": "Blackeberg",
       "extend": true,
       "why": "OSM draws the island platform about 60 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."

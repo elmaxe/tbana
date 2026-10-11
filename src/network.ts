@@ -693,12 +693,24 @@ export class Network {
       sweep(b[pave] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
         const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
+        // (one out to a middle track: to halfway, and the far half from that track's edge, below)
+        if (p.reach) return { key: `h${p.side}`, pts: p.side > 0 ? [[e, H], [(e + o) / 2, H]] : [[(e + o) / 2, H], [e, H]] };
         return { key: `p${p.side}`, pts: p.side > 0 ? [[e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H]] };
       }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.PAVING_ACROSS, vScale: 1 / T.PAVING_REPEAT });
+      sweep(b[pave], run, (sm) => {
+        if (!mine(sm) || !sm.plat!.reach) return null;
+        const p = sm.plat!, o = platformOuter(sm), m = (p.side * S.PLATFORM_EDGE + o) / 2;
+        return { key: `r${p.side}`, pts: p.side > 0 ? [[m, H], [o, H]] : [[o, H], [m, H]] };
+      }, { u: (u, _, __, sm) => (Math.abs(platformOuter(sm)) - Math.abs(u)) / T.PAVING_ACROSS, vScale: 1 / T.PAVING_REPEAT });
       sweep(b[face] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
         const e = sm.plat!.side * S.PLATFORM_EDGE;
         return { key: `f${sm.plat!.side}`, pts: sm.plat!.side > 0 ? [[e, S.FLOOR], [e, H]] : [[e, H], [e, S.FLOOR]] };
+      }, { u: (_, v) => (v - S.FLOOR) / (H - S.FLOOR), vScale: 1 / T.FACE_REPEAT });
+      sweep(b[face], run, (sm) => {
+        if (!mine(sm) || !sm.plat!.reach) return null;
+        const o = platformOuter(sm);
+        return { key: `g${sm.plat!.side}`, pts: sm.plat!.side > 0 ? [[o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H]] };
       }, { u: (_, v) => (v - S.FLOOR) / (H - S.FLOOR), vScale: 1 / T.FACE_REPEAT });
     }
     sweep(b.yellow, run, (sm) => {
@@ -1437,6 +1449,9 @@ function across(sm: Sample) {
 function platformOuter(sm: Sample) {
   const p = sm.plat!, v = across(sm);
   if (v) return v / 2 + p.side * OVERLAP;
+  // out to the middle track's edge (its distance is positive: no service runs on it)
+  const d = p.side > 0 ? sm.right : sm.left;
+  if (p.reach && d > 0) return p.side * (d - S.PLATFORM_EDGE);
   return p.side * (S.PLATFORM_EDGE + p.width);
 }
 

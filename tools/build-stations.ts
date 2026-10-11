@@ -10,7 +10,8 @@
 // OpenStreetMap's subway entrances. Points are [s, u] in the station's frame: s metres along the
 // platforms from their middle (towards `axis`, by default north or east), u metres to the right.
 // Heights are metres above the platform. An exit comes up to the street at the entrance, at the
-// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts), with a sign
+// height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts, or a deck's
+// in data/ground-corrections.json), with a sign
 // on a post beside it (`sign: false`, none: the station's name is over its doors).
 //
 // The build fails on:
@@ -28,6 +29,7 @@ import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT } from '../src/
 import { CANOPY_HEIGHT, ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
 import type { CanopyPart, Exit, FloorPart, InclinePart, Part, StationLayout, StreetPart, VoidPart, XYZ } from '../src/station-layout.ts';
 import { interp } from './lib/graph.ts';
+import { deckAt } from './lib/decks.ts';
 import { CITY_TILE, deltaDecode } from '../src/city-tile.ts';
 
 const DESCRIPTIONS = 'data/station-descriptions.json';
@@ -126,8 +128,11 @@ function cityGroundAt(x: number, z: number) {
 }
 
 // the ground at x, z: from the nearest entrance's square that covers it, or the station's; or, for
-// an exit beyond them all (`far`), the city's
+// an exit beyond them all (`far`), the city's; on a deck over the tracks, which the elevation model
+// leaves out, the deck (data/ground-corrections.json)
 function groundAt(station: string, x: number, z: number, far = false) {
+  const deck = deckAt(x, z);
+  if (deck !== null) return deck;
   const near = ground.entrances.map((e) => ({ e, d: Math.max(Math.abs(e.x - x), Math.abs(e.z - z)) })).sort((a, b) => a.d - b.d);
   for (const { e } of near.slice(0, 3)) {
     const h = patchHeight(e, x, z);

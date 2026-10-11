@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone } from './open-styles';
+import type { Block, ButterflyRoof, Chairs, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, OpenStyle, Panels, Room, Roundel, Ruler, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -222,7 +222,8 @@ export class OpenLook {
     if (!roof) return;
     const frame = new Frame(st), line = new Line(frame, canopy, roof.offset, roof.shape);
     this.butterfly(st.name, roof, style, line, on, cut, group);
-    for (const R of style.roofs ?? []) this.butterfly(st.name, R, style, new Line(frame, canopy, R.offset, R.shape), on, cut, group);
+    const lines = (style.roofs ?? []).map((R) => new Line(frame, canopy, R.offset, R.shape));
+    (style.roofs ?? []).forEach((R, k) => this.butterfly(st.name, R, style, lines[k], on, cut, group));
     for (const a of style.art ?? []) {
       if (a.kind === 'guardian') this.guardian(a, line, on);
       else if (a.kind === 'stacks') this.stacks(a, line, on);
@@ -232,11 +233,13 @@ export class OpenLook {
       else if (a.kind === 'cone') this.cone(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
-    const B = style.benches;
-    for (const s of B?.at ?? []) {
-      if (B!.across) this.benchAcross(s, line, on);
-      else if (B!.double) this.benchDouble(s, line, on, B!.wood);
-      else this.bench(s, line, on);
+    for (const B of [style.benches ?? []].flat()) {
+      const row = B.roof === undefined ? line : lines[B.roof];
+      for (const s of B.at) {
+        if (B.across) this.benchAcross(s, row, on);
+        else if (B.double) this.benchDouble(s, row, on, B.wood);
+        else this.bench(s, row, on);
+      }
     }
   }
 
@@ -265,6 +268,7 @@ export class OpenLook {
       else if (a.kind === 'ruler') this.ruler(a, frame, on);
       else if (a.kind === 'stone') this.stone(a, frame, on);
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
+      else if (a.kind === 'tulip') this.tulip(a, frame, on);
     }
   }
 
@@ -352,6 +356,61 @@ export class OpenLook {
   private roundColumns(a: Columns, frame: Frame, on: On) {
     const m = on(this.color(a.color, 0.85, 0));
     for (const [s, u] of a.at) limb(m, frame.at(s, u, a.from), frame.at(s, u, a.to), a.size, a.size);
+  }
+
+  // Birgitta Muhr's tulips (Uppväxter, 2002): a ring of setts, a leaf rising from the foot behind
+  // the stem and twisting, the stem curving up to the flower, a cup of six petals.
+  private tulip(a: Tulip, frame: Frame, on: On) {
+    const H = a.height, cd = Math.cos(a.turn), sd = Math.sin(a.turn);
+    // forward (the way it leans), across, and up, in the station's frame: [s, u, h]
+    const at = (fwd: number, side: number, h: number): XYZ => frame.at(a.s + cd * fwd - sd * side, a.u + sd * fwd + cd * side, h);
+    const setts = on(this.mat('cobbles', () => new THREE.MeshStandardMaterial({ map: T.cobbles(), roughness: 0.9, side: THREE.DoubleSide })));
+    const ring = 20, R = 0.9;
+    setts.poly(Array.from({ length: ring }, (_, i) => {
+      const k = (i / ring) * Math.PI * 2, p = at(Math.cos(k) * R, Math.sin(k) * R, 0.012);
+      return [...p, Math.cos(k) * R * 2, Math.sin(k) * R * 2];
+    }));
+    const bronze = on(this.color(0x47705f, 0.55, 0.45)), red = on(this.color(0xc4231f, 0.3, 0.1));
+    // the stem: leaning forward, and nodding further near the top
+    const top = H - 0.42, stem = (h: number) => 0.06 * h + 0.32 * (h / top) ** 3;
+    const n = 8;
+    for (let k = 0; k < n; k++) {
+      const h0 = (top * k) / n, h1 = (top * (k + 1)) / n;
+      limb(bronze, at(stem(h0), 0, h0), at(stem(h1), 0, h1), 0.09 - 0.03 * (k / n), 0.09 - 0.03 * ((k + 1) / n));
+    }
+    // the leaf: a blade from the foot, behind the stem, up to 0.62 of its height, broadest low
+    // down, sweeping back and turning its face as it climbs
+    const L = 0.62 * H, m = 10;
+    const leaf = (t: number, e: number): XYZ => {
+      const w = 0.28 * Math.sin(Math.PI * t) ** 0.8 * (1 - 0.45 * t), q = 1.3 * t;
+      const back = -0.04 - 0.3 * t * t, side = 0.06 * t;
+      return at(back + Math.sin(q) * w * e, side + Math.cos(q) * w * e, 0.03 + L * t);
+    };
+    for (let k = 0; k < m; k++) {
+      const t0 = k / m, t1 = (k + 1) / m;
+      bronze.poly([[...leaf(t0, -1), 0, t0], [...leaf(t1, -1), 0, t1], [...leaf(t1, 1), 1, t1], [...leaf(t0, 1), 1, t0]]);
+    }
+    // the flower: six petals in a cup, narrow at its foot, its rim pointed at each petal's tip,
+    // tilted with the stem's top
+    const base = at(stem(top), 0, top), tip = at(stem(top + 0.1), 0, top + 0.1);
+    const ax = [tip[0] - base[0], tip[1] - base[1], tip[2] - base[2]], al = Math.hypot(ax[0], ax[1], ax[2]);
+    const up = ax.map((v) => v / al);
+    const e1 = Math.abs(up[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+    let p = [up[1] * e1[2] - up[2] * e1[1], up[2] * e1[0] - up[0] * e1[2], up[0] * e1[1] - up[1] * e1[0]];
+    const pl = Math.hypot(p[0], p[1], p[2]);
+    p = p.map((v) => v / pl);
+    const q2 = [up[1] * p[2] - up[2] * p[1], up[2] * p[0] - up[0] * p[2], up[0] * p[1] - up[1] * p[0]];
+    const seg = 24, rows = 7, cup = 0.46;
+    const P = (i: number, j: number) => {
+      const k = (i / seg) * Math.PI * 2, t = j / rows;
+      // (the petals' lobes round the cup, and their tips at the rim)
+      const lobe = 0.5 + 0.5 * Math.cos(k * 3) ** 2, r = (0.05 + 0.15 * Math.sin(Math.PI * Math.min(1, t * 0.85 + 0.12))) * (0.92 + 0.08 * lobe);
+      const h = cup * t * (j === rows ? 0.86 + 0.14 * Math.cos(k * 3) ** 8 : 1);
+      return [base[0] + up[0] * h + (p[0] * Math.cos(k) + q2[0] * Math.sin(k)) * r, base[1] + up[1] * h + (p[1] * Math.cos(k) + q2[1] * Math.sin(k)) * r,
+        base[2] + up[2] * h + (p[2] * Math.cos(k) + q2[2] * Math.sin(k)) * r, i / seg, t];
+    };
+    for (let i = 0; i < seg; i++) for (let j = 0; j < rows; j++) red.poly([P(i, j), P(i, j + 1), P(i + 1, j + 1), P(i + 1, j)]);
+    red.poly(Array.from({ length: seg }, (_, i) => P(seg - i, 0)));
   }
 
   // polished aluminium, crazed

@@ -19,6 +19,10 @@ export const ISLAND_WIDTH = 9;
 export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20 };
 export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
+// stations whose two platforms each reach across to a middle track between them that no service
+// stops at (Högdalen's, to the depot): each platform's far edge follows that track, its width the
+// gap between the two
+export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen']);
 
 export const GAUGE = 1.435;
 export const RAIL = { head: 0.07, height: 0.15 };

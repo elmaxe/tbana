@@ -1656,17 +1656,36 @@
     },
     "Högdalen": {
       "drawing": "hogdalen.png",
-      "note": "Two platforms either side of a middle track, which isn't drawn: the platforms are joined across it. At the south end the platform leads out to the ticket hall at the street.",
+      "note": "Two island platforms in a shallow cutting, a middle track to the depot between them that no train stops at. At their south ends each runs into a stair house under the library's building: in the western one stairs and a lift, in the eastern one an escalator, stairs and a lift, up to the ticket hall in the building at the street. From the gates the way out is south through its doors onto Högdalsgången. From the laser scan (the platforms 145 m long, the stair houses' roofs climbing with the stairs from the platforms' roofs to the building, the building from 94 m to 112 m south of the platforms' middle, the street 5.6 m over the platforms), OpenStreetMap's indoor mapping (the flights from 79 m to 92 m south, the gates at 103 m) and photographs (2008 to 2026).",
       "routes": [
-        { "from": [-65, 0], "width": 4.6, "go": [
-          {"walk": [40, 0], "open": true}
+        { "from": [-72.5, -4.35], "width": 3.4, "go": [
+          {"walk": [-80.0, -4.35], "open": true},
+          {"stairs": 5.6, "to": [-92.3, -4.35], "lanes": "Ss"},
+          {"walk": [-96.5, -4.35], "open": true}
         ] },
-        { "from": [-49.87436714794674, -1.2], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -1.2]},
-          {"walk": [-66.0, -1.2], "width": 6},
-          {"walk": [-66.0, -18.4], "width": 4},
+        { "from": [-72.5, -7.25], "width": 2.2, "go": [
+          {"walk": [-90.5, -7.25], "open": true},
+          {"lift": 5.6, "above": 3.2, "through": true},
+          {"walk": [-96.5, -7.25], "open": true}
+        ] },
+        { "from": [-72.5, 4.25], "width": 3.6, "go": [
+          {"walk": [-80.0, 4.25], "open": true},
+          {"escalators": 5.6, "to": [-92.3, 4.25], "lanes": "ES"},
+          {"walk": [-96.5, 4.25], "open": true}
+        ] },
+        { "from": [-72.5, 7.15], "width": 2.0, "go": [
+          {"walk": [-90.5, 7.15], "open": true},
+          {"lift": 5.6, "above": 3.2, "through": true},
+          {"walk": [-96.5, 7.15], "open": true}
+        ] },
+        { "from": [-97.6, -8.4], "h": 5.6, "width": 4.0, "go": [
+          {"walk": [-97.6, 8.2], "open": true}
+        ] },
+        { "from": [-96.5, -1.5], "h": 5.6, "width": 6.0, "go": [
+          {"walk": [-103.3, -1.5], "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -32.4], "name":  "Högdalen"}}
+          {"walk": [-113.6, -1.5], "open": true},
+          {"exit": {"at": [-118.0, -1.5], "name": "Högdalsgången"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

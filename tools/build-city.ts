@@ -4,10 +4,12 @@
 //
 // Reads data/ground/city.json and city.bin.gz (tools/fetch-terrain.ts), data/osm/buildings.json
 // (tools/fetch-city.ts) with the fixes to it in data/building-corrections.json,
+// data/ground-corrections.json,
 // public/data/track-geometry.json and public/data/station-layouts.json;
 // writes public/data/city/ (see src/city-tile.ts).
 //
-// The ground is the elevation model, shaped where the track runs:
+// The ground is the elevation model (with the decks over the tracks it leaves out, from
+// data/ground-corrections.json), shaped where the track runs:
 // - Under open track it is lowered below the formation (the bank, the cutting's floor, the bridge
 //   deck's underside), and rises from a metre beyond the structure at the bank's slope until it
 //   meets the ground: the track runs in a shallow cutting wherever the ground is higher than it.
@@ -70,6 +72,7 @@ import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
 import * as S from '../src/sections.ts';
 import { buildRoof } from './lib/roofs.ts';
+import { deckAt } from './lib/decks.ts';
 
 const OUT = 'public/data/city';
 // over tunnels: the ground at least this far above the crown
@@ -128,6 +131,14 @@ const N = groundMeta.n, STEP = groundMeta.step;
 const raw = new Int16Array(gunzipSync(readFileSync('data/ground/city.bin.gz')).buffer.slice(0));
 const ground = new Map<string, Float32Array>();
 groundMeta.tiles.forEach(([i, j, base], t) => ground.set(`${i},${j}`, deltaDecode(raw.subarray(t * N * N, (t + 1) * N * N), N, base)));
+// (on a deck over the tracks, which the model leaves out, the deck: data/ground-corrections.json)
+for (const [key, h] of ground) {
+  const [i, j] = key.split(',').map(Number);
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const d = deckAt(i * CITY_TILE + c * STEP, j * CITY_TILE + r * STEP);
+    if (d !== null) h[r * N + c] = d;
+  }
+}
 
 // the fetched ground at any point of the city (bilinear), or null outside it
 function groundAt(x: number, z: number): number | null {

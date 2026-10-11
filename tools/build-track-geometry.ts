@@ -3,9 +3,9 @@
 //
 //   node tools/build-track-geometry.ts
 //
-// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json,
-// data/height-corrections.json and the station models; writes public/data/track-geometry.json
-// (format in src/track-geometry.ts).
+// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json
+// (with data/ground-corrections.json's decks), data/height-corrections.json and the station
+// models; writes public/data/track-geometry.json (format in src/track-geometry.ts).
 //
 // The plan. OpenStreetMap's track is traced from aerial photos in the open, but sketched in the
 // tunnels: there the two tracks of a line wander 4 to 35 m apart, where the line was built with
@@ -47,7 +47,8 @@ import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
-import { ISLAND_WIDTH, ISLAND_WIDTHS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
+import { ISLAND_WIDTH, ISLAND_WIDTHS, MIDDLE_TRACK_STATIONS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
+import { deckAt } from './lib/decks.ts';
 import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
@@ -694,8 +695,11 @@ for (const g of ground) {
   const list = groundGrid.get(key);
   if (list) list.push(g); else groundGrid.set(key, [g]);
 }
-// the nearest sample within `reach`, or the mean of those within it
+// the nearest sample within `reach`, or the mean of those within it (on a deck over the tracks,
+// which the elevation model leaves out, the deck: data/ground-corrections.json)
 function groundAt(x: number, z: number, reach: number, mean = false) {
+  const deck = deckAt(x, z);
+  if (deck !== null) return deck;
   let best: number | null = null, bestD = reach, sum = 0, n = 0;
   const r = Math.ceil(reach / 10);
   for (let i = Math.floor(x / 10) - r; i <= Math.floor(x / 10) + r; i++) for (let j = Math.floor(z / 10) - r; j <= Math.floor(z / 10) + r; j++) {
@@ -923,7 +927,8 @@ for (const [id, list] of besideAt) {
 console.log(`${besideShared} points share a box with another line's track beside them`);
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
-// another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track.
+// another platform is as wide as SIDE_PLATFORM_WIDTH, or as fits before the next track, or at a
+// station with a middle track (MIDDLE_TRACK_STATIONS) reaches to that track (`reach`).
 // The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
@@ -964,9 +969,10 @@ for (const p of pieces) {
     }
     found.sort((a, b) => a.lateral - b.lateral);
     const { lateral: across, island } = found.length ? found[Math.floor(found.length / 2)] : { lateral: Infinity, island: false };
-    const width = island ? across - 2 * PLATFORM_EDGE : Math.min(SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
+    const reach = !island && MIDDLE_TRACK_STATIONS.has(r.station);
+    const width = island || reach ? across - 2 * PLATFORM_EDGE : Math.min(SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
-    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island });
+    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island, ...(reach ? { reach } : {}) });
   }
 }
 if (dropped.length) console.warn(`platforms with no room beside their track, not drawn: ${dropped.join(', ')}`);

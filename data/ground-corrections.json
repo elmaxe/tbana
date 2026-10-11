@@ -1,0 +1,17 @@
+{
+  "note": "Fixes to the ground (Lantmäteriet's Markhöjdmodell, data/ground), for tools/build-city.ts and tools/build-stations.ts, each with its reason. `decks`: a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "decks": [
+    {
+      "name": "Högdalen: Högdalsgången",
+      "outline": [-958.5, 7575.5, -978.8, 7618.7, -931.1, 7641.2, -910.9, 7598.0],
+      "heights": [39.46, 39.06, 38.4, 38.8],
+      "why": "South of Högdalen's platforms the tracks run on in a covered cutting, from under the station's building to 68 m south of its north face, under the square and the street in front of it, Högdalsgången. The elevation model has the cutting's floor there, 7 m under the square, which left the square a mound over the tunnels and the station's way out leading down into the cutting. The laser scan has the deck (its points classed as a bridge's) from the building's south face to 48 m south of it and 52 m across, falling from 39.45 m at its north-west corner to 38.4 m at its south-east (a plane fits its points to 7 cm), the ground beside it at 38.8–39.6 m."
+    },
+    {
+      "name": "Högdalen: under the station's building",
+      "outline": [-957.9, 7575.9, -950.0, 7559.1, -904.8, 7580.4, -912.7, 7597.1],
+      "heights": [38.7, 38.7, 38.7, 38.7],
+      "why": "The station's building stands over the tracks' covered cutting, north of Högdalsgången's deck, and the elevation model has the cutting's floor under it too, so the ground in front of its south face fell into a trench. Under the building (its outline from the laser scan's roof) the ground is level just under its floor over the tracks, 5.6 m over the platforms, where the street at its doors is."
+    }
+  ]
+}

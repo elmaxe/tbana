@@ -2909,9 +2909,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
   greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
   greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
+  silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -3564,6 +3565,61 @@ export function finish(name: Finish) {
       x.fillStyle = '#e8e6e0'; x.fillRect(0, 0, W, H);
       speckle(x, W, H, 9000, 0.12, 76); speckle(x, W, H, 6000, 0.15, 77, true);
       break;
+    case 'silverPerforated': {
+      // Högdalen's stair houses: silver-grey sheet-metal panels 1.2 m wide and 3 m high, finely
+      // perforated inside a plain margin, in dark joints
+      const m = 0.05 * PX;
+      x.fillStyle = '#5f6468'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#b3b8bc'; x.fillRect(1.5, 1.5, W - 3, H - 3);
+      x.fillStyle = 'rgba(64,70,76,0.5)';
+      for (let j = m; j < H - m; j += 4) for (let i = m + ((j - m) % 8 ? 2 : 0); i < W - m; i += 4) x.fillRect(i, j, 1.4, 1.4);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(2, 2, W - 4, 1.5); x.fillRect(2, 2, 1.5, H - 4);
+      break;
+    }
+    case 'libraryFront':
+    case 'libraryBack':
+    case 'libraryEntrance': {
+      // Högdalen's building over its square, from the street up: to 3.6 m shop fronts of glass in
+      // steel frames on a dark plinth, a dark band where the canopy meets the wall (or plain
+      // white panels, the back's; or glass doors in brushed steel under SL's dark blue band and
+      // yellow line, the entrance's); then white panels, a band of windows from 5.2 m to 7.2 m,
+      // each in a white frame beside a dark blue pier, and white panels up to the coping
+      const st = '#a9aeb1', white = '#e9eae6', blue = '#24407a';
+      band(0, 8.3, white);
+      if (name === 'libraryFront') {
+        const shop = x.createLinearGradient(0, Y(3.6), 0, Y(0.15));
+        shop.addColorStop(0, '#a9b6bd'); shop.addColorStop(0.55, '#cbc5b5'); shop.addColorStop(1, '#8f9a9f');
+        x.fillStyle = shop; x.fillRect(0, Y(3.6), W, 3.45 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0.1 * PX, Y(3.5), W * 0.3, 3.2 * PX);
+        x.fillStyle = st; x.fillRect(0, Y(3.6), 0.06 * PX, 3.45 * PX); x.fillRect(W - 0.06 * PX, Y(3.6), 0.06 * PX, 3.45 * PX);
+        x.fillRect(W / 2 - 0.03 * PX, Y(3.6), 0.06 * PX, 3.45 * PX); x.fillRect(0, Y(2.6), W, 0.05 * PX);
+        band(0, 0.15, '#55595c'); band(3.6, 3.9, '#3d4043');
+      } else if (name === 'libraryEntrance') {
+        band(0, 0.1, st); pane(0.1, 2.5, st, 0.14);
+        x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.5), 0.08 * PX, 2.4 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+        band(2.5, 2.6, st); band(2.6, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.9, '#3d4043');
+      } else {
+        x.fillStyle = 'rgba(70,72,74,0.4)';
+        for (const k of [0, 0.5]) x.fillRect(k * W, Y(3.9), 2, 3.9 * PX);
+        x.fillRect(0, Y(2.0), W, 2);
+        band(0, 0.3, '#8e8b85');
+      }
+      // the white panels' joints
+      x.fillStyle = 'rgba(70,72,74,0.35)';
+      for (const y of [4.55, 5.2, 7.75]) x.fillRect(0, Y(y), W, 2);
+      for (const k of [0, 0.5]) { x.fillRect(k * W, Y(5.2), 2, 1.3 * PX); x.fillRect(k * W, Y(8.3), 2, 1.1 * PX); }
+      // the windows (their glass the sky's), each beside its pier
+      band(5.2, 7.2, blue);
+      const g = x.createLinearGradient(0, Y(7.1), 0, Y(5.3));
+      g.addColorStop(0, '#a9bccb'); g.addColorStop(0.5, '#7f909c'); g.addColorStop(1, '#8c9aa4');
+      const x0 = 0.45 * PX, ww = W - x0 - 0.02 * PX;
+      x.fillStyle = '#f2f2ee'; x.fillRect(x0, Y(7.15), ww, 1.9 * PX);
+      x.fillStyle = g; x.fillRect(x0 + 0.06 * PX, Y(7.09), ww - 0.12 * PX, 1.78 * PX);
+      x.fillStyle = '#f2f2ee'; x.fillRect(x0 + ww / 2 - 0.03 * PX, Y(7.09), 0.06 * PX, 1.78 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(x0 + 0.1 * PX, Y(7.05), ww * 0.25, 1.7 * PX);
+      band(8.15, 8.3, '#b8bab8');
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -3572,7 +3628,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
