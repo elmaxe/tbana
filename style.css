@@ -41,6 +41,16 @@ kbd {
 .dep .ln { color: #fff; border-radius: 4px; min-width: 30px; text-align: center; font-size: 13px; padding: 1px 4px; }
 .dep .ds { flex: 1; }
 #minimap { position: absolute; right: 14px; top: 14px; width: 180px; height: 180px; }
+/* where the player is, under the minimap: the station, the platform's trains, or the train ridden */
+#mapCaption {
+  position: absolute; right: 14px; top: 200px; width: 230px; padding: 6px 10px; border-radius: 6px;
+  background: rgba(10, 12, 17, 0.75); font-size: 13px; line-height: 1.5;
+}
+#mapCaption > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#mapCaption > .row { display: flex; align-items: baseline; gap: 6px; white-space: normal; line-height: 1.3; margin-top: 3px; }
+#mapCaption .ln { display: inline-block; flex: none; color: #fff; border-radius: 4px; min-width: 24px; padding: 0 5px; text-align: center; font-weight: 600; font-size: 12px; line-height: 1.5; }
+#mapCaption .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+#mapCaption .mu { color: var(--muted); }
 #crosshair {
   position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
   border-radius: 50%; background: rgba(255, 255, 255, 0.65); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4);
@@ -110,6 +120,7 @@ body.touch #stickHint {
 body.touch #where { left: calc(70px + env(safe-area-inset-left)); top: calc(14px + env(safe-area-inset-top)); }
 body.touch #departures { left: calc(70px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); }
 body.touch #minimap { right: calc(14px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top)); }
+body.touch #mapCaption { right: calc(14px + env(safe-area-inset-right)); top: calc(200px + env(safe-area-inset-top)); }
 body.touch #prompt { top: auto; bottom: calc(140px + env(safe-area-inset-bottom)); right: calc(14px + env(safe-area-inset-right)); left: auto; transform: none; }
 
 .mouseonly-block, .mouseonly { display: block; }
@@ -124,9 +135,9 @@ body.touch #teleports kbd { display: none; }
 
 #bigmapWrap {
   position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(8, 10, 14, 0.92);
+  background: rgba(8, 10, 14, 0.92); touch-action: none;
 }
-#bigmap { width: 90vw; height: 85vh; }
+#bigmap { width: 90vw; height: 85vh; cursor: grab; }
 #bigmapWrap p { margin: 6px 0 0; color: var(--muted); }
 
 /* ---------------------------------------------------------------- overlay */
@@ -205,6 +216,8 @@ ul { list-style: none; margin: 0; padding: 0; }
   .sub { margin-bottom: 12px; font-size: 13px; }
   h2 { margin-top: 12px; }
   #minimap { width: 112px; height: 112px; }
+  #mapCaption { top: 132px; width: 180px; font-size: 12px; padding: 4px 8px; }
+  body.touch #mapCaption { top: calc(132px + env(safe-area-inset-top)); }
   #where { font-size: 13px; padding: 5px 10px; }
   #departures { min-width: 0; font-size: 13px; max-width: calc(100vw - 210px); }
   .credit { font-size: 11.5px; }

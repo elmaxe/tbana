@@ -552,6 +552,15 @@ export class Trains {
     return this.calls.filter((c) => c.tr.platform.rec === platformRec).flatMap((c) => this.next(c)).sort((a, b) => a.eta - b.eta);
   }
 
+  // The trains calling at each track beside a station model's platform: the line, its number and
+  // where it goes (for the map's caption, src/minimap.ts).
+  callsAt(platformRec: SurfaceRecord): { line: LineId; number: string; dest: string }[][] {
+    return this.calls.filter((c) => c.tr.platform.rec === platformRec).map((c) => [
+      ...(c.shuttle?.shuttle?.destSet ?? []).map(([number, dest]) => ({ line: c.tr.line, number, dest })),
+      ...c.stops.map(({ route }) => ({ line: route.line, number: route.dest[0], dest: route.dest[1] })),
+    ]);
+  }
+
   // Next departures from a station of the network, both ways, by its name.
   departuresAt(station: string) {
     const out: Departure[] = [];

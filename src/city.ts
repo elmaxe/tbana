@@ -210,6 +210,11 @@ export class City {
 
   get loaded() { return [...this.tiles.values()].filter((t) => t.group).length; }
 
+  // The tiles fetched, for the map (src/minimap.ts): their corner and what is in them.
+  *fetched(): Generator<{ key: string; x0: number; z0: number; data: CityTile }> {
+    for (const t of this.tiles.values()) if (t.state === 'ready' && t.data) yield { key: `${t.i},${t.j}`, x0: t.x0, z0: t.z0, data: t.data };
+  }
+
   private drop(t: Tile) {
     if (!t.group) return;
     this.group.remove(t.group);
