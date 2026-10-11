@@ -3,9 +3,10 @@
 // has (its pages, scripts and styles, and public/ as copied) and a hash of each in front of it.
 //
 // The worker is only stripped of its types, not bundled, so it can import types and nothing else.
-// It is read from the build's root, so a pull request's preview gets the PR's worker.
+// It is read from the build's root, so a pull request's preview gets the PR's worker (or none, from
+// before there was one).
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { transformWithOxc } from 'vite';
 import type { Plugin, ResolvedConfig } from 'vite';
@@ -35,6 +36,9 @@ export function serviceWorker(): Plugin {
     enforce: 'post',
     configResolved(c) { config = c; },
     async generateBundle(_, bundle) {
+      // pull requests branched before there was a worker are built with this config too
+      const src = join(config.root, 'src/sw.ts');
+      if (!existsSync(src)) return;
       const files: Record<string, string> = {};
       for (const out of Object.values(bundle)) files[out.fileName] = hash(out.type === 'chunk' ? out.code : out.source);
       if (config.publicDir && config.build.copyPublicDir) {
@@ -43,7 +47,6 @@ export function serviceWorker(): Plugin {
           if (!LOCAL_ONLY.some((p) => name.startsWith(p))) files[name] = hash(readFileSync(path));
         }
       }
-      const src = join(config.root, 'src/sw.ts');
       const { code } = await transformWithOxc(readFileSync(src, 'utf8'), src);
       // a service worker is a script, not a module: without the `export {}` left where the
       // imports of types were
