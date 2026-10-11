@@ -5,8 +5,9 @@ import type { CavePaint } from './textures';
 // vault in rock or box of concrete: Hötorget, as it has looked since 1952, with Gun Gordillo's
 // neon (1998); Farsta strand, under the centre built over it; Karlaplan, as it has looked since
 // 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; Östermalmstorg, with
-// Siri Derkert's lines in its concrete walls (1965); and Skanstull, the trams' station of 1933,
-// on its beams.
+// Siri Derkert's lines in its concrete walls (1965); Skanstull, the trams' station of 1933,
+// on its beams; and Medborgarplatsen, the other of 1933, with its enamelled columns and the
+// vault of its lengthening in 1950.
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -55,16 +56,27 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // `boards`: departure boards hung across the platform `boards.from` columns either side of the
 // middle one, over each half of the platform the board for the trains along the track beside it
 // (`east`: the track on the east side, or on the south side of a hall running east–west).
+// Medborgarplatsen's differs: no beams across (`beams.between` null), the beam along painted
+// `beams.color`; `rings` on the columns, enamelled bands of `rings.colors` from the top down,
+// each `rings.width` high and `rings.pitch` apart, the first `rings.top` high; the station's name
+// on long signs hung along each edge of the platform, over the way to its exits (`signs.ways`),
+// rather than across it; and its `vault`: from the point `from` on (in the scene's metres, the
+// way `toward` lies from it) the hall vaulted rather than flat, the walls rising to the soffit
+// and the vault to `crown` over the middle of the platform, painted `color`, with a row of lamps
+// on a rail along it either side of the middle, `lamps` from it; where it meets the flat part,
+// a black wall over the flat ceiling with a pale triangle in its middle, point down.
 export interface BeamedHall {
   kind: 'beams';
   walls: { color: number; tile: number; from: number; posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number } };
-  beams: { depth: number; width: number; between: number; along: number };
+  beams: { depth: number; width: number; between: number | null; along: number; color?: number };
   ceiling: number;
   column: number;
+  rings?: { colors: number[]; top: number; width: number; pitch: number };
   paving: Paving;
-  signs: { every: number; at: number };
+  signs: { every: number; at: number; ways?: string };
   clocks?: boolean;
   boards?: { from: number; east: Board; west: Board };
+  vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number };
 }
 export interface Board { toward: string; trains: [string, string] }
 
@@ -128,6 +140,24 @@ export interface VaultHall {
 // white ones along its edge and a ribbed strip inside it. Heights are read off photographs (2013)
 // against the trains (C20, 3.68 m tall): the ceiling about 4.4 m over the rails, the beams'
 // undersides about 4.0, the posters almost from the black band up to them.
+//
+// Medborgarplatsen: opened with Skanstull on 1 October 1933 as Södra Bantorget, renamed in 1944,
+// and lengthened northwards for the metro in 1949–50, into the rock under the rising ground
+// (Swedish Wikipedia). An island platform 145 m long, about eight metres under Götgatan's eastern
+// side. Its southern part is the trams' concrete box: a flat cream ceiling with no beams across,
+// a navy beam along the middle of the platform on one row of round columns, enamelled royal blue
+// (after they were tagged so often) with Gunnar Söderström's eight bands of colour round them,
+// red, orange, yellow, two greens, teal, light blue and maroon; long lamps over each edge of the
+// platform. Its northern part, the lengthening, is vaulted: the walls rise as high, and a shallow
+// vault in cream panels spans both tracks, two rows of lamps along it on rails; where it meets
+// the flat part, a black wall over the flat ceiling with a pale grey triangle in its middle. All
+// along, the track walls are glossy yellow tiles, partly the 1930s', over a black band, with
+// posters in groups; the platform is grey terrazzo, a dark strip with brass studs and white tiles
+// along the edge; long black signs hang along both edges with the name and the ways out.
+// Photographs (2009–2025): heights read against people and the walls' posters, so approximate:
+// the ceiling about 4.2 m over the rails, the vault's crown about 6. Where the vault begins, 6 m
+// beyond the foot of the stairs from the northern ticket hall, is inferred from photographs
+// looking along it, which show no stairs in it.
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
     kind: 'flat',
@@ -190,6 +220,34 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         east: { toward: 'Farsta strand · Hagsätra · Skarpnäck', trains: ['17 Skarpnäck  2 min', '19 Hagsätra  7 min'] },
         west: { toward: 'T-Centralen · Hässelby', trains: ['19 Hässelby strand  4 min', '18 Alvik  6 min'] },
       },
+    },
+  },
+  'Medborgarplatsen': {
+    kind: 'flat',
+    soffit: 4.2,
+    ceiling: 4.2,
+    step: 0,
+    columns: { fromEdge: 3, size: 0.5, spacing: 5.2, round: true, middle: true },
+    finish: {
+      kind: 'beams',
+      walls: { color: 0xcfae48, tile: 0.15, from: 1.45, posters: { width: 1.2, height: 1.8, bottom: 1.65, every: 1.35, run: 4, gap: 2.6 } },
+      beams: { depth: 0.18, width: 0, between: null, along: 0.6, color: 0x1f2b55 },
+      ceiling: 0xe8e5da,
+      column: 0x2c49b2,
+      rings: { colors: [0xd8382a, 0xe8722a, 0xe8d02c, 0x8cc25e, 0x2a9a6e, 0x3fa9b2, 0x4a8ee0, 0x7a2a3c], top: 3.35, width: 0.095, pitch: 0.19 },
+      paving: {
+        edge: 1.3, edgeTile: [0.43, 0.6], tactile: [1.3, 1.62], studs: true, studColor: 0xc9a443, slabs: 1.62, paverSize: [1.2, 1.2], mix: 0.15,
+        colors: { edge: 0xe4e1d8, tactile: 0x4a4b4c, slab: 0x9e9b94, pavers: 0xa3a099, paler: 0xaba8a1, face: 0x3a3a3a },
+        pattern: 'grid',
+      },
+      signs: { every: 40, at: 3.7, ways: 'Folkungagatan · Björns trädgård · Hiss' },
+      // (trains keep left: the southbound on the east track)
+      boards: {
+        from: 3,
+        east: { toward: 'Farsta strand · Hagsätra · Skarpnäck', trains: ['18 Farsta strand  3 min', '19 Hagsätra  5 min'] },
+        west: { toward: 'T-Centralen · Hässelby', trains: ['17 Åkeshov  2 min', '19 Hässelby strand  6 min'] },
+      },
+      vault: { from: [795.4, 1791.9], toward: [777.4, 1714.9], crown: 6.0, color: 0xe6e2d6, lamps: 2.2 },
     },
   },
 };

@@ -1084,23 +1084,53 @@
     },
     "Medborgarplatsen": {
       "drawing": "medborgarplatsen.png",
-      "note": "An island platform in a concrete box under Götgatan. In the middle stairs climb to an exit on Medborgarplatsen; from the south end escalators climb to a ticket hall with exits to both sides of the street.",
+      "note": "An island platform 145 m long in the concrete box of the 1933 tram tunnel under Götgatan, its northern third the vaulted lengthening of 1950. From its south end an escalator and stairs side by side climb 4.1 m to the ticket hall under the crossing with Folkungagatan; through the gates passages lead east and west under the street to stairs up into the ground floors of the corner buildings, the hotel at Folkungagatan 47 and Medborgarhuset at 45, the western one curving past Mari Pårup's mosaics (1997). Near the middle of the platform an escalator climbs north and stairs climb south to a landing under the street, a lift beside them; from it an escalator and stairs, a lift beside them, climb 3.9 m into the glass pavilion in Björns trädgård (1995), its gates just inside its doors. From OpenStreetMap's indoor mapping (2025; its platform is drawn in the wrong place, so its flights are set on the real one), the elevation model (the street 7.8 to 8.0 m above the platform at the three entrances) and photographs (2009–2025); the landing's layout is inferred.",
       "routes": [
-        { "from": [0, 0], "width": 4, "go": [
-          {"stairs": 6, "toward": [150, 0]},
-          {"walk": 3, "width": 6},
-          {"gates": true},
-          {"exit": 2945905833}
+        { "from": [-72.5, -1.0], "width": 3.6, "go": [
+          {"escalators": 4.1, "toward": [-200, -1.0], "lanes": "ES", "ceiling": 2.6}
         ] },
-        { "from": [-48, 0], "width": 5, "go": [
-          {"escalators": 7, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-79.6, -1.0], "h": 4.1, "width": 8.0, "go": [
+          {"walk": [-89.0, -1.0], "ceiling": 2.6},
           {"gates": true},
-          {"mark": "south"},
-          {"exit": 254887800, "by": "walk"}
+          {"walk": [-99.0, -1.0], "ceiling": 2.6}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 254887892, "by": "walk"}
+        { "from": [-97.6, 3.0], "h": 4.1, "width": 3.0, "go": [
+          {"walk": [-97.9, 10.7], "ceiling": 2.4},
+          {"exit": 254887800, "by": "stairs", "lanes": "Ss"}
+        ] },
+        { "from": [-96.0, -5.0], "h": 4.1, "width": 3.0, "go": [
+          {"walk": [-95.0, -15.5], "ceiling": 2.4},
+          {"walk": [-97.9, -30.5], "ceiling": 2.4},
+          {"exit": 254887892, "by": "stairs", "lanes": "Ss"}
+        ] },
+        { "from": [-5.6, -0.5], "width": 1.6, "go": [
+          {"escalators": 4.1, "toward": [200, -0.5], "lanes": "E", "ceiling": 2.6}
+        ] },
+        { "from": [16.1, -0.5], "width": 2.0, "go": [
+          {"stairs": 4.1, "toward": [-200, -0.5], "lanes": "S", "ceiling": 2.6}
+        ] },
+        { "from": [-1.0, 2.6], "width": 2.2, "go": [
+          {"walk": [3.5, 2.6], "open": true},
+          {"lift": 4.1, "above": 2.6, "through": true}
+        ] },
+        { "from": [1.45, 2.75], "h": 4.1, "width": 9.1, "go": [
+          {"walk": [8.4, 2.75], "ceiling": 2.6}
+        ] },
+        { "from": [8.0, 3.5], "h": 4.1, "width": 3.1, "go": [
+          {"walk": [10.8, 3.5], "ceiling": 2.6},
+          {"escalators": 3.87, "toward": [200, 3.5], "lanes": "Es", "ceiling": 2.6, "open": true},
+          {"walk": [17.6, 3.5], "open": true}
+        ] },
+        { "from": [8.0, 6.2], "h": 4.1, "width": 2.2, "go": [
+          {"walk": [9.6, 6.2], "ceiling": 2.6},
+          {"lift": 3.87, "above": 2.8, "through": true},
+          {"walk": [17.6, 6.2], "open": true}
+        ] },
+        { "from": [17.5, 4.6], "h": 7.97, "width": 5.2, "go": [
+          {"walk": [17.9, 4.6], "open": true},
+          {"gates": true},
+          {"walk": [18.4, 4.6], "open": true},
+          {"exit": 2945905833, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

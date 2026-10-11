@@ -277,7 +277,11 @@
     {
       "station": "Medborgarplatsen",
       "replace": true,
-      "why": "OSM's island platform is drawn across the tracks (its fixme says it is in quite the wrong place). Both tracks are placed from the station's node."
+      "at": [
+        154166.1,
+        6577789.7
+      ],
+      "why": "OSM's island platform is drawn across the tracks (its fixme says it is in quite the wrong place), and short. Its south end, though, is at the foot of the flights up to the ticket hall at Folkungagatan, as OSM's indoor mapping (2025) and Albert Guillaumes' drawing have it. Both tracks are placed from this point between them, 72.5 m north of that, so that the 145 m platform runs from there to under Noe Arksgränden."
     },
     {
       "station": "Skanstull",

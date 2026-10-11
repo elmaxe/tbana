@@ -120,8 +120,12 @@ export interface ButterflyRoof {
 // `mix` of them in the colour `paler`, at random).
 export interface Paving {
   edge: number;
+  // the edge's stones (or tiles) across it and along, if not one 60 cm stone across all of it
+  edgeTile?: [number, number];
   tactile: [number, number];
   studs?: boolean;
+  // studs of another colour (brass), rather than the strip's own, lighter
+  studColor?: number;
   slabs: number;
   slabSize?: [number, number];
   paverSize?: [number, number];
@@ -246,7 +250,10 @@ export type Finish =
   | 'navyTiles'     // glossy navy-blue tiles on end, 15 by 30 cm, in pale joints
   | 'pineBoards'    // narrow boards of varnished pine, a soffit's or ceiling's
   | 'redTiles'      // glossy red tiles, 30 cm, in pale grey joints
-  | 'bronzeGlass';  // a curtain wall of bronze-grey tinted glass in dark frames, 1.5 by 1.8 m
+  | 'bronzeGlass'   // a curtain wall of bronze-grey tinted glass in dark frames, 1.5 by 1.8 m
+  | 'greenTiles'    // small square tiles, a sea green
+  | 'crossMosaic'   // warm yellow tiles, and on them round clusters of small cross-shaped tiles (Mari Pårup's)
+  | 'crossTerrazzo'; // dark grey terrazzo, small pale crosses set in it here and there
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -3381,6 +3388,38 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'rails', points: [[-108.4, 22.9], [-118.0, 22.9]], h: [4.6, 5.6], color: 0x2a2c2e },
       // round the open stairs on Ringvägen
       { kind: 'rails', points: [[-162.9, -19.8], [-162.9, -24.6], [-167.1, -24.6], [-167.1, -19.8]], h: [4.65, 5.65], color: 0x2a2c2e },
+    ],
+  },
+  // Medborgarplatsen (its hall: src/hall-styles.ts). The southern ticket hall under the crossing
+  // with Folkungagatan in yellow tiles over grey terrazzo, as photographs show it; the passage west
+  // curving past Mari Pårup's mosaics (1997) on yellow tiles, crosses set in its floor; the stairs
+  // up into the corner buildings in green tiles. The north flights and their landing in cream
+  // tiles, and the glass pavilion in Björns trädgård (1995), framed in black on a stone plinth, its
+  // floor green terrazzo with dark red lines, its gates just inside its doors on the north. Where
+  // its walls stand is OpenStreetMap's outline (w141258102), 9.7 by 5.4 m.
+  'Medborgarplatsen': {
+    buildings: ['w141258102'],
+    rooms: [
+      { name: 'lift on the platform', s: [-1.5, 4], u: [1, 4], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'south flights', s: [-80, -72], u: [-3.5, 1.5], h: [-0.5, 0.5], walls: 'yellowTiles', stairs: 'yellowTiles', ceiling: 'whiteRender' },
+      { name: 'west stairs', s: [-106, -97], u: [-33, -28], h: [3.5, 4.5], walls: 'greenTiles', stairs: 'greenTiles', ceiling: 'whiteRender' },
+      { name: 'east stairs', s: [-106, -99], u: [8, 13.5], h: [3.5, 4.5], walls: 'greenTiles', stairs: 'greenTiles', ceiling: 'whiteRender' },
+      { name: 'west passage', s: [-100, -92], u: [-33, -4.5], h: [3.5, 4.5], walls: 'crossMosaic', floor: 'crossTerrazzo', ceiling: 'whiteRender' },
+      { name: 'south hall', s: [-101, -79], u: [-6, 13.5], h: [3.5, 4.5], walls: 'yellowTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'north flights', s: [-6, 17], u: [-2, 1], h: [-0.5, 0.5], walls: 'creamTiles', stairs: 'creamTiles', ceiling: 'whiteRender' },
+      { name: 'pavilion flights', s: [10, 18], u: [1.8, 5.2], h: [3.5, 4.5], walls: 'creamTiles', stairs: 'creamTiles', sill: 9.0 },
+      { name: 'north landing', s: [0, 18], u: [-2.5, 8], h: [3.5, 4.5], walls: 'creamTiles', stairs: 'creamTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'pavilion', s: [9.5, 19.6], u: [1.5, 7.6], h: [7.5, 8.5], walls: null, floor: 'greenTerrazzo' },
+    ],
+    blocks: [
+      // the glass pavilion, its doors on the north under the name
+      { name: 'pavilion', plan: [[9.7, 1.8], [19.45, 1.8], [19.45, 7.4], [9.7, 7.4]], h: [6.9, 11.0], from: 7.97,
+        walls: 'darkGlazed', sides: [undefined, 'blackFront'], floor: 'greenTerrazzo', ceiling: 'whiteRender', roof: 0.3, roofColor: 0x2a2c2e,
+        nameSign: { side: 1, at: 0.5, length: 3.8, bottom: 10.3, black: true }, ground: true },
+    ],
+    art: [
+      // the white columns either side of the foot of the northern escalator
+      { kind: 'columns', at: [[-6.2, -2.0], [-6.2, 1.0]], from: 0, to: 3.2, size: 0.45, color: 0xecebe6 },
     ],
   },
 };

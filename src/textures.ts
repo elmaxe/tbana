@@ -2476,6 +2476,63 @@ export function beamedHallWall(height: number, color: number, tile: number, from
   return toTexture(c);
 }
 
+// ------------------------------------------------------------------ Medborgarplatsen's hall
+// (src/hall-styles.ts; its track walls are as Skanstull's, beamedHallWall)
+
+// The round columns: enamel of `base` colour, with bands of colour round them, the first's top
+// `top` above the rail and each `width` high, `pitch` apart down the column; a seam up it. As
+// roundPillar lays it on: u round the column and v up it, in metres; the canvas covers 5 m.
+export const RINGED_HEIGHT = 5;
+export function ringedColumn(base: number, rings: { colors: number[]; top: number; width: number; pitch: number }) {
+  const PX = 100, H = RINGED_HEIGHT * PX, [c, x] = canvas(64, H);
+  x.fillStyle = css(base); x.fillRect(0, 0, 64, H);
+  rings.colors.forEach((col, i) => {
+    x.fillStyle = css(col);
+    x.fillRect(0, (RINGED_HEIGHT - rings.top + i * rings.pitch) * PX, 64, rings.width * PX);
+  });
+  x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, 0, 2, H);
+  x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(2, 0, 2, H);
+  const t = toTexture(c);
+  t.repeat.set(1, 1 / RINGED_HEIGHT);
+  return t;
+}
+
+// The vault of the lengthening: cream panels, their joints across the hall every 1.2 m and,
+// fainter, along it every 0.6 m. u across the hall, v along it, 2.4 m a repeat both ways.
+export function vaultPanels(color: number) {
+  const [c, x] = canvas(240, 240), r = rng(1950);
+  x.fillStyle = css(color); x.fillRect(0, 0, 240, 240);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 8) - 4); x.fillRect(i * 60 + 1, j * 120 + 2, 58, 116);
+  }
+  for (let i = 0; i < 4; i++) { x.fillStyle = css(color, -14); x.fillRect(i * 60, 0, 1, 240); }
+  for (let j = 0; j < 2; j++) {
+    x.fillStyle = css(color, -38); x.fillRect(0, j * 120, 240, 2);
+    x.fillStyle = css(color, 12); x.fillRect(0, j * 120 + 2, 240, 1);
+  }
+  speckle(x, 240, 240, 600, 0.05, 1951);
+  return toTexture(c);
+}
+
+// The long signs hung along the platform's edges: the name in white on black, and under it on a
+// white band the ways out, in black, an arrow at the end.
+export function waysSign(name: string, ways: string) {
+  const [c, x] = canvas(1536, 280);
+  x.fillStyle = '#16171a'; x.fillRect(0, 0, 1536, 280);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 196, 1536, 84);
+  x.fillStyle = '#f4f4f0';
+  x.font = '600 132px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'left'; x.textBaseline = 'middle';
+  x.fillText(name, 60, 104);
+  x.fillStyle = '#16171a';
+  x.font = '500 52px "Helvetica Neue", Arial, sans-serif';
+  x.fillText(ways, 60, 240);
+  x.font = '600 60px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'right';
+  x.fillText('→', 1490, 238);
+  return toTexture(c, { repeat: false });
+}
+
 // ------------------------------------------------------------------ styled open stations
 // (src/open-styles.ts)
 
@@ -2559,7 +2616,7 @@ export function openPaving(p: Paving) {
   if (p.studs) {
     for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) for (let j = 0.03; j < PAVING_REPEAT; j += 0.06) {
       x.fillStyle = css(C.tactile, -24); x.beginPath(); x.arc((t0 + k) * PX + 0.6, j * PX + 0.6, 0.013 * PX, 0, Math.PI * 2); x.fill();
-      x.fillStyle = css(C.tactile, 22); x.beginPath(); x.arc((t0 + k) * PX, j * PX, 0.011 * PX, 0, Math.PI * 2); x.fill();
+      x.fillStyle = p.studColor === undefined ? css(C.tactile, 22) : css(p.studColor); x.beginPath(); x.arc((t0 + k) * PX, j * PX, 0.011 * PX, 0, Math.PI * 2); x.fill();
     }
   } else {
     for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
@@ -2568,10 +2625,12 @@ export function openPaving(p: Paving) {
     }
   }
   for (let j = 0; j <= H; j += 0.6 * PX) { x.fillStyle = joint; x.fillRect(t0 * PX, j - 1, (t1 - t0) * PX, 2); }
-  // the edge stones, 60 cm long
-  for (let j = 0; j * 0.6 * PX < H; j++) {
+  // the edge stones, 60 cm long (or tiles, as given)
+  const [ea, el] = p.edgeTile ?? [p.edge, 0.6], en = Math.max(1, Math.round(p.edge / ea)), ew = (p.edge * PX) / en;
+  if (p.edgeTile) { x.fillStyle = css(C.edge, -28); x.fillRect(0, 0, p.edge * PX, H); }
+  for (let i = 0; i < en; i++) for (let j = 0; j * el * PX < H; j++) {
     x.fillStyle = css(C.edge, Math.floor(r() * 10) - 5);
-    x.fillRect(0, j * 0.6 * PX + 1.5, p.edge * PX - 1.5, 0.6 * PX - 3);
+    x.fillRect(i * ew + (i ? 1 : 0), j * el * PX + 1.5, ew - (i ? 2.5 : 1.5), el * PX - 3);
   }
   x.fillStyle = joint; x.fillRect(p.edge * PX - 1.5, 0, 2, H);
   speckle(x, W, H, 6000, 0.1, 1951);
@@ -3158,7 +3217,8 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
   splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
   redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
-  pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6],
+  pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
+  crossTerrazzo: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
@@ -3813,6 +3873,70 @@ export function finish(name: Finish) {
       band(2.95, 3.05, g); pane(3.05, 4.95, g, 0.1); band(4.95, 5.05, g);
       x.fillStyle = g; x.fillRect(0, Y(4.03), W, 0.06 * PX);
       band(5.05, 5.4, name === 'creamClerestory' ? '#e8e6e0' : g);
+      break;
+    }
+    case 'greenTiles': {
+      // sea-green tiles 15 cm square, in grey-green joints
+      x.fillStyle = '#5e7c70'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = `rgb(${86 + v},${162 + v},${136 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'crossMosaic': {
+      // Mari Pårup's mosaics (Medborgarplatsen's southern ticket hall, 1997): on warm yellow tiles,
+      // round clusters of Greek crosses fitted into each other, each cluster in its own tones, a few
+      // eight-pointed stars in them, their edges ragged where the crosses stop
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${218 + Math.floor(r() * 14)},${178 + Math.floor(r() * 12)},${88 + Math.floor(r() * 16)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      const clusters: { c: number; h: number; rad: number; tones: string[] }[] = [
+        { c: 1.0, h: 1.4, rad: 0.62, tones: ['#c99a9a', '#a7a29c', '#d8c8b8', '#8c8a86', '#b88a84'] },
+        { c: 2.45, h: 1.35, rad: 0.66, tones: ['#e8e6e2', '#c8c8c6', '#d9d4c2', '#b0b2b0', '#e2d39a'] },
+        { c: 3.95, h: 1.4, rad: 0.78, tones: ['#c98a7c', '#d8a898', '#b46a5a', '#e0c0a8', '#a89a7a'] },
+      ];
+      const w = 0.045 * PX;
+      const cross = (cx: number, cy: number, fill: string) => {
+        x.fillStyle = fill;
+        x.fillRect(cx - w * 1.5 + 0.6, cy - w / 2 + 0.6, 3 * w - 1.2, w - 1.2);
+        x.fillRect(cx - w / 2 + 0.6, cy - w * 1.5 + 0.6, w - 1.2, 3 * w - 1.2);
+      };
+      const star = (cx: number, cy: number, R: number, fill: string) => {
+        x.fillStyle = fill; x.beginPath();
+        for (let k = 0; k < 16; k++) { const a = (k * Math.PI) / 8, q = k % 2 ? R * 0.45 : R; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); }
+        x.closePath(); x.fill();
+      };
+      for (const cl of clusters) {
+        const cx = cl.c * PX, cy = Y(cl.h), R = cl.rad * PX;
+        // (Greek crosses tile the plane on the lattice (2, 1), (−1, 2) of their arms' width)
+        for (let i = -20; i <= 20; i++) for (let j = -20; j <= 20; j++) {
+          const px = cx + (2 * i - j) * w, py = cy + (i + 2 * j) * w;
+          const d = Math.hypot(px - cx, py - cy) / R;
+          if (d > 1 + (r() - 0.5) * 0.25) continue;
+          cross(px, py, cl.tones[Math.floor(r() * cl.tones.length)]);
+        }
+        for (let k = 0; k < 5; k++) {
+          const a = r() * Math.PI * 2, q = r() * R * 0.7;
+          star(cx + Math.cos(a) * q, cy + Math.sin(a) * q, 0.07 * PX, k % 2 ? '#c8a040' : '#b8584a');
+        }
+      }
+      break;
+    }
+    case 'crossTerrazzo': {
+      // dark grey terrazzo, speckled, small pale Greek crosses set in it here and there
+      x.fillStyle = '#5f6162'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 40000, 0.3, 76); speckle(x, W, H, 20000, 0.25, 77, true);
+      const w = 0.04 * PX;
+      for (let k = 0; k < 7; k++) {
+        const cx = (0.2 + r() * 2.0) * PX, cy = (0.2 + r() * 2.0) * PX;
+        x.fillStyle = k % 3 ? '#d9d2bc' : '#c9b46a';
+        x.fillRect(cx - 1.5 * w, cy - w / 2, 3 * w, w); x.fillRect(cx - w / 2, cy - 1.5 * w, w, 3 * w);
+      }
       break;
     }
     case 'creamTiles': {

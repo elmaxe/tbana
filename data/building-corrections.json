@@ -22,6 +22,21 @@
       "osm": "w1560006146",
       "overStation": true,
       "why": "The part of Ringen centrum on Götgatan's west side over the start of Skanstull's passage to Ringvägen, as for its long block (w75120309)."
+    },
+    {
+      "osm": "w1350945355",
+      "overStation": true,
+      "why": "The hotel (Malmen) on the corner of Götgatan and Folkungagatan, whose ground floor Medborgarplatsen's eastern stairs climb into from the ticket hall under the crossing, coming out on Folkungagatan: it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1558255512",
+      "overStation": true,
+      "why": "Medborgarhuset's main part, on the opposite corner, whose ground floor Medborgarplatsen's western stairs climb into, as for the hotel (w1350945355)."
+    },
+    {
+      "osm": "w1558255515",
+      "overStation": true,
+      "why": "An upper part of Medborgarhuset over the same stairs, as for its main part (w1558255512)."
     }
   ]
 }
