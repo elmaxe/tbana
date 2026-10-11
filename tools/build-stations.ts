@@ -32,13 +32,13 @@ const OUT = 'public/data/station-layouts.json';
 
 type SU = [number, number];
 type Segment =
-  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean }
+  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean; edges?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number }
   | { lift: number }
   | { gates: true }
   | { mark: string }
-  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number };
+  | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean };
 interface RouteDesc { from: SU | string; h?: number; width?: number; go: Segment[] }
 interface Description {
   drawing?: string;
@@ -217,7 +217,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
       const corners: XYZ[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [x + hx * s * i + rx * s * j, y, z + hz * s * i + rz * s * j]);
       parts.push({ kind: 'floor', corners: corners.map(p3), ceiling: CEILING.passage, room: 'passage', label: `${name} · passage` });
     };
-    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false) => {
+    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false, edges = true) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
       if (l < 0.01) return;
       const nx = dx / l, nz = dz / l;
@@ -230,6 +230,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         corners: [[x - rx, y, z - rz], [x + rx, y, z + rz], [tx + rx, y + dh, tz + rz], [tx - rx, y + dh, tz - rz]].map((p) => p3(p as XYZ)),
         ceiling: open ? null : ceiling ?? CEILING[room as 'hall' | 'passage'], room,
         label: `${name} · ${{ platform: 'platform', hall: 'ticket hall', passage: 'passage' }[room]}`,
+        ...(edges ? {} : { edges: false as const }),
       });
       x = tx; z = tz; y += dh; hx = nx; hz = nz; last = 'walk';
     };
@@ -257,8 +258,8 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     for (const sg of r.go) {
       if ('walk' in sg) {
         if (sg.width) width = sg.width;
-        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open);
-        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open);
+        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
+        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
       } else if ('stairs' in sg || 'escalators' in sg) {
         const kind = 'stairs' in sg ? 'stairs' : 'escalators';
         const dh = 'stairs' in sg ? sg.stairs : sg.escalators;
@@ -291,7 +292,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         const by = sg.by ?? 'stairs';
         const dh = ey - y, l = Math.hypot(e.x - x, e.z - z);
         const nx = l > 0.01 ? (e.x - x) / l : hx, nz = l > 0.01 ? (e.z - z) / l : hz;
-        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling);
+        if (by === 'walk') walkTo(e.x, e.z, dh, sg.ceiling, sg.open);
         else if (by === 'lift') {
           walkTo(e.x, e.z);
           const yaw = Math.atan2(hx, hz);

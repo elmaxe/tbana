@@ -10,7 +10,9 @@ import { PUB } from './pub.ts';
 import { detailMaterial } from './materials.ts';
 import { buildCycleBridge, buildGuldbron, buildKatarinahissen, buildMalartrappan, buildVattentorget, KATARINAHISSEN_OUTLINE, MALARTRAPPAN_OUTLINE } from './slussen.ts';
 import { inDetailArea } from './areas.ts';
+import { ropstenWorld } from './viaducts.ts';
 import { buildChimney, buildLidingobron, buildLillaLidingobron, buildRopstensplan, buildTramStop, buildVarmeverk, CHIMNEYS, ENERGIHAMNEN_TANKS, LIDINGOBRON_PARTS, LILLA_LIDINGOBRON_PARTS, VVR_OUTLINE } from './ropsten.ts';
+import { buildRopstenStation } from './ropsten-station.ts';
 import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -20,8 +22,7 @@ import { buildTower, TOWERS } from './towers.ts';
 // squares and trees (src/detail/streets.ts). A tile drawn at full resolution (near the camera) gets
 // them; further off it keeps its plain blocks.
 
-// ?nodetail: the plain city everywhere, to compare
-export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nodetail');
+export { DETAIL_ON } from './areas.ts';
 
 interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
 const LANDMARKS: Landmark[] = [
@@ -50,6 +51,8 @@ const LANDMARKS: Landmark[] = [
   // tile it is in
   ...LIDINGOBRON_PARTS.map((p, i): Landmark => ({ name: `Lidingöbron ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildLidingobron(B, g, p.range) })),
   ...LILLA_LIDINGOBRON_PARTS.map((p, i): Landmark => ({ name: `Lilla Lidingöbron ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildLillaLidingobron(B, g, p.range) })),
+  // the station itself: its two viaducts, platforms, roofs and the halls at either end (src/detail/ropsten-station.ts)
+  { name: 'Ropsten station', outline: [], anchor: ropstenWorld(12, 0), build: buildRopstenStation },
   // the bus square under the platforms, Lidingöbanan's stop beside it, and the oil tanks across
   // the motorway in place of the city's plain blocks of them
   { name: 'Ropstensplan', outline: [], anchor: [2520, -2890], build: buildRopstensplan },

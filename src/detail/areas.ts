@@ -3,6 +3,9 @@
 // (src/detail/streets.ts), which tools/fetch-streets.ts and tools/find-trees.ts fetch for these
 // areas only. It imports nothing, so the tools can use it on Node too.
 
+// ?nodetail: the plain city everywhere, to compare
+export const DETAIL_ON = typeof location === 'undefined' || !new URLSearchParams(location.search).has('nodetail');
+
 export interface DetailArea { name: string; x: number; z: number; r: number }
 
 export const DETAIL_AREAS: DetailArea[] = [

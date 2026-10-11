@@ -13,6 +13,7 @@ import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
 import type { CaveIsland, CaveStyle, FlatHall, HallStyle, VaultHall, VaultStyle } from './hall-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
+import { viaductInDetail, viaductSolids } from './detail/viaducts.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -242,7 +243,8 @@ export class Network {
   constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = [], { holes = [] as Volume[], solids = [] as Volume[], city = false } = {}) {
     this.group.name = 'network';
     this.holes = holes;
-    this.solids = solids;
+    // (and what a landmark stands on a viaduct's platforms, src/detail/viaducts.ts)
+    this.solids = [...solids, ...viaductSolids()];
     this.city = city;
     // where the pieces end, and whether in a tunnel: a tunnel piece meeting one in the open has
     // its mouth there
@@ -598,7 +600,8 @@ export class Network {
         return { key: 'deck', pts: [[u, S.FLOOR], [u, S.FLOOR + 0.3], [u + side * 0.25, S.FLOOR + 0.3], [u + side * 0.25, bottom], [inner, bottom]] };
       }, { uScale: 0.25, vScale: 0.25 });
       sweep(b.steel, run, (sm) => {
-        if (sm.kind !== 'bridge' || !outer(sm)) return null;
+        // (a viaduct drawn in detail has its own, src/detail/viaducts.ts)
+        if (sm.kind !== 'bridge' || !outer(sm) || viaductInDetail(sm.x, sm.z)) return null;
         const u = side * (S.BRIDGE.deck + 0.12), top = S.FLOOR + S.BRIDGE.railing;
         return { key: 'rail', pts: [[u, top - 0.08], [u, top], [u + side * 0.06, top]] };
       });
@@ -609,10 +612,10 @@ export class Network {
       const [a, c] = ownSpan(sm, structureSpan(sm)), bottom = S.FLOOR - S.BRIDGE.depth;
       return { key: 'under', pts: [[c, bottom], [a, bottom]] };
     }, { uScale: 0.25, vScale: 0.25 });
-    // bridge piers, every 20 m or so, down to the ground
+    // bridge piers, every 20 m or so, down to the ground (a viaduct drawn in detail has its own)
     let last = -Infinity;
     for (const sm of run) {
-      if (sm.kind !== 'bridge' || sm.ground === null || sm.along - last < 20) continue;
+      if (sm.kind !== 'bridge' || sm.ground === null || sm.along - last < 20 || viaductInDetail(sm.x, sm.z)) continue;
       last = sm.along;
       const bottom = sm.y + S.FLOOR - S.BRIDGE.depth;
       if (sm.ground > bottom - 0.5) continue;
@@ -720,7 +723,7 @@ export class Network {
         // (in a styled hall, troffers in the soffit)
         const st = hallStyle(sm);
         if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
-        else if (!vs && !caveStyle(sm)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        else if (!vs && !caveStyle(sm) && !viaductInDetail(sm.x, sm.z)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       if (caveStyle(sm) && !islandStyle(sm)) {
         // in a painted cave, a row of fittings hung on rods well under the rock, over the

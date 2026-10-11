@@ -280,24 +280,49 @@
     },
     "Ropsten": {
       "drawing": "ropsten.png",
-      "note": "The line's northern end, on a bridge over Hjorthagen's shore: a wide platform between the tracks, under a roof. Stairs go down through it to the ticket hall on the ground beneath, by the Lidingö trams.",
+      "note": "The line's northern end, high over Ropsten's bus square: two viaducts, each with one track and a platform on the side towards the other, an open gap between them. At the south-west end the two platforms are joined in a covered concourse. From its end escalators and stairs go down in the gap to the ticket hall on the ground beneath, a crossbridge with a lift crosses the gap halfway along, and another at the north-east end leads to the glazed hall over Lidingöbanan's stop, where escalators and stairs go down to the trams. The platforms' railings and roofs are drawn by src/detail/ropsten-station.ts. Positions from OpenStreetMap's indoor mapping and Lantmäteriet's laser scan (2021).",
+      "canopy": false,
       "routes": [
-        { "from": [-58, 0], "width": 11, "go": [
-          {"walk": [58, 0], "open": true}
+        { "from": [-57.5, -0.7], "width": 9.4, "go": [
+          {"walk": [-1, 0], "open": true, "edges": false}
         ] },
-        { "from": [16, 0], "width": 4, "go": [
-          {"stairs": -8.6, "toward": [60, 0]},
-          {"walk": 4, "width": 8},
+        { "from": [-1.5, 0.2], "width": 5.2, "go": [
+          {"walk": [1, 0.2], "open": true, "edges": false},
+          {"escalators": -8.5, "toward": [60, 0.2], "lanes": "ESE", "ceiling": 3.2},
+          {"walk": 2.5},
           {"gates": true},
-          {"walk": 2},
-          {"mark": "hall"},
-          {"exit": 11421577328, "by": "walk"}
+          {"walk": [30, 0.2], "width": 8, "ceiling": 3.2},
+          {"mark": "hall"}
         ] },
         { "from": "hall", "width": 4, "go": [
-          {"exit": 5832910004, "by": "walk"}
+          {"exit": 11421577328, "by": "walk", "open": true}
         ] },
         { "from": "hall", "width": 4, "go": [
-          {"exit": 5832910005, "by": "walk"}
+          {"exit": 5832910004, "by": "walk", "open": true}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"exit": 5832910005, "by": "walk", "open": true}
+        ] },
+        { "from": [32, -3.4], "width": 5, "go": [
+          {"walk": [32, 4.6], "open": true, "edges": false}
+        ] },
+        { "from": [30, 0.6], "width": 2.2, "go": [
+          {"walk": [29.6, 0.6], "open": true, "edges": false},
+          {"lift": -8.5}
+        ] },
+        { "from": [57, -4.7], "width": 5.8, "go": [
+          {"walk": [86, -3.53], "open": true, "edges": false}
+        ] },
+        { "from": [65, 6.25], "width": 5.8, "go": [
+          {"walk": [86, 5.79], "open": true, "edges": false}
+        ] },
+        { "from": [84, -4], "width": 8, "go": [
+          {"walk": [84, 6], "open": true, "edges": false}
+        ] },
+        { "from": [87, 0.6], "width": 6, "go": [
+          {"walk": [89.2, 0.6], "ceiling": 3},
+          {"escalators": -4.13, "toward": [130, 0.6], "lanes": "ES", "ceiling": 3},
+          {"walk": [122.5, 0.6], "width": 4.4, "ceiling": 2.2}
         ] }
       ]
     },

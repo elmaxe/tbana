@@ -514,14 +514,15 @@ A description lists the ways out, each as a route of steps from a point on the p
   across them to the right. Heights are metres above the platform. `--frame` prints where the
   tracks and platforms are in it, the street above, and the entrances nearby.
 - `walk` goes to a point, or on for so many metres; with `dh` it is a ramp, and `open` leaves it
-  without a ceiling.
+  without a ceiling. `"edges": false` leaves out the walls along its edges that lead nowhere,
+  where a landmark in `src/detail/` draws the station's railings (Ropsten).
 - `stairs` and `escalators` climb a height (down if negative) towards a point, or end at it with
   `to`. `lanes` lists them from the left looking up: `E` an escalator, `S` stairs.
 - `lift` rises a height; `gates` puts ticket gates across the way; `mark` names a place that
   another route can start `from`.
 - `exit` comes up to the street at an OSM entrance, by its id or name, or at `{ "at": [s, u] }`,
-  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track) or a
-  lift.
+  by stairs, escalators, a ramp (`walk`, with a `ceiling` where it passes low under a track, or
+  `open` with none, out across a square) or a lift.
 
 The platforms themselves come from the track geometry, so a description gives only the ways out.
 `build-stations` resolves the routes into floors, flights, lifts and gates in world coordinates,

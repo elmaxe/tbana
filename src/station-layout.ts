@@ -15,6 +15,8 @@ export interface FloorPart {
   ceiling: number | null;
   room: 'platform' | 'hall' | 'passage';
   label: string;
+  // no walls along the edges that lead nowhere: a landmark (src/detail/) draws its railings
+  edges?: false;
 }
 
 // Stairs or escalators from the middle of the bottom step `a` to the middle of the top one `b`,
