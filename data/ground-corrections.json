@@ -157,6 +157,10 @@
     {
       "outline": [[-4476.9, -267.8], [-4481.6, -242.2], [-4480.6, -242.0], [-4484.4, -221.9], [-4489.1, -222.7], [-4480.6, -268.4]],
       "why": "The paved terrace in front of Alvik's ticket hall's doors, on its deck (photographs)."
+    },
+    {
+      "outline": [[-6072.7, -568.4], [-6058.3, -564.1], [-6064.1, -544.9], [-6047.8, -540.0], [-6037.4, -540.0], [-6030.6, -534.8], [-6034.1, -523.4], [-6081.9, -537.8]],
+      "why": "Abrahamsbergstorget and the forecourt of Abrahamsberg's ticket hall, south of the tracks by Abrahamsbergsvägen, are paved (photographs; OpenStreetMap's place=square). With no buildings beside them they were grass."
     }
   ]
 }

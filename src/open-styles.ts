@@ -274,7 +274,12 @@ export type Finish =
   | 'clinkerWindows' // clinker tiles in mixed greens to 1 m, glass-fronted cases, windows in steel frames above
   | 'greyClerestory' // grey sheet-metal panels to 1.75 m, a band of windows in dark frames above
   | 'portalTiles'   // glazed tiles, 15 cm, a muted teal green, in pale joints
-  | 'liftPanes';    // grey glass panes in pale frames, a tall row and a short one, between dark blue-grey steel piers
+  | 'liftPanes'     // grey glass panes in pale frames, a tall row and a short one, between dark blue-grey steel piers
+  | 'roxnerTiles'   // glazed tiles, 15 cm, in some twenty pale colours at random (Rigmor Roxner's)
+  | 'roxnerClerestory' // as roxnerTiles to 3 m, a concrete beam, windows in dark frames above
+  | 'greyGlazed'    // a dark grey steel panel to 0.95 m, glass in dark grey steel frames above
+  | 'sageRender'    // smooth render, a pale grey green
+  | 'bottleTiles';  // glazed tiles, 15 cm, a dark bottle green, in pale joints
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -4329,6 +4334,107 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     fences: [
       { points: [[-90, -6.0], [-60, -6.7], [-20, -7.6], [20, -8.1], [60, -8.6], [90, -9.2], [110, -9.7]], h: [-1.25, 0.55] },
       { points: [[-90, 6.0], [-60, 6.6], [-40, 7.1], [0, 7.8], [40, 7.3], [60, 6.5], [90, 4.6], [110, 3.2]], h: [-1.25, 0.55] },
+    ],
+  },
+
+  // Abrahamsberg (26 October 1952; Peter Celsing's station, pulled down and rebuilt in 1998–99 to
+  // be reached by lift, reopened on 25 November 1999): an island platform in a cutting, the rock
+  // on its south side, its tracks crossing Abrahamsbergsvägen on a bridge just west of it. The
+  // laser scan puts its butterfly roof from 74.5 m west of the platform's middle to 37 m east,
+  // about 7.5 m wide and narrowing to 6.2 m at its east end where the northern track closes in,
+  // its valley half a metre north of the platform's middle, its top 2.95 m over the platform
+  // along the valley and 3.3 m at the edges; east of it the platform is open. Photographs (2015
+  // to 2019) show the underside of pale grey sheet metal ribbed across the platform, on dark grey
+  // steel rafters, a thin dark fascia, and pairs of dark grey H-section columns across the
+  // platform's middle, about 1.3 m apart, a downpipe from the valley between them; strip lights
+  // along its edges, SL's navy name signs with the way out to the west, departure boards, wooden
+  // benches; on the open part, pale grey lamp posts with two dome lamps on a T-shaped arm (the
+  // laser scan: 42 m and 57 m east, 4 m high). The paving: pale edge slabs, a dark ribbed strip,
+  // then grey pavers in courses across the platform.
+  //
+  // West of the platform's end, between the tracks, stands a glazed hall (the laser scan: from
+  // 73.8 m to 88 m west): along its north side a walkway, its roof 2.4 m over the platform, leads
+  // to the lift (OpenStreetMap's indoor mapping: 92.5 m west), whose glass tower stands 3.75 m
+  // high with the round T on a post beside it; along its south side the stairs go straight down
+  // westwards (OpenStreetMap: from 75.8 m to 86.6 m west) in two flights, its roof falling over
+  // them from 2.3 m to 1.5 m. Its walls are glass in dark grey frames over a dark grey panel, its
+  // ceiling white slats, its floor red. At the stairs' foot a passage runs west, and then south
+  // under the southern track, to the ticket hall in the street south of the tracks (the laser
+  // scan: 4.55 m under the platform). The ticket hall is glazed in dark frames under a roof
+  // falling to the west, its rafters out under the eaves, with the name on a navy band over its
+  // doors onto the square by Abrahamsbergsvägen; inside, a red granite floor, a ceiling of ribbed
+  // sheet metal and, in the passages, on the stairs and in the hall, Rigmor Roxner's clinker
+  // (1999): tiles in some twenty colours set with "controlled randomness". Beside it to the east
+  // stands a taller block, rendered a pale grey green over dark green tiles, with the kiosk at its
+  // front and a dark grey box on its roof.
+  //
+  // Not drawn: Roxner's 12 m relief of slanting glazed stoneware tiles in the ticket hall (no
+  // photograph of it was found), the ticket booth by the passage's mouth, the panels between the
+  // columns and the red line along the top of the block's green tiles.
+  'Abrahamsberg': {
+    roof: {
+      kind: 'butterfly',
+      from: -74.5, to: 37, width: 7.5,
+      shape: [[-74.5, -0.5, 7.4], [-40, -0.35, 7.6], [0, -0.2, 7.4], [20, 0.1, 6.8], [37, 0.35, 6.2]],
+      middle: 2.8, edge: 3.12, thick: 0.15, fascia: 0.22,
+      rafters: 2.5, rafterAt: -71, rafterSize: [0.12, 0.24], deck: 'ribbedAcross', rafterColor: 0x34383b,
+      beam: 0.3,
+      columns: { every: 7.5, at: -71, size: 0.22, plinth: { size: 0.32, height: 0.1 }, pair: 1.3 },
+      lamps: { offset: 2.5, length: 1.5, every: 3.75 },
+      colors: { underside: 0xa9adad, fascia: 0x3a3e41, top: 0x6c7072, steel: 0x3b4044 },
+      signs: { at: [-52, -22, 8, 30], back: 'Utgång', ahead: '', blue: true },
+      // (trains towards T-Centralen stop on the northern track)
+      boards: [
+        { s: -7.25, u: -1.6, toward: 'T-Centralen', trains: ['19 Hagsätra  3 min', '17 Skarpnäck  7 min'] },
+        { s: -7.25, u: 1.6, toward: 'Hässelby', trains: ['19 Hässelby strand  2 min', '17 Åkeshov  6 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.85, tactile: [0.85, 1.2], slabs: 1.2, paverSize: [0.25, 0.4], mix: 0.15,
+      colors: { edge: 0xcfcdc7, tactile: 0x4b4e50, slab: 0x8d8a85, pavers: 0x8d8a85, paler: 0x9d9a95, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w138885055'],
+    rooms: [
+      { name: 'hall over the tracks', s: [-96, -73.7], u: [-4, 2.2], h: [-0.5, 0.5], walls: null, floor: 'redGranite' },
+      // (tiled up to the hall's floor, its glass above)
+      { name: 'stairs', s: [-88, -75.7], u: [-2.2, 1.7], h: [-4.7, -0.1], walls: 'roxnerTiles', stairs: 'roxnerTiles', floor: 'darkStone', sill: 0 },
+      { name: 'passage', s: [-96, -87.6], u: [-3, 9.4], h: [-5, -3.5], walls: 'roxnerTiles', floor: 'redGranite', ceiling: 'perforated' },
+      { name: 'ticket hall', s: [-96, -89], u: [9.4, 24], h: [-5, -3.5], walls: null, floor: 'redGranite' },
+    ],
+    blocks: [
+      // the hall over the tracks: the stairs' half, its roof falling westwards over them, and the
+      // walkway's, kept clear of the trains; a strip of wall where the roofs meet
+      { name: 'stair hall', plan: [[-73.8, -2.2], [-87.7, -2.2], [-87.7, 1.75], [-73.8, 2.05]], h: [-1.55, 2.15], low: 1.35,
+        walls: 'greyGlazed', sides: [null, undefined, undefined, null], eaves: [0, 0.15, 0, 0], ceiling: 'slats', roof: 0.15, roofColor: 0x3b3e41 },
+      { name: 'walkway', plan: [[-73.8, -3.78], [-87.7, -3.5], [-87.7, -2.2], [-73.8, -2.2]], h: [-1.55, 2.25],
+        walls: 'greyGlazed', sides: [undefined, null, null, null], floor: 'redGranite', ceiling: 'slats', roof: 0.15, roofColor: 0x3b3e41 },
+      { name: "lift's lobby", plan: [[-87.7, -3.5], [-91.8, -2.6], [-91.8, 0.4], [-87.7, 0.4]], h: [-1.55, 2.25],
+        walls: 'greyGlazed', sides: [undefined, null, undefined, null], floor: 'redGranite', ceiling: 'slats', roof: 0.15, roofColor: 0x3b3e41 },
+      { name: 'where the roofs meet', plan: [[-73.8, -2.25], [-73.8, -2.15], [-87.7, -2.15], [-87.7, -2.25]], h: [2.15, 2.25], from: 2.15, fall: 1.35, lowBack: 3.05,
+        walls: 'slats' },
+      { name: "lift's tower", plan: [[-91.8, -2.6], [-95.2, -2.6], [-95.2, 0.4], [-91.8, 0.4]], h: [-1.55, 3.5],
+        walls: 'glazed', sides: [undefined, undefined, undefined, null], roof: 0.25, roofColor: 0x3b3e41 },
+      // over the passage's mouth at the stairs' foot
+      { name: 'lintel', plan: [[-87.6, -2.0], [-87.7, -2.0], [-87.7, 1.55], [-87.6, 1.55]], h: [-2.15, 0], from: -2.15, walls: 'roxnerTiles' },
+      // the ticket hall in the street: glazed, the passage coming in through its back wall under
+      // the tracks' bank, high windows over it
+      { name: 'ticket hall', plan: [[-89.05, 9.4], [-96.0, 9.4], [-96.0, 23.4], [-89.05, 23.4]], h: [-4.85, 0.1], from: -4.55, low: -0.6,
+        walls: 'darkGlazed', sides: ['roxnerClerestory', undefined, undefined, 'roxnerTiles'], eaves: [0, 0.6, 0.5, 0], brackets: { every: 0.6, color: 0x5a3e30 },
+        floor: 'redGranite', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x3b3d3f, ground: true,
+        nameSign: { side: 2, at: 0.55, length: 4.2, bottom: -1.95 } },
+      { name: 'block beside it', plan: [[-81.5, 7.2], [-89.0, 7.2], [-89.0, 23.6], [-81.5, 23.6]], h: [-4.85, 1.95], from: -4.55, low: 1.15,
+        walls: 'bottleTiles', band: { walls: 'sageRender', from: -1.4 }, roof: 0.2, roofColor: 0x45484a, ground: true },
+      { name: 'kiosk', plan: [[-85.2, 23.6], [-89.0, 23.6], [-89.0, 23.75], [-85.2, 23.75]], h: [-4.55, -1.7], from: -4.55, walls: 'shopWindows', roof: 0.05 },
+      { name: 'box on its roof', plan: [[-86.2, 8.4], [-89.0, 8.4], [-89.0, 13.0], [-86.2, 13.0]], h: [1.0, 3.0], from: 1.0, walls: 'greyPanels', roof: 0.2, roofColor: 0x3a3c3e },
+    ],
+    art: [
+      { kind: 'masts', height: 4.2, color: 0xa4a8ab, top: false, arm: 0.45, at: [[42, -0.2], [57.5, 0.5]] },
+      { kind: 'roundel', s: -95.7, u: -0.9, h: 4.85, size: 0.9, foot: -1.55 },
+    ],
+    benches: { at: [-52.25, -29.75, 15.25], wood: true },
+    fences: [
+      { points: [[-96, -7.6], [-60, -8.2], [-20, -8.4], [33, -6.9], [79, -5.7]], h: [-1.5, 0.3] },
     ],
   },
 };
