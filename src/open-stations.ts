@@ -84,7 +84,8 @@ const blockTop = (b: Block, i: number) =>
 export function blockVolumes(style: OpenStyle, frame: Frame, only?: 'onPlatform' | 'ground'): Volume[] {
   return (style.blocks ?? []).filter((b) => !only || b[only]).map((b) => {
     const c = b.plan.map(([s, u]): [number, number] => { const p = frame.at(s, u, 0); return [p[0], p[2]]; });
-    return prism(c, c.map((_, i) => frame.st.platformY + blockFrom(b, i) - 1), c.map((_, i) => frame.st.platformY + blockTop(b, i)));
+    const over = only === 'ground' && typeof b.ground === 'number' ? b.ground : 0;
+    return prism(c, c.map((_, i) => frame.st.platformY + blockFrom(b, i) - 1), c.map((_, i) => frame.st.platformY + blockTop(b, i) + over));
   });
 }
 
@@ -1034,7 +1035,7 @@ export class OpenLook {
       const s0 = s - (a.rows * ts) / 2, u0 = u - (a.cols * tu) / 2;
       for (let i = 0; i < a.rows; i++) for (let j = 0; j < a.cols; j++) {
         if (!a.solid && (i + j) % 2) continue;
-        const P = (k: number, l: number) => [...line.at(s0 + (i + k) * ts, u0 + (j + l) * tu, 0.004), 0, 0];
+        const P = (k: number, l: number) => [...line.at(s0 + (i + k) * ts, u0 + (j + l) * tu, (a.h ?? 0) + 0.004), 0, 0];
         m.poly([P(g, g), P(1 - g, g), P(1 - g, 1 - g), P(g, 1 - g)]);
       }
     }
