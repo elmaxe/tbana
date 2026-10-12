@@ -502,7 +502,9 @@ export class Stations {
       const at = (t: number, dy: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + dy, a[2] + (b[2] - a[2]) * t];
       let t0: number | null = null;
       for (let i = 0; i <= pieces; i++) {
-        const [x, y, z] = at((i + 0.5) / pieces, 0), open = i < pieces && !this.nextFloor(x + ox * PROBE, z + oz * PROBE, y);
+        // (the street round an exit counts only where it is drawn: over the city's ground, which
+        // can be a little lower than the floor, the edge hides the cut under the floor)
+        const [x, y, z] = at((i + 0.5) / pieces, 0), open = i < pieces && !this.nextFloor(x + ox * PROBE, z + oz * PROBE, y, this.drawStreets);
         if (open && t0 === null) t0 = i / pieces;
         if (!open && t0 !== null) {
           const t1 = i / pieces, d = UNDER + 0.1;
@@ -514,10 +516,12 @@ export class Stations {
   }
 
   // The floor beyond an edge that can be stepped onto, and its ceiling's height (Infinity for the
-  // network's platforms, whose halls the network draws).
-  private nextFloor(x: number, z: number, y: number): { top: number | null } | null {
+  // network's platforms, whose halls the network draws); the street round the exits too, unless
+  // `streets` is false.
+  private nextFloor(x: number, z: number, y: number, streets = true): { top: number | null } | null {
     let best: { y: number; top: number | null } | null = null;
     for (const h of this.walk.query(x, z, this._hits)) {
+      if (!streets && h.data.street) continue;
       if (Math.abs(h.y - y) <= STEP && (!best || Math.abs(h.y - y) < Math.abs(best.y - y))) best = { y: h.y, top: h.data.top };
     }
     if (best) return best;

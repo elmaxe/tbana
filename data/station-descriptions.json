@@ -1195,6 +1195,12 @@
         ] },
         { "from": "underpass", "width": 4.0, "go": [
           {"walk": [105.6, 13.9], "open": true},
+          {"walk": [105.5, 16.0], "dh": 0.16, "open": true},
+          {"walk": [105.5, 17.5], "dh": 0.12, "open": true},
+          {"walk": [105.5, 19.2], "dh": 0.12, "open": true},
+          {"walk": [106.0, 20.7], "dh": 0.12, "open": true},
+          {"walk": [106.5, 22.2], "dh": 0.12, "open": true},
+          {"walk": [107.0, 23.7], "dh": 0.12, "open": true},
           {"exit": {"at": [108.7, 31.2], "name": "Åkeshovs slott"}, "by": "walk", "open": true, "sign": false}
         ] },
         { "from": "underpass", "width": 4.0, "go": [

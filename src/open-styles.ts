@@ -4698,7 +4698,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'on the platforms', s: [72, 74.9], u: [-7, 9], h: [-0.4, 3], walls: null, floor: null },
       { name: 'housings', s: [74.9, 91], u: [-7, 9], h: [-0.4, 3], walls: 'glazed', floor: 'terrazzo' },
       { name: 'ticket hall', s: [89.6, 103.65], u: [-4.5, 7.8], h: [-5.6, -4], walls: null, floor: 'terrazzo', lamps: 2.3 },
-      { name: 'underpass', s: [103.65, 112], u: [-6.9, 32], h: [-5.6, -4], walls: null, floor: 'asphalt', lamps: 2.4 },
+      { name: 'underpass', s: [103.65, 112], u: [-6.9, 14.3], h: [-5.6, -4], walls: null, floor: 'asphalt', lamps: 2.4 },
+      { name: 'forecourt', s: [103.65, 112], u: [14.3, 32], h: [-5.6, -4], walls: null, floor: 'asphalt' },
       { name: 'trough', s: [94, 103.65], u: [-12, -8], h: [-5.6, -1], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'asphalt' },
       { name: 'tunnel', s: [103.65, 140], u: [-80, -6.9], h: [-5.6, -4], walls: 'boardConcrete', floor: 'asphalt', ceiling: 'boardConcrete' },
       { name: 'entrance building', s: [120, 142], u: [-76, -58], h: [-5.6, 0], walls: 'whiteRender', stairs: 'whiteRender', floor: 'pavers', ceiling: 'whiteRender' },
@@ -4718,9 +4719,13 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the bank under the decks west of the hall, ballast between them
       { name: 'bank under the decks', plan: [[74, -10.5], [89.5, -9.0], [89.5, 13.15], [74, 12.65]], h: [-5.5, -1.95], from: -5.5,
         walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      // (the city's ground cut away along the joint of the bank and the hall, where a sliver of it
+      // was left)
+      { name: 'under the hall\'s west wall', plan: [[89.3, -9.0], [89.7, -9.0], [89.7, 13.15], [89.3, 13.15]], h: [-5.5, -1.95], from: -5.5,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
       // the ticket hall: its shell, its ceilings under the decks, and the flat roofs between them
       { name: 'ticket hall', plan: [[89.5, -4.3], [103.6, -4.3], [103.6, 7.6], [89.5, 7.6]], h: [-5.5, -2.8], from: -5.31,
-        walls: 'stripeTiles', sides: [undefined, 'glassFront', undefined, 'glossTiles'], floor: 'terrazzo',
+        walls: 'stripeTiles', sides: [undefined, 'glassFront', undefined, 'glossTiles'], floor: 'terrazzo', ground: true,
         nameSign: { side: 1, at: 0.5, length: 3.6, bottom: -3.31 } },
       ...([
         [[89.5, -4.3], [90.8, -4.3], [90.8, 7.6], [89.5, 7.6]],
@@ -4746,14 +4751,20 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'blueGlazed', roof: 0.08, roofColor: 0x22357e, floor: 'terrazzo' },
       { name: "shop's front", plan: [[99.8, 7.55], [103.4, 7.55], [103.4, 7.6], [99.8, 7.6]], h: [-5.31, -2.8], from: -5.31,
         walls: 'shopWindows', sides: [undefined, null, null, null] },
-      { name: 'plinth', plan: [[89.6, 1.15], [90.2, 1.15], [90.2, 1.75], [89.6, 1.75]], h: [-5.31, -4.31], from: -5.31,
+      { name: 'plinth', plan: [[89.6, 1.8], [90.2, 1.8], [90.2, 2.4], [89.6, 2.4]], h: [-5.31, -4.31], from: -5.31,
         walls: 'glossTiles', roof: 0.02, roofColor: 0xecece8 },
+      ...([[0.3, 0.85], [2.75, 3.3]] as [number, number][]).map(([u0, u1]): Block => ({ name: 'line map', plan: [[89.52, u0], [89.56, u0], [89.56, u1], [89.52, u1]],
+        h: [-5.0, -3.56], from: -5.0, walls: 'darkStone', roof: 0.01, roofColor: 0x2a2c2e })),
       // over the underpass: between the decks, ballast over a concrete soffit
       ...([
         [[103.6, -1.47], [107.6, -0.9], [107.6, 0.48], [103.6, 0.04]],
         [[103.6, 5.74], [107.6, 6.18], [107.6, 8.39], [103.6, 8.13]],
       ] as [number, number][][]).map((plan): Block => ({ name: 'between the decks', plan, h: [-2.83, -1.95], from: -2.83,
         walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete', roof: 0.15, roofColor: 0x5f5b56 })),
+      // the decks' undersides over the underpass, which its open floor's space cuts out of the
+      // network's decks (a ceiling, which only closed spaces cut)
+      { name: 'soffit over the underpass', plan: [[103.6, -7.13], [107.6, -6.55], [107.6, 13.95], [103.6, 13.95]], h: [-2.9, -2.87], from: -2.9,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
       // the name on the southern deck's fascia over the underpass's mouth
       { name: "deck's fascia", plan: [[103.4, 13.95], [107.8, 13.95], [107.8, 14.05], [103.4, 14.05]], h: [-2.85, -1.75], from: -2.85,
         walls: 'boardConcrete', nameSign: { side: 2, at: 0.5, length: 3.4, bottom: -2.7, black: true } },
@@ -4774,6 +4785,15 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'glazed', sides: ['whiteRender', undefined, 'whiteRender', undefined], roof: 0.15, roofColor: 0x4a4e52,
         gables: { count: 1, rise: 1.2, color: 0xe6e0cf, trim: 0x3a3d40 }, floor: 'pavers', ground: true,
         nameSign: { side: 0, at: 0.5, length: 3.2, bottom: 0.95, black: true } },
+      // the decks' parapets of exposed aggregate along their outer edges
+      ...([
+        [[76, -10.3], [90, -8.9], [100, -7.65], [110, -6.2], [126, -3.5]],
+        [[76, 12.7], [90, 13.15], [100, 13.6], [110, 14.25], [126, 15.7]],
+      ] as [number, number][][]).flatMap((edge, k) => edge.slice(1).map(([sb, ub], i): Block => {
+        const [sa, ua] = edge[i], w = k === 0 ? 0.25 : -0.25;
+        return { name: "deck's parapet", plan: k === 0 ? [[sa, ua], [sb, ub], [sb, ub + w], [sa, ua + w]] : [[sa, ua + w], [sb, ub + w], [sb, ub], [sa, ua]],
+          h: [-1.76, -1.21], from: -1.76, walls: 'roughcast', roof: 0.02, roofColor: 0x8f8b84 };
+      })),
       // the dark hut on the southern island
       { name: 'hut', plan: [[-23, 4.6], [-19, 4.6], [-19, 6.6], [-23, 6.6]], h: [0, 2.7], walls: 'greyPanels', roof: 0.1, roofColor: 0x2f3234, onPlatform: true },
     ],
@@ -4786,15 +4806,15 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'rooflights', at: [[94.5, -1.73], [97, -1.48], [99.5, -1.2], [102, -0.9]], size: 0.9, ceiling: -0.56, top: -0.4 },
       { kind: 'rooflights', at: [[94.5, 6.27], [97, 6.33], [99.5, 6.48], [102, 6.59]], size: 1.2, ceiling: -0.56, top: -0.4 },
       // Non-Violence, on its plinth against the wall between the stairs' feet
-      { kind: 'revolver', s: 89.95, u: 1.45, h: -4.29, turn: Math.PI / 2, size: 0.45 },
+      { kind: 'revolver', s: 89.95, u: 2.1, h: -4.29, turn: Math.PI / 2, size: 0.45 },
     ],
     benches: [{ at: [-45.85, -35.7, -27.7, -14.6, 30], wood: true }, { at: [-14.65, 30], wood: true, roof: 0 }],
     fences: [
       { points: [[-75, -11.6], [-40, -13.0], [0, -13.6], [40, -12.8], [60, -11.7], [74, -10.6]], h: [-1.3, 0.6] },
       { kind: 'boards', color: 0x8f9497, points: [[-75, 14.3], [-40, 13.2], [0, 12.8], [40, 12.7], [74, 13.0]], h: [-1.3, 1.0] },
-      // along the decks' outer edges
-      { points: [[76, -10.3], [90, -8.9], [100, -7.65], [110, -6.2], [126, -3.5]], h: [-1.76, 0.1] },
-      { points: [[76, 12.7], [90, 13.15], [100, 13.6], [110, 14.25], [126, 15.7]], h: [-1.76, 0.1] },
+      // on the parapets along the decks' outer edges
+      { points: [[76, -10.18], [90, -8.78], [100, -7.53], [110, -6.08], [126, -3.38]], h: [-1.21, 0.8] },
+      { points: [[76, 12.58], [90, 13.03], [100, 13.48], [110, 14.13], [126, 15.58]], h: [-1.21, 0.8] },
     ],
   },
 };
