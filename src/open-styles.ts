@@ -3676,6 +3676,12 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the face over the ramp where it goes in under the platform's end, up to the parapets' height
       { name: "ramp's mouth", plan: [[64.02, -4.25], [64.2, -4.26], [64.2, -1.82], [64.02, -1.81]], h: [-0.4, 1.0], from: -0.4,
         walls: 'pixelTiles', roof: 0.05, roofColor: 0x9a9c9b },
+      // the parapets either side of the ramp's opening, tiled on the platform's side too, under a
+      // steel coping (photographs), from the ramp's head, where the ramp's own walls don't yet rise
+      { name: 'north parapet', plan: [[29.94, -2.47], [63.94, -4.21], [63.93, -4.41], [29.93, -2.67]], h: [0, 0.98], from: 0,
+        walls: 'pixelTiles', roof: 0.04, roofColor: 0xb4b8bb, onPlatform: true },
+      { name: 'south parapet', plan: [[30.07, -0.13], [64.06, -1.88], [64.07, -1.68], [30.08, 0.07]], h: [0, 0.98], from: 0,
+        walls: 'pixelTiles', roof: 0.04, roofColor: 0xb4b8bb, onPlatform: true },
       // the glass pavilion on the street over the northern stairs, its doors at the east end
       { name: 'pavilion', plan: [[106.6, -37.7], [106.6, -42.6], [113.0, -42.8], [113.2, -38.0]], h: [-0.3, 3.0], from: 0.11,
         walls: 'darkGlazed', sides: [undefined, undefined, 'blackFront', undefined], floor: 'slate', ceiling: 'whiteRender',
