@@ -985,14 +985,28 @@
     },
     "Kristineberg": {
       "drawing": "kristineberg.png",
-      "note": "An island platform on a bank. At its west end stairs go down to the ticket hall at the street.",
+      "note": "An island platform on a bank, entered only from its west end. There a stair house stands between the tracks: a flight down along its middle to the ticket hall at the street, and a glazed walkway along the northern track to a lift. West of it the tracks run on concrete decks over the hall, which lies under the northern one and between them, and over Nordenflychtsvägen, which passes under the tracks and Drottningholmsvägen. From the gates the way out is north through the hall's doors onto Nordenflychtsvägen, where Hjalmar Söderbergs väg meets it. From the laser scan (the stair house, its roof sloping down from the platform, the lift's tower, the decks, the streets 5.3 m under the platform), OpenStreetMap's indoor mapping (the flight's foot 90 m west, the lift at 93 m, the gates and the doors at 91.5 m) and photographs (2010 to 2019).",
       "routes": [
-        { "from": [-49.87436714794674, -1.0], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -1.3]},
-          {"walk": [-66.0, -1.4], "width": 6},
-          {"walk": [-66.0, -13.4], "width": 4},
+        { "from": [-72.5, -0.5], "width": 2.4, "go": [
+          {"walk": [-75.5, -0.5], "open": true},
+          {"stairs": -5.3, "toward": [-200, -0.5]},
+          {"walk": [-87.0, -0.5], "open": true}
+        ] },
+        { "from": [-72.5, -3.3], "width": 2.0, "go": [
+          {"walk": [-93.0, -3.3], "open": true},
+          {"walk": [-93.0, -2.2], "open": true},
+          {"lift": -5.3, "above": 4.2},
+          {"walk": [-93.0, -3.0], "open": true},
+          {"walk": [-90.9, -3.0], "open": true}
+        ] },
+        { "from": [-87.0, -0.5], "h": -5.3, "width": 2.4, "go": [
+          {"walk": [-90.9, -0.5], "open": true},
+          {"walk": [-90.9, -3.6], "width": 2.0, "open": true},
+          {"walk": [-90.9, -7.6], "width": 4.8, "open": true},
           {"gates": true},
-          {"exit": 370082786}
+          {"walk": [-90.9, -9.6], "open": true},
+          {"walk": [-91.5, -11.0], "width": 3.6, "open": true},
+          {"exit": 370082786, "by": "walk", "open": true}
         ] }
       ]
     },

@@ -296,7 +296,7 @@ export interface Block {
   gables?: { count: number; rise: number; color: number; trim: number; round?: boolean };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -388,6 +388,14 @@ export interface SlabBenches { kind: 'slabBenches'; at: [number, number][]; span
 // plane `d` across the plinth from its middle (x along it, y up from its top), [x0, y0, x1, y1, d].
 export interface BronzeFrames { kind: 'bronzeFrames'; s: number; u: number; turn: number; plinth: [number, number, number]; bar: number; bars: [number, number, number, number, number][] }
 
+// Carina Wallert's Resande med djur (Kristineberg, 1991): on a long concrete plinth at s, u (in the
+// station's frame), turned `turn` (radians, as a guardian's) from lying along it, a traveller of
+// dark bronze, angular as if folded out of sheet, seated at its back end on a block behind an
+// upright one, an arm over it; a lean dog lying stretched out along the plinth in front of them,
+// its head raised; and a wedge of concrete along the plinth's far side, sloping up away from the
+// dog.
+export interface Traveller { kind: 'traveller'; s: number; u: number; turn: number }
+
 // Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`.
 export interface Columns { kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number }
 
@@ -408,9 +416,10 @@ export interface Bird { kind: 'bird'; s: number; u: number; height: number; turn
 export interface Rooflights { kind: 'rooflights'; at: [number, number][]; size: number; ceiling: number; top: number }
 
 // Patches of the platform's paving laid in a check of its own tiles and pale ones, `rows` tiles
-// along and `cols` across, `tile` m square, their middles at the points ([s, u], across from the
-// roof's middle), the pale ones `color`.
-export interface Checks { kind: 'checks'; at: [number, number][]; rows: number; cols: number; tile: number; color: number }
+// along and `cols` across, `tile` m square (or `size` along and across), their middles at the
+// points ([s, u], across from the roof's middle), the pale ones `color`; or (`solid`) all of them
+// in `color`, as Kristineberg's bands of red pavers.
+export interface Checks { kind: 'checks'; at: [number, number][]; rows: number; cols: number; tile: number; size?: [number, number]; solid?: boolean; color: number }
 
 // Lenka Jonesson's Björkar (Björkhagen, 1991): a cube of rusted steel bars `size` across on a
 // concrete plinth, turned `turn` from the platform's line, with birch trunks (one, or three side by
@@ -3776,5 +3785,189 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     shelters: [{ s: [6.5, 11.5], u: [-1.1, 1.1] }],
     // OpenStreetMap's pavilion and street lift, which the blocks and the layout draw
     buildings: ['w244321280', 'w1160410819'],
+  },
+
+  // Kristineberg (26 October 1952, with the line from Hötorget to Vällingby): an island platform on
+  // a bank beside Drottningholmsvägen, entered only from its west end, where Nordenflychtsvägen
+  // runs under the tracks and the road (Swedish and English Wikipedia). Lantmäteriet's laser scan
+  // puts its roof from 71.5 m west of the platform's middle to 1.5 m east, 7.8 m wide, its top 3.3 m
+  // over the platform at the valley and 3.7 m at the edges. Photographs (2010 to 2019) show it of
+  // galvanised ribbed sheet, the ribs across, on dark grey steel: columns in pairs under a beam each
+  // along the platform, a rafter across from edge to edge over each pair, purlins along; tube lamps;
+  // black name signs hung between the pairs, departure boards, a clock, a glass shelter. Grey slabs
+  // in bond, a pale edge and a dark ribbed strip, and under the roof two bands of red pavers along
+  // the platform outside the columns. Out in the open, galvanised lamp posts down the middle, two
+  // lamps on a T and a third lower down (the laser scan: 5 m high, 10, 25, 41 and 60 m east), the
+  // black sign on one; chain-link fences beyond both tracks, the southern on the road's barrier.
+  //
+  // Carina Wallert's Resande med djur (1991) stands 16.5 m east of the middle: on a long plinth of
+  // concrete a traveller of dark bronze, seated behind an upright block, and a lean dog stretched
+  // out in front of it, in a patch of red pavers (photographs; the laser scan places the plinth).
+  //
+  // At the platform's west end a stair house stands between the tracks (the laser scan): a flight
+  // down to the street, 15 m long and 3 m wide under a roof sloping from 2.95 m over the platform at
+  // its top to 0.8 m at its foot, white tiles to above a person's head, glass in dark frames above
+  // them, dark stone steps and a white ceiling (photographs); beside it on the north a glazed
+  // walkway along the track to a lift's tower, 4.2 m high, 22 m west of the platform. West of it
+  // the tracks run on concrete decks over the ticket hall, which lies under the northern one and
+  // between them, and over the street (OpenStreetMap's outline and indoor mapping: the flight's foot
+  // 90 m west, the lift at 93 m, the gates, the doors onto Nordenflychtsvägen at 91.5 m, 13.2 m
+  // north). The hall (photographs, 2017 and 2019): walls of board-marked concrete, a white strip
+  // ceiling, grey terrazzo, a round grey column, the gates with the ticket booth in blue panels east
+  // of them; its front of glass doors under SL's blue band with the station's name, Pressbyrån's
+  // windows east of them and a glazed corner west of them, under a flat canopy, the T on the deck's
+  // corner over the street. Nordenflychtsvägen goes on under Drottningholmsvägen's deck, 4.5 m and
+  // more clear, on rows of round concrete columns.
+  'Kristineberg': {
+    roof: {
+      kind: 'butterfly',
+      from: -71.5, to: 1.5, width: 7.8,
+      middle: 3.1, edge: 3.5, thick: 0.18, fascia: 0.25,
+      rafters: 12, rafterAt: -65.5, rafterSize: [0.18, 0.35], rafterColor: 0x3b3f43,
+      deck: 'ribbedAcross',
+      purlins: { at: [-2.9, -1.6, 1.6, 2.9], size: [0.1, 0.22] },
+      beam: 0.35,
+      columns: { every: 12, at: -65.5, size: 0.22, plinth: { size: 0.36, height: 0.12 }, pair: 1.8 },
+      lamps: { offset: 2.4, length: 1.5, every: 3, tube: true },
+      colors: { underside: 0x9a9d9f, fascia: 0x34383b, top: 0x55595c, steel: 0x3b3f43 },
+      signs: { at: [-53.5, -29.5, -5.5], back: '', ahead: '', bottom: 2.25 },
+      clocks: [[-44, -1.6]],
+      // (trains keep left: those for the city on the northern track)
+      boards: [
+        { s: -46, u: -2.2, toward: 'T-Centralen', trains: ['18 Farsta strand  1 min', '19 Hagsätra  6 min'] },
+        { s: -40, u: 2.2, toward: 'Hässelby strand', trains: ['18 Hässelby strand  4 min', '19 Hässelby strand  9 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.55, tactile: [0.55, 0.9], slabs: 0.9, paverSize: [0.6, 0.4], mix: 0.3,
+      colors: { edge: 0xd2cfc7, tactile: 0x5e6163, slab: 0xa3a19c, pavers: 0xa3a19c, paler: 0xb1afaa, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: 'stair house', s: [-95, -72], u: [-4.8, 1.0], h: [-0.5, 0.5], walls: null, floor: 'darkStone' },
+      // (the stair house's glass over the tiles, its ceiling the flight's)
+      { name: 'stairs', s: [-88, -74], u: [-2.0, 1.0], h: [-5.6, 0.3], walls: 'squareTiles', floor: 'darkStone', stairs: 'squareTiles', sill: 2.0 },
+      // (the hall's walls and ceiling are its shell's)
+      { name: 'ticket hall', s: [-96, -81], u: [-13.5, 1.0], h: [-5.6, -4.8], walls: 'boardConcrete', floor: 'terrazzo', ceiling: 'slats' },
+    ],
+    blocks: [
+      // the stair house: the flight's hall, its roof sloping down from the platform, glazed above
+      // the flight's tiled walls
+      { name: 'stair house', plan: [[-72.2, 1.0], [-87.5, 1.0], [-87.5, -2.0], [-72.2, -2.0]], h: [-5.3, 2.8], low: 0.63, from: -5.3,
+        walls: 'darkGlazed', sides: [undefined, 'squareTiles', undefined, null], floor: 'darkStone', ceiling: 'slats', roof: 0.15, roofColor: 0x3a3d40, ground: true },
+      // the walkway beside it to the lift, over the hall's roof at its west end
+      { name: 'walkway', plan: [[-87.5, -2.0], [-72.2, -2.0], [-72.2, -4.6], [-87.5, -4.6]], h: [-2.0, 2.75], from: 0,
+        walls: 'darkWindows', sides: [null, null, undefined, null], floor: 'darkStone', ceiling: 'slats', roof: 0.15, roofColor: 0x3a3d40, eaves: [0, 0, 0.5, 0] },
+      { name: 'walkway, west', plan: [[-94.5, -2.0], [-87.5, -2.0], [-87.5, -4.6], [-94.5, -4.6]], h: [-2.4, 2.75], from: 0,
+        walls: 'darkWindows', sides: [undefined, null, undefined, undefined], floor: 'darkStone', ceiling: 'slats', roof: 0.15, roofColor: 0x3a3d40, eaves: [0, 0, 0.5, 0] },
+      // the ticket hall: between the tracks under a roof of its own, under the northern deck, and
+      // its front out from under the deck, its roof reaching out over the doors
+      { name: 'ticket hall between the tracks', plan: [[-95.8, 1.0], [-87.5, 1.0], [-87.5, -3.75], [-95.8, -3.75]], h: [-5.3, -2.65], from: -5.3,
+        walls: 'boardConcrete', sides: [undefined, null, null, undefined], floor: 'terrazzo', ceiling: 'slats', roof: 0.25, roofColor: 0x6f6e69, ground: true },
+      { name: 'ticket hall under the deck', plan: [[-95.4, -3.75], [-87.5, -3.75], [-87.5, -9.25], [-95.4, -9.25]], h: [-5.3, -2.75], from: -5.3,
+        walls: 'boardConcrete', sides: [null, null, null, undefined], floor: 'terrazzo', ceiling: 'slats', roof: 0.1, ground: true },
+      { name: 'ticket hall under the deck, east', plan: [[-87.5, -3.75], [-81.7, -3.75], [-81.7, -9.25], [-87.5, -9.25]], h: [-5.3, -2.75], from: -5.3,
+        walls: 'boardConcrete', sides: [undefined, undefined, null, null], floor: 'terrazzo', ceiling: 'slats', roof: 0.1, ground: true },
+      { name: "ticket hall's front, west", plan: [[-95.4, -9.25], [-93.2, -9.25], [-93.2, -13.4], [-95.4, -13.4]], h: [-5.3, -2.15], from: -5.3,
+        walls: 'glazed', sides: [null, null, undefined, 'boardConcrete'], band: { walls: 'boardConcrete', from: -2.65 }, floor: 'terrazzo', ceiling: 'slats',
+        roof: 0.25, roofColor: 0x6f6e69, eaves: [0, 0, 1.0, 0], ground: true },
+      { name: "ticket hall's doors", plan: [[-93.2, -9.25], [-89.8, -9.25], [-89.8, -13.4], [-93.2, -13.4]], h: [-5.3, -2.15], from: -5.3,
+        walls: 'glassFront', sides: [null, null, undefined, null], band: { walls: 'boardConcrete', from: -2.65 }, floor: 'terrazzo', ceiling: 'slats',
+        roof: 0.25, roofColor: 0x6f6e69, eaves: [0, 0, 1.0, 0], ground: true, nameSign: { side: 2, at: 0.5, length: 3.4, bottom: -2.95 } },
+      { name: "ticket hall's front, east", plan: [[-89.8, -9.25], [-81.7, -9.25], [-81.7, -13.4], [-89.8, -13.4]], h: [-5.3, -2.15], from: -5.3,
+        walls: 'shopWindows', sides: [null, 'boardConcrete', undefined, null], band: { walls: 'boardConcrete', from: -2.65 }, floor: 'terrazzo', ceiling: 'slats',
+        roof: 0.25, roofColor: 0x6f6e69, eaves: [0, 0, 1.0, 0], ground: true },
+      { name: 'ticket booth', plan: [[-88.4, -6.6], [-85.9, -6.6], [-85.9, -8.6], [-88.4, -8.6]], h: [-5.3, -3.05], from: -5.3,
+        walls: 'blueGlazed', roof: 0.05, roofColor: 0xb9b6ae },
+      // under the southern deck, the bank's end; and the bank's end west of the street, under both
+      { name: "bank's end under the southern deck", plan: [[-95.8, 6.05], [-95.8, 1.0], [-82, 1.0], [-82, 6.05]], h: [-7, -1.9], from: -7,
+        walls: 'boardConcrete', sides: [undefined, null, null, null], roof: 0.02, roofColor: 0x6b6a62, ground: true },
+      { name: "bank's end west of the street", plan: [[-122, 6.15], [-122, -10], [-117, -10], [-117, 6.15]], h: [-7, -1.9], from: -7,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x6b6a62, ground: true },
+      // Nordenflychtsvägen under the decks, falling from Hjalmar Söderbergs väg south
+      { name: 'Nordenflychtsvägen', plan: [[-95.8, -30], [-117, -30], [-117, 36], [-95.8, 36]], h: [-7.2, -5.12], lowBack: -6.62, from: -7.2,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      // the paving in front of the doors, and Hjalmar Söderbergs väg past it along the bank's foot
+      { name: 'in front of the doors', plan: [[-95.8, -13.4], [-81.7, -13.4], [-81.7, -17.5], [-95.8, -17.5]], h: [-7, -5.27], from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x8d8a84, ground: true },
+      { name: 'Hjalmar Söderbergs väg, -95.8 to -81.7', plan: [[-95.8, -17.5], [-95.8, -25.6], [-81.7, -24.8], [-81.7, -17.5]], h: [-7, -5.17], lowBack: -4.97, from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: 'Hjalmar Söderbergs väg, -81.7 to -60', plan: [[-81.7, -14.2], [-81.7, -24.8], [-60, -23.5], [-60, -14.2]], h: [-7, -4.97], lowBack: -4.57, from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: 'Hjalmar Söderbergs väg, -60 to -30', plan: [[-60, -14.2], [-60, -23.5], [-30, -20.5], [-30, -14.2]], h: [-7, -4.57], lowBack: -4.02, from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: 'Hjalmar Söderbergs väg, -30 to -8', plan: [[-30, -14.2], [-30, -20.5], [-8, -18.8], [-8, -14.2]], h: [-7, -4.02], lowBack: -3.47, from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      // the bank's foot along it, held by a wall of granite
+      { name: "bank's wall", plan: [[-81.7, -14.2], [-60, -14.2], [-60, -13.8], [-81.7, -13.8]], h: [-7, -3.75], lowBack: -3.35, from: -7,
+        walls: 'granite', roof: 0.05, roofColor: 0x8c8a85 },
+      { name: "bank's wall, east", plan: [[-60, -14.2], [-20, -14.2], [-20, -13.8], [-60, -13.8]], h: [-7, -3.35], lowBack: -2.65, from: -7,
+        walls: 'granite', roof: 0.05, roofColor: 0x8c8a85 },
+      { name: "Drottningholmsvägen, -140 to -117", plan: [[-140, 6.15], [-140, 30.5], [-117, 30.5], [-117, 6.15]], h: [-7, 0.18], lowBack: -0.19, from: -7,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen over the underpass", plan: [[-117, 6.15], [-117, 30.5], [-95, 30.5], [-95, 6.15]], h: [-1.6, -0.19], lowBack: -0.7, from: -1.6,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, floor: 'boardConcrete' },
+      { name: "Drottningholmsvägen, -95 to -80", plan: [[-95, 6.15], [-95, 30.5], [-80, 30.5], [-80, 6.15]], h: [-7, -0.7], lowBack: -1.02, from: -7,
+        walls: 'boardConcrete', sides: ['boardConcrete', 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, -80 to -60", plan: [[-80, 6.15], [-80, 30.5], [-60, 30.5], [-60, 6.4]], h: [-3.7, -1.02], lowBack: -1.22, from: -3.7,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, -60 to -40", plan: [[-60, 6.4], [-60, 30.5], [-40, 30.5], [-40, 7.15]], h: [-4, -1.22], lowBack: -1.52, from: -4,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, -40 to -20", plan: [[-40, 7.15], [-40, 30.5], [-20, 30.5], [-20, 7.15]], h: [-4.25, -1.52], lowBack: -1.77, from: -4.25,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, -20 to 0", plan: [[-20, 7.15], [-20, 30.5], [0, 30.5], [0, 8.5]], h: [-4.5, -1.77], lowBack: -2.02, from: -4.5,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, 0 to 20", plan: [[0, 8.5], [0, 30.5], [20, 30.5], [20, 8.5]], h: [-4.8, -2.02], lowBack: -2.32, from: -4.8,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, 20 to 40", plan: [[20, 8.5], [20, 30.5], [40, 30.5], [40, 8.5]], h: [-5.1, -2.32], lowBack: -2.62, from: -5.1,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, 40 to 60", plan: [[40, 8.5], [40, 30.5], [60, 30.5], [60, 8.95]], h: [-5.35, -2.62], lowBack: -2.87, from: -5.35,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, 60 to 80", plan: [[60, 8.95], [60, 30.5], [80, 30.5], [80, 9.54]], h: [-5.65, -2.87], lowBack: -3.17, from: -5.65,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "Drottningholmsvägen, 80 to 95", plan: [[80, 9.54], [80, 30.5], [95, 30.5], [95, 9.9]], h: [-5.88, -3.17], lowBack: -3.4, from: -5.88,
+        walls: 'boardConcrete', sides: [null, 'boardConcrete', null, 'boardConcrete'], roof: 0.02, roofColor: 0x55585a, ground: true },
+      // the road's barrier along the tracks, the fence on it
+      { name: "road's barrier, -95 to -66", plan: [[-95, 5.85], [-66, 5.85], [-66, 6.15], [-95, 6.15]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, -66 to -54", plan: [[-66, 5.85], [-54, 6.35], [-54, 6.65], [-66, 6.15]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, -54 to -42", plan: [[-54, 6.35], [-42, 6.85], [-42, 7.15], [-54, 6.65]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, -42 to -6", plan: [[-42, 6.85], [-6, 6.85], [-6, 7.15], [-42, 7.15]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, -6 to 6", plan: [[-6, 6.85], [6, 7.35], [6, 7.65], [-6, 7.15]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, 6 to 30", plan: [[6, 7.35], [30, 7.35], [30, 7.65], [6, 7.65]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, 30 to 48", plan: [[30, 7.35], [48, 8.25], [48, 8.55], [30, 7.65]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, 48 to 66", plan: [[48, 8.25], [66, 8.85], [66, 9.15], [48, 8.55]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+      { name: "road's barrier, 66 to 84", plan: [[66, 8.85], [84, 9.35], [84, 9.65], [66, 9.15]], h: [-6, -1.1], from: -6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a9892 },
+    ],
+    // chain-link beyond the tracks: on the road's barrier on the south, on the bank's edge on the
+    // north; and the railing along the northern deck's edge over the street
+    fences: [
+      { points: [[-95, 6.0], [-66, 6.0], [-54, 6.5], [-42, 7.0], [-6, 7.0], [6, 7.5], [30, 7.5], [48, 8.4], [66, 9.0], [84, 9.5]], h: [-1.1, 1.3] },
+      { points: [[-82, -8.82], [-55, -8.44], [-26, -7.69], [4, -6.91], [34, -6.15], [64, -5.37], [84, -4.9]], h: [-1.9, 0.5] },
+      { points: [[-121, -9.45], [-95.4, -9.45]], h: [-1.1, 0.1] },
+    ],
+    art: [
+      // the bands of red pavers under the roof, and the patch round the sculpture
+      { kind: 'checks', solid: true, color: 0x9b5547, at: [[-35, -1.35], [-35, 1.35]], rows: 122, cols: 1, tile: 0.6, size: [0.6, 0.32] },
+      { kind: 'checks', solid: true, color: 0x9b5547, at: [[16.5, 0.15]], rows: 7, cols: 6, tile: 0.6, size: [0.6, 0.43] },
+      { kind: 'traveller', s: 16.5, u: 0.35, turn: Math.PI },
+      { kind: 'masts', height: 5.0, color: 0x9da2a6, top: false, arm: 1.0, lower: 4.15, lowerOne: true, sign: 2.7, at: [[25, 0], [59.8, 0.4]] },
+      { kind: 'masts', height: 5.0, color: 0x9da2a6, top: false, arm: 1.0, lower: 4.15, lowerOne: true, at: [[10, 0.2], [41, 0.3]] },
+      // the columns under the decks over Nordenflychtsvägen, and the metro's sign on the deck's corner
+      { kind: 'columns', at: [[-101.5, -6.4], [-101.5, 2.5]], from: -7, to: -2.55, size: 0.8, color: 0xaaa79f },
+      { kind: 'columns', at: [[-101.5, 8.5], [-101.5, 13.5], [-101.5, 18.5], [-101.5, 23.5], [-101.5, 28.5]], from: -7, to: -1.6, size: 0.8, color: 0xaaa79f },
+      { kind: 'roundel', s: -96.3, u: -9.8, h: -0.3, size: 1.0, foot: -1.0 },
+    ],
+    shelters: [{ s: [-39, -34], u: [-1.1, 1.1] }],
+    // OpenStreetMap's outline of the station's building, which the blocks draw
+    buildings: ['w56259275'],
   },
 };

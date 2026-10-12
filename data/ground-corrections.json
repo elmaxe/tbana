@@ -72,6 +72,12 @@
       "outline": [954.6, 2667.0, 970.3, 2663.7, 972.6, 2675.0, 956.9, 2678.3],
       "heights": [21.93, 21.93, 21.98, 21.98],
       "why": "On Ringvägen's north side, at Skrapan's corner, the station's open stairs go down from the pavement (Lantmäteriet's laser scan, 2021: the pavement at 21.9–22.0 m, the stairs' foot at 19.5 m). The elevation model's 5 m grid smooths the stairwell into a hollow 0.5 m deep round it, which the passage at its foot would come up through."
+    },
+    {
+      "name": "Kristineberg: in front of the station's doors",
+      "outline": [-3203.5, -161.1, -3208.6, -145.4, -3191.2, -139.8, -3190.0, -143.4, -3186.5, -142.2, -3182.6, -154.3],
+      "heights": [13.65, 13.45, 13.8, 13.85, 13.9, 13.95],
+      "why": "The station's doors open north onto Nordenflychtsvägen where Hjalmar Söderbergs väg meets it, at the foot of the bank the tracks run on. The elevation model's 5 m grid smooths the bank down over the street, which left the ground at the doors a metre over the hall's floor (the deck reaches in under the hall's front, to keep the street level up to the doors). The laser scan has the street and the paving in front of the doors, from the hall's front out to 26 m north of the tracks' middle, at 13.5–13.95 m, rising a little to the east, and the bank rising from behind the hall."
     }
   ],
   "open": [

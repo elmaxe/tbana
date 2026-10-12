@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Traveller, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -294,6 +294,7 @@ export class OpenLook {
       else if (a.kind === 'lightBoxes') this.lightBoxes(a, frame, on);
       else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
       else if (a.kind === 'bronzeFrames') this.bronzeFrames(a, frame, on);
+      else if (a.kind === 'traveller') this.traveller(a, frame, on);
       else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
       else if (a.kind === 'capitals') this.capitals(a, frame, on);
       else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
@@ -393,6 +394,45 @@ export class OpenLook {
       const along = t * l / Math.abs(dy);
       taper(green, at(lo[0], d, P + lo[1]), at(hi[0], d, P + hi[1]), [t, along], [t, along], fx, fz);
     }
+  }
+
+  // Carina Wallert's Resande med djur (1991), from photographs and the laser scan: a plinth 2.6 m
+  // long, 1.1 m wide and 0.5 m high; on its back end a block 0.4 m high and on that an upright one,
+  // the traveller seated behind it, its folds of bronze flat and angular, an arm laid over the
+  // upright block, its head 2.2 m over the platform; the dog in front, 1.4 m from its haunches to
+  // its paws; the wedge along the far side, 0.4 m high at its back edge.
+  private traveller(a: Traveller, frame: Frame, on: On) {
+    const bronze = on(this.mat('bronze', () => new THREE.MeshStandardMaterial({ map: T.bronze(), metalness: 0.6, roughness: 0.45, side: THREE.DoubleSide })));
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const cd = Math.cos(a.turn), sd = Math.sin(a.turn);
+    // x along the plinth toward the dog's head, d across it (to the left of x), y up
+    const at = (x: number, d: number, y: number): XYZ => frame.at(a.s + cd * x - sd * d, a.u + sd * x + cd * d, y);
+    const o = at(0, 0, 0), f = at(1, 0, 0), fx = f[0] - o[0], fz = f[2] - o[2];
+    const P = 0.5, B = P + 0.4;
+    box(concrete, at(0, 0, P / 2), fx, fz, 1.1, P, 2.6);
+    box(concrete, at(-0.92, 0, (P + B) / 2), fx, fz, 0.8, B - P, 0.75);
+    box(concrete, at(-0.82, 0.2, B + 0.275), fx, fz, 0.45, 0.55, 0.35);
+    // the wedge: its sloping face toward the dog, its back edge along the plinth's far side
+    const w = (x: number, d: number, y: number) => [...at(x, d, y), 0, 0];
+    const [x0, x1, dl, dh, top] = [-0.5, 1.25, -0.15, -0.55, P + 0.4];
+    concrete.poly([w(x0, dl, P), w(x1, dl, P), w(x1, dh, top), w(x0, dh, top)]);
+    concrete.poly([w(x0, dh, P), w(x0, dh, top), w(x1, dh, top), w(x1, dh, P)]);
+    concrete.poly([w(x0, dl, P), w(x0, dh, top), w(x0, dh, P)]);
+    concrete.poly([w(x1, dl, P), w(x1, dh, P), w(x1, dh, top)]);
+    // the traveller: its seat and legs wrapped in its coat, its body leaning a little forward and
+    // twisted, a turned collar, its head; its near arm over the upright block
+    taper(bronze, at(-1.12, -0.18, B), at(-1.1, -0.17, B + 0.6), [0.5, 0.42], [0.46, 0.4], fx, fz);
+    taper(bronze, at(-1.1, -0.17, B + 0.6), at(-1.02, -0.13, B + 1.05), [0.44, 0.32], [0.38, 0.26], fx, fz);
+    taper(bronze, at(-1.02, -0.13, B + 1.05), at(-0.99, -0.12, B + 1.18), [0.34, 0.25], [0.24, 0.2], fx, fz);
+    taper(bronze, at(-0.97, -0.12, B + 1.13), at(-0.93, -0.11, B + 1.32), [0.17, 0.2], [0.13, 0.16], fx, fz);
+    taper(bronze, at(-1.0, 0.05, B + 0.98), at(-0.82, 0.2, B + 0.56), [0.12, 0.13], [0.1, 0.12], fx, fz);
+    // the dog: its body, its haunches with a hind leg folded along them, its neck and raised head
+    // turned a little toward the near side, its forelegs stretched out to the plinth's end
+    bar(bronze, at(-0.5, 0.2, P + 0.24), at(0.32, 0.2, P + 0.27), 0.27, 0.24);
+    bar(bronze, at(-0.52, 0.34, P + 0.1), at(-0.05, 0.4, P + 0.1), 0.1, 0.1);
+    taper(bronze, at(0.3, 0.21, P), at(0.48, 0.25, P + 0.4), [0.22, 0.26], [0.12, 0.13], fx, fz);
+    bar(bronze, at(0.43, 0.26, P + 0.46), at(0.68, 0.33, P + 0.38), 0.12, 0.13);
+    for (const d of [0.13, 0.29]) bar(bronze, at(0.36, d, P + 0.07), at(1.12, d + 0.08, P + 0.06), 0.065, 0.065);
   }
 
   // Richard Nonas's benches (1994): each two slabs of granite on end and a thick seat between
@@ -989,12 +1029,12 @@ export class OpenLook {
     const m = on(this.mat(`checks:${a.color}`, () => new THREE.MeshStandardMaterial({
       color: a.color, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, side: THREE.DoubleSide,
     })));
-    const t = a.tile, g = 0.006;
+    const [ts, tu] = a.size ?? [a.tile, a.tile], g = 0.006;
     for (const [s, u] of a.at) {
-      const s0 = s - (a.rows * t) / 2, u0 = u - (a.cols * t) / 2;
+      const s0 = s - (a.rows * ts) / 2, u0 = u - (a.cols * tu) / 2;
       for (let i = 0; i < a.rows; i++) for (let j = 0; j < a.cols; j++) {
-        if ((i + j) % 2) continue;
-        const P = (k: number, l: number) => [...line.at(s0 + (i + k) * t, u0 + (j + l) * t, 0.004), 0, 0];
+        if (!a.solid && (i + j) % 2) continue;
+        const P = (k: number, l: number) => [...line.at(s0 + (i + k) * ts, u0 + (j + l) * tu, 0.004), 0, 0];
         m.poly([P(g, g), P(1 - g, g), P(1 - g, 1 - g), P(g, 1 - g)]);
       }
     }
