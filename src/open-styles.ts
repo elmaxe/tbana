@@ -83,6 +83,10 @@ export interface ButterflyRoof {
   // raised bays across the roof, each `length` long with its middle at one of `at`: a covering
   // pitched both ways along the platform from a ridge across it, `ridge` over the platform
   lanterns?: { at: number[]; length: number; ridge: number };
+  // or vaulted bays along it, each `length` long from `from`: the underside and the covering arch
+  // `rise` up from each bay's ends to its middle (a barrel across the platform), the beams along
+  // it staying at the bays' ends' height, so that each bay's arch shows over the fascia
+  barrels?: { length: number; rise: number };
   // columns `every` m, one of them at `at`, only `between` these `s` if given; or pairs of them
   // across the platform, `pair` apart, each under a beam of its own; `braces`, knee braces from
   // each column up to the beam this far along it either way; `casings`, a dark box round the
@@ -259,7 +263,8 @@ export type Finish =
   | 'greenTiles'    // small square tiles, a sea green
   | 'crossMosaic'   // warm yellow tiles, and on them round clusters of small cross-shaped tiles (Mari Pårup's)
   | 'crossTerrazzo' // dark grey terrazzo, small pale crosses set in it here and there
-  | 'bronzeGlazed'; // clear glass in thick dark bronze frames, a rail across at 1.1 m
+  | 'bronzeGlazed'  // clear glass in thick dark bronze frames, a rail across at 1.1 m
+  | 'pixelTiles';   // pale blue tiles, 15 cm, figures and bands picked out in coloured tiles (Lars Arrhenius's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -3606,5 +3611,164 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'roundel', s: -104.3, u: -20.7, h: 12.0, size: 0.9, foot: 11.31 },
       { kind: 'roundel', s: 110.4, u: 1.4, h: 15.5, size: 0.9, foot: 14.79, along: true },
     ],
+  },
+
+  // Thorildsplan (26 October 1952): an island platform in the open between the carriageways of
+  // Drottningholmsvägen, the motorway ramp to Fredhällsmotet on its south side. Its eastern half
+  // is under a roof of fourteen vaulted bays (OpenStreetMap's `round_row` roof, from 4.5 m to
+  // 88.5 m east of the platform's middle, about 10.3 m wide): the laser scan puts its top 5 m over
+  // the platform at each bay's crown and 4.1 m at the bays' ends, 6 m apart, and level across the
+  // platform. Photographs (2009 to 2025) show the bays as barrels of corrugated sheet across the
+  // platform, their arches open over a blue beam along each edge, on blue steel: two rows of
+  // columns close either side of the middle, a blue beam across at each bay's end, a dark beam
+  // along the middle; the underside, ochre until about 2019, is now bare grey metal. Beyond the
+  // roof, galvanised masts down the middle with two round lamps each and SL's black name signs;
+  // grey slabs, a white edge and a dark strip of studs; a glass shelter at the roof's west end.
+  //
+  // The way out is at the east end. A ramp goes down the middle of the platform's eastern half
+  // (Albert Guillaumes' drawing: its opening from about 30 m to 64 m), between parapets tiled
+  // with Lars Arrhenius's pixel figures (2008: pale blue tiles, a heart, invaders, clouds,
+  // toadstools, snow-capped peaks), under the platform's end and a walkway, to the ticket hall
+  // between the tracks; from the platform's end a flight goes down on either side of it, and
+  // between them the walkway runs out to a lift (OpenStreetMap: the flights from 76 m to 86 m,
+  // the lift at 88 m). The hall (photographs, 2017 to 2025): slate floor, white tiles, a white
+  // ceiling; the gates at 100 m. From it a passage runs north under the tracks and the road to
+  // stairs up into a glass pavilion on the street (and a lift beside them), and south under the
+  // tracks and the ramp to a portal in a sunken court, stairs climbing the slope from it.
+  'Thorildsplan': {
+    roof: {
+      kind: 'butterfly',
+      from: 4.5, to: 88.5, width: 10.3,
+      middle: 3.95, edge: 3.95, thick: 0.15, fascia: 0.45,
+      barrels: { length: 6, rise: 0.85 },
+      rafters: 6, rafterAt: 10.5, rafterSize: [0.22, 0.4], rafterColor: 0x1f5aa8,
+      deck: 'ribbed',
+      beam: 0.3,
+      gutter: [0.4, 0.5], gutterColor: 0x3a3e42,
+      // (in pairs either side of the ramp, none where the flights go down beside it)
+      columns: { every: 6, at: 10.5, size: 0.22, plinth: { size: 0.36, height: 0.08 }, pair: 2.8, offset: -0.4, gaps: [[78, 89]] },
+      lamps: { offset: 3.3, length: 1.5, every: 3, at: [-3.4, 3.4] },
+      colors: { underside: 0x9ba0a4, fascia: 0x1f5aa8, top: 0x4b5054, steel: 0x1f5aa8 },
+      signs: { at: [13.5, 22.5], back: '', ahead: 'Utgång' },
+      // (trains keep left: those for the city on the northern track)
+      boards: [
+        { s: 19.5, u: -3.6, toward: 'Skarpnäck', trains: ['17 Skarpnäck  2 min', '19 Hagsätra  6 min'] },
+        { s: 19.5, u: 3.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '17 Åkeshov  8 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.3, tactile: [0.4, 0.75], slabs: 6, slabSize: [0.4, 0.4],
+      colors: { edge: 0xdcdad3, tactile: 0x505355, slab: 0x8a8d8f, pavers: 0x8a8d8f, face: 0x9a9792 },
+      studs: true, pattern: 'grid',
+    },
+    rooms: [
+      // the ramp: open between its parapets, then under the platform's end and the walkway
+      { name: 'ramp', s: [29, 64.5], h: [-3, 0.5], walls: 'pixelTiles', floor: 'asphalt', sill: 1.0 },
+      { name: 'ramp under the walkway', s: [64.5, 87], u: [-5, -2.6], h: [-4.7, -4.5], walls: 'pixelTiles', floor: 'asphalt', ceiling: 'whiteRender' },
+      { name: 'flights', s: [75, 87], h: [-4.7, -4.5], walls: 'pixelTiles', stairs: 'pixelTiles', floor: 'asphalt', sill: 1.0 },
+      { name: 'walkway', s: [77, 87], h: [-0.5, 0.5], walls: 'pixelTiles', floor: 'asphalt' },
+      { name: 'ticket hall', s: [85, 106.5], u: [-9, 0], h: [-4.7, -4.5], walls: 'squareTiles', floor: 'slate', ceiling: 'whitePanels' },
+      { name: 'south stairs', s: [104, 113], u: [41, 54], h: [-4.7, -4.5], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'pavers' },
+      { name: 'north stairs', s: [104, 116], u: [-43, -34.2], h: [-4.7, -2.1], walls: 'squareTiles', stairs: 'squareTiles', floor: 'slate', ceiling: 'whiteRender' },
+      { name: 'passages', s: [104, 112], h: [-4.7, -4.5], walls: 'squareTiles', floor: 'slate', ceiling: 'whiteRender' },
+    ],
+    blocks: [
+      // the face over the ramp where it goes in under the platform's end, up to the parapets' height
+      { name: "ramp's mouth", plan: [[64.02, -4.25], [64.2, -4.26], [64.2, -1.82], [64.02, -1.81]], h: [-0.4, 1.0], from: -0.4,
+        walls: 'pixelTiles', roof: 0.05, roofColor: 0x9a9c9b },
+      // the glass pavilion on the street over the northern stairs, its doors at the east end
+      { name: 'pavilion', plan: [[106.6, -37.7], [106.6, -42.6], [113.0, -42.8], [113.2, -38.0]], h: [-0.3, 3.0], from: 0.11,
+        walls: 'darkGlazed', sides: [undefined, undefined, 'blackFront', undefined], floor: 'slate', ceiling: 'whiteRender',
+        roof: 0.2, roofColor: 0x2e3134, ground: true },
+      // nothing drawn: the city's ground under the tracks (a metre under the rails, under the
+      // network's own) taken away over the hall and the passages, whose ceilings come up to it
+      { name: 'ground over the hall', plan: [[80, -13], [80, 3.5], [111.5, 3.5], [111.5, -13]], h: [-3, -1.98], from: -3,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      // the paved deck over the hall between the tracks, east of the walkway, its rooflights in two
+      // rows (Google's mesh), and a low building with a metal roof beyond them
+      { name: 'deck over the hall', plan: [[86.8, 0.1], [108.5, -2.3], [108.5, -9.1], [86.8, -8.1]], h: [-1.7, -1.64], low: -1.86, from: -1.7,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.02, roofColor: 0x8c8a85 },
+      { name: 'building between the tracks', plan: [[109.3, -7.9], [115.8, -7.9], [115.8, -4.1], [109.3, -4.1]], h: [-1.9, 0.85], from: -1.9,
+        walls: 'boardConcrete', roof: 0.15, roofColor: 0x76839a },
+      // the walls of the cutting, from the laser scan: on the north the road's (Drottningholmsvägen
+      // westbound, falling from 3.3 m over the platform at the west to 0.3 m at the east), on the
+      // south the motorway ramp's, its deck climbing from the ground east of the station to 9.9 m
+      // over the platform at the west, where it bends away south
+      { name: "north road's wall, -120 to -110", plan: [[-120, -4.0], [-110, -3.9], [-110, -22], [-120, -22]], h: [-2.4, 3.28], low: 3.11, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -110 to -100", plan: [[-110, -3.9], [-100, -4.3], [-100, -22], [-110, -22]], h: [-2.4, 3.11], low: 2.96, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -100 to -80", plan: [[-100, -4.3], [-80, -4.7], [-80, -21], [-100, -22]], h: [-2.4, 2.96], low: 2.67, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -80 to -60", plan: [[-80, -4.7], [-60, -6.0], [-60, -21], [-80, -21]], h: [-2.4, 2.67], low: 2.31, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -60 to -40", plan: [[-60, -6.0], [-40, -6.5], [-40, -20], [-60, -21]], h: [-2.4, 2.31], low: 2.00, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -40 to -20", plan: [[-40, -6.5], [-20, -7.6], [-20, -23], [-40, -20]], h: [-2.4, 2.00], low: 1.67, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, -20 to 0", plan: [[-20, -7.6], [0, -8.55], [0, -23], [-20, -23]], h: [-2.4, 1.67], low: 1.34, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 0 to 20", plan: [[0, -8.55], [20, -9.4], [20, -23], [0, -23]], h: [-2.4, 1.34], low: 0.90, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 20 to 40", plan: [[20, -9.4], [40, -10.6], [40, -22], [20, -23]], h: [-2.4, 0.90], low: 0.58, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 40 to 60", plan: [[40, -10.6], [60, -11.5], [60, -23], [40, -22]], h: [-2.4, 0.58], low: 0.52, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 60 to 80", plan: [[60, -11.5], [80, -11.9], [80, -27], [60, -23]], h: [-2.4, 0.52], low: 0.42, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 80 to 100", plan: [[80, -11.9], [100, -13.3], [100, -27], [80, -27]], h: [-2.4, 0.42], low: 0.26, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "north road's wall, 100 to 120", plan: [[100, -13.3], [120, -13.8], [120, -24], [100, -27]], h: [-2.4, 0.26], low: -0.21, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -140 to -130", plan: [[-140, 23.5], [-130, 19.5], [-130, 26.5], [-140, 30.5]], h: [-2.4, 9.83], low: 9.53, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -130 to -120", plan: [[-130, 19.5], [-120, 15.5], [-120, 23.0], [-130, 26.5]], h: [-2.4, 9.53], low: 9.23, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -120 to -110", plan: [[-120, 15.5], [-110, 15.1], [-110, 22.5], [-120, 23.0]], h: [-2.4, 9.23], low: 8.84, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -110 to -100", plan: [[-110, 15.1], [-100, 13.2], [-100, 21.5], [-110, 22.5]], h: [-2.4, 8.84], low: 8.51, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -100 to -90", plan: [[-100, 13.2], [-90, 10.7], [-90, 19.0], [-100, 21.5]], h: [-2.4, 8.51], low: 8.06, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -90 to -80", plan: [[-90, 10.7], [-80, 9.1], [-80, 17.7], [-90, 19.0]], h: [-2.4, 8.06], low: 7.69, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -80 to -60", plan: [[-80, 9.1], [-60, 7.8], [-60, 16.25], [-80, 17.7]], h: [-2.4, 7.69], low: 6.86, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -60 to -40", plan: [[-60, 7.8], [-40, 7.35], [-40, 15.9], [-60, 16.25]], h: [-2.4, 6.86], low: 6.08, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -40 to -20", plan: [[-40, 7.35], [-20, 7.9], [-20, 16.1], [-40, 15.9]], h: [-2.4, 6.08], low: 5.36, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, -20 to 0", plan: [[-20, 7.9], [0, 8.1], [0, 16.3], [-20, 16.1]], h: [-2.4, 5.36], low: 4.70, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 0 to 20", plan: [[0, 8.1], [20, 8.8], [20, 16.5], [0, 16.3]], h: [-2.4, 4.70], low: 3.92, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 20 to 40", plan: [[20, 8.8], [40, 8.3], [40, 16.25], [20, 16.5]], h: [-2.4, 3.92], low: 3.14, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 40 to 60", plan: [[40, 8.3], [60, 7.3], [60, 15.0], [40, 16.25]], h: [-2.4, 3.14], low: 2.40, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 60 to 80", plan: [[60, 7.3], [80, 5.65], [80, 15.0], [60, 15.0]], h: [-2.4, 2.40], low: 1.60, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 80 to 90", plan: [[80, 5.65], [90, 3.6], [90, 13.0], [80, 15.0]], h: [-2.4, 1.60], low: 1.26, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 90 to 100", plan: [[90, 3.6], [100, 2.8], [100, 12.0], [90, 13.0]], h: [-2.4, 1.26], low: 0.96, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+      { name: "motorway ramp, 100 to 110", plan: [[100, 2.8], [110, 2.0], [110, 11.0], [100, 12.0]], h: [-2.4, 0.96], low: 0.58, from: -2.4,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
+    ],
+    // the railings along the walls' tops
+    fences: [
+      { kind: 'bars', h: [3.30, 4.40], points: [[-120, -4.15, 0.0], [-110, -4.05, -0.17], [-100, -4.45, -0.32], [-80, -4.85, -0.61], [-60, -6.15, -0.97], [-40, -6.65, -1.28], [-20, -7.75, -1.61], [0, -8.7, -1.94], [20, -9.55, -2.38], [40, -10.75, -2.7], [60, -11.65, -2.76], [80, -12.05, -2.86], [100, -13.45, -3.02], [120, -13.95, -3.49]] },
+      { kind: 'bars', h: [9.85, 10.95], points: [[-140, 23.65, 0.0], [-130, 19.65, -0.3], [-120, 15.65, -0.6], [-110, 15.25, -0.99], [-100, 13.35, -1.32], [-90, 10.85, -1.77], [-80, 9.25, -2.14], [-60, 7.95, -2.97], [-40, 7.5, -3.75], [-20, 8.05, -4.47], [0, 8.25, -5.13], [20, 8.95, -5.91], [40, 8.45, -6.69], [60, 7.45, -7.43], [80, 5.8, -8.23], [90, 3.75, -8.57], [100, 2.95, -8.87], [110, 2.15, -9.25]] },
+    ],
+    art: [
+      { kind: 'rooflights', size: 1.7, ceiling: -2.1, top: -1.68,
+        at: [[89.9, -6.5], [94.6, -6.8], [99.2, -7.1], [90.3, -2.75], [94.9, -3.1], [99.4, -3.5]] },
+      { kind: 'masts', height: 5.0, color: 0x8e9397, top: false, arm: 0.42, sign: 2.9, at: [[-6, -0.05], [-48, 0.85]] },
+      { kind: 'masts', height: 5.0, color: 0x8e9397, top: false, arm: 0.42, at: [[-20, 0.25], [-34, 0.55], [-62, 1.2]] },
+    ],
+    benches: { at: [-13, -27, -41, -55, 17.5] },
+    shelters: [{ s: [6.5, 11.5], u: [-1.1, 1.1] }],
+    // OpenStreetMap's pavilion and street lift, which the blocks and the layout draw
+    buildings: ['w244321280', 'w1160410819'],
   },
 };

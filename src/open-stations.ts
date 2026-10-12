@@ -810,10 +810,18 @@ export class OpenLook {
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
     // half the roof's width at s, and the underside's height across it there
     const half = (s: number) => line.width(s, R.width) / 2;
-    const h = (u: number, s = 0) => R.lean
+    const hb = (u: number, s = 0) => R.lean
       ? R.middle + (R.edge - R.middle) * Math.min(1, Math.max(0, (1 - R.lean * u / half(s)) / 2))
       : R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s));
-    const n = Math.max(1, Math.ceil((R.to - R.from) / 2.5));
+    // (a vaulted bay's arch: a segment of a circle through its ends and the crown over its middle)
+    const B = R.barrels;
+    const arch = (s: number) => {
+      if (!B || s < R.from || s > R.to) return 0;
+      const L = B.length, x = (s - R.from) - Math.floor((s - R.from) / L - 1e-9) * L, r = (L * L / 4 + B.rise * B.rise) / (2 * B.rise);
+      return Math.max(0, Math.sqrt(Math.max(0, r * r - (x - L / 2) ** 2)) - (r - B.rise));
+    };
+    const h = (u: number, s = 0) => hb(u, s) + arch(s);
+    const n = B ? Math.round((R.to - R.from) / B.length) * 12 : Math.max(1, Math.ceil((R.to - R.from) / 2.5));
     const S = (i: number) => R.from + ((R.to - R.from) * i) / n;
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
     // the rows of columns across the roof at s, and the beams along them
@@ -837,10 +845,12 @@ export class OpenLook {
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, e1, crest), p(s0, e0, crest)], cut);
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, i1, lip), p(s0, i0, lip)], cut);
         fascia.poly([p(s0, i0, lip), p(s1, i1, lip), p(s1, i1, 0), p(s0, i0, 0)], cut);
+        // (a vaulted bay's arch, open over the fascia: the covering's edge)
+        if (B) top.poly([q(s0, e0, 0), q(s1, e1, 0), q(s1, e1, R.thick), q(s0, e0, R.thick)], cut);
       }
       // the beam along the valley, or one over each row of columns; the purlins; the gutter
       const r0 = rows(s0), r1 = rows(s1);
-      r0.forEach((u, k) => bar(steel, line.at(s0, u, h(u, s0)), line.at(s1, r1[k], h(r1[k], s1)), 0.2, R.beam, cut));
+      r0.forEach((u, k) => bar(steel, line.at(s0, u, hb(u, s0)), line.at(s1, r1[k], hb(r1[k], s1)), 0.2, R.beam, cut));
       for (const u of R.purlins?.at ?? []) bar(purlin, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
       if (R.gutter) bar(gutter, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
     }

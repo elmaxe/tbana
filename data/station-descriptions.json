@@ -940,14 +940,46 @@
     },
     "Thorildsplan": {
       "drawing": "thorildsplan.png",
-      "note": "An island platform in the open. At its east end stairs go down to a ticket hall under the tracks, with passages out to either side of the line.",
+      "note": "An island platform in the open between the carriageways of Drottningholmsvägen, under a roof of fourteen vaulted bays on blue steel from 4.5 m to 88.5 m east of its middle. A ramp goes down the middle of its eastern half, open between tiled parapets from 30 m to 64 m and then under the platform's end and a walkway, to the ticket hall between the tracks; beside it, from the platform's end, a flight of stairs down on either side, and between them the walkway out to a lift. From the gates a passage runs north under the tracks and the road to stairs and a lift up by a glass pavilion at the street, and south under the tracks and the motorway ramp to a portal in a sunken court, with stairs up the slope. From OpenStreetMap's indoor mapping (the flights from 76 m to 86 m, the walkway and its lift at 88 m, the gates at 100 m, the passage at 108 m, the pavilion's stairs and the lift beside them), Albert Guillaumes' drawing (the ramp's opening from about 30 m to 64 m), the laser scan (the roof's top 4.1 m to 5 m over the platform, the court 3.6 m under it) and photographs (2009 to 2025). The hall lies 4.6 m under the platform rather than about 4 m, so that the passage fits under the network's tracks, which run lower here than the scan's.",
       "routes": [
-        { "from": [49.87436714794674, -1.7], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [60.0, -2.2]},
-          {"walk": [66.0, -2.5], "width": 6},
-          {"walk": [66.0, 10.6], "width": 4},
+        { "from": [30.0, -1.3], "width": 2.3, "go": [
+          {"walk": [64.0, -3.042], "dh": -2.763, "open": true},
+          {"walk": [86.6, -4.2], "dh": -1.837, "ceiling": 2.4}
+        ] },
+        { "from": [75.6, -6.3], "width": 2.0, "go": [
+          {"stairs": -4.6, "toward": [100, -6.75], "lanes": "S"},
+          {"walk": [86.6, -6.503]}
+        ] },
+        { "from": [75.8, -1.2], "width": 2.0, "go": [
+          {"stairs": -4.6, "toward": [100, -1.7], "lanes": "S"},
+          {"walk": [86.6, -1.423]}
+        ] },
+        { "from": [77.2, -3.8], "width": 2.9, "go": [
+          {"walk": [86.7, -3.8], "open": true},
+          {"lift": -4.6, "above": 3.0}
+        ] },
+        { "from": [86.0, -4.1], "h": -4.6, "width": 7.6, "go": [
+          {"walk": [99.5, -4.4], "ceiling": 2.5},
           {"gates": true},
-          {"exit": 345579406}
+          {"walk": [106.0, -4.9], "width": 5.6, "ceiling": 2.5},
+          {"walk": [107.9, -4.95], "width": 4.4, "ceiling": 2.3},
+          {"mark": "cross"},
+          {"walk": [107.9, -34.3], "width": 4.4, "ceiling": 2.3}
+        ] },
+        { "from": [107.0, -34.0], "h": -4.6, "width": 2.0, "go": [
+          {"walk": [107.0, -34.3], "ceiling": 2.3},
+          {"stairs": 2.4, "toward": [107.0, -60], "lanes": "S"},
+          {"walk": [107.0, -40.0], "ceiling": 2.4},
+          {"walk": [108.2, -40.0], "ceiling": 2.4},
+          {"exit": {"at": [114.0, -40.0], "name": "Thorildsplan"}, "by": "stairs", "lanes": "S"}
+        ] },
+        { "from": [109.25, -33.9], "h": -4.6, "width": 2.0, "go": [
+          {"walk": [109.25, -34.15], "ceiling": 2.3},
+          {"exit": {"at": [109.25, -34.15], "name": "Drottningholmsvägen"}, "by": "lift", "sign": false}
+        ] },
+        { "from": "cross", "width": 4.4, "go": [
+          {"walk": [108.3, 42.0], "ceiling": 2.3},
+          {"exit": {"at": [109.4, 52.0], "name": "Thorildsplan"}, "by": "stairs", "lanes": "SS"}
         ] }
       ]
     },

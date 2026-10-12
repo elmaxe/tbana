@@ -3393,7 +3393,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
   redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
   pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
-  crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6],
+  crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6], pixelTiles: [4.8, 3.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
@@ -4513,6 +4513,47 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(255,236,210,0.2)'; x.fillRect(0, Y(0.15), W, 1.5);
       break;
     }
+    case 'pixelTiles': {
+      // Lars Arrhenius's tiles at Thorildsplan (2008): pale blue tiles 15 cm square in white joints,
+      // two rows of pale yellow along the floor, and figures and bands picked out in coloured tiles
+      // as in an old video game: a heart, a space invader, a cloud, toadstools, a note, a row of
+      // snow-capped peaks in navy and teal, and black tiles scattered as if breaking up
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      x.fillStyle = '#e4edf0'; x.fillRect(0, 0, W, H);
+      const grid: (string | null)[][] = Array.from({ length: cols }, () => Array(rows).fill(null));
+      const C: Record<string, string> = { k: '#16181c', w: '#f4f6f4', r: '#c8221f', g: '#3e9a62', n: '#27358a', t: '#2f9087', y: '#e2d886' };
+      // a figure, its rows written from the top, its bottom left tile at column i, row j
+      const put = (i: number, j: number, rowsTop: string[]) => rowsTop.forEach((line, k) => {
+        const jj = j + rowsTop.length - 1 - k;
+        for (let q = 0; q < line.length; q++) if (line[q] !== '.') grid[(i + q) % cols][jj % rows] = C[line[q]];
+      });
+      for (let i = 0; i < cols; i++) for (const j of [0, 1]) grid[i][j] = C.y;
+      put(2, 3, ['..kkk.kkk..', '.krrrkrrrk.', 'krrwrrrrrrk', 'krwrrrrrrrk', 'krrrrrrrrrk', '.krrrrrrrk.', '..krrrrrk..', '...krrrk...', '....krk....', '.....k.....']);
+      put(17, 4, ['..g.....g..', '...g...g...', '..ggggggg..', '.ggkgggkgg.', 'ggggggggggg', 'g.ggggggg.g', 'g.g.....g.g', '...gg.gg...']);
+      put(29, 3, ['..kk', '..kk', '..k.', '..k.', '..k.', '.kk.', 'kkk.', 'kkk.', '.k..']);
+      put(14, 2, ['.krrk.', 'krwrrk', 'rrrrwr', 'kkkkkk', '.kwwk.', '.kwwk.']);
+      // the peaks, each ten tiles across and five high, white at the top, in turn navy and teal
+      for (let p = 0; p * 8 < cols; p++) for (let q = 0; q < 5; q++) for (let i = p * 8 + q; i <= p * 8 + 9 - q; i++) {
+        grid[i % cols][14 + q] = q >= 3 ? C.w : p % 2 ? C.t : C.n;
+      }
+      put(3, 20, ['....kkkk......', '...kwwwwk.kk..', '.kkwwwwwwkwwk.', 'kwwwwwwwwwwwwk', 'kwwwwwwwwwwwwk', '.kkkkkkkkkkkk.']);
+      put(20, 21, ['..kkk.....', '.kwwwkkk..', 'kwwwwwwwk.', '.kkkkkkk..']);
+      // black tiles breaking away from the invader
+      for (let k = 0; k < 18; k++) {
+        const i = 28 + Math.floor(r() * 4) - Math.floor(r() * 3), j = 5 + Math.floor(r() * 8);
+        if (!grid[i % cols][j]) grid[i % cols][j] = C.k;
+      }
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const v = Math.floor(r() * 10) - 5;
+        let fill = grid[i][j];
+        if (!fill) fill = `rgb(${158 + v},${206 + v},${236 + v})`;
+        x.fillStyle = fill;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      x.fillStyle = 'rgba(255,255,255,0.12)';
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) x.fillRect(i * t + 2, H - (j + 1) * t + 2, t * 0.35, 2);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -4521,7 +4562,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
