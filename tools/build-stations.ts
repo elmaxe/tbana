@@ -15,6 +15,9 @@
 // on a post beside it (`sign: false`, none: the station's name is over its doors; `signName`, the
 // name as the station's signs write it, where that isn't the map's). Stairs or
 // escalators `open` come up through a hall's floor at their top, with no ceiling over the opening.
+// A walk, stairs or escalators `daylight`, under a ceiling, are out in the daylight all the same:
+// an underpass open to the street at its ends, or a glazed hall, from which the street is seen in
+// daylight, not in the stations' dark.
 //
 // The build fails on:
 // - a step that can't be made: stairs that don't fit before their point, an exit too close
@@ -39,9 +42,9 @@ const OUT = 'public/data/station-layouts.json';
 
 type SU = [number, number];
 type Segment =
-  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean; edges?: boolean }
-  | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
-  | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean }
+  | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean; edges?: boolean; daylight?: boolean }
+  | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean; daylight?: boolean }
+  | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean; daylight?: boolean }
   | { lift: number; above?: number; through?: boolean }
   | { gates: true }
   | { mark: string }
@@ -237,7 +240,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     }
     // the last step's kind and heading, for the joints between steps
     let last: 'walk' | 'incline' | null = null;
-    const joint = (nx: number, nz: number, w: number, ceiling: number | null = CEILING.passage) => {
+    const joint = (nx: number, nz: number, w: number, ceiling: number | null = CEILING.passage, daylight = false) => {
       if (!last || hx * nx + hz * nz > Math.cos((10 * Math.PI) / 180)) return;
       // a square landing where the way turns, so that the corner is floored (in the open, where
       // the way on is)
@@ -245,15 +248,15 @@ function buildStation(name: string, d: Description, problems: Problems): Station
       const rx = -hz, rz = hx;
       const corners: XYZ[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [x + hx * s * i + rx * s * j, y, z + hz * s * i + rz * s * j]);
       const room = ceiling === null ? 'platform' : 'passage';
-      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room, label: `${name} · ${room}` });
+      parts.push({ kind: 'floor', corners: corners.map(p3), ceiling, room, label: `${name} · ${room}`, ...(daylight ? { daylight: true as const } : {}) });
     };
-    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false, edges = true) => {
+    const walkTo = (tx: number, tz: number, dh = 0, ceiling?: number, open = false, edges = true, daylight = false) => {
       const dx = tx - x, dz = tz - z, l = Math.hypot(dx, dz);
       if (l < 0.01) return;
       const nx = dx / l, nz = dz / l;
       if (Math.abs(dh) / l > 1 / 12 + 1e-6) problems.add(`${where}: a ramp of ${(Math.abs(dh) / l * 100).toFixed(0)}% (at most 8%)`);
       // (the landing as high as the way on from it)
-      joint(nx, nz, width, open ? null : ceiling);
+      joint(nx, nz, width, open ? null : ceiling, daylight && !open);
       const rx = -nz * width / 2, rz = nx * width / 2;
       const room = open ? 'platform' : width >= HALL_WIDTH ? 'hall' : 'passage';
       parts.push({
@@ -262,11 +265,12 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         ceiling: open ? null : ceiling ?? CEILING[room as 'hall' | 'passage'], room,
         label: `${name} · ${{ platform: 'platform', hall: 'ticket hall', passage: 'passage' }[room]}`,
         ...(edges ? {} : { edges: false as const }),
+        ...(daylight && !open ? { daylight: true as const } : {}),
       });
       x = tx; z = tz; y += dh; hx = nx; hz = nz; last = 'walk';
     };
     // stairs or escalators climbing dh (down if negative) from here, heading (nx, nz)
-    const incline = (kind: 'stairs' | 'escalators', dh: number, nx: number, nz: number, lanes: string, ceiling = CEILING.incline, open?: number) => {
+    const incline = (kind: 'stairs' | 'escalators', dh: number, nx: number, nz: number, lanes: string, ceiling = CEILING.incline, open?: number, daylight = false) => {
       const slope = kind === 'stairs' ? STAIR_SLOPE : ESCALATOR_SLOPE;
       const run = Math.abs(dh) / slope;
       const w = [...lanes].reduce((a, c) => a + LANE[c as keyof typeof LANE], 0);
@@ -275,7 +279,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
       const lo: XYZ = dh > 0 ? [x, y, z] : [ex, y + dh, ez];
       const hi: XYZ = dh > 0 ? [ex, y + dh, ez] : [x, y, z];
       // lanes are listed from the left looking up
-      parts.push({ kind: 'incline', a: p3(lo), b: p3(hi), width: w, lanes: dh > 0 ? lanes : [...lanes].reverse().join(''), ceiling, ...(open === undefined ? {} : { open: r2(open) }), label: `${name} · ${kind}` });
+      parts.push({ kind: 'incline', a: p3(lo), b: p3(hi), width: w, lanes: dh > 0 ? lanes : [...lanes].reverse().join(''), ceiling, ...(open === undefined ? {} : { open: r2(open) }), label: `${name} · ${kind}`, ...(daylight ? { daylight: true as const } : {}) });
       x = ex; z = ez; y += dh; hx = nx; hz = nz; last = 'incline';
     };
     const heading = (to: SU | undefined) => {
@@ -289,8 +293,8 @@ function buildStation(name: string, d: Description, problems: Problems): Station
     for (const sg of r.go) {
       if ('walk' in sg) {
         if (sg.width) width = sg.width;
-        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
-        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open, sg.edges);
+        if (typeof sg.walk === 'number') walkTo(x + hx * sg.walk, z + hz * sg.walk, sg.dh ?? 0, sg.ceiling, sg.open, sg.edges, sg.daylight);
+        else walkTo(...world(f, sg.walk), sg.dh ?? 0, sg.ceiling, sg.open, sg.edges, sg.daylight);
       } else if ('stairs' in sg || 'escalators' in sg) {
         const kind = 'stairs' in sg ? 'stairs' : 'escalators';
         const dh = 'stairs' in sg ? sg.stairs : sg.escalators;
@@ -303,10 +307,10 @@ function buildStation(name: string, d: Description, problems: Problems): Station
           if (l > run + 0.1) walkTo(x + ((tx - x) / l) * (l - run), z + ((tz - z) / l) * (l - run));
           // (heading for the point from where that walk ended)
           const m = Math.hypot(tx - x, tz - z);
-          incline(kind, dh, (tx - x) / m || hx, (tz - z) / m || hz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined);
+          incline(kind, dh, (tx - x) / m || hx, (tz - z) / m || hz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined, sg.daylight);
         } else {
           const [nx, nz] = heading(sg.toward);
-          incline(kind, dh, nx, nz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined);
+          incline(kind, dh, nx, nz, lanes, sg.ceiling, sg.open ? y + Math.max(0, dh) : undefined, sg.daylight);
         }
       } else if ('lift' in sg) {
         // the shaft just beyond where the way ends, its door facing back along it (and, walked

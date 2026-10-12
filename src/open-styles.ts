@@ -273,7 +273,8 @@ export type Finish =
   | 'rockMosaic'    // a cement mosaic of black and cream striations, as in polished rock (Henjasaj Koda's)
   | 'clinkerWindows' // clinker tiles in mixed greens to 1 m, glass-fronted cases, windows in steel frames above
   | 'greyClerestory' // grey sheet-metal panels to 1.75 m, a band of windows in dark frames above
-  | 'portalTiles';  // glazed tiles, 15 cm, a muted teal green, in pale joints
+  | 'portalTiles'   // glazed tiles, 15 cm, a muted teal green, in pale joints
+  | 'liftPanes';    // grey glass panes in pale frames, a tall row and a short one, between dark blue-grey steel piers
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -4252,10 +4253,13 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
   // south wall green clinker tiles under glass cases and a band of windows; grey panels under the
   // windows outside. Then the stair hall, glazed from floor to roof, its stairs going down to the
   // east along its south side (OpenStreetMap: from 86.3 m to 93 m east) beside teal tiles, and a
-  // walkway along its north side to the lift (OpenStreetMap: 98.8 m east; laser scan: a tower 6.7 m
-  // high, from 97 m to 100 m), grey panels in dark frames with the round T on a post on top. Both
-  // reach the passage under the tracks, 4.2 m under the platform, whose ends are faced with teal
-  // tiles under the bank's concrete edge, the station's name on a blue band over each.
+  // walkway along its north side to the lift (OpenStreetMap: 98.8 m east; laser scan: a tower 3.8 m
+  // high, from 97 m to 100 m, a metre over the hall, and the round T on its post at its east end,
+  // 6.7 m up). A photograph (2017) shows the tower's grey glass in pale frames, a tall pane under a
+  // short one, two to a bay between dark blue-grey steel piers. Both reach the passage under the
+  // tracks, 4.2 m under the platform, whose ends are faced with teal tiles under the bank's concrete
+  // edge, the station's name on a blue band over each; the passage is open to the street at both
+  // ends, so it is out in the daylight.
   'Stora mossen': {
     roof: {
       kind: 'butterfly',
@@ -4293,14 +4297,23 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         sides: [undefined, null, undefined, 'glazed'], eaves: [0.15, 0, 0.15, 0.2], floor: 'terrazzo', ceiling: 'slats', roof: 0.25, onPlatform: true },
       { name: 'stair hall', plan: [[86.0, -4.45], [97.0, -4.45], [97.0, -0.2], [86.0, 0.35]], h: [-1.25, 2.55], walls: 'glazed',
         sides: [undefined, undefined, undefined, null], eaves: [0.15, 0.1, 0.15, 0], floor: 'terrazzo', ceiling: 'slats', roof: 0.25, onPlatform: true },
-      { name: "lift's tower", plan: [[97.0, -4.35], [100.0, -4.35], [100.0, -1.3], [97.0, -1.3]], h: [-1.25, 6.45], walls: 'greyPanels',
-        sides: [undefined, undefined, undefined, null], roof: 0.25 },
+      { name: "lift's tower", plan: [[97.0, -4.35], [100.0, -4.35], [100.0, -1.3], [97.0, -1.3]], h: [-1.25, 3.55], walls: 'liftPanes',
+        sides: [undefined, undefined, undefined, null], roof: 0.25, roofColor: 0x3e4552 },
       { name: 'north end of the passage', plan: [[101, -9.2], [101, -14.5], [90, -14.5], [90, -9.2]], h: [-4.2, -1.3], from: -4.2, low: -4.1,
-        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [null, null, null], floor: 'asphalt',
         nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
       { name: 'south end of the passage', plan: [[101, 4.4], [101, 8.5], [90, 8.5], [90, 4.4]], h: [-4.2, -1.3], from: -4.2, low: -3.8,
-        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [null, null, null], floor: 'asphalt',
         nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
+      // (their wing walls, tiled on the inside, falling with the bank)
+      { name: "north end's east wing wall", plan: [[101.35, -9.2], [101.35, -14.5], [101, -14.5], [101, -9.2]], h: [-4.2, -1.3], from: -4.2, low: -4.1,
+        walls: 'boardConcrete', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, undefined, 'portalTiles', null], roof: 0.05, roofColor: 0x9a9892, ground: true },
+      { name: "north end's west wing wall", plan: [[90, -9.2], [90, -14.5], [89.65, -14.5], [89.65, -9.2]], h: [-4.2, -1.3], from: -4.2, low: -4.1,
+        walls: 'boardConcrete', band: { walls: 'boardConcrete', from: -1.95 }, sides: ['portalTiles', undefined, undefined, null], roof: 0.05, roofColor: 0x9a9892, ground: true },
+      { name: "south end's east wing wall", plan: [[101.35, 4.4], [101.35, 8.5], [101, 8.5], [101, 4.4]], h: [-4.2, -1.3], from: -4.2, low: -3.8,
+        walls: 'boardConcrete', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, undefined, 'portalTiles', null], roof: 0.05, roofColor: 0x9a9892, ground: true },
+      { name: "south end's west wing wall", plan: [[90, 4.4], [90, 8.5], [89.65, 8.5], [89.65, 4.4]], h: [-4.2, -1.3], from: -4.2, low: -3.8,
+        walls: 'boardConcrete', band: { walls: 'boardConcrete', from: -1.95 }, sides: ['portalTiles', undefined, undefined, null], roof: 0.05, roofColor: 0x9a9892, ground: true },
       // (under the bank, where neither the street nor the ground runs on)
       { name: 'bank over the passage', plan: [[93.9, -9.2], [97.3, -9.2], [97.3, 4.4], [93.9, 4.4]], h: [-4.2, -1.95], from: -4.2, walls: 'boardConcrete', sides: [null, null, null, null],
         onPlatform: true, ground: true },
@@ -4310,7 +4323,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'masts', height: 5.0, color: 0x9a9fa3, top: false, arm: 0.7, at: [[-51.2, 0.2], [-15.7, 0.3], [21.4, 0.3]] },
       { kind: 'masts', height: 5.0, color: 0x9a9fa3, top: false, arm: 0.7, sign: 2.6, blue: true, at: [[-69.1, 0], [-32.1, 0.4], [2.9, 0.1]] },
       // on the lift's tower
-      { kind: 'roundel', s: 98.5, u: -2.8, h: 7.8, size: 0.8, foot: 6.7 },
+      { kind: 'roundel', s: 99.3, u: -2.8, h: 6.25, size: 0.9, foot: 3.8 },
     ],
     shelters: [{ s: [10, 14.6], u: [-1.1, 1.1] }],
     fences: [

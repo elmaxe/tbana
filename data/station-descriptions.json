@@ -1080,25 +1080,25 @@
       "note": "An island platform on the bank beside Drottningholmsvägen, under a roof over its eastern part. At its east end the platform runs into the station's hall between the tracks: the ticket gates, then stairs down along its south side and a walkway along its north side to a lift, both to the passage under the tracks, which comes out towards Drottningholmsvägen to the north and onto Stora Mossens backe to the south. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
         { "from": [79.5, -2.0], "width": 3.0, "go": [
-          {"walk": [80.5, -2.0], "ceiling": 2.4},
-          {"walk": [84.2, -2.0], "width": 4.2, "ceiling": 2.4},
+          {"walk": [80.5, -2.0], "ceiling": 2.4, "daylight": true},
+          {"walk": [84.2, -2.0], "width": 4.2, "ceiling": 2.4, "daylight": true},
           {"gates": true},
-          {"walk": [86.0, -2.0], "ceiling": 2.4}
+          {"walk": [86.0, -2.0], "ceiling": 2.4, "daylight": true}
         ] },
         { "from": [86.0, -1.2], "width": 1.8, "go": [
-          {"stairs": -4.2, "toward": [100, -1.2], "lanes": "S"},
-          {"walk": [95.6, -1.2], "width": 3.4, "ceiling": 2.25},
+          {"stairs": -4.2, "toward": [100, -1.2], "lanes": "S", "daylight": true},
+          {"walk": [95.6, -1.2], "width": 3.4, "ceiling": 2.25, "daylight": true},
           {"mark": "under"},
-          {"walk": [95.6, -9.8], "ceiling": 2.25},
+          {"walk": [95.6, -9.8], "ceiling": 2.25, "daylight": true},
           {"exit": {"at": [95.6, -17.0], "name": "Drottningholmsvägen"}, "by": "walk", "open": true}
         ] },
         { "from": "under", "width": 3.4, "go": [
-          {"walk": [95.6, 4.6], "ceiling": 2.25},
+          {"walk": [95.6, 4.6], "ceiling": 2.25, "daylight": true},
           {"exit": {"at": [95.6, 12.0], "name": "Stora Mossens backe"}, "by": "walk", "open": true}
         ] },
         { "from": [86.0, -3.0], "width": 1.8, "go": [
-          {"walk": [97.0, -3.0], "ceiling": 2.4},
-          {"lift": -4.2, "above": 6.7}
+          {"walk": [97.0, -3.0], "ceiling": 2.4, "daylight": true},
+          {"lift": -4.2, "above": 3.5}
         ] }
       ]
     },

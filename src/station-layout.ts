@@ -17,12 +17,16 @@ export interface FloorPart {
   label: string;
   // no walls along the edges that lead nowhere: a landmark (src/detail/) draws its railings
   edges?: false;
+  // under its ceiling, but out in the daylight: an underpass open to the street at its ends, or a
+  // glazed hall
+  daylight?: true;
 }
 
 // Stairs or escalators from the middle of the bottom step `a` to the middle of the top one `b`,
 // `width` wide, with `lanes` across from the left looking up: E an escalator, S stairs. `ceiling`
 // is the clear height above the steps. An exit's stairs end in the street at `open`: from where
 // the ceiling would rise above the street there is none, and the walls stop at a parapet.
+// `daylight`: out in the daylight, as a floor's.
 export interface InclinePart {
   kind: 'incline';
   a: XYZ;
@@ -32,6 +36,7 @@ export interface InclinePart {
   ceiling: number;
   open?: number;
   label: string;
+  daylight?: true;
 }
 
 // A lift shaft standing at x, z, its door facing `yaw` (radians, as the player's: 0 looks north),

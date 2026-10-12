@@ -152,12 +152,12 @@ export class Stations {
     for (const p of st.parts) {
       if (p.kind === 'floor') {
         const c = p.corners, top = p.ceiling === null ? null : Math.max(...c.map((v) => v[1])) + p.ceiling;
-        const d = data(p.label, top, p.ceiling === null);
+        const d = data(p.label, top, p.ceiling === null || p.daylight === true);
         add([c[0], c[1], c[2]], d, cutters);
         add([c[0], c[2], c[3]], d, cutters);
       } else if (p.kind === 'incline') {
         const v = this.inclineFloor(p);
-        const d = data(p.label, p.open !== undefined ? null : Math.max(p.a[1], p.b[1]) + p.ceiling);
+        const d = data(p.label, p.open !== undefined ? null : Math.max(p.a[1], p.b[1]) + p.ceiling, p.daylight === true);
         add([v[0], v[1], v[2]], d, []);
         add([v[0], v[2], v[3]], d, []);
       } else if (p.kind === 'street') {
