@@ -279,7 +279,9 @@ export type Finish =
   | 'roxnerClerestory' // as roxnerTiles to 3 m, a concrete beam, windows in dark frames above
   | 'greyGlazed'    // a dark grey steel panel to 0.95 m, glass in dark grey steel frames above
   | 'sageRender'    // smooth render, a pale grey green
-  | 'bottleTiles';  // glazed tiles, 15 cm, a dark bottle green, in pale joints
+  | 'bottleTiles'   // glazed tiles, 15 cm, a dark bottle green, in pale joints
+  | 'purpleTiles'   // tiles on end, 10 by 30 cm, purples, lilac, dark blue and white, to 2.5 m; board-marked concrete above
+  | 'rivetedSteel'; // brushed stainless steel panels, 1.2 m wide, rows of rivets along their edges
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -289,7 +291,8 @@ export type Finish =
 // `fall`: its floor falls from `from` at its first two corners to this at the other two, and its
 // top with it. `sides` gives a side (from corner i to the next) a finish of its own,
 // or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a finish of
-// their own all round from a height up; `lights`, lit yellow signs on a side, `at` the way along
+// their own all round from a height up (rising or falling with the top to `low` at the corners
+// its `low` is at, as a band of windows under a sloping roof does); `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
 // be walked on inside it (only the station's own floors are). `nameSign`: the station's name in
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
@@ -303,14 +306,15 @@ export type Finish =
 // side along its first side, each pitched `rise` up to a ridge running across the block (parallel
 // to its second side), their slopes in `roofColor`, their ends in `color` with a trim of `trim`
 // along their edges, and a strip of glass down each slope; or (`round`) vaults, rising `rise` in a
-// half-ellipse, glass along their crowns.
+// half-ellipse, glass along their crowns (or, `glass`, glazed all over on arched ribs of this
+// colour about `ribs` m apart, and glazing bars along them).
 export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; lowBack?: number; eaves?: number | number[]; ground?: boolean | number;
-  walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
+  walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number; low?: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
   onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
   roofColor?: number; brackets?: { every: number; color: number };
-  gables?: { count: number; rise: number; color: number; trim: number; round?: boolean };
+  gables?: { count: number; rise: number; color: number; trim: number; round?: boolean; glass?: { ribs: number; color: number } };
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller
@@ -4435,6 +4439,157 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     benches: { at: [-52.25, -29.75, 15.25], wood: true },
     fences: [
       { points: [[-96, -7.6], [-60, -8.2], [-20, -8.4], [33, -6.9], [79, -5.7]], h: [-1.5, 0.3] },
+    ],
+  },
+  // Brommaplan (26 October 1952; the viaduct over the square built for Ängbybanan's trams in 1944,
+  // SL's ticket hall under it in the 1980s): an island platform on a shelf of the slope, the
+  // ground falling away to the north and rising to the south, its tracks leaving it to the west
+  // on two concrete decks over Tunnlandet. The laser scan puts its roof from 61.5 m west of the
+  // platform's middle to 32 m east, as wide as the platform, its underside 3.05 m over the middle
+  // and 3.3 m at the edges; east of it the platform is open. Photographs (2018 to 2026) show the
+  // underside of white sheet steel ribbed across the platform on white beams, two blue girders
+  // along it on pairs of square blue posts down its middle, tied across and braced, a navy
+  // fascia; black name signs hung from the girders, departure boards, a clock, wooden benches; on
+  // the open part grey masts with two lamps on short arms. The paving: pale edge slabs, a dark
+  // ribbed strip, grey slabs in a grid. Chain-link fences beyond both tracks.
+  //
+  // At the west end stands a low enclosure (photographs from Kapplandsvägen, 2019; the laser
+  // scan): grey ribbed cladding under a band of windows whose sill climbs eastwards with the stairs
+  // inside, a blue fascia, its roof stepping up over the stairs' top, a ribbed drum over the lift
+  // at its west end. Inside (photographs, 2016) an escalator and a stair beside it go down
+  // westwards under the platform between board-marked concrete under a ceiling of pale timber
+  // slats; a walkway along their south side leads to the round glass lift, which stands at their
+  // foot. From there a corridor tiled in purples, lilac, dark blue and white goes on west to the
+  // ticket hall (OpenStreetMap's indoor mapping: escalator, stair and lift; the laser scan: the
+  // hall's floor 6.15 m under the platform). The hall stands on the square under both decks:
+  // between them a glass vault on dark blue arched ribs, the decks' soffits white either side;
+  // walls of brushed steel panels with rows of rivets, a dark slate floor, the gates and a booth in
+  // ultramarine panels, and Peter Svedberg's Vingprofiler och turbin (1996): riveted metal wing
+  // profiles standing in the hall. Its glass front, under a black band with the name, faces west
+  // along the gap between the decks, a T on a globe hung before it; board-marked concrete either
+  // side, and shops beside it under the decks' outer edges (Pressbyrån to the south). The decks
+  // stand on round piers of board-marked concrete, each banded yellow, red and dark blue at its
+  // top, with tubular railings along their edges.
+  //
+  // Not drawn: Svedberg's engine hung under the vault, the clocks on the railings, the market
+  // and Berndt Helleberg's Fågel Rock (1969) on the square. The network's tracks are about 1.5 m
+  // closer together over the square than the real decks, so the vault between them is narrower;
+  // the round lift is a square one.
+  'Brommaplan': {
+    roof: {
+      kind: 'butterfly',
+      from: -61.5, to: 32, width: 7.6,
+      shape: [[-61.5, -0.22, 7.82], [-50, -0.31, 7.95], [-40, -0.31, 7.91], [-30, -0.26, 7.8], [-20, -0.2, 7.68], [-10, -0.12, 7.52],
+        [0, -0.03, 7.33], [10, 0.09, 7.1], [20, 0.24, 6.81], [32, 0.45, 6.38]],
+      middle: 3.05, edge: 3.3, thick: 0.3, fascia: 0.25,
+      rafters: 1.8, rafterAt: -60.6, rafterSize: [0.14, 0.3], deck: 'ribbedAcross', rafterColor: 0xe6e8e6,
+      beam: 0.4,
+      columns: { every: 10.5, at: -57, size: 0.15, plinth: { size: 0.2, height: 0.05 }, pair: 1.2, ties: [0.95, 2.4], between: [-58, 28] },
+      lamps: { offset: 2.0, length: 1.2, every: 3.6, across: true },
+      colors: { underside: 0xe0e3e1, fascia: 0x1f2f55, top: 0x5f6366, steel: 0x2a58a8 },
+      signs: { at: [-51.75, -20.25, 11.25], back: 'Utgång', ahead: '', bottom: 2.3 },
+      clocks: [[-9.75, 0]],
+      // (trains towards T-Centralen stop on the northern track)
+      boards: [
+        { s: -30.75, u: -1.6, toward: 'T-Centralen', trains: ['17 Skarpnäck  2 min', '19 Hagsätra  6 min'] },
+        { s: -30.75, u: 1.6, toward: 'Hässelby', trains: ['19 Hässelby strand  4 min', '17 Åkeshov  8 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.1], slabs: 1.1, paverSize: [0.6, 0.6], mix: 0.12,
+      colors: { edge: 0xd2d0cb, tactile: 0x4f5254, slab: 0x8a8884, pavers: 0x85827f, paler: 0x918e8a, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    buildings: ['w250814994'],
+    rooms: [
+      { name: 'enclosure', s: [-87, -60], h: [-0.5, 0.5], walls: null, floor: null, lamps: 2.6 },
+      { name: 'escalator', s: [-81, -60], h: [-7, -0.5], walls: 'boardConcrete', stairs: 'boardConcrete', ceiling: 'pineBoards' },
+      { name: 'corridor', s: [-92.2, -77], h: [-7, -5], walls: 'purpleTiles', floor: 'slate', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [-108.6, -92.2], h: [-7, -5], walls: null, floor: 'slate', ceiling: 'whiteRender', lamps: 3.3 },
+      { name: 'square', s: [-120, -108.6], h: [-8, -5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the enclosure over the way down, its west end where the platform ends, its roof stepping
+      // up over the stairs' top; the band of windows climbing with them
+      { name: 'enclosure', plan: [[-85.3, -10.17], [-71, -8.14], [-71, -1.23], [-86.6, -4.31]], h: [0, 2.75],
+        walls: 'cladding', sides: [undefined, null, undefined, 'glazed'], band: { walls: 'glazed', from: 0.9, low: 2.0 }, eaves: 0.1,
+        ceiling: 'pineBoards', roof: 0.2, roofColor: 0x2a4f9a },
+      { name: "enclosure's high end", plan: [[-71, -8.14], [-62, -7.06], [-62, 0.08], [-71, -1.23]], h: [0, 2.75], low: 4.05,
+        walls: 'cladding', sides: [undefined, 'glazed', undefined, null], band: { walls: 'glazed', from: 2.0, low: 3.3 }, eaves: 0.1,
+        ceiling: 'pineBoards', roof: 0.2, roofColor: 0x2a4f9a },
+      // the gap between the decks, which the network draws as one deck where its tracks are close
+      ...([
+        [[-140, -22.92], [-124, -18.41], [-124, -14.7], [-140, -20.11]],
+        [[-124, -18.41], [-108.5, -14.65], [-108.5, -9.95], [-124, -14.7]],
+        [[-108.5, -14.65], [-100, -12.87], [-100, -7.57], [-108.5, -9.95]],
+        [[-100, -12.87], [-91.5, -11.28], [-91.5, -5.41], [-100, -7.57]],
+      ] as [number, number][][]).map((plan): Block => ({ name: 'between the decks', plan, h: [-2.6, 0.6], from: -2.6, walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true })),
+      // the decks' inner edges along the gap (white over the hall), and the shared deck's end
+      ...([
+        [[[-140, -22.92], [-124, -18.41], [-124, -18.21], [-140, -22.72]], [[-140, -20.31], [-124, -14.9], [-124, -14.7], [-140, -20.11]], 'boardConcrete'],
+        [[[-124, -18.41], [-108.5, -14.65], [-108.5, -14.45], [-124, -18.21]], [[-124, -14.9], [-108.5, -10.15], [-108.5, -9.95], [-124, -14.7]], 'boardConcrete'],
+        [[[-108.5, -14.65], [-100, -12.87], [-100, -12.67], [-108.5, -14.45]], [[-108.5, -10.15], [-100, -7.77], [-100, -7.57], [-108.5, -9.95]], 'whiteRender'],
+        [[[-100, -12.87], [-91.5, -11.28], [-91.5, -11.08], [-100, -12.67]], [[-100, -7.77], [-91.5, -5.61], [-91.5, -5.41], [-100, -7.57]], 'whiteRender'],
+      ] as [[number, number][], [number, number][], Finish][]).flatMap(([n, s, walls]): Block[] => [
+        { name: "north deck's edge", plan: n, h: [-2.6, -1.2], from: -2.6, walls, sides: [null, null, undefined, null], roof: 0.05, roofColor: 0x9a9892 },
+        { name: "south deck's edge", plan: s, h: [-2.6, -1.2], from: -2.6, walls, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x9a9892 },
+      ]),
+      { name: "shared deck's end", plan: [[-140.2, -22.98], [-140, -22.92], [-140, -20.11], [-140.2, -20.18]], h: [-2.6, -1.2], from: -2.6, walls: 'boardConcrete' },
+      // the ticket hall: the vault between the decks, and the halls under them either side
+      { name: 'vault', plan: [[-108.5, -14.45], [-108.5, -10.15], [-91.5, -5.61], [-91.5, -11.08]], h: [-6.15, -1.2], from: -6.15,
+        walls: 'rivetedSteel', sides: [null, null, null, null], floor: 'slate', onPlatform: true, ground: true,
+        gables: { count: 1, rise: 1.25, color: 0x9aa0a4, trim: 0x24418a, round: true, glass: { ribs: 1.6, color: 0x24418a } } },
+      { name: 'hall under the north deck', plan: [[-108.5, -16.8], [-91.5, -13.43], [-91.5, -11.08], [-108.5, -14.45]], h: [-6.15, -2.6], from: -6.15,
+        walls: 'rivetedSteel', sides: [undefined, undefined, null, null], floor: 'slate', ceiling: 'whiteRender', onPlatform: true, ground: true },
+      { name: 'hall under the south deck', plan: [[-108.5, -10.15], [-91.5, -5.61], [-91.5, -3.26], [-108.5, -7.8]], h: [-6.15, -2.6], from: -6.15,
+        walls: 'rivetedSteel', sides: [null, undefined, undefined, null], floor: 'slate', ceiling: 'whiteRender', onPlatform: true, ground: true },
+      // (the corridor comes in through it)
+      { name: "vault's east wall", plan: [[-91.7, -11.08], [-91.5, -11.08], [-91.5, -5.61], [-91.7, -5.61]], h: [-6.15, -1.2], from: -6.15, walls: 'rivetedSteel' },
+      // the front: glass doors under the name between the decks, board-marked concrete either side
+      { name: 'front', plan: [[-108.5, -14.45], [-108.5, -10.15], [-108.7, -10.15], [-108.7, -14.45]], h: [-6.15, -2.6], from: -6.15,
+        walls: 'blackFront', nameSign: { side: 2, at: 0.5, length: 3.6, bottom: -3.8, black: true } },
+      { name: 'over the doors', plan: [[-108.5, -14.45], [-108.5, -10.15], [-108.7, -10.15], [-108.7, -14.45]], h: [-2.6, -1.2], from: -2.6, walls: 'cladding' },
+      { name: 'front under the north deck', plan: [[-108.5, -16.8], [-108.5, -14.45], [-108.7, -14.45], [-108.7, -16.8]], h: [-6.15, -2.6], from: -6.15, walls: 'boardConcrete' },
+      { name: 'front under the south deck', plan: [[-108.5, -10.15], [-108.5, -7.8], [-108.7, -7.8], [-108.7, -10.15]], h: [-6.15, -2.6], from: -6.15, walls: 'boardConcrete' },
+      // shops beside it under the decks' outer edges, roofed where they reach out past them
+      { name: 'shops to the north', plan: [[-106.3, -16.4], [-84, -12.28], [-83.4, -23], [-104.4, -24.4]], h: [-6.3, -3.35], from: -6.3,
+        walls: 'shopWindows', sides: [null, 'whiteRender', undefined, undefined], roof: 0.15, roofColor: 0x5d6164, ground: true },
+      { name: 'shops to the south', plan: [[-108.6, -7.73], [-95.5, -4.16], [-95.5, 1.5], [-112, 1.5]], h: [-6.3, -3.55], from: -6.3,
+        walls: 'shopWindows', sides: [undefined, 'boardConcrete', 'boardConcrete', undefined], roof: 0.15, roofColor: 0x5d6164, ground: true },
+      { name: 'booth', plan: [[-101.5, -7.02], [-98.5, -7.02], [-98.5, -5.82], [-101.5, -5.82]], h: [-6.15, -3.9], from: -6.15,
+        walls: 'blueGlazed', roof: 0.1, roofColor: 0x22357e },
+    ],
+    art: [
+      { kind: 'masts', height: 4.6, color: 0x9a9fa3, top: false, arm: 0.6, at: [[42, -0.66], [77.7, -3.09]] },
+      { kind: 'masts', height: 4.6, color: 0x9a9fa3, top: false, arm: 0.6, sign: 2.7, at: [[60, -1.69]] },
+      // the drum over the lift
+      { kind: 'columns', at: [[-84.4, -5.33]], from: 2.95, to: 3.75, size: 3.0, color: 0x8c9196 },
+      // the piers under the decks, banded dark blue, red and yellow at their tops
+      { kind: 'columns', at: [[-110, -16.65], [-110, -8.75], [-122, -19.55], [-122, -12.42], [-134, -22.8], [-134, -16.36], [-146, -26.4], [-146, -20.63]], from: -7.8, to: -2.6, size: 2.0, color: 0xa9a59c },
+      { kind: 'columns', at: [[-110, -16.65], [-110, -8.75], [-122, -19.55], [-122, -12.42], [-134, -22.8], [-134, -16.36], [-146, -26.4], [-146, -20.63]], from: -3.05, to: -2.85, size: 2.04, color: 0x26306e },
+      { kind: 'columns', at: [[-110, -16.65], [-110, -8.75], [-122, -19.55], [-122, -12.42], [-134, -22.8], [-134, -16.36], [-146, -26.4], [-146, -20.63]], from: -2.85, to: -2.67, size: 2.04, color: 0xb3262a },
+      { kind: 'columns', at: [[-110, -16.65], [-110, -8.75], [-122, -19.55], [-122, -12.42], [-134, -22.8], [-134, -16.36], [-146, -26.4], [-146, -20.63]], from: -2.67, to: -2.6, size: 2.04, color: 0xd9a31e },
+      // Svedberg's wing profiles
+      { kind: 'columns', at: [[-103.5, -14.47], [-103.5, -7.67]], from: -6.15, to: -2.75, size: 0.75, color: 0xc0c4c7 },
+      // the T hung before the doors
+      { kind: 'columns', at: [[-109.0, -12.43]], from: -2.7, to: -1.25, size: 0.04, color: 0x9aa0a4 },
+      { kind: 'roundel', s: -109.0, u: -12.43, h: -3.0, size: 0.6, foot: -3.3, along: true },
+    ],
+    benches: { at: [-51.75, -41.25, 0.75, 22.5], wood: true },
+    fences: [
+      { points: [[-84, -14.88], [-70, -12.91], [-56, -11.32], [-42, -10.11], [-28, -9.22], [-14, -8.63], [0, -8.25], [14, -8.05], [28, -8.04], [42, -8.21],
+        [56, -8.62], [70, -9.25], [84, -10.04], [100, -11.15]], h: [-1.3, 0.5] },
+      { points: [[-84, 1.16], [-70, 3.85], [-56, 5.69], [-42, 6.94], [-28, 7.68], [-14, 8.09], [0, 8.23], [14, 8.07], [28, 7.65], [42, 6.89],
+        [56, 5.78], [70, 4.36], [84, 2.73], [100, 0.78]], h: [-1.3, 0.5] },
+      // the decks' railings, on their outer edges and along the gap between them
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.3, -0.5], points: [[-151, -30.75], [-144.5, -28.67], [-138, -26.72], [-131.5, -24.86], [-125, -23.06], [-118.5, -21.41],
+        [-112, -19.86], [-105.5, -18.39], [-99, -17.07], [-92.5, -15.85], [-86, -14.73]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.3, -0.5], points: [[-151, -19.76], [-144.5, -17.32], [-138, -15], [-131.5, -12.77], [-125, -10.62], [-118.5, -8.56],
+        [-112, -6.59], [-105.5, -4.71], [-99, -2.9], [-92.5, -1.26], [-86, 0.27]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.15, -0.45], points: [[-140, -22.82], [-134, -21.05], [-128, -19.39], [-122, -17.8], [-116, -16.28], [-110, -14.9],
+        [-104, -13.58], [-98, -12.36], [-92, -11.27], [-91.5, -11.18]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.15, -0.45], points: [[-140, -20.21], [-134, -18.11], [-128, -16.09], [-122, -14.17], [-116, -12.29], [-110, -10.5],
+        [-104, -8.79], [-98, -7.14], [-92, -5.63], [-91.5, -5.51]] },
     ],
   },
 };

@@ -116,6 +116,11 @@
       "outline": [[2512.6, -2960.9], [2557.7, -2988.6], [2566.9, -2973.7], [2521.7, -2946.0]],
       "ground": 7.8,
       "why": "Lidingöbanan's stop at Ropsten, on its terrace beside the tram's hall: the elevation model smooths the ground between its three platforms up to 8.0–8.06 m, over the tracks' tops (7.85–7.95 m, 0.4 m under the platforms' 8.35 m; Lantmäteriet's laser scan, 2021), so it came up through the southern track. The tracks and platforms are drawn in src/detail/ropsten.ts."
+    },
+    {
+      "outline": [[-6847.2, -784.8], [-6816.8, -781.1], [-6818.8, -764.3], [-6826.8, -766.2], [-6828.0, -755.9], [-6831.8, -757.5], [-6832.5, -751.7], [-6848.9, -753.7], [-6851.0, -757.5]],
+      "ground": 6.2,
+      "why": "Brommaplan's ticket hall and the shops either side of it, under and beside the metro's decks over Tunnlandet. The elevation model has the shops' roofs, 3.4 m under the platform, for the ground, so the square rose in a mound up to the decks. Lantmäteriet's laser scan has the hall's floor at 6.2–6.4 m through the glass vault between the decks, and the square at 5.5–6.3 m round it; the outline keeps to the hall, its two wings and the pavement north of them, clear of the slope up to Kapplandsvägen south of them. The hall and the shops are drawn by the station (src/open-styles.ts)."
     }
   ],
   "fill": [

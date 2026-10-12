@@ -299,6 +299,15 @@
       ],
       "reach": 6.5,
       "why": "Stureby: west of the platform, over the ticket hall and the footway under the line, both tracks stand on a concrete deck, which OSM doesn't map as a bridge. Lantmäteriet's laser scan has the deck's sharp edges 2.5 m outside the tracks, with the streets 3.3 m below the ballast right up to them, and photographs show the hall's windows and doors and parked bicycles under it."
+    },
+    {
+      "along": [
+        [-6822.5, -759.4],
+        [-6832.7, -762.9],
+        [-6845.2, -767.6]
+      ],
+      "reach": 6.5,
+      "why": "Brommaplan: from the platform's west end both tracks stand on concrete decks over the ticket hall, which lies under them and between them at the square, and OSM maps them as bridges only from the hall's front west. Lantmäteriet's laser scan has the decks (its points classed as a bridge's) from the platform's end, the hall's floor 6 m under the platform through the glass vault between them, and the wings either side roofed 3.4 m under it; photographs show the hall's doors under the decks and the square running on under them."
     }
   ],
   "raised": [

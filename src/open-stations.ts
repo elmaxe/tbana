@@ -1442,9 +1442,17 @@ export class OpenLook {
         if (T.FINISH_GLASS.includes(f)) on(this.pane).poly(q, cut);
       };
       const band = b.band && b.band.from < Math.min(ta, tb) ? Math.max(from, b.band.from) : null;
-      if (f && band === null && Math.max(ta - fa, tb - fb) > 0) wall(f, fa, fb, ta, tb);
-      if (f && band !== null && band > from) wall(f, from, from, band, band);
-      if (b.band && band !== null) wall(b.band.walls, band, band, ta, tb);
+      if (b.band?.low !== undefined) {
+        // (a band whose foot rises or falls with the top: from `from` to `low` where the top does)
+        const at = (k: number) => Math.max(blockFrom(b, k), k === 1 || k === 2 ? b.band!.low! : b.band!.from);
+        const ba = Math.min(at(i), ta), bb = Math.min(at((i + 1) % 4), tb);
+        if (f && (ba > fa || bb > fb)) wall(f, fa, fb, ba, bb);
+        if (ba < ta || bb < tb) wall(b.band.walls, ba, bb, ta, tb);
+      } else {
+        if (f && band === null && Math.max(ta - fa, tb - fb) > 0) wall(f, fa, fb, ta, tb);
+        if (f && band !== null && band > from) wall(f, from, from, band, band);
+        if (b.band && band !== null) wall(b.band.walls, band, band, ta, tb);
+      }
       if (b.h[0] < Math.max(fa, fb)) base.poly([[...P(0, b.h[0]), 0, b.h[0] / 2.4], [...P(1, b.h[0]), l / 2.4, b.h[0] / 2.4], [...P(1, fb), l / 2.4, fb / 2.4], [...P(0, fa), 0, fa / 2.4]], cut);
       // lit signs on the side, halfway up the band (or the wall), standing out from it
       const mid = band !== null ? (band + b.h[1]) / 2 : (from + b.h[1]) / 2;
@@ -1517,6 +1525,7 @@ export class OpenLook {
     const G = b.gables!, c = b.plan, base = 0, top = G.rise;
     const slope = on(b.roofColor === undefined ? this.roofing : this.color(b.roofColor, 0.7, 0.2));
     const end = on(this.color(G.color, 0.75, 0.05)), trim = on(this.color(G.trim, 0.6, 0.05)), glass = on(this.color(0x8d9ba6, 0.15, 0.5));
+    const pane = on(this.pane), rib = G.glass && on(this.color(G.glass.color, 0.5, 0.3));
     // t along the first side, v along the second, h over the roof there
     const roofAt = (t: number, v: number) => (b.roof ?? 0) + (1 - v) * ((1 - t) * blockTop(b, 0) + t * blockTop(b, 1)) + v * ((1 - t) * blockTop(b, 3) + t * blockTop(b, 2));
     const P = (t: number, v: number, h: number): XYZ => {
@@ -1533,12 +1542,20 @@ export class OpenLook {
         const n = 12, arc = (j: number): [number, number] => [t0 + (t1 - t0) * (1 - Math.cos((j / n) * Math.PI)) / 2, base + G.rise * Math.sin((j / n) * Math.PI)];
         for (let j = 0; j < n; j++) {
           const [ta, ha] = arc(j), [tb, hb] = arc(j + 1);
-          slope.poly([q(P(ta, -e, ha)), q(P(tb, -e, hb)), q(P(tb, 1 + e, hb)), q(P(ta, 1 + e, ha))], cut);
-          if (j >= n / 2 - 2 && j < n / 2 + 2) glass.poly([q(P(ta, 0.04, ha + 0.03)), q(P(tb, 0.04, hb + 0.03)), q(P(tb, 0.96, hb + 0.03)), q(P(ta, 0.96, ha + 0.03))], cut);
+          if (G.glass && rib) {
+            // glazed all over, on arched ribs across it and bars along it
+            pane.poly([q(P(ta, 0, ha)), q(P(tb, 0, hb)), q(P(tb, 1, hb)), q(P(ta, 1, ha))], cut);
+            const L = Math.hypot(c[2][0] - c[1][0], c[2][1] - c[1][1]), m = Math.max(1, Math.round(L / G.glass.ribs));
+            for (let r = 0; r <= m; r++) bar(rib, P(ta, r / m, ha), P(tb, r / m, hb), 0.08, 0.14);
+            if (j % 3 === 0 && j > 0) bar(rib, P(ta, 0, ha), P(ta, 1, ha), 0.05, 0.08);
+          } else {
+            slope.poly([q(P(ta, -e, ha)), q(P(tb, -e, hb)), q(P(tb, 1 + e, hb)), q(P(ta, 1 + e, ha))], cut);
+            if (j >= n / 2 - 2 && j < n / 2 + 2) glass.poly([q(P(ta, 0.04, ha + 0.03)), q(P(tb, 0.04, hb + 0.03)), q(P(tb, 0.96, hb + 0.03)), q(P(ta, 0.96, ha + 0.03))], cut);
+          }
           for (const v of [0, 1]) {
             end.poly([q(P(tm, v, base)), q(P(ta, v, ha)), q(P(tb, v, hb))], cut);
             const w = v ? 1 + e : -e;
-            bar(trim, P(ta, w, ha + 0.06), P(tb, w, hb + 0.06), 0.1, 0.2);
+            if (!G.glass) bar(trim, P(ta, w, ha + 0.06), P(tb, w, hb + 0.06), 0.1, 0.2);
           }
         }
         continue;

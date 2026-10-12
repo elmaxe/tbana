@@ -1130,14 +1130,23 @@
     },
     "Brommaplan": {
       "drawing": "brommaplan.png",
-      "note": "An island platform in the open. At its west end stairs go down to the ticket hall at Brommaplan.",
+      "note": "An island platform on a bank, under a roof over its western half. At its west end stands a low enclosure over the way down: an escalator with a stair beside it go down westwards under the platform, and a walkway along their south side leads to a lift at the end. At their foot a corridor goes on west into the ticket hall, which stands on the square under the tracks' two decks, under a glass vault between them; its doors open west onto Tunnlandet. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing has the stairs going down to the south-west under the southern track, where they go down to the west under the platform.",
       "routes": [
-        { "from": [-48.374273392087005, -2.2], "width": 3, "go": [
-          {"stairs": -6.2, "toward": [-60.0, -3.3]},
-          {"walk": [-66.0, -4.1], "width": 6},
-          {"walk": [-66.0, -16.3], "width": 4},
+        { "from": [-61.0, -4.61], "width": 3.1, "go": [
+          {"walk": [-67.0, -5.37], "open": true},
+          {"escalators": -6.15, "toward": [-80.0, -7.37], "lanes": "Es", "ceiling": 3.0, "open": true},
+          {"walk": [-88.0, -8.86], "ceiling": 3.0}
+        ] },
+        { "from": [-61.0, -1.76], "width": 1.6, "go": [
+          {"walk": [-75.0, -3.71], "open": true},
+          {"walk": [-82.9, -5.06], "open": true},
+          {"lift": -6.15, "above": 2.7, "through": true},
+          {"walk": [-92.0, -6.62], "width": 5.0, "ceiling": 3.0},
+          {"walk": [-97.0, -8.36], "width": 6.0, "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -30.3], "name":  "Brommaplan"}}
+          {"walk": [-107.9, -12.14], "open": true},
+          {"walk": [-109.0, -12.43], "width": 2.6, "ceiling": 2.3},
+          {"exit": {"at": [-116.5, -14.43], "name": "Brommaplan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },
