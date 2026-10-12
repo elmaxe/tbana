@@ -1012,30 +1012,66 @@
     },
     "Alvik": {
       "drawing": "alvik.png",
-      "note": "Two side platforms, with the Nockebybanan's tracks between them. At their west end stairs go down from each to the ticket hall at Alviks torg; at the east end stairs climb from the northern one to Tranebergsvägen up the hill.",
+      "note": "Two island platforms on a bank, the metro along their outer edges and the Nockebybanan's tram tracks between them, ending at buffers where the islands join at the east end. At the west end, from each island an escalator and stairs go down under a glazed roof to the ticket hall under the bank at Alviks torg, and a glazed walkway along the tram tracks leads to a lift; the hall's doors face west under the trams' bridge. At the east end an escalator and stairs climb from the junction to a footbridge over the northern track, and from its north end a passage goes into the hillside, where escalators and a lift climb to the pavilion on Tranebergsvägen; a lift from the junction reaches the footbridge too. From the laser scan (the platforms, the stair houses' roofs, the trams' bridge, the footbridge 4.1 m and the pavilion 8 m over the platform), OpenStreetMap (the buildings, the entrances) and photographs.",
       "routes": [
-        { "from": [-40, 6.8], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-150, 6.6]},
-          {"walk": [-62, 6.6], "width": 4},
-          {"walk": [-62, 0], "width": 6},
-          {"mark": "hall"}
+        { "from": [-72.6, -10.9], "width": 3.6, "go": [
+          {"walk": [-77.5, -10.9], "open": true},
+          {"escalators": -6.7, "toward": [-200, -10.9], "lanes": "ES"},
+          {"walk": [-91.0, -10.9]}
         ] },
-        { "from": [-40, -9.2], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-150, -9.7]},
-          {"walk": [-62, -9.7], "width": 4},
-          {"walk": [-62, 0], "width": 6}
+        { "from": [-72.6, 5.6], "width": 3.6, "go": [
+          {"walk": [-77.5, 5.6], "open": true},
+          {"escalators": -6.7, "toward": [-200, 5.6], "lanes": "SE"},
+          {"walk": [-91.0, 5.6]}
         ] },
-        { "from": "hall", "width": 6, "go": [
-          {"walk": [-80, 0]},
+        { "from": [-89.0, -2.6], "h": -6.7, "width": 20.8, "go": [
+          {"walk": [-101.0, -2.6]},
+          {"walk": [-103.0, -3.4], "width": 9},
           {"gates": true},
+          {"walk": [-106.0, -3.4]},
           {"exit": 2851544626, "by": "walk"}
         ] },
-        { "from": [20, -6], "width": 3, "go": [
-          {"stairs": 8.0, "toward": [150, -6]},
-          {"walk": [60, -6], "width": 4},
-          {"walk": [80, -18]},
+        { "from": [-72.6, -7.4], "width": 2, "go": [
+          {"walk": [-92.5, -7.4], "open": true},
+          {"walk": [-92.5, -9.4], "open": true},
+          {"walk": [-96.4, -9.4], "open": true},
+          {"lift": -6.7, "above": 4.1},
+          {"walk": [-94.0, -9.4]}
+        ] },
+        { "from": [-72.6, 1.9], "width": 2, "go": [
+          {"walk": [-92.5, 1.9], "open": true},
+          {"walk": [-92.5, 3.8], "open": true},
+          {"walk": [-96.6, 3.8], "open": true},
+          {"lift": -6.7, "above": 4.0},
+          {"walk": [-94.0, 3.8]}
+        ] },
+        { "from": [53.2, 2.3], "width": 5.2, "go": [
+          {"walk": [55.0, 2.3], "open": true},
+          {"escalators": 4.1, "toward": [200, 2.3], "lanes": "SEE"},
+          {"walk": [68.0, 2.3], "open": true},
+          {"walk": [68.0, -10.1], "width": 4, "open": true},
+          {"walk": [68.0, -14.4], "open": true},
+          {"walk": [68.0, -20.0], "width": 3},
+          {"walk": [72.5, -20.0], "width": 5.2},
+          {"escalators": 3.9, "toward": [72.5, -200], "lanes": "EES", "open": true},
+          {"walk": [72.5, -29.0]},
+          {"walk": [80.2, -27.8], "width": 6},
           {"gates": true},
+          {"walk": [84.5, -26.8]},
           {"exit": 2495141972, "by": "walk"}
+        ] },
+        { "from": [69.0, 6.3], "width": 2, "go": [
+          {"walk": [71.9, 6.3], "open": true},
+          {"lift": 4.1, "above": 3.6},
+          {"walk": [70.4, 6.3], "open": true},
+          {"walk": [68.0, 6.3], "open": true},
+          {"walk": [68.0, 4.0], "open": true}
+        ] },
+        { "from": [68.0, -19.0], "h": 4.1, "width": 2, "go": [
+          {"walk": [68.3, -24.9]},
+          {"lift": 3.9, "through": true},
+          {"walk": [68.3, -30.0]},
+          {"walk": [72.5, -30.0]}
         ] }
       ]
     },

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Traveller, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Traveller, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -246,7 +246,7 @@ export class OpenLook {
       else if (a.kind === 'cone') this.cone(a, line, on);
       else if (a.kind === 'checks') this.checks(a, line, on);
     }
-    for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
+    for (const sh of style.shelters ?? []) this.shelter(sh, sh.under === undefined ? line : lines[sh.under], on, cut);
     this.benches(style, line, lines, on);
   }
 
@@ -299,12 +299,103 @@ export class OpenLook {
       else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
       else if (a.kind === 'capitals') this.capitals(a, frame, on);
       else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
+      else if (a.kind === 'tramTrack') this.tramTrack(a, frame, on);
+      else if (a.kind === 'catenary') this.catenary(a, frame, on);
+      else if (a.kind === 'edgePaving') this.edgePaving(a, style, st.name, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
       const middle = style.middle ?? [[-500, 0], [500, 0]];
       const canopy: CanopyPart = { kind: 'canopy', points: middle.map(([s, u]) => frame.at(s, u, CANOPY_HEIGHT)), width: 0 };
       this.benches(style, new Line(frame, canopy), [], on);
+    }
+  }
+
+  // A tram's track: concrete sleepers every 0.65 m along it, two rails on them, and a buffer stop
+  // at its end, a steel frame with a beam across in yellow.
+  private tramTrack(a: TramTrack, frame: Frame, on: On) {
+    const sleeper = on(this.color(0x8d8a84, 0.9, 0)), rail = on(this.color(0x7d7873, 0.35, 0.8));
+    const P = a.points, L = [0];
+    for (let k = 1; k < P.length; k++) L.push(L[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]));
+    // the point `d` along the track, `off` to its right and `dh` over its sleepers' top; and the
+    // world's direction along it there
+    const seg = (d: number) => { let k = 1; while (k < P.length - 1 && L[k] < d) k++; return k; };
+    const at = (d: number, off: number, dh: number): XYZ => {
+      const k = seg(d), [sa, ua, ha] = P[k - 1], [sb, ub, hb] = P[k], l = L[k] - L[k - 1], t = (d - L[k - 1]) / l;
+      const fs = (sb - sa) / l, fu = (ub - ua) / l;
+      return frame.at(sa + (sb - sa) * t - fu * off, ua + (ub - ua) * t + fs * off, ha + (hb - ha) * t + dh);
+    };
+    const dir = (d: number) => {
+      const a0 = at(d - 0.5, 0, 0), a1 = at(d + 0.5, 0, 0), l = Math.hypot(a1[0] - a0[0], a1[2] - a0[2]);
+      return [(a1[0] - a0[0]) / l, (a1[2] - a0[2]) / l];
+    };
+    const end = L[L.length - 1];
+    for (let d = 0.35; d < end - 0.2; d += 0.65) { const [fx, fz] = dir(d); box(sleeper, at(d, 0, -0.06), fx, fz, 2.3, 0.12, 0.24); }
+    const marks = [0];
+    for (let k = 1; k < P.length; k++) {
+      const n = Math.max(1, Math.ceil((L[k] - L[k - 1]) / 4));
+      for (let i = 1; i <= n; i++) marks.push(L[k - 1] + ((L[k] - L[k - 1]) * i) / n);
+    }
+    for (const g of [-0.7175, 0.7175]) for (let i = 0; i + 1 < marks.length; i++) bar(rail, at(marks[i], g, 0.17), at(marks[i + 1], g, 0.17), 0.07, 0.17);
+    if (a.buffer) {
+      const d = end - 0.3, [fx, fz] = dir(d - 0.5), red = on(this.color(0x7d2a22, 0.6, 0.3)), paint = on(this.color(0xe2c23a, 0.5, 0.1));
+      for (const g of [-0.65, 0.65]) {
+        box(red, at(d, g, 0.5), fx, fz, 0.18, 1.0, 0.2);
+        bar(red, at(d - 1.6, g, 0.3), at(d, g, 0.95), 0.12, 0.12);
+      }
+      box(paint, at(d + 0.05, 0, 0.75), fx, fz, 1.9, 0.32, 0.2);
+    }
+  }
+
+  // The trams' overhead line: steel masts, an arm from each out over the wires, a contact wire
+  // along each track and a messenger wire over it.
+  private catenary(a: Catenary, frame: Frame, on: On) {
+    const steel = on(this.color(0x8f9497, 0.5, 0.6)), wire = on(this.color(0x2f3133, 0.5, 0.6));
+    // a wire's u and h at s, between its first and last points
+    const along = (w: [number, number, number][], s: number) => {
+      for (let k = 1; k < w.length; k++) {
+        const [sa, ua, ha] = w[k - 1], [sb, ub, hb] = w[k];
+        if ((s - sa) * (s - sb) > 0) continue;
+        const t = sb === sa ? 0 : (s - sa) / (sb - sa);
+        return { u: ua + (ub - ua) * t, h: ha + (hb - ha) * t };
+      }
+      return null;
+    };
+    for (const [s, u, foot] of a.masts) {
+      box(steel, frame.at(s, u, (foot + a.height) / 2), frame.fx, frame.fz, 0.22, a.height - foot, 0.22);
+      const at = a.wires.map((w) => along(w, s)).filter((p): p is { u: number; h: number } => p !== null);
+      if (!at.length) continue;
+      const top = Math.max(...at.map((p) => p.h)) + 1.1, reach = (side: number) => Math.max(0, ...at.map((p) => (p.u - u) * side)) + 0.3;
+      bar(steel, frame.at(s, u - reach(-1), top + 0.06), frame.at(s, u + reach(1), top + 0.06), 0.07, 0.07);
+      for (const p of at) {
+        bar(steel, frame.at(s, u + Math.sign(p.u - u) * 0.12, p.h + 0.45), frame.at(s, p.u, p.h + 0.04), 0.04, 0.04);
+        box(wire, frame.at(s, p.u, (p.h + top) / 2), frame.fx, frame.fz, 0.012, top - p.h, 0.012);
+      }
+    }
+    for (const w of a.wires) {
+      for (let k = 1; k < w.length; k++) {
+        const [sa, ua, ha] = w[k - 1], [sb, ub, hb] = w[k];
+        bar(wire, frame.at(sa, ua, ha + 0.012), frame.at(sb, ub, hb + 0.012), 0.014, 0.014);
+        bar(wire, frame.at(sa, ua, ha + 1.112), frame.at(sb, ub, hb + 1.112), 0.016, 0.016);
+      }
+    }
+  }
+
+  // The platform's paving along an edge the network doesn't draw, mapped across from the edge as
+  // the network maps its own.
+  private edgePaving(a: EdgePaving, style: OpenStyle, name: string, frame: Frame, on: On) {
+    const paving = style.paving;
+    if (!paving) return;
+    const m = on(this.mat(`edgePaving:${name}`, () => new THREE.MeshStandardMaterial({ map: T.openPaving(paving), roughness: 0.85, side: THREE.DoubleSide })));
+    const side = a.left ? -1 : 1;
+    let along = 0;
+    for (let i = 0; i + 1 < a.points.length; i++) {
+      const [sa, ua, ha = 0] = a.points[i], [sb, ub, hb = 0] = a.points[i + 1], l = Math.hypot(sb - sa, ub - ua);
+      const ns = (-(ub - ua) / l) * side, nu = ((sb - sa) / l) * side;
+      const P = (t: number, w: number) => [...frame.at(sa + (sb - sa) * t + ns * w, ua + (ub - ua) * t + nu * w, ha + (hb - ha) * t + 0.008),
+        w / T.PAVING_ACROSS, (along + l * t) / T.PAVING_REPEAT];
+      m.poly([P(0, 0), P(1, 0), P(1, a.width), P(0, a.width)]);
+      along += l;
     }
   }
 
@@ -494,7 +585,7 @@ export class OpenLook {
   // worn round, turned, leaning to its right from its foot, and sunk a little into the ground.
   private stone(a: Stone, frame: Frame, on: On) {
     const m = a.granite
-      ? on(this.mat('granite', () => new THREE.MeshStandardMaterial({ map: T.granite(), roughness: 0.85, side: THREE.DoubleSide })))
+      ? on(this.mat(`granite:${a.color ?? ''}`, () => new THREE.MeshStandardMaterial({ map: T.granite(), color: a.color ?? 0xffffff, roughness: 0.85, side: THREE.DoubleSide })))
       : on(this.mat('limestone', () => new THREE.MeshStandardMaterial({ map: T.limestone(), roughness: 0.9, side: THREE.DoubleSide })));
     const [L, Wd, H] = a.size, r = T.rng(Math.round(a.s * 1000 + a.u * 100));
     const bumps = Array.from({ length: 16 }, () => [r() * 2 - 1, r() * 2 - 1, r() * 2 - 1, (r() - 0.45) * 0.08]);

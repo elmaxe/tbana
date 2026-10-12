@@ -415,6 +415,13 @@
       "station": "Farsta",
       "shortRuns": 25,
       "why": "OSM splits the eastern track 28 m short of the island platform's south end, where its bridge ends, so that piece was left without the platform, and the platform's south end was drawn as a narrow side platform on the western track only."
+    },
+    {
+      "station": "Alvik",
+      "replace": true,
+      "reach": 14,
+      "at": [148987.66, 6579810.75],
+      "why": "OSM maps Alvik's two island platforms each beside one metro track, the outer ones, with the Nockebybanan's two tracks between them, which aren't part of the metro's map; so they were drawn as two side platforms with grass between. Both metro tracks are placed at one platform from its middle, between them, so that it is paved across, and the station's style (src/open-styles.ts) cuts the Nockebybanan's tracks out of it between the two islands."
     }
   ],
   "widths": [
@@ -436,6 +443,22 @@
     {
       "at": [150182.4, 6579736.1],
       "why": "Kristineberg, the northern track at the platform's west end: its nearest point is 7 m beyond the platform, where the line starts to climb to Tranebergsbron, so with nothing to hold it level the track rose along the platform's western half, and the island's northern half stood 0.1 m over its southern half."
+    },
+    {
+      "at": [149057.2, 6579787.5],
+      "why": "Alvik, the southern track at the platform's east end: OSM's nearest points are 64 m inside the platform and 8 m beyond it, where the line climbs to Tranebergsbron, so the track rose along the platform's eastern half, and the island's southern edge ended 0.13 m above its middle."
+    },
+    {
+      "at": [148914.7, 6579814.1],
+      "why": "Alvik, the southern track at the platform's west end: OSM has no point on it between 52 m inside the platform and the bridge 36 m beyond it, so its height sloped straight between them."
+    },
+    {
+      "at": [149060.1, 6579802.4],
+      "why": "Alvik, the northern track at the platform's east end: its nearest points are 20 m inside the platform and 10 m beyond it, on the climb."
+    },
+    {
+      "at": [148919.7, 6579838.4],
+      "why": "Alvik, the northern track at the platform's west end: OSM has no point on it between 63 m inside the platform and the bridge 36 m beyond it."
     }
   ]
 }

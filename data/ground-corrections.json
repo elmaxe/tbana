@@ -78,6 +78,12 @@
       "outline": [-3203.5, -161.1, -3208.6, -145.4, -3191.2, -139.8, -3190.0, -143.4, -3186.5, -142.2, -3182.6, -154.3],
       "heights": [13.65, 13.45, 13.8, 13.85, 13.9, 13.95],
       "why": "The station's doors open north onto Nordenflychtsvägen where Hjalmar Söderbergs väg meets it, at the foot of the bank the tracks run on. The elevation model's 5 m grid smooths the bank down over the street, which left the ground at the doors a metre over the hall's floor (the deck reaches in under the hall's front, to keep the street level up to the doors). The laser scan has the street and the paving in front of the doors, from the hall's front out to 26 m north of the tracks' middle, at 13.5–13.95 m, rising a little to the east, and the bank rising from behind the hall."
+    },
+    {
+      "name": "Alvik: in front of the ticket hall's doors",
+      "outline": [-4476.9, -267.8, -4481.6, -242.2, -4480.6, -242.0, -4484.4, -221.9, -4489.1, -222.7, -4480.6, -268.4],
+      "heights": [10.5, 10.25, 10.25, 10.05, 10.05, 10.5],
+      "why": "The ticket hall's doors open west under the trams' bridge onto a terrace in front of the bank, 3.3 m deep and running north under the metro's bridge, held up by a wall 4.5 m over Alviksvägen, which passes under the bridges (Lantmäteriet's laser scan, 2021: the terrace at 9.9–10.8 m, rising to the north, the street at 5.5 m). The elevation model's 5 m grid smooths the wall into a slope falling away from the doors, which left no terrace in front of them."
     }
   ],
   "open": [
@@ -143,6 +149,14 @@
     {
       "outline": [[2687, -2494], [2682, -2505], [2662, -2560], [2648, -2595], [2609, -2682], [2603, -2696], [2598, -2710], [2594, -2725], [2591, -2740], [2589, -2754], [2590, -2761], [2592, -2768], [2597, -2776], [2603, -2782], [2609, -2787], [2616, -2791], [2627, -2795], [2656, -2807], [2625, -2871], [2663, -2895], [2705, -2914], [2722, -2908], [2744, -2919], [2796, -2812], [2773, -2802], [2842, -2655], [2872, -2668], [2920, -2560], [2920, -2480]],
       "why": "Energihamnen east of Ropsten: the power station's tanks, yards and quays (OpenStreetMap's industrial outline, closed out over the water; Google's 3D model). It was grass between the tanks."
+    },
+    {
+      "outline": [[-4484.1, -250.8], [-4490.3, -217.4], [-4513.9, -221.7], [-4507.7, -255.2]],
+      "why": "Alviksvägen and its pavements under the metro's and the trams' bridges west of Alvik's ticket hall (Google's 3D model). With no buildings beside them they were grass."
+    },
+    {
+      "outline": [[-4476.9, -267.8], [-4481.6, -242.2], [-4480.6, -242.0], [-4484.4, -221.9], [-4489.1, -222.7], [-4480.6, -268.4]],
+      "why": "The paved terrace in front of Alvik's ticket hall's doors, on its deck (photographs)."
     }
   ]
 }

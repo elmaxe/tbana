@@ -3394,6 +3394,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
   pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
   crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6], pixelTiles: [4.8, 3.6],
+  ballast: [2.4, 2.4], strawTiles: [1.2, 1.2], reedTiles: [2.4, 2.4], iceTerrazzo: [7.2, 7.2], rockMosaic: [4.8, 3.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
@@ -4552,6 +4553,81 @@ export function finish(name: Finish) {
       }
       x.fillStyle = 'rgba(255,255,255,0.12)';
       for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) x.fillRect(i * t + 2, H - (j + 1) * t + 2, t * 0.35, 2);
+      break;
+    }
+    case 'ballast':
+      // a track's ballast: crushed grey stone, some of it rust-brown
+      x.fillStyle = '#5f5b56'; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 7000; k++) {
+        const v = 78 + Math.floor(r() * 84), rust = r() < 0.3 ? 16 : 0, a = 4 + r() * 6;
+        x.fillStyle = `rgb(${v + rust},${v + rust / 3},${v - 4 - rust / 2})`;
+        x.fillRect(r() * W, r() * H, a, a * (0.55 + r() * 0.5));
+      }
+      speckle(x, W, H, 6000, 0.25, 93);
+      break;
+    case 'strawTiles':
+    case 'reedTiles': {
+      // glazed tiles 15 cm, straw yellow, in pale joints; Henjasaj Koda's Vassens viskningar
+      // (Alvik, 1999), `reedTiles`: reeds of white tiles rising across them, leaning, each swelling
+      // and narrowing up the wall (by diagonals of tiles, so that the picture repeats)
+      x.fillStyle = '#c9c2b2'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      const reeds = name === 'reedTiles' ? [0, 5, 9, 12].map((d) => ({ d, ph: r() * 6.3, w: 0.6 + r() * 0.8 })) : [];
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const reed = reeds.some((q) => {
+          const w = Math.max(0, q.w + 1.1 * Math.sin((2 * Math.PI * j) / rows + q.ph));
+          return ((i - j - q.d) % cols + cols) % cols < w;
+        });
+        const v = Math.floor(r() * 10);
+        x.fillStyle = reed ? `rgb(${236 + v / 2},${233 + v / 2},${222 + v / 2})` : `rgb(${214 + v},${193 + v},${132 + v})`;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      x.fillStyle = 'rgba(255,255,255,0.14)';
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) x.fillRect(i * t + 3, H - (j + 1) * t + 3, t * 0.4, 2);
+      break;
+    }
+    case 'iceTerrazzo': {
+      // Henjasaj Koda's Isens fjäll (Alvik, 1999): pale beige terrazzo, broad fields of blue-grey
+      // terrazzo across it, and small dark blue triangles scattered over the pale; brass strips
+      // along the fields' edges (each shape drawn again a repeat away, so that it tiles)
+      x.fillStyle = '#cbc3b1'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 26000, 0.25, 94); speckle(x, W, H, 9000, 0.25, 95, true);
+      const shape = (pts: number[][], fill: string, edge: string | null) => {
+        for (const ox of [-W, 0, W]) for (const oy of [-H, 0, H]) {
+          x.beginPath(); pts.forEach(([a, b], k) => (k ? x.lineTo(a * W + ox, b * H + oy) : x.moveTo(a * W + ox, b * H + oy))); x.closePath();
+          x.fillStyle = fill; x.fill();
+          if (edge) { x.strokeStyle = edge; x.lineWidth = 2; x.stroke(); }
+        }
+      };
+      const fields = [
+        [[0.02, 0.1], [0.55, 0.02], [0.3, 0.48]], [[0.45, 0.55], [0.98, 0.4], [0.82, 0.95], [0.5, 0.85]],
+        [[0.05, 0.62], [0.32, 0.72], [0.12, 0.98]],
+      ];
+      for (const f of fields) shape(f, '#76808c', '#b39a5e');
+      for (let k = 0; k < 14; k++) {
+        const cx = r(), cy = r(), a = 0.02 + r() * 0.025, t0 = r() * 6.3;
+        shape([0, 1, 2].map((q) => [cx + Math.cos(t0 + q * 2.1) * a, cy + Math.sin(t0 + q * 2.1) * a * (W / H)]), '#2d3c58', null);
+      }
+      speckle(x, W, H, 12000, 0.22, 96); speckle(x, W, H, 6000, 0.3, 97, true);
+      break;
+    }
+    case 'rockMosaic': {
+      // Henjasaj Koda's Orm och irisar (Alvik, 1999): a cement mosaic in black and pale cream,
+      // flowing striations as in polished rock, here in broad black fields, there in cream ones
+      // (functions of the repeat, so that it tiles)
+      const img = x.createImageData(W, H), d = img.data, a = (2 * Math.PI) / w, b = (2 * Math.PI) / h;
+      for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+        const mx = px / PX, my = (H - py) / PX;
+        const warp = 1.4 * Math.sin(b * my + 0.9 * Math.sin(a * mx)) + 0.9 * Math.sin(2 * a * mx + b * my + 1.0) + 0.5 * Math.sin(3 * b * my - a * mx);
+        const field = Math.sin(2 * a * mx + 0.8 * warp) * Math.cos(2 * b * my - 0.6 * warp + 0.4);
+        const fine = Math.sin(26 * a * mx + 7 * b * my + 5 * warp) + 0.35 * Math.sin(61 * a * mx - 13 * b * my + 3 * warp);
+        const black = field > 0.42 || (field > -0.42 && fine > 0.45 - field * 1.2);
+        const k = (py * W + px) * 4, v = (px * 7 + py * 13) % 9;
+        if (black) { d[k] = 30 + v; d[k + 1] = 30 + v; d[k + 2] = 29 + v; } else { d[k] = 222 + v; d[k + 1] = 214 + v; d[k + 2] = 196 + v; }
+        d[k + 3] = 255;
+      }
+      x.putImageData(img, 0, 0);
+      speckle(x, W, H, 14000, 0.2, 98); speckle(x, W, H, 8000, 0.2, 99, true);
       break;
     }
     case 'slats':

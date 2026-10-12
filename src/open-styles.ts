@@ -42,8 +42,9 @@ export interface OpenStyle {
   middle?: [number, number][];
   // glass shelters on the platform, from s[0] to s[1] and u[0] to u[1] across the line down its
   // middle, glazed along both sides and open at the ends, with a bench inside; out in the open,
-  // a flat roof of their own
-  shelters?: { s: [number, number]; u: [number, number]; roof?: boolean }[];
+  // a flat roof of their own; `under`, down the middle of one of `roofs` (its index), as a row of
+  // benches can be
+  shelters?: { s: [number, number]; u: [number, number]; roof?: boolean; under?: number }[];
 }
 
 export interface Benches { at: number[]; across?: boolean; double?: boolean; wood?: boolean; roof?: number }
@@ -264,7 +265,12 @@ export type Finish =
   | 'crossMosaic'   // warm yellow tiles, and on them round clusters of small cross-shaped tiles (Mari Pårup's)
   | 'crossTerrazzo' // dark grey terrazzo, small pale crosses set in it here and there
   | 'bronzeGlazed'  // clear glass in thick dark bronze frames, a rail across at 1.1 m
-  | 'pixelTiles';   // pale blue tiles, 15 cm, figures and bands picked out in coloured tiles (Lars Arrhenius's)
+  | 'pixelTiles'    // pale blue tiles, 15 cm, figures and bands picked out in coloured tiles (Lars Arrhenius's)
+  | 'ballast'       // a track's ballast: crushed grey stone
+  | 'strawTiles'    // glazed tiles, 15 cm, straw yellow, in pale joints
+  | 'reedTiles'     // as strawTiles, reeds of white tiles rising across them (Henjasaj Koda's)
+  | 'iceTerrazzo'   // pale beige terrazzo, fields of blue-grey and small dark blue triangles (Henjasaj Koda's)
+  | 'rockMosaic';   // a cement mosaic of black and cream striations, as in polished rock (Henjasaj Koda's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -298,7 +304,8 @@ export interface Block {
   gables?: { count: number; rise: number; color: number; trim: number; round?: boolean };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller
+  | TramTrack | Catenary | EdgePaving;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -376,8 +383,9 @@ export interface Ruler { kind: 'ruler'; points: [number, number, number][]; widt
 
 // A block of pale limestone, rough-hewn, standing at s, u (in the station's frame), `size` along,
 // across and high, turned `turn` (radians, as a guardian's) and leaning `lean` to its right; or a
-// slab of split grey granite (`granite`); its foot `y` over the platform (on it by default).
-export interface Stone { kind: 'stone'; s: number; u: number; size: [number, number, number]; turn: number; lean: number; granite?: boolean; y?: number }
+// slab of split grey granite (`granite`, or another stone split as it is, of this `color`: black
+// diabase); its foot `y` over the platform (on it by default).
+export interface Stone { kind: 'stone'; s: number; u: number; size: [number, number, number]; turn: number; lean: number; granite?: boolean; color?: number; y?: number }
 
 // Richard Nonas's benches (Skarpnäck, 1994): each a U of split dark granite at s, u (in the
 // station's frame), two slabs on end `height` high, `span` apart inside, and a thick slab between
@@ -397,6 +405,23 @@ export interface BronzeFrames { kind: 'bronzeFrames'; s: number; u: number; turn
 // its head raised; and a wedge of concrete along the plinth's far side, sloping up away from the
 // dog.
 export interface Traveller { kind: 'traveller'; s: number; u: number; turn: number }
+
+// A tram's track through the points ([s, u, h], in the station's frame, `h` the sleepers' top over
+// the platform), on ballast drawn by a block's floor: its sleepers and two rails, and (`buffer`) a
+// buffer stop at its last point.
+export interface TramTrack { kind: 'tramTrack'; points: [number, number, number][]; buffer?: boolean }
+
+// The overhead line over trams' tracks: steel masts at `masts` ([s, u, foot], in the station's
+// frame), `height` high, each with an arm out over the wires either side of it; along each of
+// `wires` (points [s, u, h], `h` the contact wire's height) a contact wire, and a messenger wire
+// 1.1 m over it hung from the arms.
+export interface Catenary { kind: 'catenary'; masts: [number, number, number][]; height: number; wires: [number, number, number][][] }
+
+// The platform's paving laid along an edge the network doesn't draw as one (Alvik's, beside the
+// Nockebybanan's tracks between its two islands): the edge along the line through the points
+// ([s, u], or [s, u, h] over the platform's top), and its stones, strip for the blind and slabs
+// `width` in from it, to the line's right (or `left`).
+export interface EdgePaving { kind: 'edgePaving'; points: ([number, number] | [number, number, number])[]; width: number; left?: boolean }
 
 // Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`.
 export interface Columns { kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number }
@@ -3991,5 +4016,215 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     shelters: [{ s: [-39, -34], u: [-1.1, 1.1] }],
     // OpenStreetMap's outline of the station's building, which the blocks draw
     buildings: ['w56259275'],
+  },
+  // Alvik (26 October 1952): two island platforms on a bank between Tranebergsvägen's hillside and
+  // Drottningholmsvägen, the metro along their outer edges and the Nockebybanan's trams (line 12)
+  // on the two tracks between them, which end at buffers where the islands join at the east end.
+  // The laser scan puts the platforms 0.55 m lower than the track's height leaves the network's,
+  // the trams' ballast 0.55 m under its top along the platforms, falling west to 2.1 m under it on
+  // their bridge over Alviksvägen, the tram corridor 6.3 m wide at the west end narrowing to 6.5 m
+  // at the buffers, and the overhead line's masts down its middle (a gantry across it 100 m west).
+  //
+  // Each island has a roof of its own (photographs): ribbed sheet steel across on steel I-beams,
+  // a dark grey fascia, one row of steel columns with knee braces, tube lamps along the underside,
+  // black signs; under them benches, glass shelters and departure boards, and between the tram
+  // tracks a chain-link fence (FÖRBJUDET BETRÄDA SPÅREN). The laser scan: the roofs' undersides
+  // 3.0 m over the platform, the northern 7.4 to 8.5 m wide, the southern 6.3 to 7.6 m, their
+  // east ends narrowing over the junction.
+  //
+  // At the west end (photographs, the laser scan and Google's mesh) a stair house on each island
+  // steps down beside the tracks under glazed roofs falling in waves, its stairs and escalator
+  // down to the ticket hall under the bank at Alviks torg; beside each, a glazed walkway along the
+  // trams' tracks to a lift. The hall's front faces west under the trams' bridge: glass doors under
+  // a black band with the T and the name, board-marked concrete and brick. Henjasaj Koda's
+  // Vågornas möte (1999) fills it: straw-yellow tiles, reeds of white tiles rising across those
+  // beside the stairs (Vassens viskningar), a pale terrazzo floor with fields of blue-grey and
+  // small dark blue triangles (Isens fjäll), a cement mosaic of black and cream striations along
+  // the escalators and behind the doors (Orm och irisar, 110 m²), and Gryningskälla, a 28-tonne
+  // block of black diabase from Boalt, split open. (Dropp från fjärran, a railing of Corten
+  // steel, isn't placed: where it stands isn't clear.)
+  //
+  // At the east end (the laser scan, OpenStreetMap and Google's mesh) a stair house climbs from the
+  // junction under a roof rising to the east, an escalator and stairs up to a footbridge over the
+  // northern track: teal tiles and windows in dark frames under arches of glulam, terrazzo with dark
+  // blue zigzags. From its north end a passage goes into the hillside, and escalators and a lift
+  // climb to the white-rendered pavilion on Tranebergsvägen. A lift from the junction's south side
+  // reaches the footbridge too. The way down to Tvärbanan's platforms and the 1952 hall aren't
+  // drawn.
+  'Alvik': {
+    // the northern island's roof
+    roof: {
+      kind: 'butterfly',
+      from: -72.5, to: 64.5, width: 8,
+      shape: [[-72.5, -8.4, 7.4], [-40, -7.7, 8.0], [-10, -6.7, 8.5], [20, -5.2, 8.0], [46, -3.9, 7.0], [56, -3.15, 5.6], [64.5, -2.3, 4.8]],
+      middle: 2.95, edge: 3.25, thick: 0.22, fascia: 0.3,
+      rafters: 4.5, rafterAt: -67, rafterSize: [0.14, 0.3], rafterColor: 0x3b3f43,
+      deck: 'ribbedAcross',
+      beam: 0.35,
+      columns: { every: 9, at: -67, size: 0.2, plinth: { size: 0.3, height: 0.05 }, braces: 1.0 },
+      lamps: { offset: 1.2, length: 1.5, every: 3, tube: true },
+      colors: { underside: 0x5d6164, fascia: 0x3e4245, top: 0x9ea3a6, steel: 0x3b3f43 },
+      signs: { at: [-53.5, -17.5, 18.5], back: 'Alviks torg', ahead: 'Tranebergsvägen' },
+      clocks: [[-8.5, -1.6]],
+      // (trains keep left: those for the city on the northern track)
+      boards: [
+        { s: -35.5, u: -2.4, toward: 'T-Centralen', trains: ['17 Skarpnäck  2 min', '19 Hagsätra  6 min'] },
+        { s: -35.5, u: 2.4, toward: 'Nockeby', trains: ['12 Nockeby  3 min', '12 Nockeby  13 min'] },
+      ],
+    },
+    // the southern island's
+    roofs: [{
+      kind: 'butterfly',
+      from: -72.5, to: 66, width: 7,
+      shape: [[-72.5, 6.3, 7.0], [-30, 6.37, 7.5], [0, 6.69, 7.6], [30, 7.34, 7.0], [50, 7.95, 6.6], [55, 8.95, 4.1], [66, 9.05, 3.6]],
+      middle: 2.95, edge: 3.25, thick: 0.22, fascia: 0.3,
+      rafters: 4.5, rafterAt: -67, rafterSize: [0.14, 0.3], rafterColor: 0x3b3f43,
+      deck: 'ribbedAcross',
+      beam: 0.35,
+      columns: { every: 9, at: -67, size: 0.2, plinth: { size: 0.3, height: 0.05 }, braces: 1.0 },
+      lamps: { offset: 1.2, length: 1.5, every: 3, tube: true },
+      colors: { underside: 0x5d6164, fascia: 0x3e4245, top: 0x9ea3a6, steel: 0x3b3f43 },
+      signs: { at: [-44.5, -26.5, 36.5], back: 'Alviks torg', ahead: 'Tranebergsvägen' },
+      clocks: [[-8.5, 1.6]],
+      boards: [
+        { s: -35.5, u: 2.4, toward: 'Hässelby strand', trains: ['17 Åkeshov  4 min', '19 Hässelby strand  8 min'] },
+        { s: -35.5, u: -2.4, toward: 'Nockeby', trains: ['12 Nockeby  3 min', '12 Nockeby  13 min'] },
+      ],
+    }],
+    paving: {
+      edge: 0.35, tactile: [0.35, 0.7], slabs: 0.7, slabSize: [0.45, 0.45], paverSize: [0.45, 0.45], mix: 0.25,
+      colors: { edge: 0xc6c4be, tactile: 0x54575a, slab: 0x8c8c89, pavers: 0x8c8c89, paler: 0x9a9a97, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    rooms: [
+      // the east end: the stair house's escalator and stairs, open under its roof; the pavilion up on
+      // Tranebergsvägen; the footbridge; the passage into the hillside and its escalators
+      { name: 'east stairs', s: [54.8, 61], u: [-1.5, 6], h: [-0.5, 4.6], walls: 'tealTiles', stairs: 'tealTiles', floor: 'terrazzo', parapet: 1.1 },
+      { name: 'upper hall', s: [60, 95], u: [-40, -18], h: [7.5, 8.6], walls: null, floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'footbridge', s: [61, 75], u: [-14.4, 8], h: [3.6, 4.6], walls: null, floor: 'terrazzo' },
+      { name: 'passage', s: [60, 80], u: [-30, -14.4], h: [3.6, 4.6], walls: 'squareTiles', stairs: 'squareTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      // the west end: the ticket hall under the bank, the walkways to the lifts, the flights down
+      { name: 'west hall', s: [-112, -89.3], h: [-7.2, -6.2], walls: 'strawTiles', floor: 'iceTerrazzo', ceiling: 'whitePanels' },
+      { name: 'west walkways', s: [-98, -72.5], u: [-13, 8], h: [-0.5, 0.5], walls: null, floor: 'greyTiles' },
+      { name: 'west flights', s: [-93, -72], h: [-7.2, 0.5], walls: 'reedTiles', stairs: 'reedTiles', floor: 'greyTiles', parapet: 1.1 },
+      { name: 'platform', s: [-80, 80], h: [-0.6, 0.6], walls: null, floor: null },
+    ],
+    blocks: [
+      // the trams' tracks between the islands, on ballast 0.55 m under the platform's top, its edges
+      // the islands' (and the platform cut away over them, a little higher than its top, which
+      // rises a little to the east with the track)
+      { name: 'tram tracks, west', plan: [[-72.7, 0.8], [-10, 3.2], [-10, -4.12], [-72.7, -5.48]], h: [-0.55, 0], from: -0.55,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], floor: 'ballast' },
+      { name: 'tram tracks, east', plan: [[-10, 3.2], [47.4, 4.5], [47.4, -2.0], [-10, -4.12]], h: [-0.55, 0], from: -0.55,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], floor: 'ballast' },
+      { name: "tram tracks' cut, west", plan: [[-72.7, 0.8], [-10, 3.2], [-10, -4.12], [-72.7, -5.48]], h: [-0.55, 0.4], from: -0.55,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: "tram tracks' cut, east", plan: [[-10, 3.2], [47.4, 4.5], [47.4, -2.0], [-10, -4.12]], h: [-0.55, 0.4], from: -0.55,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // west of the platforms, falling to the trams' bridge between the stair houses' walkways
+      { name: 'tram tracks, -72.7 to -80', plan: [[-72.7, -6.3], [-72.7, 0.8], [-80, 0.85], [-80, -6.3]], h: [-7, -0.54], from: -0.55, fall: -1.0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'ballast' },
+      { name: 'tram tracks, -80 to -86', plan: [[-80, -6.3], [-80, 0.85], [-86, 0.85], [-86, -6.3]], h: [-7, -0.99], from: -1.0, fall: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'ballast' },
+      { name: 'tram tracks, -86 to -92', plan: [[-86, -6.3], [-86, 0.85], [-92, 0.85], [-92, -6.3]], h: [-7, -1.39], from: -1.4, fall: -1.48,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'ballast' },
+      { name: 'tram tracks, -92 to -97', plan: [[-92, -6.3], [-92, 0.85], [-97, 0.85], [-97, -6.3]], h: [-7, -1.47], from: -1.48, fall: -1.55,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'ballast' },
+      { name: 'tram tracks, -97 to -108.5', plan: [[-97, -9.3], [-97, 1.6], [-108.5, 1.6], [-108.5, -9.3]], h: [-7, -1.54], from: -1.55, fall: -1.9,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'ballast' },
+      // the trams' bridge over Alviksvägen, its parapets either side, and its underside
+      { name: "trams' bridge", plan: [[-108.5, -8.5], [-108.5, 1.6], [-136, 0.8], [-136, -9.3]], h: [-2.9, -0.95], from: -1.9, fall: -2.1,
+        walls: 'boardConcrete', sides: [null, undefined, null, undefined], floor: 'ballast' },
+      { name: "trams' bridge's underside", plan: [[-108.5, -8.5], [-108.5, 1.6], [-136, 0.8], [-136, -9.3]], h: [-2.9, -2.89], from: -2.9,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
+      // the stair houses' roofs, glazed, falling in waves down to the hall with the escalators and
+      // stairs under them, on the northern island and the southern
+      ...([[-13.0, -8.5, 'north'], [3.0, 7.8, 'south']] as const).flatMap(([un, us, side]) => ([
+        [-72.7, -76.5, 5.15, 4.6, 0], [-76.5, -79.5, 4.6, 3.85, 0], [-79.5, -82.5, 3.85, 2.25, 0],
+        [-82.5, -85.5, 2.25, 0.6, 0], [-85.5, -88.5, 0.6, -0.45, -1.5], [-88.5, -92, -0.45, -1.6, -2.2],
+      ] as const).map(([hi, lo, top, low, from]): Block => ({
+        name: `${side}ern stair house, ${hi} to ${lo}`, plan: [[hi, un], [hi, us], [lo, us], [lo, un]], h: [-7, top], lowBack: low, from,
+        walls: 'glazed', sides: [null, undefined, null, undefined], ...(from === 0 ? { floor: 'greyTiles' as const } : {}),
+        ceiling: 'ribbedMetal', roof: 0.25, roofColor: 0x8e9aa3,
+      }))),
+      // the glazed walkways along the trams' tracks to the lifts
+      { name: 'northern walkway', plan: [[-72.7, -8.45], [-72.7, -6.3], [-97, -6.3], [-97, -8.45]], h: [-2.0, 2.55], from: 0,
+        walls: 'glazed', sides: [null, undefined, undefined, undefined], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6f7579 },
+      { name: "northern walkway, to the lift", plan: [[-92, -11.2], [-92, -8.45], [-97, -8.45], [-97, -11.2]], h: [-2.0, 2.55], from: 0,
+        walls: 'glazed', sides: [undefined, null, undefined, undefined], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6f7579 },
+      { name: 'southern walkway', plan: [[-72.7, 0.8], [-72.7, 2.95], [-97, 2.95], [-97, 0.8]], h: [-2.0, 2.55], from: 0,
+        walls: 'glazed', sides: [null, undefined, undefined, undefined], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6f7579 },
+      { name: "southern walkway, to the lift", plan: [[-92, 2.95], [-92, 5.2], [-97, 5.2], [-97, 2.95]], h: [-2.0, 2.55], from: 0,
+        walls: 'glazed', sides: [undefined, undefined, undefined, null], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6f7579 },
+      // the hall's front under the trams' bridge: its doors under the black band, board-marked
+      // concrete and brick; and the bank's ends either side of it
+      { name: "hall's front", plan: [[-104.5, -8.5], [-104.5, 1.6], [-108.5, 1.6], [-108.5, -8.5]], h: [-6.7, -1.95], from: -6.7,
+        walls: 'boardConcrete', sides: [null, 'brick', 'blackFront', 'boardConcrete'], band: { walls: 'boardConcrete', from: -3.9 },
+        nameSign: { side: 2, at: 0.5, length: 3.4, bottom: -4.35, black: true }, ground: true },
+      { name: "bank's end, north", plan: [[-99.5, -13.5], [-99.5, -8.5], [-108.5, -8.5], [-108.5, -13.5]], h: [-6.7, -1.25], from: -6.7,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a9892, ground: true },
+      { name: "bank's end, south", plan: [[-99.5, 1.6], [-99.5, 8.0], [-108.5, 8.0], [-108.5, 1.6]], h: [-6.7, -1.25], from: -6.7,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a9892, ground: true },
+      // the terrace in front of the doors (its ground data/ground-corrections.json's deck), held up by
+      // a wall over Alviksvägen
+      { name: "terrace's wall", plan: [[-111.8, -40], [-111.8, 6.5], [-112.1, 6.5], [-112.1, -40]], h: [-11.6, -6.55], from: -11.6,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a9892 },
+      // Orm och irisar: the mosaic along the northern escalator's foot, and behind the doors
+      { name: 'mosaic by the escalator', plan: [[-92, -13.0], [-92, -12.9], [-100, -12.9], [-100, -13.0]], h: [-6.7, -3.15], from: -6.7, walls: 'rockMosaic' },
+      { name: 'mosaic behind the doors', plan: [[-101.2, -7.95], [-101.2, -7.85], [-106.3, -7.85], [-106.3, -7.95]], h: [-6.7, -3.15], from: -6.7, walls: 'rockMosaic' },
+      // the east end: a low building at the buffers, the stair house rising east over the
+      // escalator and stairs, the footbridge over the northern track and its southern end over the
+      // lift, the head house against the hillside, and the pavilion up on Tranebergsvägen
+      { name: 'building at the buffers', plan: [[52.3, -1.6], [52.3, 5.9], [47.4, 5.9], [47.4, -1.6]], h: [0, 3.6], walls: 'darkGlazed',
+        ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3a3d40, onPlatform: true },
+      { name: 'east stair house, 52.3 to 59.5', plan: [[59.5, -0.9], [59.5, 5.2], [52.3, 5.2], [52.3, -0.9]], h: [0, 6.0], lowBack: 4.1,
+        walls: 'glazed', sides: [null, undefined, undefined, undefined], ceiling: 'pineBoards', roof: 0.25, roofColor: 0xa9adb0, onPlatform: true },
+      { name: 'east stair house, 59.5 to 64', plan: [[64, -0.9], [64, 5.2], [59.5, 5.2], [59.5, -0.9]], h: [0, 8.1], lowBack: 6.0,
+        walls: 'glazed', sides: [null, undefined, null, undefined], ceiling: 'pineBoards', roof: 0.25, roofColor: 0xa9adb0, onPlatform: true },
+      { name: 'east stair house, 64 to 71', plan: [[71, -0.9], [71, 5.2], [64, 5.2], [64, -0.9]], h: [0, 9.3], lowBack: 8.1,
+        walls: 'glazed', sides: [undefined, undefined, null, undefined], ceiling: 'pineBoards', roof: 0.25, roofColor: 0xa9adb0, onPlatform: true },
+      { name: 'footbridge', plan: [[65.5, -0.9], [70.4, -0.9], [70.4, -13.7], [65.7, -15.0]], h: [3.4, 7.2], from: 4.1,
+        walls: 'tealWindows', sides: [null, undefined, null, undefined], floor: 'terrazzo', ceiling: 'pineBoards', roof: 0.3, roofColor: 0xa9adb0 },
+      { name: "footbridge's south end", plan: [[72.5, 5.2], [72.5, 7.3], [65.4, 7.3], [65.4, 5.2]], h: [3.5, 7.2], from: 4.1,
+        walls: 'tealWindows', sides: [undefined, undefined, undefined, null], floor: 'terrazzo', ceiling: 'pineBoards', roof: 0.3, roofColor: 0xa9adb0 },
+      { name: 'head house', plan: [[64, -11], [71, -11], [71, -15.5], [64, -15.5]], h: [4.1, 10.3], from: 4.1,
+        walls: 'whiteRender', sides: [null, undefined, undefined, undefined], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x6d7174, ground: true },
+      { name: 'upper hall', plan: [[66.1, -25.1], [69.4, -36.9], [82.9, -33.1], [86, -19.6]], h: [8.0, 11.5], from: 8.0,
+        walls: 'whiteRender', sides: [undefined, undefined, null, undefined], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x4a4d50, ground: true },
+      { name: 'upper hall, its doors', plan: [[82.9, -33.1], [89.2, -31.4], [87.7, -25.9], [86, -19.6]], h: [8.0, 11.5], from: 8.0,
+        walls: 'whiteRender', sides: [undefined, 'blackFront', undefined, null], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x4a4d50, ground: true },
+    ],
+    // chain-link down the middle between the trams' tracks
+    fences: [
+      { points: [[-72.7, -2.33], [-10, -0.46], [46.5, 1.25]], h: [-0.55, 0.65] },
+      { points: [[-111.95, -40], [-111.95, 6.5]], h: [-6.55, -5.45], kind: 'bars' },
+    ],
+    art: [
+      // the Nockebybanan's tracks, from their bridge to the buffers; the overhead line over them
+      { kind: 'tramTrack', buffer: true, points: [[-136, -5.1, -2.0], [-110, -5.05, -1.8], [-104, -5.0, -1.6], [-94, -4.85, -1.4], [-86, -4.6, -1.3], [-80, -4.3, -0.9], [-73.5, -4.05, -0.45], [-10, -2.67, -0.45], [46.5, -0.6, -0.45]] },
+      { kind: 'tramTrack', buffer: true, points: [[-136, -1.6, -2.0], [-110, -1.5, -1.8], [-104, -1.45, -1.6], [-94, -1.3, -1.4], [-86, -1.1, -1.3], [-80, -0.9, -0.9], [-73.5, -0.65, -0.45], [-60, -0.25, -0.45], [-10, 1.75, -0.45], [46.5, 3.05, -0.45]] },
+      {
+        kind: 'catenary', height: 6.4,
+        masts: [[-125, -3.35, -2.05], [-100, -3.2, -1.62], [-60, -2.0, -0.55], [-25, -0.85, -0.55], [10, 0.02, -0.55], [40, 1.0, -0.55]],
+        wires: [
+          [[-136, -5.1, 3.47], [-110, -5.05, 3.67], [-104, -5.0, 3.85], [-94, -4.85, 4.07], [-86, -4.6, 4.15], [-80, -4.3, 4.57], [-73.5, -4.05, 5.0], [-10, -2.67, 5.0], [46, -0.62, 5.0]],
+          [[-136, -1.6, 3.47], [-110, -1.5, 3.67], [-104, -1.45, 3.85], [-94, -1.3, 4.07], [-86, -1.1, 4.15], [-80, -0.9, 4.57], [-73.5, -0.65, 5.0], [-60, -0.25, 5.0], [-10, 1.75, 5.0], [46, 3.03, 5.0]],
+        ],
+      },
+      // the islands' paving along the trams' tracks
+      // (the platform's top rising a little to the east with the track)
+      { kind: 'edgePaving', points: [[-72.7, -5.48], [0, -3.9, 0.01], [47.4, -2.0, 0.05]], width: 1.5, left: true },
+      { kind: 'edgePaving', points: [[-72.7, 0.8], [-10, 3.2], [47.4, 4.5, 0.05]], width: 1.5 },
+      // Gryningskälla in the hall, against its southern wall beside the southern escalator's foot;
+      // a round column under the trams' bridge
+      // (the block, and the slab split off its face leaning against it)
+      { kind: 'stone', s: -94.6, u: 7.05, size: [2.6, 1.1, 2.8], turn: 0.12, lean: 0, granite: true, color: 0xb4b2ae, y: -6.7 },
+      { kind: 'stone', s: -94.2, u: 6.2, size: [1.7, 0.45, 2.3], turn: 0.05, lean: 0.12, granite: true, color: 0xa6a4a0, y: -6.7 },
+      { kind: 'columns', at: [[-109.2, -8.9]], from: -6.7, to: -2.9, size: 0.6, color: 0x9a9892 },
+    ],
+    benches: [{ at: [-62.5, -44.5, -35.5, 0.5, 18.5] }, { at: [-53.5, -17.5, 9.5, 27.5], roof: 0 }],
+    shelters: [{ s: [-29.5, -24.5], u: [-1.1, 1.1] }, { s: [-2.5, 2.5], u: [-1.1, 1.1], under: 0 }],
+    // OpenStreetMap's outlines of the station's buildings, which the blocks draw
+    buildings: ['w281163269', 'w501084446', 'w1518244456', 'w1518244457', 'w1556715102', 'w1495496029', 'w1495496030', 'w1495496913', 'w1495496914'],
   },
 };
