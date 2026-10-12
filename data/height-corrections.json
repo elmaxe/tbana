@@ -308,6 +308,21 @@
       ],
       "reach": 6.5,
       "why": "Brommaplan: from the platform's west end both tracks stand on concrete decks over the ticket hall, which lies under them and between them at the square, and OSM maps them as bridges only from the hall's front west. Lantmäteriet's laser scan has the decks (its points classed as a bridge's) from the platform's end, the hall's floor 6 m under the platform through the glass vault between them, and the wings either side roofed 3.4 m under it; photographs show the hall's doors under the decks and the square running on under them."
+    },
+    {
+      "along": [
+        [-7627.3, -1181.1],
+        [-7601.8, -1175.6],
+        [-7576.3, -1168.8],
+        [-7577.0, -1162.2],
+        [-7602.5, -1168.3],
+        [-7628.2, -1172.6],
+        [-7629.1, -1163.7],
+        [-7603.4, -1160.1],
+        [-7577.7, -1155.4]
+      ],
+      "reach": 2,
+      "why": "Åkeshov: east of the platforms all three tracks stand on concrete decks over the ticket hall and the footway and cycleway passing under the line, from 88 m east of the platforms' middle to 110 m, and OSM doesn't map them as bridges (the correction runs from 74 m to 126 m, the least the track's 10 m samples keep as a bridge; the station draws the bank's ends under them). Lantmäteriet's laser scan has the hall's flat roofs between the decks 0.5 m under the platform, the forecourt 5.5 m under it from the hall's south wall to the underpass's mouth, and the decks over the underpass; photographs show the hall's glass front under them and the underpass's mouth under the southern deck. (The line runs along each track in turn.)"
     }
   ],
   "raised": [

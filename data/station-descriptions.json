@@ -1152,27 +1152,66 @@
     },
     "Åkeshov": {
       "drawing": "akeshov.png",
-      "note": "Two island platforms, with the track between them where the T17 turns. At their east end stairs go down from each to a passage under the tracks, with an exit on each side. (OpenStreetMap maps no entrance here.)",
+      "note": "Two island platforms on a low bank between Bergslagsvägen and Åkeshov's park, the track where the T17 turns between them, each under a butterfly roof of its own over its eastern part. At each island's east end a glazed housing stands between the tracks: a stair down eastwards with a landing halfway, and a walkway beside it to a lift in a glass tower. They come down into the ticket hall under the tracks' decks, the sculpture between the stairs' feet and one line of gates; its glass front opens east onto the footway and cycleway under the line. From there the way out is south at grade onto the forecourt towards Åkeshovs slott, north up a stair in a trough beside the tracks to Bergslagsvägen's service road, or north through the tunnel under Bergslagsvägen to the small entrance building beyond it. Laid out from Lantmäteriet's laser scan (the housings, the lift towers, the hall's roofs between the decks, the forecourt 5.3 m under the platform), OpenStreetMap's indoor mapping (the stairs, walkways, lifts, gates, the underpass and the tunnel) and photographs (1954 to 2026); Albert Guillaumes' drawing has the stairs from the middle of the platforms to a passage at s 62, with gates at each exit.",
       "routes": [
-        { "from": [45, 5], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [150, 5]},
-          {"walk": [62, 5], "width": 4},
-          {"walk": [62, -5]},
-          {"mark": "under"}
+        { "from": [72.3, -3.05], "width": 2.0, "go": [
+          {"walk": [74.9, -2.76], "open": true},
+          {"walk": [76.474, -2.586], "open": true},
+          {"stairs": -2.655},
+          {"walk": 1.6, "open": true},
+          {"stairs": -2.655},
+          {"walk": [90.3, -1.05], "open": true}
         ] },
-        { "from": [45, -5], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [150, -5]},
-          {"walk": [62, -5], "width": 4}
+        { "from": [72.3, -5.1], "width": 2.2, "go": [
+          {"walk": [74.9, -4.82], "open": true},
+          {"walk": [88.5, -3.35], "open": true},
+          {"walk": [90.5, -3.15], "width": 1.6, "open": true},
+          {"lift": -5.31, "above": 4.3, "through": true},
+          {"walk": [94.6, -3.15], "open": true}
         ] },
-        { "from": "under", "width": 4, "go": [
-          {"walk": [62, -16]},
+        { "from": [72.3, 6.6], "width": 2.0, "go": [
+          {"walk": [74.9, 6.6], "open": true},
+          {"walk": [76.5, 6.6], "open": true},
+          {"stairs": -2.655},
+          {"walk": 1.6, "open": true},
+          {"stairs": -2.655},
+          {"walk": [90.3, 6.6], "open": true}
+        ] },
+        { "from": [72.3, 4.5], "width": 2.1, "go": [
+          {"walk": [74.9, 4.5], "open": true},
+          {"walk": [88.5, 4.5], "open": true},
+          {"walk": [90.5, 4.45], "width": 1.6, "open": true},
+          {"lift": -5.31, "above": 3.8, "through": true},
+          {"walk": [94.6, 4.45], "open": true}
+        ] },
+        { "from": [89.6, 1.725], "h": -5.31, "width": 11.8, "go": [
+          {"walk": [97.85, 1.725], "open": true},
+          {"walk": [98.15, 1.725], "width": 7.85, "open": true},
           {"gates": true},
-          {"exit": {"at":  [62, -30], "name":  "Åkeshov"}}
+          {"walk": [103.4, 1.725], "width": 11.8, "open": true},
+          {"walk": [103.8, 1.725], "width": 3.2, "open": true},
+          {"walk": [105.6, 1.725], "width": 4.0, "open": true},
+          {"mark": "underpass"}
         ] },
-        { "from": "under", "width": 4, "go": [
-          {"walk": [62, 17]},
-          {"gates": true},
-          {"exit": {"at":  [62, 31], "name":  "Åkeshov"}}
+        { "from": "underpass", "width": 4.0, "go": [
+          {"walk": [105.6, 13.9], "open": true},
+          {"exit": {"at": [108.7, 31.2], "name": "Åkeshovs slott"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "underpass", "width": 4.0, "go": [
+          {"walk": [105.6, -6.8], "open": true},
+          {"walk": [105.6, -9.9], "ceiling": 2.5},
+          {"mark": "trough"},
+          {"walk": [105.6, -12.5], "ceiling": 2.5},
+          {"walk": [109.0, -18.0], "ceiling": 2.5},
+          {"walk": [128.6, -62.6], "ceiling": 2.5},
+          {"stairs": 3.36, "ceiling": 2.6},
+          {"walk": 1.0, "open": true},
+          {"exit": {"at": [125.0, -69.7], "name": "Bergslagsvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "trough", "width": 2.2, "go": [
+          {"walk": [103.4, -9.9], "open": true},
+          {"stairs": 3.4, "open": true},
+          {"exit": {"at": [95.5, -9.9], "name": "Bergslagsvägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

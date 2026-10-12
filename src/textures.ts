@@ -3398,6 +3398,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   clinkerWindows: [1.2, 2.5], greyClerestory: [1.2, 2.5], portalTiles: [1.2, 1.2], liftPanes: [1.5, 4.8],
   roxnerTiles: [2.4, 2.4], roxnerClerestory: [2.4, 4.8], greyGlazed: [1.2, 3], sageRender: [2.4, 2.4], bottleTiles: [1.2, 1.2],
   purpleTiles: [2.4, 3.6], rivetedSteel: [1.2, 1.2],
+  glossTiles: [1.5, 1.5], stripeTiles: [1.5, 1.5], twoGreens: [1.9, 3.0], latticeConcrete: [1.2, 1.2],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles'];
@@ -4767,6 +4768,61 @@ export function finish(name: Finish) {
       speckle(x, W, H, 14000, 0.2, 98); speckle(x, W, H, 8000, 0.2, 99, true);
       break;
     }
+    case 'glossTiles':
+    case 'stripeTiles': {
+      // Åkeshov's ticket hall: glossy white tiles 25 cm square in pale grey joints; on the walls by
+      // the shop and the stairs (`stripeTiles`), upright stripes across them: a slip of red half a
+      // tile wide beside a column of ochre tiles, twice in each 1.5 m (photographs, 2021)
+      x.fillStyle = '#b4b5b2'; x.fillRect(0, 0, W, H);
+      const t = 0.25 * PX, cols: [number, string][] = name === 'stripeTiles'
+        ? [[0.25, 'w'], [0.25, 'w'], [0.125, 'r'], [0.25, 'o'], [0.25, 'w'], [0.125, 'r'], [0.25, 'o']]
+        : [[0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w']];
+      let x0 = 0;
+      for (const [cw, k] of cols) {
+        for (let j = 0; j * t < H; j++) {
+          const v = Math.floor(r() * 8);
+          x.fillStyle = k === 'r' ? `rgb(${196 + v},${70 + v},${58 + v})` : k === 'o' ? `rgb(${226 + v},${190 + v},${150 + v})` : `rgb(${238 + v / 2},${239 + v / 2},${236 + v / 2})`;
+          x.fillRect(x0 + 1.5, j * t + 1.5, cw * PX - 3, t - 3);
+          // the glaze's sheen, high on each tile
+          x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(x0 + 4, j * t + 5, cw * PX * 0.55, 3);
+        }
+        x0 += cw * PX;
+      }
+      break;
+    }
+    case 'twoGreens': {
+      // the outside of Åkeshov's shop and staff rooms under the southern deck: flat panels about
+      // 0.95 m wide, a lighter green and a dark bottle green in turn, on a black plinth, a dark
+      // edge along their top (photographs, 2018 and 2021)
+      band(0, h, '#1f2324');
+      const pw = W / 2;
+      for (const [k, fill] of [[0, '#2f7c60'], [1, '#225f4b']] as [number, string][]) {
+        x.fillStyle = fill; x.fillRect(k * pw + 2, Y(h - 0.06), pw - 4, (h - 0.06 - 0.14) * PX);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(k * pw + 2, Y(h - 0.06), pw * 0.25, (h - 0.2) * PX);
+      }
+      band(0, 0.14, '#151617');
+      break;
+    }
+    case 'latticeConcrete': {
+      // the abutment beside Åkeshov's underpass: grey concrete under a diagonal lattice of
+      // weathered grey battens, crossing each other 0.4 m apart (photographs, 2018 and 2021)
+      x.fillStyle = '#86837d'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 6000, 0.12, 102);
+      const d = 0.4 * PX, bw = 0.06 * PX;
+      for (const dir of [1, -1]) {
+        for (let k = -6; k <= 6; k++) {
+          const c0 = k * d;
+          // (each batten drawn again a repeat away, so that it tiles)
+          for (const o of [-W, 0, W]) {
+            x.strokeStyle = 'rgba(40,40,38,0.45)'; x.lineWidth = bw + 4;
+            x.beginPath(); x.moveTo(c0 + o + 3, dir > 0 ? H + 3 : -3); x.lineTo(c0 + o + 3 + dir * H, dir > 0 ? 3 : H + 3); x.stroke();
+            x.strokeStyle = dir > 0 ? '#aba79e' : '#b3afa5'; x.lineWidth = bw;
+            x.beginPath(); x.moveTo(c0 + o, dir > 0 ? H : 0); x.lineTo(c0 + o + dir * H, dir > 0 ? 0 : H); x.stroke();
+          }
+        }
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -4775,7 +4831,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

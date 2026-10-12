@@ -84,6 +84,12 @@
       "outline": [-4476.9, -267.8, -4481.6, -242.2, -4480.6, -242.0, -4484.4, -221.9, -4489.1, -222.7, -4480.6, -268.4],
       "heights": [10.5, 10.25, 10.25, 10.05, 10.05, 10.5],
       "why": "The ticket hall's doors open west under the trams' bridge onto a terrace in front of the bank, 3.3 m deep and running north under the metro's bridge, held up by a wall 4.5 m over Alviksvägen, which passes under the bridges (Lantmäteriet's laser scan, 2021: the terrace at 9.9–10.8 m, rising to the north, the street at 5.5 m). The elevation model's 5 m grid smooths the wall into a slope falling away from the doors, which left no terrace in front of them."
+    },
+    {
+      "name": "Åkeshov: the pavement over the underpass, north of the tracks",
+      "outline": [-7605.4, -1179.6, -7597.5, -1178.0, -7583.6, -1176.0, -7582.1, -1190.9, -7604.0, -1193.1],
+      "heights": [15.05, 15.0, 14.95, 15.05, 15.15],
+      "why": "North of Åkeshov's tracks, from the hall's middle to 18 m past the underpass, the pavement, Bergslagsvägen's service road and the verge beyond it lie over the underpass and the tunnel going on north from it, and over the stair rising from the underpass beside the tracks. The elevation model's 5 m grid smooths the stair's trough into a hollow 1.5–2 m deep across them, which the tunnel would come up through. The laser scan has the pavement and the road at 14.9–15.1 m and the verge at 15.0–15.2 m; the trough is cut by the station."
     }
   ],
   "open": [
@@ -121,6 +127,11 @@
       "outline": [[-6847.2, -784.8], [-6816.8, -781.1], [-6818.8, -764.3], [-6826.8, -766.2], [-6828.0, -755.9], [-6831.8, -757.5], [-6832.5, -751.7], [-6848.9, -753.7], [-6851.0, -757.5]],
       "ground": 6.2,
       "why": "Brommaplan's ticket hall and the shops either side of it, under and beside the metro's decks over Tunnlandet. The elevation model has the shops' roofs, 3.4 m under the platform, for the ground, so the square rose in a mound up to the decks. Lantmäteriet's laser scan has the hall's floor at 6.2–6.4 m through the glass vault between the decks, and the square at 5.5–6.3 m round it; the outline keeps to the hall, its two wings and the pavement north of them, clear of the slope up to Kapplandsvägen south of them. The hall and the shops are drawn by the station (src/open-styles.ts)."
+    },
+    {
+      "outline": [[-7612.3, -1176.2], [-7589.9, -1173.9], [-7592.1, -1152.7], [-7617.9, -1155.3], [-7619.6, -1158.7], [-7618.9, -1165.0], [-7613.5, -1164.4]],
+      "ground": 11.7,
+      "why": "Åkeshov's ticket hall and the underpass beside it, under the tracks' decks east of the platforms, and the sunken strip along the hall's south wall out to the underpass's mouth. The elevation model has the bank over the hall, 15.5 m, and a trench along the underpass. Lantmäteriet's laser scan has the forecourt at 11.7–12.0 m from the hall's south wall to 3 m beyond it and at the underpass's mouth (the hall's floor and the underpass's are as high, by the photographs), rising to 12.5–13 m beyond; the outline keeps to the hall, the underpass and the strip. The hall, the underpass and its walls are drawn by the station (src/open-styles.ts)."
     }
   ],
   "fill": [
@@ -166,6 +177,10 @@
     {
       "outline": [[-6072.7, -568.4], [-6058.3, -564.1], [-6064.1, -544.9], [-6047.8, -540.0], [-6037.4, -540.0], [-6030.6, -534.8], [-6034.1, -523.4], [-6081.9, -537.8]],
       "why": "Abrahamsbergstorget and the forecourt of Abrahamsberg's ticket hall, south of the tracks by Abrahamsbergsvägen, are paved (photographs; OpenStreetMap's place=square). With no buildings beside them they were grass."
+    },
+    {
+      "outline": [[-7612.0, -1154.7], [-7582.1, -1151.7], [-7583.5, -1137.7], [-7613.4, -1140.8]],
+      "why": "Åkeshov's forecourt, south of the underpass's mouth: asphalt, with bicycle racks and the footways up to Åkeshovs Gårdsväg and into the park (photographs, 2018 and 2021; OpenStreetMap)."
     }
   ]
 }

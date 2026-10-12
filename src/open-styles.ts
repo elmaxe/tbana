@@ -281,7 +281,11 @@ export type Finish =
   | 'sageRender'    // smooth render, a pale grey green
   | 'bottleTiles'   // glazed tiles, 15 cm, a dark bottle green, in pale joints
   | 'purpleTiles'   // tiles on end, 10 by 30 cm, purples, lilac, dark blue and white, to 2.5 m; board-marked concrete above
-  | 'rivetedSteel'; // brushed stainless steel panels, 1.2 m wide, rows of rivets along their edges
+  | 'rivetedSteel'  // brushed stainless steel panels, 1.2 m wide, rows of rivets along their edges
+  | 'glossTiles'    // glossy white tiles, 25 cm, in pale grey joints
+  | 'stripeTiles'   // as glossTiles, upright stripes across them of a red slip beside a column of ochre tiles
+  | 'twoGreens'     // flat panels 0.95 m wide, a lighter green and a bottle green in turn, on a black plinth
+  | 'latticeConcrete'; // grey concrete under a diagonal lattice of weathered grey battens
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -318,7 +322,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller
-  | TramTrack | Catenary | EdgePaving;
+  | TramTrack | Catenary | EdgePaving | Revolver;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -338,8 +342,9 @@ export interface Panels { kind: 'panels'; colors: [number, number][]; bottom: nu
 // with only the two on the arm (`top: false`), and the station's name on a black sign on it
 // (`sign`, so high; SL's dark blue over a yellow stripe, `blue`). `arm`: the arm reaches this far
 // each way (0.6 m by default); `lower`, a second, shorter arm with two small lamps, so high (or
-// reaching only to the left, with one, `lowerOne`).
-export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number; lowerOne?: boolean }
+// reaching only to the left, with one, `lowerOne`); `shade`, the lamps' shades this colour (white
+// by default).
+export interface Masts { kind: 'masts'; at: [number, number][]; height: number; color?: number; top?: boolean; sign?: number; blue?: boolean; arm?: number; lower?: number; lowerOne?: boolean; shade?: number }
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts): the dragon of Tallkrogen's, a
@@ -418,6 +423,12 @@ export interface BronzeFrames { kind: 'bronzeFrames'; s: number; u: number; turn
 // its head raised; and a wedge of concrete along the plinth's far side, sloping up away from the
 // dog.
 export interface Traveller { kind: 'traveller'; s: number; u: number; turn: number }
+
+// Carl Fredrik Reuterswärd's Non-Violence (Åkeshov, 1998): a revolver of dark bronze, `size` long,
+// standing on its grip at s, u (in the station's frame) on a plinth `h` high, its barrel tied in a
+// knot and its muzzle turned up out of the knot, the barrel pointing `turn` (radians, as a
+// guardian faces).
+export interface Revolver { kind: 'revolver'; s: number; u: number; h: number; turn: number; size: number }
 
 // A tram's track through the points ([s, u, h], in the station's frame, `h` the sleepers' top over
 // the platform), on ballast drawn by a block's floor: its sleepers and two rails, and (`buffer`) a
@@ -4590,6 +4601,200 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         [-104, -13.58], [-98, -12.36], [-92, -11.27], [-91.5, -11.18]] },
       { kind: 'rails', color: 0x9aa0a4, h: [-1.15, -0.45], points: [[-140, -20.21], [-134, -18.11], [-128, -16.09], [-122, -14.17], [-116, -12.29], [-110, -10.5],
         [-104, -8.79], [-98, -7.14], [-92, -5.63], [-91.5, -5.51]] },
+    ],
+  },
+  // Åkeshov (26 October 1952; the line built for Ängbybanan's trams in 1944): two island platforms
+  // on a low bank between Bergslagsvägen and Åkeshov's park, the track where the T17 turns between
+  // them, its tracks leaving them to the east on concrete decks over the ticket hall and a footway.
+  // The laser scan puts a butterfly roof over each island from 10.5 m west of the platforms'
+  // middle to their east ends, as wide as the island, its underside 2.95 m over the platform at
+  // the valley and 3.35 m at the edges; west of them the platforms are open. Photographs (2006 to
+  // 2026) show the underside of pale grey sheet metal ribbed across the platform, on pairs of
+  // square dark green posts down the island's middle, about 9 m apart, each pair under a green
+  // beam across the roof, pale grey purlins along it with strip lights under them; black name
+  // signs hung from the roof, clocks, departure boards, wooden benches; on the open part, green
+  // masts with two green bowl lamps on a short arm, some with the name; a dark hut on the southern
+  // island. The paving: pale edge slabs, a dark ribbed strip, grey slabs in courses. A dark mesh
+  // fence beyond the northern track, tall grey panels beyond the southern (2026).
+  //
+  // At each island's east end a long low glazed housing stands between the tracks (the laser
+  // scan: its roof 2.8 m over the platform on its outer side, falling to 2.2 m), its sliding doors
+  // facing the platform; inside, a stair goes down eastwards in an open well, with a landing
+  // halfway, and a walkway beside it leads to a lift in a glass tower with a dark machine room on
+  // top, a T on a globe over the northern one (OpenStreetMap's indoor mapping; photographs, 2018
+  // to 2024). They come down into the ticket hall under the decks (the laser scan: 5.3 m under
+  // the platform), its walls glossy white tiles striped with red and ochre by the shop and the
+  // stairs, its floor pale terrazzo, its ceiling white under the decks, lit from above between
+  // them through flat roofs with small rooflights (the laser scan: 0.5 m under the platform).
+  // On the white wall between the stairs' feet stands Carl Fredrik Reuterswärd's Non-Violence
+  // (1998), the revolver with its barrel tied in a knot, on a plinth of the same tiles. The gates
+  // cross the hall, the booth in blue panels beside them, the Myway shop beyond. The glass front
+  // faces east onto the footway and cycleway under the line, the name on a blue band over its
+  // doors. To the south the underpass comes out under the southern deck, the name on a black sign
+  // on the deck's fascia, between the shop's outside in two greens and the abutment's lattice of
+  // grey battens; to the north a stair climbs west in a concrete trough to Bergslagsvägen's
+  // service road, and a tunnel runs on under Bergslagsvägen to a small gabled building, its gables
+  // rendered cream, its long sides glazed, the name on a black panel over the passage through it.
+  //
+  // Not drawn: the green mesh gates beside the housings, the departure boards and the clock over
+  // the sculpture, the bins and grit boxes, the shop's air conditioning and the red strip along
+  // the abutment's edge. The network's northern track is closer to the others than the real one
+  // east of the platforms' middle, so the northern roof and housing narrow eastwards; the decks
+  // are one per track, so the hall's rooflights stand in the network's gaps between them; the
+  // rooflights are round rather than small pyramids.
+  'Åkeshov': {
+    // the southern island's roof (the line it follows is that platform's)
+    roof: {
+      kind: 'butterfly',
+      from: -10.5, to: 72, width: 7.1,
+      shape: [[-10.5, -0.24, 7.18], [0, -0.285, 7.09], [20, -0.305, 7.05], [40, -0.285, 7.09], [60, -0.295, 7.06], [72, -0.285, 6.95]],
+      middle: 2.95, edge: 3.35, thick: 0.1, fascia: 0.12,
+      rafters: 9, rafterAt: -6, rafterSize: [0.18, 0.32], deck: 'ribbedAcross', rafterColor: 0x2b6648,
+      beam: 0.15,
+      purlins: { at: [-2.4, -1.4, -0.6, 0.6, 1.4, 2.4], size: [0.1, 0.16], color: 0xc9ccca },
+      columns: { every: 9, at: -6, size: 0.18, plinth: { size: 0.24, height: 0.04 }, pair: 0.95 },
+      lamps: { offset: 1.4, length: 1.5, every: 3.0, at: [-1.4, 1.4], tube: true },
+      colors: { underside: 0xc9ccca, fascia: 0xc4c7c5, top: 0xd8d8d4, steel: 0x2b6648 },
+      signs: { at: [-1.5, 25.5, 52.5], back: '', ahead: 'Utgång', bottom: 2.35 },
+      clocks: [[16.5, 0]],
+      // (trains keep left: out of town on the southern track, the T17 turning on the middle one)
+      boards: [
+        { s: 43.5, u: 1.7, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
+        { s: 43.5, u: -1.7, toward: 'Skarpnäck', trains: ['17 Skarpnäck  6 min', '17 Skarpnäck  16 min'] },
+      ],
+    },
+    roofs: [
+      // the northern island's
+      {
+        kind: 'butterfly',
+        from: -10.5, to: 72, width: 7.9,
+        shape: [[-10.5, -9.155, 7.85], [0, -9.185, 7.91], [10, -9.16, 7.86], [20, -9.08, 7.7], [30, -8.955, 7.43], [40, -8.76, 7.06],
+          [50, -8.536, 6.62], [60, -8.29, 6.13], [66, -8.14, 5.82], [72, -7.915, 5.51]],
+        middle: 2.95, edge: 3.35, thick: 0.1, fascia: 0.12,
+        rafters: 9, rafterAt: -6, rafterSize: [0.18, 0.32], deck: 'ribbedAcross', rafterColor: 0x2b6648,
+        beam: 0.15,
+        purlins: { at: [-2.4, -1.4, -0.6, 0.6, 1.4, 2.4], size: [0.1, 0.16], color: 0xc9ccca },
+        columns: { every: 9, at: -6, size: 0.18, plinth: { size: 0.24, height: 0.04 }, pair: 0.95 },
+        lamps: { offset: 1.4, length: 1.5, every: 3.0, at: [-1.4, 1.4], tube: true },
+        colors: { underside: 0xc9ccca, fascia: 0xc4c7c5, top: 0xd8d8d4, steel: 0x2b6648 },
+        signs: { at: [-1.5, 25.5, 52.5], back: '', ahead: 'Utgång', bottom: 2.35 },
+        clocks: [[16.5, 0]],
+        // (into town on the northern track)
+        boards: [
+          { s: 43.5, u: -1.7, toward: 'T-Centralen', trains: ['19 Hagsätra  3 min', '17 Skarpnäck  6 min'] },
+          { s: 43.5, u: 1.7, toward: 'Skarpnäck', trains: ['17 Skarpnäck  6 min', '17 Skarpnäck  16 min'] },
+        ],
+      },
+    ],
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.15], slabs: 1.15, paverSize: [0.4, 0.3], mix: 0.15,
+      colors: { edge: 0xdddcd7, tactile: 0x55585b, slab: 0xa6a49f, pavers: 0xa29f99, paler: 0xb2afa9, face: 0x8a8781 },
+      pattern: 'bond',
+    },
+    buildings: ['w170795990'],
+    rooms: [
+      // (the stairs in open wells under the housings, their walls up to the walkways' floor)
+      { name: 'stair wells', s: [74, 89.6], u: [-7, 9], h: [-5.6, -0.4], walls: 'stripeTiles', stairs: 'stripeTiles', floor: 'terrazzo', sill: 0 },
+      { name: 'on the platforms', s: [72, 74.9], u: [-7, 9], h: [-0.4, 3], walls: null, floor: null },
+      { name: 'housings', s: [74.9, 91], u: [-7, 9], h: [-0.4, 3], walls: 'glazed', floor: 'terrazzo' },
+      { name: 'ticket hall', s: [89.6, 103.65], u: [-4.5, 7.8], h: [-5.6, -4], walls: null, floor: 'terrazzo', lamps: 2.3 },
+      { name: 'underpass', s: [103.65, 112], u: [-6.9, 32], h: [-5.6, -4], walls: null, floor: 'asphalt', lamps: 2.4 },
+      { name: 'trough', s: [94, 103.65], u: [-12, -8], h: [-5.6, -1], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'asphalt' },
+      { name: 'tunnel', s: [103.65, 140], u: [-80, -6.9], h: [-5.6, -4], walls: 'boardConcrete', floor: 'asphalt', ceiling: 'boardConcrete' },
+      { name: 'entrance building', s: [120, 142], u: [-76, -58], h: [-5.6, 0], walls: 'whiteRender', stairs: 'whiteRender', floor: 'pavers', ceiling: 'whiteRender' },
+    ],
+    blocks: [
+      // the housings over the stairs, between the tracks, their roofs falling towards the middle
+      // track, the doors at their west ends
+      { name: 'northern housing', plan: [[72.3, -6.25], [90.8, -4.41], [90.8, 0.05], [72.3, -2.0]], h: [-1.8, 2.8], lowBack: 2.2,
+        walls: 'glazed', sides: [undefined, undefined, undefined, 'blackFront'], eaves: 0.1, ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x5d6164, onPlatform: true },
+      { name: 'southern housing', plan: [[72.3, 7.7], [90.8, 7.7], [90.8, 3.3], [72.3, 3.4]], h: [-1.8, 2.8], lowBack: 2.2,
+        walls: 'glazed', sides: [undefined, undefined, undefined, 'blackFront'], eaves: 0.1, ceiling: 'ribbedMetal', roof: 0.12, roofColor: 0x5d6164, onPlatform: true },
+      // the lifts' machine rooms, on their glass towers
+      { name: "northern lift's machine room", plan: [[90.75, -4.3], [93.25, -4.3], [93.25, -2.0], [90.75, -2.0]], h: [3.7, 4.35], from: 3.7,
+        walls: 'greyPanels', roof: 0.08, roofColor: 0x3a3d40 },
+      { name: "southern lift's machine room", plan: [[90.75, 3.3], [93.25, 3.3], [93.25, 5.6], [90.75, 5.6]], h: [3.2, 3.85], from: 3.2,
+        walls: 'greyPanels', roof: 0.08, roofColor: 0x3a3d40 },
+      // the bank under the decks west of the hall, ballast between them
+      { name: 'bank under the decks', plan: [[74, -10.5], [89.5, -9.0], [89.5, 13.15], [74, 12.65]], h: [-5.5, -1.95], from: -5.5,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      // the ticket hall: its shell, its ceilings under the decks, and the flat roofs between them
+      { name: 'ticket hall', plan: [[89.5, -4.3], [103.6, -4.3], [103.6, 7.6], [89.5, 7.6]], h: [-5.5, -2.8], from: -5.31,
+        walls: 'stripeTiles', sides: [undefined, 'glassFront', undefined, 'glossTiles'], floor: 'terrazzo',
+        nameSign: { side: 1, at: 0.5, length: 3.6, bottom: -3.31 } },
+      ...([
+        [[89.5, -4.3], [90.8, -4.3], [90.8, 7.6], [89.5, 7.6]],
+        [[90.8, -4.3], [103.6, -4.3], [103.6, -1.47], [90.8, -3.11]],
+        [[90.8, -1.06], [103.6, 0.04], [103.6, 5.74], [90.8, 4.64]],
+      ] as [number, number][][]).map((plan): Block => ({ name: "hall's ceiling under the decks", plan, h: [-2.97, -2.95], from: -2.97,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels' })),
+      ...([
+        [[90.8, -3.06], [103.6, -1.42], [103.6, -0.01], [90.8, -1.11]],
+        [[90.8, 4.69], [103.6, 5.79], [103.6, 7.6], [90.8, 7.6]],
+      ] as [number, number][][]).map((plan): Block => ({ name: 'flat roof between the decks', plan, h: [-2.95, -0.55], from: -2.95,
+        walls: 'whiteRender', sides: [undefined, 'glazed', undefined, undefined], ceiling: 'whiteRender', roof: 0.15, roofColor: 0x7a7d80 })),
+      // under the northern deck beside the hall, and the shop and staff rooms under the southern,
+      // their outside in two greens
+      { name: 'under the northern deck', plan: [[89.5, -9.0], [103.6, -7.17], [103.6, -4.3], [89.5, -4.3]], h: [-5.5, -2.8], from: -5.5,
+        walls: 'boardConcrete', sides: [undefined, undefined, null, null], ground: true },
+      { name: 'shop and staff rooms', plan: [[86, 7.6], [103.6, 7.6], [103.6, 13.33], [86, 12.48]], h: [-5.5, -2.75], from: -5.31,
+        walls: 'twoGreens', sides: [null, undefined, undefined, null], roof: 0.1, roofColor: 0x6a6e70, ground: true },
+      // in the hall: the line of the gates, the booth beside them, the shop's front, the plinth
+      { name: 'gate line', plan: [[97.85, -4.3], [98.15, -4.3], [98.15, -2.15], [97.85, -2.15]], h: [-5.31, -4.21], from: -5.31,
+        walls: 'glazed', floor: 'terrazzo' },
+      { name: 'booth', plan: [[96.4, 5.65], [99.6, 5.65], [99.6, 7.55], [96.4, 7.55]], h: [-5.31, -3.05], from: -5.31,
+        walls: 'blueGlazed', roof: 0.08, roofColor: 0x22357e, floor: 'terrazzo' },
+      { name: "shop's front", plan: [[99.8, 7.55], [103.4, 7.55], [103.4, 7.6], [99.8, 7.6]], h: [-5.31, -2.8], from: -5.31,
+        walls: 'shopWindows', sides: [undefined, null, null, null] },
+      { name: 'plinth', plan: [[89.6, 1.15], [90.2, 1.15], [90.2, 1.75], [89.6, 1.75]], h: [-5.31, -4.31], from: -5.31,
+        walls: 'glossTiles', roof: 0.02, roofColor: 0xecece8 },
+      // over the underpass: between the decks, ballast over a concrete soffit
+      ...([
+        [[103.6, -1.47], [107.6, -0.9], [107.6, 0.48], [103.6, 0.04]],
+        [[103.6, 5.74], [107.6, 6.18], [107.6, 8.39], [103.6, 8.13]],
+      ] as [number, number][][]).map((plan): Block => ({ name: 'between the decks', plan, h: [-2.83, -1.95], from: -2.83,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete', roof: 0.15, roofColor: 0x5f5b56 })),
+      // the name on the southern deck's fascia over the underpass's mouth
+      { name: "deck's fascia", plan: [[103.4, 13.95], [107.8, 13.95], [107.8, 14.05], [103.4, 14.05]], h: [-2.85, -1.75], from: -2.85,
+        walls: 'boardConcrete', nameSign: { side: 2, at: 0.5, length: 3.4, bottom: -2.7, black: true } },
+      // the bank east of the underpass, and its wing wall beside the mouth under the battens
+      { name: 'bank under the decks, east', plan: [[107.6, -6.6], [126, -3.5], [126, 15.7], [107.6, 14.09]], h: [-5.5, -1.95], from: -5.5,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      { name: 'wing wall', plan: [[107.6, 14.09], [108.3, 14.09], [108.3, 19.0], [107.6, 19.0]], h: [-5.5, -1.95], lowBack: -4.3, from: -5.5,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, 'latticeConcrete'], roof: 0.1, roofColor: 0x8a8781, ground: true },
+      // the pavement along the northern deck, over the bank's foot (and the trough's stair)
+      ...([
+        [[76, -10.32], [100, -7.66], [100, -11.26], [76, -13.92]],
+        [[100, -7.66], [126, -3.5], [126, -7.1], [100, -11.26]],
+      ] as [number, number][][]).map((plan): Block => ({ name: 'pavement beside the decks', plan, h: [-5.5, -2.0], from: -2.0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'pavers', ground: true })),
+      // the entrance building beyond Bergslagsvägen: its gables rendered, its long sides glazed,
+      // the passage through its western gable
+      { name: 'entrance building', plan: [[130.0, -72.8], [127.6, -62.4], [136.4, -60.3], [138.8, -70.8]], h: [-2.3, 1.49], from: -1.95,
+        walls: 'glazed', sides: ['whiteRender', undefined, 'whiteRender', undefined], roof: 0.15, roofColor: 0x4a4e52,
+        gables: { count: 1, rise: 1.2, color: 0xe6e0cf, trim: 0x3a3d40 }, floor: 'pavers', ground: true,
+        nameSign: { side: 0, at: 0.5, length: 3.2, bottom: 0.95, black: true } },
+      // the dark hut on the southern island
+      { name: 'hut', plan: [[-23, 4.6], [-19, 4.6], [-19, 6.6], [-23, 6.6]], h: [0, 2.7], walls: 'greyPanels', roof: 0.1, roofColor: 0x2f3234, onPlatform: true },
+    ],
+    art: [
+      { kind: 'masts', height: 4.3, color: 0x2b6648, shade: 0x2f7552, top: false, arm: 0.45, at: [[-42, -4.78], [-24, -4.95], [-24, 5.1]] },
+      { kind: 'masts', height: 4.3, color: 0x2b6648, shade: 0x2f7552, top: false, arm: 0.45, sign: 2.7, at: [[-59, -4.48], [-59, 5.37], [-42, 5.2]] },
+      // the T on the northern lift's tower
+      { kind: 'roundel', s: 92, u: -3.15, h: 4.95, size: 0.75, foot: 4.43 },
+      // the rooflights in the flat roofs between the decks
+      { kind: 'rooflights', at: [[94.5, -1.73], [97, -1.48], [99.5, -1.2], [102, -0.9]], size: 0.9, ceiling: -0.56, top: -0.4 },
+      { kind: 'rooflights', at: [[94.5, 6.27], [97, 6.33], [99.5, 6.48], [102, 6.59]], size: 1.2, ceiling: -0.56, top: -0.4 },
+      // Non-Violence, on its plinth against the wall between the stairs' feet
+      { kind: 'revolver', s: 89.95, u: 1.45, h: -4.29, turn: Math.PI / 2, size: 0.45 },
+    ],
+    benches: [{ at: [-45.85, -35.7, -27.7, -14.6, 30], wood: true }, { at: [-14.65, 30], wood: true, roof: 0 }],
+    fences: [
+      { points: [[-75, -11.6], [-40, -13.0], [0, -13.6], [40, -12.8], [60, -11.7], [74, -10.6]], h: [-1.3, 0.6] },
+      { kind: 'boards', color: 0x8f9497, points: [[-75, 14.3], [-40, 13.2], [0, 12.8], [40, 12.7], [74, 13.0]], h: [-1.3, 1.0] },
+      // along the decks' outer edges
+      { points: [[76, -10.3], [90, -8.9], [100, -7.65], [110, -6.2], [126, -3.5]], h: [-1.76, 0.1] },
+      { points: [[76, 12.7], [90, 13.15], [100, 13.6], [110, 14.25], [126, 15.7]], h: [-1.76, 0.1] },
     ],
   },
 };

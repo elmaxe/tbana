@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Traveller, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -296,6 +296,7 @@ export class OpenLook {
       else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
       else if (a.kind === 'bronzeFrames') this.bronzeFrames(a, frame, on);
       else if (a.kind === 'traveller') this.traveller(a, frame, on);
+      else if (a.kind === 'revolver') this.revolver(a, frame, on);
       else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
       else if (a.kind === 'capitals') this.capitals(a, frame, on);
       else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
@@ -493,6 +494,42 @@ export class OpenLook {
   // the traveller seated behind it, its folds of bronze flat and angular, an arm laid over the
   // upright block, its head 2.2 m over the platform; the dog in front, 1.4 m from its haunches to
   // its paws; the wedge along the far side, 0.4 m high at its back edge.
+  // Reuterswärd's Non-Violence: the grip leaning back, chequered and worn to brass at its edges;
+  // the frame and the cylinder over it, the hammer cocked behind, the trigger in its guard; the
+  // barrel forward to the knot, coils wound round it, and the muzzle up out of it
+  private revolver(a: Revolver, frame: Frame, on: On) {
+    const L = a.size, cd = Math.cos(a.turn), sd = Math.sin(a.turn);
+    // forward along the barrel (from the grip's back, 0, to the muzzle, 1), across, and up, in
+    // lengths of the revolver
+    const at = (x: number, y: number, z: number): XYZ => frame.at(a.s + (cd * (x - 0.5) - sd * y) * L, a.u + (sd * (x - 0.5) + cd * y) * L, a.h + z * L);
+    const o = at(0, 0, 0), e = at(1, 0, 0), fx = (e[0] - o[0]) / L, fz = (e[2] - o[2]) / L;
+    const bronze = on(this.color(0x3a2f27, 0.45, 0.6)), brass = on(this.color(0x7a5c38, 0.35, 0.75));
+    const tube = (pts: [number, number, number][], w: number) => {
+      for (let k = 0; k + 1 < pts.length; k++) limb(bronze, at(...pts[k]), at(...pts[k + 1]), w * L, w * L);
+      for (const p of pts) ball(bronze, at(...p), (w / 2) * L);
+    };
+    // the grip, leaning back from its foot on the plinth up to the frame
+    taper(brass, at(0.1, 0, 0), at(0.24, 0, 0.36), [0.075 * L, 0.2 * L], [0.07 * L, 0.13 * L], fx, fz);
+    taper(bronze, at(0.1, 0, 0.005), at(0.24, 0, 0.36), [0.08 * L, 0.17 * L], [0.075 * L, 0.11 * L], fx, fz);
+    // the frame, and the cylinder in it; the hammer behind, the trigger and its guard under it
+    box(bronze, at(0.42, 0, 0.405), fx, fz, 0.07 * L, 0.13 * L, 0.36 * L);
+    limb(bronze, at(0.36, 0, 0.43), at(0.55, 0, 0.43), 0.14 * L, 0.14 * L);
+    limb(bronze, at(0.26, 0, 0.42), at(0.21, 0, 0.5), 0.03 * L, 0.025 * L);
+    tube([[0.36, 0, 0.34], [0.36, 0, 0.27], [0.42, 0, 0.24], [0.49, 0, 0.27], [0.5, 0, 0.34]], 0.02);
+    limb(bronze, at(0.43, 0, 0.34), at(0.41, 0, 0.28), 0.02 * L, 0.015 * L);
+    // the barrel, with its rib along the top
+    limb(bronze, at(0.55, 0, 0.44), at(0.74, 0, 0.44), 0.07 * L, 0.07 * L);
+    box(bronze, at(0.645, 0, 0.485), fx, fz, 0.02 * L, 0.03 * L, 0.19 * L);
+    // the knot: coils wound round the barrel's line, and the muzzle up out of it
+    const coil: [number, number, number][] = [];
+    for (let k = 0; k <= 30; k++) {
+      const q = (k / 30) * Math.PI * 5, x = 0.74 + 0.12 * (k / 30);
+      coil.push([x, 0.07 * Math.sin(q), 0.44 + 0.08 * Math.cos(q)]);
+    }
+    tube(coil, 0.07);
+    tube([[0.86, 0, 0.52], [0.9, 0, 0.58], [0.95, 0, 0.63], [0.99, 0, 0.67]], 0.075);
+  }
+
   private traveller(a: Traveller, frame: Frame, on: On) {
     const bronze = on(this.mat('bronze', () => new THREE.MeshStandardMaterial({ map: T.bronze(), metalness: 0.6, roughness: 0.45, side: THREE.DoubleSide })));
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
@@ -1359,7 +1396,7 @@ export class OpenLook {
   // Lamp posts: a red-brown post, a white dome lamp on top and one at each end of an arm across
   // the platform; or a galvanised one with only the two on its arm, and a name sign.
   private masts(a: Masts, frame: Frame, on: On, name: string, group: THREE.Group) {
-    const post = on(this.color(a.color ?? 0x6b2c24, 0.5, a.color ? 0.6 : 0.3)), shade = on(this.color(0xe9ebea, 0.35, 0.2));
+    const post = on(this.color(a.color ?? 0x6b2c24, 0.5, a.color ? 0.6 : 0.3)), shade = on(this.color(a.shade ?? 0xe9ebea, 0.35, 0.2));
     const bulb = on(this.mat('bulb', () => new THREE.MeshBasicMaterial({ color: 0xfff4dc, side: THREE.DoubleSide })));
     const H = a.height, A = a.arm ?? 0.6, lamps = a.top === false ? [[-A, H - 0.42, 0.23], [A, H - 0.42, 0.23]] : [[0, H - 0.08, 0.23], [-A, H - 0.42, 0.23], [A, H - 0.42, 0.23]];
     if (a.lower !== undefined) lamps.push([-0.35, a.lower - 0.04, 0.14], ...(a.lowerOne ? [] : [[0.35, a.lower - 0.04, 0.14]]));
