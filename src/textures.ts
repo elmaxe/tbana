@@ -3395,9 +3395,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
   crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6], pixelTiles: [4.8, 3.6],
   ballast: [2.4, 2.4], strawTiles: [1.2, 1.2], reedTiles: [2.4, 2.4], iceTerrazzo: [7.2, 7.2], rockMosaic: [4.8, 3.6],
+  clinkerWindows: [1.2, 2.5], greyClerestory: [1.2, 2.5], portalTiles: [1.2, 1.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -4611,6 +4612,45 @@ export function finish(name: Finish) {
       speckle(x, W, H, 12000, 0.22, 96); speckle(x, W, H, 6000, 0.3, 97, true);
       break;
     }
+    case 'clinkerWindows': {
+      // Stora mossen's ticket hall (Marianna Zaborska, 2002): clinker tiles 15 cm square in mixed
+      // greens to 1 m, a steel sill, glass-fronted cases with maps in them to 1.75 m, and windows
+      // in steel frames on up to the ceiling
+      const t = 0.15 * PX, frame = '#8d9396';
+      x.fillStyle = '#c9cbc4'; x.fillRect(0, Y(1.0), W, 1.0 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 1.0 * PX + 1; j++) {
+        const v = r(), k = Math.floor(r() * 16);
+        const [cr, cg, cb] = v < 0.3 ? [46, 84, 62] : v < 0.6 ? [74, 116, 88] : v < 0.85 ? [104, 138, 112] : [58, 98, 100];
+        x.fillStyle = `rgb(${cr + k},${cg + k},${cb + k})`;
+        x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      band(1.0, 1.06, frame);
+      band(1.06, 1.75, '#3b4448');
+      x.fillStyle = '#d9d4c2'; x.fillRect(0.08 * PX, Y(1.68), W - 0.16 * PX, 0.55 * PX);
+      for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(${90 + r() * 80},${110 + r() * 60},${120 + r() * 50},0.5)`; x.fillRect(0.1 * PX + r() * (W - 0.3 * PX), Y(1.66) + r() * 0.5 * PX, 2 + r() * 14, 1 + r() * 4); }
+      band(1.75, 1.8, frame); pane(1.8, 2.42, frame, 0.07); band(2.42, 2.5, '#2e3134');
+      break;
+    }
+    case 'greyClerestory': {
+      // Stora mossen's ticket hall from outside: grey sheet-metal panels to 1.75 m, a band of
+      // windows in dark frames to 2.42 m, and the dark head under the fascia
+      const frame = '#2b2e31';
+      band(0, 1.75, '#8c9194');
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(3, Y(1.75), W * 0.3, 1.75 * PX);
+      x.fillStyle = '#6f7477'; x.fillRect(W / 2 - 1, Y(1.75), 2, 1.75 * PX); x.fillRect(0, Y(1.75), 2, 1.75 * PX);
+      band(1.75, 1.82, frame); pane(1.82, 2.42, frame, 0.08); band(2.42, 2.5, frame);
+      break;
+    }
+    case 'portalTiles': {
+      // Stora mossen's passage under the tracks: glazed square tiles, 15 cm, a muted teal green
+      x.fillStyle = '#c3c8c2'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 14);
+        x.fillStyle = `rgb(${92 + v},${138 + v},${132 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
     case 'rockMosaic': {
       // Henjasaj Koda's Orm och irisar (Alvik, 1999): a cement mosaic in black and pale cream,
       // flowing striations as in polished rock, here in broad black fields, there in cream ones
@@ -4638,7 +4678,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

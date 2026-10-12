@@ -270,7 +270,10 @@ export type Finish =
   | 'strawTiles'    // glazed tiles, 15 cm, straw yellow, in pale joints
   | 'reedTiles'     // as strawTiles, reeds of white tiles rising across them (Henjasaj Koda's)
   | 'iceTerrazzo'   // pale beige terrazzo, fields of blue-grey and small dark blue triangles (Henjasaj Koda's)
-  | 'rockMosaic';   // a cement mosaic of black and cream striations, as in polished rock (Henjasaj Koda's)
+  | 'rockMosaic'    // a cement mosaic of black and cream striations, as in polished rock (Henjasaj Koda's)
+  | 'clinkerWindows' // clinker tiles in mixed greens to 1 m, glass-fronted cases, windows in steel frames above
+  | 'greyClerestory' // grey sheet-metal panels to 1.75 m, a band of windows in dark frames above
+  | 'portalTiles';  // glazed tiles, 15 cm, a muted teal green, in pale joints
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -4226,5 +4229,93 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     shelters: [{ s: [-29.5, -24.5], u: [-1.1, 1.1] }, { s: [-2.5, 2.5], u: [-1.1, 1.1], under: 0 }],
     // OpenStreetMap's outlines of the station's buildings, which the blocks draw
     buildings: ['w281163269', 'w501084446', 'w1518244456', 'w1518244457', 'w1556715102', 'w1495496029', 'w1495496030', 'w1495496913', 'w1495496914'],
+  },
+  // Stora mossen (26 October 1952; Marianna Zaborska's coloured clinker on the walls and orange
+  // line of enamelled sheet, 2002): an island platform on the bank beside Drottningholmsvägen, its
+  // way out at its east end, where a passage runs under the bank between Drottningholmsvägen and
+  // Stora Mossens backe. The laser scan puts a roof from 32.5 m east of the platform's middle to
+  // 79.5 m, about 7.4 m wide and following the platform's curve, its top 3.1 m over the platform
+  // down the middle and 3.3 m at the edges, and lamp posts 5 m high down the open western part,
+  // about 18.5 m apart. Photographs (2017) show the roof's underside of dark stained boards on
+  // dark rafters, a row of dark navy columns under a beam down the middle with an orange-red
+  // stripe along it, tube lamps across the platform, a thin dark grey fascia, navy signs, round
+  // clocks and departure boards (Skarpnäck and Hagsätra over the northern track, Hässelby strand
+  // over the southern); out in the open, galvanised lamp posts with two flat lamps on a T-shaped
+  // arm, some carrying navy name signs, and a glass shelter (laser scan: 10 to 14.6 m east). The
+  // paving: pale, nearly white edge slabs 0.8 m wide, a dark grey ribbed strip, then grey concrete
+  // pavers. Chain-link fences beyond both tracks, along the top of the bank.
+  //
+  // At the east end the platform runs into the station's hall between the tracks (laser scan: from
+  // 79.5 m to 97 m, a flat roof 2.8 m over the platform, 4.8 m wide, narrowing as the southern
+  // track bends in): first the ticket hall, with the gates (OpenStreetMap's indoor mapping: 84.2 m
+  // east) and a glazed booth on its north side, a terrazzo floor, a slatted ceiling, and along its
+  // south wall green clinker tiles under glass cases and a band of windows; grey panels under the
+  // windows outside. Then the stair hall, glazed from floor to roof, its stairs going down to the
+  // east along its south side (OpenStreetMap: from 86.3 m to 93 m east) beside teal tiles, and a
+  // walkway along its north side to the lift (OpenStreetMap: 98.8 m east; laser scan: a tower 6.7 m
+  // high, from 97 m to 100 m), grey panels in dark frames with the round T on a post on top. Both
+  // reach the passage under the tracks, 4.2 m under the platform, whose ends are faced with teal
+  // tiles under the bank's concrete edge, the station's name on a blue band over each.
+  'Stora mossen': {
+    roof: {
+      kind: 'butterfly',
+      from: 32.5, to: 79.5, width: 7.4,
+      shape: [[32.5, -0.45, 7.2], [46, -0.75, 7.6], [58, -1.2, 7.2], [66, -1.4, 7.4], [79.5, -1.8, 7.3]],
+      middle: 2.92, edge: 3.12, thick: 0.2, fascia: 0.25,
+      rafters: 1.2, rafterSize: [0.08, 0.22],
+      beam: 0.3, gutter: [0.3, 0.1], gutterColor: 0xc24a2e,
+      columns: { every: 8, at: 76, size: 0.22, plinth: { size: 0.35, height: 0.08 } },
+      lamps: { offset: 1.9, length: 1.2, every: 3.0, across: true },
+      colors: { underside: 0x40302a, fascia: 0x3a3d40, top: 0x45484b, steel: 0x262b38 },
+      signs: { at: [42, 58, 72], back: '', ahead: 'Utgång', blue: true },
+      clocks: [[62, 0.85]],
+      boards: [
+        { s: 50, u: -1.5, toward: 'Skarpnäck', trains: ['17 Skarpnäck  3 min', '19 Hagsätra  8 min'] },
+        { s: 50, u: 1.5, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '17 Åkeshov  9 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.15], slabs: 1.15, paverSize: [0.4, 0.2], mix: 0.1,
+      colors: { edge: 0xd9d8d3, tactile: 0x5a5d60, slab: 0xa9aaa8, pavers: 0x8f9192, paler: 0x9c9e9f, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    rooms: [
+      { name: 'ticket hall', s: [79.4, 86.0], h: [-0.5, 1], walls: 'clinkerWindows', floor: 'terrazzo', ceiling: 'slats', sill: 2.4 },
+      { name: 'stair hall', s: [86.0, 97.5], h: [-0.5, 1], walls: 'whitePanels', floor: 'terrazzo', ceiling: 'slats', stairs: 'portalTiles', sill: 0 },
+      { name: 'stairs', s: [86.0, 94.5], u: [-2.3, -0.1], h: [-5, -0.5], walls: 'portalTiles', floor: 'terrazzo', stairs: 'portalTiles', sill: 0 },
+      { name: 'north of the passage', s: [90, 101], u: [-30, -9.2], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'south of the passage', s: [90, 101], u: [4.4, 30], h: [-5, -3], walls: null, floor: 'asphalt' },
+      { name: 'passage', s: [90, 101], h: [-5, -3], walls: 'portalTiles', floor: 'asphalt', ceiling: 'boardConcrete' },
+    ],
+    // (between the tracks, kept clear of them; the passage's ends a notch in the bank either side)
+    blocks: [
+      { name: 'ticket hall', plan: [[79.4, -4.35], [86.0, -4.45], [86.0, 0.35], [79.4, 0.5]], h: [-1.25, 2.55], walls: 'greyClerestory',
+        sides: [undefined, null, undefined, 'glazed'], eaves: [0.15, 0, 0.15, 0.2], floor: 'terrazzo', ceiling: 'slats', roof: 0.25, onPlatform: true },
+      { name: 'stair hall', plan: [[86.0, -4.45], [97.0, -4.45], [97.0, -0.2], [86.0, 0.35]], h: [-1.25, 2.55], walls: 'glazed',
+        sides: [undefined, undefined, undefined, null], eaves: [0.15, 0.1, 0.15, 0], floor: 'terrazzo', ceiling: 'slats', roof: 0.25, onPlatform: true },
+      { name: "lift's tower", plan: [[97.0, -4.35], [100.0, -4.35], [100.0, -1.3], [97.0, -1.3]], h: [-1.25, 6.45], walls: 'greyPanels',
+        sides: [undefined, undefined, undefined, null], roof: 0.25 },
+      { name: 'north end of the passage', plan: [[101, -9.2], [101, -14.5], [90, -14.5], [90, -9.2]], h: [-4.2, -1.3], from: -4.2, low: -4.1,
+        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
+      { name: 'south end of the passage', plan: [[101, 4.4], [101, 8.5], [90, 8.5], [90, 4.4]], h: [-4.2, -1.3], from: -4.2, low: -3.8,
+        walls: 'portalTiles', band: { walls: 'boardConcrete', from: -1.95 }, sides: [undefined, null], floor: 'asphalt',
+        nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -1.95, inside: true }, onPlatform: true, ground: true },
+      // (under the bank, where neither the street nor the ground runs on)
+      { name: 'bank over the passage', plan: [[93.9, -9.2], [97.3, -9.2], [97.3, 4.4], [93.9, 4.4]], h: [-4.2, -1.95], from: -4.2, walls: 'boardConcrete', sides: [null, null, null, null],
+        onPlatform: true, ground: true },
+      { name: 'street under the bank', plan: [[90, -9.2], [101, -9.2], [101, 4.4], [90, 4.4]], h: [-4.4, -2.0], from: -4.4, walls: 'boardConcrete', sides: [null, null, null, null] },
+    ],
+    art: [
+      { kind: 'masts', height: 5.0, color: 0x9a9fa3, top: false, arm: 0.7, at: [[-51.2, 0.2], [-15.7, 0.3], [21.4, 0.3]] },
+      { kind: 'masts', height: 5.0, color: 0x9a9fa3, top: false, arm: 0.7, sign: 2.6, blue: true, at: [[-69.1, 0], [-32.1, 0.4], [2.9, 0.1]] },
+      // on the lift's tower
+      { kind: 'roundel', s: 98.5, u: -2.8, h: 7.8, size: 0.8, foot: 6.7 },
+    ],
+    shelters: [{ s: [10, 14.6], u: [-1.1, 1.1] }],
+    fences: [
+      { points: [[-90, -6.0], [-60, -6.7], [-20, -7.6], [20, -8.1], [60, -8.6], [90, -9.2], [110, -9.7]], h: [-1.25, 0.55] },
+      { points: [[-90, 6.0], [-60, 6.6], [-40, 7.1], [0, 7.8], [40, 7.3], [60, 6.5], [90, 4.6], [110, 3.2]], h: [-1.25, 0.55] },
+    ],
   },
 };

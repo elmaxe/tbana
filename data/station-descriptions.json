@@ -1077,14 +1077,28 @@
     },
     "Stora mossen": {
       "drawing": "stora_mossen.png",
-      "note": "An island platform in the open. At its east end stairs go down to the ticket hall under the tracks, with exits to either side.",
+      "note": "An island platform on the bank beside Drottningholmsvägen, under a roof over its eastern part. At its east end the platform runs into the station's hall between the tracks: the ticket gates, then stairs down along its south side and a walkway along its north side to a lift, both to the passage under the tracks, which comes out towards Drottningholmsvägen to the north and onto Stora Mossens backe to the south. Laid out from Lantmäteriet's laser scan, OpenStreetMap's indoor mapping and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [49.87436714794674, -0.9], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [60.0, -1.3]},
-          {"walk": [66.0, -1.5], "width": 6},
-          {"walk": [66.0, -13.3], "width": 4},
+        { "from": [79.5, -2.0], "width": 3.0, "go": [
+          {"walk": [80.5, -2.0], "ceiling": 2.4},
+          {"walk": [84.2, -2.0], "width": 4.2, "ceiling": 2.4},
           {"gates": true},
-          {"exit": {"at":  [66.0, -27.3], "name":  "Stora mossen"}}
+          {"walk": [86.0, -2.0], "ceiling": 2.4}
+        ] },
+        { "from": [86.0, -1.2], "width": 1.8, "go": [
+          {"stairs": -4.2, "toward": [100, -1.2], "lanes": "S"},
+          {"walk": [95.6, -1.2], "width": 3.4, "ceiling": 2.25},
+          {"mark": "under"},
+          {"walk": [95.6, -9.8], "ceiling": 2.25},
+          {"exit": {"at": [95.6, -17.0], "name": "Drottningholmsvägen"}, "by": "walk", "open": true}
+        ] },
+        { "from": "under", "width": 3.4, "go": [
+          {"walk": [95.6, 4.6], "ceiling": 2.25},
+          {"exit": {"at": [95.6, 12.0], "name": "Stora Mossens backe"}, "by": "walk", "open": true}
+        ] },
+        { "from": [86.0, -3.0], "width": 1.8, "go": [
+          {"walk": [97.0, -3.0], "ceiling": 2.4},
+          {"lift": -4.2, "above": 6.7}
         ] }
       ]
     },
