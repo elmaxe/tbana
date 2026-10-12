@@ -294,6 +294,16 @@
       "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place beside the tracks). Along the line, though, it runs from the foot of the south hall's escalators to the foot of the stairs down to the passage towards Allhelgonagatan, as OSM's indoor mapping (2024–26) and Albert Guillaumes' drawing have them, 180 m with the narrower stretch at its south end. Both tracks are placed from this point between them, the middle of that, 36 m north of the station's node, and the platform is made that long rather than the usual 145 m."
     },
     {
+      "station": "Rådmansgatan",
+      "replace": true,
+      "at": [
+        153309.06,
+        6580685.21
+      ],
+      "length": 151,
+      "why": "OSM's island platform (2026) runs 2.5 m further north along the western track than along the eastern, so the eastern half stopped short beside the foot of the escalators and the tunnel showed past it. OSM's indoor mapping has the flights climbing from both ends of the platform, the southern escalators' foot 150.7 m from the northern's. Both tracks are placed from this point between them, the middle of OSM's platform, so that the platform runs square from the one to the other."
+    },
+    {
       "station": "Svedmyra",
       "replace": true,
       "why": "OSM draws the island platform across the southbound track, so it reads as being on that track's far side. Both tracks are placed from the station's node, which lies between them."

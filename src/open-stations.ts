@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -245,6 +245,10 @@ export class OpenLook {
       else if (a.kind === 'checks') this.checks(a, line, on);
     }
     for (const sh of style.shelters ?? []) this.shelter(sh, line, on, cut);
+    this.benches(style, line, lines, on);
+  }
+
+  private benches(style: OpenStyle, line: Line, lines: Line[], on: On) {
     for (const B of [style.benches ?? []].flat()) {
       const row = B.roof === undefined ? line : lines[B.roof];
       for (const s of B.at) {
@@ -290,7 +294,14 @@ export class OpenLook {
       else if (a.kind === 'slabBenches') this.slabBenches(a, frame, on);
       else if (a.kind === 'bronzeFrames') this.bronzeFrames(a, frame, on);
       else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
+      else if (a.kind === 'capitals') this.capitals(a, frame, on);
       else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
+    }
+    // (under a hall rather than a roof, the benches down the middle of the platform)
+    if (!style.roof && style.benches) {
+      const middle = style.middle ?? [[-500, 0], [500, 0]];
+      const canopy: CanopyPart = { kind: 'canopy', points: middle.map(([s, u]) => frame.at(s, u, CANOPY_HEIGHT)), width: 0 };
+      this.benches(style, new Line(frame, canopy), [], on);
     }
   }
 
@@ -317,6 +328,22 @@ export class OpenLook {
       const radius = (h: number) => h <= a.flare ? r0 : r0 + (r1 - r0) * ((h - a.flare) / (a.ceiling - a.flare)) ** 2;
       const P = (i: number, h: number) => { const t = (i / n) * Math.PI * 2, r = radius(h); return [...frame.at(s + Math.cos(t) * r, u + Math.sin(t) * r, h), (i / n) * Math.PI * a.shaft, h]; };
       for (let j = 0; j + 1 < rings.length; j++) for (let i = 0; i < n; i++) concrete.poly([P(i, rings[j]), P(i + 1, rings[j]), P(i + 1, rings[j + 1]), P(i, rings[j + 1])]);
+    }
+  }
+
+  // Rådmansgatan's ticket-hall columns: square, tiled, and a white capital spreading from them in
+  // straight sides to a broad square head under the ceiling.
+  private capitals(a: Capitals, frame: Frame, on: On) {
+    const tiles = on(this.finish(a.tiles)), [w, hh] = T.FINISH_SIZE[a.tiles];
+    const plaster = on(this.color(0xeceae4, 0.85, 0));
+    const sq: [number, number][] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    for (const [s, u] of a.at) {
+      const P = (k: number, e: number, h: number) => frame.at(s + sq[k % 4][0] * e, u + sq[k % 4][1] * e, h);
+      for (let k = 0; k < 4; k++) {
+        const e = a.size / 2, h0 = a.from, h1 = a.flare;
+        tiles.poly([[...P(k, e, h0), 0, 0], [...P(k + 1, e, h0), a.size / w, 0], [...P(k + 1, e, h1), a.size / w, (h1 - h0) / hh], [...P(k, e, h1), 0, (h1 - h0) / hh]]);
+        plaster.poly([[...P(k, e, h1), 0, 0], [...P(k + 1, e, h1), 0, 0], [...P(k + 1, a.head / 2, a.ceiling), 0, 0], [...P(k, a.head / 2, a.ceiling), 0, 0]]);
+      }
     }
   }
 
@@ -1242,7 +1269,8 @@ export class OpenLook {
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
     const m = on(this.mat(`mural:${a.picture}`, () => {
-      const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel() : T.tallkrogsdraken();
+      const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
+        : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower() : T.tallkrogsdraken();
       // (an angel cut out round its outline)
       return new THREE.MeshStandardMaterial({
         map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.4, alphaTest: a.picture === 'angel' ? 0.5 : 0, side: THREE.DoubleSide,

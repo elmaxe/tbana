@@ -37,6 +37,16 @@
       "osm": "w1558255515",
       "overStation": true,
       "why": "An upper part of Medborgarhuset over the same stairs, as for its main part (w1558255512)."
+    },
+    {
+      "osm": "w1354661598",
+      "overStation": true,
+      "why": "The block on the south-west corner of Sveavägen and Rådmansgatan, whose ground floor the station's western stairs climb into from the passage under the corner, coming out on Sveavägen where OpenStreetMap has the entrance in its east front: it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1354381841",
+      "overStation": true,
+      "why": "Sveavägen 98, on the north-east corner of Sveavägen and Rehnsgatan, whose ground floor the station's north-eastern stairs climb into from the passage under the street, coming out through SL's doors in its west front (photographs, 1955 and 2016): it is left whole, not cut through its full height."
     }
   ]
 }

@@ -144,9 +144,10 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
   | `pave:${string}` | `face:${string}`
-  // a beamed hall's walls, ceiling and beams, columns, the beam along its middle, the vault of
-  // its lengthening, the wall where that meets the flat part and the triangle on it
-  | `beam${'Wall' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark'}:${string}`;
+  // a beamed hall's walls (the other way round, for its name plates), ceiling and beams, columns,
+  // the beam along its middle, the vault of its lengthening, the wall where that meets the flat
+  // part and the triangle on it
+  | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall'}:${string}`;
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -535,17 +536,22 @@ export class Network {
     for (const station of new Set(run.filter((sm) => beamedHall(sm)).map((sm) => sm.plat!.station))) {
       const st = HALL_STYLES[station] as FlatHall, f = st.finish as BeamedHall, w = f.walls;
       const wall: MaterialName = `beamWall:${station}`, roof: MaterialName = `beamCeiling:${station}`;
-      this.mats[wall] ??= new THREE.MeshStandardMaterial({
-        map: T.beamedHallWall(st.soffit - S.FLOOR, w.color, w.tile, w.from - S.FLOOR, { ...w.posters, bottom: w.posters.bottom - S.FLOOR }),
-        roughness: 0.45, side: THREE.DoubleSide,
-      });
+      // (the other wall of a track sees its name plates the other way round)
+      const mirror: MaterialName = w.plate ? `beamWallMirror:${station}` : wall;
+      for (const [key, flip] of [[wall, false], [mirror, true]] as const) {
+        this.mats[key] ??= new THREE.MeshStandardMaterial({
+          map: T.beamedHallWall(st.soffit - S.FLOOR, w.color, w.tile, w.from - S.FLOOR, { ...w.posters, bottom: w.posters.bottom - S.FLOOR },
+            { top: w.top, plate: w.plate && { name: w.plate.name, at: w.plate.at - S.FLOOR }, mirror: flip }),
+          roughness: 0.45, side: THREE.DoubleSide,
+        });
+      }
       // (lit from below by its lamps, which light nothing: so it glows a little)
       if (!this.mats[roof]) {
         const plaster = T.plaster();
         this.mats[roof] = new THREE.MeshStandardMaterial({ map: plaster, color: f.ceiling, emissive: 0x7a7870, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide });
       }
       const flat = (sm: Sample) => hallStyle(sm) === st && !sm.vault, repeat = T.beamedWallRepeat(w.posters);
-      halls.push({ is: flat, walls: [b[wall] ??= new MeshBuilder(), b[wall]], roof: b[roof] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
+      halls.push({ is: flat, walls: [b[wall] ??= new MeshBuilder(), b[mirror] ??= new MeshBuilder()], roof: b[roof] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
       // the vaulted part, its walls the same, its vault in panels (lit as the ceiling is)
       if (f.vault) {
         const vault: MaterialName = `beamVault:${station}`;
@@ -556,7 +562,8 @@ export class Network {
         halls.push({ is: (sm) => hallStyle(sm) === st && sm.vault, walls: [b[wall], b[wall]], roof: b[vault] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
       }
       // the beam along over the row of columns, drawn with one of the two tracks (in a colour of
-      // its own, or the ceiling's)
+      // its own, or the ceiling's), where the hall has beams
+      if (!f.beams) continue;
       const { depth, along } = f.beams;
       let beam = b[roof];
       if (f.beams.color !== undefined) {
@@ -836,12 +843,18 @@ export class Network {
         box(b.fitting, at(sm, u, v + 0.06), sm, 0.12, 0.08, STEP + 0.02);
         box(b.lamp, light = at(sm, u, v - 0.006), sm, 0.12, 0.012, STEP - 0.5);
         if (Math.round(sm.along / STEP) % 2 === 0) box(b.fitting, at(sm, u, v + 0.32), sm, 0.03, 0.45, 0.03);
+      } else if (concrete && concrete.finish.kind === 'beams' && !concrete.finish.beams) {
+        // (in a tiled hall with no beams, tube lamps in the soffit over the platform's edge, nearly
+        // end to end)
+        const u = p.side * (S.PLATFORM_EDGE + 0.3), v = concrete.soffit + sm.pairDy / 2;
+        box(b.fitting, at(sm, u, v - 0.05), sm, 0.2, 0.1, STEP - 0.25);
+        box(b.lamp, light = at(sm, u, v - 0.106), sm, 0.12, 0.012, STEP - 0.4);
       } else if (concrete) {
         // (in a flat hall in concrete, fittings hung just under the ceiling over the platform's
         // edge, nearly end to end)
         // (in a beamed one, under its beams)
         const f = concrete.finish, u = p.side * (S.PLATFORM_EDGE + 0.5);
-        const top = concrete.soffit - (f.kind === 'beams' ? f.beams.depth : 0), v = top - 0.32;
+        const top = concrete.soffit - (f.kind === 'beams' ? f.beams!.depth : 0), v = top - 0.32;
         box(b.fitting, at(sm, u, v + 0.05), sm, 0.24, 0.1, STEP - 0.6);
         box(b.lamp, light = at(sm, u, v - 0.006), sm, 0.16, 0.012, STEP - 0.7);
         box(b.fitting, at(sm, u, (v + 0.1 + top) / 2), sm, 0.03, top - v - 0.1, 0.03);
@@ -948,27 +961,39 @@ export class Network {
     const f = st.finish;
     let column = f.kind === 'concrete' ? b.fsColumn : b.hallColumn;
     if (f.kind === 'beams') {
-      // (enamelled, ringed with colours, where it is)
+      // (enamelled, ringed with colours, or tiled, where it is)
       const key: MaterialName = `beamColumn:${p.station}`;
       this.mats[key] ??= f.rings ? new THREE.MeshStandardMaterial({ map: T.ringedColumn(f.column, f.rings), roughness: 0.18 })
-        : new THREE.MeshStandardMaterial({ color: f.column, roughness: 0.18 });
+        : f.columnTile ? new THREE.MeshStandardMaterial({ map: T.tiledColumn(f.column, f.columnTile), roughness: 0.35 })
+          : new THREE.MeshStandardMaterial({ color: f.column, roughness: 0.18 });
       column = b[key] ??= new MeshBuilder();
     }
+    // (a row down the middle stands under the ceiling, where the roof steps up)
+    const top = middle ? st.ceiling : st.soffit;
     for (let k = 0; k <= n; k++) {
       const sm = sampleAt(start + k * spacing);
       if (!sm) continue;
       const u = across(sm);
       // none where the stairs or escalators come down into the hall
       if (open(sm, u, size / 2, S.PLATFORM_HEIGHT + 1) || open(sm, u, size / 2, st.soffit - 0.05)) continue;
-      if (round) roundPillar(column, at(sm, u, 0), size, S.PLATFORM_HEIGHT, st.soffit);
-      else pillar(column, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, st.soffit);
-      if (f.kind === 'beams' && !f.rings) {
+      if (round) roundPillar(column, at(sm, u, 0), size, S.PLATFORM_HEIGHT, top + sm.pairDy / 2);
+      else pillar(column, at(sm, u, 0), sm, size, S.PLATFORM_HEIGHT, top + sm.pairDy / 2);
+      if (f.kind === 'beams' && f.beams && !f.rings) {
         // a steel ring at its foot, and a collar under the beam
         roundPillar(b.fitting, at(sm, u, 0), size + 0.04, S.PLATFORM_HEIGHT, S.PLATFORM_HEIGHT + 0.14);
         roundPillar(column, at(sm, u, 0), size + 0.08, st.soffit - 2 * f.beams.depth - 0.12, st.soffit - 2 * f.beams.depth);
       }
+      if (f.kind === 'beams' && f.lamps) {
+        // round lamps on the ceiling either side of it, across the platform
+        for (const d of [-1, 1]) {
+          const c = at(sm, u + d * f.lamps.off, top + sm.pairDy / 2 - 0.06);
+          const dome = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.23, 0.1, 20), this.mats.lamp);
+          dome.position.copy(c);
+          group.add(dome);
+        }
+      }
     }
-    if (f.kind === 'beams' && f.beams.between !== null) {
+    if (f.kind === 'beams' && f.beams && f.beams.between !== null) {
       // the beams across the hall, from wall to wall: over every column and so many between two,
       // the whole length of the platform
       const roof = b[`beamCeiling:${p.station}`] ??= new MeshBuilder(), m = f.beams.between + 1;
@@ -984,7 +1009,7 @@ export class Network {
       // clocks either side of the middle column, and departure boards across the platform a few
       // columns either way from it, hung on rods from the beams over them, a face each way along
       // the platform
-      const mid = Math.floor(n / 2), d = st.soffit - f.beams.depth;
+      const mid = Math.floor(n / 2), d = top - (f.beams?.depth ?? 0);
       const hang = (sm: Sample, u: number, w: number, h: number, depth: number, face: THREE.Material, round: boolean) => {
         const t = new THREE.Vector3(sm.rz, 0, -sm.rx), rod = round ? 0.2 : 0.3, c = at(sm, u, d - rod - h / 2);
         if (round) {
@@ -1025,7 +1050,7 @@ export class Network {
       const { every, at: h, ways } = f.signs, b0 = all_[0].along, b1 = all_[all_.length - 1].along, c0 = (b0 + b1) / 2;
       const key = `ways:${p.station}:${ways}`;
       let mat = this.signs.get(key);
-      if (!mat) this.signs.set(key, (mat = new THREE.MeshBasicMaterial({ map: T.waysSign(p.station, ways) })));
+      if (!mat) this.signs.set(key, (mat = new THREE.MeshBasicMaterial({ map: T.waysSign(p.station, ways, f.signs.blue) })));
       const vault = f.vault;
       for (let k = Math.ceil((b0 + 4 - c0) / every); c0 + k * every <= b1 - 4; k++) {
         const sm = sampleAt(c0 + k * every, true);
@@ -1530,6 +1555,13 @@ export class Network {
               const P = (u: number, v: number) => at(p, u, v).add(t);
               (b[mark] ??= new MeshBuilder()).quad(P(m, beamed.soffit + dy + 0.02), P(m + 1.3, top(m + 1.3)), P(m - 1.3, top(m - 1.3)), P(m, beamed.soffit + dy + 0.02));
             }
+          } else if (beamedHall(p) ?? beamedHall(q)) {
+            // at a beamed hall's end, around the tunnel going on: its wall's tiles, without its
+            // posters and band
+            const hall = (beamedHall(p) ?? beamedHall(q))!, w = (hall.finish as BeamedHall).walls;
+            const key: MaterialName = `beamEndWall:${(beamedHall(p) ? p : q).plat!.station}`;
+            this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.tiledColumn(w.color, w.tile), roughness: 0.45, side: THREE.DoubleSide });
+            ring(p, ra, rc, b[key] ??= new MeshBuilder(), (u, v) => [u / T.HOTORGET_REPEAT, v / T.HOTORGET_REPEAT]);
           } else if (cave) {
             const key: MaterialName = `cave:${cave.plat!.station}`;
             this.mats[key] ??= this.caveMaterial(cave.plat!.station);

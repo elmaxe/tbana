@@ -775,29 +775,85 @@
     },
     "Rådmansgatan": {
       "drawing": "radmansgatan.png",
-      "note": "An island platform under Sveavägen. Escalators climb from each end to a ticket hall, each with exits to both sides of the street.",
+      "note": "An island platform 150 m long under Sveavägen (1952), one row of yellow-tiled columns down its middle. From its south end escalators climb 4.3 m to the southern ticket hall under the street, a lift beside them; through the gates passages lead west under the crossing with Rådmansgatan, past Sture V Nilsson's Strindberg wall (1983), to stairs up into the ground floor of the corner building, and east to stairs up into the glass pavilion on the eastern pavement, and a lift climbs to its tower on the western pavement. From its north end escalators climb 5.6 m to the northern ticket hall, an inclined lift beside them (the lift itself isn't walked); through the gates passages lead north-west to stairs up into the small glazed house at the park's corner, a lift beside them climbing to its tower, and north-east under the crossing with Rehnsgatan to stairs up into the ground floor of the corner building, Sveavägen 98. From OpenStreetMap's indoor mapping (the flights, lifts, halls and passages), the elevation model (the street 7.2 to 7.4 m above the platform at the south end, 8.5 to 9.1 m at the north end), Google's 3D mesh (the pavilion, the house's shape and the lift towers, the southern one 3.6 m south of OpenStreetMap's lift) and photographs (1955, 2005–2023); the halls' columns and booth are placed from photographs, and the pavilion's doors are inferred.",
       "routes": [
-        { "from": [-48, 0], "width": 5, "go": [
-          {"escalators": 7, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-75.2, 1.9], "width": 3.6, "go": [
+          {"escalators": 4.3, "toward": [-200, 1.9], "lanes": "ES", "ceiling": 2.4}
+        ] },
+        { "from": [-73.0, -1.4], "width": 2.2, "go": [
+          {"walk": [-75.2, -1.4], "open": true},
+          {"lift": 4.3, "above": 2.6, "through": true},
+          {"walk": [-84.5, -1.4], "ceiling": 2.6}
+        ] },
+        { "from": [-82.5, 1.0], "h": 4.3, "width": 8.0, "go": [
+          {"walk": [-90.6, 1.0], "ceiling": 2.6}
+        ] },
+        { "from": [-90.5, -1.7], "h": 4.3, "width": 2.6, "go": [
+          {"walk": [-91.0, -1.7], "ceiling": 2.6},
           {"gates": true},
-          {"walk": 2},
-          {"mark": "south"},
-          {"exit": 1364657019, "by": "walk"}
+          {"walk": [-91.6, -1.7], "ceiling": 2.6}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 1364657020, "by": "walk"}
-        ] },
-        { "from": [45, 0], "width": 5, "go": [
-          {"escalators": 8.8, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-90.5, 1.7], "h": 4.3, "width": 2.6, "go": [
+          {"walk": [-91.0, 1.7], "ceiling": 2.6},
           {"gates": true},
-          {"walk": 2},
-          {"mark": "north"},
-          {"exit": 1403941737, "by": "walk"}
+          {"walk": [-91.6, 1.7], "ceiling": 2.6}
         ] },
-        { "from": "north", "width": 4, "go": [
-          {"exit": 926342291, "by": "walk"}
+        { "from": [-91.5, 1.0], "h": 4.3, "width": 8.0, "go": [
+          {"walk": [-101.0, 1.0], "ceiling": 2.6}
+        ] },
+        { "from": [-99.5, -2.0], "h": 4.3, "width": 3.0, "go": [
+          {"walk": [-104.0, -13.0], "ceiling": 2.4},
+          {"walk": [-106.5, -21.5], "ceiling": 2.4},
+          {"walk": [-111.8, -23.0], "ceiling": 2.4},
+          {"exit": {"at": [-111.8, -14.8]}, "by": "stairs", "lanes": "Ss"}
+        ] },
+        { "from": [-99.5, 4.0], "h": 4.3, "width": 3.0, "go": [
+          {"walk": [-111.85, 12.15], "ceiling": 2.2},
+          {"walk": [-116.4, 12.15], "width": 2.2, "ceiling": 2.2},
+          {"exit": {"at": [-121.3, 12.15]}, "by": "stairs", "lanes": "Ss"}
+        ] },
+        { "from": [-96.0, -2.5], "h": 4.3, "width": 2.2, "go": [
+          {"walk": [-96.0, -10.4], "ceiling": 2.4},
+          {"walk": [-80.7, -10.4], "ceiling": 2.4},
+          {"lift": 2.91, "above": 3.6, "through": true},
+          {"walk": [-75.5, -10.4], "open": true}
+        ] },
+        { "from": [75.5, -2.6], "width": 3.6, "go": [
+          {"escalators": 5.6, "toward": [200, -2.6], "lanes": "ES", "ceiling": 2.4}
+        ] },
+        { "from": [85.2, -2.6], "h": 5.6, "width": 7.0, "go": [
+          {"walk": [96.1, -2.6], "ceiling": 2.6}
+        ] },
+        { "from": [96.0, -4.5], "h": 5.6, "width": 3.2, "go": [
+          {"walk": [96.5, -4.5], "ceiling": 2.6},
+          {"gates": true},
+          {"walk": [97.1, -4.5], "ceiling": 2.6}
+        ] },
+        { "from": [96.0, -0.7], "h": 5.6, "width": 3.2, "go": [
+          {"walk": [96.5, -0.7], "ceiling": 2.6},
+          {"gates": true},
+          {"walk": [97.1, -0.7], "ceiling": 2.6}
+        ] },
+        { "from": [97.0, -2.6], "h": 5.6, "width": 7.0, "go": [
+          {"walk": [106.5, -2.6], "ceiling": 2.6}
+        ] },
+        { "from": [105.0, -5.0], "h": 5.6, "width": 3.0, "go": [
+          {"walk": [110.0, -22.25], "ceiling": 2.4},
+          {"walk": [112.0, -22.25], "ceiling": 2.4},
+          {"stairs": 3.55, "toward": [200, -22.25], "lanes": "Ss", "ceiling": 2.4},
+          {"walk": [121.4, -22.25], "open": true},
+          {"exit": {"at": [122.2, -22.25]}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [109.2, -17.3], "h": 5.6, "width": 2.2, "go": [
+          {"walk": [110.3, -17.3], "ceiling": 2.4},
+          {"lift": 3.22, "above": 3.6, "through": true},
+          {"walk": [115.5, -17.3], "open": true}
+        ] },
+        { "from": [104.0, 0.0], "h": 5.6, "width": 3.0, "go": [
+          {"walk": [113.2, 21.5], "ceiling": 2.4},
+          {"walk": [117.8, 24.0], "ceiling": 2.4},
+          {"walk": [129.1, 24.0], "ceiling": 2.4},
+          {"exit": {"at": [129.1, 13.3]}, "by": "stairs", "lanes": "Ss"}
         ] }
       ]
     },

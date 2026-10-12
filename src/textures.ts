@@ -466,11 +466,11 @@ function hotorgetTileCanvas(height: number, { plate = 0, tilesFrom = 0, mirror =
   return c;
 }
 
-// A navy enamel name plate 0.63 × 0.09 m, centred on the origin, `scale` px to the metre:
-// the name in white capitals, spaced out.
-function drawNamePlate(x: CanvasRenderingContext2D, text: string, scale: number) {
+// A navy enamel name plate 0.63 × 0.09 m (or of `color`), centred on the origin, `scale` px to
+// the metre: the name in white capitals, spaced out.
+function drawNamePlate(x: CanvasRenderingContext2D, text: string, scale: number, color = '#1d2c5e') {
   const w = 0.63 * scale, h = 0.09 * scale;
-  x.fillStyle = '#1d2c5e';
+  x.fillStyle = color;
   x.fillRect(-w / 2, -h / 2, w, h);
   x.fillStyle = '#f4f2ea';
   x.font = `600 ${Math.round(h * 0.55)}px "Helvetica Neue", Arial, sans-serif`;
@@ -2409,10 +2409,14 @@ export function mosaicColumn() {
 // them a black band down to the floor; and along them posters in thin steel frames, `run` of them
 // `every` m apart, then `gap` m of bare tiles, three such groups to a repeat (heights from the
 // floor). The posters are made up: a pale ground, a block of colour, lines of type. Turned for a
-// sweep along the track, as Hötorget's: u up the wall, v along the track.
+// sweep along the track, as Hötorget's: u up the wall, v along the track. Rådmansgatan's: the
+// tiles stop a plain band `top` m deep under the ceiling, and a dark plate with the station's name
+// hangs in the middle of each gap, its middle `plate.at` m up, turned for the wall that sees the
+// track's direction the other way round with `mirror`.
 type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
 export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
-export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters) {
+export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters,
+  { top = 0, plate, mirror = false }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean } = {}) {
   const repeat = beamedWallRepeat(posters);
   const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
   const r = rng(1933), Y = (h: number) => H - h * PX;
@@ -2431,6 +2435,19 @@ export function beamedHallWall(height: number, color: number, tile: number, from
   x.fillStyle = '#1e1e1f'; x.fillRect(0, Y(from), W, from * PX);
   x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
   speckle(x, W, from * PX, 900, 0.12, 1934, true);
+  if (top) {
+    // the plain band under the ceiling, a little shadow along its foot
+    x.fillStyle = '#e4dfd2'; x.fillRect(0, 0, W, top * PX);
+    x.fillStyle = 'rgba(60,50,30,0.25)'; x.fillRect(0, top * PX, W, 2);
+  }
+  if (plate) for (let g = 0; g < 3; g++) {
+    // the name plates, one in each gap
+    x.save();
+    x.translate((g * (posters.run * posters.every + posters.gap) + posters.run * posters.every + posters.gap / 2) * PX, Y(plate.at));
+    if (mirror) x.scale(-1, 1);
+    drawNamePlate(x, plate.name, PX, '#2b2320');
+    x.restore();
+  }
   // the posters
   const grounds = ['#f1efe9', '#e9eef2', '#f4ead8', '#1f2a3a', '#f2f0f0', '#dfe8e1'];
   const blocks = ['#d9472b', '#2f6db3', '#f0b429', '#3a8f5c', '#8e3f8f', '#e66b9a', '#1b1b1b', '#4fb3c9'];
@@ -2497,6 +2514,23 @@ export function ringedColumn(base: number, rings: { colors: number[]; top: numbe
   return t;
 }
 
+// Rådmansgatan's square columns: glossy square tiles, `tile` m, of `color` (each a shade lighter
+// or darker), in grey joints. As pillar lays it on: HOTORGET_REPEAT m to a repeat, across a face
+// and up it.
+export function tiledColumn(color: number, tile: number) {
+  const PX = 64, N = Math.round(HOTORGET_REPEAT * PX), n = Math.round(HOTORGET_REPEAT / tile), t = N / n;
+  const [c, x] = canvas(N, N), r = rng(1952);
+  x.fillStyle = css(color, -50); x.fillRect(0, 0, N, N);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 12) - 6);
+    x.fillRect(i * t + 0.8, j * t + 0.8, t - 1.6, t - 1.6);
+    // the glaze: lighter at the top of each tile
+    x.fillStyle = `rgba(255,255,255,${0.04 + r() * 0.05})`;
+    x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, (t - 3) * 0.35);
+  }
+  return toTexture(c);
+}
+
 // The vault of the lengthening: cream panels, their joints across the hall every 1.2 m and,
 // fainter, along it every 0.6 m. u across the hall, v along it, 2.4 m a repeat both ways.
 export function vaultPanels(color: number) {
@@ -2515,9 +2549,26 @@ export function vaultPanels(color: number) {
 }
 
 // The long signs hung along the platform's edges: the name in white on black, and under it on a
-// white band the ways out, in black, an arrow at the end.
-export function waysSign(name: string, ways: string) {
+// white band the ways out, in black, an arrow at the end. In SL's blue (`blue`): the name in
+// white on navy over a yellow line, the ways out in white at its right end, an arrow after them.
+export function waysSign(name: string, ways: string, blue = false) {
   const [c, x] = canvas(1536, 280);
+  if (blue) {
+    x.fillStyle = '#1f2f72'; x.fillRect(0, 0, 1536, 280);
+    x.fillStyle = '#f2c21b'; x.fillRect(0, 236, 1536, 16);
+    x.fillStyle = '#f4f4f0';
+    x.font = '600 128px "Helvetica Neue", Arial, sans-serif';
+    x.textAlign = 'left'; x.textBaseline = 'middle';
+    (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '10px';
+    x.fillText(name.toUpperCase(), 60, 124, 820);
+    (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px';
+    x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
+    x.textAlign = 'right';
+    ways.split(' · ').forEach((w, i, all) => x.fillText(w, 1390, 124 + (i - (all.length - 1) / 2) * 56));
+    x.font = '600 96px "Helvetica Neue", Arial, sans-serif';
+    x.fillText('→', 1490, 120);
+    return toTexture(c, { repeat: false });
+  }
   x.fillStyle = '#16171a'; x.fillRect(0, 0, 1536, 280);
   x.fillStyle = '#f4f4f0'; x.fillRect(0, 196, 1536, 84);
   x.fillStyle = '#f4f4f0';
@@ -3127,6 +3178,109 @@ export function angel() {
   x.fillStyle = skin; x.beginPath(); x.ellipse(...P(0.155, 0.655), 0.035 * W, 0.095 * H, -0.4, 0, Math.PI * 2); x.fill();
   x.fillStyle = '#7a2a20'; x.fillRect(...P(0.16, 0.61), 0.014 * W, 0.01 * H);
   x.fillStyle = '#2a1a12'; x.fillRect(...P(0.15, 0.68), 0.01 * W, 0.008 * H); x.fillRect(...P(0.17, 0.675), 0.01 * W, 0.008 * H);
+  return toTexture(c, { repeat: false });
+}
+
+// Lines of handwriting in a box: rows of small joined loops and strokes, now and then a gap
+// between words, in `ink`.
+function handwriting(x: CanvasRenderingContext2D, r: () => number, x0: number, y0: number, x1: number, y1: number, row: number, ink: string, size = 1) {
+  x.strokeStyle = ink; x.lineWidth = 1.6 * size; x.lineCap = 'round';
+  for (let y = y0 + row; y < y1; y += row) {
+    let px = x0 + r() * 20, end = x1 - r() * row * 3;
+    while (px < end) {
+      const word = 20 + r() * 70;
+      x.beginPath(); x.moveTo(px, y);
+      for (let q = px; q < Math.min(px + word, end); q += 4 * size) {
+        const up = r() < 0.12 ? row * 0.55 : row * 0.22;
+        x.quadraticCurveTo(q + 2 * size, y - up * (0.5 + r()), q + 4 * size, y + (r() - 0.5) * 2);
+      }
+      x.stroke();
+      px += word + 8 + r() * 10;
+    }
+  }
+}
+
+// Sture V Nilsson's Strindberg wall at Rådmansgatan (1983), 3.6 by 1.85 m on its black tiles: on
+// the left a page of his manuscript, a sketch faint behind its lines, and under it his signature,
+// both on white enamel in a bronze ground; on the right twelve squares of copper, bronze and steel,
+// his writing etched faintly into them.
+export function strindbergWall() {
+  const W = 1440, H = 740, [c, x] = canvas(W, H), r = rng(1983);
+  const ground = x.createLinearGradient(0, 0, W, H);
+  ground.addColorStop(0, '#a5814f'); ground.addColorStop(1, '#7d6340');
+  x.fillStyle = ground; x.fillRect(0, 0, W, H);
+  // the manuscript
+  x.fillStyle = '#ebe8e0'; x.fillRect(26, 22, 540, 380);
+  x.strokeStyle = 'rgba(120,130,140,0.35)'; x.lineWidth = 3;
+  x.beginPath(); x.ellipse(170, 250, 90, 120, 0.3, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.moveTo(110, 330); x.quadraticCurveTo(180, 200, 250, 340); x.stroke();
+  x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(295, 22, 3, 380);
+  handwriting(x, r, 50, 30, 285, 390, 26, '#2d3440');
+  handwriting(x, r, 310, 30, 550, 300, 26, '#2d3440');
+  // the signature
+  x.fillStyle = '#efede7'; x.fillRect(56, 450, 480, 200);
+  x.fillStyle = '#16181c'; x.font = 'italic 78px "Brush Script MT", "Segoe Script", cursive';
+  // (squeezed into the panel, whichever script the browser has)
+  const sw = x.measureText('August Strindberg').width;
+  x.save(); x.translate(80, 575); x.rotate(-0.06); x.scale(Math.min(1, 430 / sw), 1); x.fillText('August Strindberg', 0, 0); x.restore();
+  x.strokeStyle = '#16181c'; x.lineWidth = 4; x.beginPath(); x.moveTo(90, 610); x.quadraticCurveTo(300, 640, 500, 585); x.stroke();
+  // the squares of metal
+  const metals = ['#b4703e', '#8d6b3c', '#a9aaa5', '#c08a52', '#6f5a40', '#9c5a32', '#b9b8b2', '#8a7650', '#a06c3e', '#7c7d78', '#b8814a', '#94653a'];
+  const cw = 205, ch = 233;
+  for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) {
+    const sx = 598 + i * cw, sy = 22 + j * ch, col = metals[j * 4 + i];
+    x.save(); x.beginPath(); x.rect(sx + 3, sy + 3, cw - 6, ch - 6); x.clip();
+    x.fillStyle = col; x.fillRect(sx + 3, sy + 3, cw - 6, ch - 6);
+    const sheen = x.createLinearGradient(sx, sy, sx + cw * 0.6, sy + ch);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.18)'); sheen.addColorStop(1, 'rgba(0,0,0,0.18)');
+    x.fillStyle = sheen; x.fillRect(sx + 3, sy + 3, cw - 6, ch - 6);
+    for (let k = 0; k < 14; k++) {
+      x.fillStyle = `rgba(${r() < 0.5 ? '40,30,20' : '230,220,200'},${0.05 + r() * 0.1})`;
+      x.beginPath(); x.ellipse(sx + r() * cw, sy + r() * ch, 10 + r() * 40, 6 + r() * 25, r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+    handwriting(x, r, sx + 12, sy + 8, sx + cw - 12, sy + ch - 10, 20, 'rgba(40,28,18,0.35)', 0.8);
+    x.restore();
+  }
+  speckle(x, W, H, 6000, 0.08, 1983);
+  return toTexture(c, { repeat: false });
+}
+
+// Blå tornet, the house on Drottninggatan where Strindberg lived his last years, on the same
+// wall: its corner tower over five storeys of orange-red render, among lines of his writing in a
+// dark grey ground, 1.7 by 2.2 m.
+export function blueTower() {
+  const W = 520, H = 672, [c, x] = canvas(W, H), r = rng(1912);
+  x.fillStyle = '#2b2b2e'; x.fillRect(0, 0, W, H);
+  handwriting(x, r, 14, 10, W - 14, H - 10, 22, 'rgba(210,205,195,0.45)');
+  // the two fronts meeting at the corner, seen from below
+  const front = (pts: [number, number][], fill: string) => { x.fillStyle = fill; x.beginPath(); pts.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py))); x.closePath(); x.fill(); };
+  const cx = 300, top = 190, foot = 640;
+  front([[cx, top], [cx, foot], [100, foot - 20], [118, top + 50]], '#d4692e');
+  front([[cx, top], [cx, foot], [470, foot - 30], [452, top + 60]], '#b24f22');
+  // windows, storey by storey
+  for (let k = 0; k < 5; k++) {
+    const y = top + 70 + k * 78;
+    for (let i = 0; i < 4; i++) {
+      const lx = 130 + i * 42, ly = y + (4 - i) * 4;
+      x.fillStyle = '#3a261e'; x.fillRect(lx, ly, 22, 40);
+      x.fillStyle = 'rgba(255,230,190,0.5)'; x.fillRect(lx, ly - 4, 22, 3);
+    }
+    for (let i = 0; i < 3; i++) {
+      const lx = 320 + i * 44, ly = y + i * 5;
+      x.fillStyle = '#331f18'; x.fillRect(lx, ly, 22, 40);
+    }
+  }
+  // the tower on the corner: a round bay, its dome and lantern
+  x.fillStyle = '#c55d29'; x.fillRect(cx - 42, top - 70, 84, 120);
+  x.fillStyle = '#3a261e'; for (const dx of [-28, 8]) x.fillRect(cx + dx, top - 50, 20, 34);
+  x.fillStyle = '#4f6f7a'; x.beginPath(); x.ellipse(cx, top - 70, 46, 52, 0, Math.PI, 0); x.fill();
+  x.fillRect(cx - 6, top - 150, 12, 30);
+  x.fillStyle = '#2d3f46'; x.beginPath(); x.moveTo(cx - 10, top - 150); x.lineTo(cx, top - 180); x.lineTo(cx + 10, top - 150); x.fill();
+  // the cornice and the dark roofs over the fronts
+  x.fillStyle = '#e8b48a'; x.fillRect(118, top + 44, cx - 118, 8); x.fillRect(cx, top + 44, 452 - cx, 8);
+  front([[118, top + 44], [cx, top + 30], [cx, top + 44]], '#5a3a2c');
+  front([[cx, top + 30], [452, top + 50], [452, top + 54], [cx, top + 44]], '#4a2e24');
+  speckle(x, W, H, 2500, 0.1, 1912);
   return toTexture(c, { repeat: false });
 }
 

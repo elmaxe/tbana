@@ -6,8 +6,9 @@ import type { CavePaint } from './textures';
 // neon (1998); Farsta strand, under the centre built over it; Karlaplan, as it has looked since
 // 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; Östermalmstorg, with
 // Siri Derkert's lines in its concrete walls (1965); Skanstull, the trams' station of 1933,
-// on its beams; and Medborgarplatsen, the other of 1933, with its enamelled columns and the
-// vault of its lengthening in 1950.
+// on its beams; Medborgarplatsen, the other of 1933, with its enamelled columns and the
+// vault of its lengthening in 1950; and Rådmansgatan, Hötorget's neighbour of 1952, in yellow
+// tiles.
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -15,7 +16,8 @@ export type HallStyle = FlatHall | VaultHall;
 export interface FlatHall {
   kind: 'flat';
   // a flat roof: low over the track (the soffit), stepping up between the two rows of columns to
-  // the ceiling (the same height for a roof that is flat all over)
+  // the ceiling (the same height for a roof that is flat all over); with one row down the
+  // middle, `fromEdge` + half of `size` in from the platform's edges
   soffit: number;
   ceiling: number;
   step: number;          // across the slope from the soffit up to the ceiling
@@ -65,15 +67,27 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // and the vault to `crown` over the middle of the platform, painted `color`, with a row of lamps
 // on a rail along it either side of the middle, `lamps` from it; where it meets the flat part,
 // a black wall over the flat ceiling with a pale triangle in its middle, point down.
+// Rådmansgatan's, of 1952, has no beams (`beams` left out) but Hötorget's roof, stepping up from
+// the soffit to the ceiling, a row of tube lamps in the soffit beside each step, and round lamps
+// on the ceiling either side of the row of columns at each column, `lamps.off` from its middle;
+// the columns square and tiled as the walls (`columnTile` across), the tiles up to a plain band
+// `walls.top` deep under the soffit, a dark plate with the station's name in the middle of each
+// gap between the groups of posters (`walls.plate`, its middle `at` high), and the long signs
+// along the edges in SL's blue (`signs.blue`).
 export interface BeamedHall {
   kind: 'beams';
-  walls: { color: number; tile: number; from: number; posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number } };
-  beams: { depth: number; width: number; between: number | null; along: number; color?: number };
+  walls: {
+    color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number };
+    posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number };
+  };
+  beams?: { depth: number; width: number; between: number | null; along: number; color?: number };
   ceiling: number;
   column: number;
+  columnTile?: number;
   rings?: { colors: number[]; top: number; width: number; pitch: number };
+  lamps?: { off: number };
   paving: Paving;
-  signs: { every: number; at: number; ways?: string };
+  signs: { every: number; at: number; ways?: string; blue?: boolean };
   clocks?: boolean;
   boards?: { from: number; east: Board; west: Board };
   vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number };
@@ -158,6 +172,19 @@ export interface VaultHall {
 // the ceiling about 4.2 m over the rails, the vault's crown about 6. Where the vault begins, 6 m
 // beyond the foot of the stairs from the northern ticket hall, is inferred from photographs
 // looking along it, which show no stairs in it.
+//
+// Rådmansgatan: opened on 26 October 1952 with Hötorget, by the same architect (Gunnar Lené), an
+// island platform about eight metres under Sveavägen between Rådmansgatan and Rehnsgatan, curving
+// gently (Swedish Wikipedia; Albert Guillaumes' drawing). Hötorget's roof, low over the tracks and
+// stepping up over the middle of the platform, but one row of square columns down its middle, and
+// everything in glossy yellow tiles, 15 cm: the columns and the track walls, over a black band
+// along the track bed, with posters in groups and small dark plates with the station's name
+// between them. Tube lamps along the soffit over the platform's edges, round lamps on the ceiling
+// either side of the columns; grey tiles underfoot in a bond, white tiles along the edge and a
+// dark strip with brass studs inside them; benches back to back between the columns, a clock, and
+// SL's blue signs along both edges with the ways out. Wikimedia Commons' photographs (2013–2018):
+// the column spacing, the step and the lamps are read from them, the heights taken from
+// Hötorget's.
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
     kind: 'flat',
@@ -248,6 +275,37 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         west: { toward: 'T-Centralen · Hässelby', trains: ['17 Åkeshov  2 min', '19 Hässelby strand  6 min'] },
       },
       vault: { from: [795.4, 1791.9], toward: [777.4, 1714.9], crown: 6.0, color: 0xe6e2d6, lamps: 2.2 },
+    },
+  },
+  'Rådmansgatan': {
+    kind: 'flat',
+    soffit: 3.9,
+    ceiling: 4.6,
+    step: 0.5,
+    columns: { fromEdge: 1.7, size: 0.6, spacing: 8, middle: true },
+    finish: {
+      kind: 'beams',
+      walls: {
+        color: 0xd9bd5c, tile: 0.15, from: 1.15, top: 0.3, plate: { name: 'RÅDMANSGATAN', at: 3.15 },
+        posters: { width: 1.2, height: 1.75, bottom: 1.6, every: 1.35, run: 4, gap: 2.6 },
+      },
+      ceiling: 0xd6d0c2,
+      column: 0xd9bd5c,
+      columnTile: 0.15,
+      lamps: { off: 0.9 },
+      paving: {
+        edge: 0.9, edgeTile: [0.3, 0.3], tactile: [0.9, 1.2], studs: true, studColor: 0xc9a443, slabs: 1.2, paverSize: [0.3, 0.3], mix: 0.08,
+        colors: { edge: 0xdedbd3, tactile: 0x55575a, slab: 0xb3b0a9, pavers: 0xb3b0a9, paler: 0xbcb9b2, face: 0x3a3a3a },
+        pattern: 'bond',
+      },
+      signs: { every: 40, at: 3.25, ways: 'Tegnérgatan · Handelshögskolan · Stadsbiblioteket', blue: true },
+      clocks: true,
+      // (trains keep left: the southbound on the east track)
+      boards: {
+        from: 3,
+        east: { toward: 'Farsta strand · Hagsätra · Skarpnäck', trains: ['18 Farsta strand  3 min', '17 Skarpnäck  5 min'] },
+        west: { toward: 'Odenplan · Alvik · Hässelby', trains: ['19 Hässelby strand  2 min', '17 Åkeshov  6 min'] },
+      },
     },
   },
 };

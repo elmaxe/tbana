@@ -35,6 +35,9 @@ export interface OpenStyle {
   // wooden; `roof`, down the middle of one of `roofs` (its index) rather than of `roof`'s, over
   // another platform beside it; or several such rows
   benches?: Benches | Benches[];
+  // under a hall rather than a roof, the line down the middle of the platform the benches follow,
+  // through these [s, u] (along s at u 0 without)
+  middle?: [number, number][];
   // glass shelters on the platform, from s[0] to s[1] and u[0] to u[1] across the line down its
   // middle, glazed along both sides and open at the ends, with a bench inside; out in the open,
   // a flat roof of their own
@@ -284,7 +287,7 @@ export interface Block {
   gables?: { count: number; rise: number; color: number; trim: number; round?: boolean };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes;
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -309,8 +312,10 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 
 // A picture on a wall, facing `turn` as a guardian does, its middle at s, u, from `bottom` to
 // `top` and `width` across; drawn in code (src/textures.ts): the dragon of Tallkrogen's, a
-// mosaic of a forest's floor, or one of Gullmarsplan's angels, cut out round its outline.
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// mosaic of a forest's floor, one of Gullmarsplan's angels, cut out round its outline, or Sture V
+// Nilsson's Strindberg wall at Rådmansgatan: his manuscript, his signature and squares of etched
+// copper (`strindberg`), and Blå tornet, the house he died in (`blueTower`).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -418,6 +423,11 @@ export interface LightBoxes {
 // it a round concrete shaft `shaft` across, flaring from `flare` up into a head `head` across under
 // the ceiling, `ceiling` high.
 export interface Mushrooms { kind: 'mushrooms'; at: [number, number][]; size: number; red: [number, number]; shaft: number; flare: number; head: number; ceiling: number }
+
+// Rådmansgatan's ticket-hall columns (1952), at the points ([s, u], in the station's frame): square,
+// `size` across, in `tiles` from the floor (`from` high) up to `flare`, where a capital of white
+// plaster spreads in straight sides to a square `head` across under the ceiling, `ceiling` high.
+export interface Capitals { kind: 'capitals'; at: [number, number][]; size: number; tiles: Finish; from: number; flare: number; head: number; ceiling: number }
 
 // Leif Tjerned's boxes of neon (Gullmarsplan, 1995): dark boxes hung under the ceiling, `ceiling`
 // high, at the points ([s, u], in the station's frame), each `size` along, across and deep, with
@@ -3420,6 +3430,101 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     art: [
       // the white columns either side of the foot of the northern escalator
       { kind: 'columns', at: [[-6.2, -2.0], [-6.2, 1.0]], from: 0, to: 3.2, size: 0.45, color: 0xecebe6 },
+    ],
+  },
+  // Rådmansgatan (its hall: src/hall-styles.ts). Both ticket halls in yellow tiles over small white
+  // floor tiles, square tiled columns with white capitals flaring under the ceiling, the gates either
+  // side of one, a glazed booth with dark panels beside the southern gates; the passages in yellow
+  // tiles over grey, the western one's south wall black, with Sture V Nilsson's Strindberg wall
+  // (1983) and his Blå tornet on it; as photographs show them. On the street (Google's mesh, set
+  // 1.2 m west to OpenStreetMap's outlines, which it sits that far east of here): the glass
+  // pavilion on the eastern pavement, 3.6 m high on a grey stone plinth, framed in black; the two
+  // lifts' towers of steel, 3.75 m high, their tops dark with the name; at the park's corner the
+  // small house over the north-western stairs, its glazed roof sloping down over them to the south
+  // and its doors at the north end, where OpenStreetMap has its entrance; and at Sveavägen 98 SL's
+  // glass doors under the blue band in the ground floor, as photographs show them.
+  'Rådmansgatan': {
+    buildings: ['w122041464', 'w129795640'],
+    // (between the middle row's columns, which follow the platform's gentle curve)
+    benches: { at: [-51.45, -27.47, -3.49, 20.52, 44.57], double: true, wood: true },
+    middle: [[-68.2, 0.28], [-44, 0.1], [-20, 0.02], [4, 0], [28, 0], [44.3, -0.07], [68.2, -0.46]],
+    rooms: [
+      { name: 'lift on the platform', s: [-75.6, -72.5], u: [-2.6, -0.2], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'south flights', s: [-83, -74], u: [-0.5, 4.5], h: [-0.5, 0.5], walls: 'yellowTiles', stairs: 'yellowTiles', ceiling: 'whiteRender' },
+      { name: 'pavilion stairs', s: [-122, -116.3], u: [10.5, 14], h: [3.8, 4.8], walls: 'yellowTiles', stairs: 'yellowTiles', sill: 7.9 },
+      { name: 'east passage', s: [-117, -96], u: [3.2, 15], h: [3.8, 4.8], walls: 'yellowTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'west stairs', s: [-114, -110], u: [-20.5, -13], h: [3.8, 4.8], walls: 'yellowTiles', stairs: 'yellowTiles', ceiling: 'whiteRender' },
+      { name: 'west passage', s: [-114, -97.5], u: [-25, -3.2], h: [3.8, 4.8], walls: 'yellowTiles', back: 'blackTiles', stairs: 'yellowTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'south lift passage', s: [-97.5, -80], u: [-11.5, -3.2], h: [3.8, 4.8], walls: 'yellowTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'south lift door', s: [-78.5, -74.5], u: [-11.6, -9.2], h: [6.7, 7.7], walls: null, floor: 'pavers' },
+      { name: 'south hall', s: [-101.5, -76], u: [-3.2, 5.5], h: [3.8, 4.8], walls: 'yellowTiles', floor: 'squareTiles', ceiling: 'whiteRender' },
+      { name: 'north flights', s: [74, 86], u: [-5, -0.5], h: [-0.5, 0.5], walls: 'yellowTiles', stairs: 'yellowTiles', ceiling: 'whiteRender' },
+      { name: 'north-west house', s: [118.6, 123], u: [-24.5, -20], h: [8.6, 9.6], walls: null, floor: 'greyTiles' },
+      { name: 'north-west stairs', s: [111.5, 118.6], u: [-24.5, -20], h: [5.1, 6.1], walls: 'yellowTiles', stairs: 'yellowTiles', sill: 9.95 },
+      { name: 'north lift door', s: [113.5, 116.5], u: [-18.5, -16.1], h: [8.3, 9.3], walls: null, floor: 'pavers' },
+      { name: 'north-east passage', s: [103, 132], u: [1, 26], h: [5.1, 6.1], walls: 'yellowTiles', stairs: 'yellowTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'north-west passage', s: [104, 112], u: [-23, -5.5], h: [5.1, 6.1], walls: 'yellowTiles', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'north hall', s: [84.5, 107], u: [-6.6, 1.4], h: [5.1, 6.1], walls: 'yellowTiles', floor: 'squareTiles', ceiling: 'whiteRender' },
+    ],
+    blocks: [
+      // the yellow walls either side of the flights from the platform's ends, on into the rock, and
+      // their ceiling rising over them (taking out the tunnel the tracks run on into, there, and the
+      // platform's end where it runs on past the foot of the flights)
+      { name: "south flights' walls", plan: [[-82.6, -2.75], [-75.5, -2.75], [-75.5, 3.95], [-82.6, 3.95]], h: [0, 6.9], low: 3.6,
+        walls: 'yellowTiles', sides: [undefined, null, undefined, null], floor: 'greyTiles', ceiling: 'whiteRender', onPlatform: true },
+      { name: "north flights' walls", plan: [[85.2, -4.65], [75.5, -4.65], [75.5, 1.15], [85.2, 1.15]], h: [0, 8.2], low: 3.6,
+        walls: 'yellowTiles', sides: [undefined, null, undefined, null], floor: 'greyTiles', ceiling: 'whiteRender', onPlatform: true },
+      // the end walls beside them, out to the platform's edges, and over the tracks' tunnels from
+      // the hall's soffit up
+      { name: 'south end wall, west', plan: [[-75.8, -4.15], [-75.52, -4.15], [-75.52, -2.75], [-75.8, -2.75]], h: [0, 3.6], walls: 'yellowTiles' },
+      { name: 'south end wall, east', plan: [[-75.8, 3.95], [-75.52, 3.95], [-75.52, 4.85], [-75.8, 4.85]], h: [0, 3.6], walls: 'yellowTiles' },
+      { name: 'over the south-western tunnel', plan: [[-75.8, -8.0], [-75.52, -8.0], [-75.52, -4.15], [-75.8, -4.15]], h: [2.9, 3.6], walls: 'yellowTiles' },
+      { name: 'over the south-eastern tunnel', plan: [[-75.8, 4.85], [-75.52, 4.85], [-75.52, 8.6], [-75.8, 8.6]], h: [2.9, 3.6], walls: 'yellowTiles' },
+      { name: 'north end wall, west', plan: [[75.52, -5.24], [75.8, -5.24], [75.8, -4.65], [75.52, -4.65]], h: [0, 3.6], walls: 'yellowTiles' },
+      { name: 'north end wall, east', plan: [[75.52, 1.15], [75.8, 1.15], [75.8, 3.76], [75.52, 3.76]], h: [0, 3.6], walls: 'yellowTiles' },
+      { name: 'over the north-western tunnel', plan: [[75.52, -9.0], [75.8, -9.0], [75.8, -5.24], [75.52, -5.24]], h: [2.9, 3.6], walls: 'yellowTiles' },
+      { name: 'over the north-eastern tunnel', plan: [[75.52, 3.76], [75.8, 3.76], [75.8, 7.6], [75.52, 7.6]], h: [2.9, 3.6], walls: 'yellowTiles' },
+      // the glass pavilion on the eastern pavement, its doors at the south end; its stone plinth
+      { name: 'pavilion', plan: [[-123.6, 10.7], [-114.05, 10.7], [-114.05, 13.3], [-123.3, 13.65]], h: [6.5, 10.48], from: 6.88,
+        walls: 'darkGlazed', sides: [undefined, undefined, undefined, 'blackFront'], floor: 'greyTiles', ceiling: 'whiteRender', roof: 0.3, roofColor: 0x2a2c2e, ground: true },
+      { name: "pavilion's plinth, west", plan: [[-123.85, 10.4], [-113.8, 10.4], [-113.8, 10.7], [-123.85, 10.7]], h: [6.6, 7.4], from: 6.88,
+        walls: 'terrazzo', roof: 0.05, roofColor: 0x9a9c9b },
+      { name: "pavilion's plinth, north", plan: [[-114.05, 10.7], [-113.8, 10.7], [-113.8, 13.55], [-114.05, 13.3]], h: [6.6, 7.4], from: 6.88,
+        walls: 'terrazzo', roof: 0.05, roofColor: 0x9a9c9b },
+      { name: "pavilion's plinth, east", plan: [[-123.3, 13.65], [-114.05, 13.3], [-114.05, 13.55], [-123.3, 13.9]], h: [6.6, 7.4], from: 6.88,
+        walls: 'terrazzo', roof: 0.05, roofColor: 0x9a9c9b },
+      // the lifts' towers (their door sides the lifts' own)
+      { name: 'south lift tower', plan: [[-80.6, -11.6], [-77.9, -11.6], [-77.9, -9.2], [-80.6, -9.2]], h: [6.9, 10.96], from: 7.21,
+        walls: 'cladding', sides: [undefined, null, undefined, undefined], band: { walls: 'greyPanels', from: 10.2 }, roof: 0.15, roofColor: 0x2a2c2e,
+        nameSign: { side: 1, at: 0.5, length: 2.0, bottom: 10.34, black: true } },
+      { name: 'north lift tower', plan: [[110.4, -18.5], [113.1, -18.5], [113.1, -16.1], [110.4, -16.1]], h: [8.5, 12.57], from: 8.82,
+        walls: 'cladding', sides: [undefined, null, undefined, undefined], band: { walls: 'greyPanels', from: 11.81 }, roof: 0.15, roofColor: 0x2a2c2e,
+        nameSign: { side: 1, at: 0.5, length: 2.0, bottom: 11.95, black: true } },
+      // the house over the north-western stairs: its glazed roof sloping down over them, its doors
+      // at the north end
+      { name: 'north-west house', plan: [[120.6, -20.1], [118.2, -20.1], [118.2, -24.4], [120.6, -24.4]], h: [8.8, 12.15], from: 9.15,
+        walls: 'darkGlazed', sides: [undefined, null, undefined, 'blackFront'], floor: 'greyTiles', ceiling: 'whiteRender', roof: 0.2, roofColor: 0x3a3f44,
+        nameSign: { side: 3, at: 0.5, length: 3.0, bottom: 11.47, black: true }, ground: true },
+      { name: 'north-west stairs', plan: [[118.2, -20.1], [113.9, -20.1], [113.9, -24.4], [118.2, -24.4]], h: [8.8, 12.15], low: 10.2, from: 9.15,
+        walls: 'glazed', sides: [undefined, undefined, undefined, null], roof: 0.08, roofColor: 0x9fb0b8, ground: true },
+      // SL's doors in the ground floor of Sveavägen 98
+      { name: 'north-east doors', plan: [[126.6, 13.5], [126.6, 14.2], [131.6, 14.2], [131.6, 13.5]], h: [8.6, 12.17], from: 8.87,
+        walls: 'steelFront', sides: [null, null, null, undefined], roof: 0.1, roofColor: 0x8d8f91,
+        nameSign: { side: 3, at: 0.5, length: 3.4, bottom: 11.67 } },
+      // the inclined lift's shaft beside the northern escalators (the lift itself isn't walked)
+      { name: "inclined lift's shaft", plan: [[85.2, -0.6], [85.2, 0.9], [75.5, 0.9], [75.5, -0.6]], h: [5.6, 8.0], from: 5.6, fall: 0,
+        walls: 'glazed', floor: 'greyTiles', roof: 0.1, roofColor: 0x8a9095 },
+      // the glazed ticket booth beside the southern gates
+      { name: 'ticket booth', plan: [[-92.6, 3.2], [-89.4, 3.2], [-89.4, 4.9], [-92.6, 4.9]], h: [4.3, 6.6], from: 4.3,
+        walls: 'liftWindows', roof: 0.05, roofColor: 0xb9b6ae },
+    ],
+    art: [
+      // the halls' columns, one between the two banks of gates, one on the unpaid side
+      { kind: 'capitals', at: [[-91.0, 0.0], [-96.3, 1.0]], size: 0.6, tiles: 'yellowTiles', from: 4.3, flare: 6.45, head: 1.4, ceiling: 6.9 },
+      { kind: 'capitals', at: [[96.5, -2.6], [101.5, -2.6]], size: 0.6, tiles: 'yellowTiles', from: 5.6, flare: 7.75, head: 1.4, ceiling: 8.2 },
+      // the Strindberg wall and Blå tornet on the western passage's black tiles
+      { kind: 'mural', picture: 'strindberg', s: -103.14, u: -6.93, turn: -0.3885, bottom: 4.75, top: 6.6, width: 3.6 },
+      { kind: 'mural', picture: 'blueTower', s: -106.69, u: -16.83, turn: -0.2858, bottom: 4.4, top: 6.6, width: 1.7 },
     ],
   },
 };
