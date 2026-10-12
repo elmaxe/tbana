@@ -311,7 +311,9 @@
     {
       "station": "Sankt Eriksplan",
       "replace": true,
-      "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it. Both tracks are placed from the station's node, which lies between them."
+      "at": [152121.54, 6580624.16],
+      "length": 154,
+      "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it; and the station's node lies 19 m south of the platform's middle. OSM's indoor mapping has the flights climbing from both ends of the platform, the southern escalators' foot 153.7 m from the northern flights'. Both tracks are placed from this point between them, the middle of the platform."
     },
     {
       "station": "Bagarmossen",

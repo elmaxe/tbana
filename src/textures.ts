@@ -2531,6 +2531,27 @@ export function tiledColumn(color: number, tile: number) {
   return toTexture(c);
 }
 
+// S:t Eriksplan's columns: concrete with its aggregate exposed, `color` with a mottle, and
+// flecked with its stones, black, white and brownish grey, a few millimetres to a centimetre
+// across. As pillar lays it on: HOTORGET_REPEAT m to a repeat, across a face and up it.
+export function aggregate(color: number) {
+  const N = 1024, PX = N / HOTORGET_REPEAT, [c, x] = canvas(N, N), r = rng(1952);
+  x.fillStyle = css(color); x.fillRect(0, 0, N, N);
+  for (let i = 0; i < 60; i++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '60,56,50' : '200,196,188'},${0.04 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * N, r() * N, 20 + r() * 80, 20 + r() * 80, 0, 0, Math.PI * 2); x.fill();
+  }
+  const stones: [string, number][] = [['28,27,26', 0.35], ['226,222,212', 0.2], ['120,108,96', 0.25], ['70,72,74', 0.2]];
+  for (let i = 0; i < 56000; i++) {
+    let k = r(), j = 0;
+    while (j < stones.length - 1 && k > stones[j][1]) { k -= stones[j][1]; j++; }
+    const s = (0.003 + r() * r() * 0.012) * PX;
+    x.fillStyle = `rgba(${stones[j][0]},${0.5 + r() * 0.5})`;
+    x.beginPath(); x.ellipse(r() * N, r() * N, s, s * (0.6 + r() * 0.4), r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
+}
+
 // The vault of the lengthening: cream panels, their joints across the hall every 1.2 m and,
 // fainter, along it every 0.6 m. u across the hall, v along it, 2.4 m a repeat both ways.
 export function vaultPanels(color: number) {
@@ -3372,9 +3393,9 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
   redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
   pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
-  crossTerrazzo: [2.4, 2.4],
+  crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
@@ -4483,6 +4504,15 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'bronzeGlazed': {
+      // S:t Eriksplan's northern stair house: clear glass in thick frames of dark bronze 0.6 m
+      // apart, a rail across them at 1.1 m, on a bronze sill
+      const br = '#5a4633';
+      pane(0, h, br, 0.14);
+      x.fillStyle = br; x.fillRect(W / 2 - 0.07 * PX, 0, 0.14 * PX, H); x.fillRect(0, Y(0.15), W, 0.15 * PX); x.fillRect(0, Y(1.15), W, 0.08 * PX);
+      x.fillStyle = 'rgba(255,236,210,0.2)'; x.fillRect(0, Y(0.15), W, 1.5);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -4491,7 +4521,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

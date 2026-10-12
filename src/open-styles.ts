@@ -26,6 +26,8 @@ export interface OpenStyle {
   // OpenStreetMap's outlines of the buildings it draws itself, which the city leaves out
   // (tools/build-city.ts)
   buildings?: string[];
+  // the name on its blocks' signs, where it is written otherwise than in the map (S:t Eriksplan)
+  signName?: string;
   // the art on the platform: sculptures, and panels hung between the roof's columns
   art?: Art[];
   // fences along the tracks, beyond them
@@ -256,14 +258,16 @@ export type Finish =
   | 'bronzeGlass'   // a curtain wall of bronze-grey tinted glass in dark frames, 1.5 by 1.8 m
   | 'greenTiles'    // small square tiles, a sea green
   | 'crossMosaic'   // warm yellow tiles, and on them round clusters of small cross-shaped tiles (Mari Pårup's)
-  | 'crossTerrazzo'; // dark grey terrazzo, small pale crosses set in it here and there
+  | 'crossTerrazzo' // dark grey terrazzo, small pale crosses set in it here and there
+  | 'bronzeGlazed'; // clear glass in thick dark bronze frames, a rail across at 1.1 m
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
 // this thick, and a floor at `from` wherever the station's own floors leave it open. The
 // station's parts open through it. `low`: its top falls from `h[1]` at its first and last corners
-// to this at the other two. `fall`: its floor falls from `from` at its first two corners to this at
-// the other two, and its top with it. `sides` gives a side (from corner i to the next) a finish of its own,
+// to this at the other two; `lowBack`, from h[1] at its first two corners to this at the other two.
+// `fall`: its floor falls from `from` at its first two corners to this at the other two, and its
+// top with it. `sides` gives a side (from corner i to the next) a finish of its own,
 // or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a finish of
 // their own all round from a height up; `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
@@ -279,7 +283,7 @@ export type Finish =
 // along their edges, and a strip of glass down each slope; or (`round`) vaults, rising `rise` in a
 // half-ellipse, glass along their crowns.
 export interface Block {
-  name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; eaves?: number | number[]; ground?: boolean;
+  name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; lowBack?: number; eaves?: number | number[]; ground?: boolean;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
   onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
@@ -3525,6 +3529,82 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the Strindberg wall and Blå tornet on the western passage's black tiles
       { kind: 'mural', picture: 'strindberg', s: -103.14, u: -6.93, turn: -0.3885, bottom: 4.75, top: 6.6, width: 3.6 },
       { kind: 'mural', picture: 'blueTower', s: -106.69, u: -16.83, turn: -0.2858, bottom: 4.4, top: 6.6, width: 1.7 },
+    ],
+  },
+  'Sankt Eriksplan': {
+    buildings: ['w135177284', 'w135177285', 'w1174021669', 'w135244688', 'w836696981'],
+    signName: 'S:t Eriksplan',
+    // (wooden benches back to back, between the two rows of columns, halfway between columns)
+    benches: { at: [-56.8, -32.8, -8.8, 15.2, 39.2, 63.2], double: true, wood: true },
+    middle: [[-77, -1.5], [-60, -0.65], [-40, -0.15], [-20, 0], [0, 0], [20, 0.15], [40, 0.5], [60, 1.65], [76, 3.2]],
+    rooms: [
+      { name: 'lift on the platform', s: [-77.2, -73], u: [-5.2, -2.3], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'south flights', s: [-84, -76], u: [-2.6, 1.4], h: [-0.5, 0.5], walls: 'creamTiles', stairs: 'creamTiles', ceiling: 'whiteRender' },
+      { name: 'north flights', s: [75, 84], u: [1, 6.8], h: [-0.5, 0.5], walls: 'creamTiles', stairs: 'creamTiles', ceiling: 'whiteRender' },
+      { name: 'pavilion floor', s: [-123, -111], u: [17, 31], h: [6, 7.2], walls: null, floor: 'greyTiles' },
+      { name: 'pavilion flights', s: [-118, -111.5], u: [19, 27], h: [3.3, 4.3], walls: 'creamTiles', stairs: 'creamTiles', sill: 7.6 },
+      { name: 'west lift door', s: [-107.5, -104.3], u: [-24.5, -20.8], h: [6.1, 7.2], walls: null, floor: 'pavers' },
+      { name: 'west stairs', s: [-111.5, -106.6], u: [-24, -17.5], h: [3.3, 4.3], walls: 'squareTiles', stairs: 'squareTiles', sill: 7.6 },
+      { name: 'south halls and passages', s: [-150, -77], u: [-26, 40], h: [2.3, 4.3], walls: 'squareTiles', floor: 'paleTiles', ceiling: 'whiteRender', stairs: 'squareTiles' },
+      { name: 'north lift door', s: [110.5, 114], u: [-1, 2], h: [9.7, 10.8], walls: null, floor: 'pavers' },
+      { name: 'north stairs', s: [106.6, 117], u: [-5.5, -0.7], h: [5.1, 6.1], walls: 'squareTiles', stairs: 'squareTiles', sill: 11.2 },
+      { name: 'north hall', s: [83, 108.5], u: [-6, 8], h: [4.1, 6.1], walls: 'squareTiles', floor: 'paleTiles', ceiling: 'whiteRender', stairs: 'squareTiles' },
+    ],
+    blocks: [
+      // the cream walls either side of the flights from the platform's ends, on into the rock, and
+      // their ceiling rising over them
+      { name: "south flights' walls", plan: [[-83.5, -2.5], [-76.92, -2.5], [-76.92, 1.3], [-83.5, 1.3]], h: [0, 6.3], low: 4.5,
+        walls: 'creamTiles', sides: [undefined, null, undefined, null], floor: 'paleTiles', ceiling: 'whiteRender', onPlatform: true },
+      { name: "north flights' walls", plan: [[83.6, 1.1], [75.88, 1.1], [75.88, 6.7], [83.6, 6.7]], h: [0, 7.2], low: 4.5,
+        walls: 'creamTiles', sides: [undefined, null, undefined, null], floor: 'paleTiles', ceiling: 'whiteRender', onPlatform: true },
+      // the end walls beside them, out to the platform's edges, and over the tracks' tunnels from
+      // the hall's soffit up
+      { name: 'south end wall, west', plan: [[-77.2, -5.95], [-76.92, -5.95], [-76.92, -4.8], [-77.2, -4.8]], h: [0, 4.5], walls: 'creamTiles' },
+      { name: 'south end wall, east', plan: [[-77.2, 1.3], [-76.92, 1.3], [-76.92, 3.15], [-77.2, 3.15]], h: [0, 4.5], walls: 'creamTiles' },
+      { name: 'over the south lift', plan: [[-77.2, -4.8], [-76.92, -4.8], [-76.92, -2.5], [-77.2, -2.5]], h: [2.5, 4.5], walls: 'creamTiles' },
+      { name: 'over the south-western tunnel', plan: [[-77.2, -9.95], [-76.92, -9.95], [-76.92, -5.95], [-77.2, -5.95]], h: [2.9, 4.5], walls: 'creamTiles' },
+      { name: 'over the south-eastern tunnel', plan: [[-77.2, 3.15], [-76.92, 3.15], [-76.92, 7.15], [-77.2, 7.15]], h: [2.9, 4.5], walls: 'creamTiles' },
+      { name: 'north end wall, west', plan: [[75.6, -1.4], [75.88, -1.4], [75.88, 1.1], [75.6, 1.1]], h: [0, 4.5], walls: 'creamTiles' },
+      { name: 'north end wall, east', plan: [[75.6, 6.7], [75.88, 6.7], [75.88, 7.8], [75.6, 7.8]], h: [0, 4.5], walls: 'creamTiles' },
+      { name: 'over the north-western tunnel', plan: [[75.6, -5.4], [75.88, -5.4], [75.88, -1.4], [75.6, -1.4]], h: [2.9, 4.5], walls: 'creamTiles' },
+      { name: 'over the north-eastern tunnel', plan: [[75.6, 7.8], [75.88, 7.8], [75.88, 11.8], [75.6, 11.8]], h: [2.9, 4.5], walls: 'creamTiles' },
+      // the inclined lift's shaft beside the northern escalators (the lift itself isn't walked)
+      { name: "inclined lift's shaft", plan: [[83.6, 5.0], [83.6, 6.7], [75.88, 6.7], [75.88, 5.0]], h: [4.6, 7.0], from: 4.6, fall: 0,
+        walls: 'glazed', floor: 'greyTiles', roof: 0.1, roofColor: 0x8a9095 },
+      // the glass pavilion on the square, its front and doors at the south-eastern end, under the
+      // name; its sides dark glass
+      { name: 'pavilion', plan: [[-113.5, 17.34], [-121.62, 24.01], [-117.1, 29.53], [-108.98, 22.85]], h: [6.2, 10.6], from: 6.6,
+        walls: 'darkGlazed', sides: [undefined, 'glassFront', undefined, undefined], band: { walls: 'greyPanels', from: 10.0 },
+        floor: 'greyTiles', ceiling: 'whiteRender', roof: 0.15, roofColor: 0xb4b8ba,
+        nameSign: { side: 1, at: 0.5, length: 6.4, bottom: 8.95 }, ground: true },
+      // the glazed house over the western stairs, its curved roof falling from its doors at the
+      // south-western end; and the lift's tower beside it (its door side the lift's own)
+      { name: 'west house', plan: [[-112.15, -21.31], [-108.98, -24.2], [-103.98, -18.69], [-107.15, -15.8]], h: [6.2, 9.36], from: 6.66, lowBack: 8.26,
+        walls: 'darkGlazed', sides: ['glassFront', undefined, undefined, undefined], floor: 'greyTiles', ceiling: 'whiteRender',
+        roof: 0.1, roofColor: 0x6d7478, gables: { count: 1, rise: 0.5, color: 0x3a3f44, trim: 0x2a2c2e, round: true },
+        nameSign: { side: 0, at: 0.5, length: 3.6, bottom: 8.81 }, ground: true },
+      { name: 'west lift tower', plan: [[-104.2, -22.5], [-105.99, -20.9], [-104.26, -18.96], [-102.47, -20.56]], h: [6.3, 11.16], from: 6.67,
+        walls: 'darkGlazed', sides: [null, undefined, undefined, undefined], band: { walls: 'greyPanels', from: 10.5 }, roof: 0.15, roofColor: 0x2a2c2e },
+      // the house over the northern stairs, at the corner of Torsgatan: bronze-framed glass under a
+      // vault falling from its open northern end, where the name is; and the lift's glazed tower
+      { name: 'north house', plan: [[116.2, -4.66], [115.4, 0.03], [105.35, -1.72], [106.16, -6.41]], h: [9.8, 13.1], from: 10.2, lowBack: 11.2,
+        walls: 'bronzeGlazed', sides: [null, undefined, undefined, undefined], floor: 'greyTiles', ceiling: 'pineBoards', roof: 0.08, roofColor: 0x5a4633,
+        gables: { count: 1, rise: 1.0, color: 0x4a3a2a, trim: 0x3e3024, round: true },
+        nameSign: { side: 0, at: 0.5, length: 4.0, bottom: 12.55 }, ground: true },
+      { name: 'north lift tower', plan: [[110.8, -0.7], [110.8, 1.7], [108.2, 1.7], [108.2, -0.7]], h: [9.8, 14.64], from: 10.24,
+        walls: 'darkGlazed', sides: [null, undefined, undefined, undefined], band: { walls: 'greyPanels', from: 14.0 }, roof: 0.15, roofColor: 0x2a2c2e },
+      // the ticket booth beside the southern gates
+      { name: 'ticket booth', plan: [[-93.0, -5.6], [-89.8, -5.6], [-89.8, -3.8], [-93.0, -3.8]], h: [3.8, 6.1], from: 3.8,
+        walls: 'liftWindows', roof: 0.05, roofColor: 0xb9b6ae },
+    ],
+    art: [
+      // the halls' tiled columns, beside the gates
+      { kind: 'capitals', at: [[-91.7, 2.0]], size: 0.6, tiles: 'squareTiles', from: 3.8, flare: 5.7, head: 1.2, ceiling: 6.3 },
+      { kind: 'capitals', at: [[95.7, 6.0]], size: 0.6, tiles: 'squareTiles', from: 4.6, flare: 6.5, head: 1.2, ceiling: 7.2 },
+      // the metro's signs on the pavilion and the lifts' towers
+      { kind: 'roundel', s: -117.4, u: 29.0, h: 11.45, size: 0.9, foot: 10.75, along: true },
+      { kind: 'roundel', s: -104.3, u: -20.7, h: 12.0, size: 0.9, foot: 11.31 },
+      { kind: 'roundel', s: 110.4, u: 1.4, h: 15.5, size: 0.9, foot: 14.79, along: true },
     ],
   },
 };

@@ -74,7 +74,8 @@ export function roomOf(style: OpenStyle, frame: Frame, p: FloorPart | InclinePar
 // The height of a block's floor at its corner i, and of its top (both lower at the last two
 // corners by as much as its floor falls).
 const blockFrom = (b: Block, i: number) => i >= 2 && b.fall !== undefined ? b.fall : b.from ?? 0;
-const blockTop = (b: Block, i: number) => ((i === 1 || i === 2) && b.low !== undefined ? b.low : b.h[1]) - (b.from ?? 0) + blockFrom(b, i);
+const blockTop = (b: Block, i: number) =>
+  (i >= 2 && b.lowBack !== undefined ? b.lowBack : (i === 1 || i === 2) && b.low !== undefined ? b.low : b.h[1]) - (b.from ?? 0) + blockFrom(b, i);
 
 // The style's building shells as volumes: the street around an exit runs on under a
 // street-level hall, but isn't there to be stepped onto from inside it; nor is the platform under
@@ -273,7 +274,7 @@ export class OpenLook {
   // (the walls cut by all the station's spaces, their roofs and ceilings not by its open floors')
   build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[], group: THREE.Group, roofCut = cut) {
     const frame = new Frame(st);
-    for (const b of style.blocks ?? []) this.block(b, frame, on, cut, st.name, roofCut);
+    for (const b of style.blocks ?? []) this.block(b, frame, on, cut, style.signName ?? st.name, roofCut);
     for (const f of style.fences ?? []) this.fence(f, frame, on);
     for (const a of style.art ?? []) {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
@@ -1369,16 +1370,17 @@ export class OpenLook {
 
   // Gables side by side on a block's roof along its first side, their ridges across it: the
   // slopes reaching 0.2 m past the ends, a strip of glass down the middle of each, the ends'
-  // triangles under a trim along their edges.
+  // triangles under a trim along their edges. They sit on the roof as it slopes.
   private gables(b: Block, frame: Frame, on: On, cut: Volume[]) {
-    const G = b.gables!, c = b.plan, base = blockTop(b, 0) + (b.roof ?? 0), top = base + G.rise;
+    const G = b.gables!, c = b.plan, base = 0, top = G.rise;
     const slope = on(b.roofColor === undefined ? this.roofing : this.color(b.roofColor, 0.7, 0.2));
     const end = on(this.color(G.color, 0.75, 0.05)), trim = on(this.color(G.trim, 0.6, 0.05)), glass = on(this.color(0x8d9ba6, 0.15, 0.5));
-    // t along the first side, v along the second, the height over the platform
+    // t along the first side, v along the second, h over the roof there
+    const roofAt = (t: number, v: number) => (b.roof ?? 0) + (1 - v) * ((1 - t) * blockTop(b, 0) + t * blockTop(b, 1)) + v * ((1 - t) * blockTop(b, 3) + t * blockTop(b, 2));
     const P = (t: number, v: number, h: number): XYZ => {
       const s0 = c[0][0] + (c[1][0] - c[0][0]) * t, u0 = c[0][1] + (c[1][1] - c[0][1]) * t;
       const s1 = c[3][0] + (c[2][0] - c[3][0]) * t, u1 = c[3][1] + (c[2][1] - c[3][1]) * t;
-      return frame.at(s0 + (s1 - s0) * v, u0 + (u1 - u0) * v, h);
+      return frame.at(s0 + (s1 - s0) * v, u0 + (u1 - u0) * v, roofAt(t, v) + h);
     };
     const e = 0.2 / Math.hypot(c[2][0] - c[1][0], c[2][1] - c[1][1]), q = (p: XYZ) => [...p, 0, 0];
     for (let k = 0; k < G.count; k++) {

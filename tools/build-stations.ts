@@ -12,7 +12,8 @@
 // Heights are metres above the platform. An exit comes up to the street at the entrance, at the
 // height of the ground there (data/ground/entrances.json, from tools/fetch-ground.ts, or a deck's
 // in data/ground-corrections.json), with a sign
-// on a post beside it (`sign: false`, none: the station's name is over its doors). Stairs or
+// on a post beside it (`sign: false`, none: the station's name is over its doors; `signName`, the
+// name as the station's signs write it, where that isn't the map's). Stairs or
 // escalators `open` come up through a hall's floor at their top, with no ceiling over the opening.
 //
 // The build fails on:
@@ -51,6 +52,7 @@ interface Description {
   note?: string;
   axis?: 'north' | 'south' | 'east' | 'west';
   canopy?: boolean;
+  signName?: string;
   routes: RouteDesc[];
 }
 
@@ -347,7 +349,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         exits.push({ name: label, x: r2(x), y: r2(y), z: r2(z), yaw: r2(yaw) });
         // the sign beside the way down, facing the street
         const rx = -hz, rz = hx;
-        if (sg.sign !== false) parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: name });
+        if (sg.sign !== false) parts.push({ kind: 'sign', x: r2(x + rx * 3), y: r2(y), z: r2(z + rz * 3), yaw: r2(yaw), text: d.signName ?? name });
       }
     }
   }

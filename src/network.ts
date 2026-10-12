@@ -552,6 +552,17 @@ export class Network {
       }
       const flat = (sm: Sample) => hallStyle(sm) === st && !sm.vault, repeat = T.beamedWallRepeat(w.posters);
       halls.push({ is: flat, walls: [b[wall] ??= new MeshBuilder(), b[mirror] ??= new MeshBuilder()], roof: b[roof] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
+      // a beam along under the ceiling over each row of columns, in their finish, where there are
+      // two rows (each track's over its own)
+      if (f.rowBeams) {
+        const key: MaterialName = `beamColumn:${station}`, { width, depth } = f.rowBeams;
+        this.mats[key] ??= beamColumnMaterial(f);
+        sweep(b[key] ??= new MeshBuilder(), run, (sm) => {
+          if (!flat(sm)) return null;
+          const u = sm.plat!.side * (S.PLATFORM_EDGE + st.columns.fromEdge), v = st.ceiling + sm.pairDy / 2;
+          return { key: 'row', pts: [[u - width / 2, v], [u - width / 2, v - depth], [u + width / 2, v - depth], [u + width / 2, v]] };
+        }, { uScale: 1 / T.HOTORGET_REPEAT, vScale: 1 / T.HOTORGET_REPEAT });
+      }
       // the vaulted part, its walls the same, its vault in panels (lit as the ceiling is)
       if (f.vault) {
         const vault: MaterialName = `beamVault:${station}`;
@@ -963,13 +974,12 @@ export class Network {
     if (f.kind === 'beams') {
       // (enamelled, ringed with colours, or tiled, where it is)
       const key: MaterialName = `beamColumn:${p.station}`;
-      this.mats[key] ??= f.rings ? new THREE.MeshStandardMaterial({ map: T.ringedColumn(f.column, f.rings), roughness: 0.18 })
-        : f.columnTile ? new THREE.MeshStandardMaterial({ map: T.tiledColumn(f.column, f.columnTile), roughness: 0.35 })
-          : new THREE.MeshStandardMaterial({ color: f.column, roughness: 0.18 });
+      this.mats[key] ??= beamColumnMaterial(f);
       column = b[key] ??= new MeshBuilder();
     }
-    // (a row down the middle stands under the ceiling, where the roof steps up)
-    const top = middle ? st.ceiling : st.soffit;
+    // (a row down the middle stands under the ceiling, where the roof steps up, as do rows the
+    // roof steps up outside)
+    const top = middle || st.stepOutside ? st.ceiling : st.soffit;
     for (let k = 0; k <= n; k++) {
       const sm = sampleAt(start + k * spacing);
       if (!sm) continue;
@@ -993,6 +1003,17 @@ export class Network {
         }
       }
     }
+    if (f.kind === 'beams' && f.troffers && !middle && first.pair > 0) {
+      // fittings recessed down the middle of the ceiling between the rows, two to each gap
+      // between the columns (drawn with one of the two tracks)
+      const [w, l] = f.troffers.size;
+      for (let k = 0; k < 2 * n; k++) {
+        const sq = sampleAt(start + ((k + 0.5) * spacing) / 2);
+        if (!sq || open(sq, sq.pair / 2, l / 2, st.ceiling - 0.05)) continue;
+        box(b.fitting, at(sq, sq.pair / 2, st.ceiling + sq.pairDy / 2 - 0.015), sq, w + 0.1, 0.03, l + 0.1);
+        box(b.lamp, at(sq, sq.pair / 2, st.ceiling + sq.pairDy / 2 - 0.035), sq, w - 0.15, 0.012, l - 0.15);
+      }
+    }
     if (f.kind === 'beams' && f.beams && f.beams.between !== null) {
       // the beams across the hall, from wall to wall: over every column and so many between two,
       // the whole length of the platform
@@ -1005,12 +1026,15 @@ export class Network {
         box(roof, at(sm, sm.pair / 2, st.soffit + sm.pairDy / 2 - f.beams.depth / 2), sm, width, f.beams.depth, f.beams.width);
       }
     }
-    if (f.kind === 'beams' && (f.clocks || f.boards)) {
+    // (with a row along each side, drawn with one of the two tracks)
+    if (f.kind === 'beams' && (f.clocks || f.boards) && (middle || first.pair > 0)) {
       // clocks either side of the middle column, and departure boards across the platform a few
       // columns either way from it, hung on rods from the beams over them, a face each way along
       // the platform
-      const mid = Math.floor(n / 2), d = top - (f.beams?.depth ?? 0);
+      // (from the roof over them, where it slopes outside the columns)
+      const mid = Math.floor(n / 2);
       const hang = (sm: Sample, u: number, w: number, h: number, depth: number, face: THREE.Material, round: boolean) => {
+        const d = (st.stepOutside ? flatRoof(sm, st, u) : top) - (f.beams?.depth ?? 0);
         const t = new THREE.Vector3(sm.rz, 0, -sm.rx), rod = round ? 0.2 : 0.3, c = at(sm, u, d - rod - h / 2);
         if (round) {
           const rim = new THREE.Mesh(new THREE.CylinderGeometry(w / 2, w / 2, depth, 32).rotateX(Math.PI / 2), this.mats.fitting);
@@ -1032,13 +1056,14 @@ export class Network {
         return m;
       };
       const sm = sampleAt(start + mid * spacing);
-      if (f.clocks && sm) for (const k of [-1.2, 1.2]) hang(sm, sm.pair / 2 + k, 0.5, 0.5, 0.1, material('clock', () => T.clockFace()), true);
+      const clocks = typeof f.clocks === 'number' ? f.clocks : 1.2;
+      if (f.clocks && sm) for (const k of [-clocks, clocks]) hang(sm, sm.pair / 2 + k, 0.5, 0.5, 0.1, material('clock', () => T.clockFace()), true);
       for (const k of f.boards ? [mid - f.boards.from, mid + f.boards.from] : []) {
         const sb = sampleAt(start + k * spacing);
         if (!sb || !f.boards) continue;
         // (east of the middle: the way the other track lies from this one, which leads)
         for (const east of [true, false]) {
-          const bd = east ? f.boards.east : f.boards.west, u = sb.pair / 2 + Math.sign(sb.pair) * (east ? 1.6 : -1.6);
+          const off = f.boards.off ?? 1.6, bd = east ? f.boards.east : f.boards.west, u = sb.pair / 2 + Math.sign(sb.pair) * (east ? off : -off);
           hang(sb, u, 1.7, 0.5, 0.12, material(`board:${bd.toward}:${bd.trains.join('/')}`, () => T.trainsBoard(bd.toward, bd.trains)), false);
         }
       }
@@ -1050,7 +1075,7 @@ export class Network {
       const { every, at: h, ways } = f.signs, b0 = all_[0].along, b1 = all_[all_.length - 1].along, c0 = (b0 + b1) / 2;
       const key = `ways:${p.station}:${ways}`;
       let mat = this.signs.get(key);
-      if (!mat) this.signs.set(key, (mat = new THREE.MeshBasicMaterial({ map: T.waysSign(p.station, ways, f.signs.blue) })));
+      if (!mat) this.signs.set(key, (mat = new THREE.MeshBasicMaterial({ map: T.waysSign(f.signs.name ?? p.station, ways, f.signs.blue) })));
       const vault = f.vault;
       for (let k = Math.ceil((b0 + 4 - c0) / every); c0 + k * every <= b1 - 4; k++) {
         const sm = sampleAt(c0 + k * every, true);
@@ -1981,9 +2006,7 @@ function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: 
   // (a beamed hall's vaulted part: its walls as high as the flat part's)
   const vault = sm.vault && st.finish.kind === 'beams' ? st.finish.vault : undefined;
   if (vault) return vaultOutline(sm, a, b, st.soffit, vault.crown, 'beamVault');
-  const s = sm.plat!.side, d = S.PLATFORM_EDGE + st.columns.fromEdge + st.columns.size / 2;
-  const c1 = s * d, c2 = sm.pair - s * d;
-  const lo = Math.min(c1, c2), hi = Math.max(c1, c2);
+  const [lo, hi] = stepAt(sm, st);
   const full: [number, number][] = [[a, S.FLOOR], [a, st.soffit], [lo, st.soffit], [lo + st.step, st.ceiling],
     [hi - st.step, st.ceiling], [hi, st.soffit], [b, st.soffit], [b, S.FLOOR]];
   const [o0, o1] = ownSpan(sm, [a, b]);
@@ -1992,6 +2015,30 @@ function styledOutline(sm: Sample, a: number, b: number, st: HallStyle): { key: 
     : [[o0, st.ceiling], ...full.filter(([u]) => u > o0)];
   const dy = sm.pairDy / 2;
   return { key: `styled${Math.sign(sm.pair)}`, pts: pts.map(([u, v]) => [u, v + (v > S.FLOOR + 0.01 ? dy * Math.min(1, (v - S.FLOOR) / 2) : 0)]) };
+}
+
+// A beamed hall's columns: enamelled, ringed with colours, tiled, or in exposed-aggregate
+// concrete, as its finish says.
+function beamColumnMaterial(f: BeamedHall) {
+  if (f.rings) return new THREE.MeshStandardMaterial({ map: T.ringedColumn(f.column, f.rings), roughness: 0.18 });
+  if (f.columnTile) return new THREE.MeshStandardMaterial({ map: T.tiledColumn(f.column, f.columnTile), roughness: 0.35 });
+  if (f.aggregate) return new THREE.MeshStandardMaterial({ map: T.aggregate(f.column), roughness: 0.85 });
+  return new THREE.MeshStandardMaterial({ color: f.column, roughness: 0.18 });
+}
+
+// Where a flat hall's roof begins to step up from the soffit, either side (u, from this track):
+// at the far faces of the columns, or, stepping outside them, a step short of their near faces.
+function stepAt(sm: Sample, st: FlatHall): [number, number] {
+  const { fromEdge, size } = st.columns;
+  const s = sm.plat!.side, d = S.PLATFORM_EDGE + fromEdge + (st.stepOutside ? -size / 2 - st.step : size / 2);
+  const c1 = s * d, c2 = sm.pair - s * d;
+  return [Math.min(c1, c2), Math.max(c1, c2)];
+}
+// The height of a flat hall's roof at u, across from this track (over the rail, before the tracks'
+// difference in height).
+function flatRoof(sm: Sample, st: FlatHall, u: number) {
+  const [lo, hi] = stepAt(sm, st), d = Math.min(u - lo, hi - u);
+  return d <= 0 ? st.soffit : d >= st.step ? st.ceiling : st.soffit + ((st.ceiling - st.soffit) * d) / st.step;
 }
 
 // A vaulted hall's outline (Karlaplan's, or a beamed hall's vaulted part): straight walls up to the

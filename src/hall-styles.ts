@@ -7,8 +7,9 @@ import type { CavePaint } from './textures';
 // 1967, with Tor Hörlin's niches and Larseric Vänerlöf's photomontage; Östermalmstorg, with
 // Siri Derkert's lines in its concrete walls (1965); Skanstull, the trams' station of 1933,
 // on its beams; Medborgarplatsen, the other of 1933, with its enamelled columns and the
-// vault of its lengthening in 1950; and Rådmansgatan, Hötorget's neighbour of 1952, in yellow
-// tiles.
+// vault of its lengthening in 1950; Rådmansgatan, Hötorget's neighbour of 1952, in yellow
+// tiles; and S:t Eriksplan, of the same year, on two rows of columns in exposed-aggregate
+// concrete.
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -17,10 +18,13 @@ export interface FlatHall {
   kind: 'flat';
   // a flat roof: low over the track (the soffit), stepping up between the two rows of columns to
   // the ceiling (the same height for a roof that is flat all over); with one row down the
-  // middle, `fromEdge` + half of `size` in from the platform's edges
+  // middle, `fromEdge` + half of `size` in from the platform's edges; with `stepOutside`, outside
+  // the two rows instead, sloping up to the ceiling at their outer faces, so that they stand
+  // under it
   soffit: number;
   ceiling: number;
   step: number;          // across the slope from the soffit up to the ceiling
+  stepOutside?: boolean;
   // columns along the platform, `fromEdge` from the edge to their middle: square; or round
   // (`round`), in one row down the middle of the platform (`middle`)
   columns: { fromEdge: number; size: number; spacing: number; round?: boolean; middle?: boolean };
@@ -74,6 +78,13 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // `walls.top` deep under the soffit, a dark plate with the station's name in the middle of each
 // gap between the groups of posters (`walls.plate`, its middle `at` high), and the long signs
 // along the edges in SL's blue (`signs.blue`).
+// S:t Eriksplan's, of 1952 too, has two rows of columns in exposed-aggregate concrete of `column`
+// colour (`aggregate`), under a beam along each row (`rowBeams`, `width` across and `depth`
+// deep), the roof sloping down outside them (the hall's `stepOutside`); fittings recessed down the
+// middle of the ceiling between the rows (`troffers`: `size` across and along, two to each gap
+// between the columns); the clocks and the departure boards hung over the platform's sides,
+// `clocks` and `boards.off` from its middle; and the station's name on its signs and plates as
+// SL writes it (`signs.name`).
 export interface BeamedHall {
   kind: 'beams';
   walls: {
@@ -84,12 +95,15 @@ export interface BeamedHall {
   ceiling: number;
   column: number;
   columnTile?: number;
+  aggregate?: boolean;
+  rowBeams?: { width: number; depth: number };
   rings?: { colors: number[]; top: number; width: number; pitch: number };
   lamps?: { off: number };
+  troffers?: { size: [number, number] };
   paving: Paving;
-  signs: { every: number; at: number; ways?: string; blue?: boolean };
-  clocks?: boolean;
-  boards?: { from: number; east: Board; west: Board };
+  signs: { every: number; at: number; ways?: string; blue?: boolean; name?: string };
+  clocks?: boolean | number;
+  boards?: { from: number; off?: number; east: Board; west: Board };
   vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number };
 }
 export interface Board { toward: string; trains: [string, string] }
@@ -185,6 +199,21 @@ export interface VaultHall {
 // SL's blue signs along both edges with the ways out. Wikimedia Commons' photographs (2013–2018):
 // the column spacing, the step and the lamps are read from them, the heights taken from
 // Hötorget's.
+//
+// S:t Eriksplan: opened on 26 October 1952 with Rådmansgatan, an island platform about eight
+// metres under Sankt Eriksgatan, its northern end curving east with the tracks (Swedish
+// Wikipedia; Albert Guillaumes' drawing). No artist's work on the platform: two rows of square
+// columns in grey exposed-aggregate concrete, flecked black and white, each row under a beam
+// along it; between the rows a flat white ceiling with fittings recessed down its middle, and
+// outside them the ceiling sloping down to the soffit over the tracks, with tube lamps along it
+// over the platform's edges. The track walls in small cream tiles over a black band, posters in
+// groups and small dark plates with the name between them, a plain band under the soffit; pale
+// grey tiles underfoot, white tiles along the edge and a dark strip with brass studs; benches back
+// to back between the rows, round clocks and departure boards hung over the platform's sides,
+// and long black signs along both edges with the ways out, to S:t Eriksplan and Torsgatan.
+// Wikimedia Commons' photographs (2012–2016): the columns' spacing (6 m) and the rows' (3.1 m)
+// are read from them against people and the camera's lens, so they're approximate, as are the
+// heights (the ceiling about 3.5 m over the platform between the rows).
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
     kind: 'flat',
@@ -305,6 +334,40 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         from: 3,
         east: { toward: 'Farsta strand · Hagsätra · Skarpnäck', trains: ['18 Farsta strand  3 min', '17 Skarpnäck  5 min'] },
         west: { toward: 'Odenplan · Alvik · Hässelby', trains: ['19 Hässelby strand  2 min', '17 Åkeshov  6 min'] },
+      },
+    },
+  },
+  'Sankt Eriksplan': {
+    kind: 'flat',
+    soffit: 3.9,
+    ceiling: 4.5,
+    step: 1.4,
+    stepOutside: true,
+    columns: { fromEdge: 2.95, size: 0.5, spacing: 6 },
+    finish: {
+      kind: 'beams',
+      walls: {
+        color: 0xe2dbc6, tile: 0.1, from: 1.5, top: 0.3, plate: { name: 'S:t Eriksplan', at: 2.9 },
+        posters: { width: 1.2, height: 1.75, bottom: 1.65, every: 1.35, run: 4, gap: 2.6 },
+      },
+      ceiling: 0xe4e1d9,
+      column: 0x8a867e,
+      aggregate: true,
+      rowBeams: { width: 0.55, depth: 0.25 },
+      troffers: { size: [0.6, 1.3] },
+      paving: {
+        edge: 0.6, edgeTile: [0.3, 0.3], tactile: [0.6, 0.9], studs: true, studColor: 0xc9a443, slabs: 0.9, paverSize: [0.3, 0.3], mix: 0.1,
+        colors: { edge: 0xdfdacd, tactile: 0x4f5052, slab: 0xbab9b4, pavers: 0xbab9b4, paler: 0xc6c5c0, face: 0x3a3a3a },
+        pattern: 'bond',
+      },
+      signs: { every: 40, at: 3.35, ways: 'S:t Eriksplan · Torsgatan · Hiss', name: 'S:t Eriksplan' },
+      clocks: 2.7,
+      // (trains keep left: the southbound, to Fridhemsplan, on the east track)
+      boards: {
+        from: 4,
+        off: 3.0,
+        east: { toward: 'Fridhemsplan · Hässelby', trains: ['17 Åkeshov  2 min', '19 Hässelby strand  3 min'] },
+        west: { toward: 'T-Centralen · Gullmarsplan', trains: ['17 Skarpnäck  1 min', '18 Farsta strand  4 min'] },
       },
     },
   },
