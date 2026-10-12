@@ -18,7 +18,8 @@
 //    way leave from, where they turn. A service that can't be traced, or a station without a
 //    platform track, fails the build.
 //
-// Where OSM is wrong, data/track-corrections.json adds links, crossovers or platform tracks.
+// Where OSM is wrong, data/track-corrections.json adds links, crossovers, platform tracks or
+// points along a track.
 // DEBUG=1 also lists stations with a single platform track and stretches run on the wrong track.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { lonLatToWorld, ORIGIN } from '../src/geo.ts';
@@ -64,6 +65,11 @@ interface Corrections {
   platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; extend?: boolean; shortRuns?: number }[];
   // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
   widths?: { station: string; width: number; why: string }[];
+  // points to add to a track (SWEREF 99 18 00 east, north, snapped onto the nearest within 5 m)
+  // where OpenStreetMap has none: the track's heights are kept at its points and straight
+  // between them (tools/build-heights.ts), so a platform track needs one at each end of the
+  // platform to be level along it
+  points?: { at: [number, number]; why: string }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
@@ -173,6 +179,8 @@ for (const c of corrections.crossovers ?? []) {
   }
   if (split) console.log(`${split} nodes where two lines' tracks cross one over the other, split`);
 }
+
+for (const c of corrections.points ?? []) splitAt(c.at[0], c.at[1], c.why);
 
 const linksAt = new Map<number, Link[]>();
 for (const l of links) {

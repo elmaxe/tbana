@@ -271,6 +271,14 @@
   "viaducts": [
     {
       "along": [
+        [-3231.0, -144.2],
+        [-3193.9, -132.2]
+      ],
+      "reach": 6.5,
+      "why": "Kristineberg: west of the platform both tracks stand on concrete decks over the ticket hall and over Nordenflychtsvägen, which passes under the line and Drottningholmsvägen beside it, and OSM doesn't map them as bridges. Lantmäteriet's laser scan has the decks from 121 m west of the platform's middle to 82 m (the northern track's, over the hall) and 89 m (the southern track's, with the road's), and the street 5.3 m under the platform between 116 m and 96 m; photographs show the underpass's deck on round columns."
+    },
+    {
+      "along": [
         [465.3, 6014.8],
         [482.2, 5998.5],
         [494.4, 5982.3],

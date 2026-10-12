@@ -423,5 +423,15 @@
       "width": 5.8,
       "why": "Each of Ropsten's two viaducts carries one track and one side platform, 5.8 m from the platform edge to the railing over the open gap between them (Lantmäteriet's laser scan, 2021: the roofs and the parked train's roof)."
     }
+  ],
+  "points": [
+    {
+      "at": [150179.0, 6579726.5],
+      "why": "Kristineberg, the southern track at the platform's west end: OSM has no point on it between 56 m west of the platform and 49 m east of its west end, so its height sloped straight between them, and the island's southern half stood a third of a metre over its northern half at that end. Lantmäteriet's laser scan has both tracks' ballast level along the platform, at the same height, and climbing west of it towards Tranebergsbron."
+    },
+    {
+      "at": [150318.7, 6579680.6],
+      "why": "Kristineberg, the southern track at the platform's east end: the next point east is 23 m beyond it, at the crossover, so the track sloped down along the platform's eastern half, and the island's southern half ended 0.2 m under its northern half."
+    }
   ]
 }
