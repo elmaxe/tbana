@@ -147,7 +147,8 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // a beamed hall's walls (the other way round, for its name plates), ceiling and beams, columns,
   // the beam along its middle, the vault of its lengthening, the wall where that meets the flat
   // part and the triangle on it
-  | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall'}:${string}`;
+  // (and the glass and steel frames of a window there)
+  | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall' | 'Pane' | 'Frame'}:${string}`;
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -541,14 +542,15 @@ export class Network {
       for (const [key, flip] of [[wall, false], [mirror, true]] as const) {
         this.mats[key] ??= new THREE.MeshStandardMaterial({
           map: T.beamedHallWall(st.soffit - S.FLOOR, w.color, w.tile, w.from - S.FLOOR, { ...w.posters, bottom: w.posters.bottom - S.FLOOR },
-            { top: w.top, plate: w.plate && { name: w.plate.name, at: w.plate.at - S.FLOOR }, mirror: flip }),
+            { top: w.top, plate: w.plate && { name: w.plate.name, at: w.plate.at - S.FLOOR }, mirror: flip, trees: w.trees }),
           roughness: 0.45, side: THREE.DoubleSide,
         });
       }
-      // (lit from below by its lamps, which light nothing: so it glows a little)
+      // (lit from below by its lamps, which light nothing: so it glows a little; board-marked
+      // concrete, dark, a little less)
       if (!this.mats[roof]) {
-        const plaster = T.plaster();
-        this.mats[roof] = new THREE.MeshStandardMaterial({ map: plaster, color: f.ceiling, emissive: 0x7a7870, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide });
+        const plaster = f.boarded ? T.finish('boardConcrete') : T.plaster();
+        this.mats[roof] = new THREE.MeshStandardMaterial({ map: plaster, color: f.ceiling, emissive: f.boarded ? 0x3c3b38 : 0x7a7870, emissiveMap: plaster, roughness: 0.9, side: THREE.DoubleSide });
       }
       const flat = (sm: Sample) => hallStyle(sm) === st && !sm.vault, repeat = T.beamedWallRepeat(w.posters);
       halls.push({ is: flat, walls: [b[wall] ??= new MeshBuilder(), b[mirror] ??= new MeshBuilder()], roof: b[roof] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
@@ -567,8 +569,10 @@ export class Network {
       if (f.vault) {
         const vault: MaterialName = `beamVault:${station}`;
         if (!this.mats[vault]) {
-          const panels = T.vaultPanels(f.vault.color);
-          this.mats[vault] = new THREE.MeshStandardMaterial({ map: panels, emissive: 0x6e6c66, emissiveMap: panels, roughness: 0.6, side: THREE.DoubleSide });
+          const panels = f.vault.boarded ? T.finish('boardConcrete') : T.vaultPanels(f.vault.color);
+          this.mats[vault] = f.vault.boarded
+            ? new THREE.MeshStandardMaterial({ map: panels, color: f.vault.color, emissive: 0x4a4946, emissiveMap: panels, roughness: 0.9, side: THREE.DoubleSide })
+            : new THREE.MeshStandardMaterial({ map: panels, emissive: 0x6e6c66, emissiveMap: panels, roughness: 0.6, side: THREE.DoubleSide });
         }
         halls.push({ is: (sm) => hallStyle(sm) === st && sm.vault, walls: [b[wall], b[wall]], roof: b[vault] ??= new MeshBuilder(), top: st.soffit, repeat, overhead: 2.4 });
       }
@@ -1565,7 +1569,45 @@ export class Network {
           // the floor as on its walls, across the end as along them)
           const cave = caveStyle(p) ? p : caveStyle(q) ? q : null;
           const beamed = p.vault !== q.vault ? beamedHall(p) : null, vault = beamed && (beamed.finish as BeamedHall).vault;
-          if (beamed && vault) {
+          if (beamed && vault?.window) {
+            // where Blackeberg's vault meets its flat part: under the vault, concrete over the flat
+            // ceiling and above it a lunette window in steel frames into the ticket hall (drawn
+            // with one track)
+            if (leads(p)) {
+              const station = p.plat!.station, win = vault.window, [sa, sc] = structureSpan(p), dy = p.pairDy / 2;
+              const edge: MaterialName = `beamEnd:${station}`, frame: MaterialName = `beamFrame:${station}`, pane: MaterialName = `beamPane:${station}`;
+              this.mats[edge] ??= new THREE.MeshStandardMaterial({ map: T.finish('boardConcrete'), color: vault.color, roughness: 0.9, side: THREE.DoubleSide });
+              this.mats[frame] ??= new THREE.MeshStandardMaterial({ color: 0x3c4146, roughness: 0.45, metalness: 0.5 });
+              // (pale and clear, never dark: the hall's light comes through it)
+              this.mats[pane] ??= new THREE.MeshStandardMaterial({ color: 0xc9d6dc, transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.2, side: THREE.DoubleSide, depthWrite: false });
+              const top = (u: number) => S.archHeight(sa, sc, beamed.soffit, vault.crown - beamed.soffit, u) + dy;
+              const n = 24, us = Array.from({ length: n + 1 }, (_, k) => sa + ((sc - sa) * k) / n);
+              const wall = b[edge] ??= new MeshBuilder(), steel = b[frame] ??= new MeshBuilder();
+              for (let k = 0; k < n; k++) {
+                const u0 = us[k], u1 = us[k + 1], t0 = top(u0), t1 = top(u1), f = win.from + dy;
+                // the concrete up to the window's sill, and along the vault over it (a rim 0.25 m deep)
+                const c0 = Math.min(t0, f), c1 = Math.min(t1, f), base = beamed.soffit + dy;
+                wall.quad(at(p, u0, base), at(p, u1, base), at(p, u1, c1), at(p, u0, c0));
+                if (t0 > f || t1 > f) {
+                  const r0 = Math.max(f, t0 - 0.25), r1 = Math.max(f, t1 - 0.25);
+                  wall.quad(at(p, u0, r0), at(p, u1, r1), at(p, u1, t1), at(p, u0, t0));
+                  (b[pane] ??= new MeshBuilder()).quad(at(p, u0, f), at(p, u1, f), at(p, u1, r1), at(p, u0, r0));
+                }
+              }
+              // the frames: the sill, a transom a third of the way up, and mullions
+              const f = win.from + dy, crown = vault.crown + dy, lo = sa + 0.3, hi = sc - 0.3;
+              const ends = us.filter((u) => top(u) - 0.25 > f + 0.05);
+              const ua = ends[0] ?? (sa + sc) / 2, ub = ends[ends.length - 1] ?? (sa + sc) / 2;
+              box(steel, at(p, (ua + ub) / 2, f + 0.04), p, ub - ua, 0.08, 0.08);
+              const tr = f + (crown - 0.25 - f) * 0.36, span = us.filter((u) => top(u) - 0.25 > tr + 0.05);
+              if (span.length > 1) box(steel, at(p, (span[0] + span[span.length - 1]) / 2, tr), p, span[span.length - 1] - span[0], 0.06, 0.06);
+              const m = Math.max(1, Math.round((ub - ua) / win.frames));
+              for (let k = 1; k < m; k++) {
+                const u = ua + ((ub - ua) * k) / m, h = top(u) - 0.25;
+                if (u > lo && u < hi && h > f) box(steel, at(p, u, (f + h) / 2), p, 0.06, h - f, 0.08);
+              }
+            }
+          } else if (beamed && vault) {
             // where a beamed hall's vaulted part meets its flat part: a black wall over the flat
             // ceiling, a pale triangle on it, point down, facing the vault (drawn with one track)
             const station = p.plat!.station, end: MaterialName = `beamEnd:${station}`, mark: MaterialName = `beamMark:${station}`;
@@ -1583,10 +1625,14 @@ export class Network {
           } else if (beamedHall(p) ?? beamedHall(q)) {
             // at a beamed hall's end, around the tunnel going on: its wall's tiles, without its
             // posters and band
+            // (or, where they have the rock standing out of them, the rock)
             const hall = (beamedHall(p) ?? beamedHall(q))!, w = (hall.finish as BeamedHall).walls;
             const key: MaterialName = `beamEndWall:${(beamedHall(p) ? p : q).plat!.station}`;
-            this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.tiledColumn(w.color, w.tile), roughness: 0.45, side: THREE.DoubleSide });
-            ring(p, ra, rc, b[key] ??= new MeshBuilder(), (u, v) => [u / T.HOTORGET_REPEAT, v / T.HOTORGET_REPEAT]);
+            if (w.trees) ring(p, ra, rc, b.rock);
+            else {
+              this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.tiledColumn(w.color, w.tile), roughness: 0.45, side: THREE.DoubleSide });
+              ring(p, ra, rc, b[key] ??= new MeshBuilder(), (u, v) => [u / T.HOTORGET_REPEAT, v / T.HOTORGET_REPEAT]);
+            }
           } else if (cave) {
             const key: MaterialName = `cave:${cave.plat!.station}`;
             this.mats[key] ??= this.caveMaterial(cave.plat!.station);

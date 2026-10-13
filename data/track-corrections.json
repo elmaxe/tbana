@@ -335,8 +335,15 @@
     },
     {
       "station": "Blackeberg",
-      "extend": true,
-      "why": "OSM draws the island platform about 60 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [143341.89, 6581476.88],
+      "why": "OSM maps only the open part of the island platform, 94 m long, and lengthening it about its middle put the platform 45 m north-west of the real one, 50 m past the open part's end. Lantmäteriet's laser scan has the open part end where OSM's does; the rest of the 145 m are covered, under Vinjegatan's deck, the ticket hall (whose stairs reach the platform 9 m in, as OSM's indoor mapping has them) and Blackebergs torg. This point is its middle."
+    },
+    {
+      "station": "Blackeberg",
+      "at": [143373.87, 6581441.5],
+      "length": 50,
+      "why": "The platform's covered south-eastern 50 m are beside the tunnels, which OSM maps as tracks of their own; this point is between them there, so that they get the platform too."
     },
     {
       "station": "Rågsved",

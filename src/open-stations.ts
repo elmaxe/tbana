@@ -91,6 +91,9 @@ export function blockVolumes(style: OpenStyle, frame: Frame, only?: 'onPlatform'
 
 type On = (m: THREE.Material) => Mesh;
 
+// The point `a` of the way from (s0, u0) to (s1, u1).
+const plan2 = (s0: number, u0: number, s1: number, u1: number, a: number): [number, number] => [s0 + (s1 - s0) * a, u0 + (u1 - u0) * a];
+
 // A dome `r` across its rim and `h` high, open underneath, its top at c.
 function dome(m: Mesh, c: XYZ, r: number, h: number) {
   const n = 12, rings = 4;
@@ -272,10 +275,12 @@ export class OpenLook {
 
   // The shells of its buildings, its fences, and what stands in the station's own frame: lamp
   // posts, pictures on its walls.
-  // (the walls cut by all the station's spaces, their roofs and ceilings not by its open floors')
-  build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[], group: THREE.Group, roofCut = cut) {
+  // (the walls cut by all the station's spaces, their roofs and ceilings not by its open floors';
+  // a block standing in the platform's hall the network draws not by the hall's inside, `voids`)
+  build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[], group: THREE.Group, roofCut = cut, voids: Volume[] = []) {
     const frame = new Frame(st);
-    for (const b of style.blocks ?? []) this.block(b, frame, on, cut, style.signName ?? st.name, roofCut);
+    const outside = (c: Volume[]) => c.filter((v) => !voids.includes(v));
+    for (const b of style.blocks ?? []) this.block(b, frame, on, b.inHall ? outside(cut) : cut, style.signName ?? st.name, b.inHall ? outside(roofCut) : roofCut);
     for (const f of style.fences ?? []) this.fence(f, frame, on);
     for (const a of style.art ?? []) {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
@@ -1485,6 +1490,22 @@ export class OpenLook {
         const ba = Math.min(at(i), ta), bb = Math.min(at((i + 1) % 4), tb);
         if (f && (ba > fa || bb > fb)) wall(f, fa, fb, ba, bb);
         if (ba < ta || bb < tb) wall(b.band.walls, ba, bb, ta, tb);
+      } else if (f && b.arch?.side === i) {
+        // (a wall with an arched hole in it, in strips across, each from the arch up where it is
+        // over the arch, from the floor otherwise; the band over it as elsewhere)
+        const A = b.arch, half = (A.span[1] - A.span[0]) / 2, rise = A.crown - A.spring, R = (half * half + rise * rise) / (2 * rise);
+        const archAt = (d: number) => {
+          const x = Math.abs(d - (A.span[0] + A.span[1]) / 2);
+          return x >= half ? -Infinity : A.crown - R + Math.sqrt(R * R - x * x);
+        };
+        const top = band ?? ta, n = Math.max(8, Math.ceil(l / 0.5)), [w, hh] = T.FINISH_SIZE[f];
+        for (let k = 0; k < n; k++) {
+          const t0 = k / n, t1 = (k + 1) / n, h0 = Math.max(fa, archAt(t0 * l)), h1 = Math.max(fa, archAt(t1 * l));
+          if (h0 >= top && h1 >= top) continue;
+          on(this.finish(f)).poly([[...P(t0, Math.min(h0, top)), t0 * l / w, (h0 - fa) / hh], [...P(t1, Math.min(h1, top)), t1 * l / w, (h1 - fa) / hh],
+            [...P(t1, top), t1 * l / w, (top - fa) / hh], [...P(t0, top), t0 * l / w, (top - fa) / hh]], cut);
+        }
+        if (b.band && band !== null) wall(b.band.walls, band, band, ta, tb);
       } else {
         if (f && band === null && Math.max(ta - fa, tb - fb) > 0) wall(f, fa, fb, ta, tb);
         if (f && band !== null && band > from) wall(f, from, from, band, band);
@@ -1545,6 +1566,7 @@ export class OpenLook {
       }
     }
     if (b.gables) this.gables(b, frame, on, roofCut);
+    if (b.dome) this.groinVault(b, frame, on, cut);
     if (b.ceiling) {
       const [cw] = T.FINISH_SIZE[b.ceiling];
       on(this.finish(b.ceiling, true)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]), roofCut);
@@ -1552,6 +1574,74 @@ export class OpenLook {
     if (b.floor) {
       const [fw] = T.FINISH_SIZE[b.floor];
       on(this.finish(b.floor)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockFrom(b, i) - 0.02), u / fw, s / fw]), cut);
+    }
+  }
+
+  // A shallow groin vault over a block (Blackeberg's hall): the two barrels crossing over it, their
+  // underside the higher of the two at each point (so that the groins run down to the corners),
+  // and a dome's rise over them, nothing at the edges and all of it at the middle; a beam along
+  // its edges, and under it on each side the lunette, glazed in frames.
+  private groinVault(b: Block, frame: Frame, on: On, cut: Volume[]) {
+    const D = b.dome!, c = b.plan, N = 16, top = blockTop(b, 0);
+    const len = (i: number) => Math.hypot(c[(i + 1) % 4][0] - c[i][0], c[(i + 1) % 4][1] - c[i][1]);
+    // an arch from `spring` at its ends to `arch` at its middle, `h` m from either end to the middle
+    const arch = (a: number, h: number) => {
+      const r = D.arch - D.spring, R = (h * h + r * r) / (2 * r), x = Math.min(h, Math.abs(a) * h);
+      return D.arch - R + Math.sqrt(R * R - x * x);
+    };
+    const hx = (len(0) + len(2)) / 4, hy = (len(1) + len(3)) / 4;
+    const under = (t: number, v: number) => {
+      const x = 2 * t - 1, y = 2 * v - 1;
+      return Math.max(arch(x, hx), arch(y, hy)) + (D.crown - D.arch) * (1 - x * x) * (1 - y * y);
+    };
+    const plan = (t: number, v: number): [number, number] => {
+      const s0 = c[0][0] + (c[1][0] - c[0][0]) * t, u0 = c[0][1] + (c[1][1] - c[0][1]) * t;
+      const s1 = c[3][0] + (c[2][0] - c[3][0]) * t, u1 = c[3][1] + (c[2][1] - c[3][1]) * t;
+      return [s0 + (s1 - s0) * v, u0 + (u1 - u0) * v];
+    };
+    const P = (t: number, v: number, h: number) => { const [s, u] = plan(t, v); return [...frame.at(s, u, h), u / 2.4, s / 2.4]; };
+    const inner = on(this.finish('boardConcrete', true)), cover = on(b.roofColor === undefined ? this.roofing : this.color(b.roofColor, 0.7, 0.2));
+    // the shell: its underside and its covering, in triangles split along the groins
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const t0 = i / N, t1 = (i + 1) / N, v0 = j / N, v1 = (j + 1) / N;
+      const q = (t: number, v: number, d: number) => P(t, v, under(t, v) + d);
+      const tris = i === j || i + j === N - 1 && false ? [[[t0, v0], [t1, v0], [t1, v1]], [[t0, v0], [t1, v1], [t0, v1]]]
+        : i + j === N - 1 ? [[[t0, v0], [t1, v0], [t0, v1]], [[t1, v0], [t1, v1], [t0, v1]]]
+          : [[[t0, v0], [t1, v0], [t1, v1]], [[t0, v0], [t1, v1], [t0, v1]]];
+      for (const tri of tris) {
+        inner.poly(tri.map(([t, v]) => q(t, v, 0)), cut);
+        cover.poly(tri.map(([t, v]) => q(t, v, D.thick)), cut);
+      }
+    }
+    // each side: the beam along its edge, the shell's edge over it, and the lunette under it
+    const glassFrame = on(this.color(D.frame, 0.5, 0.2)), pane = on(this.pane);
+    const cs = c.reduce((t, p) => t + p[0], 0) / 4, cu = c.reduce((t, p) => t + p[1], 0) / 4;
+    for (let k = 0; k < 4; k++) {
+      const [s0, u0] = c[k], [s1, u1] = c[(k + 1) % 4], l = len(k), h = k % 2 ? hy : hx;
+      let ns = (u1 - u0) / l, nu = -(s1 - s0) / l;
+      if (ns * ((s0 + s1) / 2 - cs) + nu * ((u0 + u1) / 2 - cu) > 0) { ns = -ns; nu = -nu; }
+      const S = (a: number, hgt: number, inset = 0) => [...frame.at(s0 + (s1 - s0) * a + ns * inset, u0 + (u1 - u0) * a + nu * inset, hgt), a * l / 2.4, hgt / 2.4];
+      const n = 24, edge = (a: number) => arch(2 * a - 1, h), low = (a: number) => Math.max(top, edge(a) - D.beam);
+      for (let m = 0; m < n; m++) {
+        const a0 = m / n, a1 = (m + 1) / n;
+        // the beam's face and the shell's edge over it, its underside, and its inner face
+        inner.poly([S(a0, low(a0)), S(a1, low(a1)), S(a1, edge(a1) + D.thick), S(a0, edge(a0) + D.thick)], cut);
+        inner.poly([S(a0, low(a0)), S(a1, low(a1)), S(a1, low(a1), 0.35), S(a0, low(a0), 0.35)], cut);
+        inner.poly([S(a0, low(a0), 0.35), S(a1, low(a1), 0.35), S(a1, edge(a1), 0.35), S(a0, edge(a0), 0.35)], cut);
+        if (low(a0) > top + 0.05 || low(a1) > top + 0.05) pane.poly([S(a0, top), S(a1, top), S(a1, low(a1)), S(a0, low(a0))], cut);
+      }
+      // the frames: a sill, a transom, and mullions
+      const glazed = Array.from({ length: n + 1 }, (_, m) => m / n).filter((a) => low(a) > top + 0.05);
+      if (glazed.length < 2) continue;
+      const ga = glazed[0], gb = glazed[glazed.length - 1];
+      bar(glassFrame, frame.at(...plan2(s0, u0, s1, u1, ga), top + 0.05), frame.at(...plan2(s0, u0, s1, u1, gb), top + 0.05), 0.1, 0.1, cut);
+      const tr = top + (D.arch - D.beam - top) * 0.4, ta = glazed.filter((a) => low(a) > tr + 0.05);
+      if (ta.length > 1) bar(glassFrame, frame.at(...plan2(s0, u0, s1, u1, ta[0]), tr), frame.at(...plan2(s0, u0, s1, u1, ta[ta.length - 1]), tr), 0.07, 0.07, cut);
+      const count = Math.max(1, Math.round(((gb - ga) * l) / D.frames));
+      for (let m = 1; m < count; m++) {
+        const a = ga + ((gb - ga) * m) / count;
+        bar(glassFrame, frame.at(...plan2(s0, u0, s1, u1, a), top), frame.at(...plan2(s0, u0, s1, u1, a), low(a)), 0.07, 0.1, cut);
+      }
     }
   }
 

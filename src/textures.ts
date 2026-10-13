@@ -2412,11 +2412,14 @@ export function mosaicColumn() {
 // sweep along the track, as Hötorget's: u up the wall, v along the track. Rådmansgatan's: the
 // tiles stop a plain band `top` m deep under the ceiling, and a dark plate with the station's name
 // hangs in the middle of each gap, its middle `plate.at` m up, turned for the wall that sees the
-// track's direction the other way round with `mirror`.
+// track's direction the other way round with `mirror`. Blackeberg's (`trees`, Ruben Heleander's
+// walls of 1987): the tunnel's rock left standing out of them in dark outcrops from the floor,
+// up to a little over the platform here and nearly to the ceiling there, rather than the black
+// band, and thin pale trees drawn on the tiles between them, trunks with a few branches.
 type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
 export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
 export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters,
-  { top = 0, plate, mirror = false }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean } = {}) {
+  { top = 0, plate, mirror = false, trees = false }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean } = {}) {
   const repeat = beamedWallRepeat(posters);
   const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
   const r = rng(1933), Y = (h: number) => H - h * PX;
@@ -2431,10 +2434,51 @@ export function beamedHallWall(height: number, color: number, tile: number, from
   const g = x.createLinearGradient(0, Y(from + 1.2), 0, Y(from));
   g.addColorStop(0, 'rgba(90,80,60,0)'); g.addColorStop(1, 'rgba(90,80,60,0.12)');
   x.fillStyle = g; x.fillRect(0, Y(from + 1.2), W, 1.2 * PX);
-  // the black band, its top edge a little paler
-  x.fillStyle = '#1e1e1f'; x.fillRect(0, Y(from), W, from * PX);
-  x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
-  speckle(x, W, from * PX, 900, 0.12, 1934, true);
+  if (trees) {
+    // the trees: a trunk leaning a little, thinning upwards, and a few branches off it, each
+    // forking once
+    x.strokeStyle = 'rgba(232,234,222,0.85)'; x.lineCap = 'round';
+    const branch = (x0: number, y0: number, a: number, l: number, w: number, depth: number) => {
+      const x1 = x0 + Math.sin(a) * l, y1 = y0 - Math.cos(a) * l;
+      x.lineWidth = w; x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo((x0 + x1) / 2 + (r() - 0.5) * l * 0.2, (y0 + y1) / 2, x1, y1); x.stroke();
+      if (depth > 0) for (const s of [-1, 1]) branch(x1, y1, a + s * (0.35 + r() * 0.35), l * (0.45 + r() * 0.25), Math.max(1, w * 0.6), depth - 1);
+    };
+    for (let along = 1.5 + r() * 2; along < repeat - 1; along += 3 + r() * 4.5) {
+      const x0 = along * PX, y0 = Y(from + 0.2 + r() * 0.4), top = Y(height - 0.3 - r() * 0.6), lean = (r() - 0.5) * 0.12;
+      let px = x0, py = y0;
+      for (let k = 0; k < 8; k++) {
+        const ny = y0 + ((top - y0) * (k + 1)) / 8, nx = x0 + (ny - y0) * -lean + (r() - 0.5) * 3;
+        x.lineWidth = 3.2 - k * 0.3; x.beginPath(); x.moveTo(px, py); x.lineTo(nx, ny); x.stroke();
+        if (k >= 3 && r() < 0.55) branch(nx, ny, (r() < 0.5 ? -1 : 1) * (0.5 + r() * 0.5), (0.4 + r() * 0.5) * PX, 1.6, 1);
+        px = nx; py = ny;
+      }
+    }
+    // the rock: the floor's dark band rising here and there in outcrops, rough along their tops,
+    // with the tiles fitted round them
+    const rock = (seed: number) => {
+      const q = rng(seed);
+      x.beginPath(); x.moveTo(0, H);
+      for (let a = 0; a <= repeat; a += 0.25) {
+        const crest = Math.max(0, Math.sin(a * 0.9 + 1.3) * 0.7 + Math.sin(a * 0.37 + 0.4) * 1.1 + Math.sin(a * 2.3) * 0.2);
+        x.lineTo(a * PX, Y(from + crest * (0.9 + q() * 0.25) + q() * 0.08));
+      }
+      x.lineTo(W, H); x.closePath();
+    };
+    rock(1987); x.fillStyle = '#2f2c28'; x.fill();
+    x.save(); rock(1987); x.clip();
+    for (let i = 0; i < 1400; i++) {
+      const v = 34 + Math.floor(r() * 46);
+      x.fillStyle = `rgba(${v},${v - 3},${v - 7},0.55)`;
+      x.beginPath(); x.ellipse(r() * W, H - r() * H * 0.6, 2 + r() * 14, 2 + r() * 9, r() * 3, 0, Math.PI * 2); x.fill();
+    }
+    speckle(x, W, H, 3000, 0.2, 1988, true);
+    x.restore();
+  } else {
+    // the black band, its top edge a little paler
+    x.fillStyle = '#1e1e1f'; x.fillRect(0, Y(from), W, from * PX);
+    x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
+    speckle(x, W, from * PX, 900, 0.12, 1934, true);
+  }
   if (top) {
     // the plain band under the ceiling, a little shadow along its foot
     x.fillStyle = '#e4dfd2'; x.fillRect(0, 0, W, top * PX);

@@ -520,7 +520,7 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
       const before = buried(k - 1) || buried(k);
       if (before !== base.buried) {
         const o = base.buried ? k - 1 : k + 1;
-        addMouth(p.x[k], p.z[k], p.x[o] - p.x[k], p.z[o] - p.z[k], p.y[k], ka, p.pair[k], platAt(k), besideAt(k));
+        addMouth(p.x[k], p.z[k], p.x[o] - p.x[k], p.z[o] - p.z[k], o > k, p.y[k], ka, p.pair[k], platAt(k), besideAt(k));
       }
     }
     if (ka === kb) {
@@ -534,7 +534,7 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, beside: base.beside, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last, yard });
     // pointing out of the tunnel
     const out = tunnelClass(ka) ? 1 : -1;
-    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k), base.beside);
+    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), out > 0, my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k), base.beside);
   }
   // mouths at the piece's ends, where it meets a piece of the other class
   for (const k of [0, n - 1]) {
@@ -542,14 +542,16 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     const here = ends.get(endKey(p.x[k], p.z[k]))!;
     if (!here.some((c) => !c)) continue; // a tunnel ending in nothing
     const o = k === 0 ? 1 : n - 2;
-    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], p.y[k], kindAt(k), p.pair[k], platAt(k), p.beside?.[k] ?? 0);
+    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], k > 0, p.y[k], kindAt(k), p.pair[k], platAt(k), p.beside?.[k] ?? 0);
   }
 }
 
 // The tunnel's own space at a mouth, from wall to wall and floor to crown: the hole cut there.
-function addMouth(x: number, z: number, dx: number, dz: number, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat'], beside = 0) {
-  const l = Math.hypot(dx, dz) || 1;
-  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -1, beside), right: halfWidth(tunnel, pair, plat, 1, beside) });
+// `forward`: whether dx, dz (out of the tunnel) runs the way the piece does, which its sides (the
+// pair's, the platform's and the track beside) are told by; if not, they swap.
+function addMouth(x: number, z: number, dx: number, dz: number, forward: boolean, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat'], beside = 0) {
+  const l = Math.hypot(dx, dz) || 1, s = forward ? 1 : -1;
+  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -s, beside), right: halfWidth(tunnel, pair, plat, s, beside) });
 }
 
 // Whether a cell of water (its middle at x, z) lies over a tunnel whose inside reaches up through
@@ -581,8 +583,8 @@ segs.forEach((s, id) => {
 });
 const segsNear = (x: number, z: number) => segIndex.get(`${Math.floor(x / SEG_CELL)},${Math.floor(z / SEG_CELL)}`) ?? [];
 
-// Where a point is from a segment: across (+ right), along (0..1), and the distance that counts;
-// null if it is beyond an end that doesn't round off.
+// Where a point is from a segment: across (+ right), along (0..1), and the distance that counts,
+// and whether it is beyond an end (that rounds off); null if it is beyond an end that doesn't.
 function relate(s: Seg, x: number, z: number) {
   const dx = s.bx - s.ax, dz = s.bz - s.az, l2 = dx * dx + dz * dz || 1, l = Math.sqrt(l2);
   const t = ((x - s.ax) * dx + (z - s.az) * dz) / l2;
@@ -590,7 +592,7 @@ function relate(s: Seg, x: number, z: number) {
   const across = ((x - s.ax) * -dz + (z - s.az) * dx) / l;
   const tc = Math.max(0, Math.min(1, t));
   const d = Math.hypot(s.ax + dx * tc - x, s.az + dz * tc - z);
-  return { t: tc, across, d, y: s.ya + (s.yb - s.ya) * tc };
+  return { t: tc, across, d, y: s.ya + (s.yb - s.ya) * tc, beyond: t !== tc };
 }
 
 // The ground at a point, shaped for the track: [height, whether it is beside open track a service
@@ -600,12 +602,16 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
   // where the ground is opened under a deck, nothing is raised over the tunnels; where a street
   // runs right over them, only as far as the inside of their roofs
   const open = openGround(x, z) !== null, shallow = shallowCover(x, z);
+  // on a deck over the tracks, the street runs on to its edge
+  const deck = deckAt(x, z) !== null;
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
     if (!r) continue;
     const side = r.across >= 0 ? 1 : -1;
-    const w = halfWidth(s.kind, s.pair, s.plat, side, s.beside);
+    // (on a deck, an open track's trench reaches only over its own half towards its pair, which
+    // may still be covered there, its mouth further on)
+    const w = deck && !(TUNNEL.has(s.kind) && s.buried) && s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2 : halfWidth(s.kind, s.pair, s.plat, side, s.beside);
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
       if (open) continue;
@@ -625,7 +631,9 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
       if (r.d <= own) roof = Math.max(roof, r.y + crownOf(s.kind, s.pair, s.plat) + ROOF_COVER);
     } else {
       // flat for a metre beyond the structure, then rising at the bank's slope (or 1:1 behind a
-      // cutting's walls)
+      // cutting's walls); the bank rounding off past the track's end doesn't reach under a deck,
+      // where the track goes on covered (as wide as a platform, it would sink the street there)
+      if (deck && r.beyond) continue;
       const floor = s.kind === 'bridge' ? r.y + S.FLOOR - S.BRIDGE.depth - UNDER : r.y + S.FLOOR - UNDER;
       const u = floor + Math.max(0, out - 1) / (s.kind === 'cutting' ? 1 : S.EMBANKMENT.slope);
       upper = Math.min(upper, u);

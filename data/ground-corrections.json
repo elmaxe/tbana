@@ -102,6 +102,12 @@
       "outline": [-8685.1, -1191.6, -8670.7, -1187.4, -8671.8, -1183.6, -8668.9, -1182.7, -8670.6, -1177.0, -8667.7, -1176.1, -8669.8, -1168.9, -8672.7, -1169.8, -8674.6, -1163.2, -8691.9, -1168.2],
       "heights": [11.69, 11.7, 11.72, 11.72, 11.75, 11.76, 11.8, 11.8, 11.84, 11.83],
       "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the foot of the stair coming down between the bridges' abutments. The elevation model's 5 m grid ramps the bank the station stands on down across the pavement into the street, up to 3 m too high at the abutments. Lantmäteriet's laser scan has the street and the pavements at 11.6–11.9 m right up to the abutments; the abutments and the stair are drawn by the station (src/open-styles.ts). The deck reaches back under the abutments as far as the grid's next points, so that they don't ramp the ground up in front of them."
+    },
+    {
+      "name": "Blackeberg: Vinjegatan over the tracks",
+      "outline": [-10018.67, -1832.11, -10027.41, -1841.04, -9992.12, -1873.61, -9984.36, -1865.68],
+      "heights": [35.47, 35.29, 35.34, 35.49],
+      "why": "Blackeberg's platforms are covered from where the cutting ends under Vinjegatan, which crosses the tracks on a deck along the ticket hall's back, 11–12.5 m wide from the shop fronts to its edge over the tracks where they come out, and on 18 m past them to either side. The elevation model leaves the deck out and has the ground falling into the cutting under it, so that the station's covered end stood in the open and the street beside it fell to the rails in a cone round the tunnels' mouths. The laser scan has the street at 35.3–35.5 m all across it, 4 m over the platform (a plane fits 659 of its points to 7 cm)."
     }
   ],
   "open": [

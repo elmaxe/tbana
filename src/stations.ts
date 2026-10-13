@@ -284,7 +284,7 @@ export class Stations {
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
     if (this.open) {
       const closed = spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol);
-      this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids], group, [...closed, ...voids]);
+      this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids], group, [...closed, ...voids], voids);
     }
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));

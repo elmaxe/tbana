@@ -8,8 +8,9 @@ import type { CavePaint } from './textures';
 // Siri Derkert's lines in its concrete walls (1965); Skanstull, the trams' station of 1933,
 // on its beams; Medborgarplatsen, the other of 1933, with its enamelled columns and the
 // vault of its lengthening in 1950; Rådmansgatan, Hötorget's neighbour of 1952, in yellow
-// tiles; and S:t Eriksplan, of the same year, on two rows of columns in exposed-aggregate
-// concrete.
+// tiles; S:t Eriksplan, of the same year, on two rows of columns in exposed-aggregate
+// concrete; and Blackeberg's covered south-eastern end, of the same year, under its ticket hall,
+// with Ruben Heleander's walls (1987).
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -85,10 +86,16 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // between the columns); the clocks and the departure boards hung over the platform's sides,
 // `clocks` and `boards.off` from its middle; and the station's name on its signs and plates as
 // SL writes it (`signs.name`).
+// Blackeberg's, of 1952 too: the track walls in green tiles with the rock standing out of them and
+// trees drawn on them (`walls.trees`; posters left out, `run` 0), the rock left bare at the hall's
+// end round the tunnels going on; a flat ceiling of dark board-marked concrete (`boarded`); and
+// the vault board-marked too (`vault.boarded`), with a lunette window in its end over the flat
+// part (`vault.window`): concrete from the flat ceiling up to `from`, glass in steel frames about
+// `frames` m apart above it, up to the vault, looking into the ticket hall over the flat part.
 export interface BeamedHall {
   kind: 'beams';
   walls: {
-    color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number };
+    color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number }; trees?: boolean;
     posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number };
   };
   beams?: { depth: number; width: number; between: number | null; along: number; color?: number };
@@ -104,7 +111,8 @@ export interface BeamedHall {
   signs: { every: number; at: number; ways?: string; blue?: boolean; name?: string };
   clocks?: boolean | number;
   boards?: { from: number; off?: number; east: Board; west: Board };
-  vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number };
+  vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number; boarded?: boolean; window?: { from: number; frames: number } };
+  boarded?: boolean;
 }
 export interface Board { toward: string; trains: [string, string] }
 
@@ -214,6 +222,19 @@ export interface VaultHall {
 // Wikimedia Commons' photographs (2012–2016): the columns' spacing (6 m) and the rows' (3.1 m)
 // are read from them against people and the camera's lens, so they're approximate, as are the
 // heights (the ceiling about 3.5 m over the platform between the rows).
+//
+// Blackeberg: opened on 26 October 1952, at the end of the 600 m tunnel under Blackeberg, the
+// island platform's south-eastern 50 m covered and the rest out in a cutting (English and Swedish
+// Wikipedia). The covered part runs under Vinjegatan's deck and Peter Celsing's ticket hall, under
+// a flat slab of dark board-marked concrete on square columns in small yellow tiles, then on under
+// Blackebergs torg in a low board-marked vault, its end over the flat part a lunette window into
+// the ticket hall; at its far end the two tunnels' mouths in the bare rock. The track walls are
+// Ruben Heleander's (1987): small green tiles with pale trees drawn on them, the rock standing out
+// of them in dark outcrops. The floor grey concrete tiles, a pale edge and a dark ribbed strip;
+// SL's blue signs with the way out, orange posts with departure screens. Wikimedia Commons'
+// photographs (2018): the heights read against the platform's people and benches, so
+// approximate (the slab about 3.35 m over the platform, the vault's crown about 6.6 and the
+// window's sill 4.5); where the vault begins is under the hall's front, over the square's foot.
 export const HALL_STYLES: Record<string, HallStyle> = {
   'Hötorget': {
     kind: 'flat',
@@ -369,6 +390,35 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         east: { toward: 'Fridhemsplan · Hässelby', trains: ['17 Åkeshov  2 min', '19 Hässelby strand  3 min'] },
         west: { toward: 'T-Centralen · Gullmarsplan', trains: ['17 Skarpnäck  1 min', '18 Farsta strand  4 min'] },
       },
+    },
+  },
+  'Blackeberg': {
+    kind: 'flat',
+    soffit: 4.35,
+    ceiling: 4.35,
+    step: 0,
+    columns: { fromEdge: 4.17, size: 0.62, spacing: 7.8, middle: true },
+    finish: {
+      kind: 'beams',
+      walls: { color: 0x5e8c63, tile: 0.15, from: 1.0, trees: true, posters: { width: 0, height: 0, bottom: 0, every: 1, run: 0, gap: 8 } },
+      ceiling: 0x6e6a64,
+      boarded: true,
+      column: 0xd8c64a,
+      columnTile: 0.15,
+      paving: {
+        edge: 0.35, tactile: [0.35, 0.7], slabs: 0.7, paverSize: [0.4, 0.4], mix: 0.15,
+        colors: { edge: 0xbdbab2, tactile: 0x3a3b3c, slab: 0x6c6c6b, pavers: 0x6a6a69, paler: 0x8a8a87, face: 0x5a5853 },
+        pattern: 'grid',
+      },
+      signs: { every: 40, at: 3.35, ways: 'Utgång', blue: true },
+      // (trains keep left: into town on the north-eastern track; the boards beside the walls round
+      // the stairs down the platform's middle)
+      boards: {
+        from: 1, off: 3.1,
+        east: { toward: 'Farsta · Hagsätra · Skarpnäck', trains: ['19 Hagsätra  8 min', '18 Farsta strand  12 min'] },
+        west: { toward: 'Hässelby', trains: ['18 Hässelby strand  7 min', '19 Hässelby strand  11 min'] },
+      },
+      vault: { from: [-9981.5, -1829.0], toward: [-9974.9, -1822.2], crown: 7.6, color: 0x8a8680, lamps: 2.2, boarded: true, window: { from: 5.5, frames: 1.4 } },
     },
   },
 };

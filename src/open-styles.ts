@@ -306,7 +306,8 @@ export type Finish =
 // their own all round from a height up (rising or falling with the top to `low` at the corners
 // its `low` is at, as a band of windows under a sloping roof does); `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
-// be walked on inside it (only the station's own floors are). `nameSign`: the station's name in
+// be walked on inside it (only the station's own floors are); `inHall`, in the platform's hall
+// the network draws, which otherwise hides what the station draws in it. `nameSign`: the station's name in
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
 // up (on the side's inner face, `inside`; black, as SL's older signs are, `black`). `eaves`: its roof reaches out this far past its walls,
 // along each side (or all round). `ground`: it is dug into the city's ground, which isn't there
@@ -319,14 +320,24 @@ export type Finish =
 // to its second side), their slopes in `roofColor`, their ends in `color` with a trim of `trim`
 // along their edges, and a strip of glass down each slope; or (`round`) vaults, rising `rise` in a
 // half-ellipse, glass along their crowns (or, `glass`, glazed all over on arched ribs of this
-// colour about `ribs` m apart, and glazing bars along them).
+// colour about `ribs` m apart, and glazing bars along them). `arch`: a hole in side `side`'s
+// wall under a segmental arch, from `span[0]` to `span[1]` m along the side from its first
+// corner, springing `spring` high at its ends and rising to `crown` (where a vault the network
+// draws runs on under the block, Blackeberg's). `dome`, in place of a flat roof: a shallow groin
+// vault over the block (Blackeberg's hall), its underside along each side an arch from `spring`
+// high at the corners to `arch` at the middle, and rising between them to `crown` over the
+// middle; `thick` thick, board-marked underneath and covered in `roofColor`, with a beam `beam`
+// deep along its edges; under each side's beam, from the block's top (`h[1]`) up, a lunette
+// glazed in frames of `frame` colour about `frames` m apart, with a transom.
 export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; lowBack?: number; eaves?: number | number[]; ground?: boolean | number;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number; low?: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
-  onPlatform?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
+  onPlatform?: boolean; inHall?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
   roofColor?: number; brackets?: { every: number; color: number };
   gables?: { count: number; rise: number; color: number; trim: number; round?: boolean; glass?: { ribs: number; color: number } };
+  arch?: { side: number; span: [number, number]; spring: number; crown: number };
+  dome?: { spring: number; arch: number; crown: number; thick: number; beam: number; frames: number; frame: number };
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller
@@ -5097,5 +5108,118 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the railing across the platform's east end
       { kind: 'bars', points: [[76, -1.7], [76, 4.0]], h: [0, 1.8] },
     ],
+  },
+
+  // Blackeberg (26 October 1952): an island platform 145 m long, its south-eastern part covered,
+  // under Vinjegatan's deck, the ticket hall and Blackebergs torg, its north-western part open in
+  // a rock cutting. The covered part, the hall's vault over it and the window from the hall into it
+  // are the network's (HALL_STYLES); this is the rest. Lantmäteriet's laser scan puts a butterfly
+  // roof over the open part's first 61 m, from 1.7 m past the deck's face, 8.4 m wide where it
+  // starts and 7 m where it ends, its top 3.6–3.8 m over the platform at the eaves and 3.3–3.5 m
+  // at the valley; and two masts beyond it, 5 m high. Photographs (2018) show the roof's underside
+  // of pale ribbed sheet, the ribs across, on white-painted steel beams cantilevered from pairs of
+  // posts down the middle, a dark grey fascia, blue name signs (SL's, over a yellow stripe); grey
+  // square tiles, a few darker, a white edge and a dark ribbed strip; wooden benches; galvanised
+  // masts with two lamps on a short arm.
+  //
+  // The ticket hall (Peter Celsing, 1952; blue-marked by Stadsmuseet) is at Vinjegatan's level,
+  // 4.1 m over the platform, a square about 22 m a side spanning the tracks, under a shallow
+  // groin vault of board-marked concrete springing from the square's level (7.7 m) at its corners
+  // (laser scan: the vault's top 13.0 m over the platform, the arches' bands 11.6–11.7 m at the
+  // sides' middles); a lunette glazed in white steel frames under the arch on each side, over a
+  // white fascia. Under the fascia board-marked concrete walls, the shops (a kiosk, NetQ) along the
+  // back, the doors through to Vinjegatan, the lift up to the square in the north-eastern wall; a
+  // double stair along the front wall up to a landing at the doors to Blackebergs torg, over the
+  // window into the platform's vault; the gates (OpenStreetMap's indoor mapping), the black box of
+  // the lift down to the platform beside them, the stairs down to the platform beyond them; a pale
+  // grey stone floor. On Vinjegatan, the hall's back is a single storey of shop fronts (a café, the
+  // station's two doors under the dark blue band, the kiosk) under a board-marked parapet, the
+  // terrace on top at the square's level; the round T on the parapet by the eastern door, and on a
+  // tall pole on the square by the front doors. On the square, by the lunette to the north-east, a
+  // glazed lift house under a flat white roof.
+  //
+  // Not drawn: the fountains on the square (Erik Glemme and Sture Andersson's, 1955), the shops'
+  // own signs and goods, the hall's pendant lamps, the dark polished panels in the floor round the
+  // gates. The stair down to the platform is laid out from OpenStreetMap's (its top in the hall,
+  // its foot under the deck), with a landing under the shops.
+  'Blackeberg': {
+    roof: {
+      kind: 'butterfly',
+      from: -8, to: 53, width: 8.4,
+      shape: [[-8, -1.25, 8.4], [10, -0.3, 8.2], [30, 1.2, 7.6], [53, 3.6, 7.0]],
+      middle: 3.15, edge: 3.45, thick: 0.2, fascia: 0.3,
+      rafters: 6.0, rafterAt: -5, rafterSize: [0.12, 0.3], deck: 'ribbedAcross', rafterColor: 0xdcdcd8,
+      beam: 0.4,
+      columns: { every: 6.0, at: -5, size: 0.18, plinth: { size: 0.3, height: 0.12 }, pair: 0.8, between: [-8, 53] },
+      lamps: { offset: 1.3, length: 1.5, every: 3.0 },
+      colors: { underside: 0xcdcfce, fascia: 0x4a4d50, top: 0x55585b, steel: 0x4a4d50 },
+      signs: { at: [7, 37], back: 'Utgång', ahead: '', bottom: 2.4, blue: true },
+      clocks: [[19, 0.3]],
+      // (trains keep left: into town on the north-eastern track)
+      boards: [
+        { s: 1, u: 0.95, toward: 'Farsta · Hagsätra · Skarpnäck', trains: ['19 Hagsätra  4 min', '18 Farsta strand  9 min'] },
+        { s: 1, u: -2.65, toward: 'Hässelby', trains: ['18 Hässelby strand  6 min', '19 Hässelby strand  11 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.35, tactile: [0.35, 0.7], slabs: 0.7, paverSize: [0.4, 0.4], mix: 0.15,
+      colors: { edge: 0xd6d4ce, tactile: 0x3e4043, slab: 0xa9a7a3, pavers: 0xa9a7a3, paler: 0x7c7a77, face: 0x8a8781 },
+      pattern: 'grid',
+    },
+    buildings: ['w48875847'],
+    rooms: [
+      // the double stair along the hall's front wall, solid, with concrete parapets
+      { name: 'double stair', s: [-51.6, -47.9], u: [-11.5, 10.6], h: [3.9, 8.6], walls: 'boardConcrete', stairs: 'terrazzo', floor: 'terrazzo', parapet: 1.0 },
+      // (the hall's floors are open to its vault; the walls round them are its block's)
+      { name: 'hall', s: [-50.5, -28.1], u: [-11.5, 10.6], h: [3.9, 8.6], walls: null, floor: 'terrazzo' },
+      { name: 'passages to Vinjegatan', s: [-28.9, -21], u: [-16, 17], h: [3.5, 7], walls: 'boardConcrete', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'stairs to the platform', s: [-34, -18], u: [-4.5, 1.0], h: [-0.5, 3.9], walls: 'yellowTiles', stairs: 'terrazzo', floor: 'terrazzo', ceiling: 'boardConcrete' },
+      { name: 'square', s: [-60, -30], u: [10.6, 20], h: [7, 9], walls: null, floor: 'pavers' },
+      { name: 'platform', s: [-61, -12], h: [-0.5, 1], walls: null, floor: null },
+    ],
+    blocks: [
+      // the hall: its walls to the fascia, the vault over them, the network's vault running on
+      // under the square through the arch in the front wall
+      { name: 'hall', plan: [[-50.5, -11.5], [-50.5, 10.6], [-28.0, 9.7], [-28.3, -11.2]], h: [4.07, 7.7], from: 4.07,
+        walls: 'boardConcrete', sides: [undefined, undefined, 'shopWindows', undefined], band: { walls: 'whiteRender', from: 7.4 },
+        floor: 'terrazzo', roofColor: 0x4c4844, ground: true,
+        arch: { side: 0, span: [1.335, 18.375], spring: 3.35, crown: 6.6 },
+        dome: { spring: 7.7, arch: 11.15, crown: 12.5, thick: 0.5, beam: 0.5, frames: 1.2, frame: 0xe8e8e4 } },
+      // the stairwell on the platform, round the flights up to the hall, open towards the
+      // platform's open end (under the network's flat ceiling, no roof of its own)
+      { name: 'stairwell', plan: [[-33.4, -3.85], [-18.9, -3.85], [-18.9, 0.45], [-33.4, 0.45]], h: [0, 3.35], from: 0,
+        walls: 'yellowTiles', sides: [undefined, null, undefined, undefined], onPlatform: true, inHall: true },
+      // the landing's parapet
+      { name: 'landing parapet', plan: [[-48.28, -4.0], [-48.08, -4.0], [-48.08, 2.5], [-48.28, 2.5]], h: [7.3, 8.7], from: 7.3, walls: 'boardConcrete', roof: 0.05, roofColor: 0x8a8680 },
+      // the box of the lift down to the platform, by the gates
+      { name: 'lift box', plan: [[-40.35, -1.15], [-37.75, -1.15], [-37.75, 1.35], [-40.35, 1.35]], h: [4.07, 7.3], from: 4.07,
+        walls: 'liftWindows', sides: [undefined, undefined, undefined, null], roof: 0.1, roofColor: 0x1e1f20 },
+      // the shops between the hall and Vinjegatan, the terrace on them at the square's level
+      { name: 'shops', plan: [[-28.3, -15.35], [-22.62, -15.35], [-23.29, 16.83], [-28.0, 16.83]], h: [3.9, 7.7], from: 4.0,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.3, roofColor: 0x8c8984, ground: true },
+      // their front on Vinjegatan, under the parapet: a café, the western doors, the kiosk, the
+      // eastern doors, a white wall
+      { name: 'café', plan: [[-22.62, -15.35], [-22.22, -15.35], [-22.313, -10.9], [-22.713, -10.9]], h: [3.9, 8.7], from: 4.0,
+        walls: 'shopWindows', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984 },
+      { name: 'western doors', plan: [[-22.713, -10.9], [-22.313, -10.9], [-22.356, -8.1], [-22.756, -8.1]], h: [3.9, 8.7], from: 4.0,
+        walls: 'glassFront', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984,
+        nameSign: { side: 1, at: 0.5, length: 2.4, bottom: 6.4 } },
+      { name: 'kiosk', plan: [[-22.756, -8.1], [-22.356, -8.1], [-22.652, 5.4], [-23.052, 5.4]], h: [3.9, 8.7], from: 4.0,
+        walls: 'shopWindows', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984 },
+      { name: 'eastern doors', plan: [[-23.052, 5.4], [-22.652, 5.4], [-22.708, 8.2], [-23.108, 8.2]], h: [3.9, 8.7], from: 4.0,
+        walls: 'glassFront', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984,
+        nameSign: { side: 1, at: 0.5, length: 2.4, bottom: 6.4 } },
+      { name: 'white wall', plan: [[-23.108, 8.2], [-22.708, 8.2], [-22.888, 16.83], [-23.288, 16.83]], h: [3.9, 8.7], from: 4.0,
+        walls: 'whiteRender', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984 },
+      // the lift house on the square, against the hall's north-eastern lunette
+      { name: 'lift house', plan: [[-37.9, 10.3], [-35.3, 10.3], [-35.3, 12.5], [-37.9, 12.5]], h: [7.8, 10.5], from: 7.8,
+        walls: 'glazed', sides: [null, undefined, undefined, undefined], roof: 0.25, roofColor: 0xd4d4d0, eaves: 0.45 },
+    ],
+    art: [
+      { kind: 'roundel', s: -22.3, u: 8.9, h: 7.95, size: 0.9, foot: 7.45, along: true },
+      { kind: 'roundel', s: -53.0, u: 3.6, h: 12.1, size: 0.8, foot: 7.7, along: true },
+      { kind: 'masts', height: 4.9, color: 0x9ea3a6, top: false, arm: 0.45, shade: 0x8a8e90, at: [[56.8, 4.1], [73.5, 6.1]] },
+    ],
+    benches: [{ at: [-1, 13, 25, 43], wood: true }],
   },
 };

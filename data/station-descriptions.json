@@ -1285,21 +1285,49 @@
     },
     "Blackeberg": {
       "drawing": "blackeberg.png",
-      "note": "An island platform in a cutting. At its north-west end stairs climb to a ticket hall over the tracks, with exits to Blackebergs torg and both sides of Vinjegatan.",
+      "note": "An island platform, its south-eastern part covered under Vinjegatan's deck, the ticket hall and Blackebergs torg, its north-western part open in a rock cutting. The ticket hall spans the tracks at Vinjegatan's level, 4.1 m over the platform: from the gates, stairs go down to the platform, with a landing under the shops, and a lift beside them; from the hall, two doors lead through to Vinjegatan, a double stair along the front wall climbs to the doors on Blackebergs torg, and a lift in the north-eastern wall rises to the square. Laid out from Lantmäteriet's laser scan (the street and the hall's floor 4.1 m over the platform, the square 7.7 m), OpenStreetMap's indoor mapping (the gates, the stairs, both lifts, the doors) and photographs (1950s to 2019); Albert Guillaumes' drawing has the hall's floor at the square's level, 7.6 m up one flight from the platform.",
       "routes": [
-        { "from": [-35, 0], "width": 3, "go": [
-          {"stairs": 7.6, "toward": [-150, 0]},
-          {"walk": 6, "width": 8},
+        { "from": [-19.0, -1.7], "width": 4.0, "go": [
+          {"stairs": 1.5, "toward": [-33.3, -1.7], "lanes": "SS", "ceiling": 2.2},
+          {"walk": [-28.4, -1.7], "ceiling": 2.2},
+          {"stairs": 2.57, "lanes": "SS", "open": true},
+          {"walk": [-35.0, -1.0], "width": 7.0, "open": true},
           {"gates": true},
-          {"walk": 4},
+          {"walk": [-36.6, -1.0], "open": true},
           {"mark": "hall"},
-          {"exit": 1460580680, "by": "walk"}
+          {"walk": [-48.2, -1.0], "width": 19.6, "open": true}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 10596164544, "by": "walk"}
+        { "from": "hall", "go": [
+          {"walk": [-30.5, -9.5], "width": 2.6, "open": true},
+          {"walk": [-28.8, -9.5], "open": true},
+          {"walk": [-22.9, -9.5], "ceiling": 2.6},
+          {"exit": {"at": [-19.6, -9.5], "name": "Vinjegatan"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 1460580704, "by": "walk"}
+        { "from": "hall", "go": [
+          {"walk": [-30.5, 6.8], "width": 2.6, "open": true},
+          {"walk": [-28.8, 6.8], "open": true},
+          {"walk": [-23.2, 6.8], "ceiling": 2.6},
+          {"exit": {"at": [-18.8, 6.8], "name": "Vinjegatan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-49.3, -10.8], "h": 4.07, "width": 2.0, "go": [
+          {"stairs": 3.63, "toward": [-49.3, 0], "lanes": "S", "open": true},
+          {"walk": [-49.3, -0.4], "open": true},
+          {"exit": {"at": [-51.0, -0.4], "name": "Blackebergs torg"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-49.3, 9.3], "h": 4.07, "width": 2.0, "go": [
+          {"stairs": 3.63, "toward": [-49.3, 0], "lanes": "S", "open": true},
+          {"walk": [-49.3, -0.4], "open": true}
+        ] },
+        { "from": "hall", "go": [
+          {"walk": [-36.6, 9.6], "width": 2.2, "open": true},
+          {"lift": 3.75, "above": 2.7, "through": true},
+          {"walk": [-36.6, 13.0], "open": true},
+          {"exit": {"at": [-36.6, 14.4], "name": "Blackebergs torg"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-42.2, 0.1], "h": 4.07, "width": 2.2, "go": [
+          {"walk": [-40.56, 0.1], "open": true},
+          {"lift": -4.07, "above": 3.0},
+          {"walk": [-42.6, 0.1], "open": true}
         ] }
       ]
     },
