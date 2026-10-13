@@ -5190,9 +5190,12 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'stairwell', plan: [[-33.4, -3.85], [-18.9, -3.85], [-18.9, 0.45], [-33.4, 0.45]], h: [0, 3.35], from: 0,
         walls: 'yellowTiles', sides: [undefined, null, undefined, undefined], onPlatform: true, inHall: true },
       // the deck's edge, where it reaches out past the end of the network's ceiling over the
-      // platform and the north-eastern track (whose tunnel ends 3 m short of it): its underside,
-      // at the ceiling's height, and its face over the cutting
-      { name: 'deck edge', plan: [[-13.6, -17], [-10.06, -17], [-10.97, 14], [-13.6, 14]], h: [3.35, 3.85], from: 3.35,
+      // platform and the north-eastern track (whose tunnel ends 3 m short of it, the ceiling 2 m
+      // further back over that half): its underside, at the ceiling's height, and its face over
+      // the cutting
+      { name: 'deck edge', plan: [[-13.6, -17], [-10.06, -17], [-10.53, -1.6], [-13.6, -1.6]], h: [3.35, 3.85], from: 3.35,
+        walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'boardConcrete' },
+      { name: 'deck edge', plan: [[-15.6, -1.6], [-10.53, -1.6], [-10.97, 14], [-15.6, 14]], h: [3.35, 3.85], from: 3.35,
         walls: 'boardConcrete', sides: [null, undefined, null, null], floor: 'boardConcrete' },
       // the landing's parapet
       { name: 'landing parapet', plan: [[-48.28, -4.0], [-48.08, -4.0], [-48.08, 2.5], [-48.28, 2.5]], h: [7.3, 8.7], from: 7.3, walls: 'boardConcrete', roof: 0.05, roofColor: 0x8a8680 },
