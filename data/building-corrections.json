@@ -47,6 +47,11 @@
       "osm": "w1354381841",
       "overStation": true,
       "why": "Sveavägen 98, on the north-east corner of Sveavägen and Rehnsgatan, whose ground floor the station's north-eastern stairs climb into from the passage under the street, coming out through SL's doors in its west front (photographs, 1955 and 2016): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w141565037",
+      "tags": { "building:colour": "#232426" },
+      "why": "Bistro Tarboush, the kiosk beside Islandstorget's ticket hall, black in a Mapillary panorama (2025), with painted panels, and in OpenStreetMap's building:colour; but the city's tiles take a colour of 0 for none given, so black came out a wall colour by chance."
     }
   ]
 }

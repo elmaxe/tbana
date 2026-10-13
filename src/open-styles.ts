@@ -292,7 +292,8 @@ export type Finish =
   | 'opPanels'      // glazed tiles, 15 cm: panels patterned in black, white and grey between orange-red strips, to 2.25 m; orange-red tiles above (Åsa Lindström's)
   | 'circleFront'   // glass doors in brushed steel under SL's dark blue band, a white disc on it, a yellow line under it; glass in steel frames above
   | 'stripPanels'   // pale grey panels 0.9 m wide between black strips, to 2.6 m; windows in grey steel frames above
-  | 'maroonGlazed'; // clear glass in dark red-brown steel frames 1.2 m apart, a transom 2.2 m up
+  | 'maroonGlazed'  // clear glass in dark red-brown steel frames 1.2 m apart, a transom 2.2 m up
+  | 'slateGlazed';  // clear glass in slate-blue steel frames 1.4 m apart, a transom every 1.15 m
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -4950,6 +4951,151 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-112.6, 4.1], [-96, 4.1]], h: [-1.45, 0.5] },
       { kind: 'louvres', color: 0x7a5a48, points: [[-96, 4.1], [-88, 5.72], [-84, 6.29], [-70, 8.02], [-50, 9.47], [-40, 9.82]], h: [-1.5, 0.5] },
       { points: [[-40, 9.82], [-30, 9.92], [-10, 9.37], [10, 7.93], [30, 5.43], [50, 1.76], [70, -3.14]], h: [-1.5, 0.5] },
+    ],
+  },
+
+  // Islandstorget (26 October 1952; Ängbybanan's tram terminus from 1944): an island platform at
+  // grade in Södra Ängby, its west end in a shallow cutting where the tracks go into tunnels on to
+  // Blackeberg. The laser scan puts a butterfly roof over its west and middle parts, from 57 m west
+  // of the platform's middle to 46 m east, about 8.5 m wide, its top 2.6–2.8 m over the platform
+  // at the valley and 3.1–3.4 m at the eaves; the east end open. Photographs (2006, 2018) show
+  // corrugated sheet with its ribs across, pale grey underneath on pale grey purlins, beams across
+  // cantilevered from pairs of square posts down the middle on concrete plinths, slate blue (2018),
+  // and panes of glass in thin dark frames along the middle; black name signs on two bars, the
+  // departure board "Tåg mot Hässelby" over the southern edge, a round clock; wooden benches.
+  // Seen from above (Google's mesh) the covering is pale grey west of about 10 m west of the
+  // middle and pale blue east of it. The paving: grey square slabs, a white edge 0.8 m wide and a
+  // dark ribbed strip. Out in the open, two galvanised masts (laser scan: 48 and 65 m east of the
+  // middle, 4.1 m high), each with two lamps under dark caps on a short arm. A railing closes the
+  // platform 76 m east; chain-link beyond the northern track along the car park, a low black
+  // fence on the slope beyond the southern one.
+  //
+  // At its west end, over the tunnels' mouths, a single-storey hall at the street's level, 3.4 m
+  // over the platform, its glazed front on Blackebergsvägen: glass doors in steel frames, SL's
+  // dark blue band with "T Islandstorget", a band of windows above showing the white trusses
+  // inside, a deep flat canopy white under its dark edge, black standing-seam sheet on the core's
+  // sides above the wings; a kiosk built on to the north (shuttered in 2025) and a white-painted
+  // block wing to the south (laser scan: the core's roof 7.0–7.7 m over the platform, the wings'
+  // 6.2 m); the round T on a tall pole at its front corner and a row of glass screens on its roof
+  // (10 m). Inside, a dark grey terrazzo floor, the gates (OpenStreetMap's indoor mapping: 87.5 m
+  // west of the middle), a glazed ticket booth with dark blue panels. Beyond the gates a housing
+  // whose roof falls from 6.4 m to 3.3 m over the stairs down to the platform (OpenStreetMap: 11 m
+  // long, for prams too, so in three short flights), with glass doors in steel frames at its foot;
+  // beside it an enclosed gallery at the hall's level (laser scan: 6.3 m), grey panels and
+  // brown-tinted windows, along the platform's south side to a glass lift tower in slate-blue
+  // frames (7.3 m), its door facing west at both levels.
+  //
+  // Not drawn: the bus terminal's shelters beside the hall, the advertising cases, the hall's
+  // departure board. The gallery ends at the room before the lift, where the real one runs on
+  // beside the tower to its east end. The network's tracks are about 2 m closer together than the
+  // real ones at the west end, so the stair housing (about 4 m wide) and the gallery are narrower
+  // and the gallery reaches out over the southern track's edge.
+  'Islandstorget': {
+    roof: {
+      kind: 'butterfly',
+      from: -57, to: -10, width: 7.0,
+      shape: [[-57, 0.6, 7.0], [-40, 0.26, 7.4], [-20, 0.05, 7.95], [-10, 0.025, 8.08]],
+      middle: 2.7, edge: 3.3, thick: 0.1, fascia: 0.12,
+      rafters: 7.4, rafterAt: -53.5, rafterSize: [0.16, 0.3], deck: 'ribbedAcross', rafterColor: 0x475f74,
+      beam: 0.2,
+      purlins: { at: [-3.0, -2.0, -1.0, 1.0, 2.0, 3.0], size: [0.1, 0.12], color: 0xc4c8c9 },
+      columns: { every: 7.4, at: -53.5, size: 0.18, plinth: { size: 0.34, height: 0.22 }, pair: 0.9, between: [-57, -10] },
+      lamps: { offset: 0.9, length: 1.5, every: 3.0, at: [-0.9, 0.9], tube: true },
+      colors: { underside: 0xd3d6d6, fascia: 0xb9bdbf, top: 0xc6cccb, steel: 0x475f74 },
+      signs: { at: [-27.6], back: 'Blackebergsvägen', ahead: '', bottom: 2.3 },
+      // (trains keep left: out of town on the southern track)
+      boards: [
+        { s: -50.5, u: 1.8, toward: 'Hässelby', trains: ['19 Hässelby strand  4 min', '19 Hässelby strand  14 min'] },
+        { s: -50.5, u: -1.8, toward: 'T-Centralen', trains: ['19 Hagsätra  2 min', '19 Hagsätra  12 min'] },
+      ],
+    },
+    roofs: [
+      // its east part, the covering pale blue
+      {
+        kind: 'butterfly',
+        from: -10, to: 46, width: 8.08,
+        shape: [[-10, 0.025, 8.08], [0, 0.0, 8.2], [20, 0.1, 8.1], [40, 0.25, 7.8], [46, 0.33, 7.65]],
+        middle: 2.7, edge: 3.3, thick: 0.1, fascia: 0.12,
+        rafters: 7.4, rafterAt: -53.5, rafterSize: [0.16, 0.3], deck: 'ribbedAcross', rafterColor: 0x475f74,
+        beam: 0.2,
+        purlins: { at: [-3.0, -2.0, -1.0, 1.0, 2.0, 3.0], size: [0.1, 0.12], color: 0xc4c8c9 },
+        columns: { every: 7.4, at: -53.5, size: 0.18, plinth: { size: 0.34, height: 0.22 }, pair: 0.9, between: [-10, 46] },
+        lamps: { offset: 0.9, length: 1.5, every: 3.0, at: [-0.9, 0.9], tube: true },
+        colors: { underside: 0xd3d6d6, fascia: 0xb9bdbf, top: 0x9eb6ca, steel: 0x475f74 },
+        signs: { at: [9.4, 31.6], back: 'Blackebergsvägen', ahead: '', bottom: 2.3 },
+        clocks: [[16.8, 0.1]],
+      },
+    ],
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.15], slabs: 1.15, paverSize: [0.5, 0.5],
+      colors: { edge: 0xd9d8d3, tactile: 0x3e4043, slab: 0x8a8a8c, pavers: 0x838385, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    buildings: ['r6544643'],
+    rooms: [
+      // (the hall's floors are open to its ceiling; the walls round them are its block's)
+      { name: 'hall', s: [-97, -80], u: [-4.5, 5.5], h: [3, 4.5], walls: null, floor: 'darkTerrazzo', ceiling: 'whitePanels', lamps: 3.2 },
+      { name: 'stairs', s: [-80, -67.2], u: [-1.5, 1.85], h: [-0.5, 4.5], walls: 'whitePanels', stairs: 'whitePanels', floor: 'darkTerrazzo', ceiling: 'ribbedMetal' },
+      // (the gallery's walls are its block's)
+      { name: 'gallery', s: [-80.5, -57], u: [-2, 5], h: [3, 4.5], walls: null, floor: 'greyTiles', ceiling: 'whitePanels', slab: 0.25 },
+      { name: 'platform', s: [-69, -55], h: [-0.5, 1], walls: null, floor: null },
+    ],
+    blocks: [
+      // the hall's core, its roof falling from the front to the back, and the canopy over the front,
+      // white under its dark edge (a block of its own: eaves as deep as that on one side only would
+      // tilt the roof's slab less than the ceiling under it, and hang it below the ceiling)
+      { name: 'hall', plan: [[-94.9, 5.0], [-80.0, 5.0], [-80.0, -4.0], [-94.9, -4.0]], h: [3.3, 7.4], from: 3.5, low: 6.75,
+        walls: 'greyPanels', sides: [undefined, 'glazed', undefined, 'glassFront'], floor: 'darkTerrazzo', ceiling: 'whitePanels',
+        roof: 0.3, roofColor: 0x2e3134, eaves: 0.15, ground: true,
+        nameSign: { side: 3, at: 0.5, length: 6.0, bottom: 5.85 } },
+      { name: 'canopy', plan: [[-96.2, -4.15], [-95.05, -4.15], [-95.05, 5.15], [-96.2, 5.15]], h: [7.4, 7.4], from: 7.4,
+        walls: 'greyPanels', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.3, roofColor: 0x2e3134 },
+      // the kiosk on its north side, and the white wing on its south side
+      { name: 'kiosk', plan: [[-94.6, -4.0], [-81.0, -4.0], [-81.0, -7.0], [-94.6, -7.0]], h: [3.3, 6.0], from: 3.5,
+        walls: 'whiteRender', sides: [null, undefined, undefined, 'shutter'], roof: 0.2, roofColor: 0x5f6266, ground: true },
+      { name: 'south wing', plan: [[-95.0, 5.0], [-80.5, 5.0], [-80.5, 8.0], [-95.0, 8.0]], h: [3.3, 6.05], from: 3.5,
+        walls: 'whiteRender', sides: [null, undefined, undefined, undefined], roof: 0.2, roofColor: 0x5f6266, ground: true },
+      // the glass screens along the roof's back edge
+      { name: 'screens', plan: [[-80.55, -3.5], [-80.25, -3.5], [-80.25, 4.5], [-80.55, 4.5]], h: [7.05, 10.0], from: 7.05,
+        walls: 'glazed', roof: 0.05, roofColor: 0x8a8f93 },
+      // the ticket booth inside the hall, and the glass beside the gates
+      { name: 'booth', plan: [[-92.8, 3.0], [-87.8, 3.0], [-87.8, 4.85], [-92.8, 4.85]], h: [3.5, 6.0], from: 3.5,
+        walls: 'greyGlazed', sides: [undefined, undefined, null, undefined], roof: 0.05, roofColor: 0x8a8f93 },
+      { name: 'gate line', plan: [[-87.65, -3.85], [-87.35, -3.85], [-87.35, -1.4], [-87.65, -1.4]], h: [3.5, 4.6], from: 3.5, walls: 'glazed' },
+      // the housing over the stairs, its roof falling with them to the doors at their foot
+      { name: 'stair housing', plan: [[-80.0, -1.0], [-80.0, 1.85], [-67.4, 1.85], [-67.4, -1.0]], h: [-0.3, 6.1], lowBack: 3.2,
+        walls: 'cladding', sides: [null, undefined, 'glassFront', undefined], ceiling: 'ribbedMetal', roof: 0.15, roofColor: 0x3a3d40, onPlatform: true },
+      // the gallery beside it at the hall's level, out to the lift tower, and the room between
+      // them before the lift's door (the real gallery runs on beside the tower to its east end)
+      { name: 'gallery', plan: [[-80.0, 1.9], [-61.05, 1.9], [-61.05, 4.6], [-80.0, 4.6]], h: [3.2, 6.15], from: 3.5,
+        walls: 'greyClerestory', sides: [undefined, undefined, undefined, null], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.15, roofColor: 0x3a3d40 },
+      { name: 'before the lift', plan: [[-64.0, -1.9], [-61.05, -1.9], [-61.05, 1.9], [-64.0, 1.9]], h: [3.2, 6.25], from: 3.5,
+        walls: 'greyClerestory', sides: [undefined, undefined, null, undefined], floor: 'greyTiles', ceiling: 'whitePanels', roof: 0.15, roofColor: 0x3a3d40 },
+      // (their undersides over the platform pale, not the floors' dark slabs)
+      { name: 'under the gallery', plan: [[-80.0, 1.9], [-61.05, 1.9], [-61.05, 4.6], [-80.0, 4.6]], h: [3.21, 3.21], from: 3.21,
+        walls: 'greyPanels', sides: [null, null, null, null], ceiling: 'whitePanels' },
+      { name: 'under the room before the lift', plan: [[-64.0, -1.9], [-61.05, -1.9], [-61.05, 1.9], [-64.0, 1.9]], h: [3.21, 3.21], from: 3.21,
+        walls: 'greyPanels', sides: [null, null, null, null], ceiling: 'whitePanels' },
+      { name: 'lift tower', plan: [[-61.0, -1.9], [-57.2, -1.9], [-57.2, 1.0], [-61.0, 1.0]], h: [0, 7.15], from: 0.3,
+        walls: 'slateGlazed', roof: 0.1, roofColor: 0x475f74, onPlatform: true },
+    ],
+    art: [
+      { kind: 'roundel', s: -93.6, u: 4.6, h: 9.0, size: 1.1, foot: 7.7, along: true },
+      { kind: 'masts', height: 4.1, color: 0x9ea3a6, top: false, arm: 0.45, shade: 0x2f3133, at: [[48, -0.6], [65, 0.6]] },
+    ],
+    benches: [{ at: [-27.6, -20.2, 9.4, 24.2], wood: true }, { at: [56], double: true, wood: true }],
+    fences: [
+      // glass along the roof's middle between some of its frames
+      { kind: 'glass', points: [[-51.6, 0.49], [-48.0, 0.42]], h: [0.1, 2.1] },
+      { kind: 'glass', points: [[-44.2, 0.34], [-40.6, 0.27]], h: [0.1, 2.1] },
+      { kind: 'glass', points: [[-36.8, 0.23], [-33.2, 0.19]], h: [0.1, 2.1] },
+      { kind: 'glass', points: [[-7.2, 0.02], [-3.6, 0.01]], h: [0.1, 2.1] },
+      { kind: 'glass', points: [[0.2, 0.0], [3.8, 0.02]], h: [0.1, 2.1] },
+      // 2.6 m beyond each track
+      { points: [[-66, -6.2], [-52, -6.95], [-40, -7.3], [-20, -7.8], [0, -8.0], [20, -7.8], [40, -7.5], [60, -6.7], [78, -5.8]], h: [-1.6, 0.6] },
+      { kind: 'rails', color: 0x1c1d1e, points: [[-62, 8.0], [-40, 7.8], [0, 8.0], [40, 8.0], [78, 8.3]], h: [-0.9, 0.2] },
+      // the railing across the platform's east end
+      { kind: 'bars', points: [[76, -1.7], [76, 4.0]], h: [0, 1.8] },
     ],
   },
 };

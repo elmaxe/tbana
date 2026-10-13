@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Högdalen: Högdalsgången",
@@ -201,6 +201,16 @@
     {
       "outline": [[-8685.1, -1191.6], [-8670.7, -1187.4], [-8671.8, -1183.6], [-8668.9, -1182.7], [-8674.6, -1163.2], [-8660.4, -1159.1], [-8662.9, -1150.8], [-8694.3, -1159.9]],
       "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the asphalt forecourt south of the tracks out to the lift passage's mouth (Mapillary, 2024; Commons, 2018). With few buildings near them, they were grass."
+    },
+    {
+      "outline": [[-9460.1, -1639.4], [-9442.2, -1634.0], [-9449.0, -1611.0], [-9458.4, -1586.7], [-9473.7, -1591.3], [-9483.5, -1600.4], [-9473.9, -1617.4], [-9461.5, -1638.7]],
+      "why": "Blackebergsvägen and its pavement in front of Islandstorget's ticket hall, out to the bus street and its stops south of the hall (OSM 254336764, 109273943; Mapillary, 2018 and 2025; Commons, 2018). With few buildings near them, they were grass."
+    }
+  ],
+  "shallow": [
+    {
+      "outline": [[-9477.8, -1640.5], [-9443.3, -1630.2], [-9451.0, -1604.3], [-9485.5, -1614.6]],
+      "why": "Blackebergsvägen over the tunnels west of Islandstorget, from 27 m out in front of the ticket hall to under it. The street and the hall's floor are 3.4–3.6 m over the platform (the laser scan; the elevation model's 3.5–3.7), only about 4.5 m over the rails, where the network's tunnels have their crowns 4.6 m over them: the ground kept 0.5 m over the crowns stood as a mound up to a metre high in front of the hall's doors."
     }
   ]
 }

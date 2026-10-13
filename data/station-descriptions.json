@@ -1254,14 +1254,32 @@
     },
     "Islandstorget": {
       "drawing": "islandstorget.png",
-      "note": "An island platform in a cutting. At its west end stairs climb to the ticket hall over the tracks, which opens onto the street up the slope by Islandstorget.",
+      "note": "An island platform at grade, under a butterfly roof over its west and middle parts, the east end open. At its west end, over the mouths of the tunnels on to Blackeberg, a single-storey ticket hall at the street's level, glazed towards Blackebergsvägen, with the ticket gates; beyond them a housing with a sloping roof over the stairs down to the platform in three short flights. A lift tower stands on the platform east of the housing, reached from the hall by an enclosed gallery along the platform's south side. Laid out from Lantmäteriet's laser scan (the street and the hall's floor 3.4 m over the platform, the housing's roof falling from 6.4 m to 3.3 m, the gallery's 6.3 m, the lift tower's 7.3 m), OpenStreetMap's indoor mapping (the gates, the stair, the gallery, the lift) and photographs (1944 to 2025); Albert Guillaumes' drawing has the station in a cutting, a stair rising 4.8 m from the middle of the platform, no lift, and the exit 28 m north of the real door.",
       "routes": [
-        { "from": [-50, 0.6], "width": 3, "go": [
-          {"stairs": 4.8, "toward": [-150, -2]},
-          {"walk": 8, "width": 6},
+        { "from": [-66.4, 0.45], "width": 2.0, "go": [
+          {"walk": [-67.4, 0.45], "open": true},
+          {"walk": [-68.2, 0.45], "ceiling": 2.8, "daylight": true},
+          {"stairs": 1.1667, "toward": [-90.0, 0.45], "lanes": "S", "ceiling": 2.6, "daylight": true},
+          {"walk": 2.2, "ceiling": 2.6, "daylight": true},
+          {"stairs": 1.1667, "lanes": "S", "ceiling": 2.5, "daylight": true},
+          {"walk": 2.2, "ceiling": 2.5, "daylight": true},
+          {"stairs": 1.1666, "lanes": "S", "ceiling": 2.3, "daylight": true},
+          {"walk": [-80.0, 0.45], "ceiling": 2.3, "daylight": true},
+          {"walk": [-84.5, 0.8], "width": 4.4, "open": true},
+          {"mark": "hall"},
+          {"walk": [-87.35, 0.8], "open": true},
           {"gates": true},
-          {"walk": [-74, -14]},
-          {"exit": {"at":  [-96, -26], "name":  "Islandstorget"}}
+          {"walk": [-87.65, 0.8], "open": true},
+          {"walk": [-94.6, 0.8], "width": 2.4, "open": true},
+          {"exit": {"at": [-95.3, 0.8], "name": "Blackebergsvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "hall", "width": 2.2, "go": [
+          {"walk": [-81.2, 3.2], "open": true},
+          {"walk": [-62.6, 3.2], "ceiling": 2.5, "daylight": true},
+          {"walk": [-62.6, -0.45], "width": 2.4, "ceiling": 2.5, "daylight": true},
+          {"walk": [-60.5, -0.45], "width": 2.2, "ceiling": 2.5, "daylight": true},
+          {"lift": -3.5, "above": 3.5},
+          {"walk": [-63.8, -0.45], "open": true}
         ] }
       ]
     },

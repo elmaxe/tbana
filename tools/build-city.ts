@@ -27,6 +27,11 @@
 // - Where the elevation model takes a deck for the ground (data/ground-corrections.json, as over
 //   Gamla stan's station under Centralbron), it is brought down to the street under it, and the
 //   tunnels there stand in the open; src/detail/ draws the decks.
+// - Where a street runs right over a tunnel whose crown the network has higher than the real one
+//   (data/ground-corrections.json, `shallow`, as in front of Islandstorget's hall), the ground is
+//   the elevation model's, raised only where it would show inside the tunnel (to the inside of its
+//   roof, for a grid step beside it, then falling away at the bank's slope): the tunnel stays
+//   buried, but raises no mound.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
@@ -87,6 +92,9 @@ const OUT = 'public/data/city';
 const COVER = 0.5;
 // ... and at least this far over its roof, even beside open track
 const ROOF_COVER = 0.15;
+// where a street runs right over a tunnel (`shallow`), the ground is kept this far over the inside
+// of its roof only
+const ROOF_SKIN = 0.05;
 // below open track: the ground this far under the formation
 const UNDER = 0.4;
 // the trains' space above the rails, which buildings over the track keep clear of
@@ -159,7 +167,7 @@ for (const [key, h] of ground) {
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
@@ -171,6 +179,9 @@ function fillGround(x: number, z: number): number | null {
   for (const o of groundFixes?.fill ?? []) if (inside([x, z], o.outline)) return o.ground;
   return null;
 }
+// Whether a street runs right over the tunnels at (x, z), as the model has it: they raise the
+// ground there only to keep it out of them.
+const shallowCover = (x: number, z: number) => (groundFixes?.shallow ?? []).some((o) => inside([x, z], o.outline));
 // the model's ground with these fixes
 function fixed(x: number, z: number, g: number) {
   const fill = fillGround(x, z), open = openGround(x, z);
@@ -586,8 +597,9 @@ function relate(s: Seg, x: number, z: number) {
 // runs on (and so isn't walked on)]
 function shape(x: number, z: number, h0: number): [number, boolean] {
   let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false, roof = -Infinity;
-  // where the ground is opened under a deck, nothing is raised over the tunnels
-  const open = openGround(x, z) !== null;
+  // where the ground is opened under a deck, nothing is raised over the tunnels; where a street
+  // runs right over them, only as far as the inside of their roofs
+  const open = openGround(x, z) !== null, shallow = shallowCover(x, z);
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
@@ -597,10 +609,19 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
       if (open) continue;
-      lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       // over its own half of the tunnel, the ground stays over its roof
       const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2
         : s.beside && Math.sign(s.beside) === side ? Math.abs(s.beside) / 2 : halfWidth(s.kind, 0, s.plat, side);
+      if (shallow) {
+        // (a box's slab may stand through it; and for a grid step beside it too, even where the
+        // open track's trench rounds its end beside a mouth, or the 5 m grid's slope from there
+        // would cut into it)
+        const inner = s.kind === 'box' ? S.BOX.height : crownOf(s.kind, s.pair, s.plat);
+        lower = Math.max(lower, r.y + inner + ROOF_SKIN - Math.max(0, out - STEP) / 1.5);
+        if (r.d <= own + STEP) roof = Math.max(roof, r.y + inner + ROOF_SKIN);
+        continue;
+      }
+      lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       if (r.d <= own) roof = Math.max(roof, r.y + crownOf(s.kind, s.pair, s.plat) + ROOF_COVER);
     } else {
       // flat for a metre beyond the structure, then rising at the bank's slope (or 1:1 behind a
