@@ -93,15 +93,15 @@
     },
     {
       "name": "Ängbyplan: the forecourt at the lift passage's mouth",
-      "outline": [-8682.3, -1165.4, -8660.4, -1159.1, -8662.9, -1150.8, -8684.7, -1157.1],
-      "heights": [11.78, 12.55, 13.15, 11.95],
-      "why": "South of Ängbyplan's tracks, between the bridges over Färjestadsvägen and the lift passage's mouth, a paved forecourt lies at the street's level below the retaining wall of the bank the station stands on. The elevation model's 5 m grid smooths it into the bank's slope, up to 3.5 m too high at the passage's mouth. Lantmäteriet's laser scan has it at 11.8 m beside the street, rising to 12.5–12.6 m at the mouth and to 12.9–13.4 m along its southern side, where the footway climbs east; the wall and the passage are drawn by the station (src/open-styles.ts)."
+      "outline": [-8682.3, -1165.4, -8674.6, -1163.2, -8672.7, -1169.8, -8656.4, -1165.0, -8660.1, -1152.1, -8662.3, -1152.7, -8662.9, -1150.8, -8684.7, -1157.1],
+      "heights": [11.67, 12.02, 11.71, 12.45, 13.05, 12.95, 13.04, 12.06],
+      "why": "South of Ängbyplan's tracks, between the bridges over Färjestadsvägen and the lift passage's mouth, a paved forecourt lies at the street's level below the retaining wall of the bank the station stands on. The elevation model's 5 m grid smooths it into the bank's slope, up to 3.5 m too high at the passage's mouth. Lantmäteriet's laser scan has it at 11.8 m beside the street, rising to 12.5–12.6 m at the mouth and to 12.9–13.4 m along its southern side, where the footway climbs east; the wall and the passage are drawn by the station (src/open-styles.ts). The deck reaches back under the abutment, the retaining wall and the bank east of the passage's mouth, which the station draws too, so that the grid's points under them don't ramp the ground up into the forecourt."
     },
     {
       "name": "Ängbyplan: Färjestadsvägen under the bridges",
-      "outline": [-8685.1, -1191.6, -8670.7, -1187.4, -8671.8, -1183.6, -8668.9, -1182.7, -8674.6, -1163.2, -8691.9, -1168.2],
-      "heights": [11.7, 11.7, 11.7, 11.72, 11.85, 11.82],
-      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the foot of the stair coming down between the bridges' abutments. The elevation model's 5 m grid ramps the bank the station stands on down across the pavement into the street, up to 3 m too high at the abutments. Lantmäteriet's laser scan has the street and the pavements at 11.6–11.9 m right up to the abutments; the abutments and the stair are drawn by the station (src/open-styles.ts)."
+      "outline": [-8685.1, -1191.6, -8670.7, -1187.4, -8671.8, -1183.6, -8668.9, -1182.7, -8670.6, -1177.0, -8667.7, -1176.1, -8669.8, -1168.9, -8672.7, -1169.8, -8674.6, -1163.2, -8691.9, -1168.2],
+      "heights": [11.69, 11.7, 11.72, 11.72, 11.75, 11.76, 11.8, 11.8, 11.84, 11.83],
+      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the foot of the stair coming down between the bridges' abutments. The elevation model's 5 m grid ramps the bank the station stands on down across the pavement into the street, up to 3 m too high at the abutments. Lantmäteriet's laser scan has the street and the pavements at 11.6–11.9 m right up to the abutments; the abutments and the stair are drawn by the station (src/open-styles.ts). The deck reaches back under the abutments as far as the grid's next points, so that they don't ramp the ground up in front of them."
     }
   ],
   "open": [

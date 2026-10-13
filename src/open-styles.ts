@@ -4907,12 +4907,19 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'maroonGlazed', sides: [null, undefined, null, undefined], ceiling: 'pineBoards', roof: 0.15, roofColor: 0x3a3d40 },
       { name: 'stair house, lower', plan: [[-104.72, -7.115], [-104.72, -3.815], [-112.0, -3.926], [-112.0, -7.226]], h: [-1.3, 2.18], from: -1.3, lowBack: 1.18,
         walls: 'maroonGlazed', sides: [null, undefined, undefined, undefined], ceiling: 'pineBoards', roof: 0.15, roofColor: 0x3a3d40 },
+      // (the network's slopes down from the two tracks' banks into the gap between them, cut back
+      // out of the trough under the stair house, out to the tracks' beds)
+      { name: "over the stair's foot", plan: [[-112.85, -7.5], [-104.72, -6.95], [-104.72, -2.3], [-112.85, -3.55]], h: [-2.9, -0.65], from: -2.9,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
       // the bank either side of the trough, cut off square at the bridges' abutments, the
       // southern one the retaining wall along the forecourt: granite, and glossy black tiles
       // round the passage's mouth with the name beside it
-      { name: "northern abutment", plan: [[-112.9, -16.0], [-104, -15.0], [-104, -6.96], [-112.9, -7.09]], h: [-5.9, -1.45], from: -5.9,
+      // (the northern one's face just behind the trough's wall: the street round the exit is cut
+      // away inside it, and a strip of street left between them would read as floor beyond the
+      // wall, which then isn't drawn)
+      { name: "northern abutment", plan: [[-112.9, -16.0], [-104, -15.0], [-104, -7.06], [-112.9, -7.16]], h: [-5.9, -1.45], from: -5.9,
         walls: 'boardConcrete', roof: 0.15, roofColor: 0x5f5b56, ground: true },
-      { name: "southern abutment", plan: [[-114.5, -4.11], [-100.5, -3.91], [-100.5, 4.3], [-114.5, 4.3]], h: [-5.9, -1.45], from: -5.9,
+      { name: "southern abutment", plan: [[-114.5, -3.96], [-100.5, -3.76], [-100.5, 4.3], [-114.5, 4.3]], h: [-5.9, -1.45], from: -5.9,
         walls: 'boardConcrete', sides: [undefined, null, 'granite', undefined], roof: 0.15, roofColor: 0x5f5b56, ground: true },
       { name: 'retaining wall', plan: [[-100.5, -3.91], [-95.3, -3.83], [-95.3, 4.3], [-100.5, 4.3]], h: [-5.9, -1.45], from: -5.9,
         walls: 'boardConcrete', sides: [null, undefined, 'blackTiles', null], roof: 0.15, roofColor: 0x5f5b56, ground: true },
@@ -4921,9 +4928,14 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'over the forecourt', plan: [[-114.5, 4.3], [-95.3, 4.3], [-95.3, 13], [-114.5, 13]], h: [-6.5, -1.75], from: -6.5,
         walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
       // the wall closing the forecourt to the east, beside the passage's mouth, the name on it
-      { name: 'wing wall', plan: [[-95.3, 4.3], [-94.7, 4.3], [-94.7, 9.5], [-95.3, 9.5]], h: [-5.9, -1.45], lowBack: -3.9, from: -5.9,
+      { name: 'wing wall', plan: [[-95.3, 4.3], [-94.7, 4.3], [-94.7, 9.5], [-95.3, 9.5]], h: [-5.9, -1.45], lowBack: -2.9, from: -5.9,
         walls: 'boardConcrete', sides: [null, undefined, undefined, 'blackTiles'], roof: 0.1, roofColor: 0x8a8781, ground: true,
         nameSign: { side: 3, at: 0.62, length: 3.0, bottom: -3.65, black: true } },
+      // the bank behind it, falling to the footway, out to where the elevation model's 5 m grid
+      // has it again (the forecourt's deck reaches under it, so that the grid doesn't ramp the
+      // ground up into the forecourt)
+      { name: 'bank behind the wing wall', plan: [[-94.7, 4.3], [-89.65, 4.3], [-88.15, 9.5], [-94.7, 9.5]], h: [-5.9, -1.4], lowBack: -2.9, from: -5.9,
+        walls: 'boardConcrete', sides: [null, null, undefined, null], roof: 0.1, roofColor: 0x8a8781, ground: true },
     ],
     art: [
       { kind: 'masts', height: 5.6, color: 0x9ea3a6, top: false, at: [[-36.7, -0.3], [-1.6, -0.7], [32.9, -4.2]] },
