@@ -90,6 +90,18 @@
       "outline": [-7605.4, -1179.6, -7597.5, -1178.0, -7583.6, -1176.0, -7582.1, -1190.9, -7604.0, -1193.1],
       "heights": [15.05, 15.0, 14.95, 15.05, 15.15],
       "why": "North of Åkeshov's tracks, from the hall's middle to 18 m past the underpass, the pavement, Bergslagsvägen's service road and the verge beyond it lie over the underpass and the tunnel going on north from it, and over the stair rising from the underpass beside the tracks. The elevation model's 5 m grid smooths the stair's trough into a hollow 1.5–2 m deep across them, which the tunnel would come up through. The laser scan has the pavement and the road at 14.9–15.1 m and the verge at 15.0–15.2 m; the trough is cut by the station."
+    },
+    {
+      "name": "Ängbyplan: the forecourt at the lift passage's mouth",
+      "outline": [-8682.3, -1165.4, -8660.4, -1159.1, -8662.9, -1150.8, -8684.7, -1157.1],
+      "heights": [11.78, 12.55, 13.15, 11.95],
+      "why": "South of Ängbyplan's tracks, between the bridges over Färjestadsvägen and the lift passage's mouth, a paved forecourt lies at the street's level below the retaining wall of the bank the station stands on. The elevation model's 5 m grid smooths it into the bank's slope, up to 3.5 m too high at the passage's mouth. Lantmäteriet's laser scan has it at 11.8 m beside the street, rising to 12.5–12.6 m at the mouth and to 12.9–13.4 m along its southern side, where the footway climbs east; the wall and the passage are drawn by the station (src/open-styles.ts)."
+    },
+    {
+      "name": "Ängbyplan: Färjestadsvägen under the bridges",
+      "outline": [-8685.1, -1191.6, -8670.7, -1187.4, -8671.8, -1183.6, -8668.9, -1182.7, -8674.6, -1163.2, -8691.9, -1168.2],
+      "heights": [11.7, 11.7, 11.7, 11.72, 11.85, 11.82],
+      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the foot of the stair coming down between the bridges' abutments. The elevation model's 5 m grid ramps the bank the station stands on down across the pavement into the street, up to 3 m too high at the abutments. Lantmäteriet's laser scan has the street and the pavements at 11.6–11.9 m right up to the abutments; the abutments and the stair are drawn by the station (src/open-styles.ts)."
     }
   ],
   "open": [
@@ -185,6 +197,10 @@
     {
       "outline": [[-7575.2, -1243.9], [-7578.2, -1228.7], [-7559.8, -1224.4], [-7553.5, -1239.7]],
       "why": "The plaza round Åkeshov's entrance building north of Bergslagsvägen, widest before the passage through its western gable: grey and light concrete pavers (Mapillary, 2025; Commons, 2018). With few buildings near it, it was grass."
+    },
+    {
+      "outline": [[-8685.1, -1191.6], [-8670.7, -1187.4], [-8671.8, -1183.6], [-8668.9, -1182.7], [-8674.6, -1163.2], [-8660.4, -1159.1], [-8662.9, -1150.8], [-8694.3, -1159.9]],
+      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the asphalt forecourt south of the tracks out to the lift passage's mouth (Mapillary, 2024; Commons, 2018). With few buildings near them, they were grass."
     }
   ]
 }

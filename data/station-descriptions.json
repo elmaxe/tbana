@@ -1223,14 +1223,32 @@
     },
     "Ängbyplan": {
       "drawing": "angbyplan.png",
-      "note": "An island platform on a curve in the open. At its west end stairs go down to the ticket hall at the street. (OpenStreetMap maps no entrance here.)",
+      "note": "An island platform on the bank, under a butterfly roof over its west half. At its west end a glazed hall between the tracks at the platform's level, with the ticket gates and a lift; beyond it a glass stair house over two flights of stairs down into a trough between the bridges' abutments, out under the bridges onto Färjestadsvägen's pavement. The lift goes down to a passage under the southern track, out onto a forecourt beside the street. Laid out from Lantmäteriet's laser scan (the roof, the stair house's roof falling from 3.1 m over the platform to 0.9 m, the street 5.8 m under it), OpenStreetMap's indoor mapping (the gates, the lift, the stair) and photographs (2006 to 2024); Albert Guillaumes' drawing has stairs from the middle of the platform down to a hall at the street with its exit to the north.",
       "routes": [
-        { "from": [-49.87436714794674, 0.3], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [-60.0, -0.2]},
-          {"walk": [-66.0, -0.5], "width": 6},
-          {"walk": [-66.0, -13.8], "width": 4},
+        { "from": [-79.0, -1.0], "width": 5.0, "go": [
+          {"walk": [-83.8, -1.6], "open": true},
+          {"walk": [-84.2, -1.6], "ceiling": 2.3, "daylight": true},
+          {"walk": [-87.85, -2.0], "width": 4.4, "open": true},
           {"gates": true},
-          {"exit": {"at":  [-66.0, -27.8], "name":  "Ängbyplan"}}
+          {"walk": [-88.15, -2.0], "open": true},
+          {"walk": [-92.0, -2.0], "open": true},
+          {"mark": "hall"}
+        ] },
+        { "from": "hall", "width": 3.0, "go": [
+          {"walk": [-97.0, -5.35], "open": true},
+          {"walk": [-100.4, -5.4], "open": true},
+          {"stairs": -2.9, "toward": [-113.6, -5.6], "lanes": "ss", "ceiling": 2.3, "daylight": true},
+          {"walk": 1.6, "open": true},
+          {"stairs": -2.9, "lanes": "ss", "ceiling": 2.6, "daylight": true},
+          {"walk": [-113.6, -5.6], "open": true},
+          {"exit": {"at": [-116.0, -5.65], "name": "Färjestadsvägen"}, "by": "walk", "open": true}
+        ] },
+        { "from": "hall", "width": 2.2, "go": [
+          {"walk": [-97.6, -2.0], "open": true},
+          {"lift": -5.05, "above": 3.0},
+          {"walk": [-96.6, -2.0], "ceiling": 2.6, "daylight": true},
+          {"walk": [-96.6, 4.6], "width": 2.6, "ceiling": 2.6, "daylight": true},
+          {"exit": {"at": [-100.0, 7.6], "name": "Ängbyplan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

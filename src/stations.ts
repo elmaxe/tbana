@@ -535,8 +535,9 @@ export class Stations {
     finish?: Finish, sill?: number, parapet?: number) {
     const P = (t: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
     // in a glass building, only up to the glass's sill: none where the floor is above it, and
-    // only the part below it where the floor rises through it
-    if (sill !== undefined) {
+    // only the part below it where the floor rises through it (beside stairs with a parapet too,
+    // up to the sill or the parapet, whichever is higher)
+    if (sill !== undefined && parapet === undefined) {
       const ya = P(t0)[1], yb = P(t1)[1];
       if (Math.min(ya, yb) >= sill - 0.01) return;
       if (Math.max(ya, yb) > sill + 0.01) {
@@ -553,7 +554,7 @@ export class Stations {
     // and down through a floor, no higher than the floor
     const cap = p.kind === 'incline' && this.throughFloor(p) ? p.b[1] : Infinity;
     const top = (q: number[]) => {
-      if (sill !== undefined) return sill;
+      if (sill !== undefined) return parapet === undefined ? sill : Math.max(sill, q[1] + parapet);
       if (parapet !== undefined) return q[1] + parapet;
       if (ceiling === null) return q[1] + PARAPET;
       if (open !== undefined) return Math.min(q[1] + ceiling, Math.max(open + PARAPET, q[1] + PARAPET));

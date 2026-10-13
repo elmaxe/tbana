@@ -143,9 +143,9 @@ export interface Paving {
   colors: { edge: number; tactile: number; slab: number; pavers: number; face: number; paler?: number };
   // pale veins wandering across it, as in polished stone
   veins?: boolean;
-  // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, or small setts
-  // laid in fans
-  pattern: 'herringbone' | 'bond' | 'grid' | 'fans';
+  // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, small setts
+  // laid in fans, or asphalt, laid without joints (in the pavers' colour)
+  pattern: 'herringbone' | 'bond' | 'grid' | 'fans' | 'asphalt';
 }
 
 // The finishes in a box: from `s[0]` to `s[1]` along, across `u` (all of it by default), and
@@ -158,7 +158,9 @@ export interface Paving {
 // `sill`: in a glass building (a block's), the walls beside its floors and stairs rise only to
 // this height, the building's glass above them, and its stairs have no ceiling of their own.
 // `parapet`: its stairs and escalators climb open under a ceiling over them all (a block's), the
-// walls beside them only this high over their steps, with no ceiling of their own. `lamps`: its
+// walls beside them only this high over their steps, with no ceiling of their own; with a `sill`
+// as well, the walls beside its stairs rise to the sill, or this high over their steps where that
+// is higher (stairs climbing out of a trench into a glass house over it). `lamps`: its
 // open floors, under a block's roof, lit by a row of lamps hung this high over them.
 // `left`: the walls on the left (facing −u, looking along the platform) in this finish instead;
 // `back`, those at the back (facing −s).
@@ -285,7 +287,12 @@ export type Finish =
   | 'glossTiles'    // glossy white tiles, 25 cm, in pale grey joints
   | 'stripeTiles'   // as glossTiles, upright stripes across them of a red slip beside a column of ochre tiles
   | 'twoGreens'     // flat panels 0.95 m wide, a lighter green and a bottle green in turn, on a black plinth
-  | 'latticeConcrete'; // grey concrete under a diagonal lattice of weathered grey battens
+  | 'latticeConcrete' // grey concrete under a diagonal lattice of weathered grey battens
+  | 'scrollPanels'  // glazed tiles, 15 cm: bands of black and white scrolls between panels patterned in olive, ochre, red, purple and teal (Åsa Lindström's)
+  | 'opPanels'      // glazed tiles, 15 cm: panels patterned in black, white and grey between orange-red strips, to 2.25 m; orange-red tiles above (Åsa Lindström's)
+  | 'circleFront'   // glass doors in brushed steel under SL's dark blue band, a white disc on it, a yellow line under it; glass in steel frames above
+  | 'stripPanels'   // pale grey panels 0.9 m wide between black strips, to 2.6 m; windows in grey steel frames above
+  | 'maroonGlazed'; // clear glass in dark red-brown steel frames 1.2 m apart, a transom 2.2 m up
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -4815,6 +4822,122 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // on the parapets along the decks' outer edges
       { points: [[76, -10.18], [90, -8.78], [100, -7.53], [110, -6.08], [126, -3.38]], h: [-1.21, 0.8] },
       { points: [[76, 12.58], [90, 13.03], [100, 13.48], [110, 14.13], [126, 15.58]], h: [-1.21, 0.8] },
+    ],
+  },
+  // Ängbyplan (26 October 1952; Ängbybanan's tram stop Färjestadsvägen from 1944, renamed in
+  // 1962): an island platform on a bank curving through Ängby, its west end at the tracks'
+  // bridges over Färjestadsvägen. The laser scan puts a butterfly roof over the west half, from
+  // 84 m west of the platform's middle to 38 m west, about 10.5 m wide, its top 3.7–4.0 m over the
+  // platform. Photographs (2006 to 2024) show it boarded dark brown underneath on dark brown
+  // rafters, a black fascia, and oxide-red steel: a beam along the valley on pairs of columns,
+  // a low bar across between each pair and one slanting; a clock near its east end, black name
+  // signs and departure boards. Out in the open, galvanised masts about a metre north of the
+  // platform's middle (laser scan: 5.6 m high), each with two globe lamps on a T, some with the
+  // name on a black sign; a glass shelter in black frames (laser scan: 7–14 m west of the
+  // middle, 2.8–3.1 m high); wooden benches on galvanised frames. The platform is asphalt, with
+  // pale edge stones and a dark ribbed strip. Chain-link fences beyond both tracks, and beyond the
+  // southern one, from the hall to the roof's east end, a brown lattice.
+  //
+  // At the platform's west end, between the tracks, a glazed hall at the platform's level
+  // (OpenStreetMap's indoor mapping: the gates 88 m west of the middle, the lift 96 m): pale grey
+  // panels between black strips to 2.6 m and windows in grey frames above, a ceiling of pine
+  // boards, a polished red-brown floor, a glass lift in its south-west corner. Glass doors under
+  // SL's dark blue band, a white disc on it over each, lead into a stair house of glass in dark
+  // red-brown frames, its pine ceiling falling with the stair (laser scan: the roof 3.1 m over the
+  // platform 98 m west, 0.9 m at 114 m): two flights down west into a trough between the bridges'
+  // abutments, its walls Åsa Lindström's tiles (1994), orange-red, and lower down panels of
+  // black, white and grey between orange-red strips, out under the bridges' deck onto
+  // Färjestadsvägen's pavement, 5.8 m below the platform. The lift goes down to a passage at the
+  // street's level under the southern track, its walls her bands of black and white scrolls
+  // between panels patterned in colours, a frieze of scrolls along the top, a white ceiling; it
+  // comes out through the retaining wall onto a forecourt beside the street, the wall glossy black
+  // tiles round the opening with the name in white letters beside it, granite further west
+  // (photographs, 2024; laser scan: the forecourt 5.8–5.0 m below the platform).
+  //
+  // Not drawn: "T Hiss" over the passage's mouth, the departure boards in the hall, the green
+  // grit boxes. The network's tracks are about 3 m closer together than the real ones, so the
+  // hall and the stair house are narrower, and the lift's door faces the platform at the top as
+  // at the bottom (the real one opens south onto the passage).
+  'Ängbyplan': {
+    roof: {
+      kind: 'butterfly',
+      from: -84, to: -38, width: 10.5,
+      shape: [[-84, 0, 9.1], [-75, 0, 9.8], [-65, 0, 10.4], [-55, 0, 10.77], [-45, 0, 10.9], [-38, 0, 10.9]],
+      middle: 3.3, edge: 3.55, thick: 0.3, fascia: 0.3,
+      rafters: 1.2, rafterSize: [0.1, 0.25], deck: 'boards',
+      beam: 0.35,
+      columns: { every: 11.5, at: -79, size: 0.16, plinth: { size: 0.24, height: 0.05 }, pair: 1.6, ties: [1.2, 2.5], between: [-82, -40] },
+      lamps: { offset: 1.9, length: 1.5, every: 3 },
+      colors: { underside: 0x3e2c22, fascia: 0x262626, top: 0x34363a, steel: 0x7a2a22 },
+      signs: { at: [-73.25, -50.25], back: 'Färjestadsvägen', ahead: '', bottom: 2.4 },
+      clocks: [[-41.5, 0]],
+      // (trains keep left: into town on the northern track)
+      boards: [
+        { s: -61.75, u: -1.7, toward: 'T-Centralen', trains: ['19 Hagsätra  3 min', '19 Hagsätra  13 min'] },
+        { s: -61.75, u: 1.7, toward: 'Hässelby strand', trains: ['19 Hässelby strand  5 min', '19 Hässelby strand  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.5, tactile: [0.6, 0.9], slabs: 0.9,
+      colors: { edge: 0xd0cec8, tactile: 0x3a3c3e, slab: 0x4a4c4f, pavers: 0x4a4c4f, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    rooms: [
+      // (the hall's floors are open to its ceiling; the walls round them are its block's)
+      { name: 'hall', s: [-100.4, -84], h: [-0.5, 1], walls: null, floor: 'redGranite', ceiling: 'pineBoards', lamps: 3.2 },
+      { name: 'platform', s: [-84, -70], h: [-0.5, 1], walls: null, floor: null },
+      // (the trough's walls rise to the glass's foot, or a metre over the steps)
+      { name: 'upper flight', s: [-106, -100.4], h: [-3.5, 0.5], walls: 'orangeTiles', stairs: 'orangeTiles', floor: 'greyTiles', sill: -1.3, parapet: 1.0 },
+      { name: 'lower flight', s: [-112.7, -106], h: [-6.5, -2.5], walls: 'opPanels', stairs: 'opPanels', floor: 'greyTiles', sill: -1.3, parapet: 1.0, lamps: 2.6 },
+      { name: 'passage from the lift', s: [-98.5, -94.7], u: [-3.5, 4.6], h: [-6, -4], walls: 'scrollPanels', floor: 'greyTiles', ceiling: 'whiteRender' },
+      { name: 'forecourt', s: [-118, -90], u: [4.6, 16], h: [-6.5, -4], walls: null, floor: 'asphalt' },
+      { name: 'pavement', s: [-120, -112.7], u: [-9, -2], h: [-6.5, -4.5], walls: null, floor: 'asphalt' },
+    ],
+    blocks: [
+      // the hall between the tracks, glazed towards the platform, the doors to the stair house
+      // in its west wall
+      { name: 'hall', plan: [[-84, -5.81], [-100.4, -7.15], [-100.4, -0.77], [-84, 1.94]], h: [-1.3, 3.5], walls: 'stripPanels',
+        sides: [undefined, 'circleFront', undefined, 'glazed'], floor: 'redGranite', ceiling: 'pineBoards', roof: 0.35, roofColor: 0x3a3d40,
+        eaves: 0.3, onPlatform: true },
+      // the gate line either side of the gates
+      { name: 'gate line', plan: [[-87.85, -6.13], [-88.15, -6.16], [-88.15, -4.2], [-87.85, -4.2]], h: [0, 1.1], walls: 'glazed', floor: 'redGranite' },
+      { name: 'gate line', plan: [[-87.85, 0.2], [-88.15, 0.2], [-88.15, 1.26], [-87.85, 1.29]], h: [0, 1.1], walls: 'glazed', floor: 'redGranite' },
+      // the stair house: glass on the trough's walls, its floor and roof falling with the stair
+      { name: 'stair house', plan: [[-100.4, -7.05], [-100.4, -3.75], [-104.72, -3.815], [-104.72, -7.115]], h: [1.0, 2.77], from: 1.0, fall: -1.3, lowBack: 4.48,
+        walls: 'maroonGlazed', sides: [null, undefined, null, undefined], ceiling: 'pineBoards', roof: 0.15, roofColor: 0x3a3d40 },
+      { name: 'stair house, lower', plan: [[-104.72, -7.115], [-104.72, -3.815], [-112.0, -3.926], [-112.0, -7.226]], h: [-1.3, 2.18], from: -1.3, lowBack: 1.18,
+        walls: 'maroonGlazed', sides: [null, undefined, undefined, undefined], ceiling: 'pineBoards', roof: 0.15, roofColor: 0x3a3d40 },
+      // the bank either side of the trough, cut off square at the bridges' abutments, the
+      // southern one the retaining wall along the forecourt: granite, and glossy black tiles
+      // round the passage's mouth with the name beside it
+      { name: "northern abutment", plan: [[-112.9, -16.0], [-104, -15.0], [-104, -6.96], [-112.9, -7.09]], h: [-5.9, -1.45], from: -5.9,
+        walls: 'boardConcrete', roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      { name: "southern abutment", plan: [[-114.5, -4.11], [-100.5, -3.91], [-100.5, 4.3], [-114.5, 4.3]], h: [-5.9, -1.45], from: -5.9,
+        walls: 'boardConcrete', sides: [undefined, null, 'granite', undefined], roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      { name: 'retaining wall', plan: [[-100.5, -3.91], [-95.3, -3.83], [-95.3, 4.3], [-100.5, 4.3]], h: [-5.9, -1.45], from: -5.9,
+        walls: 'boardConcrete', sides: [null, undefined, 'blackTiles', null], roof: 0.15, roofColor: 0x5f5b56, ground: true },
+      // (the network's slope down from the southern track's bank, cut back over the forecourt
+      // below the retaining wall)
+      { name: 'over the forecourt', plan: [[-114.5, 4.3], [-95.3, 4.3], [-95.3, 13], [-114.5, 13]], h: [-6.5, -1.75], from: -6.5,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the wall closing the forecourt to the east, beside the passage's mouth, the name on it
+      { name: 'wing wall', plan: [[-95.3, 4.3], [-94.7, 4.3], [-94.7, 9.5], [-95.3, 9.5]], h: [-5.9, -1.45], lowBack: -3.9, from: -5.9,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, 'blackTiles'], roof: 0.1, roofColor: 0x8a8781, ground: true,
+        nameSign: { side: 3, at: 0.62, length: 3.0, bottom: -3.65, black: true } },
+    ],
+    art: [
+      { kind: 'masts', height: 5.6, color: 0x9ea3a6, top: false, at: [[-36.7, -0.3], [-1.6, -0.7], [32.9, -4.2]] },
+      { kind: 'masts', height: 5.6, color: 0x9ea3a6, top: false, sign: 3.0, at: [[-19.0, 0.2], [15.2, -1.8]] },
+    ],
+    shelters: [{ s: [-13.5, -8.5], u: [-2.6, -0.6], roof: true }],
+    benches: { at: [-61, -41, 4, 21], wood: true },
+    // 2.6 m beyond each track
+    fences: [
+      { points: [[-112.6, -12.3], [-100, -11.32], [-84, -10.15], [-70, -9.44], [-50, -8.73], [-30, -8.17], [-10, -7.91], [10, -8.44], [30, -10.29],
+        [50, -13.24], [70, -17.24]], h: [-1.5, 0.5] },
+      { points: [[-112.6, 4.1], [-96, 4.1]], h: [-1.45, 0.5] },
+      { kind: 'louvres', color: 0x7a5a48, points: [[-96, 4.1], [-88, 5.72], [-84, 6.29], [-70, 8.02], [-50, 9.47], [-40, 9.82]], h: [-1.5, 0.5] },
+      { points: [[-40, 9.82], [-30, 9.92], [-10, 9.37], [10, 7.93], [30, 5.43], [50, 1.76], [70, -3.14]], h: [-1.5, 0.5] },
     ],
   },
 };
