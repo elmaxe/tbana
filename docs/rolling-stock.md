@@ -6,7 +6,8 @@ The C20's lengths, heights, cross-section and door, window and bogie positions a
 a detailed SketchUp model of the train (*SL+C20.skp*). The C30's come from the side view and the
 seat plans in SL's press presentation of the C30 (*Presentation pressträff C30*, 21 May 2013).
 Wikipedia gives the other figures, and photos on Wikimedia Commons the liveries, the fronts and
-the interiors. Positions read off photos are marked *est.* below. The model file, the
+the interiors. Where the photos of the trains in service differ from the drawings, the model
+follows the photos. Positions read off photos are marked *est.* below. The model file, the
 presentation and the photos are reference only: none of their geometry, pictures or textures is
 in the repository.
 
@@ -23,7 +24,7 @@ production. Delivered 1997–2004.
 | Running gear | 4 bogies per unit: two under the middle car, one under each cab end. The end cars rest on the middle car at their inner ends (semi-trailer coupling). Bo'Bo'Bo'Bo' |
 | Wheels | 780 mm driving wheels, 1,435 mm gauge, 750 V DC third rail |
 | Doors per side | End cars 2, middle car 3, so 7 per unit. Double sliding doors |
-| Capacity | 126 seated, 288 standing |
+| Capacity | 126 seated as built (photos show 120), 102 since the upgrade; 288 standing |
 | Power / speed | 1 MW. 90 km/h design, 80 km/h in service (70 km/h on the green line) |
 | Body | Stainless steel with corrugated lower side panels. Composite cab ends |
 | Service | All three lines. Three units make a 139.5 m train |
@@ -36,16 +37,24 @@ production. Delivered 1997–2004.
   of the doors.
 - Doors are SL blue, each with a blue cap on the curved cant above it. Each door leaf has a window
   with rounded corners in its upper half.
+- In the cap over every door but the one next to a cab is a black destination display (about
+  1.3 × 0.2 m) showing the destination in amber, like the front.
 - Windows are 1.1 m wide with rounded black frames, two between each pair of doors.
 - The cab end is all blue. A black surround at the top holds the amber LED destination display
   and a windscreen in three panes, the centre one the emergency door. Below it a black band at
-  light height sweeps up round the corners into the cab side windows; in it sit the lamp units,
-  each a white headlight beside a red tail light. The white SL roundel is at the side of the
-  front under the band, the unit number on the other side, and a ribbed black anticlimber across
-  the foot, with the coupler and an obstacle deflector below.
+  light height sweeps up round the corners into the cab side windows. In it sit four round lamps,
+  each in its own bezel: the white headlights inboard (about ±0.53 m from the centre) and the red
+  tail lights outboard (about ±0.73 m). The upgrade did not change them. The white SL roundel
+  (about 0.35 m) is centred under the band, and the unit number is small and white on the blue
+  strip under the windscreen, to the right as you face the train. One wiper on the centre pane
+  parks nearly upright. A ribbed black anticlimber about 1.7 m wide crosses the foot, with the
+  coupler and light grey corner blocks below.
 - On the cab side: the driver's door with its window, a ventilation grille behind it, and the
   blue of the cab reaching 2.1 m back along the roof, where the cab's air-conditioning unit sits.
-- Each unit has a name in script on the cab (2201 is *Ivo*) and car numbers like `2201A` / `2245B`.
+- Each unit has a name in script on the cab (2201 is *Ivo*) and car numbers like `2201 A` /
+  `2245 B` in off-white italics on the cant.
+- Since the upgrade, a large white wheelchair sign (about 0.6 m) covers the window and the panel
+  under it at each end of the middle car, by the flex areas inside.
 
 **Model values**, from the SketchUp model: end cars 14.275 m and the middle car 16.0 m between
 body ends, with 0.8 m gangways between them. Doors 1.6 m wide: in an end car 4.675 m and 9.875 m
@@ -69,16 +78,17 @@ planned for the blue line.
 | Width / height | 2.915 m / 3.915 m (as listed) |
 | Gangways | Full-width open gangways with bellows through the unit |
 | Doors per side | 3 per car, 12 per unit, 24 per 140 m train |
-| Capacity | About 140–146 seated, 634 per unit at 5 standees/m² |
+| Capacity | 140 seated (SL), 636 passengers per unit (press presentation) |
 | Speed | 90 km/h design, 80 km/h in service |
 | Body | Aluminium with smooth painted panels. Enclosed underframe and bogie skirts |
 | Service | Two units make a 140 m train |
 
 **Exterior, from photos**
 
-- White body and light grey roof, with a dark grey skirt along the bottom.
-- Doors are SL blue plug doors with rounded corners and a thin black outline. Each leaf has a tall
-  window with rounded corners.
+- White body and light grey roof, with a dark grey skirt along the bottom. Under the cab's black
+  frame the front is medium grey (#7d7c81), with a light grey slatted bumper over the coupler.
+- Doors are azure (#0a6db0) plug doors with rounded corners and a thin black outline. On each
+  leaf the black runs from the seal to a tall window in the leaf's outer part.
 - Windows are rounded rectangles with black frames, in pairs between the doors.
 - Pleated dark bellows between the cars, almost as wide as the body.
 - The cab is a white rounded cap with one large black frame from the roof down round the
@@ -117,49 +127,62 @@ viewer).
 
 | | Original (1997–2024) | Upgraded (C20U, 2020–2024) |
 | --- | --- | --- |
-| Seats per unit | 126 | 102 |
-| Layout | All groups of four facing seats, 2 + 2 across the car. Each bay between doors has two groups per side, back to back in the middle. At the cab, one pair a side backs onto the bulkhead | In each bay, and at the inner end of the end cars, one side keeps two facing groups and the other gets a row along the wall: six seats in the end cars and five in the middle car, the yellow priority seat on a grey pedestal next to the door screen. The sides alternate. At the cab a pair a side still backs onto the bulkhead, with a single yellow seat along each wall by the door screen, so 6 + 14 + 14 in an end car and 4 + 13 + 13 + 4 in the middle car |
-| Fabric | Lasse Åberg's 1995 design: navy (#233070) with quick sketches of Stockholm (City Hall, spires, boats, buses, moons, stars) in red, orange, yellow, green, light blue, pink and white | "Plattan" triangles as on the C30, charcoal #3a3d44 and grey-blue #6e7380, with plain slate cushions. Priority seats are yellow |
-| Handholds | Yellow. Tall yellow hoops on the aisle seats where rows meet back to back. No overhead rails | Also yellow ceiling rails from the door grips, poles and rails at the ends of the wall rows, and hoops at the gangway portals |
-| Accessibility | None | A multipurpose area with a double lean rail at each end of the middle car, diagonally opposite |
-| Screens | Amber LED signs at the portals and over the cab door | Also TFT widescreens angled in the cove by the doors (next stop in white on dark blue) |
+| Seats per unit | 126 (SL's figure; photos show 120) | 102: 34 a car, matching Alstom's 27,540 seats for 270 units |
+| Layout | All groups of four facing seats, 2 + 2 across the car. Each bay between doors has two groups per side, back to back in the middle. At the cab, one pair a side backs onto the bulkhead | In each bay, and at the inner end of the end cars, one side keeps two facing groups and the other gets a row of six along the wall, the yellow priority seat on a grey pedestal by the door farther from the car's middle. The sides alternate. Photos put an end car's inner-end row on the same side as the flex area across the gangway (SL's 2017 plan shows the opposite). At the cab a pair a side backs onto the bulkhead, with a single yellow seat along each wall by the door screen. At each end of the middle car, a flex area on one side and, on the other, a pair backed onto the end wall facing one yellow seat at the window. So 6 + 14 + 14 in an end car and 3 + 14 + 14 + 3 in the middle car |
+| Fabric | Lasse Åberg's 1995 design: navy (#233070) with quick sketches of Stockholm (City Hall, spires, boats, buses, moons, stars) in red, orange, yellow, green, light blue, pink and white | "Plattan" triangles as on the C30, navy #343d5a and blue-grey #6c7592 on the backs, plain navy cushions (#30374f) and plain charcoal rears (#2f343c). Priority seats in tone-on-tone yellow (#f2c322) |
+| Handholds | Yellow. Tall closed hoops (about 0.25 × 0.4 m) on the aisle seats where rows meet back to back. No overhead rails | A yellow crescent (about 0.45 m) on the same seat backs. Over each long row a rail at about 2.0 m from screen pole to screen pole, hung from the ceiling, with two poles dropping from it into the seat frame between the second and third and the fourth and fifth seats from the door. A rail along the wall over each flex area |
+| Accessibility | None | A flex area at each end of the middle car, diagonally opposite: a double lean rail, pram and wheelchair signs on the wall and a rail overhead. The door beside it has no glass screen on that side, only a pole on its own foot |
+| Screens | Amber LED signs at the portals and over the cab door | Also a TFT screen (about 0.47 × 0.29 m) in a light grey housing, angled in the cove over the pier between each bay's two facing groups, two a car: the next stop, the following stations down the line's colour, and the terminus |
 
 Both versions share these features:
 
-- **Walls:** light grey-white (#e4e4e0). The lower walls have darker heater panels.
-- **Doors:** grey door pillars (#a9abad) with stainless kick plates. Each pillar recess holds a yellow pole between two grey cups.
-- **Door screens:** glass screens at the doors, with a floor-to-ceiling yellow pole at their aisle edge that curves out near the ceiling.
-- **Door grip:** a yellow rectangular grip hangs over each door area at about 1.95 m.
+- **Walls:** light grey-white (#e4e4e0). The lower walls have darker heater panels. A short
+  yellow grab sits on the sill under the window at each facing group.
+- **Doors:** grey door pillars (#a9abad) with stainless kick plates. Each pillar recess holds a
+  yellow pole from a grey drum on the pillar's lower part to a grey cup at about 1.85 m. A light
+  strip runs along the head of each doorway.
+- **Door screens:** glass screens at the doors, about 0.55 m deep and 0.35–1.9 m high, each with a
+  straight floor-to-ceiling yellow pole at its aisle edge.
+- **Door grip:** an H of yellow bars at about 2.0 m over each door area: a Π-shaped bar across
+  the car above each pair of screens, about 1.76 m apart, joined along the middle. A camera dome
+  hangs beside it.
 - **Ceiling:** silver-grey (#c8cacc). Its lowered centre spine carries two rows of opal light panels and a perforated strip.
-- **Cove:** a row of angled advert frames sits in the cove above the windows.
-- **Door leaves:** grey-white, with a black centre seal.
-- **Cab bulkhead:** bright yellow, with a yellow cab door that has a tall, narrow dark window
-  with rounded corners (photos; the SketchUp model has a white door with a larger window).
-- **Long rows (upgrade):** a yellow rail runs overhead along each row, and two poles come down
-  from it and bend into the seat frame: one by the priority seat and one between the second and
-  third seats from the far end.
-- **Gangways:** open and about 1.8 × 2.0 m (*est.*), with grey bellows and a round turntable plate in the floor.
+- **Cove:** an angled advert frame (about 1.0 × 0.27 m) over each window.
+- **Door leaves:** grey-white, with a black centre seal, a ribbed stainless kick plate, a column of
+  blue pictograms and a plate above the window.
+- **Cab bulkhead:** bright yellow, with a yellow cab door between grey posts that each carry a
+  yellow grab. The door has a dark window of about 0.38 × 0.8 m with rounded corners (photos; the
+  SketchUp model has a white door with a larger window). Posters of about 0.48 × 0.69 m hang
+  either side, a grille at the top right, and the car number at the top left.
+- **Gangways:** open and about 1.8 × 2.0 m (*est.*), with grey bellows and yellow grabs on the end
+  walls beside the portals. A turntable in the floor: a stainless ring with 18 dark inserts round
+  a plate in the floor's grey. Photos suggest a ring about 1.7 m across (*est.*); the model's is
+  1.4 m so that it stays in the gangway.
+
+Open questions: whether the middle car's two flex areas are diagonally opposite (SL's plan and the
+model) or on the same side (one photo of the outside wheelchair signs), and where the original's
+six seats beyond the 120 in the photos were.
 
 ### C30
 
 | | |
 | --- | --- |
-| Seats | 146 per unit, 36 per A car and 37 per B car: SL's seat plan, and 292 seated per 140 m train in the press presentation. SL's own site gives 140, 18 of them priority seats |
-| Between doors | From SL's seat plan, checked against photos. Each side of a stretch between two doors has one of: two facing bays of 2 + 2 (1.78 m between the backs, 0.68 m between the knees), a bench of eight along the wall (0.445 m a seat), or a flex area for prams and wheelchairs (yellow double lean rails, signs on the wall, room for a 1.5 m turning circle) by one door with a bench of five or one facing bay beyond it. A car: by the cab a bench of eight opposite the flex area and a bay; then two bays opposite a bench of eight. B car: two bays opposite the flex area and a bench of five; then a bench of eight opposite two bays. B2 is B turned round |
-| Screens | Glass screens stand beside the doorways where seats meet them: tall ones (to 1.9 m, with a top rail) for the bays, lower ones at the benches, none at the flex areas. A yellow-sleeved pole stands at each screen's aisle edge, and a pole bent into the seat front stands in front of the benches |
-| Car ends | Two seats along each wall, also at the cab bulkhead, where the yellow priority seat is against the bulkhead |
+| Seats | 144 per unit in the model, 36 a car, from photos of the cars in service. SL's site gives 140, 18 of them priority seats; SL's 2013 seat plan has 146 (36 per A car, 37 per B car) and the press presentation 292 per 140 m train. Benches of seven instead of eight would give SL's 140, but eight fit the photos better |
+| Between doors | From photos of the built cars, which differ from SL's 2013 seat plan. Each side of a stretch between two doors has one of: two facing bays of 2 + 2 (1.78 m between the backs), a bench of eight along the wall (0.445 m a seat) with its priority seat by the car's middle door, or a flex area for prams and wheelchairs (yellow double lean rails, signs on the wall) with a bench of four beyond it, its priority seat at the far end. Each car has one flex area, on the left as seen from its doorway. A car: by the cab two bays opposite a bench of eight; by the gangway the flex area and its bench opposite two bays. B car: the flex area by one end door opposite two bays, then two bays opposite a bench of eight. B2 is B turned round. (The 2013 plan puts the A car's flex area by the cab with a facing bay beyond it) |
+| Screens | Glass screens stand beside the doorways where seats meet them: tall ones (to 1.9 m) for the bays, lower ones at the benches, none at the flex areas. A yellow-sleeved pole stands at each screen's aisle edge, and a pole bent into the seat front stands in front of the benches |
+| Car ends | Two seats along each wall at a gangway end, the one by the door yellow on one side only. At the cab, a row of two either side of the cab door with their backs to the bulkhead, the inner seat yellow, and yellow D handles on the door posts |
 | Fabric | "Plattan" by IDesign, woven in wool by Bogesunds väveri after the triangle paving of Sergels torg. Navy #2b3241 and blue-grey #5b6576 on the backs, plain #3a4250 cushions. Priority seats in yellow #e9b434 / #f3c94a. Some triangles hide small figures |
-| Handholds | Stainless poles with a yellow sleeve (#f5c800) between about 0.3 and 1.9 m. Stainless overhead rails with drop handles along both sides, and tan leather straps near the doors |
-| Doors | Dark anthracite leaves (#1f262e) with stainless kick plates and round open buttons. Green light strips light the door area in use. A navy panel over each door carries the network map, with an information screen in a black bezel beside it |
-| Ceiling | White, with a band of round LED downlights and a light line along each side. A sloping cove carries the advert frames. Over each door area hangs a round lamp (about 1.1 m) inside a stainless ring handle (about 1.3 m), with a centre pole |
-| Gangways | Octagonal portals traced by white light lines, about 1.75 × 2.05 m (*est.*). Pale grey pleated bellows and a black rubber walkway |
+| Handholds | Stainless poles with a yellow sleeve (#f5c800) between about 0.3 and 1.9 m, the centre pole at each door too. Above the seats along both sides, separate U-shaped stainless hangers on two stems, about 2.0 m above the floor, none over the door areas; tan leather straps only on the hangers next to the doors |
+| Doors | Dark anthracite leaves (#1f262e) with stainless kick plates and round open buttons. Each leaf's window (about 0.45 × 1.1 m) sits toward the pillar, with a dark strip carrying stickers between it and the seal. Green light strips light the door area in use. A navy panel about 2.1 × 0.4 m on the cove over each door carries the network map, with a screen inset at one end |
+| Ceiling | White, with a band of round LED downlights and a light line along each side. A sloping cove carries the advert frames. Over each door area hangs a round lamp (about 1.1 m) inside a stainless ring handle (about 1.3 m), with a centre pole. Amber signs about 1.25 m wide hang crossways, one per stretch |
+| Gangways | Octagonal portals about 2.0 × 2.1 m (*est.*), traced by white light lines along the top and sides but not the floor. Pale grey pleated bellows and a black rubber walkway |
 | Cab bulkhead | Dark slate (#3a3f47), with a narrow cab door carrying the rail network map |
 
 The real C30 floor is 1.155 m above the rail. The model keeps both types' floors at 1.0 m to
 match the exterior doors and the station's platforms.
 
-**Model values:** the seat plan's layout gives 36 seats in an A car and 37 in a B car, as
-SL's figures. Seats in the bays are 0.47 m wide, those along the walls 0.43 m.
+**Model values:** 36 seats a car. Seats in the bays are 0.47 m wide, those along the walls
+0.43 m; seat backs reach about 0.92 m above the floor.
 
 ### How the interiors are built
 
@@ -209,7 +232,8 @@ SL's figures. Seats in the bays are 0.47 m wide, those along the walls 0.43 m.
   leaves on one side of a car that slide the same way are one mesh, so a car's doors are four
   draw calls. With the interior shown, reveals join the doorways to the lining.
 - `train.ts`: builds car templates once per type and quality, merges each car to one mesh per
-  material, and assembles trains. Each train has per-cab destination displays and switchable
+  material, and assembles trains. Each train has per-cab destination displays, side displays
+  over the doors where the type has them (the C20) showing the same text, and switchable
   head and tail lights; a light can also be a strip that glows only when on, like the C30's
   collar, white at the leading end and red at the trailing end. Cars open their doors with `car.setDoors(amount, side)` and describe their
   walkable floor (`car.floor`: saloon, gangways, doorways), which the station uses to let the
@@ -236,7 +260,9 @@ Exterior:
   [C20 (sv)](https://sv.wikipedia.org/wiki/C20_(tunnelbanevagn)), [C30 (sv)](https://sv.wikipedia.org/wiki/C30_(tunnelbanevagn))
 - Wikimedia Commons: [Category:SL C20](https://commons.wikimedia.org/wiki/Category:SL_C20),
   [Category:SL C30](https://commons.wikimedia.org/wiki/Category:SL_C30). Mainly *C20 vagn 2201*,
-  *C20 at T-Centralen 20250517*, *C30 train*, *C30 i T-Centralen 20220730*, *C30 20190301 - 1* and
+  *C20 at T-Centralen 20250517* (lamps, roundel, number, wiper), *Kungsträdgården metro station -
+  20260106 - 07* (side numbers), *Söderströmsbron, C20 - 20251123 - 40* (side destination displays,
+  wheelchair signs), *C30 Metro 20200811 04*, *C30 i T-Centralen, 20220730*, *C30 20190301 - 1* and
   *Liljeholmen tunnelbana, C20, C30, 20240210 - 05*.
 - [Railway Technology: Bombardier unveils new C30 MOVIA metro design](https://www.railway-technology.com/news/newsbombardier-unveils-new-c30-movia-metro-design-4527428/)
   (the LED light collar round the windscreens)
@@ -246,14 +272,19 @@ Interiors:
 - Wikipedia: [C20 (sv)](https://sv.wikipedia.org/wiki/C20_(tunnelbanevagn)) (seat counts, the upgrade),
   [C30 (sv)](https://sv.wikipedia.org/wiki/C30_(tunnelbanevagn)) (seats per car, facing-seat spacing),
   [SL C30](https://en.wikipedia.org/wiki/SL_C30)
-- Wikimedia Commons: [Category:SL C30 interiors](https://commons.wikimedia.org/wiki/Category:SL_C30_interiors)
-  and C20 interior photos such as *Tunnelbana-C20-Interior*, *SL C20, interiör, 20230326, bild 1–4*,
-  *SL C20U (1–15)*, *Tunnelbanan, vagn C20U, interiör, bild 1–5*, *Uppgraderade C20*, *C20 interiör, 20220219*
+- Wikimedia Commons: [Category:SL C20 interiors](https://commons.wikimedia.org/wiki/Category:SL_C20_interiors)
+  and [Category:SL C30 interiors](https://commons.wikimedia.org/wiki/Category:SL_C30_interiors). For
+  the C20 mainly *SL C20U (1–15)*, *Tunnelbanan, vagn C20U, interiör, bild 1–5*, *C20U, interiör,
+  20221105*, *SL C20 - 20260106 - 08*, *SL C20, interiör, 20230326, bild 1–4*, *Uppgraderade C20*,
+  *Tunnelbana-C20-Interior* and *C20 interiör, 20220219*. For the C30 *C30 interior 200909 1* and
+  *2*, *C30, interiör, 20220730*, *C30 Carriage* and *C30 Metro 20200811 01–06*.
 - [Stockholms tunnelbana: Vagntyp C20](https://stockholmtunnelbana.wordpress.com/2017/09/19/vagntyp-c20/) (SL's seat plan for the upgrade)
 - Region Stockholm: [Uppgraderingen av tunnelbanans C20-vagnar pågår för fullt](https://www.regionstockholm.se/nyheter/2022/09/uppgraderingen-av-tunnelbanans-c20-vagnar-pagar-for-fullt/);
   SL on Mynewsdesk: [Nyrenoverade tåg i tunnelbanan](https://www.mynewsdesk.com/se/sl/pressreleases/nyrenoverade-taag-i-tunnelbanan-3305430)
   and [Första nya tunnelbanetåget på plats](https://www.mynewsdesk.com/se/sl/pressreleases/foersta-nya-tunnelbanetaaget-paa-plats-2549298) (Bombardier's interior photos)
-- [Järnvägar.nu: Nu är alla C20 uppgraderade](https://jarnvagar.nu/nu-ar-alla-c20-uppgraderade/),
+- Alstom's press release *Alstom completes modernisation of Stockholm C20 metro fleet* (February
+  2024: 27,540 seats in 270 units),
+  [Järnvägar.nu: Nu är alla C20 uppgraderade](https://jarnvagar.nu/nu-ar-alla-c20-uppgraderade/),
   [Feber: Nu är moderniseringen av tunnelbanan klar](https://feber.se/samhalle/nu-ar-moderniseringen-av-tunnelbanan-klar/463566/) (Åberg's fabric)
 - [SVT: Följ med in i de nya tunnelbanevagnarna](https://www.svt.se/nyheter/lokalt/stockholm/folj-med-in-i-de-nya-tunnelbanevagnarna),
   [Mitt i: SL:s hemliga mönster på tunnelbanans säten](https://www.mitti.se/nyheter/har-ar-sls-hemliga-monster-pa-tunnelbanans-saten-6.27.38498.4c5dff25f8),

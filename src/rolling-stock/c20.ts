@@ -46,11 +46,16 @@ const M = {
   lamp: { c: '#c9cccf', r: 0.3, m: 0.4 },
   bumper: { c: '#3a3e43', r: 0.5, m: 0.4 },
   white: { c: '#f3f5f7', r: 0.4, m: 0 },
+  number: { c: '#ecebe6', r: 0.4, m: 0 },
   // a doorway: dark from outside, clear when the interior is drawn
   opening: { c: '#0b0d10', r: 0.9, m: 0, a: 0 },
 };
 
 export const DOOR = 1.6; // double door, outer width
+
+// Destination displays in the blue caps over the doors, all but the door next to a cab.
+const SIDE_SIGN = { y: 3.36, w: 1.3, h: 0.16 };
+const sideSigns = (def: CarDef) => def.doors.filter((d) => !def.cab || d < Math.max(...def.doors));
 
 export interface C20Car extends CarDef {
   // equipment boxes under the floor as [x0, x1, half-depth], and the side skirts that hide them
@@ -118,6 +123,8 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
   for (const d of def.doors) {
     const a = d - DOOR / 2, b = d + DOOR / 2;
     p.rectT(a, b, T(BAND1), roofT(1.04), M.blue); // blue cap on the cant above each door
+    // the black glazing of the destination display in it (the lit text is sideSign, per train)
+    if (sideSigns(def).includes(d)) p.rect(d - 0.7, d + 0.7, SIDE_SIGN.y - 0.11, SIDE_SIGN.y + 0.11, M.black, 0.02);
     p.frame(a - 0.022, b + 0.022, 0.93, BAND1 + 0.012, 0.022, M.black);
     p.rect(a, b, 0.95, BAND1, M.opening);
   }
@@ -143,12 +150,16 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
     for (let x = 2.4; x < 3.55; x += 0.08) p.rectT(X(x + 0.03), X(x), roofT(0.7), roofT(0.15), M.grille);
     for (const x of [2.265, 3.655]) p.rectT(X(x + 0.012), X(x - 0.012), roofT(0.88), prof.tMax, M.black);
     p.text(X(1.42), 3.4, def.name!, 0.13, M.white, { font: 'italic 600 {px}px Georgia, serif' });
-    p.text(X(2.6), 3.4, def.number, 0.15, M.black);
+    p.text(X(2.6), 3.4, carNumber(def), 0.15, M.number, { font: 'italic 600 {px}px Arial, Helvetica, sans-serif' });
   } else if (def.number) {
-    p.text(x1 - 1.0, 3.4, def.number, 0.13, M.black);
+    p.text(x1 - 1.0, 3.4, carNumber(def), 0.13, M.number, { font: 'italic 600 {px}px Arial, Helvetica, sans-serif' });
   }
 }
 
+// "2201A" is written "2201 A" on the sides
+const carNumber = (def: CarDef) => def.number.replace(/(\d)([A-Z])$/, '$1 $2');
+
+// The front, as seen from ahead: +a is to the viewer's left.
 function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.6, 3.75, M.blue);
   // windscreen: one black frame round three panes, the middle one the emergency door, and the
@@ -158,22 +169,23 @@ function paintFront(p: Painter, def: CarDef) {
   p.rect(-0.43, 0.43, 1.62, 2.95, M.glassFront, 0.04);
   p.rect(-0.47, -0.43, 1.62, 2.95, M.black);
   p.rect(0.43, 0.47, 1.62, 2.95, M.black);
-  // wipers parked along the bottom of the outer panes
-  p.poly([[-1.0, 1.84], [-0.55, 1.84], [-0.55, 1.86], [-1.0, 1.865]], M.black);
-  p.poly([[0.55, 1.84], [1.0, 1.84], [1.0, 1.865], [0.55, 1.86]], M.black);
+  // one wiper on the middle pane, parked nearly upright and leaning to the viewer's right
+  p.poly([[0.015, 1.66], [-0.27, 2.43], [-0.29, 2.42], [-0.015, 1.65]], M.black);
+  p.ellipse(0, 1.66, 0.03, 0.03, M.black);
   // the lamp band, which sweeps up at the corners round the cab side windows
   for (const s of [-1, 1]) {
     p.poly([[0, 1.24], [s * 1.0, 1.24], [s * 1.2, 1.3], [s * 1.35, 1.45], [s * 1.6, 1.62], [s * 1.6, 3.3], [s * 1.43, 3.2],
       [s * 1.36, 2.9], [s * 1.2, 1.7], [s * 1.08, 1.42], [0, 1.42]], M.black);
     p.poly([[s * 1.24, 1.66], [s * 1.6, 1.74], [s * 1.6, 2.95], [s * 1.42, 2.92], [s * 1.36, 2.7]], M.glassCab);
-    // the lamp units: a grey housing with the round headlight and the tail light
-    p.rect(s * 0.34, s * 0.71, 1.25, 1.41, M.lamp, 0.02);
+    // round bezels for the headlight (inboard) and the tail light
+    for (const z of [0.53, 0.73]) p.ellipse(s * z, 1.33, 0.085, 0.085, M.lamp);
   }
-  p.logo(0.62, 1.07, 0.26, M.white);
-  p.text(-0.42, 1.48, def.number, 0.09, M.white);
-  // the ribbed buffer beam
-  p.rect(-1.3, 1.3, 0.8, 0.95, M.bumper, 0.03);
-  for (let y = 0.82; y < 0.94; y += 0.03) p.rect(-1.28, 1.28, y, y + 0.012, M.black);
+  p.logo(0, 1.06, 0.35, M.white);
+  // the unit number on the blue strip under the windscreen, at the viewer's right
+  p.text(-0.7, 1.48, def.number, 0.08, M.white);
+  // the ribbed anticlimber
+  p.rect(-0.87, 0.87, 0.79, 0.93, M.bumper, 0.03);
+  for (let y = 0.8; y < 0.92; y += 0.03) p.rect(-0.85, 0.85, y, y + 0.012, M.black);
 }
 
 // Blue sliding leaves, black-edged, with a window each as tall as the side windows.
@@ -254,8 +266,57 @@ function cornerSkirt(xFront: (z: number) => number, xBack: number, s: number, y0
   return g;
 }
 
+// Since the upgrade, a large white wheelchair sign on the window and the panel below it at each
+// end of the middle car, by the flex areas inside: a decal bent to the side's profile.
+let wheelchairMat: THREE.MeshStandardMaterial | undefined;
+function wheelchairSigns(def: CarDef, x0: number, x1: number) {
+  wheelchairMat ??= new THREE.MeshStandardMaterial({ map: wheelchairTexture(), transparent: true, alphaTest: 0.5, roughness: 0.4 });
+  const h = 0.6, y0 = 1.5, rows = 8;
+  const ends = windowFrames(def, x0, x1).filter(([a, b]) => a < x0 + 1 || b > x1 - 1);
+  const pos: number[] = [], uv: number[] = [], idx: number[] = [];
+  for (const [a, b] of ends) {
+    const xa = (a + b) / 2 - h / 2, xb = xa + h;
+    for (const s of [1, -1]) {
+      const i = pos.length / 3;
+      for (let r = 0; r <= rows; r++) {
+        const y = y0 + (h * r) / rows, z = s * (sideZ(prof, y) + 0.012), v = r / rows;
+        pos.push(xa, y, z, xb, y, z);
+        // not mirrored on the far side
+        uv.push(s > 0 ? 0 : 1, v, s > 0 ? 1 : 0, v);
+      }
+      for (let r = 0; r < rows; r++) {
+        const p = i + r * 2, q = p + 1, t = p + 2, u = p + 3;
+        if (s > 0) idx.push(p, q, u, p, u, t);
+        else idx.push(p, u, q, p, t, u);
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return new THREE.Mesh(g, wheelchairMat);
+}
+
+function wheelchairTexture() {
+  const n = 128, cv = document.createElement('canvas');
+  cv.width = cv.height = n;
+  const ctx = cv.getContext('2d')!;
+  ctx.strokeStyle = ctx.fillStyle = '#f3f5f7'; ctx.lineWidth = n * 0.08; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.arc(n * 0.42, n * 0.68, n * 0.25, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(n * 0.33, n * 0.22); ctx.lineTo(n * 0.36, n * 0.53); ctx.lineTo(n * 0.68, n * 0.53); ctx.lineTo(n * 0.8, n * 0.88); ctx.lineTo(n * 0.92, n * 0.88); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(n * 0.35, n * 0.37); ctx.lineTo(n * 0.58, n * 0.37); ctx.stroke();
+  ctx.beginPath(); ctx.arc(n * 0.32, n * 0.1, n * 0.075, 0, Math.PI * 2); ctx.fill();
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.flipY = true;
+  return t;
+}
+
 function extras(def: C20Car, x0: number, x1: number) {
   const out: THREE.Object3D[] = [corrugation(def, x0, x1)];
+  if (!def.cab) out.push(wheelchairSigns(def, x0, x1));
   // underframe equipment boxes, mostly hidden behind the stainless side skirts
   const parts = [], skirts = [];
   for (const [a, b, d] of def.under) parts.push(box(b - a, 0.43, 2 * d, (a + b) / 2, 0.57, 0));
@@ -320,12 +381,14 @@ export const C20: TrainSpec = {
   endColor: 0x5f666d,
   bogie: { wheelbase: 2.3, wheelR: 0.39, inside: false },
   coupler: { len: 0.6, y: 0.59, setback: 0.62 },
-  sign: { y: 3.28, w: 1.1, h: 0.17 },
+  sign: { y: 3.28, w: 1.35, h: 0.17 },
+  sideSign: { ...SIDE_SIGN, at: sideSigns },
+  // round lamps in the black band: the headlights inboard, the tail lights outboard
   lights: [
-    { kind: 'head', z: 0.62, y: 1.33, w: 0.12, h: 0.12, round: true },
-    { kind: 'head', z: -0.62, y: 1.33, w: 0.12, h: 0.12, round: true },
-    { kind: 'tail', z: 0.44, y: 1.33, w: 0.15, h: 0.1 },
-    { kind: 'tail', z: -0.44, y: 1.33, w: 0.15, h: 0.1 },
+    { kind: 'head', z: 0.53, y: 1.33, w: 0.12, h: 0.12, round: true },
+    { kind: 'head', z: -0.53, y: 1.33, w: 0.12, h: 0.12, round: true },
+    { kind: 'tail', z: 0.73, y: 1.33, w: 0.12, h: 0.12, round: true },
+    { kind: 'tail', z: -0.73, y: 1.33, w: 0.12, h: 0.12, round: true },
   ],
   doors,
   paintSide, paintFront, extras,

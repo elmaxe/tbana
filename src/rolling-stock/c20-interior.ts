@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { merge } from './kit';
 import {
   liningProfile, seating, pole, rail, moquette, interiorMat, Parts, freeStretches, endWallMaterial,
-  screenTexture,
+  screenTexture, drawPictogram,
 } from './interior';
 import type { Painter } from './kit';
 import type { CabinLights } from './cabin-light';
@@ -18,17 +18,22 @@ export type C20InteriorStyle = 'upgraded' | 'original';
 // Two styles:
 //  - 'upgraded' (C20U): Alstom refurbished all 270 units in Västerås, 2020–2024, so this is how
 //    every C20 looks today. 102 seats. In each bay, and at the inner end of the cab cars, one side
-//    keeps two groups of four facing seats and the other gets a row of six seats along the wall
-//    (five in the middle car); the sides alternate. At the cab a pair of seats a side backs onto
-//    the bulkhead, with a priority seat along each wall. A multipurpose area with lean rails at
-//    each end of the middle car, extra yellow rails, TFT screens, and seats in the same "Plattan"
-//    triangle fabric as the C30.
-//  - 'original' (1997–2024): 126 seats, all in groups of four facing seats, in Lasse Åberg's navy
-//    moquette with sketches of Stockholm in coloured lines; tall yellow hoops on the backs.
-// Both: light grey-white walls, a silver-grey ceiling whose lowered centre spine carries two rows
-// of opal light panels, bright yellow handholds, grey door pillars with poles in recesses, glass
-// screens at the doors, a yellow ceiling grip over each door area, a yellow cab bulkhead, and open
-// gangways with a turntable floor between the three sections.
+//    keeps two groups of four facing seats with a TFT screen over the pier between them, and the
+//    other gets a row of six seats along the wall under a yellow rail, the priority seat by the
+//    door. The sides alternate, and a cab car's inner-end row is on the same side as the flex area
+//    across the gangway. At the cab a pair of seats a side backs onto the bulkhead, with a
+//    priority seat along each wall. Each end of the middle car has a flex area with lean rails on
+//    one side and, on the other, a pair backed onto the end wall facing a priority seat. Yellow
+//    crescents on the backs of facing seats, and seats in the same "Plattan" triangle fabric as
+//    the C30.
+//  - 'original' (1997–2024): 126 seats officially (photos show 120), all in groups of four facing
+//    seats, in Lasse Åberg's navy moquette with sketches of Stockholm in coloured lines; tall
+//    yellow hoops on the backs.
+// Both: light grey-white walls with an advert frame over each window, a silver-grey ceiling whose
+// lowered centre spine carries two rows of opal light panels, bright yellow handholds, grey door
+// pillars with poles in recesses, glass screens with straight poles at the doors, an H-shaped
+// yellow grip over each door area, a yellow cab bulkhead, and open gangways with a turntable floor
+// between the three sections.
 
 const F = 1.0;     // floor above the rail
 const IW = 1.3;    // inner half-width at seat height
@@ -97,14 +102,14 @@ function makePaint(style: C20InteriorStyle) {
     const tc = (z: number) => tAt(z, 'ceiling');
     p.rectT(xa, xb, tc(0.8) - 0.24, prof.tMax, C.ceiling);
     for (let k = 0; k < 4; k++) p.rect(xa, xb, 3.262 + k * 0.016, 3.268 + k * 0.016, C.slot);
-    // a row of angled advert frames in the cove above the windows
-    let i = 0;
-    for (let x = xa + 0.2; x + 0.72 < xb - 0.1; x += 0.8, i++) {
+    // an angled advert frame in the cove over each window
+    windowPanes(def, x0, x1).forEach(([a, b], i) => {
       const [bg, fg] = ADS[(((i + Math.round(x0 * 3)) % ADS.length) + ADS.length) % ADS.length];
-      p.rect(x, x + 0.72, 3.0, 3.22, C.adFrame);
-      p.rect(x + 0.015, x + 0.705, 3.012, 3.208, { c: fg, r: 0.5 });
-      p.rect(x + 0.015, x + 0.3, 3.012, 3.208, { c: bg, r: 0.5 });
-    }
+      const c = (a + b) / 2, w = Math.min(1.0, b - a) / 2;
+      p.rect(c - w, c + w, 2.95, 3.22, C.adFrame);
+      p.rect(c - w + 0.015, c + w - 0.015, 2.965, 3.205, { c: fg, r: 0.5 });
+      p.rect(c - w + 0.015, c - w + 0.35, 2.965, 3.205, { c: bg, r: 0.5 });
+    });
     for (const [a, b] of windowPanes(def, x0, x1)) {
       p.rect(a - 0.07, b + 0.07, 1.81, 2.93, C.reveal, 0.12);
       p.rect(a - 0.02, b + 0.02, 1.856, 2.881, C.rubber, 0.07);
@@ -130,12 +135,16 @@ function makePaint(style: C20InteriorStyle) {
   };
 }
 
-// Inside of a door leaf: grey-white with a black seal at the centre and a tall window.
+// Inside of a door leaf: grey-white with a black seal at the centre, a ribbed stainless kick plate,
+// a tall window, a column of pictograms by the outer edge and a plate above the window.
 function doorLeaf(p: Painter, w: number) {
   p.rect(0, w, 0.95, 3.23, C.door);
+  p.rect(0, w, 0.95, F + 0.3, C.steel);
+  for (let y = F + 0.05; y < F + 0.28; y += 0.04) p.rect(0.02, w - 0.02, y, y + 0.015, C.ribbed);
   p.rect(0, 0.015, 0.95, 3.23, C.rubber);
   p.rect(0.13, 0.63, 1.856, 2.881, C.rubber, 0.06);
   p.rect(0.15, 0.61, 1.876, 2.861, C.hole, 0.05);
+  for (let k = 0; k < 4; k++) p.rect(w - 0.12, w - 0.05, 2.2 + k * 0.09, 2.27 + k * 0.09, C.pict);
   p.rect(0.23, 0.53, 2.92, 2.98, C.sticker);
 }
 
@@ -205,8 +214,9 @@ function makeMaterials(style: C20InteriorStyle) {
       wall: interiorMat('#e4e4e0', { roughness: 0.5, side: THREE.DoubleSide }),
       ceiling: interiorMat('#c8cacc', { roughness: 0.5 }),
       bellows: interiorMat('#8e9194', { roughness: 0.85, side: THREE.DoubleSide }),
-      plate: interiorMat('#7d8083', { roughness: 0.6, metalness: 0.4 }),
-      ring: interiorMat('#2a2c2f', { roughness: 0.7 }),
+      plate: interiorMat('#b2b1ab', { roughness: 0.7 }),
+      ring: interiorMat('#c9ccce', { roughness: 0.3, metalness: 0.8 }),
+      insert: interiorMat('#3a3d41', { roughness: 0.7 }),
       frame: interiorMat('#7a7e83', { roughness: 0.4, metalness: 0.6 }),
       pillar: interiorMat('#a9abad', { roughness: 0.45 }),
       steel: interiorMat('#c3c7ca', { roughness: 0.22, metalness: 0.9 }),
@@ -215,19 +225,23 @@ function makeMaterials(style: C20InteriorStyle) {
       lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4e2, emissiveIntensity: 1.3 }),
       sign: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 64, drawSign), roughness: 0.2 }),
       housing: interiorMat('#1d2024', { roughness: 0.5 }),
+      bezel: interiorMat('#d3d5d6', { roughness: 0.4 }),
+      pictogram: new THREE.MeshStandardMaterial({ map: screenTexture(64, 132, drawPictograms), roughness: 0.5 }),
       bulkhead: bulkheadMaterial(),
     };
     if (style === 'original') {
       const ab = fab(aberg, 0.36, 256);
       Object.assign(mats, { shell: ab, back: ab, pan: ab });
     } else {
+      // Plattan: two blues on the backs, plain navy cushions, plain charcoal rears; tone-on-tone
+      // yellow on priority seats
       Object.assign(mats, {
-        shell: fab((c, n) => plain(c, n, '#3b414a'), 0.05, 32),
-        back: fab((c, n) => plattan(c, n, '#3a3d44', '#6e7380'), 0.42),
-        pan: fab((c, n) => plain(c, n, '#3b414a'), 0.05, 32),
-        backY: fab((c, n) => plattan(c, n, '#d9a520', '#e8b830'), 0.42),
-        panY: fab((c, n) => plain(c, n, '#e3ad2a'), 0.05, 32),
-        screen: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 288, drawTft), roughness: 0.2 }),
+        shell: fab((c, n) => plain(c, n, '#2f343c'), 0.05, 32),
+        back: fab((c, n) => plattan(c, n, '#343d5a', '#6c7592'), 0.42),
+        pan: fab((c, n) => plain(c, n, '#30374f'), 0.05, 32),
+        backY: fab((c, n) => plattan(c, n, '#dfae1c', '#f2c322'), 0.42),
+        panY: fab((c, n) => plain(c, n, '#ebba26'), 0.05, 32),
+        screen: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 320, drawTft), roughness: 0.2 }),
       });
     }
     return mats;
@@ -241,41 +255,63 @@ function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillText('Mot: Skarpnäck', w / 2, h / 2 + 2);
 }
 
-// C20U widescreen: next station in white on dark blue
+// C20U screen: the next station, then the following ones down the line's colour, and the terminus
+// with its line number, white on dark navy
 function drawTft(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = '#0d2350'; ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#1f9a3c'; ctx.fillRect(0, 0, w, 50);
-  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
-  ctx.font = '700 30px Arial, sans-serif'; ctx.fillText('17  Skarpnäck', 22, 26);
-  ctx.font = '600 26px Arial, sans-serif'; ctx.fillText('Nästa', 22, 96);
-  ctx.font = '700 48px Arial, sans-serif'; ctx.fillText('T-Centralen', 22, 146);
-  ctx.font = '500 22px Arial, sans-serif'; ctx.fillStyle = '#b9c6e4';
-  ctx.fillText('Byte till röd och blå linje, pendeltåg', 22, 200);
+  ctx.fillStyle = '#0b1830'; ctx.fillRect(0, 0, w, h);
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#b9c6e4'; ctx.font = '500 22px Arial, sans-serif'; ctx.fillText('Nästa station / Next stop', 22, 30);
+  ctx.fillStyle = '#fff'; ctx.font = '700 50px Arial, sans-serif'; ctx.fillText('Gamla stan', 22, 78);
+  ctx.fillStyle = '#1f9a3c'; ctx.fillRect(37, 124, 8, 170);
+  ['Slussen', 'Medborgarplatsen', 'Skanstull', 'Gullmarsplan'].forEach((name, i) => {
+    const y = 140 + i * 42;
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(41, y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '500 26px Arial, sans-serif'; ctx.fillText(name, 66, y);
+  });
+  ctx.fillStyle = '#1f9a3c'; ctx.beginPath(); ctx.roundRect(w - 196, 126, 44, 32, 6); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '700 24px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('17', w - 174, 143);
+  ctx.textAlign = 'left'; ctx.font = '700 24px Arial, sans-serif'; ctx.fillText('SKARPNÄCK', w - 142, 143);
 }
 
-// The cab bulkhead is bright yellow, with the cab door and its narrow dark window.
+// The pram and wheelchair signs on the wall of a flex area: white on dark grey, one above the other.
+function drawPictograms(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  ctx.fillStyle = '#e4e4e0'; ctx.fillRect(0, 0, w, h);
+  drawPictogram(ctx, 2, 2, w - 4, 'wheelchair', '#2b2f36');
+  drawPictogram(ctx, 2, h - w + 2, w - 4, 'pram', '#2b2f36');
+}
+
+// The cab bulkhead is bright yellow: the cab door between grey posts, its dark window, a stainless
+// kick plate, posters either side, a grille at the top right and the car number at the top left.
 function bulkheadMaterial() {
   return endWallMaterial({
     w: 1.5, y0: F, y1: 3.4,
     draw(ctx) {
-      ctx.fillStyle = '#e8c21f'; ctx.fillRect(-1.5, F, 3, 2.4);
-      ctx.fillStyle = '#d4ae16'; ctx.fillRect(-0.34, F, 0.68, 2.02);
-      ctx.fillStyle = '#e8c21f'; ctx.fillRect(-0.32, F, 0.64, 2.0);
+      ctx.fillStyle = '#ecc81c'; ctx.fillRect(-1.5, F, 3, 2.4);
+      ctx.fillStyle = '#a9abad';
+      for (const x of [-0.42, 0.32]) ctx.fillRect(x, F, 0.1, 2.08);
+      ctx.fillRect(-0.42, F + 2.0, 0.84, 0.08);
+      ctx.fillStyle = '#b4b8bb'; ctx.fillRect(-0.32, F, 0.64, 0.25);
       ctx.fillStyle = '#0f1216';
-      ctx.beginPath(); ctx.roundRect(-0.125, F + 1.25, 0.25, 0.6, 0.06); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-0.19, F + 0.98, 0.38, 0.8, 0.07); ctx.fill();
       ctx.fillStyle = '#9a9ea2'; ctx.fillRect(0.22, F + 0.95, 0.05, 0.14);
       // posters either side of the door
-      for (const [x, bg, fg] of [[-0.95, '#f4efe6', '#c43a62'], [0.6, '#eef2f7', '#2b5d9b']] as const) {
-        ctx.fillStyle = bg; ctx.fillRect(x, F + 1.25, 0.38, 0.55);
-        ctx.fillStyle = fg; ctx.fillRect(x + 0.03, F + 1.55, 0.32, 0.2);
+      for (const [x, bg, fg] of [[-0.99, '#f4efe6', '#c43a62'], [0.51, '#eef2f7', '#2b5d9b']] as const) {
+        ctx.fillStyle = bg; ctx.fillRect(x, F + 1.15, 0.48, 0.69);
+        ctx.fillStyle = fg; ctx.fillRect(x + 0.04, F + 1.5, 0.4, 0.28);
       }
+      ctx.fillStyle = '#c9b02a';
+      for (let y = F + 2.12; y < F + 2.3; y += 0.03) for (let x = 0.62; x < 1.0; x += 0.03) ctx.fillRect(x, y, 0.015, 0.015);
+      ctx.save(); ctx.translate(-1.15, F + 2.2); ctx.scale(0.01, -0.01);
+      ctx.fillStyle = '#16181b'; ctx.font = '700 7px Arial, sans-serif'; ctx.textBaseline = 'middle';
+      ctx.fillText('2201 A', 0, 0);
+      ctx.restore();
     },
   });
 }
 
 // ------------------------------------------------------------------ furnishing
 
-const SEAT = { width: 0.45, height: 0.45, depth: 0.44, back: 1.2, recline: 0.12, shellT: 0.04, cushion: 0.06, cushionBack: 0.95 };
+const SEAT = { width: 0.45, height: 0.45, depth: 0.44, back: 1.15, recline: 0.12, shellT: 0.04, cushion: 0.06, cushionBack: 0.95 };
 let seats: Seating | undefined;
 const S = () => (seats ??= seating({ F, IW, seat: SEAT }));
 
@@ -290,51 +326,91 @@ function makeFurnish(style: C20InteriorStyle) {
     const zWin = (s: number) => s * (IW - 0.04 - W / 2), zAisle = (s: number) => s * (IW - 0.06 - 1.5 * W);
     const zEdge = (s: number) => s * (IW - 0.08 - 2 * W);
     const ceilingY = 3.33;
+    // the ceiling where poles meet it, the height of the rails and grips, and the line of the poles
+    // at the screens' aisle edges, which the rails along the walls join
+    const poleTop = 3.31, gy = F + 2.0;
+    const zPole = (s: number) => s * (IW - 0.58);
 
+    // one seat across the car, back at x, facing dir, on a frame fixed to the wall
+    const single = (x: number, z: number, dir: number, priority = false) => {
+      S().across(parts, x, z, dir, priority);
+      parts.add('frame', new THREE.BoxGeometry(0.06, 0.06, W).translate(x + dir * 0.25, F + 0.36, z));
+    };
     // a row of two seats across one side, back at x, facing dir
     const pair = (x: number, s: number, dir: number, priority = false) => {
       S().across(parts, x, zWin(s), dir, priority);
       S().across(parts, x, zAisle(s), dir, false);
-      // the frame under the pair, fixed to the wall
       parts.add('frame', new THREE.BoxGeometry(0.06, 0.06, 2 * W).translate(x + dir * 0.25, F + 0.36, s * (IW - 0.04 - W)));
       parts.add('frame', new THREE.BoxGeometry(0.05, 0.36, 0.05).translate(x + dir * 0.25, F + 0.18, zEdge(s) + s * 0.1));
     };
+    // a short yellow handle on the sill under the window, between facing seats
+    const sillGrab = (x: number, s: number) => {
+      parts.add('yellow', rail([[x - 0.14, 1.8, s * 1.38], [x - 0.14, 1.8, s * 1.32], [x + 0.14, 1.8, s * 1.32], [x + 0.14, 1.8, s * 1.38]], 0.015, 0.03));
+    };
     // a group of four facing seats between x = a and b on side s
-    const group = (a: number, b: number, s: number, { hoops = [] }: { hoops?: number[] } = {}) => {
+    const group = (a: number, b: number, s: number) => {
       pair(a + 0.06, s, 1);
       pair(b - 0.06, s, -1);
-      for (const x of hoops) hoop(x, s);
+      sillGrab((a + b) / 2, s);
     };
-    // the tall yellow hoop over the aisle seats where two rows meet back to back
-    const hoop = (x: number, s: number) => {
-      const top = F + SEAT.back - 0.02, z = zAisle(s) - s * 0.12;
-      parts.add('yellow', rail([[x - 0.1, top - 0.05, z], [x - 0.1, top + 0.22, z], [x + 0.1, top + 0.22, z], [x + 0.1, top - 0.05, z]], 0.018, 0.09));
+    // where two rows meet back to back: the original's tall closed hoop over the aisle seats, the
+    // upgrade's yellow crescent rising from the aisle corner of the backs and bowing over the aisle
+    const backGrab = (x: number, s: number) => {
+      const top = F + SEAT.back;
+      if (upgraded) {
+        const z = zEdge(s) + s * 0.05;
+        parts.add('yellow', new THREE.BoxGeometry(0.12, 0.05, 0.06).translate(x, top, z));
+        parts.add('yellow', rail([[x, top, z], [x, top + 0.12, z - s * 0.11], [x, top + 0.32, z - s * 0.11], [x, top + 0.45, z]], 0.017, 0.12));
+      } else {
+        const z = zAisle(s) - s * 0.12;
+        parts.add('yellow', rail([[x - 0.125, top - 0.03, z], [x - 0.125, top + 0.4, z], [x + 0.125, top + 0.4, z], [x + 0.125, top - 0.03, z]], 0.018, 0.11));
+      }
     };
-    // a row of n seats along the wall on side s, from x0 (by a door) towards dir, the priority
-    // seat first, by the door. Two poles come down from a rail overhead and bend into the seat
-    // frame: one by the priority seat, one between the second and third seats from the far end.
-    const longRow = (x0: number, dir: number, n: number, s: number) => {
+    // a yellow rail overhead along side s from x = a to b, hung from the ceiling about every metre
+    const wallRail = (a: number, b: number, s: number) => {
+      const z = zPole(s), n = Math.max(1, Math.round((b - a) / 1.0));
+      parts.add('yellow', rail([[a, gy, z], [b, gy, z]], 0.017));
+      for (let k = 0; k < n; k++) parts.add('steel', pole(a + ((b - a) * (k + 0.5)) / n, z, gy, poleTop, 0.01));
+    };
+    // a row of n seats along the wall on side s in the stretch [a, b], starting at its door end
+    // `from`, the priority seat first, on a grey pedestal. The rail overhead runs from the screen
+    // pole at one end of the stretch to the other, and two poles drop from it, bending at the
+    // bottom into the seat frame, between the second and third seats and the fourth and fifth
+    // from the door.
+    const longRow = (a: number, b: number, from: number, n: number, s: number) => {
+      const dir = from === a ? 1 : -1, x0 = from + dir * 0.06;
       const p = W + 0.02;
       for (let k = 0; k < n; k++) S().along(parts, x0 + dir * p * (k + 0.5), s, k === 0);
       const x1 = x0 + dir * p * n;
       parts.add('frame', new THREE.BoxGeometry(p * n, 0.07, 0.2).translate((x0 + x1) / 2, F + 0.36, s * (IW - 0.17)));
-      // the grey pedestal under the priority seat
       parts.add('pillar', new THREE.BoxGeometry(p - 0.06, 0.32, 0.3).translate(x0 + dir * p / 2, F + 0.16, s * (IW - 0.2)));
-      const zp = s * (IW - SEAT.depth - 0.12), zs = s * (IW - SEAT.depth + 0.04);
-      parts.add('yellow', rail([[x0, F + 1.9, zp], [x1 + dir * 0.06, F + 1.9, zp], [x1 + dir * 0.06, ceilingY - 0.02, zp]], 0.017, 0.08));
-      for (const k of [1, n - 2]) {
+      wallRail(a + 0.03, b - 0.03, s);
+      const zp = zPole(s), zs = s * (IW - SEAT.depth + 0.04);
+      for (const k of [2, 4]) {
         const x = x0 + dir * p * k;
-        parts.add('yellow', rail([[x, F + 1.9, zp], [x, F + 0.62, zp], [x, F + 0.42, zs]], 0.017, 0.1));
+        parts.add('yellow', rail([[x, gy, zp], [x, F + 0.62, zp], [x, F + 0.42, zs]], 0.017, 0.1));
       }
     };
-    // multipurpose area: double lean rail on the wall and a pictogram
-    const flexArea = (a: number, b: number, s: number) => {
+    // flex area: a double lean rail on the wall, the rail overhead, and the pram and wheelchair
+    // signs between the window and the end wall at `wall`
+    const flexArea = (a: number, b: number, s: number, wall: number) => {
       for (const y of [F + 0.7, F + 0.9]) {
         parts.add('yellow', rail([[a + 0.1, y, s * (IW - 0.03)], [a + 0.1, y, s * (IW - 0.1)], [b - 0.1, y, s * (IW - 0.1)], [b - 0.1, y, s * (IW - 0.03)]], 0.017, 0.05));
       }
+      wallRail(a + 0.03, b - 0.03, s);
+      const x = wall + (wall > a ? -0.19 : 0.19);
+      parts.add('pictogram', new THREE.PlaneGeometry(0.15, 0.31).rotateY(s > 0 ? Math.PI : 0).translate(x, F + 1.6, s * 1.3));
+    };
+    // a TFT screen in a light grey housing in the cove over the pier between two facing groups
+    const tft = (x: number, s: number) => {
+      const slope = Math.atan2(1.3 - 1.17, 3.23 - 2.87);
+      const place = (g: THREE.BufferGeometry) => g.rotateX(slope).rotateY(s > 0 ? Math.PI : 0).translate(x, 3.03, s * 1.2);
+      parts.add('bezel', place(new THREE.BoxGeometry(0.56, 0.38, 0.06).translate(0, 0, -0.03)));
+      parts.add('screen', place(new THREE.PlaneGeometry(0.47, 0.29).translate(0, 0, 0.002)));
     };
 
     const stretches = freeStretches(xa, xb, doors, DOOR, CLR);
+    const flexes: [number, number, number][] = [];
     let bay = 0;
     for (const [a, b] of stretches) {
       const atDoorA = doors.some((d) => Math.abs(d + DOOR / 2 + CLR - a) < 0.01);
@@ -343,34 +419,45 @@ function makeFurnish(style: C20InteriorStyle) {
       const cabEnd = def.cab && b >= xb - 0.01;
       if (cabEnd) {
         // one pair of seats a side with their backs to the cab bulkhead, and in the upgrade a
-        // single priority seat along each wall beside the door screen (photos)
+        // single priority seat along each wall beside the door screen (photos); yellow grabs on the
+        // posts of the cab door
         for (const s of [-1, 1]) {
           pair(xb - 0.03, s, -1);
           if (upgraded) S().along(parts, a + 0.06 + W / 2, s, true);
+          parts.add('yellow', rail([[xb, F + 1.15, s * 0.37], [xb - 0.05, F + 1.15, s * 0.37], [xb - 0.05, F + 1.85, s * 0.37], [xb, F + 1.85, s * 0.37]], 0.015, 0.03));
         }
         continue;
       }
-      // in the upgrade one side of each bay, and of a cab car's inner end, has a row along the
-      // wall: six seats in the cab cars and five in the middle car (photos), the priority seat by
-      // the door farther from the middle of the car. The side alternates along the car.
+      // in the upgrade one side of each bay, and of a cab car's inner end, has a row of six along
+      // the wall (photos), the priority seat by the door farther from the middle of the car. The
+      // side alternates along the car; in a cab car the inner-end row is on the same side as the
+      // flex area across the gangway.
       const isBay = atDoorA && atDoorB;
       const rowAt = upgraded && (isBay || (def.cab && len > 2.6)) ? (!atDoorA || (atDoorB && Math.abs(b) > Math.abs(a)) ? b : a) : null;
-      const longSide = ((bay + (def.flip ? 1 : 0)) % 2) ? -1 : 1;
+      const longSide = ((bay + (def.flip ? 1 : 0) + (def.cab ? 1 : 0)) % 2) ? -1 : 1;
       for (const s of [-1, 1]) {
         if (rowAt !== null && s === longSide) {
-          const dir = rowAt === a ? 1 : -1;
-          longRow(rowAt + dir * 0.06, dir, def.cab ? 6 : 5, s);
+          longRow(a, b, rowAt, 6, s);
           continue;
         }
+        const wall = a <= xa + 0.01 ? a : b;
         if (len > 2.6) {
           // two facing groups, back to back in the middle
           const mid = (a + b) / 2;
           group(a, mid - 0.05, s);
           group(mid + 0.05, b, s);
-          if (!upgraded) hoop(mid, s);
-        } else if (upgraded && !def.cab && ((a <= xa + 0.01 && s > 0) || (b >= xb - 0.01 && s < 0))) {
-          // multipurpose area at the articulation, diagonally opposite at the two ends of the car
-          flexArea(a, b, s);
+          backGrab(mid, s);
+          if (rowAt !== null) tft(mid, s);
+        } else if (upgraded && ((a <= xa + 0.01 && s > 0) || (b >= xb - 0.01 && s < 0))) {
+          // flex area at the articulation, diagonally opposite at the two ends of the car
+          flexArea(a, b, s, wall);
+          flexes.push([a, b, s]);
+        } else if (upgraded) {
+          // opposite it, a pair backed onto the end wall facing one priority seat at the window
+          const dir = wall === a ? 1 : -1;
+          pair(wall + dir * 0.06, s, dir);
+          single(wall === a ? b - 0.06 : a + 0.06, zWin(s), -dir, true);
+          sillGrab((a + b) / 2, s);
         } else {
           group(a, b, s);
         }
@@ -378,43 +465,34 @@ function makeFurnish(style: C20InteriorStyle) {
       if (rowAt !== null) bay++;
     }
 
-    // doors: glass screens with poles at their aisle edges, poles in the pillar recesses, and a
-    // yellow grip frame hanging over the door area
+    // doors: glass screens with straight poles at their aisle edges (beside a flex area only the
+    // pole, on a foot of its own), poles in the pillar recesses between a grey drum and a cup, an
+    // H-shaped grip over the door area, a light over each doorway and a camera dome
     for (const d of doors) {
       for (const e of [-1, 1]) {
-        const x = d + e * (DOOR / 2 + 0.08);
+        const x = d + e * (DOOR / 2 + 0.08), xs = x + e * 0.05;
         for (const s of [-1, 1]) {
-          const zi = s * (IW - 0.58);
-          parts.add('glass', new THREE.BoxGeometry(0.012, 1.55, 0.56).translate(x + e * 0.05, F + 1.12, s * (IW - 0.3)));
-          parts.add('pillar', new THREE.BoxGeometry(0.04, 0.32, 0.56).translate(x + e * 0.05, F + 0.16, s * (IW - 0.3)));
-          // pole at the screen's aisle edge, curving outwards near the ceiling
-          parts.add('yellow', rail([[x + e * 0.05, F, zi], [x + e * 0.05, F + 2.05, zi], [x + e * 0.05, F + 2.25, zi + s * 0.2], [x + e * 0.05, ceilingY - 0.02, zi + s * 0.3]], 0.017, 0.15));
-          // pole in the pillar recess between two grey cups
-          const zp = s * (IW - 0.07);
-          parts.add('yellow', pole(x - e * 0.06, zp, F + 0.9, F + 1.9, 0.017));
-          for (const y of [F + 0.9, F + 1.9]) parts.add('pillar', new THREE.CylinderGeometry(0.035, 0.03, 0.06, 12).translate(x - e * 0.06, y, zp));
+          if (flexes.some(([a, b, fs]) => fs === s && xs > a - 0.15 && xs < b + 0.15)) {
+            parts.add('pillar', new THREE.BoxGeometry(0.1, 0.05, 0.1).translate(xs, F + 0.025, zPole(s)));
+          } else {
+            parts.add('glass', new THREE.BoxGeometry(0.012, 1.55, 0.56).translate(xs, F + 1.12, s * (IW - 0.3)));
+            parts.add('pillar', new THREE.BoxGeometry(0.04, 0.32, 0.56).translate(xs, F + 0.16, s * (IW - 0.3)));
+          }
+          parts.add('yellow', pole(xs, zPole(s), F, poleTop, 0.017));
+          const xp = x - e * 0.06, zp = s * (IW - 0.07);
+          parts.add('pillar', new THREE.CylinderGeometry(0.05, 0.05, 0.66, 16).translate(xp, F + 0.63, zp));
+          parts.add('steel', new THREE.CylinderGeometry(0.052, 0.052, 0.3, 16).translate(xp, F + 0.15, zp));
+          parts.add('yellow', pole(xp, zp, F + 0.96, F + 1.85, 0.017));
+          parts.add('pillar', new THREE.CylinderGeometry(0.035, 0.03, 0.06, 12).translate(xp, F + 1.85, zp));
         }
       }
-      const gy = F + 1.95;
-      parts.add('yellow', rail([[d - 0.3, gy, -0.15], [d + 0.3, gy, -0.15], [d + 0.3, gy, 0.15], [d - 0.3, gy, 0.15], [d - 0.3, gy, -0.15]], 0.017, 0.06));
-      parts.add('yellow', pole(d, 0, gy, ceilingY - 0.07, 0.017));
-      parts.add('yellow', rail([[d, gy, -0.15], [d, gy, 0.15]], 0.017));
-      for (const s of [-1, 1]) parts.add('lamp', new THREE.BoxGeometry(0.5, 0.02, 0.18).translate(d, ceilingY - 0.07, s * 0.24));
-      if (upgraded) {
-        // TFT widescreens set into the cove beside the doorway, angled down
-        for (const s of [-1, 1]) {
-          const g = new THREE.PlaneGeometry(0.5, 0.29);
-          const slope = Math.atan2(1.3 - 1.17, 3.23 - 2.87);
-          // facing down and in, flush with the cove
-          g.rotateX(slope).rotateY(s > 0 ? Math.PI : 0);
-          parts.add('screen', g.translate(d + e0(d) * (DOOR / 2 + 0.5), 3.05, s * 1.2));
-        }
-        // ceiling rails from the door grip towards the bays
-        for (const e of [-1, 1]) {
-          const x2 = d + e * 1.6;
-          if (x2 > xa + 0.3 && x2 < xb - 0.3) parts.add('yellow', rail([[d + e * 0.3, gy, 0], [x2, gy, 0]], 0.017));
-        }
+      for (const e of [-1, 1]) {
+        const x = d + e * 0.88;
+        parts.add('yellow', rail([[x, ceilingY - 0.05, -0.33], [x, gy, -0.33], [x, gy, 0.33], [x, ceilingY - 0.05, 0.33]], 0.017, 0.06));
       }
+      parts.add('yellow', rail([[d - 0.88, gy, 0], [d + 0.88, gy, 0]], 0.017));
+      for (const s of [-1, 1]) parts.add('lamp', new THREE.BoxGeometry(1.3, 0.015, 0.08).translate(d, 3.065, s * 1.21));
+      parts.add('housing', new THREE.SphereGeometry(0.06, 16, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2).translate(d + 0.45, ceilingY - 0.05, 0.46));
     }
 
     // the lowered centre spine with two rows of opal light panels and a perforated strip
@@ -436,31 +514,28 @@ function makeFurnish(style: C20InteriorStyle) {
     };
     signAt(xa + 0.15, 1);
     signAt(xb - 0.15, -1);
-    if (upgraded) {
-      // yellow hoops on the portal sides
-      for (const x of def.cab ? [xa + 0.06] : [xa + 0.06, xb - 0.06]) {
-        for (const s of [-1, 1]) {
-          const z = s * (PORTAL.w / 2 + 0.1);
-          parts.add('yellow', rail([[x, F + 0.7, z], [x, F + 0.7, z - s * 0.09], [x, F + 1.8, z - s * 0.09], [x, F + 1.8, z]], 0.017, 0.08));
-        }
+    // yellow grabs on the portal sides
+    for (const x of def.cab ? [xa + 0.06] : [xa + 0.06, xb - 0.06]) {
+      for (const s of [-1, 1]) {
+        const z = s * (PORTAL.w / 2 + 0.1);
+        parts.add('yellow', rail([[x, F + 1.0, z], [x, F + 1.0, z - s * 0.09], [x, F + 1.9, z - s * 0.09], [x, F + 1.9, z]], 0.017, 0.08));
       }
     }
     return parts.meshes(ctx.mats, merge);
   };
 }
 
-const e0 = (d: number) => (d > 0 ? -1 : 1);
-
-// Turntable floor between the sections: a round plate with a dark segmented ring.
+// Turntable floor between the sections: a stainless ring with dark inserts round a plate in the
+// floor's grey.
 function gangway(xc: number, mats: InteriorMaterials) {
   const plate = new THREE.CylinderGeometry(0.6, 0.6, 0.01, 48).translate(xc, F + 0.006, 0);
-  const ring = new THREE.RingGeometry(0.47, 0.56, 48, 1).rotateX(-Math.PI / 2).translate(xc, F + 0.012, 0);
+  const ring = new THREE.RingGeometry(0.6, 0.7, 64, 1).rotateX(-Math.PI / 2).translate(xc, F + 0.012, 0);
   const segs: THREE.BufferGeometry[] = [];
-  for (let k = 0; k < 12; k++) {
-    const a = (k / 12) * Math.PI * 2;
-    segs.push(new THREE.BoxGeometry(0.1, 0.004, 0.012).rotateY(-a).translate(xc + Math.cos(a) * 0.515, F + 0.014, Math.sin(a) * 0.515));
+  for (let k = 0; k < 18; k++) {
+    const a = (k / 18) * Math.PI * 2;
+    segs.push(new THREE.BoxGeometry(0.05, 0.004, 0.11).rotateY(-a).translate(xc + Math.cos(a) * 0.65, F + 0.014, Math.sin(a) * 0.65));
   }
-  return [new THREE.Mesh(plate, mats.plate), new THREE.Mesh(merge([ring, ...segs]), mats.ring)];
+  return [new THREE.Mesh(plate, mats.plate), new THREE.Mesh(ring, mats.ring), new THREE.Mesh(merge(segs), mats.insert)];
 }
 
 function make(style: C20InteriorStyle): InteriorSpec {

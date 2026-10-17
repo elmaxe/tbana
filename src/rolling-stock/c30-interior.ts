@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { merge } from './kit';
 import {
   liningProfile, seating, pole, rail, moquette, interiorMat, Parts, freeStretches,
-  endWallMaterial, screenTexture, portalLoop,
+  endWallMaterial, screenTexture, portalLoop, drawPictogram,
 } from './interior';
 import type { Painter } from './kit';
 import type { CabinLights } from './cabin-light';
@@ -10,18 +10,21 @@ import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating, Vec3 } 
 import { DOOR, windowFrames } from './c30';
 import type { CarDef } from './train';
 
-// C30 interior, from SL's seat plan in the C30 press presentation (2013) and photos of cars in
-// service (2019–2024). See docs/rolling-stock.md for the research notes.
+// C30 interior, from photos of cars in service (2019–2024), checked against SL's seat plan in the
+// C30 press presentation (2013), which the built cars differ from. See docs/rolling-stock.md for the
+// research notes.
 //
 // White walls, a light grey speckled floor and a white ceiling with a band of round downlights and
 // a light line along each side. Grab poles are stainless with a yellow sleeve. Between two doors
-// each side has two facing bays of 2 + 2, a bench of eight along the wall, or a flex area for prams
-// and wheelchairs (yellow lean rails, signs) with a bench of five or one facing bay beyond it; each
-// car has one flex area, and the plan says which side each goes on. The car ends have two seats
-// along each wall, also at the cab bulkhead. Glass screens stand beside the doorways where seats
-// meet them. Seat backs are woven in the "Plattan" triangle pattern, navy and blue-grey, or in
-// yellow on priority seats. Over each door area hangs a round lamp inside a stainless ring handle,
-// and above each door are the network map and a screen. The cars are joined by wide octagonal
+// each side has two facing bays of 2 + 2, a bench of eight along the wall with its priority seat by
+// the car's middle door, or a flex area for prams and wheelchairs (yellow lean rails, signs) with a
+// bench of four beyond it. Each car has one flex area, on the left as seen from its doorway.
+// The gangway ends have two seats along each wall; the cab end has a row of two either side of the
+// cab door, backs to the bulkhead, the inner seat a priority seat. Glass screens stand beside the
+// doorways where seats meet them. Seat backs are woven in the "Plattan" triangle pattern, navy and
+// blue-grey, or in yellow on priority seats. Over each door area hangs a round lamp inside a
+// stainless ring handle; above each door are the network map and a screen on a navy panel. U-shaped
+// hangers run above the seats, with straps next to the doors. The cars are joined by wide octagonal
 // gangways with pale grey bellows and light lines round the portals.
 
 const F = 1.0;      // floor above the rail (the real floor is at 1.155 m; the model's platforms are lower)
@@ -141,37 +144,38 @@ function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
     p.rect(da, db, F, 3.04, C.hole, 0.15);
     // above the door: the network map, coloured lines on navy, and an information screen in a
     // black bezel
-    p.rect(da, db, 3.0, 3.18, C.panel);
-    const mx = (k: number) => da + 0.06 + k * (DOOR - 0.68);
+    p.rect(da - 0.2, db + 0.2, 2.97, 3.2, C.panel);
+    const mx = (k: number) => da - 0.12 + k * (DOOR - 0.36);
     for (const [col, pts] of MAP) {
       p.fill((ctx) => {
         pts.forEach(([u, v], i) => {
-          const x = mx(u), y = p.ty(3.02 + v * 0.14);
+          const x = mx(u), y = p.ty(3.0 + v * 0.17);
           if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
         });
-        for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(mx(pts[i][0]), p.ty(3.02 + pts[i][1] * 0.14) + 0.008);
+        for (let i = pts.length - 1; i >= 0; i--) ctx.lineTo(mx(pts[i][0]), p.ty(3.0 + pts[i][1] * 0.17) + 0.01);
         ctx.closePath();
       }, { c: col, r: 0.5, e: '#101010' });
     }
-    p.rect(db - 0.58, db - 0.04, 3.015, 3.17, C.bezel, 0.02);
-    p.rect(db - 0.55, db - 0.07, 3.03, 3.155, C.tft);
-    p.rect(db - 0.55, db - 0.07, 3.13, 3.155, C.tftPink);
+    p.rect(db - 0.3, db + 0.16, 2.99, 3.18, C.bezel, 0.02);
+    p.rect(db - 0.28, db + 0.14, 3.0, 3.17, C.tft);
+    p.rect(db - 0.28, db + 0.14, 3.13, 3.17, C.tftPink);
     // stainless threshold with black ribs
     p.rectT(da, db, floorEdge - 0.16, floorEdge, C.steel);
     for (let k = 0; k < 3; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.04, floorEdge - 0.125 + k * 0.04, C.seal);
   }
 }
 
-// Inside of a door leaf: dark, with a stainless kick plate, the window and an open button.
+// Inside of a door leaf: dark, with a stainless kick plate, the window towards the pillar, a strip
+// of stickers by the seal and an open button.
 function doorLeaf(p: Painter, w: number) {
   p.rect(0, w, 0.99, 3.04, C.door);
-  p.rect(0, w - 0.02, 0.99, F + 0.28, C.steel);
+  p.rect(0, w - 0.02, 0.99, F + 0.2, C.steel);
   p.rect(0, 0.012, 0.99, 3.04, C.seal);
-  const c = w / 2;
-  p.rect(c - 0.225, c + 0.225, 1.5, 2.88, C.seal, 0.1);
-  p.rect(c - 0.21, c + 0.21, 1.52, 2.86, C.hole, 0.09);
-  p.ellipse(0.12, F + 1.1, 0.04, 0.04, C.white);
-  p.ellipse(0.12, F + 1.1, 0.03, 0.03, C.green);
+  p.rect(0.18, w - 0.14, 1.74, 2.84, C.seal, 0.1);
+  p.rect(0.2, w - 0.16, 1.76, 2.82, C.hole, 0.08);
+  for (const [y, m] of [[2.6, C.white], [2.45, C.green], [2.3, C.white]] as const) p.rect(0.05, 0.14, y, y + 0.09, m, 0.01);
+  p.ellipse(0.1, F + 0.9, 0.04, 0.04, C.white);
+  p.ellipse(0.1, F + 0.9, 0.03, 0.03, C.green);
 }
 
 // ------------------------------------------------------------------ materials
@@ -231,25 +235,8 @@ function materials(): InteriorMaterials {
 function drawPictograms(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
   const s = h * 0.86, m = (h - s) / 2;
-  for (let k = 0; k < 2; k++) {
-    const x0 = w / 2 + (k ? 0.04 * w : -0.04 * w - s);
-    ctx.fillStyle = '#1659b8';
-    ctx.beginPath(); ctx.roundRect(x0, m, s, s, s * 0.1); ctx.fill();
-    ctx.strokeStyle = ctx.fillStyle = '#ffffff'; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
-    if (k === 0) {
-      // wheelchair: a big wheel, the seated figure, the head
-      ctx.beginPath(); ctx.arc(x0 + s * 0.45, m + s * 0.66, s * 0.22, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(x0 + s * 0.42, m + s * 0.3); ctx.lineTo(x0 + s * 0.45, m + s * 0.55); ctx.lineTo(x0 + s * 0.68, m + s * 0.55); ctx.lineTo(x0 + s * 0.76, m + s * 0.8); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x0 + s * 0.42, m + s * 0.18, s * 0.07, 0, Math.PI * 2); ctx.fill();
-    } else {
-      // pram: the hood, the body, two wheels and the handle
-      ctx.beginPath(); ctx.moveTo(x0 + s * 0.22, m + s * 0.5); ctx.lineTo(x0 + s * 0.72, m + s * 0.5);
-      ctx.arc(x0 + s * 0.47, m + s * 0.5, s * 0.25, 0, Math.PI, false); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x0 + s * 0.22, m + s * 0.5); ctx.arc(x0 + s * 0.47, m + s * 0.5, s * 0.25, Math.PI, Math.PI * 1.5); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(x0 + s * 0.72, m + s * 0.5); ctx.lineTo(x0 + s * 0.85, m + s * 0.25); ctx.stroke();
-      for (const x of [0.32, 0.64]) { ctx.beginPath(); ctx.arc(x0 + s * x, m + s * 0.84, s * 0.07, 0, Math.PI * 2); ctx.fill(); }
-    }
-  }
+  drawPictogram(ctx, w / 2 - 0.04 * w - s, m, s, 'wheelchair', '#1659b8');
+  drawPictogram(ctx, w / 2 + 0.04 * w, m, s, 'pram', '#1659b8');
 }
 
 // amber LED sign hanging from the ceiling
@@ -298,7 +285,7 @@ function bulkheadMaterial() {
 
 // ------------------------------------------------------------------ furnishing
 
-const SEAT = { width: 0.47, height: 0.46, depth: 0.44, back: 1.0, recline: 0.15, shellT: 0.028, cushion: 0.035, cushionBack: 0.97 };
+const SEAT = { width: 0.47, height: 0.46, depth: 0.44, back: 0.92, recline: 0.15, shellT: 0.028, cushion: 0.035, cushionBack: 0.97 };
 // seats along the walls are narrower: 445 mm apart on SL's seat plan
 const PITCH = 0.445;
 let seats: Seating | undefined, wallSeats: Seating | undefined;
@@ -308,16 +295,18 @@ const seatAt = (parts: Parts, x: number, z: number, dir: number, priority: boole
 const wallSeat = (parts: Parts, x: number, s: number, priority: boolean) => SW().along(parts, x, s, priority);
 const CLR = 0.1;    // pillar between a doorway and the seats
 
-// What stands along one side of a stretch between two doors, after SL's seat plan of the C30
-// (press presentation, 2013): two facing bays of 2 + 2, a bench of eight, or a flex area for prams
-// and wheelchairs by one door with a bench of five or one facing bay beyond it.
-type SideKind = 'bays' | 'bench' | 'flexBench' | 'flexBay';
+// What stands along one side of a stretch between two doors: two facing bays of 2 + 2, a bench of
+// eight along the wall, or a flex area for prams and wheelchairs by one door with a bench of four
+// beyond it. Each stretch has bays on one side, and the sides swap from stretch to stretch.
+type SideKind = 'bays' | 'bench' | 'flex';
 interface Zone { pz: SideKind; nz: SideKind; flex: 1 | -1 }  // flex: the end (+x or −x) of the flex area
-// Each car's stretches from its +x end (an A car's cab) to its −x end. B2 (flip) is B turned
-// round, as on the plan, and the train turns the last A car round itself.
+// Each car's stretches from its +x end (an A car's cab) to its −x end. Photos of the cars in
+// service put an A car's flex area by the door nearest the gangway, and every flex area on the
+// left as seen from its doorway; SL's 2013 seat plan differs. B2 (flip) is B turned round, and the
+// train turns the last A car round itself.
 const ZONES: Record<'A' | 'B', Zone[]> = {
-  A: [{ pz: 'bench', nz: 'flexBay', flex: 1 }, { pz: 'bays', nz: 'bench', flex: 1 }],
-  B: [{ pz: 'bays', nz: 'flexBench', flex: 1 }, { pz: 'bench', nz: 'bays', flex: 1 }],
+  A: [{ pz: 'bench', nz: 'bays', flex: 1 }, { pz: 'bays', nz: 'flex', flex: -1 }],
+  B: [{ pz: 'flex', nz: 'bays', flex: 1 }, { pz: 'bays', nz: 'bench', flex: 1 }],
 };
 
 function zonesOf(def: CarDef) {
@@ -393,7 +382,7 @@ function rows(parts: Parts, list: [number, number][], s: number) {
 }
 
 // Yellow lean rails on the wall of a flex area, from x = f0 to f1, and the pram and wheelchair
-// signs above them.
+// signs on the wall under them.
 function flexArea(parts: Parts, f0: number, f1: number, s: number) {
   for (const y of [F + 0.8, F + 0.95]) {
     parts.add('yellow', rail([[f0, y, s * (IW - 0.04)], [f0, y, s * (IW - 0.11)], [f1, y, s * (IW - 0.11)], [f1, y, s * (IW - 0.04)]], 0.016, 0.06));
@@ -403,7 +392,8 @@ function flexArea(parts: Parts, f0: number, f1: number, s: number) {
 }
 
 // One side of a stretch [a, b] between two doors.
-function zoneSide(parts: Parts, kind: SideKind, a: number, b: number, s: number, flex: 1 | -1) {
+// `mid` is the car's middle door.
+function zoneSide(parts: Parts, kind: SideKind, a: number, b: number, s: number, flex: 1 | -1, mid: number) {
   const L = b - a;
   if (kind === 'bays') {
     const bay = (L - 0.26) / 2;
@@ -411,22 +401,17 @@ function zoneSide(parts: Parts, kind: SideKind, a: number, b: number, s: number,
     screen(parts, a + 0.02, s, IW - Math.abs(zEdge), true);
     screen(parts, b - 0.02, s, IW - Math.abs(zEdge), true);
     addPole(parts, a + 0.13 + bay, zEdge);
-  } else if (kind === 'flexBay') {
-    // one facing bay at the end away from the flex area
-    const far = flex > 0 ? a : b, d = flex;
-    const zEdge = rows(parts, [[far + d * 0.08, d], [far + d * 1.86, -d]], s);
-    screen(parts, far + d * 0.02, s, IW - Math.abs(zEdge), true);
-    addPole(parts, far + d * 1.9, zEdge);
-    flexArea(parts, far + d * 2.2, (flex > 0 ? b : a) - d * 0.2, s);
   } else if (kind === 'bench') {
+    // the priority seat at the end by the car's middle door
     const n = Math.min(8, Math.floor((L - 0.1) / PITCH)), x0 = (a + b) / 2 - (n * PITCH) / 2;
-    bench(parts, x0, 1, n, s, [0, n - 1]);
+    bench(parts, x0, 1, n, s, [mid < a ? 0 : n - 1]);
     for (const x of [a + 0.02, b - 0.02]) screen(parts, x, s, SEAT.depth + 0.1, false);
     benchPole(parts, (a + b) / 2, s);
   } else {
-    // flex area by the door at the flex end, a bench of five from the other door
+    // flex area by the door at the flex end, a bench of four from the other door with the priority
+    // seat at its door end
     const far = flex > 0 ? a : b, d = flex;
-    const [lo, hi] = bench(parts, far + d * 0.05, d, 5, s, [0]);
+    const [lo, hi] = bench(parts, far + d * 0.05, d, 4, s, [0]);
     const end = d > 0 ? hi : lo;
     screen(parts, far + d * 0.02, s, SEAT.depth + 0.1, false);
     benchPole(parts, far + d * (0.05 + 2 * PITCH), s);
@@ -441,14 +426,16 @@ function furnish(def: CarDef, ctx: InteriorContext) {
   const parts = new Parts();
   const { xa, xb } = ctx;
   const doors = [...def.doors].sort((a, b) => a - b);
-  const railY = F + 1.9, railZ = 0.98;
+  const railY = F + 1.95, railZ = 0.92, mid = doors[1];
   const signs: number[] = [];
   for (const { a, b, zone } of zonesOf(def)) {
-    zoneSide(parts, zone.pz, a, b, 1, zone.flex);
-    zoneSide(parts, zone.nz, a, b, -1, zone.flex);
+    zoneSide(parts, zone.pz, a, b, 1, zone.flex, mid);
+    zoneSide(parts, zone.nz, a, b, -1, zone.flex, mid);
     signs.push((a + b) / 2);
   }
-  // the ends: two seats along each wall, a screen at the door end
+  // the gangway ends: two seats along each wall, a screen at the door end, the priority seat by
+  // the door on one side only (diagonally opposite at the two ends). At the cab, one row of two
+  // either side of the cab door with their backs to the bulkhead, the inner seat a priority seat.
   for (const [a, b] of freeStretches(xa, xb, doors, DOOR, CLR)) {
     const atDoorA = doors.some((d) => Math.abs(d + DOOR / 2 + CLR - a) < 0.01);
     const atDoorB = doors.some((d) => Math.abs(d - DOOR / 2 - CLR - b) < 0.01);
@@ -456,15 +443,15 @@ function furnish(def: CarDef, ctx: InteriorContext) {
     const doorEnd = atDoorA ? a : b, dir = atDoorA ? 1 : -1;
     const cabEnd = def.cab && atDoorA && b >= xb - 0.01;
     for (const s of [-1, 1]) {
-      screen(parts, doorEnd + dir * 0.01, s, SEAT.depth + 0.1, false);
       if (cabEnd) {
-        // from the cab bulkhead, the priority seat against it
-        bench(parts, xb - 0.04, -1, 2, s, [0]);
+        seatAt(parts, xb - 0.06, s * (IW - 0.05 - SEAT.width / 2), -1, false);
+        seatAt(parts, xb - 0.06, s * (IW - 0.05 - SEAT.width * 1.5 - 0.015), -1, true);
+        parts.add('steel', rail([[xb - 0.1, F + 0.25, s * 0.38], [xb - 0.5, F + 0.02, s * 0.38]], 0.016));
+        // yellow D handles either side of the cab door
+        parts.add('yellow', rail([[xb - 0.02, F + 1.0, s * 0.42], [xb - 0.09, F + 1.0, s * 0.42], [xb - 0.09, F + 1.8, s * 0.42], [xb - 0.02, F + 1.8, s * 0.42]], 0.016, 0.05));
       } else {
-        const [lo, hi] = bench(parts, doorEnd + dir * 0.05, dir, 2, s, [0]);
-        const end = dir > 0 ? hi : lo;
-        const zb = s * (IW - SEAT.depth - 0.08);
-        for (const y of [F + 0.7, F + 0.95]) parts.add('steel', rail([[end + dir * 0.02, y, s * (IW - 0.04)], [end + dir * 0.02, y, zb]], 0.014));
+        screen(parts, doorEnd + dir * 0.01, s, SEAT.depth + 0.1, false);
+        bench(parts, doorEnd + dir * 0.05, dir, 2, s, s === dir ? [0] : []);
       }
     }
     if (cabEnd) signs.push(xb - 0.1);
@@ -487,32 +474,40 @@ function furnish(def: CarDef, ctx: InteriorContext) {
     for (const a of [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4]) {
       parts.add('steel', pole(d + Math.cos(a) * 0.65, Math.sin(a) * 0.65, F + 1.97, 3.37, 0.008));
     }
-    parts.add('steel', pole(d, 0, F, 3.36, 0.0175));
+    addPole(parts, d, 0, F, 3.36);
   }
 
   // hanging amber signs, crossways on the centre line, one per zone
   for (const x of signs) {
-    parts.add('housing', new THREE.BoxGeometry(0.1, 0.16, 1.0).translate(x, 3.2, 0));
-    parts.add('steel', pole(x, 0.3, 3.28, 3.37, 0.01), pole(x, -0.3, 3.28, 3.37, 0.01));
-    for (const e of [-1, 1]) parts.add('sign', new THREE.PlaneGeometry(0.92, 0.11).rotateY(e * Math.PI / 2).translate(x + e * 0.051, 3.2, 0));
+    parts.add('housing', new THREE.BoxGeometry(0.1, 0.16, 1.25).translate(x, 3.2, 0));
+    parts.add('steel', pole(x, 0.4, 3.28, 3.37, 0.01), pole(x, -0.4, 3.28, 3.37, 0.01));
+    for (const e of [-1, 1]) parts.add('sign', new THREE.PlaneGeometry(1.15, 0.12).rotateY(e * Math.PI / 2).translate(x + e * 0.051, 3.2, 0));
   }
 
-  // overhead rails along both sides with drop handles, hand straps near the doors
-  for (const s of [-1, 1]) {
-    parts.add('steel', rail([[xa + 0.25, railY, s * railZ], [xb - 0.25, railY, s * railZ]], 0.016));
-    for (let x = xa + 0.5; x < xb - 0.3; x += 1.2) parts.add('steel', rail([[x - 0.12, 3.3, s * railZ], [x - 0.08, railY, s * railZ], [x + 0.08, railY, s * railZ], [x + 0.12, 3.3, s * railZ]], 0.011, 0.04));
-    for (const d of doors) {
-      for (const e of [-1, 1]) {
-        const x = d + e * (DOOR / 2 + 0.55);
-        if (x > xa + 0.4 && x < xb - 0.4) parts.add('strap', strap(x, railY, s * railZ));
+  // overhead: U-shaped hangers on two stems along both sides above the seats, none over the door
+  // areas; tan leather straps only on the hangers next to the doors
+  const doorEdge = (x: number) => doors.some((d) => Math.abs(Math.abs(x - d) - DOOR / 2 - CLR) < 0.01);
+  for (const [a, b] of freeStretches(xa, xb, doors, DOOR, CLR)) {
+    const n = Math.max(1, Math.round((b - a) / 1.45)), len = (b - a) / n;
+    for (let k = 0; k < n; k++) {
+      const h0 = a + k * len + 0.12, h1 = a + (k + 1) * len - 0.12;
+      for (const s of [-1, 1]) {
+        const z = s * railZ;
+        parts.add('steel', rail([[h0, 3.34, z], [h0, railY, z], [h1, railY, z], [h1, 3.34, z]], 0.014, 0.07));
+        if (k === 0 && doorEdge(a)) parts.add('strap', strap(h0 + 0.2, railY, z), strap(h0 + 0.45, railY, z));
+        if (k === n - 1 && doorEdge(b)) parts.add('strap', strap(h1 - 0.2, railY, z), strap(h1 - 0.45, railY, z));
       }
     }
   }
 
   // light lines round the gangway portals
+  // along the top and down the sides, not across the floor
   const ring = (x: number) => {
-    const pts = portalLoop(interior.portal, 64).map((p): Vec3 => [x, p.y, p.z]);
-    return rail([...pts, pts[0]], 0.012, 0.01);
+    const loop = portalLoop(interior.portal, 96), up = (i: number) => loop[(i + loop.length) % loop.length].y > F + 0.2;
+    const start = loop.findIndex((_, i) => up(i) && !up(i - 1));
+    const pts: Vec3[] = [];
+    for (let i = start; up(i) && pts.length < loop.length; i++) pts.push([x, loop[i % loop.length].y, loop[i % loop.length].z]);
+    return rail(pts, 0.012, 0.01);
   };
   parts.add('lamp', ring(xa + 0.005));
   if (!def.cab) parts.add('lamp', ring(xb - 0.005));
@@ -533,8 +528,8 @@ export const interior: InteriorSpec = {
   lights: LIGHTS,
   endWall: 0.08,
   cabDepth: 2.09,
-  // octagonal gangway portal, about 1.75 m wide and 2.05 m high
-  portal: { w: 1.75, y0: F, y1: F + 2.05, r: 0.38, chamfer: true, foot: 0.12 },
+  // octagonal gangway portal, about 2.0 m wide and 2.1 m high
+  portal: { w: 2.0, y0: F, y1: F + 2.1, r: 0.33, chamfer: true, foot: 0.12 },
   pleat: 0.07,
   materials,
   paint,

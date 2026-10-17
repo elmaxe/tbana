@@ -7,8 +7,9 @@ import type { DoorStyle } from './doors';
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
 // Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each car has its own two FLEXX
 // Eco inside-frame bogies, 11.0 m apart; 0.92 m open gangways with bellows join the cars. Smooth
-// painted aluminium: white body, SL-blue plug doors, rounded black-framed windows, a dark lower
-// skirt, and a white cab with a big black window frame ringed by an LED light collar.
+// painted aluminium: white body, azure plug doors, rounded black-framed windows, a dark lower
+// skirt, and a white cab with a big black window frame ringed by an LED light collar, over a grey
+// fairing.
 //
 // Lengths, door, window and bogie positions are from the side view and plan in SL's press
 // presentation of the C30 (docs/rolling-stock.md).
@@ -20,9 +21,12 @@ const T = prof.T;
 const M = {
   white: { c: '#eceeef', r: 0.32, m: 0 },
   roof: { c: '#d5d9dc', r: 0.45, m: 0 },
-  blue: { c: '#0e52bd', r: 0.3, m: 0 },
+  blue: { c: '#0a6db0', r: 0.3, m: 0 },
   black: { c: '#121417', r: 0.35, m: 0.05 },
   skirt: { c: '#4b5157', r: 0.5, m: 0.1 },
+  // the cab's lower fairing and its slatted bumper
+  fairing: { c: '#7d7c81', r: 0.5, m: 0.1 },
+  slat: { c: '#dedbd7', r: 0.5, m: 0 },
   // side glass: `a` is its opacity when the interior shows through
   glass: { c: '#1b2229', r: 0.05, m: 0.2, e: '#26261f', a: 0.3 },
   glassLit: { c: '#262c32', r: 0.05, m: 0.2, e: '#5e5848', a: 0.34 },
@@ -90,7 +94,8 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
 
 function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.8, 3.8, M.white);
-  p.rect(-1.6, 1.6, 0.8, 1.2, M.skirt);
+  p.rect(-1.6, 1.6, 0.8, 1.2, M.fairing);
+  for (let k = 0; k < 4; k++) p.rect(-0.75, 0.75, 1.0 + k * 0.045, 1.025 + k * 0.045, M.slat, 0.01);
   // the big black frame round the windscreen and the destination sign, up to the roof
   p.rect(-1.13, 1.13, 1.58, 3.78, M.black, 0.36);
   // the LED light collar: a U down both sides of the frame and across its foot, ending below
@@ -111,15 +116,15 @@ function paintFront(p: Painter, def: CarDef) {
   p.rect(-0.38, 0.38, 0.8, 1.1, M.black, 0.06);
 }
 
-// Blue plug door leaves with a tall black-framed window each.
+// Blue plug door leaves: on each, black from the centre seal out over the window, which is in the
+// leaf's outer part, from about 0.75 to 1.85 m above its foot.
 const doors: DoorStyle = {
   width: DOOR, y0: 0.99, y1: 3.04, plug: 0.05,
   outside(p, w) {
     p.rect(-0.2, w, 0.99, 3.04, M.blue, 0.15);
     p.rect(0, 0.012, 0.99, 3.04, M.black);
-    const c = w / 2;
-    p.rect(c - 0.25, c + 0.25, 1.48, 2.9, M.black, 0.12);
-    p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
+    p.rect(0.03, w - 0.12, 1.72, 2.86, M.black, 0.1);
+    p.rect(0.2, w - 0.16, 1.76, 2.82, M.glass, 0.08);
   },
 };
 
@@ -144,6 +149,7 @@ function collar(kind: 'head' | 'tail') {
 }
 
 const skirtMat = new THREE.MeshStandardMaterial({ color: 0x4b5157, roughness: 0.55, metalness: 0.15 });
+const fairingMat = new THREE.MeshStandardMaterial({ color: 0x7d7c81, roughness: 0.5, metalness: 0.1 });
 
 function extras(def: CarDef, x0: number, x1: number) {
   const out = [];
@@ -162,7 +168,7 @@ function extras(def: CarDef, x0: number, x1: number) {
   if (def.cab) {
     // front skirt under the nose, following its curve in plan
     const f = C30.nose.face;
-    skirt.push(noseSkirtGeometry((z) => x1 - f(z, 0.95) - 0.42 - 0.3 * (z / W) ** 4, x1 - 1.9, 1.4, 0.48, 0.97));
+    out.push(new THREE.Mesh(noseSkirtGeometry((z) => x1 - f(z, 0.95) - 0.42 - 0.3 * (z / W) ** 4, x1 - 1.9, 1.4, 0.48, 0.97), fairingMat));
   }
   out.push(new THREE.Mesh(merge(skirt), skirtMat));
   return out;

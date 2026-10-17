@@ -8,7 +8,7 @@ import type {
 } from './kit';
 import { liningGeometry, endWallGeometry, portalTube } from './interior';
 import type { InteriorContext, InteriorMaterials, InteriorSpec } from './interior';
-import { carDoors, doorFrames, doorKit } from './doors';
+import { carDoors, doorFrames, doorKit, sideZ } from './doors';
 import type { DoorKit, DoorStyle } from './doors';
 import { cabinShadows, lightCabin } from './cabin-light';
 
@@ -36,6 +36,9 @@ export interface TrainSpec {
   bogie?: BogieOptions;
   coupler?: { len?: number; y?: number; setback?: number };
   sign: { y: number; w: number; h: number };
+  // destination displays on the body sides at height y, over the doors that at(def) lists; they
+  // show the same text as the front
+  sideSign?: { y: number; w: number; h: number; at(def: CarDef): number[] };
   lights: LightDef[];
   interior?: InteriorSpec;
   doors?: DoorStyle;
@@ -315,6 +318,20 @@ function addCab(spec: TrainSpec, car: THREE.Object3D, x1: number): Cab {
   };
 }
 
+// Side destination displays on one car, leaning with the body side, all sharing the train's sign.
+function addSideSigns(spec: TrainSpec, car: THREE.Object3D, def: CarDef, sign: THREE.Mesh) {
+  const { y } = spec.sideSign!, e = 0.02;
+  const z = sideZ(spec.prof, y), lean = Math.atan2(sideZ(spec.prof, y - e) - sideZ(spec.prof, y + e), 2 * e);
+  for (const x of spec.sideSign!.at(def)) {
+    for (const s of [-1, 1]) {
+      const m = new THREE.Mesh(sign.geometry, sign.material);
+      m.position.set(x, y, s * (z + 0.008));
+      m.rotation.set(-lean, s > 0 ? 0 : Math.PI, 0, 'YXZ');
+      car.add(m);
+    }
+  }
+}
+
 // Builds a train of `units` multiple units. Cars are laid out from the front (+x) backwards; the
 // group is centred on x = 0. Each car records its length and the distance from the train's front
 // to its centre (`offset`), so callers can also place cars one by one along a curved track.
@@ -325,6 +342,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
   const group = new THREE.Group();
   group.name = spec.id;
   const cars: Car[] = [], cabs: Cab[] = [];
+  const sides = spec.sideSign && destinationSign(spec.sideSign.w, spec.sideSign.h);
   let at = 0;
   for (let u = 0; u < units; u++) {
     spec.formation.forEach(([kind, reversed], i) => {
@@ -333,6 +351,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
       const obj = tpl.group.clone();
       obj.name = `${spec.id}-${u + 1}-${kind}${reversed ? '-rev' : ''}`;
       if (tpl.def.cab) cabs.push(addCab(spec, obj, tpl.length / 2));
+      if (sides) addSideSigns(spec, obj, tpl.def, sides.mesh);
       const car: Car = {
         object: obj, length: tpl.length, offset: at + tpl.length / 2, reversed, kind, interior: false, floor: tpl.floor,
         setInterior: () => {}, setDoors: () => {},
@@ -377,7 +396,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
   }
   const train: Train = {
     type: spec.id, group, cars, length,
-    setDestination(text) { for (const c of cabs) c.sign.set(text); },
+    setDestination(text) { for (const c of cabs) c.sign.set(text); sides?.set(text); },
     setInterior(on) { for (const c of cars) c.setInterior(on); },
     setDoors(amount, side) { for (const c of cars) c.setDoors(amount, side); },
     // 'forward': lit for running towards +x; 'reverse': the other way; 'off'
