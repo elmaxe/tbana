@@ -293,7 +293,9 @@ export type Finish =
   | 'circleFront'   // glass doors in brushed steel under SL's dark blue band, a white disc on it, a yellow line under it; glass in steel frames above
   | 'stripPanels'   // pale grey panels 0.9 m wide between black strips, to 2.6 m; windows in grey steel frames above
   | 'maroonGlazed'  // clear glass in dark red-brown steel frames 1.2 m apart, a transom 2.2 m up
-  | 'slateGlazed';  // clear glass in slate-blue steel frames 1.4 m apart, a transom every 1.15 m
+  | 'slateGlazed'   // clear glass in slate-blue steel frames 1.4 m apart, a transom every 1.15 m
+  | 'goranssonTiles' // glazed tiles, 15 cm, whites and pale greys, relief tiles with leaf prints scattered over them (Mia Göransson's)
+  | 'greenBooth';   // square green enamelled panels, a window in a cream frame in the top row, a cream band over them
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -5229,5 +5231,124 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'masts', height: 4.9, color: 0x9ea3a6, top: false, arm: 0.45, shade: 0x8a8e90, at: [[56.8, 4.1], [73.5, 6.1]] },
     ],
     benches: [{ at: [-1, 13, 25, 43], wood: true }],
+  },
+
+  // Råcksta (26 October 1952): an island platform in the open on a bank between the P-house to
+  // the west and Vattenfall's old offices to the east, on a long curve, the viaduct over
+  // Bergslagsvägen at its south end and the bridge over Jämtlandsgatan at its north. Lantmäteriet's
+  // laser scan puts a flat-looking roof over the northern 44 m of the platform, from 24 m to 68 m
+  // north of the middle, 8.1 m wide and covering the whole platform, its top 3.3 m over the
+  // platform along a shallow valley down its middle and 3.6–3.8 m at its edges; seven masts along
+  // the open part (lamps 4.2 m up) and the kiosk 30 m south of the middle (3.2 m). Photographs
+  // (2006, 2018) show the roof dark: a deep near-black fascia, dark ribbed steel underneath with
+  // the ribs across, carried on pairs of slate-blue steel posts along the platform's eastern edge
+  // with cross-bracing between them, the roof cantilevered west over the rest; strip lights, black
+  // name signs hung from it, the departure boards across under it (into town on the eastern
+  // track), a round clock at its south end, a glass shelter with posters at its ends; galvanised
+  // masts with two white bell lamps on a short arm, some with the black name sign; a kiosk of
+  // green enamelled panels with a window under a curved white roof; grey square slabs, a white
+  // edge and a dark ribbed strip; chain-link fences beyond both tracks.
+  //
+  // At the north end, between the tracks on the bridge, the stairs go down (OpenStreetMap's
+  // indoor mapping: from 69 m to 86 m north of the middle) to the passage under the eastern track
+  // and the ticket hall on Råcksta torg at Jämtlandsgatan's level, 6.45 m below the platform
+  // (laser scan: the street 17.1–17.2 m, the hall's roof 20.6 m). The stairs' walls, the passage
+  // and the hall are tiled with Mia Göransson's glazed tiles, pale with relief tiles pressed with
+  // leaves scattered over them; a housing with a roof sloping down with the stairs, from 2.85 m
+  // over the platform to 0.4 m at their foot (laser scan), glazed under its frame, with
+  // perforated steel over the tiles outside it; along its west side a walkway at the platform's
+  // level behind a perforated screen 2.5 m high to the lift down to the passage (OpenStreetMap:
+  // the lift 90 m north). The hall: a glazed ticket booth, the gates (OpenStreetMap: 90 m north,
+  // 3.3 m east), white panelled ceiling, grey terrazzo; its front on the square a strip of glass
+  // doors under the dark band with the station's name and a concrete slab projecting over it,
+  // the kiosk ("Råcksta kiosk") beside the doors (OpenStreetMap's outline and entrance; photographs).
+  //
+  // Not drawn: the bicycle racks and the trees on the square, the bins and the sand box on the
+  // platform, the hall's own departure board, the P-house's deck beside the tracks. The network's
+  // tracks run about a metre east of the real ones along the platform, and keep 10.6 m apart north
+  // of it where the real ones close to 9.7 m, so the stairs' housing is a little narrower between
+  // them than the real one.
+  'Råcksta': {
+    roof: {
+      kind: 'butterfly',
+      from: 23, to: 67.5, width: 8.1, offset: -0.2,
+      middle: 2.78, edge: 3.15, thick: 0.65, fascia: 0.65,
+      rafters: 1.5, rafterAt: 24.5, rafterSize: [0.1, 0.22], deck: 'ribbedAcross', rafterColor: 0x30343a,
+      beam: 0.3,
+      columns: { every: 6.3, at: 26.15, size: 0.2, plinth: { size: 0.42, height: 0.15 }, pair: 1.0, offset: 2.7, cross: [2.45, 0.3], ties: [1.9, 2.3] },
+      lamps: { offset: 1.5, length: 1.5, every: 3.0, at: [-1.9, 0.9] },
+      colors: { underside: 0x3d4149, fascia: 0x202327, top: 0x767d90, steel: 0x3d4a5e },
+      signs: { at: [33, 58], back: '', ahead: 'Jämtlandsgatan', bottom: 2.3 },
+      clocks: [[24.6, 1.6]],
+      // (trains keep left: into town on the eastern track)
+      boards: [
+        { s: 43, u: 2.0, toward: 'T-Centralen', trains: ['19 Hagsätra  1 min', '18 Farsta strand  7 min'] },
+        { s: 43, u: -2.4, toward: 'Hässelby', trains: ['18 Hässelby strand  6 min', '19 Hässelby strand  11 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 0.95], slabs: 0.95, paverSize: [0.35, 0.35],
+      colors: { edge: 0xd8d6d0, tactile: 0x3a3c3f, slab: 0xa9a8a4, pavers: 0xa3a29e, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    shelters: [{ s: [38, 46], u: [0.3, 1.9] }],
+    benches: { at: [-47, -14, 2, 19] },
+    buildings: ['w425935045'],
+    rooms: [
+      { name: 'platform', s: [55, 72], h: [-0.5, 1], walls: null, floor: null },
+      // the stairs down between the tracks, open under the housing's roof
+      { name: 'stairs', s: [68, 87.5], u: [-5.6, -0.8], h: [-6.6, 3], walls: 'goranssonTiles', stairs: 'goranssonTiles', floor: 'darkTerrazzo' },
+      { name: 'walkway', s: [68, 92], u: [-7.5, -2], h: [-0.5, 1], walls: null, floor: 'pavers' },
+      { name: 'passage', s: [85.5, 92], u: [-6.5, 3.6], h: [-7, -3.4], walls: 'goranssonTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
+      // (the hall's floors are open to its ceiling; the walls round them are its blocks')
+      { name: 'hall', s: [78, 95], u: [2.5, 13], h: [-7, -3], walls: null, floor: 'terrazzo', ceiling: 'whitePanels', lamps: 2.9 },
+      { name: 'square', s: [90, 100], u: [8, 16], h: [-7, -5], walls: null, floor: 'pavers' },
+    ],
+    blocks: [
+      // the deck between the tracks' bridges north of the platform, which the walkway and the
+      // stairs' housing stand on, its face to each track
+      { name: 'deck, west', plan: [[72, -7.2], [72, -5.4], [92, -5.4], [92, -8.8]], h: [-1.5, -0.05], from: -0.05,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
+      { name: 'deck, east', plan: [[72, -1.1], [72, 0.25], [87, -0.85], [87, -1.1]], h: [-1.5, -0.05], from: -0.05,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
+      { name: 'deck, north', plan: [[87, -5.4], [87, -1.1], [92, -1.3], [92, -5.4]], h: [-1.5, -0.05], from: -0.05,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
+      // the housing over the stairs: Göransson's tiles outside as in, perforated steel above them
+      // under a glazed roof falling with the flights, open towards the platform
+      { name: 'stair housing', plan: [[68.5, -5.4], [68.5, -1.1], [87.0, -1.1], [87.0, -5.4]], h: [-6.6, 2.85], from: -6.45, lowBack: 0.4,
+        walls: 'goranssonTiles', sides: [null, undefined, undefined, undefined], band: { walls: 'silverPerforated', from: 1.0, low: -3.2 },
+        floor: 'darkTerrazzo', ceiling: 'perforated', roof: 0.12, roofColor: 0x6f7c88, onPlatform: true },
+      // the screen along the walkway's west side, and across its north end to the lift
+      { name: 'walkway screen', plan: [[72.0, -6.9], [91.2, -6.9], [91.2, -6.7], [72.0, -6.7]], h: [0, 2.5], from: 0,
+        walls: 'silverPerforated', roof: 0.02, roofColor: 0x8a8f93 },
+      { name: 'walkway screen, north', plan: [[91.2, -6.9], [91.4, -6.9], [91.4, -4.6], [91.2, -4.6]], h: [0, 2.5], from: 0,
+        walls: 'silverPerforated', roof: 0.02, roofColor: 0x8a8f93 },
+      // the ticket hall at the street's level: the doors on the square under the slab, the kiosk
+      // beside them under the same slab, concrete towards Jämtlandsgatan, the tiles inside
+      { name: 'hall, by the doors', plan: [[88.6, 3.7], [93.4, 2.9], [94.5, 8.9], [89.5, 10.17]], h: [-7.0, -3.3], from: -6.45,
+        walls: 'goranssonTiles', sides: [undefined, 'boardConcrete', 'blackFront', null], floor: 'terrazzo', ceiling: 'whitePanels',
+        roof: 0.25, roofColor: 0xc6ccce, eaves: [0, 0, 1.5, 0], ground: true,
+        nameSign: { side: 2, at: 0.5, length: 3.6, bottom: -4.1, black: true } },
+      { name: 'hall, by the kiosk', plan: [[78.7, 4.6], [88.6, 3.7], [89.5, 10.17], [81.5, 12.2]], h: [-7.0, -3.3], from: -6.45,
+        walls: 'goranssonTiles', sides: [undefined, null, 'shopWindows', 'boardConcrete'], floor: 'terrazzo', ceiling: 'whitePanels',
+        roof: 0.25, roofColor: 0xc6ccce, eaves: [0, 0, 1.5, 0], ground: true },
+      // the ticket booth in the hall's north-west corner, by the gates
+      { name: 'booth', plan: [[90.4, 3.6], [93.2, 3.1], [93.4, 5.4], [90.6, 5.9]], h: [-6.45, -3.6], from: -6.45,
+        walls: 'greyGlazed', roof: 0.05, roofColor: 0x8a8f93 },
+      // the kiosk on the platform
+      { name: 'kiosk', plan: [[-30.55, -1.55], [-28.45, -1.55], [-28.45, 0.55], [-30.55, 0.55]], h: [0, 2.95], from: 0.25,
+        walls: 'greenBooth', roof: 0.15, roofColor: 0xdcdcd8, eaves: 0.25, onPlatform: true },
+    ],
+    art: [
+      // the masts along the open part (laser scan), on the line down the platform's middle, the
+      // black name sign on every other
+      { kind: 'masts', height: 4.6, color: 0x9ea3a6, top: false, arm: 0.5, shade: 0xf2f2ee, at: [[-61.5, -2.3], [-25.5, -0.4], [9, -0.1]] },
+      { kind: 'masts', height: 4.6, color: 0x9ea3a6, top: false, arm: 0.5, shade: 0xf2f2ee, sign: 3.0, at: [[-70.5, -2.95], [-41.5, -1.0], [-7.5, -0.08], [24.5, -0.38]] },
+    ],
+    // 2.6 m beyond each track
+    fences: [
+      { points: [[-70, 4.3], [-44, 6.5], [-25, 7.25], [-5, 7.55], [15, 7.45], [34, 6.9], [54, 6.0], [70, 4.6]], h: [-1.6, 0.5] },
+      { points: [[-70, -8.1], [-62, -7.65], [-43, -7.15], [-24, -7.15], [-4, -7.45], [15, -8.0], [34, -8.8], [54, -9.95], [70, -11.2]], h: [-1.6, 0.5] },
+    ],
   },
 };

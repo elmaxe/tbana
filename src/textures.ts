@@ -3448,9 +3448,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   purpleTiles: [2.4, 3.6], rivetedSteel: [1.2, 1.2],
   glossTiles: [1.5, 1.5], stripeTiles: [1.5, 1.5], twoGreens: [1.9, 3.0], latticeConcrete: [1.2, 1.2],
   scrollPanels: [7.8, 2.7], opPanels: [1.4, 4.8], circleFront: [1.2, 4.2], stripPanels: [0.9, 4], maroonGlazed: [1.2, 3.6], slateGlazed: [1.4, 4.6],
+  goranssonTiles: [1.8, 1.8], greenBooth: [2.1, 2.7],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -4839,6 +4840,67 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'goranssonTiles': {
+      // Mia Göransson's tiles at Råcksta (1990s): glazed tiles 15 cm square in whites and pale
+      // greys with a faint blue in some, in pale joints; scattered over them, singly and in short
+      // steps, relief tiles standing out a little, the size of one or two tiles, with the prints of
+      // leaves and stalks pressed into them (photographs, 2018: the ticket hall, the passage and
+      // the stairs' walls)
+      x.fillStyle = '#c3c5c3'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, n = Math.round(W / t);
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const k = r(), v = 224 + Math.floor(r() * 18), b = k < 0.3 ? 6 : 0;
+        x.fillStyle = `rgb(${v - b},${v - b / 2},${v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        // the glaze's sheen, high on each tile
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * t + 3, j * t + 3, t - 6, t * 0.18);
+      }
+      // the relief tiles: a lighter face, a shadow along the bottom and right where they stand
+      // out, and a leaf or a stalk on each (a stem with pairs of veins, or a single bent stalk)
+      const relief = (i: number, j: number, w: number, hh: number) => {
+        const x0 = i * t + 1, y0 = j * t + 1, ww = w * t - 2, hw = hh * t - 2;
+        x.fillStyle = 'rgba(70,74,78,0.55)'; x.fillRect(x0 + 3, y0 + 3, ww, hw);
+        const v = 232 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v - 3},${v - 1},${v})`; x.fillRect(x0, y0, ww, hw);
+        x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(x0, y0, ww, 2); x.fillRect(x0, y0, 2, hw);
+        x.strokeStyle = 'rgba(120,124,128,0.7)'; x.lineWidth = 1.3;
+        const cx = x0 + ww / 2, cy = y0 + hw / 2, a = r() * Math.PI, L = Math.min(ww, hw) * 0.42;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        x.beginPath(); x.moveTo(cx - dx * L, cy - dy * L); x.lineTo(cx + dx * L, cy + dy * L); x.stroke();
+        if (r() < 0.6) for (let q = -0.6; q <= 0.6; q += 0.3) {
+          const px = cx + dx * L * q, py = cy + dy * L * q, vl = L * 0.35;
+          x.beginPath(); x.moveTo(px, py); x.lineTo(px + (dx * 0.5 - dy * 0.85) * vl, py + (dy * 0.5 + dx * 0.85) * vl); x.stroke();
+          x.beginPath(); x.moveTo(px, py); x.lineTo(px + (dx * 0.5 + dy * 0.85) * vl, py + (dy * 0.5 - dx * 0.85) * vl); x.stroke();
+        }
+      };
+      for (const [i, j, w, hh] of [[1, 2, 2, 1], [5, 1, 1, 1], [8, 3, 2, 2], [3, 6, 1, 2], [10, 7, 1, 1], [0, 9, 2, 1], [6, 9, 1, 1], [9, 10, 2, 1], [2, 11, 1, 1]]) {
+        relief(i, j, w, hh);
+        // (a second, smaller tile stepped off some of them)
+        if ((i + j) % 3 === 0) relief(i + w, j + hh - 1, 1, 1);
+      }
+      break;
+    }
+    case 'greenBooth': {
+      // the kiosk on Råcksta's platform: square enamelled steel panels, a dull green, in four rows
+      // over the concrete base, a row above them with a window in a cream frame, and the cream
+      // band of the roof's edge over all (photographs, 2006 and 2018)
+      const green = '#5c7a4e';
+      band(0, h, '#2e3a2b');
+      const pw = W / 4, ph = 0.46 * PX;
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        x.fillStyle = green; x.fillRect(i * pw + 2, Y((j + 1) * 0.46) + 2, pw - 4, ph - 4);
+        x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * pw + 2, Y((j + 1) * 0.46) + 2, pw * 0.3, ph - 4);
+        x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(i * pw + 2, Y((j + 1) * 0.46 - 0.4), pw - 4, 2);
+      }
+      // the window row: a panel each side of the window, the glass pale with the sky in it
+      x.fillStyle = green; x.fillRect(2, Y(2.3) + 2, W - 4, 0.46 * PX - 4);
+      x.fillStyle = '#d9cfa6'; x.fillRect(W / 2 - 0.55 * PX, Y(2.25), 1.1 * PX, 0.38 * PX);
+      const g = x.createLinearGradient(0, Y(2.22), 0, Y(1.9));
+      g.addColorStop(0, '#b9c8d4'); g.addColorStop(1, '#7f909c');
+      x.fillStyle = g; x.fillRect(W / 2 - 0.52 * PX, Y(2.22), 1.04 * PX, 0.32 * PX);
+      band(2.3, h, '#e3e1d8');
+      x.fillStyle = 'rgba(0,0,0,0.15)'; x.fillRect(0, Y(2.3), W, 2);
+      break;
+    }
     case 'twoGreens': {
       // the outside of Åkeshov's shop and staff rooms under the southern deck: flat panels about
       // 0.95 m wide, a lighter green and a dark bottle green in turn, on a black plinth, a dark
@@ -5002,7 +5064,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
