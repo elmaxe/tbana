@@ -173,6 +173,42 @@
       ],
       "structure": "surface",
       "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        161383,
+        5282566353
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        13283284192,
+        2668390228
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        5282566360,
+        2668692630
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        2668692630,
+        2668692628
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
     }
   ],
   "crossovers": [
@@ -429,6 +465,21 @@
       "reach": 14,
       "at": [148987.66, 6579810.75],
       "why": "OSM maps Alvik's two island platforms each beside one metro track, the outer ones, with the Nockebybanan's two tracks between them, which aren't part of the metro's map; so they were drawn as two side platforms with grass between. Both metro tracks are placed at one platform from its middle, between them, so that it is paved across, and the station's style (src/open-styles.ts) cuts the Nockebybanan's tracks out of it between the two islands."
+    },
+    {
+      "station": "Vällingby",
+      "replace": true,
+      "at": [142663.84, 6583211.7],
+      "reach": 5,
+      "length": 143,
+      "why": "OSM draws Vällingby's two island platforms askew across the tracks, so that the middle track, the turnback track between them that no train stops at, read as a platform track and was left out, and the platforms were drawn as one wide floor. The laser scan has the outer tracks' ballast and the middle track's between two islands about 6 m wide, from 87 m into the covered part under the decks to 56 m past it, as OSM's platforms run. This point is the north-eastern island's middle, so that only its outer track gets it, and the island reaches across to the middle track."
+    },
+    {
+      "station": "Vällingby",
+      "at": [142654.36, 6583202.8],
+      "reach": 5,
+      "length": 143,
+      "why": "The south-western island's middle, as for the north-eastern one."
     }
   ],
   "widths": [

@@ -1360,30 +1360,77 @@
     },
     "Vällingby": {
       "drawing": "vallingby.png",
-      "note": "A wide island platform, its west end under the deck of Vällingby centrum. Escalators climb from that end to the ticket hall in the centre, with exits onto its squares; at the east end stairs go down to the street.",
+      "note": "Two island platforms 143 m long, with the turnback track between them, where no train stops, and the outer tracks beyond them. Their south-eastern 100 m are covered, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it; the rest is in the open under two butterfly roofs. At the south-eastern end escalators, stairs and a lift climb from each island to the ticket hall under Vällingby centrum, 4.67 m above the platforms, with exits onto Kirunaplan, Vällingby torg and the streets either side; at the north-western end stairs in glazed houses, and a lift beside each, go down from each island to the hall under the tracks by Bräckegatan, 4.6 m below the platforms. Laid out from Lantmäteriet's laser scan (the decks 4.4 to 5.3 m over the platforms, the street under the bridge 4.5 m below them), OpenStreetMap's indoor mapping (the stairs, escalators, lifts and gates at both ends, the entrances) and photographs (2006 to 2026).",
       "routes": [
-        { "from": [-70, 0], "width": 7, "go": [
-          {"walk": [55, 0], "open": true}
-        ] },
-        { "from": [-50, 0], "width": 5, "go": [
-          {"escalators": 5.6, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 10, "width": 8},
+        { "from": [-70.8, -5.4], "width": 3.6, "go": [
+          {"escalators": 4.67, "to": [-80.8, -5.4], "lanes": "SE", "open": true},
+          {"walk": [-82.5, -5.4], "open": true},
           {"gates": true},
-          {"walk": 4},
-          {"mark": "centrum"},
-          {"exit": 2601421822, "by": "walk"}
+          {"walk": [-86, -5.4], "open": true}
         ] },
-        { "from": "centrum", "width": 4, "go": [
+        { "from": [-70.8, -2.5], "width": 1.8, "go": [
+          {"walk": [-78.6, -2.5], "open": true},
+          {"lift": 4.67, "above": 3.0, "through": true},
+          {"walk": [-82.5, -2.5], "open": true},
+          {"gates": true},
+          {"walk": [-86, -2.5], "open": true}
+        ] },
+        { "from": [-70.8, 6.6], "width": 3.5, "go": [
+          {"stairs": 4.67, "to": [-80.8, 6.6], "lanes": "Ss", "open": true},
+          {"walk": [-82.5, 6.6], "open": true},
+          {"gates": true},
+          {"walk": [-86, 6.6], "open": true}
+        ] },
+        { "from": [-70.8, 3.3], "width": 1.8, "go": [
+          {"walk": [-78.6, 3.3], "open": true},
+          {"lift": 4.67, "above": 3.0, "through": true},
+          {"walk": [-82.5, 3.3], "open": true},
+          {"gates": true},
+          {"walk": [-86, 3.3], "open": true}
+        ] },
+        { "from": [-85, -1.75], "h": 4.67, "width": 31.5, "go": [
+          {"walk": [-109, -1.75], "open": true}
+        ] },
+        { "from": [-108, 3.9], "h": 4.67, "width": 4, "go": [
+          {"exit": 2601421822, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-91.3, -17.0], "h": 4.67, "width": 3.5, "go": [
+          {"walk": [-91.3, -27.5]},
           {"exit": 2601421819, "by": "walk"}
         ] },
-        { "from": "centrum", "width": 4, "go": [
+        { "from": [-92.7, 13.5], "h": 4.67, "width": 3.5, "go": [
+          {"walk": [-92.7, 26.5]},
           {"exit": 2601421832, "by": "walk"}
         ] },
-        { "from": [40, 0], "width": 3, "go": [
-          {"stairs": -3.2, "toward": [150, 0]},
-          {"walk": 10, "width": 6},
+        { "from": [-85, -0.2], "h": 4.67, "width": 2.6, "go": [
+          {"walk": [-71.0, -0.2], "open": true},
+          {"exit": {"at": [-69.8, -0.2], "name": "Kirunaplan"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [70.5, -3.5], "width": 2.0, "go": [
+          {"walk": [75.5, -3.5], "open": true},
+          {"stairs": -4.6, "toward": [150, -3.5], "lanes": "S"},
+          {"walk": [89, -3.5], "ceiling": 2.4}
+        ] },
+        { "from": [70.5, -5.6], "width": 1.6, "go": [
+          {"walk": [88.3, -5.6], "open": true},
+          {"lift": -4.6, "above": 4.3, "through": true},
+          {"walk": [93, -5.6]}
+        ] },
+        { "from": [70.5, 3.5], "width": 2.0, "go": [
+          {"walk": [75.5, 3.5], "open": true},
+          {"stairs": -4.6, "toward": [150, 3.5], "lanes": "S"},
+          {"walk": [89, 3.5], "ceiling": 2.4}
+        ] },
+        { "from": [70.5, 5.7], "width": 1.6, "go": [
+          {"walk": [88.3, 5.7], "open": true},
+          {"lift": -4.6, "above": 4.3, "through": true},
+          {"walk": [93, 5.7]}
+        ] },
+        { "from": [88.3, 0.1], "h": -4.6, "width": 12, "go": [
+          {"walk": [93.9, 0.1], "open": true},
           {"gates": true},
-          {"exit": 4252587857, "by": "walk"}
+          {"walk": [97.6, 0.1], "open": true},
+          {"exit": {"at": [103, 0.1], "name": "Bräckegatan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

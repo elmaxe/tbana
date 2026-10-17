@@ -2837,10 +2837,10 @@ export function chainLink() {
 
 // A railing of upright bars, black, 12 cm apart, between a top rail and a bottom one, over 1.2 m
 // along it (u in metres / 1.2, v up it from 0 to 1); the gaps clear.
-export function barRailing() {
+export function barRailing(color = '#1d1f21') {
   const W = 192, H = 128, [c, x] = canvas(W, H);
   x.clearRect(0, 0, W, H);
-  x.fillStyle = '#1d1f21';
+  x.fillStyle = color;
   x.fillRect(0, 0, W, 9); x.fillRect(0, H - 12, W, 6);
   for (let i = 0; i < 10; i++) x.fillRect(i * W / 10 + 7, 0, 4, H - 6);
   return toTexture(c);
@@ -3269,6 +3269,68 @@ function handwriting(x: CanvasRenderingContext2D, r: () => number, x0: number, y
   }
 }
 
+// Helén Partos's Sirat (Vällingby, 2010): lace cut out of steel plate as crocheted doilies are,
+// dark brown with rust, each panel a piece of cloth of its own shape: rosettes of holes in rings
+// round a middle, petals between the rings, and a net of small holes between the rosettes, a
+// solid rim round its edge; cut out round its outline (photographs, 2013 and 2026). `k` picks
+// one of the panels. 2.6 by 2.7 m.
+export function siratLace(k: number) {
+  const W = 640, H = 664, [c, x] = canvas(W, H), r = rng(2010 + k * 17);
+  const cx = W * (0.47 + r() * 0.06), cy = H * (0.48 + r() * 0.06), w1 = r() * 6, w2 = r() * 6;
+  const R = (t: number) => 0.4 + 0.05 * Math.sin(3 * t + w1) + 0.035 * Math.sin(5 * t + w2) + 0.015 * Math.sin(11 * t + k);
+  const outline = () => {
+    x.beginPath();
+    for (let i = 0; i <= 120; i++) {
+      const t = (i / 120) * Math.PI * 2, rr = R(t), px = cx + Math.cos(t) * rr * W, py = cy + Math.sin(t) * rr * H;
+      if (i) x.lineTo(px, py); else x.moveTo(px, py);
+    }
+    x.closePath();
+  };
+  const steel = '#3c2b22';
+  x.clearRect(0, 0, W, H);
+  outline(); x.fillStyle = steel; x.fill();
+  // the net, cut all over
+  x.globalCompositeOperation = 'destination-out';
+  for (let j = 0; j * 20 < H; j++) for (let i = 0; i * 20 < W; i++) {
+    x.beginPath(); x.arc(i * 20 + (j % 2) * 10 + 10, j * 20 + 10, 6, 0, Math.PI * 2); x.fill();
+  }
+  // the rosettes: a solid disc each, and in it rings of round holes and of petals in turn
+  const rosettes: [number, number, number][] = [[cx + (r() - 0.5) * W * 0.1, cy + (r() - 0.5) * H * 0.1, W * (0.2 + r() * 0.05)]];
+  for (let q = 0; q < 2; q++) {
+    const a = r() * Math.PI * 2, d = 0.22 + r() * 0.08;
+    rosettes.push([cx + Math.cos(a) * d * W, cy + Math.sin(a) * d * H, W * (0.09 + r() * 0.05)]);
+  }
+  for (const [ox, oy, rad] of rosettes) {
+    x.globalCompositeOperation = 'source-over';
+    x.save(); outline(); x.clip();
+    x.fillStyle = steel; x.beginPath(); x.arc(ox, oy, rad, 0, Math.PI * 2); x.fill();
+    x.restore();
+    x.globalCompositeOperation = 'destination-out';
+    x.beginPath(); x.arc(ox, oy, rad * 0.09, 0, Math.PI * 2); x.fill();
+    const rings = Math.max(2, Math.round(rad / 22));
+    for (let m = 1; m <= rings; m++) {
+      const rr = (m / (rings + 0.4)) * rad, n = Math.max(6, Math.round((2 * Math.PI * rr) / 26));
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2 + (m % 2) * (Math.PI / n), px = ox + Math.cos(t) * rr, py = oy + Math.sin(t) * rr;
+        x.beginPath();
+        if (m % 2) x.ellipse(px, py, 9, 4.5, t, 0, Math.PI * 2);
+        else x.arc(px, py, 5.5, 0, Math.PI * 2);
+        x.fill();
+      }
+    }
+  }
+  // the rim, solid round the edge, and the rust on the steel
+  x.globalCompositeOperation = 'source-over';
+  outline(); x.strokeStyle = steel; x.lineWidth = 12; x.stroke();
+  x.globalCompositeOperation = 'source-atop';
+  for (let i = 0; i < 900; i++) {
+    x.fillStyle = r() < 0.5 ? 'rgba(122,62,32,0.35)' : 'rgba(20,14,10,0.3)';
+    x.fillRect(r() * W, r() * H, 2 + r() * 6, 2 + r() * 6);
+  }
+  x.globalCompositeOperation = 'source-over';
+  return toTexture(c, { repeat: false });
+}
+
 // Sture V Nilsson's Strindberg wall at Rådmansgatan (1983), 3.6 by 1.85 m on its black tiles: on
 // the left a page of his manuscript, a sketch faint behind its lines, and under it his signature,
 // both on white enamel in a bronze ground; on the right twelve squares of copper, bronze and steel,
@@ -3449,9 +3511,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   glossTiles: [1.5, 1.5], stripeTiles: [1.5, 1.5], twoGreens: [1.9, 3.0], latticeConcrete: [1.2, 1.2],
   scrollPanels: [7.8, 2.7], opPanels: [1.4, 4.8], circleFront: [1.2, 4.2], stripPanels: [0.9, 4], maroonGlazed: [1.2, 3.6], slateGlazed: [1.4, 4.6],
   goranssonTiles: [1.8, 1.8], greenBooth: [2.1, 2.7],
+  barkGrey: [0.75, 2.4], barkRed: [0.75, 2.4], checkTiles: [1.2, 1.2], mosaicPosters: [4.8, 4.8], vallingbyCentrum: [3.6, 8.0],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -4901,6 +4964,108 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(0,0,0,0.15)'; x.fillRect(0, Y(2.3), W, 2);
       break;
     }
+    case 'barkGrey':
+    case 'barkRed': {
+      // Casimir Djuric's concrete trees on Vällingby's platforms (1983): square columns cast with
+      // a bark of deep upright fissures, the plates between them split across here and there; grey
+      // concrete, or stained a red-brown (photographs, 2006 to 2019)
+      const red = name === 'barkRed', base = red ? [124, 74, 58] : [142, 140, 134];
+      const dark = red ? 'rgba(42,20,14,0.75)' : 'rgba(40,38,36,0.75)';
+      x.fillStyle = `rgb(${base.join(',')})`; x.fillRect(0, 0, W, H);
+      // the plates: upright strips of different widths, each a little lighter or darker
+      for (let px = 0; px < W;) {
+        const w = 8 + r() * 14, v = Math.floor(r() * 28) - 14;
+        x.fillStyle = `rgb(${base[0] + v},${base[1] + v},${base[2] + v})`; x.fillRect(px, 0, Math.min(w, W - px), H);
+        px += w;
+      }
+      // the fissures: dark lines wandering from top to bottom (their waves a whole number of times
+      // up the picture, so that it repeats), lit along one side
+      for (let k = 0; k < 9; k++) {
+        const x0 = r() * W, amp = 2 + r() * 4, waves = 1 + Math.floor(r() * 3), ph = r() * Math.PI * 2, wd = 2 + r() * 3;
+        const line = (dx: number, style: string, lw: number, o: number) => {
+          x.strokeStyle = style; x.lineWidth = lw; x.beginPath();
+          for (let y = 0; y <= H; y += 8) {
+            const xx = o + x0 + dx + Math.sin(ph + (y / H) * waves * Math.PI * 2) * amp;
+            if (y) x.lineTo(xx, y); else x.moveTo(xx, y);
+          }
+          x.stroke();
+        };
+        for (const o of [-W, 0, W]) { line(0, dark, wd, o); line(wd * 0.8, 'rgba(255,255,255,0.18)', 1.5, o); }
+      }
+      // short splits across the plates
+      for (let k = 0; k < 40; k++) { x.fillStyle = dark; x.fillRect(r() * W, r() * H, 4 + r() * 10, 1.5); }
+      break;
+    }
+    case 'checkTiles': {
+      // Vällingby's stair houses and its ticket hall under the bridge: glossy tiles on end, 15 by
+      // 30 cm, white and a pale blue-grey in a check, in pale joints (photographs, 2006 to 2019)
+      x.fillStyle = '#c9cbca'; x.fillRect(0, 0, W, H);
+      const a = 0.15 * PX, b = 0.3 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = Math.floor(r() * 8);
+        x.fillStyle = (i + j) % 2 ? `rgb(${150 + v},${158 + v},${165 + v})` : `rgb(${232 + v},${233 + v},${230 + v})`;
+        x.fillRect(i * a + 1.5, j * b + 1.5, a - 3, b - 3);
+        x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(i * a + 3, j * b + 3, a * 0.25, b - 6);
+      }
+      break;
+    }
+    case 'mosaicPosters': {
+      // Vällingby's walls beyond the tracks under the decks: a mosaic of small glossy tiles in dark
+      // greens, and posters in pairs in white frames along it at the platforms' eye height
+      // (photographs, 2013 to 2019); measured up from the track bed, 1.2 m under the platforms
+      x.fillStyle = '#1c342d'; x.fillRect(0, 0, W, H);
+      const t = 0.05 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 30);
+        x.fillStyle = r() < 0.15 ? `rgb(${62 + v},${112 + v},${98 + v})` : `rgb(${30 + v / 2},${80 + v},${68 + v})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      // each poster 1.2 by 1.75 m: a ground of one colour, a shape on it, lines of white text
+      const p0 = 2.3, p1 = 4.05, pw = 1.2 * PX;
+      const grounds = ['#e4508c', '#f0c233', '#3b7bd0', '#f1efe9', '#d9452f', '#6b3d8f'];
+      for (const [k, px0] of [[0, 1.0 * PX], [1, 2.6 * PX]] as [number, number][]) {
+        x.fillStyle = '#ebebe8'; x.fillRect(px0 - 0.05 * PX, Y(p1 + 0.05), pw + 0.1 * PX, (p1 - p0 + 0.1) * PX);
+        const g = grounds[(k * 3 + Math.floor(r() * 6)) % 6];
+        x.fillStyle = g; x.fillRect(px0, Y(p1), pw, (p1 - p0) * PX);
+        x.fillStyle = g === '#f1efe9' ? '#3b4a5a' : 'rgba(255,255,255,0.85)';
+        x.beginPath(); x.arc(px0 + pw * (0.35 + r() * 0.3), Y(p1 - 0.6), 0.3 * PX, 0, Math.PI * 2); x.fill();
+        for (let l = 0; l < 3; l++) x.fillRect(px0 + 0.12 * PX, Y(p0 + 0.55 - l * 0.14), pw * (0.5 + r() * 0.3), 0.07 * PX);
+      }
+      break;
+    }
+    case 'vallingbyCentrum': {
+      // Vällingby centrum's buildings round the station (1954): shop fronts under the white edge of
+      // a canopy, and over them pale sheet metal corrugated upright, a ribbon of windows in white
+      // frames along the upper floor, the sheet metal again up to the coping (photographs, 1955 to
+      // 2024)
+      const shop = x.createLinearGradient(0, Y(3.2), 0, Y(0.15));
+      shop.addColorStop(0, '#a6b2b8'); shop.addColorStop(0.5, '#cdc6b4'); shop.addColorStop(1, '#8c979c');
+      x.fillStyle = shop; x.fillRect(0, Y(3.2), W, 3.05 * PX);
+      band(0, 0.15, '#5f6366');
+      x.fillStyle = '#6d7377';
+      for (const m of [0, 1.2, 2.4]) x.fillRect(m * PX, Y(3.2), 0.06 * PX, 3.05 * PX);
+      x.fillRect(0, Y(2.45), W, 0.05 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0.15 * PX, Y(3.1), 0.35 * PX, 2.8 * PX);
+      band(3.2, 3.85, '#e8e8e3'); band(3.2, 3.28, '#3b3f43');
+      const corrugated = (from: number, to: number) => {
+        band(from, to, '#cfd2d0');
+        for (let i = 0; i * 0.08 * PX < W; i++) {
+          x.fillStyle = 'rgba(90,96,100,0.22)'; x.fillRect(i * 0.08 * PX, Y(to), 0.03 * PX, (to - from) * PX);
+          x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(i * 0.08 * PX + 0.045 * PX, Y(to), 0.015 * PX, (to - from) * PX);
+        }
+      };
+      corrugated(3.85, 5.1);
+      band(5.1, 6.55, '#f0f0ec');
+      const glass = x.createLinearGradient(0, Y(6.45), 0, Y(5.2));
+      glass.addColorStop(0, '#a4b5c1'); glass.addColorStop(1, '#6f7f8a');
+      for (const m of [0, 1.2, 2.4]) {
+        x.fillStyle = glass; x.fillRect(m * PX + 0.07 * PX, Y(6.45), 1.06 * PX, 1.25 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(m * PX + 0.12 * PX, Y(6.4), 0.3 * PX, 1.15 * PX);
+      }
+      corrugated(6.55, 7.85);
+      band(7.85, 8.0, '#7d8285');
+      break;
+    }
     case 'twoGreens': {
       // the outside of Åkeshov's shop and staff rooms under the southern deck: flat panels about
       // 0.95 m wide, a lighter green and a dark bottle green in turn, on a black plinth, a dark
@@ -5064,7 +5229,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

@@ -108,6 +108,12 @@
       "outline": [-10018.67, -1832.11, -10027.41, -1841.04, -9992.12, -1873.61, -9984.36, -1865.68],
       "heights": [35.47, 35.29, 35.34, 35.49],
       "why": "Blackeberg's platforms are covered from where the cutting ends under Vinjegatan, which crosses the tracks on a deck along the ticket hall's back, 11–12.5 m wide from the shop fronts to its edge over the tracks where they come out, and on 18 m past them to either side. The elevation model leaves the deck out and has the ground falling into the cutting under it, so that the station's covered end stood in the open and the street beside it fell to the rails in a cone round the tunnels' mouths. The laser scan has the street at 35.3–35.5 m all across it, 4 m over the platform (a plane fits 659 of its points to 7 cm)."
+    },
+    {
+      "name": "Vällingby: Kirunaplan over the tracks",
+      "outline": [-10688.98, -3513.14, -10728.69, -3555.42, -10667.47, -3612.93, -10627.76, -3570.65],
+      "heights": [30.02, 30.18, 29.18, 29.01],
+      "why": "Kirunaplan, Vällingby's bus terminal, crosses the tracks on a deck from the front of Vällingby centrum to the car park's deck, 58 m along the platforms' covered south-eastern part and 84 m across. The elevation model leaves the deck out and has the ground falling into the tracks' cutting under it, 5 m down, so that the bus stops stood in a pit. The plane fits the laser scan's points on the deck to 8 cm, falling from 30.2 m on its south-western side to 29.2 m on its north-eastern. (The car park's deck beyond it is drawn by the station, src/open-styles.ts: the ground under it is the road at the platforms' level, which the platforms look out onto.)"
     }
   ],
   "open": [
@@ -215,6 +221,10 @@
     {
       "outline": [[-10075.1, -2655.3], [-10062.7, -2657.0], [-10049.0, -2657.5], [-10010.4, -2658.8], [-10012.4, -2634.5], [-10030.7, -2636.6], [-10053.4, -2639.3], [-10053.5, -2634.3], [-10060.8, -2633.3], [-10063.9, -2632.8], [-10067.2, -2640.5], [-10071.9, -2639.3], [-10073.8, -2647.9], [-10074.6, -2651.3], [-10074.8, -2653.5]],
       "why": "Råcksta torg, the square in front of Råcksta's ticket hall on Jämtlandsgatan, is paved (OpenStreetMap's pedestrian area, surface=paving_stones; photographs). With few buildings beside it, it was grass."
+    },
+    {
+      "outline": [[-10653.9, -3501.0], [-10630.6, -3477.1], [-10591.2, -3515.5], [-10614.5, -3539.4]],
+      "why": "Vällingby torg, the square in front of Vällingby centrum's south-eastern front, over the tracks' tunnels: paved, with trees (the laser scan has it level at 29.3–29.5 m from the front to 33 m beyond it, and from 35 m south-west of the tracks' middle to 20 m north-east of it, the buildings round it beyond). The city drew it as grass."
     }
   ],
   "shallow": [

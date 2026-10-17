@@ -105,6 +105,11 @@
       "station": "Kista",
       "depth": -7.5,
       "why": "Wikidata's 10 m is below the viaduct the station stands on, the only one of the blue line's in the open (Swedish Wikipedia), over the bus terminal and the streets around it, which are at 12–15 m. The platform is taken to be a storey and a half above the ground under it."
+    },
+    {
+      "station": "Vällingby",
+      "height": 24.9,
+      "why": "Wikidata has no height, and with its tracks taken for tunnels under the decks the station came out 1.3 m under the real one. Lantmäteriet's laser scan (2021) has both islands' surface at 24.85–25.0 m where it sees them past the roofs' edges, and the ballast of the three tracks beside and between them at 23.6–23.75 m; Kirunaplan's deck over the platforms' south-eastern end is at 29.2–30.2 m."
     }
   ],
   "uncovered": [
@@ -224,6 +229,14 @@
       ],
       "reach": 7,
       "why": "Stureby, west of the platform: the line runs on a bank between upright walls, and over the ticket hall on a deck (the viaducts, below), 3.3 m above the streets either side. The elevation model loses the bank where it is this narrow and has the street under the line, which pulled the platform 0.7 m below the laser scan's."
+    },
+    {
+      "along": [
+        [-10624, -3519],
+        [-10729, -3628]
+      ],
+      "reach": 15,
+      "why": "Vällingby, the platforms' covered south-eastern part and the tracks on under the edge of Vällingby centrum: the elevation model leaves out Kirunaplan's deck and the car park's over them and smooths the ground between their edges, 24.1–24.4 m over the tracks, half a metre over the ballast the laser scan sees where they come out (23.6–23.75 m); held to it, the platforms came out a quarter of a metre over their real height."
     }
   ],
   "rail": [
@@ -266,6 +279,14 @@
       ],
       "reach": 4,
       "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, after it has passed under the tracks to Globen, stays in its deeper tunnel (OpenStreetMap: layer -3) for another 50 m before it climbs to the portal it shares with the northbound track. Left to the solve, it rose to within 1.5 m of the northbound track at once, so the two were drawn as one pair in a single tunnel, though OpenStreetMap has them 25 m apart there, and the plan bent them tighter than the line's 200 m curves."
+    },
+    {
+      "along": [
+        [-10624, -3519, 23.9],
+        [-10761, -3662, 23.9]
+      ],
+      "reach": 15,
+      "why": "Vällingby's middle track, the turnback track between the two island platforms, which no train stops at, and the outer tracks beyond the platforms' ends: the laser scan has the ballast of all three at 23.6–23.75 m, the rail about 0.2 m over it, level with the platforms' tracks (the islands' surface 24.85–25.0 m). Without this the middle track followed the elevation model's ground under the decks and stood 0.4 m over the tracks beside it."
     }
   ],
   "toBridge": [

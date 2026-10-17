@@ -1453,12 +1453,16 @@ export class OpenLook {
 
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
-    const m = on(this.mat(`mural:${a.picture}`, () => {
+    const lace = Math.abs(Math.round(a.s)) % 3;
+    const m = on(this.mat(`mural:${a.picture}${a.picture === 'sirat' ? lace : ''}`, () => {
       const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
-        : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower() : T.tallkrogsdraken();
-      // (an angel cut out round its outline)
+        : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
+          : a.picture === 'sirat' ? T.siratLace(lace) : T.tallkrogsdraken();
+      // (an angel, and the lace, cut out round their outlines)
+      const cut = a.picture === 'angel' || a.picture === 'sirat';
       return new THREE.MeshStandardMaterial({
-        map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.4, alphaTest: a.picture === 'angel' ? 0.5 : 0, side: THREE.DoubleSide,
+        map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: a.picture === 'sirat' ? 0.1 : 0.25, roughness: 0.4, metalness: a.picture === 'sirat' ? 0.4 : 0,
+        alphaTest: cut ? 0.5 : 0, side: THREE.DoubleSide,
       });
     }));
     // (its left edge on the viewer's left, looking at it)
@@ -1753,8 +1757,9 @@ export class OpenLook {
 
   // Upright bars between rails (drawn in the texture), on posts about 2 m apart.
   private barFence(f: Fence, frame: Frame, on: On) {
-    const bars = on(this.mat('fence:bars', () => new THREE.MeshStandardMaterial({ map: T.barRailing(), alphaTest: 0.5, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide })));
-    const post = on(this.color(0x1d1f21, 0.5, 0.4)), [h0, h1] = f.h;
+    const color = f.color ?? 0x1d1f21, css = `#${color.toString(16).padStart(6, '0')}`;
+    const bars = on(this.mat(`fence:bars:${css}`, () => new THREE.MeshStandardMaterial({ map: T.barRailing(css), alphaTest: 0.5, roughness: 0.5, metalness: 0.4, side: THREE.DoubleSide })));
+    const post = on(this.color(color, 0.5, 0.4)), [h0, h1] = f.h;
     let along = 0;
     for (let i = 0; i + 1 < f.points.length; i++) {
       const [sa, ua, da = 0] = f.points[i], [sb, ub, db = 0] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 2));

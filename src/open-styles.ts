@@ -295,7 +295,12 @@ export type Finish =
   | 'maroonGlazed'  // clear glass in dark red-brown steel frames 1.2 m apart, a transom 2.2 m up
   | 'slateGlazed'   // clear glass in slate-blue steel frames 1.4 m apart, a transom every 1.15 m
   | 'goranssonTiles' // glazed tiles, 15 cm, whites and pale greys, relief tiles with leaf prints scattered over them (Mia Göransson's)
-  | 'greenBooth';   // square green enamelled panels, a window in a cream frame in the top row, a cream band over them
+  | 'greenBooth'    // square green enamelled panels, a window in a cream frame in the top row, a cream band over them
+  | 'barkGrey'      // grey concrete cast with a bark of deep upright fissures (Casimir Djuric's trees)
+  | 'barkRed'       // as barkGrey, stained a red-brown
+  | 'checkTiles'    // glossy tiles on end, 15 by 30 cm, white and a pale blue-grey in a check
+  | 'mosaicPosters' // a mosaic of small tiles in dark greens, posters in pairs in white frames from 2.3 m up, to 4.05 m
+  | 'vallingbyCentrum'; // shop fronts under a canopy's white edge, corrugated sheet metal, a ribbon of windows in white frames, to 8 m
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -372,8 +377,10 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // `top` and `width` across; drawn in code (src/textures.ts): the dragon of Tallkrogen's, a
 // mosaic of a forest's floor, one of Gullmarsplan's angels, cut out round its outline, or Sture V
 // Nilsson's Strindberg wall at Rådmansgatan: his manuscript, his signature and squares of etched
-// copper (`strindberg`), and Blå tornet, the house he died in (`blueTower`).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// copper (`strindberg`), Blå tornet, the house he died in (`blueTower`), and one of Helén Partos's
+// panels of steel lace at Vällingby (`sirat`, cut out round its outline, a panel of its own at each
+// `s`).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -533,7 +540,7 @@ export interface NeonBoxes { kind: 'neonBoxes'; at: [number, number][]; size: [n
 // side by side (`color`), or slanting between concrete posts (`louvres`); or panes of glass in
 // steel frames (`glass`), on most of them a leaf drawn in white (`leaves`); or a railing of round
 // rails on posts (`rails`, in `color`), three of them, the top one at `h[1]`; or black steel
-// railings of upright bars between a top rail and a bottom one (`bars`).
+// railings of upright bars between a top rail and a bottom one (`bars`, in `color` if given).
 export interface Fence { points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass' | 'rails' | 'bars'; color?: number; leaves?: boolean }
 
 // Gubbängen (1950): an island platform on a low bank on the hillside, along Lingvägen, under a
@@ -5356,6 +5363,249 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     fences: [
       { points: [[-70, 4.3], [-44, 6.5], [-25, 7.25], [-5, 7.55], [15, 7.45], [34, 6.9], [54, 6.0], [70, 4.6]], h: [-1.6, 0.5] },
       { points: [[-70, -8.1], [-62, -7.65], [-43, -7.15], [-24, -7.15], [-4, -7.45], [15, -8.0], [34, -8.8], [54, -9.95], [70, -11.2]], h: [-1.6, 0.5] },
+    ],
+  },
+
+  // Vällingby (26 October 1952): two island platforms 143 m long side by side in a cutting through
+  // the middle of Vällingby centrum, the turnback track between them, where no train stops, and
+  // the outer tracks beyond them (trains keep left: into town on the north-eastern track, tracks
+  // 3 and 4 on the north-eastern island, 1 and 2 on the south-western). Lantmäteriet's laser scan
+  // has both islands' surface at 24.85–25.0 m and the three tracks' ballast at 23.6–23.75 m. Their
+  // south-eastern 100 m are covered: from 72 m to 21 m south-east of the middle by Kirunaplan, the
+  // bus terminal, on a deck 4.4–5.2 m over the platforms (a plane through the laser scan's points,
+  // data/ground-corrections.json), and from there to 26.5 m north-west of the middle by the car
+  // park's deck, 4.6–5.3 m over them, out to 35 m beyond the south-western track; the rest is in
+  // the open under two butterfly roofs from 29.5 m to 73 m north-west of the middle, one over each
+  // island, their undersides 3.1 m over the platform at the valley and 3.6 m at the edges.
+  //
+  // Under Kirunaplan the islands' columns are Casimir Djuric's concrete trees (1983), square, cast
+  // with a bark of deep fissures, some grey and some stained red-brown; under the car park's deck
+  // they are round, pink to 2.75 m and white above. The walls beyond the outer tracks are a
+  // mosaic of small dark green tiles with posters in pairs in white frames; under the car park's
+  // deck the south-western side is open to the street beyond the track, behind a pale railing, and
+  // Helén Partos's Sirat (2010) hangs along it, lace cut out of rusty steel plate. The open roofs
+  // (photographs, 2006 to 2026): dark ribbed steel underneath, the ribs across, on dark steel
+  // columns down each island's middle, a grey fascia, strip lights, black name signs; grey square
+  // slabs, a white edge and a dark strip for the blind.
+  //
+  // At the south-eastern end (OpenStreetMap's indoor mapping) escalators and stairs and a lift
+  // climb from each island's end, out between the tracks, to the ticket hall under Vällingby
+  // centrum (1954), 4.67 m over the platforms, the gates at the flights' tops either side of the
+  // corridor in from Kirunaplan's doors; the hall reaches through the building to Vällingby torg
+  // at its south-eastern end, and passages lead off it to the streets either side. The centrum's
+  // buildings round it: shop fronts under a canopy's white edge, pale corrugated sheet metal, a
+  // ribbon of windows in white frames, 8 m high (laser scan). At the north-western end stairs go
+  // down from each island, in houses glazed in grey frames with a lift beside each, to the hall
+  // under the tracks at Bräckegatan's level, 4.6 m below the platforms, tiled in a check of white
+  // and pale blue-grey, the gates at its middle and its doors under the bridge over the street.
+  //
+  // Not drawn: the cars and buses on the decks, Kirunaplan's shelters, the bicycle racks, the
+  // centrum's signs and its upper storeys beyond the station, the glass partitions round the gates
+  // in the south-eastern hall, the hall's shops and kiosks.
+  'Vällingby': {
+    roof: {
+      kind: 'butterfly',
+      from: 29.5, to: 73, width: 8.6,
+      shape: [[29.5, -0.1, 8.6], [50, 0.2, 8.6], [73, 0.8, 8.6]],
+      middle: 3.12, edge: 3.62, thick: 0.25, fascia: 0.35,
+      rafters: 1.2, rafterSize: [0.06, 0.15], deck: 'ribbedAcross', rafterColor: 0x34383c,
+      beam: 0.45,
+      columns: { every: 9.6, at: 35, size: 0.3, plinth: { size: 0.4, height: 0.1 } },
+      lamps: { offset: 2.4, length: 1.5, every: 3.0 },
+      colors: { underside: 0x4a4f54, fascia: 0x6e7477, top: 0x5d7a68, steel: 0x2e3236 },
+      signs: { at: [40, 59], back: 'Vällingbyplan', ahead: 'Bräckegatan' },
+      clocks: [[49.4, 0]],
+      // (into town on the north-eastern track)
+      boards: [{ s: 68.5, u: 2.0, toward: 'Hagsätra', trains: ['19 Hagsätra  4 min', '19 Hagsätra  14 min'] }],
+    },
+    roofs: [
+      // the south-western island's, as the north-eastern's
+      {
+        kind: 'butterfly',
+        from: 29.5, to: 73, width: 8.2,
+        shape: [[29.5, -9.48, 8.2], [50, -9.17, 8.2], [73, -8.6, 8.2]],
+        middle: 3.12, edge: 3.62, thick: 0.25, fascia: 0.35,
+        rafters: 1.2, rafterSize: [0.06, 0.15], deck: 'ribbedAcross', rafterColor: 0x34383c,
+        beam: 0.45,
+        columns: { every: 9.6, at: 35, size: 0.3, plinth: { size: 0.4, height: 0.1 } },
+        lamps: { offset: 2.4, length: 1.5, every: 3.0 },
+        colors: { underside: 0x4a4f54, fascia: 0x6e7477, top: 0x5d7a68, steel: 0x2e3236 },
+        signs: { at: [40, 59], back: 'Vällingbyplan', ahead: 'Bräckegatan' },
+        clocks: [[49.4, 0]],
+        boards: [{ s: 68.5, u: -2.0, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] }],
+      },
+      // under the decks, over each island, only the lamps, signs, boards and clocks hung from the
+      // ceiling (the roof itself just over the ceiling blocks, hidden)
+      {
+        kind: 'butterfly',
+        from: -71.4, to: 28.5, width: 7.4,
+        shape: [[-71.4, 0, 7.4], [28.5, -0.1, 7.4]],
+        middle: 3.53, edge: 3.53, thick: 0.03, fascia: 0.02,
+        rafters: 40, rafterSize: [0.01, 0.01], beam: 0.01,
+        columns: { every: 9.6, at: 500, size: 0.3, plinth: { size: 0.4, height: 0.1 }, between: [500, 501] },
+        lamps: { offset: 2.2, length: 1.5, every: 4.2 },
+        colors: { underside: 0x8f8b84, fascia: 0x8f8b84, top: 0x8f8b84, steel: 0x8f8b84 },
+        signs: { at: [-47, -15, 17], back: 'Vällingbyplan', ahead: 'Bräckegatan' },
+        clocks: [[-23, 0]],
+        boards: [{ s: -39, u: 2.0, toward: 'Hagsätra', trains: ['19 Hagsätra  4 min', '19 Hagsätra  14 min'] }],
+      },
+      {
+        kind: 'butterfly',
+        from: -71.4, to: 28.5, width: 6,
+        shape: [[-71.4, -9.35, 6], [-40, -9.75, 6], [0, -10.2, 6], [28.5, -10.25, 6]],
+        middle: 3.53, edge: 3.53, thick: 0.03, fascia: 0.02,
+        rafters: 40, rafterSize: [0.01, 0.01], beam: 0.01,
+        columns: { every: 9.6, at: 500, size: 0.3, plinth: { size: 0.4, height: 0.1 }, between: [500, 501] },
+        lamps: { offset: 1.8, length: 1.5, every: 4.2 },
+        colors: { underside: 0x8f8b84, fascia: 0x8f8b84, top: 0x8f8b84, steel: 0x8f8b84 },
+        signs: { at: [-47, -7, 17], back: 'Vällingbyplan', ahead: 'Bräckegatan' },
+        clocks: [[-23, 0]],
+        boards: [{ s: -39, u: -1.6, toward: 'Hässelby strand', trains: ['19 Hässelby strand  3 min', '19 Hässelby strand  13 min'] }],
+      },
+    ],
+    paving: {
+      edge: 0.3, tactile: [0.3, 0.9], slabs: 0.9, paverSize: [0.3, 0.3], mix: 0.2,
+      colors: { edge: 0xdedbd2, tactile: 0x5d5f60, slab: 0x8e8a83, pavers: 0x8e8a83, paler: 0x9b978f, face: 0x8a8781 },
+      pattern: 'grid',
+    },
+    benches: [
+      { at: [39.8, 49.4, 59] },
+      { at: [39.8, 49.4, 59], roof: 0 },
+      { at: [-63, -47, -31, -7, 9], double: true, wood: true, roof: 1 },
+      { at: [-63, -47, -31, -7, 9], double: true, wood: true, roof: 2 },
+    ],
+    buildings: ['w35963800', 'w425935044'],
+    rooms: [
+      // the passages off the south-eastern hall to the streets either side, through the centrum
+      { name: 'passage, south-west', s: [-95, -88], u: [-30, -16], h: [4, 5.5], walls: 'navyTiles', floor: 'paleTiles', ceiling: 'whitePanels' },
+      { name: 'passage, north-east', s: [-95, -88], u: [13, 31], h: [4, 5.5], walls: 'navyTiles', floor: 'paleTiles', ceiling: 'whitePanels' },
+      // the escalators, stairs and lifts up from the islands' south-eastern ends, out between the
+      // tracks, open to the hall over them
+      { name: 'south-eastern flights', s: [-82, -70], u: [-9, 9], h: [-0.5, 0.5], walls: null, floor: 'greyTiles', stairs: 'checkTiles', parapet: 1.1 },
+      // (the hall's floors are open to its ceiling, the walls round them its blocks')
+      { name: 'south-eastern hall', s: [-112, -70], h: [4, 5.5], walls: null, floor: 'paleTiles', lamps: 3.4 },
+      // the platforms' north-western ends, out to the stair houses and the lifts
+      { name: 'north-western ends', s: [70, 90], h: [-0.5, 0.5], walls: null, floor: 'orangeTiles' },
+      // the stairs down in the glazed houses, and the passages on under the tracks
+      { name: 'north-western stairs', s: [70, 88.2], h: [-5, 0.5], walls: 'checkTiles', floor: 'orangeTiles', stairs: 'checkTiles', ceiling: 'whitePanels', sill: 1.0, parapet: 1.0 },
+      { name: 'north-western hall', s: [88.2, 98.4], h: [-5, -4], walls: null, floor: 'orangeTiles' },
+      // out of its doors, under the bridge on Bräckegatan
+      { name: 'Bräckegatan', s: [98.4, 106], h: [-5, -4], walls: null, floor: 'asphalt' },
+    ],
+    blocks: [
+      // Kirunaplan's deck over the tracks (the city's ground is the deck's plane, but falls into the
+      // tracks' cutting between its walls): asphalt, its top 3 cm over the plane
+      { name: 'Kirunaplan', plan: [[-21, -50], [-71.8, -50], [-71.8, 32], [-21, 32]], h: [5.0, 5.123], low: 4.968, from: 5.0, fall: 4.024,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.25, roofColor: 0x4f5153 },
+      // and the deck under the centrum's south-eastern front and Vällingby torg beyond it
+      { name: 'Vällingby torg', plan: [[-111.6, -21], [-122, -21], [-122, 21], [-111.6, 21]], h: [4.37, 4.62], from: 4.37,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.03, roofColor: 0x8d8a84 },
+      // the ceilings under the decks, over the platforms and the tracks
+      { name: "Kirunaplan's ceiling", plan: [[-21, -13], [-71.8, -13], [-71.8, 13], [-21, 13]], h: [3.49, 3.5], from: 3.49,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
+      { name: "the car park's ceiling", plan: [[26.5, -35.4], [-21, -35.4], [-21, 14.6], [26.5, 14.6]], h: [3.49, 3.5], from: 3.49,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'whiteRender' },
+      { name: "the centrum's ceiling", plan: [[-71.8, -13], [-122, -13], [-122, 13], [-71.8, 13]], h: [3.49, 3.5], from: 3.49,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
+      // the car park's deck north-west of Kirunaplan, falling from its south-western edge to its
+      // north-eastern (laser scan)
+      { name: "car park's deck", plan: [[26.5, -35.4], [-21, -35.4], [-21, 14.6], [26.5, 14.6]], h: [3.5, 5.0], lowBack: 4.4, from: 3.5,
+        walls: 'boardConcrete', sides: ['boardConcrete', null, 'boardConcrete', 'boardConcrete'], roof: 0.3, roofColor: 0x6f7173 },
+      // the walls beyond the outer tracks under the decks: the mosaic towards the tracks
+      { name: 'wall, north-east', plan: [[-71.8, 12.7], [26.5, 12.7], [26.5, 12.9], [-71.8, 12.9]], h: [-1.2, 3.5], from: -1.2,
+        walls: 'boardConcrete', sides: ['mosaicPosters', null, 'boardConcrete', null] },
+      { name: 'wall, south-west', plan: [[-21, -12.25], [-71.8, -11.55], [-71.8, -11.75], [-21, -12.45]], h: [-1.2, 3.5], from: -1.2,
+        walls: 'boardConcrete', sides: ['mosaicPosters', null, null, null] },
+      // (the network's cutting walls stand up through the decks and the hall's floor along their
+      // edges: cut away over the decks)
+      { name: 'cut, north-east', plan: [[-28, 12.5], [-28, 13.4], [-71.8, 13.4], [-71.8, 12.5]], h: [5.59, 7], from: 5.59, fall: 5.456,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'cut, south-west', plan: [[-28, -13.2], [-28, -11.4], [-71.8, -11.4], [-71.8, -13.2]], h: [5.895, 7], from: 5.895, fall: 5.761,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'cut, centrum north-east', plan: [[-71.8, 10.8], [-71.8, 13.4], [-115, 13.4], [-115, 10.8]], h: [5.7, 6.5], from: 5.7,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'cut, centrum south-west', plan: [[-71.8, -11.8], [-71.8, -9.8], [-100, -9.8], [-100, -11.8]], h: [5.7, 6.5], from: 5.7,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // Vällingby centrum over the tracks: its two wings either side of the hall, and its front on
+      // Vällingby torg (OpenStreetMap's outline; the laser scan's roofs, 8 m over Kirunaplan)
+      { name: "centrum's south-western wing", plan: [[-71.8, -29.1], [-71.8, -17.5], [-111.6, -17.5], [-111.6, -28.3]], h: [4.67, 12.7], from: 4.67,
+        walls: 'vallingbyCentrum', roof: 0.3, roofColor: 0xb9bcbd },
+      { name: "centrum's north-eastern wing", plan: [[-71.8, 14], [-71.8, 29.8], [-110.6, 30.5], [-111.6, 14]], h: [4.67, 12.7], from: 4.67,
+        walls: 'vallingbyCentrum', roof: 0.3, roofColor: 0xb9bcbd },
+      { name: "centrum's front", plan: [[-105.5, -17.5], [-105.5, 14], [-111.6, 14], [-111.6, -17.5]], h: [4.67, 12.7], from: 4.67,
+        walls: 'vallingbyCentrum', sides: ['vallingbyCentrum', null, 'vallingbyCentrum', null], roof: 0.3, roofColor: 0xb9bcbd,
+        nameSign: { side: 2, at: 0.32, length: 4, bottom: 7.95 } },
+      // the ticket hall between them, its front on Kirunaplan
+      { name: 'ticket hall', plan: [[-71.8, -17.5], [-71.8, 14], [-105.5, 14], [-105.5, -17.5]], h: [4.67, 9.3], from: 4.67,
+        walls: 'navyTiles', sides: ['vallingbyCentrum', null, null, null], floor: 'paleTiles', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x8d949a },
+      // its doors on Kirunaplan, under the canopy along the centrum's front there
+      { name: 'doors', plan: [[-71.7, -3.5], [-71.7, 3.5], [-71.9, 3.5], [-71.9, -3.5]], h: [4.67, 8.3], from: 4.67,
+        walls: 'glassFront', sides: ['glassFront', null, 'glassFront', null], nameSign: { side: 0, at: 0.5, length: 4, bottom: 7.02 } },
+      { name: 'canopy', plan: [[-68.5, -29], [-71.8, -29], [-71.8, 30], [-68.5, 30]], h: [8.3, 8.3], from: 8.3,
+        walls: 'whiteRender', sides: [null, null, null, null], ceiling: 'whiteRender', roof: 0.25, roofColor: 0xe8e8e3 },
+      // the stair houses at the north-western end, glazed in grey frames, their roofs falling a
+      // little towards the platforms
+      { name: 'stair house, south-west', plan: [[73.5, -7.0], [73.5, -2.45], [89.5, -2.45], [89.5, -7.0]], h: [0, 3.15], low: 2.65, from: 0,
+        walls: 'greyGlazed', floor: 'orangeTiles', roof: 0.12, roofColor: 0x5d6064 },
+      { name: 'stair house, north-east', plan: [[73.5, 7.05], [73.5, 2.0], [89.5, 2.0], [89.5, 7.05]], h: [0, 3.15], low: 2.85, from: 0,
+        walls: 'greyGlazed', floor: 'orangeTiles', roof: 0.12, roofColor: 0x5d6064 },
+      // the hall under the tracks: its doors under the bridge on Bräckegatan, the name over them
+      // on the bridge's face (and cut out of the network's bridge deck over it)
+      { name: 'hall under the tracks', plan: [[88.3, -7.2], [98.4, -7.2], [98.4, 7.2], [88.3, 7.2]], h: [-4.6, -2.3], from: -4.6,
+        walls: 'checkTiles', sides: [undefined, 'glassFront', undefined, null], floor: 'orangeTiles', ceiling: 'whitePanels', ground: true, onPlatform: true,
+        nameSign: { side: 1, at: 0.5, length: 3.6, bottom: -2.25, black: true } },
+      // the abutments round it under the tracks' decks
+      { name: 'abutment', plan: [[77, -11.1], [88.3, -11.1], [88.3, 11.1], [77, 11.1]], h: [-4.8, -2.7], from: -4.8, walls: 'boardConcrete' },
+      { name: 'abutment, south-west', plan: [[88.3, -11.1], [98.4, -11.1], [98.4, -7.3], [88.3, -7.3]], h: [-4.8, -2.7], from: -4.8, walls: 'boardConcrete' },
+      { name: 'abutment, north-east', plan: [[88.3, 7.3], [98.4, 7.3], [98.4, 11.1], [88.3, 11.1]], h: [-4.8, -2.7], from: -4.8, walls: 'boardConcrete' },
+      // the street under the car park's deck beyond the south-western track, at the platforms' level
+      // (laser scan, past the deck's edge: 24.6–24.8 m)
+      { name: 'street under the car park', plan: [[26.5, -35.4], [-21, -35.4], [-21, -13.2], [26.5, -13.2]], h: [-0.15, 1.0], from: -0.15,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt', ground: true },
+      // (the tunnels' portals beyond the centrum's south-eastern front, stood up through Vällingby torg)
+      { name: 'cut, Vällingby torg', plan: [[-104, -14], [-104, 14], [-126, 14], [-126, -14]], h: [5.67, 12], from: 5.67,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the car park's lower storey beside the south-western track, north-west of the deck
+      { name: 'car park', plan: [[29, -31.1], [88.1, -31.1], [88.1, -14.5], [29, -14.5]], h: [-1.2, 2.9], from: -0.5,
+        walls: 'boardConcrete', roof: 0.3, roofColor: 0x77797a },
+    ],
+    art: [
+      // Casimir Djuric's trees under Kirunaplan, down each island's middle
+      { kind: 'capitals', tiles: 'barkGrey', size: 0.65, from: 0, flare: 3.5, head: 0.65, ceiling: 3.5,
+        at: [[-67, 4.7], [-51, 4.7], [-43, 4.7], [-27, 4.7], [-67, -4.6], [-59, -4.8], [-43, -5.05], [-35, -5.15]] },
+      { kind: 'capitals', tiles: 'barkRed', size: 0.65, from: 0, flare: 3.5, head: 0.65, ceiling: 3.5,
+        at: [[-59, 4.7], [-35, 4.7], [-51, -4.95], [-27, -5.2]] },
+      // the round columns under the car park's deck, pink, white over 2.75 m
+      { kind: 'columns', from: 0, to: 2.75, size: 0.8, color: 0xd99a8c,
+        at: [[-19, 4.7], [-11, 4.7], [-3, 4.7], [5, 4.7], [13, 4.7], [21, 4.7], [-19, -5.3], [-11, -5.4], [-3, -5.45], [5, -5.55], [13, -5.6], [21, -5.6]] },
+      { kind: 'columns', from: 2.75, to: 3.5, size: 0.8, color: 0xefede8,
+        at: [[-19, 4.7], [-11, 4.7], [-3, 4.7], [5, 4.7], [13, 4.7], [21, 4.7], [-19, -5.3], [-11, -5.4], [-3, -5.45], [5, -5.55], [13, -5.6], [21, -5.6]] },
+      // the car park deck's columns beyond the south-western track, and under it by the street
+      { kind: 'columns', from: -0.6, to: 3.5, size: 0.45, color: 0x8f8d88,
+        at: [[-18.45, -12.8], [-17.55, -12.8], [-6.45, -12.8], [-5.55, -12.8], [5.55, -12.8], [6.45, -12.8], [17.55, -12.8], [18.45, -12.8]] },
+      { kind: 'columns', from: -0.2, to: 3.5, size: 0.45, color: 0x8f8d88,
+        at: [[-18, -23.5], [-6, -23.5], [6, -23.5], [18, -23.5], [-18, -34], [-6, -34], [6, -34], [18, -34]] },
+      // Helén Partos's Sirat, hung along the railing beyond the south-western track
+      { kind: 'mural', picture: 'sirat', s: -11, u: -12.75, turn: Math.PI / 2, bottom: -0.3, top: 2.4, width: 2.6 },
+      { kind: 'mural', picture: 'sirat', s: 0, u: -12.75, turn: Math.PI / 2, bottom: -0.3, top: 2.4, width: 2.6 },
+      { kind: 'mural', picture: 'sirat', s: 13, u: -12.75, turn: Math.PI / 2, bottom: -0.3, top: 2.4, width: 2.6 },
+      { kind: 'mural', picture: 'sirat', s: 23, u: -12.75, turn: Math.PI / 2, bottom: -0.3, top: 2.4, width: 2.6 },
+      // the columns under the canopy along the centrum's front on Kirunaplan
+      { kind: 'columns', from: 4.6, to: 8.3, size: 0.22, color: 0xe8e8e3,
+        at: [[-69, -27], [-69, -19.5], [-69, -12], [-69, -4.5], [-69, 4.5], [-69, 12], [-69, 19.5], [-69, 27]] },
+    ],
+    fences: [
+      // the railing between the south-western track and the street under the car park's deck
+      { points: [[-21, -12.85], [26.5, -12.85]], h: [-0.2, 1.3], kind: 'bars', color: 0xd9dbd8 },
+      // round the car park's deck
+      { points: [[-21, -35.4], [26.5, -35.4]], h: [5.3, 6.35], kind: 'bars', color: 0x9ea3a6 },
+      { points: [[26.5, -35.4], [26.5, 14.6, -0.6]], h: [5.3, 6.35], kind: 'bars', color: 0x9ea3a6 },
+      { points: [[26.5, 14.6], [-21, 14.6]], h: [4.7, 5.75], kind: 'bars', color: 0x9ea3a6 },
+      // chain-link beyond the outer tracks in the open
+      { points: [[26.5, 12.6], [50, 12.4], [78, 11.6]], h: [-1.3, 0.5] },
+      { points: [[29, -12.9], [50, -12.6], [73, -11.9]], h: [-1.3, 0.5] },
+      // the car park's roof along the tracks
+      { points: [[29, -14.5], [88.1, -14.5]], h: [3.2, 4.2], kind: 'rails', color: 0x9ea3a6 },
     ],
   },
 };
