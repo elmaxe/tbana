@@ -2824,10 +2824,10 @@ export function fenceBoards(color: number, louvres: boolean) {
 }
 
 // A chain-link fence: galvanised wire in diamonds 5 cm across, clear between. 0.5 × 0.5 m.
-export function chainLink() {
+export function chainLink(color = 'rgba(176,182,186,1)') {
   const [c, x] = canvas(128);
   x.clearRect(0, 0, 128, 128);
-  x.strokeStyle = 'rgba(176,182,186,1)'; x.lineWidth = 2.2;
+  x.strokeStyle = color; x.lineWidth = 2.2;
   for (let k = -128; k <= 256; k += 12.8) {
     x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 128, 128); x.stroke();
     x.beginPath(); x.moveTo(k, 128); x.lineTo(k + 128, 0); x.stroke();
@@ -3512,9 +3512,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   scrollPanels: [7.8, 2.7], opPanels: [1.4, 4.8], circleFront: [1.2, 4.2], stripPanels: [0.9, 4], maroonGlazed: [1.2, 3.6], slateGlazed: [1.4, 4.6],
   goranssonTiles: [1.8, 1.8], greenBooth: [2.1, 2.7],
   barkGrey: [0.75, 2.4], barkRed: [0.75, 2.4], checkTiles: [1.2, 1.2], mosaicPosters: [4.8, 4.8], vallingbyCentrum: [3.6, 8.0],
+  wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -4127,11 +4128,22 @@ export function finish(name: Finish) {
       for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(70,68,62,${0.06 + r() * 0.08})`; x.fillRect(0, Y(2.3) + r() * 0.9 * PX, W, 1); }
       break;
     }
-    case 'greenGlazed': {
+    case 'greenGlazed':
+    case 'wiredGlazed': {
       // a glazed hall's walls: glass from a kick panel at 0.3 m to its head at 2.9 m, in dark
-      // green steel frames 1.2 m apart, and a steel handrail across them at 1 m
+      // green steel frames 1.2 m apart, and a steel handrail across them at 1 m; or (`wiredGlazed`,
+      // Johannelund's beside its stairs) wired glass, translucent, a pale grey with a fine square
+      // mesh of wire in it
       const g = '#2c4637';
       band(0, 0.3, g); pane(0.3, 2.9, g, 0.09); band(2.9, 3, g);
+      if (name === 'wiredGlazed') {
+        const m = 0.045 * PX;
+        x.fillStyle = '#bfc6c3'; x.fillRect(m, Y(2.9), W - 2 * m, 2.6 * PX);
+        x.fillStyle = 'rgba(90,96,94,0.35)';
+        for (let k = m; k < W - m; k += 0.025 * PX) x.fillRect(k, Y(2.9), 1, 2.6 * PX);
+        for (let k = 0.3 * PX; k < 2.9 * PX; k += 0.025 * PX) x.fillRect(m, H - k, W - 2 * m, 1);
+        x.fillStyle = 'rgba(255,255,255,0.15)'; x.fillRect(m, Y(2.9), (W - 2 * m) * 0.3, 2.6 * PX);
+      }
       x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(0, Y(0.3), W, 1.5);
       x.fillStyle = '#9ba2a4'; x.fillRect(0, Y(1.04), W, 0.05 * PX);
       break;
@@ -5009,6 +5021,33 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'dripTiles':
+    case 'ochreDoor': {
+      // Johannelund's ticket hall and passage, and the rooms at its roofs' ends (1956): glazed
+      // tiles, 15 cm, a warm ochre yellow (as yellowTiles), in pale joints; in the hall
+      // (`dripTiles`) dark green ones along the top, from 2.1 m, dripping down the wall a few
+      // tiles at a time, a stray one here and there below; on a room's end (`ochreDoor`) a steel
+      // door painted orange, 1 m wide and 2.1 m high, 0.5 m in from its left (photographs, 2006
+      // to 2018)
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      // (how many tiles down from the top each column's green reaches)
+      const drip = Array.from({ length: cols }, () => name === 'dripTiles' ? 4 + Math.floor(r() * r() * 6) : 0);
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const down = rows - 1 - j, green = down < drip[i] || (name === 'dripTiles' && down < drip[i] + 4 && r() < 0.12);
+        const v = Math.floor(r() * 12);
+        x.fillStyle = green ? `rgb(${40 + v},${98 + v},${80 + v})` : `rgb(${218 + v},${178 + v},${88 + v})`;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      if (name === 'ochreDoor') {
+        x.fillStyle = '#8a4a1c'; x.fillRect(0.46 * PX, Y(2.14), 1.08 * PX, 2.14 * PX);
+        x.fillStyle = '#c8682a'; x.fillRect(0.5 * PX, Y(2.1), 1.0 * PX, 2.1 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(0.53 * PX, Y(2.07), 0.3 * PX, 2.04 * PX);
+        x.fillStyle = 'rgba(60,30,10,0.35)'; x.fillRect(0.5 * PX, Y(2.1), 1.0 * PX, 2);
+        x.fillStyle = '#a9aeb1'; x.fillRect(1.36 * PX, Y(1.07), 0.1 * PX, 0.03 * PX);
+      }
+      break;
+    }
     case 'mosaicPosters': {
       // Vällingby's walls beyond the tracks under the decks: a mosaic of small glossy tiles in dark
       // greens, and posters in pairs in white frames along it at the platforms' eye height
@@ -5229,7 +5268,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

@@ -100,13 +100,14 @@ export interface ButterflyRoof {
   // column to the highest at the other; `portal`, a steel plate across between each pair from
   // `top` down to an arch cut out of it, springing from the columns `spring` high, its crown
   // `crown` high, with flat bars across lower down at `bars`, and (`pipe`) a black downpipe from
-  // the valley to the platform between them; `gaps`, none between these pairs of `s` (where a
-  // building on the platform carries the roof)
+  // the valley to the platform between them; or (`hole`) the plate's foot flat at `spring`, and
+  // a round hole through it, its middle `hole.at` high, `hole.r` across; `gaps`, none between
+  // these pairs of `s` (where a building on the platform carries the roof)
   columns: {
     every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
     between?: [number, number]; gaps?: [number, number][]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
-    portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean };
+    portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
   // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
@@ -300,7 +301,10 @@ export type Finish =
   | 'barkRed'       // as barkGrey, stained a red-brown
   | 'checkTiles'    // glossy tiles on end, 15 by 30 cm, white and a pale blue-grey in a check
   | 'mosaicPosters' // a mosaic of small tiles in dark greens, posters in pairs in white frames from 2.3 m up, to 4.05 m
-  | 'vallingbyCentrum'; // shop fronts under a canopy's white edge, corrugated sheet metal, a ribbon of windows in white frames, to 8 m
+  | 'vallingbyCentrum' // shop fronts under a canopy's white edge, corrugated sheet metal, a ribbon of windows in white frames, to 8 m
+  | 'wiredGlazed'   // as greenGlazed, the glass wired: translucent, a pale grey with a fine mesh of wire in it
+  | 'dripTiles'     // small square tiles, a warm yellow (yellowTiles), under dark green ones dripping down from 2.1 m
+  | 'ochreDoor';    // as yellowTiles, an orange steel door in them 0.5 m from the left
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -536,7 +540,8 @@ export interface Capitals { kind: 'capitals'; at: [number, number][]; size: numb
 export interface NeonBoxes { kind: 'neonBoxes'; at: [number, number][]; size: [number, number, number]; ceiling: number; tubes?: [number, number, number, number][] }
 
 // A fence through the points ([s, u], or [s, u, dh] where the ground it stands on is dh higher
-// than at the first point), from `h[0]` to `h[1]` high: chain-link on posts; or boards, standing
+// than at the first point), from `h[0]` to `h[1]` high: chain-link on posts (coated in `color`,
+// if given); or boards, standing
 // side by side (`color`), or slanting between concrete posts (`louvres`); or panes of glass in
 // steel frames (`glass`), on most of them a leaf drawn in white (`leaves`); or a railing of round
 // rails on posts (`rails`, in `color`), three of them, the top one at `h[1]`; or black steel
@@ -5606,6 +5611,148 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[29, -12.9], [50, -12.6], [73, -11.9]], h: [-1.3, 0.5] },
       // the car park's roof along the tracks
       { points: [[29, -14.5], [88.1, -14.5]], h: [3.2, 4.2], kind: 'rails', color: 0x9ea3a6 },
+    ],
+  },
+
+  // Johannelund (1 November 1956), in Vinsta: built as an "industristation" for the works around
+  // it, open only at the rush hours and shut at weekends until October 1997, and the only station
+  // on the network with two side platforms rather than an island between the tracks; it has no
+  // art. The platforms are on a bank, 5 m over the forecourt to the north and the slope to the
+  // south. Lantmäteriet's laser scan puts a butterfly roof over the middle 30 m of each, the
+  // northern one 9.3 m wide (its valley 3.0 m over the platform, its eaves 3.45 m over the track
+  // and 3.2 m at the back) and the southern one 7.5 m wide (its valley 2.9 m, its eaves 3.2 m and
+  // 3.4 m); the platforms reach out under them to the roofs' back edges. Photographs (2006 to 2023):
+  // dark ribbed sheet underneath, the ribs across, on dark green steel rafters, a green fascia,
+  // the covering pale grey corrugated sheet; columns in pairs across each platform along the
+  // valley, dark green, a plate between each pair with a round hole through it; black name signs,
+  // a clock, a departure board; dark asphalt, a pale edge and a dark strip for the blind; along
+  // the northern roof's back a wall of glass in dark green frames, wired glass beside the stairs,
+  // along the southern roof's back dark green bars; galvanised masts with a white lamp on a crook
+  // out on the open ends, dark green chain-link along the platforms' backs.
+  //
+  // At the back of each platform, from the roof's middle (OpenStreetMap's indoor mapping), stairs
+  // go down eastwards in an open well behind a parapet of ochre tiles with a green railing, to a
+  // passage under the tracks at the forecourt's level (laser scan: 5.2 m under the platforms); a
+  // room with an orange door closes each well's end, and beyond the roofs' east ends a lift tower
+  // glazed in green frames stands on each platform, its doors facing west on the platform and east
+  // below. The ticket hall is at the passage's north end, under the northern platform's edge:
+  // ochre tiles, dark green ones dripping down from the top, white panels overhead, the gates, the
+  // doors out to the forecourt facing north under SL's dark blue band, cream tiles outside.
+  //
+  // Not drawn: the steps from the forecourt up to the path along the bank, the ticket booth, the
+  // posters and the hall's louvred windows, the work on Förbifart Stockholm's tunnels beside the
+  // station. The network has the tracks 1.4 m further apart than they are, so the southern roof,
+  // its stairs and its lift are 1.4 m south of where they stand, with the platform.
+  'Johannelund': {
+    // the northern platform's roof (the line it follows is that platform's)
+    roof: {
+      kind: 'butterfly',
+      from: -5.5, to: 24.5, width: 9.3, offset: -2.27,
+      middle: 2.8, edge: 3.15, thick: 0.2, fascia: 0.25,
+      rafters: 2.4, rafterAt: 10, rafterSize: [0.08, 0.22], deck: 'ribbedAcross', rafterColor: 0x24392e,
+      beam: 0.3,
+      columns: { every: 7.2, at: 10, size: 0.16, plinth: { size: 0.2, height: 0.03 }, pair: 1.0, offset: -0.3, between: [-5, 22],
+        portal: { spring: 1.0, crown: 1.0, top: 2.2, hole: { at: 1.6, r: 0.33 } } },
+      lamps: { offset: 2.4, length: 1.2, every: 2.4, at: [-2.6, 2.2] },
+      colors: { underside: 0x484d4c, fascia: 0x2f5446, top: 0xa9aeb2, steel: 0x24392e },
+      signs: { at: [-0.8, 13.6], back: '', ahead: 'Siktgatan' },
+      clocks: [[3.6, 2.4]],
+      // (trains keep left: into town on the northern track)
+      boards: [{ s: 7.6, u: 2.6, toward: 'T-Centralen', trains: ['19 Hagsätra  2 min', '18 Farsta strand  6 min'] }],
+    },
+    // the southern platform's, following the northern platform's line 11.5 to 11.8 m to its right
+    roofs: [{
+      kind: 'butterfly',
+      from: -5.5, to: 24.5, width: 7.5,
+      shape: [[-5.5, 13.18, 7.5], [10, 12.95, 7.5], [24.5, 12.85, 7.5]],
+      middle: 2.7, edge: 3.1, thick: 0.2, fascia: 0.25,
+      rafters: 2.4, rafterAt: 10, rafterSize: [0.08, 0.22], deck: 'ribbedAcross', rafterColor: 0x24392e,
+      beam: 0.3,
+      columns: { every: 7.2, at: 10, size: 0.16, plinth: { size: 0.2, height: 0.03 }, pair: 1.0, offset: -1.25, between: [-5, 22],
+        portal: { spring: 1.0, crown: 1.0, top: 2.2, hole: { at: 1.6, r: 0.33 } } },
+      lamps: { offset: 2.0, length: 1.2, every: 2.4, at: [-2.0, 1.6] },
+      colors: { underside: 0x484d4c, fascia: 0x2f5446, top: 0xa9aeb2, steel: 0x24392e },
+      signs: { at: [-0.8, 13.6], back: '', ahead: 'Siktgatan' },
+      clocks: [[3.6, -2.2]],
+      boards: [{ s: 7.6, u: -2.2, toward: 'Hässelby', trains: ['18 Hässelby strand  9 min', '19 Hässelby strand  11 min'] }],
+    }],
+    paving: {
+      edge: 0.55, tactile: [0.55, 0.9], slabs: 0.9,
+      colors: { edge: 0xd2d0c9, tactile: 0x46484a, slab: 0x5d5c5a, pavers: 0x5d5c5a, face: 0xa9a59d },
+      pattern: 'asphalt',
+    },
+    buildings: ['w436256428', 'w436256430'],
+    rooms: [
+      { name: 'platform', s: [-6, 25], h: [-0.5, 0.5], walls: null, floor: null },
+      // (the wells' walls rise to the platform, their flights open overhead)
+      { name: 'northern stairs', s: [10, 25.3], u: [-12.4, -9], h: [-5.6, 0.5], walls: 'yellowTiles', stairs: 'yellowTiles', floor: 'terrazzo', ceiling: 'whitePanels', sill: 0 },
+      { name: 'southern stairs', s: [10, 25.3], u: [7.5, 11.2], h: [-5.6, 0.5], walls: 'yellowTiles', stairs: 'yellowTiles', floor: 'terrazzo', ceiling: 'whitePanels', sill: 0 },
+      { name: 'hall', s: [24, 36], u: [-13, -7], h: [-5.6, -4], walls: 'dripTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'passage', s: [22, 36], u: [-7, 12], h: [-5.6, -4], walls: 'yellowTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      // the platforms' floors out to the roofs' backs, and beside the wells
+      { name: 'northern floor', plan: [[-5.5, -12.55], [10.5, -12.55], [10.5, -8.05], [-5.5, -8.06]], h: [-0.6, 0], from: 0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt' },
+      { name: 'northern floor beside the well', plan: [[10.5, -9.05], [22.7, -9.05], [22.7, -7.99], [10.5, -8.05]], h: [-0.6, 0], from: 0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt' },
+      { name: 'northern floor behind the well', plan: [[10.5, -12.55], [22.7, -12.55], [22.7, -12.2], [10.5, -12.2]], h: [-0.6, 0], from: 0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt' },
+      { name: 'northern floor by the lift', plan: [[24.5, -8.9], [35, -8.9], [35, -7.92], [24.5, -7.97]], h: [-0.6, 0], from: 0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt' },
+      { name: 'southern floor', plan: [[-5.5, 8.15], [10.5, 7.95], [10.5, 10.85], [-5.5, 10.85]], h: [-0.6, 0], from: 0,
+        walls: 'boardConcrete', sides: [null, null, null, null], floor: 'asphalt' },
+      // the northern roof's back: glass in green frames over concrete down to the path along the
+      // bank, wired glass beside the stairs
+      { name: 'northern glass wall', plan: [[-5.5, -12.7], [10.5, -12.7], [10.5, -12.55], [-5.5, -12.55]], h: [-3.2, 3.1], from: 0,
+        walls: 'greenGlazed', roof: 0.05, roofColor: 0x24392e },
+      { name: 'northern wired glass', plan: [[10.5, -12.7], [22.7, -12.7], [22.7, -12.55], [10.5, -12.55]], h: [-3.2, 3.1], from: 0,
+        walls: 'wiredGlazed', roof: 0.05, roofColor: 0x24392e },
+      // the southern well's outer wall below the platform, to the slope
+      { name: 'southern wall', plan: [[-5.5, 10.85], [31.5, 10.85], [31.5, 11.05], [-5.5, 11.05]], h: [-5.6, 0], from: 0,
+        walls: 'boardConcrete' },
+      // the parapets along the wells, ochre tiles under a green cap
+      { name: 'northern parapet', plan: [[10.5, -9.2], [22.7, -9.2], [22.7, -9.05], [10.5, -9.05]], h: [0, 1.0], from: 0,
+        walls: 'yellowTiles', roof: 0.04, roofColor: 0x24392e },
+      { name: 'southern parapet', plan: [[10.5, 7.85], [22.7, 7.85], [22.7, 8.0], [10.5, 8.0]], h: [0, 1.0], from: 0,
+        walls: 'yellowTiles', roof: 0.04, roofColor: 0x24392e },
+      // the rooms closing the wells' east ends, their doors facing the stairs
+      { name: 'northern room', plan: [[22.7, -12.7], [24.5, -12.7], [24.5, -9.05], [22.7, -9.05]], h: [-5.6, 2.85], from: 0,
+        walls: 'yellowTiles', sides: [undefined, undefined, undefined, 'ochreDoor'], roof: 0.05, roofColor: 0x24392e },
+      { name: 'southern room', plan: [[22.7, 7.85], [24.5, 7.85], [24.5, 11.05], [22.7, 11.05]], h: [-5.6, 2.75], from: 0,
+        walls: 'yellowTiles', sides: [undefined, undefined, undefined, 'ochreDoor'], roof: 0.05, roofColor: 0x24392e },
+      // the lift towers beyond the roofs' east ends
+      { name: 'northern lift tower', plan: [[25.0, -8.65], [27.6, -8.65], [27.6, -6.15], [25.0, -6.15]], h: [0, 3.9], from: 0.05,
+        walls: 'greenGlazed', roof: 0.12, roofColor: 0x24392e, onPlatform: true },
+      { name: 'southern lift tower', plan: [[25.0, 5.35], [27.6, 5.35], [27.6, 7.85], [25.0, 7.85]], h: [0, 3.9], from: 0.05,
+        walls: 'greenGlazed', roof: 0.12, roofColor: 0x24392e, onPlatform: true },
+      // the ticket hall under the northern platform's edge: cream tiles outside, its doors in the
+      // east end of its front
+      { name: 'hall', plan: [[24.5, -12.2], [32.2, -12.2], [32.2, -8.9], [24.5, -8.9]], h: [-5.6, -1.7], from: -5.2,
+        walls: 'creamTiles', sides: [undefined, null, null, undefined], ceiling: 'whitePanels', roof: 0.3, roofColor: 0x8e8b85, ground: true },
+      { name: 'hall, by the doors', plan: [[32.2, -12.2], [35.0, -12.2], [35.0, -8.9], [32.2, -8.9]], h: [-5.6, -1.7], from: -5.2,
+        walls: 'creamTiles', sides: ['circleFront', undefined, null, null], ceiling: 'whitePanels', roof: 0.3, roofColor: 0x8e8b85, ground: true,
+        nameSign: { side: 0, at: 0.5, length: 2.6, bottom: -2.84 } },
+    ],
+    art: [
+      // galvanised masts out on the open ends, the black name sign on some
+      { kind: 'masts', height: 4.8, color: 0xa3a8ab, top: false, arm: 0.5, shade: 0xf2f2ee, at: [[-62, -5.7], [-26, -7.25], [60, -7.0], [-62, 9.85], [-26, 8.1], [60, 8.1]] },
+      { kind: 'masts', height: 4.8, color: 0xa3a8ab, top: false, arm: 0.5, shade: 0xf2f2ee, sign: 2.6, at: [[-44, -6.65], [42, -7.2], [-44, 8.85], [42, 7.55]] },
+    ],
+    benches: [{ at: [-0.8, 6.4], wood: true }, { at: [-0.8, 6.4], wood: true, roof: 0 }],
+    fences: [
+      // dark green chain-link along the platforms' backs, and across the northern roof's west end (a
+      // lighter green than it is: the mesh blurs to a solid band from afar, which in the real green
+      // reads as a black wall)
+      { points: [[-70, -5.8], [-60, -6.5], [-50, -7.05], [-40, -7.51], [-30, -7.85], [-20, -8.05], [-10, -8.15], [-5.5, -8.16]], h: [0, 2.2], color: 0x46644f },
+      { points: [[-5.5, -8.16], [-5.5, -12.55]], h: [0, 3.0], color: 0x46644f },
+      { points: [[24.5, -8.9], [35, -8.9], [37, -8.0], [40, -7.94], [50, -7.83], [60, -7.68], [69, -7.5]], h: [0, 2.2], color: 0x46644f },
+      { points: [[-75, 11.2], [-69, 10.99], [-60, 10.41], [-50, 9.82], [-40, 9.32], [-30, 8.92], [-20, 8.6], [-10, 8.36], [-5.5, 8.27], [-5.5, 10.85]], h: [0, 2.2], color: 0x46644f },
+      { points: [[24.5, 8.0], [30, 8.05], [40, 8.18], [50, 8.42], [60, 8.77], [68, 9.1]], h: [0, 2.2], color: 0x46644f },
+      // the dark green bars along the southern roof's back, and the railings on the parapets
+      { kind: 'bars', color: 0x24392e, points: [[-5.5, 10.75], [22.7, 10.75]], h: [0, 3.0] },
+      { kind: 'bars', color: 0x24392e, points: [[10.5, -9.125], [22.7, -9.125]], h: [1.04, 1.3] },
+      { kind: 'bars', color: 0x24392e, points: [[10.5, 7.925], [22.7, 7.925]], h: [1.04, 1.3] },
     ],
   },
 };

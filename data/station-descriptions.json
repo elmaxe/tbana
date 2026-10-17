@@ -1436,22 +1436,41 @@
     },
     "Johannelund": {
       "drawing": "johannelund.png",
-      "note": "Two side platforms in the open. In the middle stairs go down from each to a passage under the tracks, which leads out to the north.",
+      "note": "Two side platforms on a bank, a butterfly roof over the middle of each. From the back of each, stairs go down eastwards in an open well to a passage under the tracks; the ticket hall is at its north end, its doors out to the forecourt on the north side. A lift beside each roof's east end. Laid out from Lantmäteriet's laser scan (the forecourt 5.2 m below the platforms, the roofs), OpenStreetMap's indoor mapping (the stairs, the lifts, the passage, the gates and the doors) and photographs (2006 to 2023); Albert Guillaumes' drawing has the stairs from the middle of the platforms and the way out to the north, as here.",
       "routes": [
-        { "from": [10, 6], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [100, 6]},
-          {"walk": [27, 6], "width": 4},
-          {"walk": [27, -6]},
-          {"mark": "under"}
-        ] },
-        { "from": [10, -6], "width": 3, "go": [
-          {"stairs": -5.4, "toward": [100, -6]},
-          {"walk": [27, -6], "width": 4}
-        ] },
-        { "from": "under", "width": 4, "go": [
-          {"walk": [29, -8]},
+        { "from": [8.0, 6.4], "width": 3.0, "go": [
+          {"walk": [8.0, 9.35], "open": true},
+          {"walk": [10.5, 9.35], "open": true},
+          {"stairs": -2.6, "toward": [40, 9.35], "lanes": "ss", "ceiling": 2.4, "open": true, "daylight": true},
+          {"walk": 2.4, "open": true, "daylight": true},
+          {"stairs": -2.6, "lanes": "ss", "open": true, "daylight": true},
+          {"walk": [25.2, 9.35], "ceiling": 2.6},
+          {"walk": [29.8, 9.35], "ceiling": 2.6},
+          {"walk": [29.8, -9.8], "ceiling": 2.6},
+          {"walk": [31.0, -9.8], "ceiling": 3.0},
           {"gates": true},
-          {"exit": 6765039096}
+          {"walk": [33.1, -9.8], "ceiling": 3.0},
+          {"walk": [33.1, -12.0], "ceiling": 3.0},
+          {"exit": {"at": [33.1, -16.0], "name": "Siktgatan"}, "by": "walk", "open": true}
+        ] },
+        { "from": [8.0, -6.4], "width": 3.0, "go": [
+          {"walk": [8.0, -10.7], "open": true},
+          {"walk": [10.5, -10.7], "open": true},
+          {"stairs": -2.6, "toward": [40, -10.7], "lanes": "ss", "ceiling": 2.4, "open": true, "daylight": true},
+          {"walk": 2.4, "open": true, "daylight": true},
+          {"stairs": -2.6, "lanes": "ss", "open": true, "daylight": true},
+          {"walk": [25.2, -10.7], "ceiling": 2.6},
+          {"walk": [29.0, -10.7], "ceiling": 3.0}
+        ] },
+        { "from": [22.6, -7.4], "width": 1.6, "go": [
+          {"walk": [24.8, -7.4], "open": true},
+          {"lift": -5.2, "above": 3.9, "through": true},
+          {"walk": [29.0, -7.4], "width": 1.8, "ceiling": 3.0}
+        ] },
+        { "from": [22.6, 6.6], "width": 1.6, "go": [
+          {"walk": [24.8, 6.6], "open": true},
+          {"lift": -5.2, "above": 3.9, "through": true},
+          {"walk": [29.0, 6.6], "width": 1.8, "ceiling": 2.6}
         ] }
       ]
     },

@@ -156,6 +156,11 @@
       "outline": [[-7612.3, -1176.2], [-7589.9, -1173.9], [-7592.1, -1152.7], [-7617.9, -1155.3], [-7619.6, -1158.7], [-7618.9, -1165.0], [-7613.5, -1164.4]],
       "ground": 11.7,
       "why": "Åkeshov's ticket hall and the underpass beside it, under the tracks' decks east of the platforms, and the sunken strip along the hall's south wall out to the underpass's mouth. The elevation model has the bank over the hall, 15.5 m, and a trench along the underpass. Lantmäteriet's laser scan has the forecourt at 11.7–12.0 m from the hall's south wall to 3 m beyond it and at the underpass's mouth (the hall's floor and the underpass's are as high, by the photographs), rising to 12.5–13 m beyond; the outline keeps to the hall, the underpass and the strip. The hall, the underpass and its walls are drawn by the station (src/open-styles.ts)."
+    },
+    {
+      "outline": [[-11436.9, -4075.5], [-11424.9, -4074.3], [-11423.3, -4080.9], [-11422.5, -4083.4], [-11434.4, -4084.6], [-11434.4, -4080.0], [-11436.6, -4078.3]],
+      "ground": 25.2,
+      "why": "The forecourt in front of Johannelund's ticket hall, a notch in the railway's bank north of the platforms' east end, from the hall's doors 9 m out. Lantmäteriet's laser scan (2021) has it level at 25.0–25.3 m from the doors out to where it falls away northwards, the bank either side at 27 m; the elevation model's 5 m grid smooths the bank into it, up to 25.7–26.2 m at the doors, so the hall (its floor at 25.0 m) stood in a pit."
     }
   ],
   "fill": [

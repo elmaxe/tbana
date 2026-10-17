@@ -1175,19 +1175,24 @@ export class OpenLook {
   }
 
   // A steel plate across between a pair of columns, from u0 to u1 (their inner faces) at s, from
-  // `top` down to an arch cut out of it; flat bars across below it, and a downpipe between them
-  // from the valley (`valley` high) to the platform.
+  // `top` down to an arch cut out of it (or to a flat foot, a round hole through it); flat bars
+  // across below it, and a downpipe between them from the valley (`valley` high) to the platform.
   private portal(P: NonNullable<ButterflyRoof['columns']['portal']>, s: number, u0: number, u1: number, valley: number, line: Line, steel: Mesh, on: On, cut: Volume[]) {
-    const n = 12, half = (u1 - u0) / 2, mid = (u0 + u1) / 2, rise = P.crown - P.spring;
+    const H = P.hole, n = H ? 24 : 12, half = (u1 - u0) / 2, mid = (u0 + u1) / 2, rise = P.crown - P.spring;
     // the arch: a segment of a circle through both springings and the crown
     const r = rise > 0 ? (half * half + rise * rise) / (2 * rise) : 0;
     const arch = (u: number) => rise > 0 ? P.crown - r + Math.sqrt(Math.max(0, r * r - (u - mid) * (u - mid))) : P.spring;
-    // both faces, 16 mm apart
+    // (the hole's half height at u)
+    const chord = (u: number) => H ? Math.sqrt(Math.max(0, H.r * H.r - (u - mid) * (u - mid))) : 0;
+    // both faces, 16 mm apart, in strips across: below the hole and above it
     for (const side of [-1, 1]) {
       const at = (u: number, h: number) => [...line.at(s + side * 0.008, u, h), 0, 0];
       for (let k = 0; k < n; k++) {
         const a = u0 + (2 * half * k) / n, b = u0 + (2 * half * (k + 1)) / n;
-        steel.poly([at(a, arch(a)), at(b, arch(b)), at(b, P.top), at(a, P.top)], cut);
+        if (H) {
+          steel.poly([at(a, P.spring), at(b, P.spring), at(b, H.at - chord(b)), at(a, H.at - chord(a))], cut);
+          steel.poly([at(a, H.at + chord(a)), at(b, H.at + chord(b)), at(b, P.top), at(a, P.top)], cut);
+        } else steel.poly([at(a, arch(a)), at(b, arch(b)), at(b, P.top), at(a, P.top)], cut);
       }
     }
     for (const b of P.bars ?? []) bar(steel, line.at(s, u0, b), line.at(s, u1, b), 0.1, 0.05, cut);
@@ -1722,8 +1727,10 @@ export class OpenLook {
     if (f.kind === 'glass') return this.glassFence(f, frame, on);
     if (f.kind === 'rails') return this.railFence(f, frame, on);
     if (f.kind === 'bars') return this.barFence(f, frame, on);
-    const link = on(this.mat('chainLink', () => new THREE.MeshStandardMaterial({ map: T.chainLink(), alphaTest: 0.35, roughness: 0.5, metalness: 0.5, side: THREE.DoubleSide })));
-    const post = on(this.color(0x9aa0a4, 0.45, 0.6));
+    // (galvanised, or coated in `color`)
+    const css = f.color === undefined ? undefined : `#${f.color.toString(16).padStart(6, '0')}`;
+    const link = on(this.mat(`chainLink:${css ?? ''}`, () => new THREE.MeshStandardMaterial({ map: T.chainLink(css), alphaTest: 0.35, roughness: 0.5, metalness: css ? 0.2 : 0.5, side: THREE.DoubleSide })));
+    const post = on(this.color(f.color ?? 0x9aa0a4, 0.45, css ? 0.3 : 0.6));
     const [h0, h1] = f.h;
     let along = 0;
     for (let i = 0; i + 1 < f.points.length; i++) {
