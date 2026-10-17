@@ -374,35 +374,53 @@
     },
     "Tekniska högskolan": {
       "drawing": "tekniska_hogskolan.png",
-      "note": "A long island platform. Escalators climb from each end of it: to the south-east, a ticket hall under Valhallavägen with exits to the bus terminal and Roslagsbanan; to the north-west, one under Odengatan.",
+      "note": "An island platform 157 m long and 27 m wide round two cores of rock, a passage between them (Albert Guillaumes' drawing, its scale read off Roslagsbanan's platforms beside it). From a lobby 10 m wide at each end of the platform three escalators and an inclined lift climb (OpenStreetMap's indoor ways): at the north-west about 14.5 m, to a hall under Valhallavägen with stairs and a lift up to it and a passage to Odengatan; at the south-east about 13 m, to a hall under the bus terminal with escalators, stairs and a lift up to Valhallavägen, a passage to Stockholms östra and one to Danderydsgatan.",
       "routes": [
-        { "from": [70, 0], "width": 5, "go": [
-          {"escalators": 13, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [-78.4, 0.5], "width": 10.4, "go": [
+          {"walk": [-88.4, 0.5]},
+          {"escalators": 14.5, "toward": [-150, 0.5], "lanes": "LEEE"},
+          {"walk": 4, "width": 8},
           {"gates": true},
-          {"walk": [110, -10], "width": 7},
-          {"mark": "se"},
-          {"exit": 4013808477}
-        ] },
-        { "from": "se", "width": 4, "go": [
-          {"exit": 1872294286}
-        ] },
-        { "from": "se", "width": 4, "go": [
-          {"exit": 372693889}
-        ] },
-        { "from": "se", "width": 4, "go": [
-          {"exit": 164913360}
-        ] },
-        { "from": [-70, 0], "width": 5, "go": [
-          {"escalators": 13, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
-          {"gates": true},
-          {"walk": 3},
-          {"mark": "nw"},
+          {"walk": [-140, -3], "width": 10},
+          {"mark": "north-west hall"},
+          {"walk": [-146, -10], "width": 6},
           {"exit": 360596291}
         ] },
-        { "from": "nw", "width": 4, "go": [
+        { "from": "north-west hall", "width": 3, "go": [
+          {"exit": {"at": [-146.2, -16.1], "name": "Valhallavägen"}, "by": "lift"}
+        ] },
+        { "from": "north-west hall", "width": 4, "go": [
+          {"walk": [-151.6, -6]},
+          {"walk": [-153.5, 40.6]},
           {"exit": 152803127}
+        ] },
+        { "from": [78.4, 0.5], "width": 10.4, "go": [
+          {"walk": [83.4, 0.5]},
+          {"escalators": 13, "toward": [150, 0.5], "lanes": "LEEE"},
+          {"walk": 4, "width": 8},
+          {"gates": true},
+          {"walk": [140, -2], "width": 10},
+          {"mark": "south-east hall"},
+          {"walk": [150, -8], "width": 6},
+          {"exit": 4013808477, "by": "escalators", "lanes": "EE"}
+        ] },
+        { "from": "south-east hall", "width": 5, "go": [
+          {"walk": [157, -8]},
+          {"exit": 372693889}
+        ] },
+        { "from": "south-east hall", "width": 4, "go": [
+          {"walk": [157, -8]},
+          {"walk": [155, -22]},
+          {"exit": 1872294286}
+        ] },
+        { "from": "south-east hall", "width": 4, "go": [
+          {"walk": [160, 5.3]},
+          {"walk": [182.3, 36.6]},
+          {"exit": 164913360}
+        ] },
+        { "from": "south-east hall", "width": 3, "go": [
+          {"walk": [160, -4]},
+          {"exit": {"at": [163, -5], "name": "Valhallavägen"}, "by": "lift"}
         ] }
       ]
     },

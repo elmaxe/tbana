@@ -6024,4 +6024,18 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'north-east hall', s: [104, 130], u: [-12, 4], h: [16, 19], walls: 'pineBoards', floor: 'slate', ceiling: 'whiteRender' },
     ],
   },
+  // Tekniska högskolan's hall is an island cave (src/hall-styles.ts); the lobbies at the platform's
+  // ends, dark as the hall, polished dark floor carrying on from the platform's; the escalators
+  // and the halls up them: from photographs (2016–2025), white walls, a ceiling of pale metal, and
+  // pale grey stone in large squares underfoot.
+  'Tekniska högskolan': {
+    rooms: [
+      { name: 'north-western lobby', s: [-89, -77], u: [-6, 7], h: [-1, 0.5], walls: 'darkStone', floor: 'darkTerrazzo', ceiling: 'perforated' },
+      { name: 'south-eastern lobby', s: [77, 84], u: [-6, 7], h: [-1, 0.5], walls: 'darkStone', floor: 'darkTerrazzo', ceiling: 'perforated' },
+      { name: 'north-western escalators', s: [-116, -88], u: [-6, 7], h: [-1, 15], walls: 'whitePanels', stairs: 'darkStone', ceiling: 'ribbedMetal' },
+      { name: 'south-eastern escalators', s: [83, 108], u: [-6, 7], h: [-1, 14], walls: 'whitePanels', stairs: 'darkStone', ceiling: 'ribbedMetal' },
+      { name: 'north-western hall', s: [-170, -112], u: [-25, 62], h: [13, 16], walls: 'whitePanels', floor: 'terrazzo', ceiling: 'ribbedMetal' },
+      { name: 'south-eastern hall', s: [104, 200], u: [-45, 60], h: [12, 15], walls: 'whitePanels', floor: 'terrazzo', ceiling: 'ribbedMetal' },
+    ],
+  },
 };

@@ -292,6 +292,9 @@ each with its reason:
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)
 - Gärdet's two platform halls, straight and parallel, which the track's smoothing bowed apart
   (`straight`: the station's tracks held on one straight line, so far apart)
+- Tekniska högskolan's island platform, 157 m long and 27 m wide round its two cores of rock
+  (Albert Guillaumes' drawing), where OpenStreetMap's is 183 m long and 15 m wide, and its
+  tracks held straight
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.

@@ -99,6 +99,8 @@ const BRIDGE_SHARE_REACH = 8;
 // how far across the widest island platform two tracks may be, and how far apart in length its
 // ends may be on the two
 const ISLAND_REACH = Math.max(ISLAND_WIDTH, ...Object.values(ISLAND_WIDTHS)) * 2 + 2 * PLATFORM_EDGE, ISLAND_ENDS = 8;
+// how far across a platform the next track is looked for: 30 m, or across the widest island
+const PLATFORM_REACH = Math.max(30, ...Object.values(ISLAND_WIDTHS).map((w) => w + 2 * PLATFORM_EDGE + 1));
 // structure runs shorter than this are merged into the run before
 const MIN_RUN = 30;
 
@@ -542,7 +544,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         if (f < 0.05) return;
         pairRows++;
       } else if (here && there && here.station === there.station && straightStations.has(here.station)) {
-        // side platforms held straight and parallel (data/track-corrections.json): their spacing
+        // platforms held straight and parallel (data/track-corrections.json): their spacing
         target = straightStations.get(here.station)!;
         f = 1;
         pairRows++;
@@ -1007,7 +1009,7 @@ for (const p of pieces) {
           const dx = o.x[j] - g.x[k], dz = o.z[j] - g.z[k];
           if (Math.abs(tx * dx + tz * dz) > STEP / 2) continue;
           const lateral = (-tz * dx + tx * dz) * r.side;
-          if (lateral < 1 || lateral > 30) continue;
+          if (lateral < 1 || lateral > PLATFORM_REACH) continue;
           // (OSM may match only part of the other track to the platform)
           const island = atPlatform.length > 0;
           // where two tracks are as near, the one at this platform

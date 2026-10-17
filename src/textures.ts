@@ -980,7 +980,11 @@ export type CaveMotif =
   // lines of small handwriting in many colours
   | { kind: 'writing'; colors: string[]; from: number; to: number }
   // cracks in the rock traced in paint: thin lines wandering every way, branching
-  | { kind: 'cracks'; colors: string[]; from: number; to: number; count: number };
+  | { kind: 'cracks'; colors: string[]; from: number; to: number; count: number }
+  // flowing bands, as of water or of folds in stone: wavering strokes up to `width` m wide,
+  // thinning to their ends, `length` m long, running about `angle` degrees round from along the
+  // cave (90: up the wall)
+  | { kind: 'swirls'; colors: string[]; from: number; to: number; count: number; width: number; length: number; angle?: number };
 
 export function caveRock(paint: CavePaint) {
   const PX = CAVE_PX, W = CAVE_ACROSS * PX, H = CAVE_REPEAT * PX;
@@ -1379,6 +1383,27 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
       for (let i = 0; i < m.count; i++) {
         x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
         crack(across(m.from, m.to), r() * L, r() * Math.PI * 2, 1.5 + r() * 3.5, 0.035 + r() * 0.025, 0);
+      }
+      break;
+    }
+    case 'swirls': {
+      x.lineCap = 'round';
+      for (let i = 0; i < m.count; i++) {
+        x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
+        let u = across(m.from, m.to), dv = 0, a = ((m.angle ?? 0) * Math.PI) / 180 + (r() - 0.5) * 0.8;
+        const y = r() * L, n = Math.max(4, Math.round((m.length * (0.6 + r() * 0.8)) / 0.12));
+        const w = m.width * (0.4 + r() * 0.6), turn = (r() - 0.5) * 0.12, ph = r() * 6, pts: [number, number][] = [[u, 0]];
+        for (let k = 0; k < n; k++) {
+          a += turn + Math.sin(k * 0.3 + ph) * 0.07;
+          u = Math.min(m.to, Math.max(m.from, u + Math.sin(a) * 0.12)); dv += Math.cos(a) * 0.12;
+          pts.push([u, dv]);
+        }
+        wrap(y, m.length * 1.5 + 1, (yy) => {
+          for (let k = 1; k < pts.length; k++) {
+            x.lineWidth = w * Math.sin((Math.PI * k) / pts.length) + 0.01;
+            x.beginPath(); x.moveTo(pts[k - 1][0], yy + pts[k - 1][1]); x.lineTo(pts[k][0], yy + pts[k][1]); x.stroke();
+          }
+        });
       }
       break;
     }
@@ -2335,14 +2360,15 @@ export function stadionEdge() {
   return toTexture(c);
 }
 
-// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m).
-export function stadionPlinth() {
+// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m); or,
+// `grey`, pale grey ones (Tekniska högskolan's).
+export function stadionPlinth(grey = false) {
   const [c, x] = canvas(384);
-  x.fillStyle = '#a9a294'; x.fillRect(0, 0, 384, 384);
+  x.fillStyle = grey ? '#8f908d' : '#a9a294'; x.fillRect(0, 0, 384, 384);
   const r = rng(177);
   for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
-    const v = 222 + Math.floor(r() * 12);
-    x.fillStyle = `rgb(${v},${v - 6},${v - 22})`;
+    const v = (grey ? 204 : 222) + Math.floor(r() * 12);
+    x.fillStyle = grey ? `rgb(${v},${v},${v - 3})` : `rgb(${v},${v - 6},${v - 22})`;
     x.fillRect(i * 48 + 1.5, j * 48 + 1.5, 45, 45);
   }
   speckle(x, 384, 384, 1500, 0.08, 178);
@@ -2366,17 +2392,18 @@ export function stadionCeiling() {
 }
 
 // Panels of green expanded steel mesh, on posts 1.2 m apart (the texture covers 1.2 × 1.2 m, a
-// post along its left edge), the dark rock showing through between the strands.
-export function stadionMesh() {
+// post along its left edge), the dark rock showing through between the strands; or in other
+// colours: the rock behind, the strands and the posts.
+export function stadionMesh(back = '#1d3a36', strand = '#5fb3a3', post = '#4fa595') {
   const [c, x] = canvas(256);
-  x.fillStyle = '#1d3a36'; x.fillRect(0, 0, 256, 256);
-  x.strokeStyle = '#5fb3a3'; x.lineWidth = 2.6;
+  x.fillStyle = back; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = strand; x.lineWidth = 2.6;
   const p = 256 / 24;
   for (let k = -24; k <= 48; k++) {
     x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + 128, 256); x.stroke();
     x.beginPath(); x.moveTo(k * p, 256); x.lineTo(k * p + 128, 0); x.stroke();
   }
-  x.fillStyle = '#4fa595'; x.fillRect(0, 0, 9, 256);
+  x.fillStyle = post; x.fillRect(0, 0, 9, 256);
   x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(9, 0, 3, 256);
   return toTexture(c);
 }
@@ -2389,8 +2416,8 @@ const RAINBOW = ['#d8321e', '#ee7a1c', '#f2cf2a', '#4aa83a', '#1f9a8a', '#2f6fd0
 // The wall over one of the passage's openings, as seen from the passage: the pillars' sky-blue
 // rock, and round the opening a rainbow, its seven bands `band` m wide. `w` m along and `h` m up
 // from the platform; the opening `inset` in from each end with its crown `crown` high. With
-// `redInside`, the red band is the inner one.
-export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint) {
+// `redInside`, the red band is the inner one. Without `rainbow`, the rock's paint alone.
+export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint, rainbow = true) {
   const PX = 48, W = Math.round(w * PX), H = Math.round(h * PX);
   const [c, x] = canvas(W, H);
   // the rock's paint, as on the pillars, upright (its foot, darkened by the track's dust, below
@@ -2402,7 +2429,7 @@ export function stadionPortal(w: number, h: number, inset: number, crown: number
   // the rainbow: the opening's half ellipse, grown band by band, the outer band first
   const hw = w / 2 - inset, mid = w / 2;
   x.setTransform(PX, 0, 0, -PX, 0, H);
-  const colours = redInside ? [...RAINBOW].reverse() : RAINBOW;
+  const colours = !rainbow ? [] : redInside ? [...RAINBOW].reverse() : RAINBOW;
   const r = rng(179), ph = [r() * 6, r() * 6];
   for (let k = colours.length; k >= 1; k--) {
     x.fillStyle = colours[colours.length - k];
@@ -2554,6 +2581,172 @@ export function stadionArrow(blocks: boolean) {
   }
   x.restore();
   x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
+  return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ Tekniska högskolan's hall
+// Lennart Mörk's art (1973) on the cores of rock down the island platform, from photographs
+// (Wikimedia Commons, 2005–2025): the rock modelled in pale grey folds; on the north-western end of
+// the north-western core a great round disc ringed like a lens in a dark crater, fields of dots
+// curving away from it; on the south-eastern end of the other, and along the cores' sides, the
+// machines of the sciences in relief, with a figure and a net of red and blue lines. Each is drawn
+// on the pale grey of the rock, which shows round its ragged edge.
+
+// the pale grey rock, mottled, with darker folds, `w` × `h` m at `PX` px a metre
+function morkRock(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number) {
+  x.fillStyle = '#c4c0b8'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < (W * H) / (PX * PX) * 6; i++) {
+    const cx = r() * W, cy = r() * H, rad = (0.2 + r() * 0.6) * PX, light = r() < 0.5;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, light ? 'rgba(232,229,222,0.5)' : 'rgba(150,145,136,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(cx - rad, cy - rad, 2 * rad, 2 * rad);
+  }
+  x.lineCap = 'round';
+  for (let i = 0; i < (W / PX) * 3; i++) {
+    let px = r() * W, py = H, a = -Math.PI / 2 + (r() - 0.5) * 0.6;
+    x.strokeStyle = r() < 0.3 ? 'rgba(130,104,80,0.35)' : 'rgba(110,106,100,0.3)';
+    x.lineWidth = (0.03 + r() * 0.06) * PX;
+    x.beginPath(); x.moveTo(px, py);
+    for (let k = 0; k < 30; k++) { a += (r() - 0.5) * 0.4; px += Math.cos(a) * 0.1 * PX; py += Math.sin(a) * 0.1 * PX; x.lineTo(px, py); }
+    x.stroke();
+  }
+}
+// cut the picture to a ragged outline, so that the rock round it shows through
+function raggedEdge(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number) {
+  x.globalCompositeOperation = 'destination-in';
+  x.fillStyle = '#000';
+  x.beginPath();
+  const n = 80, m = 0.25 * PX, ph = r() * 6;
+  for (let k = 0; k <= n; k++) {
+    const t = (k / n) * Math.PI * 2, rx = W / 2 - m * (0.6 + 0.4 * Math.sin(t * 5 + ph)), ry = H / 2 - m * (0.6 + 0.4 * Math.sin(t * 7 + ph));
+    const c = Math.cos(t), s = Math.sin(t), e = 6;
+    const px = W / 2 + rx * Math.sign(c) * Math.abs(c) ** (2 / e), py = H / 2 + ry * Math.sign(s) * Math.abs(s) ** (2 / e);
+    if (k) x.lineTo(px, py); else x.moveTo(px, py);
+  }
+  x.closePath(); x.fill();
+  x.globalCompositeOperation = 'source-over';
+}
+
+// The disc on the north-western core's end: ringed like a lens, 1.7 m across, in a dark crater, and
+// round it fields of dots in curving lines. 6.4 × 2.6 m.
+export function tekniskaEye() {
+  const PX = 100, W = 640, H = 260, [c, x] = canvas(W, H);
+  const r = rng(1973);
+  morkRock(x, W, H, PX, r);
+  const cx = W * 0.4, cy = H * 0.52;
+  // the dots, in lines curving out from round the crater
+  for (let k = 0; k < 26; k++) {
+    const a0 = (k / 26) * Math.PI * 2 + r() * 0.2, bend = 0.5 + r() * 0.5, len = 1.4 + r() * 2.2;
+    x.fillStyle = 'rgba(52,50,48,0.8)';
+    for (let d = 1.3; d < 1.3 + len; d += 0.07) {
+      const a = a0 + bend * (d - 1.3) / len, px = cx + Math.cos(a) * d * PX * 1.25, py = cy + Math.sin(a) * d * PX * 0.62;
+      if (px < 0 || px > W || py < 0 || py > H) continue;
+      x.beginPath(); x.arc(px, py, (0.012 + r() * 0.01) * PX, 0, Math.PI * 2); x.fill();
+    }
+  }
+  // the crater, dark round the disc
+  const cr = x.createRadialGradient(cx, cy, 0.8 * PX, cx, cy, 1.35 * PX);
+  cr.addColorStop(0, 'rgba(58,56,53,0.95)'); cr.addColorStop(0.55, 'rgba(90,87,82,0.7)'); cr.addColorStop(1, 'rgba(90,87,82,0)');
+  x.fillStyle = cr; x.beginPath(); x.arc(cx, cy, 1.35 * PX, 0, Math.PI * 2); x.fill();
+  // the disc, ringed, lit from above
+  const R = 0.85 * PX, g = x.createLinearGradient(cx, cy - R, cx, cy + R);
+  g.addColorStop(0, '#a19d96'); g.addColorStop(1, '#6f6b65');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fill();
+  x.lineWidth = 1.3;
+  for (let rad = 0.08; rad < 0.85; rad += 0.065) {
+    x.strokeStyle = 'rgba(50,48,45,0.55)'; x.beginPath(); x.arc(cx, cy, rad * PX, 0, Math.PI * 2); x.stroke();
+    x.strokeStyle = 'rgba(220,216,208,0.25)'; x.beginPath(); x.arc(cx, cy - 1, rad * PX, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+  }
+  x.fillStyle = '#3c3a37';
+  for (const [dx, dy] of [[-0.18, -0.1], [0.12, -0.2], [0.2, 0.12], [-0.08, 0.2]]) { x.beginPath(); x.arc(cx + dx * PX, cy + dy * PX, 0.035 * PX, 0, Math.PI * 2); x.fill(); }
+  raggedEdge(x, W, H, PX, r);
+  return toTexture(c, { repeat: false });
+}
+
+// Machines of the sciences in relief on the pale rock: wheels and gears, levers and rods, boxes;
+// with `figure`, a standing figure at the left and a net of red and blue lines (a map's
+// projection) over the middle. 7 × 2.3 m.
+export function tekniskaRelief(figure: boolean, seed: number) {
+  const PX = 90, W = 630, H = 207, [c, x] = canvas(W, H);
+  const r = rng(seed);
+  morkRock(x, W, H, PX, r);
+  // each raised shape: its shadow below and to the right, its lit edge above and to the left
+  const raised = (path: () => void) => {
+    x.save(); x.translate(3, 4); path(); x.fillStyle = 'rgba(70,66,60,0.55)'; x.fill(); x.restore();
+    x.save(); x.translate(-1.5, -2); path(); x.fillStyle = 'rgba(245,243,238,0.6)'; x.fill(); x.restore();
+    path(); x.fillStyle = '#bdb9b1'; x.fill();
+  };
+  const gear = (gx: number, gy: number, rad: number, teeth: number) => raised(() => {
+    x.beginPath();
+    for (let k = 0; k <= teeth * 2; k++) {
+      const a = (k / (teeth * 2)) * Math.PI * 2, rr = k % 2 ? rad : rad * 1.14;
+      x.lineTo(gx + Math.cos(a) * rr, gy + Math.sin(a) * rr);
+    }
+    x.closePath();
+  });
+  const rect = (rx: number, ry: number, rw: number, rh: number, a = 0) => raised(() => {
+    x.beginPath(); x.save(); x.translate(rx, ry); x.rotate(a); x.rect(-rw / 2, -rh / 2, rw, rh); x.restore();
+  });
+  const x0 = figure ? W * 0.18 : 0.3 * PX;
+  for (let gx = x0; gx < W - 0.4 * PX;) {
+    const kind = r();
+    if (kind < 0.4) { const rad = (0.2 + r() * 0.35) * PX; gear(gx + rad, H * (0.45 + r() * 0.3), rad, 10 + Math.floor(r() * 10)); gx += rad * 2 + 0.15 * PX; }
+    else if (kind < 0.7) { const len = (0.8 + r() * 1.2) * PX; rect(gx + len / 2, H * (0.4 + r() * 0.35), len, 0.09 * PX, (r() - 0.5) * 0.6); gx += len * 0.8; }
+    else { const bw = (0.35 + r() * 0.5) * PX, bh = (0.3 + r() * 0.5) * PX; rect(gx + bw / 2, H * 0.62, bw, bh); gx += bw + 0.1 * PX; }
+  }
+  if (figure) {
+    // the net, over the middle
+    x.lineWidth = 1.4;
+    const nx = W * 0.62, ny = H * 0.3, rw = 1.5 * PX, rh = 0.5 * PX;
+    for (let k = -4; k <= 4; k++) {
+      x.strokeStyle = k % 2 ? 'rgba(196,52,40,0.85)' : 'rgba(46,88,170,0.85)';
+      x.beginPath(); x.ellipse(nx, ny, Math.abs(k) / 4 * rw + 2, rh, 0, 0, Math.PI * 2); x.stroke();
+      x.beginPath(); x.moveTo(nx - rw, ny + (k / 4) * rh); x.quadraticCurveTo(nx, ny + (k / 4) * rh * 1.3, nx + rw, ny + (k / 4) * rh); x.stroke();
+    }
+    // the figure, standing
+    const fx = W * 0.09, fy = H * 0.9, s = 0.95 * PX;
+    x.fillStyle = '#8a6a50';
+    x.beginPath(); x.arc(fx, fy - s * 1.65, s * 0.13, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.moveTo(fx - s * 0.22, fy - s * 1.45); x.lineTo(fx + s * 0.22, fy - s * 1.45); x.lineTo(fx + s * 0.18, fy - s * 0.8);
+    x.lineTo(fx + s * 0.12, fy); x.lineTo(fx - s * 0.12, fy); x.lineTo(fx - s * 0.18, fy - s * 0.8); x.closePath(); x.fill();
+  }
+  raggedEdge(x, W, H, PX, r);
+  return toTexture(c, { repeat: false });
+}
+
+// The diagram inlaid in the floor under the dodecahedron: in pale brass, an octagon and a circle in
+// it, rings of dark and pale stone at its middle, and from there lines in the colours of the
+// spectrum, as light split by a prism. 6 m square, transparent round it.
+export function tekniskaInlay() {
+  const S = 1024, PX = S / 6, [c, x] = canvas(S, S);
+  x.clearRect(0, 0, S, S);
+  x.translate(S / 2, S / 2); x.scale(PX, PX);
+  const brass = '#cdbd8e';
+  x.strokeStyle = brass; x.lineWidth = 0.035;
+  const oct = (rad: number) => {
+    x.beginPath();
+    for (let k = 0; k <= 8; k++) { const a = Math.PI / 8 + (k / 8) * Math.PI * 2; if (k) x.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); else x.moveTo(Math.cos(a) * rad, Math.sin(a) * rad); }
+    x.stroke();
+  };
+  oct(2.6); oct(2.35);
+  x.beginPath(); x.arc(0, 0, 1.55, 0, Math.PI * 2); x.stroke();
+  for (let k = 0; k < 8; k++) {
+    const a = Math.PI / 8 + (k / 8) * Math.PI * 2;
+    x.beginPath(); x.moveTo(Math.cos(a) * 2.35, Math.sin(a) * 2.35); x.lineTo(Math.cos(a + Math.PI / 8) * 1.55, Math.sin(a + Math.PI / 8) * 1.55); x.stroke();
+  }
+  // the spectrum, from the middle out past the octagon
+  ['#7a3fb0', '#2f5fd0', '#2f9a5a', '#f0d030', '#f08a20', '#d83020'].forEach((col, k) => {
+    const a = 0.45 + k * 0.055;
+    x.strokeStyle = col; x.lineWidth = 0.05;
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * 2.95, Math.sin(a) * 2.95); x.stroke();
+  });
+  // the ray coming in
+  x.strokeStyle = brass; x.lineWidth = 0.035;
+  x.beginPath(); x.moveTo(-2.95 * Math.cos(0.5), -2.95 * Math.sin(0.5)); x.lineTo(0, 0); x.stroke();
+  for (let k = 7; k >= 1; k--) {
+    x.fillStyle = k % 2 ? '#2b2b2d' : '#a5a4a0';
+    x.beginPath(); x.arc(0, 0, k * 0.1, 0, Math.PI * 2); x.fill();
+  }
   return toTexture(c, { repeat: false });
 }
 

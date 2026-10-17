@@ -15,8 +15,10 @@ export const PLATFORM_HEIGHT = 1.0;
 export const ISLAND_WIDTH = 9;
 // ... and the islands known to be wider: Stadion's, its rock left in two long pillars about
 // 12 m across with 4 m of platform beside each (measured on Albert Guillaumes' drawing, scaled by
-// the platform's length: eight of the old cars, 141 m)
-export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20 };
+// the platform's length: eight of the old cars, 141 m); Tekniska högskolan's, round two cores of
+// rock 15 m across with 6 m of platform beside each (his drawing, its scale read off
+// Roslagsbanan's platforms beside it)
+export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20, 'Tekniska högskolan': 27.4 };
 export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
 // stations whose two platforms each reach across to a middle track between them that no service

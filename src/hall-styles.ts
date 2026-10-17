@@ -521,18 +521,29 @@ export interface CaveStyle {
 export interface CaveIsland {
   // two long pillars of rock down the middle of the platform, `width` across, a passage `gap`
   // long between them, and `ends` m of open platform beyond them; their rock painted as `paint`
-  // says, and towards their outer ends, over `fenced` of their length, as `fencedPaint` says,
-  // behind fences of steel mesh with benches; a tiled plinth round their foot, `plinth` high
+  // says, and towards their outer ends, over `fenced` of their length (none if 0), as
+  // `fencedPaint` says, behind fences of steel mesh with benches; a tiled plinth round their foot,
+  // `plinth` high
   pillars: { width: number; gap: number; ends: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
   // the passage's openings to the platform each side: arches `inset` in from the pillars' ends
-  // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them
-  portal: { inset: number; crown: number; thickness: number };
+  // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them; or,
+  // with `paint`, the walls and the vault over the passage painted so instead; the vault `rise`
+  // over the crowns (2 m if not given)
+  portal: { inset: number; crown: number; thickness: number; paint?: CavePaint; rise?: number };
   // a flat ceiling of steel mesh `ceiling` high over the tracks and the platform, but not over
   // the passage, with fluorescent tubes across it
   ceiling: number;
   // the track walls: panels of steel mesh up to `panels`, and a white band over them with the
   // station's name
   panels: number;
+  // its fittings' colours, where they aren't Stadion's green steel and cream tiles: the mesh
+  // panels' rock, strands and posts (CSS colours), and pale grey tiles on the plinth; `fence`, the
+  // fences' colours where they aren't the panels', and `fenceHeight`, theirs (1.5 m)
+  fittings?: { mesh: [string, string, string]; greyTiles: boolean; fence?: [string, string, string]; fenceHeight?: number };
+  // a dodecahedron of glass in a frame of brass hung over the middle of the passage, `size` m
+  // across its corners, its middle `at` m over the platform, and a diagram inlaid in the floor
+  // under it
+  dodecahedron?: { size: number; at: number };
 }
 // Round from the track's floor (src/textures.ts): the platform is at 1.6, the walls rise to
 // about 4.2, and the crown is at about 9 over a hall of one track, 16 over an island platform.
@@ -561,6 +572,40 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
       portal: { inset: 1.4, crown: 4.8, thickness: 0.45 },
       ceiling: 4.4,
       panels: 2.2,
+    },
+  },
+  // Tekniska högskolan (30 September 1973; Michael Granit's architecture, Lennart Mörk's art, the
+  // Kasper Salin prize with Stadion): the same plan as Stadion's, on a wider island (Albert
+  // Guillaumes' drawing: 27 m, with cores of rock 61 m long and 15 m across and a passage 15 m long
+  // between them). From photographs (Wikimedia Commons, 2005–2025): a flat ceiling of black steel
+  // mesh with tubes across it over the tracks and the platform; the track walls black, with black
+  // mesh panels along their foot under a white band with the station's name; the floor polished
+  // dark grey with a pale band along the edge. The cores' rock modelled in folds, pale grey with
+  // darker and brownish streaks, on plinths of pale grey tiles, but along their sides towards the
+  // platform's ends painted dark behind fences of brown expanded metal, as tall as a man, with
+  // benches against them (as at Stadion, whose are green); over the passage a vault, its foot
+  // grey rock, painted above in swirls of blue and white, as water and sky; and under it a
+  // dodecahedron of glass in a brass frame over a diagram inlaid in the floor, light split by a
+  // prism (Mörk's theme: the elements and the laws of nature, and the sciences). The art on the
+  // cores' ends and sides is in src/network.ts.
+  'Tekniska högskolan': {
+    paint: { seed: 1973, bands: [{ from: 0, color: '#161618' }, { from: 4.6, color: '#1f1f22', edge: 'soft' }] },
+    island: {
+      pillars: { width: 15, gap: 15, ends: 10, fenced: 0.35, plinth: 0.5,
+        paint: { seed: 1974, bands: [{ from: 0, color: '#bab6ae' }],
+          motifs: [{ kind: 'dabs', colors: ['#d6d3cc', '#a19d95', '#cbc6be'], from: 0, to: 18, size: 0.8, count: 240 },
+            { kind: 'swirls', colors: ['#8a857d', '#77726b', '#9a8068', '#dedbd4'], from: 0, to: 18, count: 160, width: 0.16, length: 2.4, angle: 90 }] },
+        fencedPaint: { seed: 1976, bands: [{ from: 0, color: '#2b2b2c' }],
+          motifs: [{ kind: 'dabs', colors: ['#232324', '#38383a'], from: 0, to: 18, size: 0.7, count: 200 }] } },
+      portal: { inset: 0.4, crown: 5.2, thickness: 0.6, rise: 3,
+        paint: { seed: 1975, bands: [{ from: 0, color: '#aeaba5' }, { from: 5.4, color: '#a9b8cc', edge: 'soft' }],
+          motifs: [{ kind: 'swirls', colors: ['#8d8a84', '#c9c6bf', '#7b7872'], from: 1.6, to: 6, count: 60, width: 0.16, length: 2, angle: 90 },
+            { kind: 'swirls', colors: ['#24467f', '#33599c', '#1b3364', '#5b7fb6'], from: 5.6, to: 18, count: 170, width: 0.5, length: 3.4 },
+            { kind: 'swirls', colors: ['#eef2f6', '#f7f8fa', '#d4dde8'], from: 5.8, to: 18, count: 130, width: 0.4, length: 3 }] } },
+      ceiling: 4.4,
+      panels: 2.3,
+      fittings: { mesh: ['#0e0e0f', '#3b3c3e', '#2a2b2d'], greyTiles: true, fence: ['#1f1f20', '#634742', '#523b36'], fenceHeight: 2.2 },
+      dodecahedron: { size: 2.6, at: 4.4 },
     },
   },
   // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in
