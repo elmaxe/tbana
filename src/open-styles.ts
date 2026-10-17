@@ -304,7 +304,8 @@ export type Finish =
 // to this at the other two; `lowBack`, from h[1] at its first two corners to this at the other two.
 // `fall`: its floor falls from `from` at its first two corners to this at the other two, and its
 // top with it. `sides` gives a side (from corner i to the next) a finish of its own,
-// or none (null); `ceiling`, the underside of its roof a finish; `band`, the walls a finish of
+// or none (null); `ceiling`, the underside of its roof a finish (a glass one, with no `roof`
+// over it, is a glazed roof: its frames with panes in them, the sky through them); `band`, the walls a finish of
 // their own all round from a height up (rising or falling with the top to `low` at the corners
 // its `low` is at, as a band of windows under a sloping roof does); `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
@@ -5297,9 +5298,10 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     rooms: [
       { name: 'platform', s: [55, 72], h: [-0.5, 1], walls: null, floor: null },
       // the stairs down between the tracks, open under the housing's roof
-      { name: 'stairs', s: [68, 87.5], u: [-5.6, -0.8], h: [-6.6, 3], walls: 'goranssonTiles', stairs: 'goranssonTiles', floor: 'darkTerrazzo' },
+      { name: 'stairs', s: [68, 87.5], u: [-5.6, -0.8], h: [-6.6, 3], walls: 'goranssonTiles', stairs: 'goranssonTiles', floor: 'darkTerrazzo', parapet: 1.0 },
       { name: 'walkway', s: [68, 92], u: [-7.5, -2], h: [-0.5, 1], walls: null, floor: 'pavers' },
-      { name: 'passage', s: [85.5, 92], u: [-6.5, 3.6], h: [-7, -3.4], walls: 'goranssonTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
+      // (its ceiling as high as the hall's, 3.13 m, so the two meet at the gates with no slit between)
+      { name: 'passage', s: [85.5, 92], u: [-6.5, 3.6], h: [-7, -3.2], walls: 'goranssonTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
       // (the hall's floors are open to its ceiling; the walls round them are its blocks')
       { name: 'hall', s: [78, 95], u: [2.5, 13], h: [-7, -3], walls: null, floor: 'terrazzo', ceiling: 'whitePanels', lamps: 2.9 },
       { name: 'square', s: [90, 100], u: [8, 16], h: [-7, -5], walls: null, floor: 'pavers' },
@@ -5307,17 +5309,22 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     blocks: [
       // the deck between the tracks' bridges north of the platform, which the walkway and the
       // stairs' housing stand on, its face to each track
-      { name: 'deck, west', plan: [[72, -7.2], [72, -5.4], [92, -5.4], [92, -8.8]], h: [-1.5, -0.05], from: -0.05,
+      { name: 'deck, west', plan: [[72, -7.2], [72, -5.45], [92, -5.45], [92, -8.8]], h: [-1.5, -0.05], from: -0.05,
         walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
-      { name: 'deck, east', plan: [[72, -1.1], [72, 0.25], [87, -0.85], [87, -1.1]], h: [-1.5, -0.05], from: -0.05,
+      { name: 'deck, east', plan: [[72, -1.05], [72, 0.25], [87, -0.85], [87, -1.05]], h: [-1.5, -0.05], from: -0.05,
         walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
-      { name: 'deck, north', plan: [[87, -5.4], [87, -1.1], [92, -1.3], [92, -5.4]], h: [-1.5, -0.05], from: -0.05,
+      { name: 'deck, north', plan: [[87, -5.45], [87, -1.05], [92, -1.3], [92, -5.45]], h: [-1.5, -0.05], from: -0.05,
         walls: 'boardConcrete', sides: [null, null, null, null], floor: 'boardConcrete' },
-      // the housing over the stairs: Göransson's tiles outside as in, perforated steel above them
-      // under a glazed roof falling with the flights, open towards the platform
-      { name: 'stair housing', plan: [[68.5, -5.4], [68.5, -1.1], [87.0, -1.1], [87.0, -5.4]], h: [-6.6, 2.85], from: -6.45, lowBack: 0.4,
-        walls: 'goranssonTiles', sides: [null, undefined, undefined, undefined], band: { walls: 'silverPerforated', from: 1.0, low: -3.2 },
-        floor: 'darkTerrazzo', ceiling: 'perforated', roof: 0.12, roofColor: 0x6f7c88, onPlatform: true },
+      // the housing over the stairs: its two walls, Göransson's tiles outside as in with perforated
+      // steel above them, their foot falling with the roof, and the glazed roof over them falling
+      // with the flights, glass in steel frames (as three blocks, since a block's band is drawn
+      // across an open side too: the housing is open towards the platform)
+      { name: "stair housing's west wall", plan: [[68.5, -5.4], [87.0, -5.4], [87.0, -5.2], [68.5, -5.2]], h: [-6.6, 2.85], from: -6.45, low: 0.4,
+        walls: 'goranssonTiles', band: { walls: 'silverPerforated', from: 1.0, low: -3.2 } },
+      { name: "stair housing's east wall", plan: [[68.5, -1.3], [87.0, -1.3], [87.0, -1.1], [68.5, -1.1]], h: [-6.6, 2.85], from: -6.45, low: 0.4,
+        walls: 'goranssonTiles', band: { walls: 'silverPerforated', from: 1.0, low: -3.2 } },
+      { name: "stair housing's roof", plan: [[68.5, -5.4], [87.0, -5.4], [87.0, -1.1], [68.5, -1.1]], h: [2.85, 2.85], from: 2.85, low: 0.4,
+        walls: 'goranssonTiles', sides: [null, null, null, null], ceiling: 'glazed' },
       // the screen along the walkway's west side, and across its north end to the lift
       { name: 'walkway screen', plan: [[72.0, -6.9], [91.2, -6.9], [91.2, -6.7], [72.0, -6.7]], h: [0, 2.5], from: 0,
         walls: 'silverPerforated', roof: 0.02, roofColor: 0x8a8f93 },

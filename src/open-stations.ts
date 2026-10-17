@@ -1569,7 +1569,10 @@ export class OpenLook {
     if (b.dome) this.groinVault(b, frame, on, cut);
     if (b.ceiling) {
       const [cw] = T.FINISH_SIZE[b.ceiling];
-      on(this.finish(b.ceiling, true)).poly(corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]), roofCut);
+      const top = corners.map(([s, u], i) => [...frame.at(s, u, blockTop(b, i) - 0.01), u / cw, s / cw]);
+      on(this.finish(b.ceiling, true)).poly(top, roofCut);
+      // (a glass ceiling, a glazed roof seen from under it: the panes in its frames)
+      if (T.FINISH_GLASS.includes(b.ceiling)) on(this.pane).poly(top, roofCut);
     }
     if (b.floor) {
       const [fw] = T.FINISH_SIZE[b.floor];
