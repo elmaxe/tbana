@@ -426,12 +426,36 @@ export const HALL_STYLES: Record<string, HallStyle> = {
 // A platform hall in rock with a platform of its own beside one track, styled: the walls straight
 // up to `spring`, then a shallow vault (`risePerWidth` of the hall's width) in smooth white
 // plaster with a row of lamps along it over the platform; white name signs on the wall behind the
-// platform, `signAt` high, every `signEvery` m.
+// platform, `signAt` high, every `signEvery` m. Östermalmstorg's finish, unless it has a `finish`
+// of its own.
 export interface VaultStyle {
   spring: number;
   risePerWidth: number;
   signAt: number;
   signEvery: number;
+  finish?: VaultFinish;
+}
+
+// A vaulted hall's own finish (heights above the rails, as the hall's):
+// - `trackWall`: white enamelled panels, 1.2 m wide in rows `row` high, from `panelsFrom` up to
+//   the vault over a black plinth, a grey strip along them `strip` high; and a row of framed
+//   pictures, `art[0]` to `art[1]` high and `art[2]` wide, about `art[3]` m apart;
+// - `backWall`: panels of dark concrete, `panel` wide, cast with fine diagonal grooves, on a pale
+//   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
+//   the name signs (the name in white on the band's colour) and the ways out (white plates, an
+//   arrow to the exit they lead to: `exits`, in the scene's metres) are on, and a pale strip up to
+//   the vault;
+// - `vault`: the vault's colour;
+// - `paving`: the platform, paved as an open station's;
+// - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
+//   `w` wide and `h` high from `bottom`, about every `every` m, with a bench either side.
+export interface VaultFinish {
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string } };
+  exits: { name: string; x: number; z: number }[];
+  vault: number;
+  paving: Paving;
+  cases?: { w: number; h: number; bottom: number; gap: number; every: number };
 }
 
 // Östermalmstorg (1965), 38 m down: a hall in rock for each
@@ -440,8 +464,37 @@ export interface VaultStyle {
 // (1961–65): lines sandblasted into the concrete, of women of the peace and women's movements,
 // faces, singers, Rachel Carson's Tyst vår, staves of song and "peace" in several languages. Over
 // them a smooth white vault, the floor dark terrazzo with a band of pale tiles along the edge.
+//
+// Gärdet (1967), 31 m under Furusundsgatan: the same plan, a hall in rock for each track, the
+// tracks on the outside and the platforms within, either side of a core of rock about 10 m wide,
+// joined through it at both ends and by a passage in the middle (Albert Guillaumes's drawing;
+// OpenStreetMap's platforms). Photographs (2010–2024, Wikimedia Commons): over each hall a
+// cream vault, springing over the trains' roofs, a row of lamps along it; the track walls in white
+// enamelled panels (2006, to make tagging easy to wash off), with a row of framed pictures along
+// them; the wall behind the platform in panels of brown-grey concrete cast with fine diagonal
+// grooves, on a pale plinth, under a slate-blue band carrying the name in white and the ways out on
+// white plates; the platform clinker in shades of red-brown and grey in a running bond, with a
+// band of white stones along the edge and a grey strip with brass studs inside it. Set into the
+// wall behind the platform, Karl Axel Pehrson's lit cases of fantastical beetles (1967), in pairs
+// between benches.
+// Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
+  'Gärdet': {
+    spring: 4.5, risePerWidth: 0.25, signAt: 4.08, signEvery: 36,
+    finish: {
+      trackWall: { panelsFrom: 1.45, row: 0.6, strip: 2.25, art: [1.6, 3.1, 1.3, 2.6] },
+      backWall: { panel: 1.25, plinth: 1.3, band: { from: 3.85, to: 4.3, color: '#4c6275' } },
+      exits: [{ name: 'Brantingsgatan · Askrikegatan', x: 2221.2, z: -1496.9 }, { name: 'Furusundsgatan · Tegeluddsvägen · Värtahamnen', x: 2302.2, z: -1712.3 }],
+      vault: 0xece6d8,
+      paving: {
+        edge: 0.62, edgeTile: [0.31, 0.62], tactile: [0.64, 0.94], studs: true, studColor: 0xb59a52, slabs: 0, paverSize: [0.25, 0.125], mix: 0.42,
+        colors: { edge: 0xd9d6cc, tactile: 0x5a5a58, slab: 0xd9d6cc, pavers: 0x8e5c42, paler: 0x77706a, face: 0x3e3c3a },
+        pattern: 'bond',
+      },
+      cases: { w: 0.62, h: 1.75, bottom: 1.5, gap: 0.5, every: 18 },
+    },
+  },
 };
 
 // The blue line's stations (1975–85), and before them Stadion on the red line (1973), where the

@@ -109,7 +109,11 @@ const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
 // side platforms measured wider than SIDE_PLATFORM_WIDTH, from data/track-corrections.json
-const sideWidths = new Map<string, number>((JSON.parse(readFileSync('data/track-corrections.json', 'utf8')).widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
+const trackCorrections = JSON.parse(readFileSync('data/track-corrections.json', 'utf8'));
+const sideWidths = new Map<string, number>((trackCorrections.widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
+// stations whose two platform tracks run straight and parallel, this far apart (data/track-corrections.json
+// `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too
+const straightStations = new Map<string, number>((trackCorrections.straight ?? []).map((w: { station: string; apart: number }) => [w.station, w.apart]));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -418,6 +422,29 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
 
+  // the stations whose platform tracks are held straight and parallel: on a line fitted through
+  // OpenStreetMap's tracks along the platforms, each track half the spacing from it
+  const straightAt = new Map<number, [number, number]>();
+  for (const [station, apart] of straightStations) {
+    const on: { vi: number; x: number; z: number }[] = [];
+    for (const p of pieces) {
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => { if (platformAt(p.id, s[k])?.station === station && !on.some((o) => o.vi === vi)) on.push({ vi, x: vars[vi].x0, z: vars[vi].z0 }); });
+    }
+    if (on.length < 4) throw new Error(`track-corrections.json straight: no platform track at ${station}`);
+    const cx = on.reduce((a, o) => a + o.x, 0) / on.length, cz = on.reduce((a, o) => a + o.z, 0) / on.length;
+    let sxx = 0, sxz = 0, szz = 0;
+    for (const o of on) { sxx += (o.x - cx) ** 2; sxz += (o.x - cx) * (o.z - cz); szz += (o.z - cz) ** 2; }
+    const th = Math.atan2(2 * sxz, sxx - szz) / 2, dx = Math.cos(th), dz = Math.sin(th), nx = -dz, nz = dx;
+    const off = on.map((o) => (o.x - cx) * nx + (o.z - cz) * nz);
+    const side = (sg: number) => { const q = off.filter((u) => Math.sign(u) === sg); return q.reduce((a, u) => a + u, 0) / q.length; };
+    const mid = (side(-1) + side(1)) / 2;
+    on.forEach((o, j) => {
+      const t = (o.x - cx) * dx + (o.z - cz) * dz, u = mid + Math.sign(off[j] - mid) * apart / 2;
+      straightAt.set(o.vi, [cx + dx * t + nx * u, cz + dz * t + nz * u]);
+    });
+  }
+
   // OpenStreetMap
   const anchored = new Set<number>();
   for (const p of pieces) {
@@ -427,6 +454,8 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       anchored.add(vi);
       const m = onModel.get(vi);
       if (m) { anchor(vi, m[0], m[1], SIGMA.model); return; }
+      const st = straightAt.get(vi);
+      if (st) { anchor(vi, st[0], st[1], SIGMA.model); return; }
       const pl = platformAt(p.id, s[k]) !== null;
       const tunnel = vars[vi].tunnel;
       // track no service runs on is mapped from depot and track plans, not sketched: closely
@@ -511,6 +540,11 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         target = 2 * TRACK_CENTRES;
         f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
         if (f < 0.05) return;
+        pairRows++;
+      } else if (here && there && here.station === there.station && straightStations.has(here.station)) {
+        // side platforms held straight and parallel (data/track-corrections.json): their spacing
+        target = straightStations.get(here.station)!;
+        f = 1;
         pairRows++;
       } else if (here && there && here.osm === there.osm) {
         // an island platform between them

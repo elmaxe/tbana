@@ -247,34 +247,49 @@
     },
     "Gärdet": {
       "drawing": "gardet.png",
-      "note": "Two platform halls, one for each track, joined at both ends and in the middle. Escalators climb from the south-west end to Brantingsgatan; from the north-east end, escalators and stairs climb over the eastern hall to a ticket hall, with lifts up to the hill above and a long passage out to Tegeluddsvägen.",
+      "note": "Two platform halls, one for each track, the platforms within, either side of a core of rock about 10 m wide, joined through it at both ends and by a passage in the middle (OpenStreetMap's indoor ways, Albert Guillaumes's drawing). From the south-west end three escalators and an inclined lift climb to the ticket hall at Askrikegatan's sunken court, with a lift up to Brantingsgatan; from the north-east end three escalators and an inclined lift climb about 17 m (inferred from OpenStreetMap's lengths against the south-west's) to a hall in the rock, with lifts up to Furusundsgatan and a long passage falling to Tegeluddsvägen.",
       "routes": [
-        { "from": [0, -7], "width": 8, "go": [
-          {"walk": [0, 7]}
+        { "from": [0, -6.0], "h": -0.01, "width": 4, "go": [
+          {"walk": [0, -5.15], "open": true, "edges": false},
+          {"walk": [0, 5.15], "ceiling": 2.85},
+          {"walk": [0, 6.0], "open": true, "edges": false}
         ] },
-        { "from": [-66, -7], "width": 6, "go": [
-          {"walk": [-66, 5]}
+        { "from": [-68.3, -6.0], "h": -0.16, "width": 12.6, "go": [
+          {"walk": [-68.3, -5.0], "open": true, "edges": false},
+          {"walk": [-68.3, 5.35], "ceiling": 2.85},
+          {"walk": [-68.3, 6.2], "open": true, "edges": false}
         ] },
-        { "from": [60, -7], "width": 6, "go": [
-          {"walk": [60, 4]}
+        { "from": [67.78, -7.41], "h": 0.11, "width": 12.6, "go": [
+          {"walk": [67.86, -6.41], "open": true, "edges": false},
+          {"walk": [68.74, 4.05], "ceiling": 2.85},
+          {"walk": [68.82, 4.95], "open": true, "edges": false}
         ] },
-        { "from": [-66, 0], "width": 5, "go": [
-          {"walk": [-82, 0]},
-          {"escalators": 8, "toward": [-125, 10], "lanes": "EE"},
-          {"walk": 4, "width": 6},
+        { "from": [-74.4, 0.35], "h": -0.16, "width": 6.6, "go": [
+          {"escalators": 13.4, "toward": [-130, 0.35], "lanes": "LEEE"},
+          {"walk": 4, "width": 8},
           {"gates": true},
-          {"exit": 197670756}
+          {"walk": [-108, 1.0], "width": 10},
+          {"mark": "south-west hall"},
+          {"walk": [-116, 7.2], "width": 7},
+          {"exit": 197670756, "by": "walk"}
         ] },
-        { "from": [60, -2], "width": 5, "go": [
-          {"escalators": 10, "toward": [100, 40], "lanes": "ES"},
-          {"walk": 6, "width": 7},
+        { "from": "south-west hall", "width": 3, "go": [
+          {"exit": {"at": [-109, 10.8], "name": "Brantingsgatan"}, "by": "lift"}
+        ] },
+        { "from": [74.4, -0.6], "h": 0.11, "width": 6.6, "go": [
+          {"escalators": 17.4, "toward": [140, -6.2], "lanes": "LEEE"},
+          {"walk": 3, "width": 8},
           {"gates": true},
-          {"walk": 3},
-          {"mark": "hall"},
+          {"walk": [113, -2.5], "width": 9},
+          {"mark": "north-east hall"},
+          {"walk": [116, 2.4], "width": 4},
+          {"walk": [138.2, 2.2], "dh": -1.0},
+          {"walk": [230.5, 49.3], "dh": -6.0},
           {"exit": 197670779, "by": "walk"}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": {"at": [92, 30], "name": "Gärdet"}, "by": "lift"}
+        { "from": "north-east hall", "width": 4, "go": [
+          {"walk": [116, -7.6]},
+          {"exit": {"at": [125.8, -7.4], "name": "Furusundsgatan"}, "by": "lift"}
         ] }
       ]
     },

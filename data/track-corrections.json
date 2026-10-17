@@ -482,6 +482,9 @@
       "why": "The south-western island's middle, as for the north-eastern one."
     }
   ],
+  "straight": [
+    {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."}
+  ],
   "widths": [
     {
       "station": "Ropsten",

@@ -290,6 +290,8 @@ each with its reason:
 - Farsta's island platform, beside a piece of track at its south end that OpenStreetMap splits
   off shorter than a platform's usual run (`shortRuns`)
 - Kungsträdgården's platform tracks, tagged as sidings from halfway along the platform (`retag`)
+- Gärdet's two platform halls, straight and parallel, which the track's smoothing bowed apart
+  (`straight`: the station's tracks held on one straight line, so far apart)
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.

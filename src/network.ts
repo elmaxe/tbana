@@ -10,7 +10,7 @@ import { SurfaceIndex } from './surface-index';
 import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
-import type { BeamedHall, CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultHall, VaultStyle } from './hall-styles';
+import type { BeamedHall, CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultFinish, VaultHall, VaultStyle } from './hall-styles';
 import { OPEN_STYLES } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
@@ -148,7 +148,11 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // the beam along its middle, the vault of its lengthening, the wall where that meets the flat
   // part and the triangle on it
   // (and the glass and steel frames of a window there)
-  | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall' | 'Pane' | 'Frame'}:${string}`;
+  | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall' | 'Pane' | 'Frame'}:${string}`
+  // a styled vault's own finish (Gärdet's): its track walls (the other way round, for the wall that
+  // sees the track's direction the other way), the wall behind its platform, its vault, and the
+  // wooden seats of its benches
+  | `vault${'Art' | 'ArtMirror' | 'Back' | 'Roof'}:${string}` | 'benchWood';
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -195,6 +199,7 @@ function materials() {
     vaultFloor: new THREE.MeshStandardMaterial({ map: T.terrazzo(), roughness: 0.35 }),
     vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
     fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
+    benchWood: new THREE.MeshStandardMaterial({ color: 0xb98a4e, roughness: 0.6 }),
     glassBack: new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.6 }),
     // Stadion's (src/hall-styles.ts)
     stFloor: new THREE.MeshStandardMaterial({ map: T.stadionFloor(), roughness: 0.3 }),
@@ -244,6 +249,9 @@ export class Network {
   private posterMats: THREE.MeshStandardMaterial[] | null = null;
   private kpSigns: Map<string, THREE.MeshStandardMaterial> | undefined;
   private kpNiches: THREE.MeshStandardMaterial[] | undefined;
+  // a styled vault's own: the plates with its ways out, and its lit cases
+  private wayPlates = new Map<string, THREE.MeshBasicMaterial>();
+  private caseMats: THREE.MeshStandardMaterial[] | undefined;
   private islands: Island[] = [];
   private islandArt = new Map<string, THREE.Material>();
   private stations: TrackGraph['stations'];
@@ -499,28 +507,41 @@ export class Network {
     sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) && !vaultStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
     // a styled vault: the wall across the track (its art drawn to be read from the platform), the
     // wall behind the platform, and the vault
-    for (const [mb, side] of [[b.vaultArt, -1], [b.vaultArtMirror, 1]] as const) {
-      sweep(mb, run, (sm) => {
-        const vs = vaultStyle(sm);
-        if (!vs || sm.plat!.side !== side) return null;
-        const [a, c] = structureSpan(sm), u = side > 0 ? a : c;
-        return { key: 'art', pts: side > 0 ? [[u, S.FLOOR], [u, vs.spring]] : [[u, vs.spring], [u, S.FLOOR]] };
-      }, { u: (_, v) => (v - S.FLOOR) / (OSTERMALMSTORG.spring - S.FLOOR), vScale: 1 / T.DERKERT_REPEAT });
+    // (in Östermalmstorg's finish, or a station's own: its materials made the first time it is met)
+    const vaultStations = new Set(run.filter((sm) => vaultStyle(sm)).map((sm) => sm.plat!.station));
+    for (const station of vaultStations) {
+      const vs = VAULT_STYLES[station], f = vs.finish;
+      const mine = (sm: Sample) => vaultStyle(sm) !== null && sm.plat!.station === station;
+      let art: [MeshBuilder, MeshBuilder] = [b.vaultArt, b.vaultArtMirror], back = b.vaultWall, roof = b.vaultCeiling;
+      let artRepeat = T.DERKERT_REPEAT, backU = (_: number, v: number) => v / 2.4, backRepeat = 2.4;
+      if (f) {
+        this.vaultMaterials(station, vs, f);
+        art = [b[`vaultArt:${station}`] ??= new MeshBuilder(), b[`vaultArtMirror:${station}`] ??= new MeshBuilder()];
+        back = b[`vaultBack:${station}`] ??= new MeshBuilder();
+        roof = b[`vaultRoof:${station}`] ??= new MeshBuilder();
+        artRepeat = T.GARDET_REPEAT; backU = (_, v) => (v - S.FLOOR) / (vs.spring - S.FLOOR); backRepeat = 2 * f.backWall.panel;
+      }
+      for (const [mb, side] of [[art[0], -1], [art[1], 1]] as const) {
+        sweep(mb, run, (sm) => {
+          if (!mine(sm) || sm.plat!.side !== side) return null;
+          const [a, c] = structureSpan(sm), u = side > 0 ? a : c;
+          return { key: 'art', pts: side > 0 ? [[u, S.FLOOR], [u, vs.spring]] : [[u, vs.spring], [u, S.FLOOR]] };
+        }, { u: (_, v) => (v - S.FLOOR) / (vs.spring - S.FLOOR), vScale: 1 / artRepeat });
+      }
+      sweep(back, run, (sm) => {
+        if (!mine(sm)) return null;
+        const [a, c] = structureSpan(sm), u = sm.plat!.side > 0 ? c : a;
+        return { key: 'back', pts: sm.plat!.side > 0 ? [[u, vs.spring], [u, S.FLOOR]] : [[u, S.FLOOR], [u, vs.spring]] };
+      }, { u: backU, vScale: 1 / backRepeat });
+      sweep(roof, run, (sm) => {
+        if (!mine(sm)) return null;
+        const [a, c] = structureSpan(sm), rise = (c - a) * vs.risePerWidth, n = 16;
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, S.archHeight(a, c, vs.spring, rise, u)]); }
+        return { key: 'vault', pts };
+      }, { uScale: 0.25, vScale: 1 / 6 });
+      if (f?.cases) this.vaultCases(run, mine, f, b, group);
     }
-    sweep(b.vaultWall, run, (sm) => {
-      const vs = vaultStyle(sm);
-      if (!vs) return null;
-      const [a, c] = structureSpan(sm), u = sm.plat!.side > 0 ? c : a;
-      return { key: 'back', pts: sm.plat!.side > 0 ? [[u, vs.spring], [u, S.FLOOR]] : [[u, S.FLOOR], [u, vs.spring]] };
-    }, { u: (_, v) => v / 2.4, vScale: 1 / 2.4 });
-    sweep(b.vaultCeiling, run, (sm) => {
-      const vs = vaultStyle(sm);
-      if (!vs) return null;
-      const [a, c] = structureSpan(sm), rise = (c - a) * vs.risePerWidth, n = 16;
-      const pts: [number, number][] = [];
-      for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, S.archHeight(a, c, vs.spring, rise, u)]); }
-      return { key: 'vault', pts };
-    }, { uScale: 0.25, vScale: 1 / 6 });
     // a styled hall: its wall, and the roof over it (the wall is the outline's first two points
     // where the other track is to the right, its last two where it is to the left)
     // (a flat one by its finish)
@@ -730,19 +751,19 @@ export class Network {
     // a styled vault's platform: terrazzo, with a band of tiles along the edge
     sweep(b.vaultFloor, run, (sm) => {
       const p = sm.plat;
-      if (!p || !vaultStyle(sm)) return null;
+      if (!p || !vaultStyle(sm) || pavingOf(sm)) return null;
       const i = p.side * (S.PLATFORM_EDGE + T.EDGE_BAND), o = platformOuter(sm);
       return { key: `t${p.side}`, pts: p.side > 0 ? [[i, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [i, H]] };
     }, { uScale: 0.5, vScale: 0.5 });
     sweep(b.concrete, run, (sm) => {
       const p = sm.plat;
-      if (!p || !vaultStyle(sm)) return null;
+      if (!p || !vaultStyle(sm) || pavingOf(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE;
       return { key: `f${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H]] : [[e, H], [e, S.FLOOR]] };
     }, { uScale: 0.25, vScale: 0.25 });
     sweep(b.vaultEdge, run, (sm) => {
       const p = sm.plat;
-      if (!p || !vaultStyle(sm)) return null;
+      if (!p || !vaultStyle(sm) || pavingOf(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, i = p.side * (S.PLATFORM_EDGE + T.EDGE_BAND);
       return { key: `e${p.side}`, pts: p.side > 0 ? [[e, H], [i, H]] : [[i, H], [e, H]] };
     }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.EDGE_BAND, vScale: 1 / T.EDGE_REPEAT });
@@ -808,7 +829,11 @@ export class Network {
       if (!p || (sm.kind !== 'rock' && sm.kind !== 'box')) row.end();
       if (!p) continue;
       const vs = vaultStyle(sm);
-      if (vs && sm.along - lastSign >= vs.signEvery) {
+      if (vs?.finish && sm.along - lastSign >= vs.signEvery) {
+        // a styled vault's own: the name on the band, and the ways out either side of it (none in
+        // the openings to the passages through the wall)
+        if (this.vaultSign(sm, vs, group)) lastSign = sm.along;
+      } else if (vs && sm.along - lastSign >= vs.signEvery) {
         // a styled vault's: white, on the wall behind the platform
         lastSign = sm.along;
         const back = structureSpan(sm)[p.side > 0 ? 1 : 0];
@@ -1452,6 +1477,83 @@ export class Network {
     }
   }
 
+  // A styled vault's own finish (src/hall-styles.ts VaultFinish): its track walls, the wall behind
+  // its platform and its vault
+  private vaultMaterials(station: string, vs: VaultStyle, f: VaultFinish) {
+    if (this.mats[`vaultRoof:${station}`]) return;
+    for (const mirror of [false, true]) {
+      this.mats[`vaultArt${mirror ? 'Mirror' : ''}:${station}`] = new THREE.MeshStandardMaterial({ map: T.gardetTrackWall(S.FLOOR, vs.spring, f.trackWall, mirror), roughness: 0.4, side: THREE.DoubleSide });
+    }
+    this.mats[`vaultBack:${station}`] = new THREE.MeshStandardMaterial({ map: T.gardetBackWall(S.FLOOR, vs.spring, S.PLATFORM_HEIGHT, f.backWall), roughness: 0.9, side: THREE.DoubleSide });
+    // (lit from below, by the lamps, which light nothing: so it glows a little, as Östermalmstorg's)
+    const plaster = T.vaultPlaster();
+    this.mats[`vaultRoof:${station}`] = new THREE.MeshStandardMaterial({ map: plaster, color: f.vault, emissive: 0x7f7a70, emissiveMap: plaster, roughness: 0.85, side: THREE.DoubleSide });
+  }
+
+  // A styled vault's own name sign, on the band along the wall behind the platform, with a plate
+  // either side of it for the ways out to the exits on that side
+  private vaultSign(sm: Sample, vs: VaultStyle, group: THREE.Group) {
+    const p = sm.plat!, f = vs.finish!, back = structureSpan(sm)[p.side > 0 ? 1 : 0];
+    const out = new THREE.Vector3(-p.side * sm.rx, 0, -p.side * sm.rz);
+    // to the right of someone facing the wall
+    const right = new THREE.Vector3(-p.side * sm.rz, 0, p.side * sm.rx);
+    const o = at(sm, back - p.side * 0.03, vs.signAt);
+    const put = (m: THREE.Material, w: number, h: number, d: number) => {
+      const plate = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
+      plate.position.copy(o).addScaledVector(right, d);
+      plate.lookAt(plate.position.clone().add(out));
+      group.add(plate);
+    };
+    const key = `${p.station} band`;
+    let name = this.signs.get(key);
+    if (!name) { name = new THREE.MeshBasicMaterial({ map: T.nameSign(p.station, f.backWall.band.color, false) }); this.signs.set(key, name); }
+    put(name, 1.7, 0.32, 0);
+    const ends = f.exits.map((e) => ({ name: e.name, d: right.x * (e.x - sm.x) + right.z * (e.z - sm.z) }));
+    for (const left of [true, false]) {
+      const e = ends.reduce((m, q) => ((left ? q.d < m.d : q.d > m.d) ? q : m));
+      if (left ? e.d >= 0 : e.d <= 0) continue;
+      const k = `${e.name}|${left}`;
+      let m = this.wayPlates.get(k);
+      if (!m) { m = new THREE.MeshBasicMaterial({ map: T.wayPlate(e.name, left) }); this.wayPlates.set(k, m); }
+      put(m, 1.6, 0.4, left ? -2.1 : 2.1);
+    }
+    return true;
+  }
+
+  // A styled vault's lit cases in the wall behind its platform, in pairs, about every `cases.every`
+  // m, with a bench either side of each pair, where the wall isn't open to a passage
+  private vaultCases(run: Sample[], mine: (sm: Sample) => boolean, f: VaultFinish, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+    const c = f.cases!, H = S.PLATFORM_HEIGHT;
+    this.caseMats ??= [0, 1, 2, 3].map((v) => {
+      const map = T.beetleCase(c.w, c.h, v);
+      return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.55, roughness: 0.3 });
+    });
+    const benchAt = c.gap / 2 + c.w + 0.5 + 0.8, reach = benchAt + 0.9;
+    let next = -Infinity, k = 0;
+    for (const sm of run) {
+      if (!mine(sm) || sm.along < next) continue;
+      const p = sm.plat!, back = structureSpan(sm)[p.side > 0 ? 1 : 0];
+      const t = new THREE.Vector3(sm.rz, 0, -sm.rx), out = new THREE.Vector3(-p.side * sm.rx, 0, -p.side * sm.rz);
+      // (the wall whole along the pair and its benches, and the platform there)
+      const clear = [-reach, -benchAt, 0, benchAt, reach].every((d) => {
+        const q = at(sm, back - p.side * 0.4, H + 1.0).addScaledVector(t, d);
+        return !this.holes.some((o) => insideVolume(o, q.x, q.y, q.z));
+      }) && run.some((q) => q.plat === p && q.along > sm.along + reach) && run.some((q) => q.plat === p && q.along < sm.along - reach);
+      if (!clear) continue;
+      next = sm.along + c.every;
+      for (const d of [-1, 1]) {
+        const pane = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.h), this.caseMats[(k++) % 4]);
+        pane.position.copy(at(sm, back - p.side * 0.02, c.bottom + c.h / 2)).addScaledVector(t, d * (c.gap + c.w) / 2);
+        pane.lookAt(pane.position.clone().add(out));
+        group.add(pane);
+        // a bench: a seat of wooden slats on two steel legs, against the wall
+        const seat = at(sm, back - p.side * 0.32, H + 0.44).addScaledVector(t, d * benchAt);
+        for (let s = 0; s < 3; s++) box(b.benchWood, seat.clone().addScaledVector(out, (s - 1) * 0.13), sm, 0.11, 0.04, 1.6);
+        for (const e of [-0.6, 0.6]) box(b.steel, at(sm, back - p.side * 0.32, H + 0.21).addScaledVector(t, d * benchAt + e), sm, 0.36, 0.42, 0.05);
+      }
+    }
+  }
+
   private caveMaterial(station: string) {
     const map = T.caveRock(CAVE_STYLES[station].paint);
     // (lit by its lamps, which light nothing: so it glows a little, as the vaults do)
@@ -1633,6 +1735,11 @@ export class Network {
               this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.tiledColumn(w.color, w.tile), roughness: 0.45, side: THREE.DoubleSide });
               ring(p, ra, rc, b[key] ??= new MeshBuilder(), (u, v) => [u / T.HOTORGET_REPEAT, v / T.HOTORGET_REPEAT]);
             }
+          } else if (vaultStyle(p)?.finish ?? vaultStyle(q)?.finish) {
+            // at a finished vault's end (Gärdet's), round the tunnel going on: its plaster
+            const hall = vaultStyle(p)?.finish ? p : q, vs = vaultStyle(hall)!, station = hall.plat!.station;
+            this.vaultMaterials(station, vs, vs.finish!);
+            ring(p, ra, rc, b[`vaultRoof:${station}`] ??= new MeshBuilder());
           } else if (cave) {
             const key: MaterialName = `cave:${cave.plat!.station}`;
             this.mats[key] ??= this.caveMaterial(cave.plat!.station);
@@ -1765,6 +1872,8 @@ function across(sm: Sample) {
 function platformOuter(sm: Sample) {
   const p = sm.plat!, v = across(sm);
   if (v) return v / 2 + p.side * OVERLAP;
+  // (a finished vault's, out to its wall)
+  if (vaultStyle(sm)?.finish) return p.side * (S.PLATFORM_EDGE + p.width + S.HALL.behindPlatform - 0.01);
   // out to the middle track's edge (its distance is positive: no service runs on it)
   const d = p.side > 0 ? sm.right : sm.left;
   if (p.reach && d > 0) return p.side * (d - S.PLATFORM_EDGE);
@@ -1906,7 +2015,7 @@ function beamedHall(sm: Sample): FlatHall | null {
 // A platform paved in its own style (src/open-styles.ts): a styled open station's, a flat hall's
 // in concrete or on beams, or a cave's.
 function pavingOf(sm: Sample): Paving | null {
-  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | BeamedHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? null);
+  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | BeamedHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? vaultStyle(sm)?.finish?.paving ?? null);
 }
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down

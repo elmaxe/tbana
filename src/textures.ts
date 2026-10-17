@@ -225,10 +225,11 @@ export function trainEnd() {
 }
 
 // Station name sign, SL style (blue plate, white text).
-export function nameSign(text: string, bg = '#0c4da2') {
+// (without `border`, on a band of the same colour along a wall: no white edge round it)
+export function nameSign(text: string, bg = '#0c4da2', border = true) {
   const [c, x] = canvas(1024, 192);
   x.fillStyle = bg; x.fillRect(0, 0, 1024, 192);
-  x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 6; x.strokeRect(10, 10, 1004, 172);
+  if (border) { x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 6; x.strokeRect(10, 10, 1004, 172); }
   x.fillStyle = '#fff';
   x.font = '600 104px "Helvetica Neue", Arial, sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
@@ -1836,6 +1837,242 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
   x.setTransform(0, 1, -1, 0, src.height, 0);
   x.drawImage(src, 0, 0);
   return toTexture(c);
+}
+
+// Gärdet (1967): the track walls clad in white enamelled panels (2006), 1.2 m wide in rows `row`
+// high, from `panelsFrom` over a black plinth, with a grey strip along them `strip` high; along
+// them a row of pictures in white mounts (`art`: from, to, wide, apart), which are changed from
+// time to time: redrawn here as motifs of our own (an eye, a figure by the sea, a net of lines,
+// stripes, a red square, an island, a sheet of script). One repeat is GARDET_REPEAT m, drawn as
+// seen from the foot of the wall (`floor`) up to `top`.
+export const GARDET_REPEAT = 20.8;
+function gardetWallCanvas(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }) {
+  const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
+  const [c, x] = canvas(W, H);
+  const y = (h: number) => H - (h - floor) * PX;
+  const r = rng(2006);
+  // the plinth, dusty towards the track bed
+  x.fillStyle = '#18191b'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 2500, 0.12, 2007, true);
+  const dust = x.createLinearGradient(0, y(f.panelsFrom), 0, H);
+  dust.addColorStop(0, 'rgba(70,62,52,0)'); dust.addColorStop(1, 'rgba(70,62,52,0.5)');
+  x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+  // the panels, in rows between grey joints, a little sheen at the top of each
+  x.fillStyle = '#a9abad'; x.fillRect(0, 0, W, y(f.panelsFrom));
+  const n = Math.max(1, Math.round((top - f.panelsFrom) / f.row));
+  for (let k = 0; k < n; k++) {
+    const a = f.panelsFrom + ((top - f.panelsFrom) * k) / n, b = f.panelsFrom + ((top - f.panelsFrom) * (k + 1)) / n;
+    for (let i = 0; i < GARDET_REPEAT / 1.2; i++) {
+      const v = 236 + Math.floor(r() * 10);
+      x.fillStyle = `rgb(${v},${v},${v - 2})`;
+      x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+      const g = x.createLinearGradient(0, y(b), 0, y(a));
+      g.addColorStop(0, 'rgba(255,255,255,0.45)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(120,120,115,0.08)');
+      x.fillStyle = g; x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+    }
+  }
+  x.fillStyle = '#8e9194'; x.fillRect(0, y(f.strip + 0.05), W, 0.1 * PX);
+  // the pictures
+  const [from, to, wide, apart] = f.art, count = Math.round(GARDET_REPEAT / apart);
+  for (let i = 0; i < count; i++) {
+    const cx = (i + 0.5) * (GARDET_REPEAT / count) * PX, pw = wide * PX, ph = (to - from) * PX, px = cx - pw / 2, py = y(to);
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(px + 3, py + 4, pw, ph);
+    x.fillStyle = '#9a9c9e'; x.fillRect(px - 1, py - 1, pw + 2, ph + 2);
+    x.fillStyle = '#f6f6f3'; x.fillRect(px, py, pw, ph);
+    const m = pw * 0.07, ix = px + m, iy = py + m, iw = pw - 2 * m, ih = ph - 2 * m - pw * 0.05;
+    x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
+    picture(x, ix, iy, iw, ih, i % 8, r);
+    x.restore();
+    // a caption under it
+    x.fillStyle = 'rgba(60,60,60,0.5)'; x.fillRect(cx - iw * 0.15, iy + ih + pw * 0.02, iw * 0.3, 2);
+  }
+  return c;
+}
+function picture(x: CanvasRenderingContext2D, ix: number, iy: number, iw: number, ih: number, kind: number, r: () => number) {
+  const disc = (cx: number, cy: number, rad: number, stops: [number, string][]) => {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    for (const [t, col] of stops) g.addColorStop(t, col);
+    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI * 2); x.fill();
+  };
+  if (kind === 0) {
+    // a net of pale lines over deep blue, two pale lobes in its middle
+    x.fillStyle = '#1d3d73'; x.fillRect(ix, iy, iw, ih);
+    x.strokeStyle = 'rgba(225,235,250,0.7)'; x.lineWidth = 1;
+    for (let k = 0; k < 40; k++) {
+      let px = ix + r() * iw, py = iy + r() * ih, a = r() * Math.PI * 2;
+      x.beginPath(); x.moveTo(px, py);
+      for (let j = 0; j < 12; j++) { a += (r() - 0.5) * 1.2; px += Math.cos(a) * iw * 0.05; py += Math.sin(a) * iw * 0.05; x.lineTo(px, py); }
+      x.stroke();
+    }
+    for (const d of [-1, 1]) disc(ix + iw / 2 + d * iw * 0.15, iy + ih * 0.45, iw * 0.17, [[0, '#f0e2c4'], [0.7, '#d8c08e'], [1, 'rgba(216,192,142,0)']]);
+  } else if (kind === 1 || kind === 6) {
+    // an eye's iris, filling the picture
+    x.fillStyle = '#f4f2ec'; x.fillRect(ix, iy, iw, ih);
+    const cx = ix + iw / 2, cy = iy + ih / 2, rad = Math.min(iw, ih) * 0.42;
+    const [a, b] = kind === 1 ? ['#c9a24a', '#6e5a24'] : ['#a8c46a', '#3e6a3a'];
+    disc(cx, cy, rad, [[0, '#2a1d10'], [0.28, '#3a2a14'], [0.32, a], [0.85, b], [1, '#2d2a1e']]);
+    x.strokeStyle = 'rgba(40,30,10,0.35)'; x.lineWidth = 1;
+    for (let k = 0; k < 90; k++) {
+      const t = (k / 90) * Math.PI * 2;
+      x.beginPath(); x.moveTo(cx + Math.cos(t) * rad * 0.32, cy + Math.sin(t) * rad * 0.32); x.lineTo(cx + Math.cos(t) * rad * 0.95, cy + Math.sin(t) * rad * 0.95); x.stroke();
+    }
+    disc(cx, cy, rad * 0.26, [[0, '#050505'], [0.9, '#0c0c0c'], [1, 'rgba(12,12,12,0)']]);
+    x.fillStyle = 'rgba(255,255,255,0.7)'; x.beginPath(); x.arc(cx - rad * 0.18, cy - rad * 0.2, rad * 0.06, 0, Math.PI * 2); x.fill();
+  } else if (kind === 2) {
+    // a figure by the sea, under a pale sky
+    const sky = x.createLinearGradient(0, iy, 0, iy + ih);
+    sky.addColorStop(0, '#5f8fc4'); sky.addColorStop(0.65, '#cfdde8'); sky.addColorStop(0.66, '#2f5f8f'); sky.addColorStop(1, '#244b72');
+    x.fillStyle = sky; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#c9b49a'; x.beginPath(); x.ellipse(ix + iw * 0.55, iy + ih * 0.66, iw * 0.1, ih * 0.09, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#8a8f96'; x.beginPath(); x.moveTo(ix + iw * 0.3, iy + ih); x.quadraticCurveTo(ix + iw * 0.55, iy + ih * 0.7, ix + iw * 0.8, iy + ih); x.fill();
+  } else if (kind === 3) {
+    // ochre, crossed by black lines that wander and black blocks
+    x.fillStyle = '#c99a3c'; x.fillRect(ix, iy, iw, ih);
+    x.strokeStyle = '#1a1a1a'; x.lineWidth = 2;
+    for (let k = 0; k < 7; k++) {
+      const yy = iy + ih * (0.1 + k * 0.12);
+      x.beginPath(); x.moveTo(ix, yy);
+      for (let t = 0; t <= 1; t += 0.1) x.lineTo(ix + iw * t, yy + Math.sin(t * 9 + k) * ih * 0.03);
+      x.stroke();
+    }
+    x.fillStyle = '#141414'; x.fillRect(ix + iw * 0.1, iy + ih * 0.8, iw * 0.35, ih * 0.08); x.fillRect(ix + iw * 0.55, iy + ih * 0.88, iw * 0.3, ih * 0.06);
+  } else if (kind === 4) {
+    // a red square on white, a pattern of small marks in it
+    x.fillStyle = '#efefeb'; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#b3241e'; x.fillRect(ix + iw * 0.15, iy + ih * 0.22, iw * 0.7, ih * 0.5);
+    x.fillStyle = '#e8c9a0';
+    for (let k = 0; k < 60; k++) x.fillRect(ix + iw * (0.2 + r() * 0.6), iy + ih * (0.27 + r() * 0.4), 2, 2);
+    x.fillStyle = '#f5f2ea'; x.beginPath(); x.arc(ix + iw / 2, iy + ih * 0.47, iw * 0.05, 0, Math.PI * 2); x.fill();
+  } else if (kind === 5) {
+    // a small dark island on a calm sea
+    const sky = x.createLinearGradient(0, iy, 0, iy + ih);
+    sky.addColorStop(0, '#9cb7cf'); sky.addColorStop(0.55, '#e6ecef'); sky.addColorStop(0.56, '#7d9ab2'); sky.addColorStop(1, '#4f6f8a');
+    x.fillStyle = sky; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#25292c'; x.beginPath(); x.ellipse(ix + iw * 0.5, iy + ih * 0.56, iw * 0.2, ih * 0.05, 0, Math.PI, 0); x.fill();
+  } else {
+    // a pale sheet of script in a dark frame
+    x.fillStyle = '#3c3a36'; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#e9e1cf'; x.fillRect(ix + iw * 0.12, iy + ih * 0.1, iw * 0.76, ih * 0.8);
+    x.fillStyle = 'rgba(60,50,40,0.6)';
+    for (let yy = iy + ih * 0.16; yy < iy + ih * 0.84; yy += 4) x.fillRect(ix + iw * 0.18, yy, iw * (0.5 + r() * 0.14), 1.4);
+  }
+}
+
+// Gärdet's track walls, turned for a sweep along the track as Karlaplan's are: u up the wall from
+// its foot (0) to the vault (1), v along the track, GARDET_REPEAT m per repeat; `mirror` for the
+// wall that sees the track's direction the other way round.
+export function gardetTrackWall(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }, mirror = false) {
+  const src = gardetWallCanvas(floor, top, f);
+  const [c, x] = canvas(src.height, src.width);
+  x.setTransform(0, 1, -1, 0, src.height, 0);
+  if (mirror) { x.translate(src.width, 0); x.scale(-1, 1); }
+  x.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// The wall behind Gärdet's platforms: panels of dark brown-grey concrete `panel` wide, cast with
+// fine diagonal grooves, on a pale plinth from the platform (`platform` high) to `plinth`; over
+// them a band in `band.color`, and a pale strip up to the vault. Two panels a repeat along the
+// wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along).
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string } }) {
+  const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
+  const [src, x] = canvas(W, H);
+  const y = (h: number) => H - (h - floor) * PX;
+  const r = rng(1967);
+  x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  speckle(x, W, H, 1500, 0.06, 1968);
+  stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
+  x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
+  x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
+  x.fillStyle = '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
+  speckle(x, W, y(f.band.to), 600, 0.05, 1969);
+  const [c, t] = canvas(src.height, src.width);
+  t.setTransform(0, 1, -1, 0, src.height, 0);
+  t.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+// panels of brown-grey concrete `pw` wide across the rectangle, cast with fine diagonal grooves, each a
+// little different in tone, in dark joints
+function stripedPanels(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, pw: number, r: () => number) {
+  for (let i = 0; i * pw < w - 1; i++) {
+    const px = x0 + i * pw, v = Math.floor(r() * 14) - 7;
+    x.fillStyle = '#222120'; x.fillRect(px, y0, pw, h);
+    x.fillStyle = `rgb(${128 + v},${118 + v},${106 + v})`; x.fillRect(px + 3, y0, pw - 6, h);
+    x.save(); x.beginPath(); x.rect(px + 3, y0, pw - 6, h); x.clip();
+    for (let k = -h; k < pw + h; k += 4) {
+      x.strokeStyle = 'rgba(52,46,40,0.3)'; x.lineWidth = 1.2;
+      x.beginPath(); x.moveTo(px + k, y0 + h); x.lineTo(px + k + h, y0); x.stroke();
+      x.strokeStyle = 'rgba(160,150,140,0.18)'; x.lineWidth = 0.8;
+      x.beginPath(); x.moveTo(px + k + 2, y0 + h); x.lineTo(px + k + 2 + h, y0); x.stroke();
+    }
+    // faintly mottled
+    for (let k = 0; k < 40; k++) {
+      x.fillStyle = `rgba(${r() < 0.5 ? '60,54,48' : '150,142,132'},${0.015 + r() * 0.025})`;
+      x.beginPath(); x.ellipse(px + r() * pw, y0 + r() * h, pw * (0.05 + r() * 0.12), h * (0.02 + r() * 0.05), 0, 0, Math.PI * 2); x.fill();
+    }
+    x.restore();
+  }
+}
+
+// Karl Axel Pehrson's beetles at Gärdet (1967), redrawn: a lit case `w` × `h` m in a steel frame,
+// white inside, eight fantastical beetles pinned in two columns, each different in shape and
+// colour (a metallic green, a red with black spots, a blue, a gold, a bronze). `variant` changes
+// them.
+export function beetleCase(w: number, h: number, variant: number) {
+  const PX = 320, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  const r = rng(1967 + variant * 31);
+  x.fillStyle = '#8d9296'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#d7dadc'; x.fillRect(3, 3, W - 6, H - 6);
+  const f = 0.04 * PX, g = x.createRadialGradient(W / 2, H * 0.4, 0, W / 2, H * 0.4, H * 0.7);
+  g.addColorStop(0, '#fbfbf8'); g.addColorStop(1, '#e6e8e3');
+  x.fillStyle = g; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+  // (small, a few cm long, in the middle of the case, in the colours of real beetles: metallic
+  // green, bronze, brown, black, a red, a gold)
+  const cols = [['#1f5a34', '#5fae6a'], ['#5a3a1e', '#a8774a'], ['#3a2a1e', '#7a5a3e'], ['#161616', '#5a5a5a'], ['#8e2a1a', '#d0603e'], ['#8a6a18', '#d8b450'], ['#1e3e4e', '#5f9aa8'], ['#4a3a14', '#9a8a4a']];
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 4; j++) {
+    const cx = W * (0.36 + i * 0.28), cy = H * (0.3 + j * 0.095), s = W * (0.055 + r() * 0.03);
+    const [dark, light] = cols[Math.floor(r() * cols.length)];
+    // the pin's shadow, a little to one side
+    x.fillStyle = 'rgba(60,60,60,0.12)'; x.beginPath(); x.ellipse(cx + s * 0.25, cy + s * 0.3, s * 0.5, s * 0.8, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = '#1e1a16'; x.lineWidth = Math.max(1, s * 0.08);
+    // legs, short and bent, and feelers
+    for (const sd of [-1, 1]) {
+      for (let l = 0; l < 3; l++) {
+        const a0 = cy - s * 0.25 + l * s * 0.35;
+        x.beginPath(); x.moveTo(cx + sd * s * 0.35, a0); x.lineTo(cx + sd * s * 0.7, a0 + (l - 1) * s * 0.25); x.lineTo(cx + sd * s * 0.8, a0 + (l - 0.8) * s * 0.45); x.stroke();
+      }
+      x.beginPath(); x.moveTo(cx + sd * s * 0.1, cy - s * 0.8); x.quadraticCurveTo(cx + sd * s * 0.3, cy - s * 1.15, cx + sd * s * (0.4 + r() * 0.2), cy - s * (1.15 + r() * 0.2)); x.stroke();
+    }
+    // head, shield and wing cases, with a sheen and a seam down the middle
+    x.fillStyle = '#1e1a16'; x.beginPath(); x.ellipse(cx, cy - s * 0.72, s * 0.17, s * 0.13, 0, 0, Math.PI * 2); x.fill();
+    const body = x.createLinearGradient(cx - s * 0.5, cy - s * 0.6, cx + s * 0.5, cy + s);
+    body.addColorStop(0, light); body.addColorStop(0.5, dark); body.addColorStop(1, dark);
+    x.fillStyle = body; x.beginPath(); x.ellipse(cx, cy - s * 0.45, s * 0.3, s * 0.2, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.ellipse(cx, cy + s * 0.2, s * (0.36 + r() * 0.08), s * (0.5 + r() * 0.12), 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = 'rgba(20,16,12,0.7)'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(cx, cy - s * 0.25); x.lineTo(cx, cy + s * 0.7); x.stroke();
+    if (r() < 0.3) { x.fillStyle = 'rgba(15,12,10,0.8)'; for (let k = 0; k < 4; k++) { const sd = k % 2 ? 1 : -1; x.beginPath(); x.arc(cx + sd * s * 0.16, cy + s * (0.05 + Math.floor(k / 2) * 0.3), s * 0.06, 0, Math.PI * 2); x.fill(); } }
+    x.fillStyle = 'rgba(255,255,255,0.3)'; x.beginPath(); x.ellipse(cx - s * 0.14, cy + s * 0.05, s * 0.05, s * 0.2, 0, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// A white plate with the ways out to one end, in black, a line each, and an arrow at that end
+// (`left` or right, as seen); 4 m to 1 across.
+export function wayPlate(ways: string, left: boolean) {
+  const [c, x] = canvas(1024, 256);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, 1024, 256);
+  x.fillStyle = '#16171a';
+  x.textBaseline = 'middle';
+  const lines = ways.split(' · '), size = lines.length > 2 ? 54 : lines.length > 1 ? 70 : 96;
+  x.font = `500 ${size}px "Helvetica Neue", Arial, sans-serif`;
+  x.textAlign = left ? 'left' : 'right';
+  lines.forEach((w, i) => x.fillText(w, left ? 190 : 834, 128 + (i - (lines.length - 1) / 2) * size * 1.15, 640));
+  x.font = '600 150px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center';
+  x.fillText(left ? '←' : '→', left ? 95 : 929, 124);
+  return toTexture(c, { repeat: false });
 }
 
 // Larseric Vänerlöf's photomontage along Karlaplan's track wall (1983): old Östermalm in black and
@@ -3515,9 +3752,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
   greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
+  striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -5381,6 +5619,43 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'striated': {
+      // the walls of Gärdet's cores where they meet the passages through them: as the wall behind
+      // its platforms, panels of brown-grey concrete 1.25 m wide cast with fine diagonal grooves, on a
+      // pale plinth 0.3 m high
+      x.fillStyle = '#b4b1a9'; x.fillRect(0, Y(0.3), W, 0.3 * PX);
+      stripedPanels(x, 0, 0, W, Y(0.3), W / 2, r);
+      break;
+    }
+    case 'triangleTiles': {
+      // the end walls of Gärdet's platform halls: white tiles, 15 cm, in grey joints, and low on
+      // them a long triangle of small blue tiles rising from the floor to 1.5 m (photographs, 2010)
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 8})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      const m = 0.05 * PX;
+      for (let i = 0; i * m < W; i++) for (let j = 0; j * m < 1.5 * PX; j++) {
+        if (j * m > (i * m / W) * 1.5 * PX) continue;
+        const v = Math.floor(r() * 30) - 15;
+        x.fillStyle = `rgb(${28 + v * 0.5},${62 + v},${150 + v})`; x.fillRect(i * m + 0.8, H - (j + 1) * m + 0.8, m - 1.6, m - 1.6);
+      }
+      break;
+    }
+    case 'redClinker': {
+      // clinker, 25 by 12.5 cm, in a running bond, in shades of red-brown, rust, a dark
+      // brown-grey and grey (Gärdet's platforms and passages)
+      x.fillStyle = '#4a3a32'; x.fillRect(0, 0, W, H);
+      const bl = 0.25 * PX, bw = 0.125 * PX, cols = [[126, 82, 66], [160, 106, 78], [104, 80, 70], [140, 92, 70], [118, 70, 56], [112, 106, 100], [96, 92, 88]];
+      for (let i = 0; i * bw < W; i++) for (let j = -1; j * bl < H; j++) {
+        const [cr, cg, cb] = cols[Math.floor(r() * cols.length)], v = Math.floor(r() * 12) - 6;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`;
+        x.fillRect(i * bw + 1, j * bl + (i % 2) * bl / 2 + 1, bw - 2, bl - 2);
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -5389,7 +5664,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

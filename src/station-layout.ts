@@ -23,7 +23,8 @@ export interface FloorPart {
 }
 
 // Stairs or escalators from the middle of the bottom step `a` to the middle of the top one `b`,
-// `width` wide, with `lanes` across from the left looking up: E an escalator, S stairs. `ceiling`
+// `width` wide, with `lanes` across from the left looking up: E an escalator, S stairs (s narrower
+// ones), L an inclined lift (its car waiting at the foot). `ceiling`
 // is the clear height above the steps. An exit's stairs end in the street at `open`: from where
 // the ceiling would rise above the street there is none, and the walls stop at a parapet.
 // `daylight`: out in the daylight, as a floor's.
@@ -81,7 +82,7 @@ export interface StationLayouts { attribution: string; note: string; stations: S
 // Slopes: stairs rise 0.16 m in 0.30 m, escalators at 30°.
 export const STAIR_SLOPE = 0.16 / 0.3;
 export const ESCALATOR_SLOPE = Math.tan(Math.PI / 6);
-export const LANE = { E: 1.6, S: 2.0, s: 1.5 }; // escalators, stairs, narrower stairs
+export const LANE = { E: 1.6, S: 2.0, s: 1.5, L: 1.8 }; // escalators, stairs, narrower stairs, an inclined lift
 export const LIFT = { width: 2.2, depth: 2.4, above: 3.0, below: 0.6 };
 
 // The plan of an incline: its corners, left and right at the bottom, then right and left at the top.

@@ -310,7 +310,10 @@ export type Finish =
   | 'brownTiles'    // dark brown tiles, 20 cm, in lighter joints
   | 'partosTiles'   // white tiles, 15 cm, clouds of small coloured tiles drifting over them (Christian Partos's)
   | 'cafeWall'      // black and white tiles, 15 cm, each row shifted along from the one under it, in grey joints
-  | 'iridescentTiles'; // shimmering tiles, 30 cm, in greens, ochres and mauves, a copper spiral on some
+  | 'iridescentTiles' // shimmering tiles, 30 cm, in greens, ochres and mauves, a copper spiral on some
+  | 'striated'      // dark concrete panels 1.25 m wide, cast with fine diagonal grooves, on a pale plinth
+  | 'triangleTiles' // white tiles, 15 cm, a long triangle of small blue tiles rising low across them
+  | 'redClinker';   // clinker in a running bond, red-browns and a dark brown-grey
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -6001,6 +6004,24 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'bars', color: 0x7d8285, points: [[20.35, -17, 4.8], [20.35, -4, 5.35], [20.35, 28, 6.35], [20.35, 38, 6.0], [20.35, 64, 3.0]], h: [0, 1.1] },
       // the mesh fence along the western track, by the car park
       { points: [[-85, -9.3], [-60, -9.2], [-40, -9.1], [-20, -9.0], [0, -9.0]], h: [-0.4, 1.8], color: 0x9aa0a4 },
+    ],
+  },
+  // Gärdet's halls are vaults (src/hall-styles.ts); its passages through the rock between them,
+  // its escalators and halls in the rock. Finishes from Commons photos of the station: grey
+  // striated concrete panels in the passages, white tiles with blue mosaic triangles at their ends,
+  // red clinker underfoot; brick and pine boards in the halls up the escalators.
+  'Gärdet': {
+    rooms: [
+      { name: 'openings onto the western platform', s: [-80, 80], u: [-9, -4.2], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'openings onto the eastern platform', s: [-80, 80], u: [4.2, 9], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'south-west end', s: [-76, -60], u: [-4.2, 4.2], h: [-1, 0.5], walls: 'striated', back: 'triangleTiles', stairs: 'squareTiles', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'middle passage', s: [-3, 3], u: [-4.2, 4.2], h: [-1, 0.5], walls: 'striated', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'north-east end', s: [60, 77], u: [-4.2, 4.2], h: [-1, 0.5], walls: 'triangleTiles', back: 'striated', stairs: 'squareTiles', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'south-west escalators', s: [-100, -74], u: [-8, 8], h: [-1, 14], walls: 'squareTiles', stairs: 'squareTiles', ceiling: 'whitePanels' },
+      { name: 'south-west hall', s: [-125, -97], u: [-8, 16], h: [12, 15], walls: 'brick', floor: 'slate', ceiling: 'boardConcrete' },
+      { name: 'north-east escalators', s: [74, 106], u: [-12, 4], h: [-1, 18], walls: 'squareTiles', stairs: 'squareTiles', ceiling: 'whitePanels' },
+      { name: 'north-east passage', s: [118, 250], u: [-2, 60], h: [8, 19], walls: 'brick', floor: 'slate', ceiling: 'whitePanels' },
+      { name: 'north-east hall', s: [104, 130], u: [-12, 4], h: [16, 19], walls: 'pineBoards', floor: 'slate', ceiling: 'whiteRender' },
     ],
   },
 };

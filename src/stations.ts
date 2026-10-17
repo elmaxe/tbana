@@ -368,6 +368,26 @@ export class Stations {
     const bounds = [u];
     for (const lane of p.lanes) {
       const w = LANE[lane as keyof typeof LANE];
+      if (lane === 'L') {
+        // an inclined lift: a steel trough up the slope, its car waiting at the foot, level, glazed
+        // all round under a steel roof
+        const d = -0.25;
+        m.skirt.poly([[...at(u, 0, d), 0, 0], [...at(u + w, 0, d), w, 0], [...at(u + w, 1, d), w, 1], [...at(u, 1, d), 0, 1]]);
+        const y0 = p.a[1] + 0.02, l = Math.min(2.0, run * 0.4), c0 = Math.min(0.3, run * 0.05) / run, c1 = c0 + l / run;
+        const q = (uu: number, t: number, y: number) => [p.a[0] + fx * run * t + rx * uu, y, p.a[2] + fz * run * t + rz * uu];
+        const u0 = u + 0.1, u1 = u + w - 0.1, top = y0 + 2.2;
+        const box4: [number, number][] = [[u0, c0], [u1, c0], [u1, c1], [u0, c1]];
+        for (let k = 0; k < 4; k++) {
+          const [ua, ta] = box4[k], [ub, tb] = box4[(k + 1) % 4];
+          m.glass.poly([[...q(ua, ta, y0), 0, 0], [...q(ub, tb, y0), 1, 0], [...q(ub, tb, top), 1, 1], [...q(ua, ta, top), 0, 1]]);
+          m.escalator.poly([[...q(ua, ta, top), 0, 0], [...q(ub, tb, top), 1, 0], [...q(ub, tb, top + 0.12), 1, 0.1], [...q(ua, ta, top + 0.12), 0, 0.1]]);
+        }
+        m.escalator.poly(box4.map(([uu, t]) => [...q(uu, t, top + 0.12), 0, 0]));
+        m.escalator.poly([...box4].reverse().map(([uu, t]) => [...q(uu, t, y0), 0, 0]));
+        u += w;
+        bounds.push(u);
+        continue;
+      }
       const mesh = lane === 'E' ? m.escalator : m.stairs;
       // each step: its riser, then its tread, so that the walking plane runs through the middle of
       // both; and a last riser up to the top
