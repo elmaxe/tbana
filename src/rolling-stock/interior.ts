@@ -312,6 +312,26 @@ export function screenTexture(w: number, h: number, draw: (ctx: CanvasRenderingC
   return t;
 }
 
+// A wheelchair or pram sign: a rounded square s across at (x0, y0) in colour bg, the symbol in white.
+export function drawPictogram(ctx: CanvasRenderingContext2D, x0: number, y0: number, s: number, kind: 'wheelchair' | 'pram', bg: string) {
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.roundRect(x0, y0, s, s, s * 0.1); ctx.fill();
+  ctx.strokeStyle = ctx.fillStyle = '#ffffff'; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
+  if (kind === 'wheelchair') {
+    // a big wheel, the seated figure, the head
+    ctx.beginPath(); ctx.arc(x0 + s * 0.45, y0 + s * 0.66, s * 0.22, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0 + s * 0.42, y0 + s * 0.3); ctx.lineTo(x0 + s * 0.45, y0 + s * 0.55); ctx.lineTo(x0 + s * 0.68, y0 + s * 0.55); ctx.lineTo(x0 + s * 0.76, y0 + s * 0.8); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x0 + s * 0.42, y0 + s * 0.18, s * 0.07, 0, Math.PI * 2); ctx.fill();
+  } else {
+    // the hood, the body, two wheels and the handle
+    ctx.beginPath(); ctx.moveTo(x0 + s * 0.22, y0 + s * 0.5); ctx.lineTo(x0 + s * 0.72, y0 + s * 0.5);
+    ctx.arc(x0 + s * 0.47, y0 + s * 0.5, s * 0.25, 0, Math.PI, false); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x0 + s * 0.22, y0 + s * 0.5); ctx.arc(x0 + s * 0.47, y0 + s * 0.5, s * 0.25, Math.PI, Math.PI * 1.5); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x0 + s * 0.72, y0 + s * 0.5); ctx.lineTo(x0 + s * 0.85, y0 + s * 0.25); ctx.stroke();
+    for (const x of [0.32, 0.64]) { ctx.beginPath(); ctx.arc(x0 + s * x, y0 + s * 0.84, s * 0.07, 0, Math.PI * 2); ctx.fill(); }
+  }
+}
+
 // ------------------------------------------------------------------ assembling
 
 // Collects geometry per material key, then turns it into one mesh per key.
