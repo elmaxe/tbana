@@ -1504,14 +1504,36 @@
     },
     "Hässelby strand": {
       "drawing": "hasselby_strand.png",
-      "note": "The western end of the line: a wide island platform in the open. At its west end stairs go down to the ticket hall under it, which opens onto the street below.",
+      "note": "The western end of the line: a wide island platform in the open under a butterfly roof. Down its middle a box walls in a ramp, which runs straight down at 1 in 12 past the end of the roof, under a low box over the platform's south end and into a hall under a sloping roof, 5.07 m down; from the box a lift and stairs go down into the same hall. Through the ground floor of the 2015 building on Fyrspannsgatan the ticket hall, its gates and its glass front on the street. Laid out from Lantmäteriet's laser scan (the roof, the box and the lift's shaft over it, the hall's roof, the street 5.05 m under the platform), OpenStreetMap (the building and the way in) and photographs (2009 to 2023); Albert Guillaumes' drawing has the ramp down from the platform's middle, the lift's tower at its end, the stairs beside it and the gates by the way out, as here.",
       "routes": [
-        { "from": [-49.49934370898181, 1.7], "width": 3, "go": [
-          {"stairs": -5.6, "toward": [-60.0, 2.1]},
-          {"walk": [-66.0, 2.3], "width": 6},
-          {"walk": [-66.0, 21.0], "width": 4},
+        { "from": [-75.6, 2.6], "width": 9.0, "go": [
+          {"walk": [-83.4, 2.6], "open": true}
+        ] },
+        { "from": [-31.5, 1.0], "width": 2.4, "go": [
+          {"walk": [-32.9, 1.03], "open": true},
+          {"walk": [-75.5, 2.579], "dh": -3.506, "open": true},
+          {"walk": [-86.0, 2.961], "dh": -0.864, "ceiling": 2.5},
+          {"walk": [-94.5, 3.27], "dh": -0.7, "open": true},
+          {"walk": [-94.8, 3.27], "width": 3.2, "open": true}
+        ] },
+        { "from": [-82.5, 0.15], "width": 1.8, "go": [
+          {"walk": [-83.3, 0.15], "open": true},
+          {"lift": -5.07, "above": 3.8, "through": true},
+          {"walk": [-87.0, 0.15], "width": 2.2, "open": true},
+          {"walk": [-94.8, 0.15], "width": 3.2, "open": true}
+        ] },
+        { "from": [-83.0, 6.25], "width": 3.2, "go": [
+          {"walk": [-83.5, 6.25], "open": true},
+          {"stairs": -2.6, "toward": [-200, 6.25], "ceiling": 2.3},
+          {"walk": 1.5, "open": true},
+          {"stairs": -2.47},
+          {"walk": [-94.8, 6.25], "open": true}
+        ] },
+        { "from": [-94.4, 3.3], "h": -5.07, "width": 9.6, "go": [
+          {"walk": [-105.0, 3.3], "ceiling": 3.4, "daylight": true},
           {"gates": true},
-          {"exit": 1461122642}
+          {"walk": [-110.6, 3.3], "ceiling": 3.4, "daylight": true},
+          {"exit": {"at": [-112.6, 3.3], "name": "Fyrspannsgatan"}, "by": "walk", "open": true}
         ] }
       ]
     },

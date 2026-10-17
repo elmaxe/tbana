@@ -52,6 +52,12 @@
       "osm": "w141565037",
       "tags": { "building:colour": "#232426" },
       "why": "Bistro Tarboush, the kiosk beside Islandstorget's ticket hall, black in a Mapillary panorama (2025), with painted panels, and in OpenStreetMap's building:colour; but the city's tiles take a colour of 0 for none given, so black came out a wall colour by chance."
+    },
+    {
+      "osm": "w310639607",
+      "outline": [-12903.55, -3309.38, -12890.92, -3304.36, -12891.09, -3297.85, -12885.16, -3297.70, -12872.19, -3297.44, -12872.45, -3285.38, -12896.08, -3285.69, -12896.02, -3290.39, -12919.44, -3298.67, -12921.14, -3289.90, -12945.96, -3290.00, -12945.89, -3305.92, -12940.34, -3305.94, -12930.96, -3305.96, -12929.18, -3310.84, -12926.04, -3319.42, -12913.93, -3314.62, -12914.31, -3313.62],
+      "overStation": true,
+      "why": "The 2015 building on Fyrspannsgatan at Hässelby strand, its flats 12.4 m over the platform in Lantmäteriet's laser scan, the ticket hall in its ground floor. OSM's outline takes in the station's low box over the platform's south end and the hall under the sloping roof south of it, 20 m along the tracks, so the flats stood over the platform's end; the outline ends at the building's north face instead, 95 m south of the platform's middle, where the laser scan has the hall's roof meet it (the station draws the box and the hall, src/open-styles.ts). The ticket hall runs through its ground floor to the glass front on Fyrspannsgatan."
     }
   ]
 }

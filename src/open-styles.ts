@@ -307,7 +307,10 @@ export type Finish =
   | 'ochreDoor'     // as yellowTiles, an orange steel door in them 0.5 m from the left
   | 'greenEnamel'   // panels of green glass enamel, 1.2 by 1.1 m, glossy, in thin dark joints
   | 'tornellEnamel' // as greenEnamel, perforated in a burst about the middle of each 4.8 m and lit from behind (Pia Törnell's)
-  | 'brownTiles';   // dark brown tiles, 20 cm, in lighter joints
+  | 'brownTiles'    // dark brown tiles, 20 cm, in lighter joints
+  | 'partosTiles'   // white tiles, 15 cm, clouds of small coloured tiles drifting over them (Christian Partos's)
+  | 'cafeWall'      // black and white tiles, 15 cm, each row shifted along from the one under it, in grey joints
+  | 'iridescentTiles'; // shimmering tiles, 30 cm, in greens, ochres and mauves, a copper spiral on some
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -5868,6 +5871,136 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // black bars round the short opening, beside the lift's tower, and along the long one
       { kind: 'bars', color: 0x1e1f21, points: [[-61.45, 4.65], [-68.3, 4.65], [-68.3, -1.35], [-58.75, -1.35], [-58.75, 2.1]], h: [0, 1.1] },
       { kind: 'bars', color: 0x1e1f21, points: [[-39.6, -0.55], [-53.8, -0.55], [-53.8, 3.05], [-39.6, 3.05]], h: [0, 1.1] },
+    ],
+  },
+
+  // Hässelby strand (18 November 1958), the green line's western end: a wide island platform in
+  // the open on an embankment between Maltesholmsvägen and Persikogatan, the tracks curving away
+  // northwards past the end of its roof under a concrete footbridge. Lantmäteriet's laser scan puts
+  // a butterfly roof over 80 m of it, from its south end, 11.2 m wide, its valley 2.9 m over the
+  // platform and its eaves 3.35 m; beyond it at the south end a low box over the platform's whole
+  // width, 2.6 m high, the top of a lift's shaft rising out of it to 3.8 m; south of that a roof
+  // sloping from 1.3 m over the platform down to the 2015 building on Fyrspannsgatan, its flats
+  // 12.4 m over the platform, whose ground floor holds the ticket hall at the street's level,
+  // 5.07 m under the platform. Photographs (2009 to 2023): the roof's steel painted a deep red,
+  // pairs of columns under a beam along each row, red beams across the pairs, light grey purlins
+  // along it, the underside ribbed sheet metal, a thin red-brown fascia; strip lights in pairs;
+  // black name signs hung from the beams, departure boards both ways for T-Centralen, a round
+  // clock; the paving grey slabs in a bond, a dark ribbed strip for the blind, a pale edge. Down
+  // the middle of the platform, between the pairs of columns, a long box walls in the ramp that
+  // takes the place of stairs: white tiles to 1.15 m, windows in red frames above to the beams,
+  // a glazed end facing north. Inside it, Christian Partos's Teleporteringar (2000): clouds of
+  // small coloured tiles drifting over the white tiles of the ramp's walls, blurred along as if
+  // in motion. The ramp runs straight down at 1 in 12 past the end of the roof and under the
+  // box, coming out in a hall under the sloping roof, white tiles under a band of windows, a dark
+  // stone floor; beside it on its west the lift's door between black and white tiles shifted
+  // row by row and shimmering tiles above them, on its east stairs down from the box along the
+  // wall, a strip of coloured tiles along their balustrade. South of the hall, through the
+  // building's ground floor, the ticket hall (June 2015): dark polished stone, a dark slatted
+  // ceiling, white tiles, a glazed ticket booth, glass gates, and a front of glass doors in
+  // brushed steel under SL's dark blue band with the name, under the building's canopy. North of
+  // the roof, the platform's open end: red masts with two hat-shaped lamps on a crossbar, black
+  // name signs, wooden benches, the footbridge's board-marked concrete pier on it; a small dark
+  // staff hut under the roof's last bay.
+  //
+  // The real platform is a metre west of the network's at its south end; the roof, the ramp and
+  // the box are laid along the network's. Not drawn: the ticket booth, the machines and posters,
+  // the yellow buffer stops (the network's tracks end where they end), the round artworks on the
+  // ramp's mouth.
+  'Hässelby strand': {
+    roof: {
+      kind: 'butterfly',
+      from: -75.5, to: 4, width: 11.2,
+      // (its middle the platform's, which the network's line through it swings away from)
+      shape: [[-75.5, 0.56, 11.2], [-40, 0.43, 11.2], [-20, 0.32, 11.2], [4, -0.1, 11.2]],
+      middle: 2.9, edge: 3.35, thick: 0.25, fascia: 0.3,
+      rafters: 8, rafterAt: -71.5, rafterSize: [0.2, 0.4], deck: 'ribbedAcross', rafterColor: 0x6e2622,
+      purlins: { at: [-4.6, -3.4, -2.2, -1.0, 1.0, 2.2, 3.4, 4.6], size: [0.08, 0.2], color: 0xaeb3b5 },
+      beam: 0.35,
+      // (a pair either side of the ramp's box)
+      columns: { every: 8, at: -71.5, size: 0.2, plinth: { size: 0.4, height: 0.15 }, pair: 3.3, braces: 0.8 },
+      lamps: { offset: 0.5, length: 1.2, every: 4, at: [-4.3, -0.5, 0.5, 4.3] },
+      colors: { underside: 0xa9aeb1, fascia: 0x5a2420, top: 0xb9bcbc, steel: 0x6e2622 },
+      signs: { at: [-60, -25, -5], back: 'Fyrspannsgatan', ahead: '' },
+      clocks: [[2, 4.2]],
+      boards: [
+        { s: -12, u: -2.4, toward: 'T-Centralen', trains: ['19 Hagsätra  4 min', '17 Skarpnäck  9 min'] },
+        { s: -12, u: 2.4, toward: 'T-Centralen', trains: ['18 Farsta strand  6 min', '19 Hagsätra  14 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 1.0], slabs: 1.0, pattern: 'bond', paverSize: [0.6, 0.3], mix: 0.15,
+      colors: { edge: 0xc4c2bc, tactile: 0x4a4b4d, slab: 0x8b8a86, pavers: 0x8b8a86, face: 0x9a978f, paler: 0x989690 },
+    },
+    rooms: [
+      // (the balustrades of the stairs from the box down to the hall a metre high, the flights open
+      // under the box's floor and the hall's roof)
+      { name: 'stairs', s: [-96, -83], u: [4.4, 8.4], h: [-5.6, 0.5], walls: 'squareTiles', stairs: 'squareTiles', floor: 'darkStone', parapet: 1.0 },
+      { name: 'box', s: [-86, -75.4], h: [-0.5, 0.5], walls: null, floor: 'darkStone' },
+      // (the ramp's walls the mosaic up to the platform, the box's above it)
+      { name: 'ramp', s: [-86, -30], u: [0, 4.6], h: [-5.6, 0.5], walls: 'partosTiles', floor: 'darkStone', ceiling: 'ribbedMetal', sill: 0, lamps: 2.3 },
+      { name: 'stair hall', s: [-94.8, -86], h: [-5.6, 0.5], walls: 'squareTiles', floor: 'darkStone', lamps: 4.3 },
+      { name: 'street', s: [-114, -110.7], h: [-5.6, -4], walls: null, floor: 'pavers' },
+      { name: 'ticket hall', s: [-110.7, -94.4], h: [-5.6, -3], walls: 'squareTiles', floor: 'darkStone', ceiling: 'perforated' },
+      { name: 'platform', s: [-80, 80], h: [-0.5, 0.5], walls: null, floor: null },
+    ],
+    blocks: [
+      // the ramp's box down the middle of the platform, between the pairs of columns: white tiles,
+      // windows in red frames above them, glazed across its northern end, open southwards into
+      // the low box at the end of the roof
+      { name: 'ramp', plan: [[-32.9, -0.42], [-32.9, 2.48], [-75.5, 4.03], [-75.5, 1.13]], h: [-0.6, 2.45], from: 0.02,
+        walls: 'squareTiles', sides: ['glazed', undefined, null, undefined], band: { walls: 'maroonGlazed', from: 1.15 },
+        roof: 0.1, roofColor: 0x9ea3a5, ceiling: 'ribbedMetal', onPlatform: true },
+      // the low box over the platform's south end, the ramp running on under its floor, the lift
+      // and the stairs going down from it; its south wall the hall's, below
+      { name: 'box', plan: [[-75.5, -1.6], [-75.5, 8.3], [-86, 8.3], [-86, -1.6]], h: [-0.5, 2.5], from: 0,
+        walls: 'greyGlazed', sides: [null, undefined, null, undefined], roof: 0.15, roofColor: 0xa9adad, floor: 'darkStone', ceiling: 'whitePanels', onPlatform: true },
+      { name: 'box, south', plan: [[-86.2, -1.6], [-86, -1.6], [-86, 8.3], [-86.2, 8.3]], h: [1.1, 2.5], from: 1.1, walls: 'greyPanels' },
+      // the hall's north wall, the lift's door in the black and white tiles, shimmering tiles
+      // over them; the ramp's mouth and the stairs in Partos's mosaic beside it
+      { name: 'hall, north, lift', plan: [[-86.2, -1.6], [-86, -1.6], [-86, 1.45], [-86.2, 1.45]], h: [-5.6, 1.1], from: -5.07,
+        walls: 'cafeWall', band: { walls: 'iridescentTiles', from: -2.75 } },
+      { name: 'hall, north', plan: [[-86.2, 1.45], [-86, 1.45], [-86, 8.3], [-86.2, 8.3]], h: [-5.6, 1.1], from: -5.07, walls: 'partosTiles' },
+      // the hall under the sloping roof, a band of windows under it; the ticket hall's opening
+      // in its south wall
+      { name: 'stair hall', plan: [[-86, -1.6], [-94.8, -1.6], [-94.8, 8.3], [-86, 8.3]], h: [-5.6, 1.1], from: -5.07, low: -0.15,
+        walls: 'squareTiles', sides: [undefined, undefined, undefined, null], band: { walls: 'darkGlazed', from: 0.4, low: -0.85 },
+        roof: 0.25, roofColor: 0x8f9294, ceiling: 'ribbedMetal', ground: true },
+      // the ticket hall through the building's ground floor, its glass front on Fyrspannsgatan
+      // under the building's canopy
+      { name: 'ticket hall', plan: [[-94.8, -1.6], [-110.6, -1.6], [-110.6, 8.2], [-94.8, 8.2]], h: [-5.6, -1.05], from: -5.07,
+        walls: 'squareTiles', sides: [undefined, 'glassFront', undefined, null], nameSign: { side: 1, at: 0.47, length: 4.4, bottom: -2.72 }, ground: true },
+      { name: 'canopy', plan: [[-112.5, -2.0], [-110.97, -2.0], [-110.2, 9.0], [-111.7, 9.0]], h: [-1.05, -0.85], from: -1.05,
+        walls: 'whitePanels', roof: 0.08, roofColor: 0x5d6165, floor: 'whitePanels' },
+      // the staff hut under the roof's last bay
+      { name: 'hut', plan: [[-1.0, -1.3], [3.2, -1.3], [3.2, 2.4], [-1.0, 2.4]], h: [-0.3, 2.4], from: 0.02,
+        walls: 'greyPanels', roof: 0.1, roofColor: 0x2f3133, onPlatform: true },
+      // the footbridge over the platform north of the roof, board-marked concrete, rising
+      // eastwards and down a long ramp beyond the tracks; its pier on the platform
+      { name: 'footbridge, west', plan: [[17.05, -17], [20.45, -17], [20.45, -4], [17.05, -4]], h: [3.8, 4.7], from: 3.8, fall: 4.35,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8c8a85, floor: 'boardConcrete' },
+      { name: 'footbridge', plan: [[17.05, -4], [20.45, -4], [20.45, 28], [17.05, 28]], h: [4.35, 5.25], from: 4.35, fall: 5.35,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8c8a85, floor: 'boardConcrete' },
+      { name: 'footbridge, east', plan: [[17.05, 28], [20.45, 28], [20.45, 38], [17.05, 38]], h: [5.35, 6.25], from: 5.35, fall: 5.0,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8c8a85, floor: 'boardConcrete' },
+      { name: 'footbridge, ramp', plan: [[17.05, 38], [20.45, 38], [20.45, 64], [17.05, 64]], h: [5.0, 5.9], from: 5.0, fall: 2.0,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8c8a85, floor: 'boardConcrete' },
+      { name: 'footbridge pier', plan: [[17.6, -0.6], [19.9, -0.6], [19.9, 0.1], [17.6, 0.1]], h: [-0.5, 4.47], from: 0.02,
+        walls: 'boardConcrete', onPlatform: true },
+    ],
+    art: [
+      // red masts with two hat-shaped lamps on a crossbar out on the open northern end, the
+      // station's name on some
+      { kind: 'masts', height: 4.8, color: 0x6e2622, top: false, arm: 0.6, shade: 0x6e2622, sign: 3.0, at: [[11, -0.3], [42, -0.85]] },
+      { kind: 'masts', height: 4.8, color: 0x6e2622, top: false, arm: 0.6, shade: 0x6e2622, at: [[27, -0.55], [57, -1.1]] },
+    ],
+    benches: { at: [7, 24, 35, 50], wood: true },
+    fences: [
+      // the railings along the footbridge's edges
+      { kind: 'bars', color: 0x7d8285, points: [[17.15, -17, 4.8], [17.15, -4, 5.35], [17.15, 28, 6.35], [17.15, 38, 6.0], [17.15, 64, 3.0]], h: [0, 1.1] },
+      { kind: 'bars', color: 0x7d8285, points: [[20.35, -17, 4.8], [20.35, -4, 5.35], [20.35, 28, 6.35], [20.35, 38, 6.0], [20.35, 64, 3.0]], h: [0, 1.1] },
+      // the mesh fence along the western track, by the car park
+      { points: [[-85, -9.3], [-60, -9.2], [-40, -9.1], [-20, -9.0], [0, -9.0]], h: [-0.4, 1.8], color: 0x9aa0a4 },
     ],
   },
 };

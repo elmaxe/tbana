@@ -3514,6 +3514,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   barkGrey: [0.75, 2.4], barkRed: [0.75, 2.4], checkTiles: [1.2, 1.2], mosaicPosters: [4.8, 4.8], vallingbyCentrum: [3.6, 8.0],
   wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
   greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
+  partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel'];
@@ -5296,6 +5297,90 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'partosTiles': {
+      // Hässelby strand's ramp and ticket hall: white tiles, 15 cm, in grey joints, and over them
+      // Christian Partos's Teleporteringar (Teleportings, 2000), clinker mosaic of small tiles,
+      // 4 cm, in yellows, greens, teals, a little red and pale blue, in clouds whose shapes smear
+      // out sideways into ragged streaks, as if half beamed elsewhere (photographs, 2018)
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * t + 3, j * t + 3, t * 0.3, t - 6);
+      }
+      // each cloud: a few blobs (x, y, rx, ry in metres) and the way its streaks run (-1 or 1)
+      const clouds: { blobs: [number, number, number, number][]; dir: number; hue: number }[] = [
+        { blobs: [[1.8, 1.7, 1.4, 0.75], [2.9, 2.05, 0.8, 0.5], [1.0, 1.35, 0.7, 0.45]], dir: 1, hue: 0 },
+        { blobs: [[5.3, 1.0, 1.1, 0.6], [6.2, 1.35, 0.7, 0.4], [4.5, 0.8, 0.5, 0.32]], dir: -1, hue: 1 },
+        { blobs: [[4.1, 3.0, 0.75, 0.42], [4.8, 3.25, 0.45, 0.28]], dir: 1, hue: 2 },
+      ];
+      const cols = [
+        ['#f2e14a', '#e9d63c', '#c9dc4c', '#9fcf5a', '#5fbf8a', '#3fb0a6', '#d94a3c', '#a8d4e6'],
+        ['#e4ef6a', '#b9e05a', '#7ccf6e', '#46b89a', '#2f9fb0', '#f0d848', '#e05a48', '#c9e8f0'],
+        ['#9fe0d0', '#6fcfc0', '#e8e070', '#f0a050', '#d8584a', '#b0dce8', '#80c870', '#f4ec90'],
+      ];
+      const m = 0.04 * PX;
+      for (let i = 0; i * m < W; i++) for (let j = 0; j * m < H; j++) {
+        const px = (i + 0.5) / PX * m, py = h - (j + 0.5) / PX * m;
+        for (const c of clouds) {
+          // how deep in the cloud, its blobs smeared towards their streaks' side
+          let f = 0;
+          for (const [bx, by, rx, ry] of c.blobs) {
+            const dx = (px - bx) / rx, dy = (py - by) / ry;
+            const sx = dx * c.dir > 0 ? dx / (1 + 2.5 * Math.abs(Math.sin(py * 23 + bx * 7)) ** 3) : dx;
+            f = Math.max(f, Math.exp(-(sx * sx + dy * dy) * 1.4));
+          }
+          if (f < 0.12 + r() * 0.25) continue;
+          const pal = cols[c.hue], k = Math.min(pal.length - 1, Math.floor((1 - f) * 5 + r() * 3.5));
+          x.fillStyle = pal[k]; x.fillRect(i * m + 0.75, H - (j + 1) * m + 0.75, m - 1.5, m - 1.5);
+          break;
+        }
+      }
+      break;
+    }
+    case 'cafeWall': {
+      // the tiles round Hässelby strand's lift and down the ramp's mouth, part of Christian Partos's
+      // Teleporteringar (2000): black and white tiles, 15 cm, in rows, each row shifted along from
+      // the one under it by a third of a tile and back again, so that the grey joints between the
+      // rows seem to slope (the café wall illusion; photographs, 2018)
+      x.fillStyle = '#8f918e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, shifts = [0, 1 / 3, 2 / 3, 1 / 3];
+      for (let j = 0; j * t < H; j++) {
+        const off = shifts[j % shifts.length] * t;
+        for (let i = -1; i * t < W; i++) {
+          const v = Math.floor(r() * 8), black = (i & 1) === 0;
+          x.fillStyle = black ? `rgb(${20 + v},${20 + v},${22 + v})` : `rgb(${236 + v},${236 + v},${232 + v})`;
+          x.fillRect(i * t + off + 1, j * t + 1.5, t - 2, t - 3);
+          x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(i * t + off + 3, j * t + 3, t * 0.25, t - 6);
+        }
+      }
+      break;
+    }
+    case 'iridescentTiles': {
+      // over Hässelby strand's lift (Christian Partos, 2000): glazed tiles, 30 cm, shimmering like
+      // oil on water in olive and sage greens, ochres, mauves and teals, each changing colour across
+      // its face, and on some a copper spiral (photographs, 2018)
+      x.fillStyle = '#5a5e52'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, cols = ['#8a9a4a', '#a7a04c', '#7f9c78', '#b0884e', '#8e7a96', '#5f8f8a', '#9db06a', '#c0a060', '#6c8a5c', '#a07a80'];
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const x0 = i * t + 1.5, y0 = j * t + 1.5, s0 = t - 3;
+        const g = x.createLinearGradient(x0, y0, x0 + s0, y0 + s0);
+        g.addColorStop(0, cols[Math.floor(r() * cols.length)]); g.addColorStop(0.55, cols[Math.floor(r() * cols.length)]); g.addColorStop(1, cols[Math.floor(r() * cols.length)]);
+        x.fillStyle = g; x.fillRect(x0, y0, s0, s0);
+        x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(x0 + 3, y0 + 3, s0 * 0.4, s0 * 0.4);
+        if (r() < 0.14) {
+          x.strokeStyle = '#7a4a2a'; x.lineWidth = 2.5; x.beginPath();
+          for (let a = 0; a < Math.PI * 7; a += 0.2) {
+            const rr = a / (Math.PI * 7) * s0 * 0.36;
+            const px = x0 + s0 / 2 + Math.cos(a) * rr, py = y0 + s0 / 2 + Math.sin(a) * rr;
+            if (a === 0) x.moveTo(px, py); else x.lineTo(px, py);
+          }
+          x.stroke();
+        }
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -5304,7 +5389,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
