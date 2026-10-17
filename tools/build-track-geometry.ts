@@ -3,9 +3,9 @@
 //
 //   node tools/build-track-geometry.ts
 //
-// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json,
-// data/height-corrections.json and the station models; writes public/data/track-geometry.json
-// (format in src/track-geometry.ts).
+// Reads public/data/track-graph.json, public/data/track-heights.json, data/ground/<line>-line.json
+// (with data/ground-corrections.json's decks), data/height-corrections.json and the station
+// models; writes public/data/track-geometry.json (format in src/track-geometry.ts).
 //
 // The plan. OpenStreetMap's track is traced from aerial photos in the open, but sketched in the
 // tunnels: there the two tracks of a line wander 4 to 35 m apart, where the line was built with
@@ -37,7 +37,8 @@
 //   cover), in rock elsewhere
 // - in the open: in a cutting more than 1.5 m below the ground, on an embankment more than 1 m
 //   above it, otherwise on the ground
-// - bridge: a bridge
+// - bridge: a bridge, and surface track on a viaduct OpenStreetMap doesn't map as one (the
+//   `viaducts` of data/height-corrections.json)
 // Where the two tracks of a line run side by side at one level, they share the structure; where
 // another line's track runs beside them in a concrete box or on a bridge, the box or deck takes it
 // in too (the four tracks from Gamla stan to where they part to T-Centralen's two levels, and to
@@ -47,7 +48,8 @@ import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
-import { ISLAND_WIDTH, ISLAND_WIDTHS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
+import { ISLAND_WIDTH, ISLAND_WIDTHS, MIDDLE_TRACK_STATIONS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
+import { deckAt } from './lib/decks.ts';
 import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
@@ -97,6 +99,8 @@ const BRIDGE_SHARE_REACH = 8;
 // how far across the widest island platform two tracks may be, and how far apart in length its
 // ends may be on the two
 const ISLAND_REACH = Math.max(ISLAND_WIDTH, ...Object.values(ISLAND_WIDTHS)) * 2 + 2 * PLATFORM_EDGE, ISLAND_ENDS = 8;
+// how far across a platform the next track is looked for: 30 m, or across the widest island
+const PLATFORM_REACH = Math.max(30, ...Object.values(ISLAND_WIDTHS).map((w) => w + 2 * PLATFORM_EDGE + 1));
 // structure runs shorter than this are merged into the run before
 const MIN_RUN = 30;
 
@@ -107,7 +111,11 @@ const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
 // side platforms measured wider than SIDE_PLATFORM_WIDTH, from data/track-corrections.json
-const sideWidths = new Map<string, number>((JSON.parse(readFileSync('data/track-corrections.json', 'utf8')).widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
+const trackCorrections = JSON.parse(readFileSync('data/track-corrections.json', 'utf8'));
+const sideWidths = new Map<string, number>((trackCorrections.widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
+// stations whose two platform tracks run straight and parallel, this far apart (data/track-corrections.json
+// `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too
+const straightStations = new Map<string, number>((trackCorrections.straight ?? []).map((w: { station: string; apart: number }) => [w.station, w.apart]));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -416,6 +424,29 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
   }
 
+  // the stations whose platform tracks are held straight and parallel: on a line fitted through
+  // OpenStreetMap's tracks along the platforms, each track half the spacing from it
+  const straightAt = new Map<number, [number, number]>();
+  for (const [station, apart] of straightStations) {
+    const on: { vi: number; x: number; z: number }[] = [];
+    for (const p of pieces) {
+      const { s, v } = disc.get(p.id)!;
+      v.forEach((vi, k) => { if (platformAt(p.id, s[k])?.station === station && !on.some((o) => o.vi === vi)) on.push({ vi, x: vars[vi].x0, z: vars[vi].z0 }); });
+    }
+    if (on.length < 4) throw new Error(`track-corrections.json straight: no platform track at ${station}`);
+    const cx = on.reduce((a, o) => a + o.x, 0) / on.length, cz = on.reduce((a, o) => a + o.z, 0) / on.length;
+    let sxx = 0, sxz = 0, szz = 0;
+    for (const o of on) { sxx += (o.x - cx) ** 2; sxz += (o.x - cx) * (o.z - cz); szz += (o.z - cz) ** 2; }
+    const th = Math.atan2(2 * sxz, sxx - szz) / 2, dx = Math.cos(th), dz = Math.sin(th), nx = -dz, nz = dx;
+    const off = on.map((o) => (o.x - cx) * nx + (o.z - cz) * nz);
+    const side = (sg: number) => { const q = off.filter((u) => Math.sign(u) === sg); return q.reduce((a, u) => a + u, 0) / q.length; };
+    const mid = (side(-1) + side(1)) / 2;
+    on.forEach((o, j) => {
+      const t = (o.x - cx) * dx + (o.z - cz) * dz, u = mid + Math.sign(off[j] - mid) * apart / 2;
+      straightAt.set(o.vi, [cx + dx * t + nx * u, cz + dz * t + nz * u]);
+    });
+  }
+
   // OpenStreetMap
   const anchored = new Set<number>();
   for (const p of pieces) {
@@ -425,6 +456,8 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       anchored.add(vi);
       const m = onModel.get(vi);
       if (m) { anchor(vi, m[0], m[1], SIGMA.model); return; }
+      const st = straightAt.get(vi);
+      if (st) { anchor(vi, st[0], st[1], SIGMA.model); return; }
       const pl = platformAt(p.id, s[k]) !== null;
       const tunnel = vars[vi].tunnel;
       // track no service runs on is mapped from depot and track plans, not sketched: closely
@@ -509,6 +542,11 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         target = 2 * TRACK_CENTRES;
         f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
         if (f < 0.05) return;
+        pairRows++;
+      } else if (here && there && here.station === there.station && straightStations.has(here.station)) {
+        // platforms held straight and parallel (data/track-corrections.json): their spacing
+        target = straightStations.get(here.station)!;
+        f = 1;
         pairRows++;
       } else if (here && there && here.osm === there.osm) {
         // an island platform between them
@@ -699,8 +737,11 @@ for (const g of ground) {
   const list = groundGrid.get(key);
   if (list) list.push(g); else groundGrid.set(key, [g]);
 }
-// the nearest sample within `reach`, or the mean of those within it
+// the nearest sample within `reach`, or the mean of those within it (on a deck over the tracks,
+// which the elevation model leaves out, the deck: data/ground-corrections.json)
 function groundAt(x: number, z: number, reach: number, mean = false) {
+  const deck = deckAt(x, z);
+  if (deck !== null) return deck;
   let best: number | null = null, bestD = reach, sum = 0, n = 0;
   const r = Math.ceil(reach / 10);
   for (let i = Math.floor(x / 10) - r; i <= Math.floor(x / 10) + r; i++) for (let j = Math.floor(z / 10) - r; j <= Math.floor(z / 10) + r; j++) {
@@ -718,10 +759,10 @@ const within = (fixes: { along: [number, number][]; reach: number }[] | undefine
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
     return Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach;
   }));
-const uncovered = within(corrections.uncovered);
+const uncovered = within(corrections.uncovered), viaduct = within(corrections.viaducts);
 
 const kindOf = (p: TrackPiece, s: number, x: number, z: number, y: number): StructureKind => {
-  if (p.structure === 'bridge') return 'bridge';
+  if (p.structure === 'bridge' || (p.structure === 'surface' && viaduct(x, z))) return 'bridge';
   if (p.structure === 'tunnel') {
     if (uncovered(x, z) || mouthDistance(p, s) < BOX_AT_MOUTH) return 'box';
     const g = groundAt(x, z, 25, true);
@@ -937,7 +978,8 @@ console.log(`${besideShared} points share a box or deck with another line's trac
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH (or its width in data/track-corrections.json),
-// or as fits before the next track.
+// or as fits before the next track, or at a station with a middle track (MIDDLE_TRACK_STATIONS)
+// reaches to that track (`reach`).
 // The stations drawn from a model have theirs in the model.
 const MIN_PLATFORM = 2;
 const dropped: string[] = [];
@@ -967,7 +1009,7 @@ for (const p of pieces) {
           const dx = o.x[j] - g.x[k], dz = o.z[j] - g.z[k];
           if (Math.abs(tx * dx + tz * dz) > STEP / 2) continue;
           const lateral = (-tz * dx + tx * dz) * r.side;
-          if (lateral < 1 || lateral > 30) continue;
+          if (lateral < 1 || lateral > PLATFORM_REACH) continue;
           // (OSM may match only part of the other track to the platform)
           const island = atPlatform.length > 0;
           // where two tracks are as near, the one at this platform
@@ -978,9 +1020,10 @@ for (const p of pieces) {
     }
     found.sort((a, b) => a.lateral - b.lateral);
     const { lateral: across, island } = found.length ? found[Math.floor(found.length / 2)] : { lateral: Infinity, island: false };
-    const width = island ? across - 2 * PLATFORM_EDGE : Math.min(sideWidths.get(r.station) ?? SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
+    const reach = !island && MIDDLE_TRACK_STATIONS.has(r.station);
+    const width = island || reach ? across - 2 * PLATFORM_EDGE : Math.min(sideWidths.get(r.station) ?? SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
-    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island });
+    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island, ...(reach ? { reach } : {}) });
   }
 }
 if (dropped.length) console.warn(`platforms with no room beside their track, not drawn: ${dropped.join(', ')}`);

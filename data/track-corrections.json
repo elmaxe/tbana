@@ -20,6 +20,195 @@
       "service": "main",
       "line": "blue",
       "why": "Kungsträdgården: OSM tags the platform tracks as sidings from halfway along the platform, where they run on as the tail tracks. The stretch along the platform, to the first switch beyond it, is the running line."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1260090258,
+        12541559473
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541559473,
+        1258848480
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1258848609,
+        12541559474
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541559474,
+        12541559475
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541586175,
+        12541586176
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12541586177,
+        12541586178
+      ],
+      "structure": "surface",
+      "why": "Skärmarbrink: OSM tags the tracks under the ticket hall and the footbridge in front of it tunnel=building_passage, which would put them in a concrete box; they run in the open under the hall's bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783459,
+        1283480525
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480525,
+        1283480533
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480533,
+        1283480535
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783335,
+        1283480535
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783290,
+        1279783407
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783342,
+        1279783429
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the tracks along the platforms' southern half, under Johanneshovsvägen's deck and the terminal over them, and on to the junction south of them, tunnel=yes; they run in the open under the decks, between the platforms (photographs, the laser scan's deck), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1283480535,
+        146909367
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        146909367,
+        254888808
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        254888808,
+        146909365
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        146909365,
+        1258848581
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1258848581,
+        1258848560
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's southbound track tunnel=yes from the platform to its portal 180 m south of the junction; it runs in the open under the bus terminal's deck (the laser scan's deck, 9.8 m over the platforms, over the tracks' cutting), not in a box."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        161383,
+        5282566353
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        13283284192,
+        2668390228
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        5282566360,
+        2668692630
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        2668692630,
+        2668692628
+      ],
+      "structure": "surface",
+      "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
     }
   ],
   "crossovers": [
@@ -79,6 +268,18 @@
       "why": "Akalla: the scissors crossover just south of the platform, which trains turning at the terminus use, is missing in OSM. Placed from Gleisplanweb: two crossovers between the platform's south end and Husby."
     }
   ],
+  "ends": [
+    {
+      "node": 1969701190,
+      "to": [157640.4, 6572215.2],
+      "why": "Skarpnäck: OSM ends the eastern track 85 m short of the platform's south end. OSM's indoor mapping (2026) and Albert Guillaumes' drawing have the escalators climb from the platform's north end to the station's building on Skarpnäcks allé, which puts the platform south of it, and Gleisplanweb has the tracks ending at buffers just past it. The track runs on parallel to the platform to 13 m beyond its end."
+    },
+    {
+      "node": 1969701189,
+      "to": [157623.0, 6572215.8],
+      "why": "Skarpnäck: as for the eastern track, OSM ends the western one 85 m short of the platform's south end."
+    }
+  ],
   "platforms": [
     {
       "station": "Norsborg",
@@ -97,25 +298,46 @@
     },
     {
       "station": "Gubbängen",
-      "why": "No platform is mapped at Gubbängen in OSM (October 2026). The station's node lies between the two tracks, at the island platform."
+      "at": [
+        154688.3,
+        6571980
+      ],
+      "why": "No platform is mapped at Gubbängen in OSM (October 2026), and the station's node is 60 m north of the platform's middle. The island platform is placed between the tracks under its roof, which Lantmäteriet's laser scan shows from 7548 to 7696 m south (world z)."
     },
     {
       "station": "Skarpnäck",
-      "at": [
-        157634,
-        6572400
-      ],
-      "why": "No platform is mapped at Skarpnäck in OSM (October 2026), and the station's node is 50 m west of the tracks. The island platform is placed between the tracks, its south end near the buffer stops."
+      "replace": true,
+      "at": [157631.8, 6572300.5],
+      "why": "OSM's platform (2026) is drawn 8 m wide between tracks 17 m apart, so it reaches only the eastern one. The island platform is placed between the tracks from OSM's: its north end at the foot of the flight up to the escalators, its south end 13 m short of the buffers."
     },
     {
       "station": "Medborgarplatsen",
       "replace": true,
-      "why": "OSM's island platform is drawn across the tracks (its fixme says it is in quite the wrong place). Both tracks are placed from the station's node."
+      "at": [
+        154166.1,
+        6577789.7
+      ],
+      "why": "OSM's island platform is drawn across the tracks (its fixme says it is in quite the wrong place), and short. Its south end, though, is at the foot of the flights up to the ticket hall at Folkungagatan, as OSM's indoor mapping (2025) and Albert Guillaumes' drawing have it. Both tracks are placed from this point between them, 72.5 m north of that, so that the 145 m platform runs from there to under Noe Arksgränden."
     },
     {
       "station": "Skanstull",
       "replace": true,
-      "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place). Both tracks are placed from the station's node, which lies between them."
+      "at": [
+        154318.9,
+        6577095.5
+      ],
+      "length": 180,
+      "why": "OSM's island platform is drawn across the southbound track (its fixme says it is in the wrong place beside the tracks). Along the line, though, it runs from the foot of the south hall's escalators to the foot of the stairs down to the passage towards Allhelgonagatan, as OSM's indoor mapping (2024–26) and Albert Guillaumes' drawing have them, 180 m with the narrower stretch at its south end. Both tracks are placed from this point between them, the middle of that, 36 m north of the station's node, and the platform is made that long rather than the usual 145 m."
+    },
+    {
+      "station": "Rådmansgatan",
+      "replace": true,
+      "at": [
+        153309.06,
+        6580685.21
+      ],
+      "length": 151,
+      "why": "OSM's island platform (2026) runs 2.5 m further north along the western track than along the eastern, so the eastern half stopped short beside the foot of the escalators and the tunnel showed past it. OSM's indoor mapping has the flights climbing from both ends of the platform, the southern escalators' foot 150.7 m from the northern's. Both tracks are placed from this point between them, the middle of OSM's platform, so that the platform runs square from the one to the other."
     },
     {
       "station": "Svedmyra",
@@ -125,32 +347,66 @@
     {
       "station": "Sankt Eriksplan",
       "replace": true,
-      "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it. Both tracks are placed from the station's node, which lies between them."
+      "at": [152121.54, 6580624.16],
+      "length": 154,
+      "why": "OSM maps the island platform twice, as a way and a multipolygon, each reading as beside only one of the tracks, and the multipolygon on the wrong side of it; and the station's node lies 19 m south of the platform's middle. OSM's indoor mapping has the flights climbing from both ends of the platform, the southern escalators' foot 153.7 m from the northern flights'. Both tracks are placed from this point between them, the middle of the platform."
+    },
+    {
+      "station": "Tekniska högskolan",
+      "replace": true,
+      "at": [153930.5, 6581258.3],
+      "length": 157,
+      "why": "OSM draws the island platform 183 m long and 15 m wide, from the foot of the north-western escalators to beyond the south-eastern end, and its tracks 19 m apart. Albert Guillaumes' drawing (2024), whose scale is read off Roslagsbanan's platforms beside it (each end within 3 m of OSM's), has the platform 157 m long and 27 m wide, round two cores of rock 61 m long, with a lobby 10 m long and 10 m wide at each end, narrower than the platform, to the escalators. This point is between the tracks, 10 m short of the north-western escalators' foot, which OSM's indoor mapping (2026) places, plus half the platform."
     },
     {
       "station": "Bagarmossen",
-      "extend": true,
-      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [157542.1, 6573352.4],
+      "why": "OSM draws the island platform 93 m long, short of the 145 m of the green line's platforms, and lengthening it about its middle put the platform's north end 28 m beyond the foot of the escalators. OSM's indoor mapping (2026) and Albert Guillaumes' drawing have the escalators and the inclined lift climbing from a lobby at the platform's north end, which is blind at its south end (photographs, 2019 and 2022); this point is the middle of a 145 m platform ending 3.5 m short of the escalators."
     },
     {
       "station": "Bandhagen",
-      "extend": true,
-      "why": "OSM draws the island platform 90 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [152843.9, 6572847.6],
+      "why": "OSM draws the open part of the island platform, 87 m long, and lengthening it about its middle put the platform 13 m north of the real one. Lantmäteriet's laser scan has the platform 148 m long, from the glazed hall on the bridge over Trollesundsvägen at its south end, and roofed for its southern 62 m; this point is its middle."
+    },
+    {
+      "station": "Högdalen",
+      "replace": true,
+      "at": [152482.5, 6572115.2],
+      "why": "OSM maps the two island platforms 117 m long, short of their southern 28 m under the roofs, and with the middle track between them as a platform track, which leaves it undrawn. Lantmäteriet's laser scan and Google's mesh have both platforms 145 m long, from the stair houses at their south end, with the middle track (no service stops there; it leads to the depot) running between them; this point is their middle, on the middle track."
     },
     {
       "station": "Blackeberg",
-      "extend": true,
-      "why": "OSM draws the island platform about 60 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [143341.89, 6581476.88],
+      "why": "OSM maps only the open part of the island platform, 94 m long, and lengthening it about its middle put the platform 45 m north-west of the real one, 50 m past the open part's end. Lantmäteriet's laser scan has the open part end where OSM's does; the rest of the 145 m are covered, under Vinjegatan's deck, the ticket hall (whose stairs reach the platform 9 m in, as OSM's indoor mapping has them) and Blackebergs torg. This point is its middle."
+    },
+    {
+      "station": "Blackeberg",
+      "at": [143373.87, 6581441.5],
+      "length": 50,
+      "why": "The platform's covered south-eastern 50 m are beside the tunnels, which OSM maps as tracks of their own; this point is between them there, so that they get the platform too."
     },
     {
       "station": "Rågsved",
-      "extend": true,
-      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [151632.7, 6571273.0],
+      "why": "OSM draws the island platform 42 m long, at its north-eastern end, and lengthening it about its middle put the platform 40 m north-east of the real one. Lantmäteriet's laser scan has the platform 145 m long, from its south-western end on the bridge over the passage under the tracks to 32 m beyond the north-eastern end of its roof; this point is its middle."
+    },
+    {
+      "station": "Rågsved",
+      "at": [151588.7, 6571243.0],
+      "why": "The platform's south-western 38 m stand on the bridge over the passage, which OSM maps as tracks of their own; this point is between them there, so that they get the platform too."
     },
     {
       "station": "Stureby",
-      "extend": true,
-      "why": "OSM draws the island platform under 50 m long, short of the 145 m of the green line's platforms (Albert Guillaumes' drawing shows it the full length of a train)."
+      "replace": true,
+      "at": [
+        153251.4,
+        6573277.2
+      ],
+      "why": "OSM maps only a 45 m piece of the island platform, at its east end, and lengthening it about its middle put the platform 20 m east of the real one. Lantmäteriet's laser scan has the platform from the stair house at its west end, over the ticket hall, to about 150 m east of it, roofed for its western 105 m; this point is its middle."
     },
     {
       "station": "Hjulsta",
@@ -204,13 +460,74 @@
       "station": "Rissne",
       "extend": true,
       "why": "OSM draws the platforms about 60 m long, short of the 145 m of the blue line's platforms (Albert Guillaumes' drawing shows them the full length of a train)."
+    },
+    {
+      "station": "Farsta",
+      "shortRuns": 25,
+      "why": "OSM splits the eastern track 28 m short of the island platform's south end, where its bridge ends, so that piece was left without the platform, and the platform's south end was drawn as a narrow side platform on the western track only."
+    },
+    {
+      "station": "Alvik",
+      "replace": true,
+      "reach": 14,
+      "at": [148987.66, 6579810.75],
+      "why": "OSM maps Alvik's two island platforms each beside one metro track, the outer ones, with the Nockebybanan's two tracks between them, which aren't part of the metro's map; so they were drawn as two side platforms with grass between. Both metro tracks are placed at one platform from its middle, between them, so that it is paved across, and the station's style (src/open-styles.ts) cuts the Nockebybanan's tracks out of it between the two islands."
+    },
+    {
+      "station": "Vällingby",
+      "replace": true,
+      "at": [142663.84, 6583211.7],
+      "reach": 5,
+      "length": 143,
+      "why": "OSM draws Vällingby's two island platforms askew across the tracks, so that the middle track, the turnback track between them that no train stops at, read as a platform track and was left out, and the platforms were drawn as one wide floor. The laser scan has the outer tracks' ballast and the middle track's between two islands about 6 m wide, from 87 m into the covered part under the decks to 56 m past it, as OSM's platforms run. This point is the north-eastern island's middle, so that only its outer track gets it, and the island reaches across to the middle track."
+    },
+    {
+      "station": "Vällingby",
+      "at": [142654.36, 6583202.8],
+      "reach": 5,
+      "length": 143,
+      "why": "The south-western island's middle, as for the north-eastern one."
     }
+  ],
+  "straight": [
+    {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."},
+    {"station": "Tekniska högskolan", "apart": 30.54, "why": "Tekniska högskolan's island platform is 27.4 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock; OpenStreetMap has its tracks straight and parallel along it. Held only by the platform's width, the fit bowed the tracks 2 m inward at each end."}
   ],
   "widths": [
     {
       "station": "Ropsten",
       "width": 5.8,
       "why": "Each of Ropsten's two viaducts carries one track and one side platform, 5.8 m from the platform edge to the railing over the open gap between them (Lantmäteriet's laser scan, 2021: the roofs and the parked train's roof)."
+    }
+  ],
+  "points": [
+    {
+      "at": [150179.0, 6579726.5],
+      "why": "Kristineberg, the southern track at the platform's west end: OSM has no point on it between 56 m west of the platform and 49 m east of its west end, so its height sloped straight between them, and the island's southern half stood a third of a metre over its northern half at that end. Lantmäteriet's laser scan has both tracks' ballast level along the platform, at the same height, and climbing west of it towards Tranebergsbron."
+    },
+    {
+      "at": [150318.7, 6579680.6],
+      "why": "Kristineberg, the southern track at the platform's east end: the next point east is 23 m beyond it, at the crossover, so the track sloped down along the platform's eastern half, and the island's southern half ended 0.2 m under its northern half."
+    },
+    {
+      "at": [150182.4, 6579736.1],
+      "why": "Kristineberg, the northern track at the platform's west end: its nearest point is 7 m beyond the platform, where the line starts to climb to Tranebergsbron, so with nothing to hold it level the track rose along the platform's western half, and the island's northern half stood 0.1 m over its southern half."
+    },
+    {
+      "at": [149057.2, 6579787.5],
+      "why": "Alvik, the southern track at the platform's east end: OSM's nearest points are 64 m inside the platform and 8 m beyond it, where the line climbs to Tranebergsbron, so the track rose along the platform's eastern half, and the island's southern edge ended 0.13 m above its middle."
+    },
+    {
+      "at": [148914.7, 6579814.1],
+      "why": "Alvik, the southern track at the platform's west end: OSM has no point on it between 52 m inside the platform and the bridge 36 m beyond it, so its height sloped straight between them."
+    },
+    {
+      "at": [149060.1, 6579802.4],
+      "why": "Alvik, the northern track at the platform's east end: its nearest points are 20 m inside the platform and 10 m beyond it, on the climb."
+    },
+    {
+      "at": [148919.7, 6579838.4],
+      "why": "Alvik, the northern track at the platform's west end: OSM has no point on it between 63 m inside the platform and the bridge 36 m beyond it."
     }
   ]
 }

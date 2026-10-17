@@ -2,12 +2,16 @@ import * as THREE from 'three';
 import { SurfaceIndex } from './surface-index';
 import type { SurfaceHit } from './surface-index';
 import { insideVolume, intersect, prism, subtractAll } from './clip.ts';
+import { Mesh, box, slab } from './poly-mesh.ts';
 import type { Volume } from './clip.ts';
 import { LANE, LIFT, floorHeights, inclineCorners, liftCorners, solidOf, spaceOf } from './station-layout.ts';
 import type { CanopyPart, FloorPart, GatesPart, InclinePart, LiftPart, Part, SignPart, StationLayout, StationLayouts, StreetPart, XYZ } from './station-layout.ts';
 import type { Lift } from './station';
 import type { PlatformFloorData } from './network';
 import * as T from './textures';
+import { Frame, OpenLook, blockVolumes, roomOf } from './open-stations';
+import { OPEN_STYLES } from './open-styles';
+import type { Finish, OpenStyle, Room } from './open-styles';
 import { TUBE, addLamps, removeLamps } from './lamps';
 import type { Lamp } from './lamps';
 
@@ -27,6 +31,7 @@ const PROBE = 0.15;   // how far beyond a floor's edge to look for the next floo
 const STEP = 0.65;    // a floor within this height there can be stepped onto
 const PIECE = 0.5;    // walls are found in pieces this long
 const PARAPET = 1.1;  // walls around stairs coming up into the street stand this high
+const UNDER = 0.3;    // the city's ground is cut out from this far under a floor
 // the light of a row of lamps down a room's ceiling, per metre (see src/lamps.ts), and how far it
 // lights
 const ROOM_LIGHT = { power: 1.4, reach: 14 };
@@ -61,43 +66,7 @@ function materials() {
   } satisfies Record<MaterialName, THREE.Material>;
 }
 
-// Triangles with uvs, for one material; each polygon is cut by the given volumes as it is added.
-// The materials are double-sided, so polygons may face either way.
-class Mesh {
-  pos: number[] = [];
-  uv: number[] = [];
-  get empty() { return this.pos.length === 0; }
-  // a convex polygon of [x, y, z, u, v] vertices, minus the volumes
-  poly(verts: number[][], cut: Volume[] = []) {
-    for (const piece of subtractAll(verts, cut)) {
-      for (let k = 1; k + 1 < piece.length; k++) {
-        for (const v of [piece[0], piece[k], piece[k + 1]]) { this.pos.push(v[0], v[1], v[2]); this.uv.push(v[3], v[4]); }
-      }
-    }
-  }
-  build() {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
-    g.computeVertexNormals();
-    g.computeBoundingSphere();
-    return g;
-  }
-}
-
 type Meshes = Record<MaterialName, Mesh>;
-
-// A box `sx` across, `sy` high and `sz` along the direction (fx, fz), centred at c.
-function box(m: Mesh, c: XYZ, fx: number, fz: number, sx: number, sy: number, sz: number, cut: Volume[] = []) {
-  const rx = -fz, rz = fx;
-  const P = (i: number, j: number, k: number) => [c[0] + rx * i * sx / 2 + fx * k * sz / 2, c[1] + j * sy / 2, c[2] + rz * i * sx / 2 + fz * k * sz / 2];
-  const faces = [
-    [[1, -1, -1], [1, -1, 1], [1, 1, 1], [1, 1, -1]], [[-1, -1, 1], [-1, -1, -1], [-1, 1, -1], [-1, 1, 1]],
-    [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]], [[-1, -1, 1], [1, -1, 1], [1, -1, -1], [-1, -1, -1]],
-    [[-1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, 1]], [[1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, -1]],
-  ];
-  for (const f of faces) m.poly(f.map(([i, j, k], n) => [...P(i, j, k), n === 1 || n === 2 ? 1 : 0, n >= 2 ? 1 : 0]), cut);
-}
 
 // the open spaces of a station's parts, with the parts they belong to
 interface Space { part: Part; vol: Volume }
@@ -114,9 +83,14 @@ export class Stations {
   private _plat: SurfaceHit<PlatformFloorData>[] = [];
   // the lamps of the station being built
   private lamps: Lamp[] = [];
+  // the styled open stations' look (src/open-styles.ts), and the station being built, if it is
+  // one: its frame, its style, and the mesh for each of its own materials
+  private look = new OpenLook();
+  private open: { frame: Frame; style: OpenStyle; on: (m: THREE.Material) => Mesh } | null = null;
 
-  // The volumes the network cuts out of what it draws: the stations' open spaces (`holes`), and,
-  // from the platforms' floors, the solid undersides of the stairs (`solids`).
+  // The volumes the network cuts out of what it draws: the stations' open spaces and the halls a
+  // styled open station stands on its platform (`holes`), and, from the platforms' floors, the
+  // solid undersides of the stairs (`solids`).
   static volumes(data: StationLayouts) {
     const holes: Volume[] = [], solids: Volume[] = [];
     for (const st of data.stations) {
@@ -126,6 +100,8 @@ export class Stations {
         if (v) holes.push(v);
         if (p.kind === 'incline') solids.push(solidOf(p));
       }
+      const style = OPEN_STYLES[st.name];
+      if (style) holes.push(...blockVolumes(style, new Frame(st), 'onPlatform'));
     }
     return { holes, solids };
   }
@@ -138,9 +114,11 @@ export class Stations {
       for (const p of st.parts) {
         if (p.kind === 'floor') {
           const h = p.corners.map((c) => c[1]);
-          cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - 0.3), h.map((y) => y + (p.ceiling ?? 3))));
+          cuts.push(prism(p.corners.map((c): [number, number] => [c[0], c[2]]), h.map((y) => y - UNDER), h.map((y) => y + (p.ceiling ?? 3))));
         } else if (p.kind === 'incline' || p.kind === 'lift') cuts.push(spaceOf(p)!);
       }
+      const style = OPEN_STYLES[st.name];
+      if (style) cuts.push(...blockVolumes(style, new Frame(st), 'ground'));
     }
     return cuts;
   }
@@ -160,6 +138,9 @@ export class Stations {
       if (p.kind === 'incline') cutters.push(spaceOf(p)!, solidOf(p));
       else if (p.kind === 'lift') cutters.push(spaceOf(p)!);
     }
+    // (in a styled open station, the street doesn't run on inside its buildings)
+    const style = OPEN_STYLES[st.name];
+    const shells = style ? blockVolumes(style, new Frame(st)) : [];
     const data = (label: string, top: number | null, outdoor = false, street = false): StationFloorData => ({ kind: 'station', rec: { label }, station: st.name, top, outdoor, street });
     const add = (tri: number[][], d: StationFloorData, cut: Volume[]) => {
       for (const piece of subtractAll(tri, cut)) {
@@ -171,24 +152,28 @@ export class Stations {
     for (const p of st.parts) {
       if (p.kind === 'floor') {
         const c = p.corners, top = p.ceiling === null ? null : Math.max(...c.map((v) => v[1])) + p.ceiling;
-        const d = data(p.label, top, p.ceiling === null);
+        const d = data(p.label, top, p.ceiling === null || p.daylight === true);
         add([c[0], c[1], c[2]], d, cutters);
         add([c[0], c[2], c[3]], d, cutters);
       } else if (p.kind === 'incline') {
         const v = this.inclineFloor(p);
-        const d = data(p.label, p.open !== undefined ? null : Math.max(p.a[1], p.b[1]) + p.ceiling);
+        const d = data(p.label, p.open !== undefined ? null : Math.max(p.a[1], p.b[1]) + p.ceiling, p.daylight === true);
         add([v[0], v[1], v[2]], d, []);
         add([v[0], v[2], v[3]], d, []);
       } else if (p.kind === 'street') {
         const d = data(`${st.name} · street`, null, true, true);
-        this.streetCells(p, (q) => { add([q[0], q[1], q[2]], d, cutters); add([q[0], q[2], q[3]], d, cutters); });
+        const cut = [...cutters, ...shells];
+        this.streetCells(p, (q) => { add([q[0], q[1], q[2]], d, cut); add([q[0], q[2], q[3]], d, cut); });
       } else if (p.kind === 'lift') {
         const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
         const door = LIFT.depth / 2 + 0.9;
         this.lifts.push({
           center: new THREE.Vector3(p.x, p.levels[0], p.z), radius: LIFT.width / 2,
           minY: Math.min(...p.levels), maxY: Math.max(...p.levels),
-          levels: p.levels.map((y) => ({ y, pos: new THREE.Vector3(p.x + fx * door, y, p.z + fz * door), yaw: p.yaw })),
+          levels: p.levels.map((y, i) => {
+            const k = p.through && i === 1 ? -1 : 1;
+            return { y, pos: new THREE.Vector3(p.x + fx * door * k, y, p.z + fz * door * k), yaw: k > 0 ? p.yaw : p.yaw + Math.PI };
+          }),
         });
       }
     }
@@ -257,6 +242,12 @@ export class Stations {
     const group = new THREE.Group();
     group.name = st.name;
     this.lamps = [];
+    const own = new Map<THREE.Material, Mesh>();
+    const style = this.look.style(st);
+    this.open = style && {
+      frame: new Frame(st), style,
+      on: (mat) => { let x = own.get(mat); if (!x) own.set(mat, x = new Mesh()); return x; },
+    };
     const spaces: Space[] = [];
     const voids: Volume[] = [];
     for (const p of st.parts) {
@@ -266,23 +257,40 @@ export class Stations {
     }
     // what cuts a part's walls and ceiling: every other part's space, and the network's halls
     const others = (p: Part) => [...spaces.filter((s) => s.part !== p).map((s) => s.vol), ...voids];
+    // (a styled station's roof is drawn once, along one of its platform's canopies)
+    const roofCanopy = this.open && this.look.canopyFor(st, this.open.style, st.parts.filter((p): p is CanopyPart => p.kind === 'canopy'));
     for (const p of st.parts) {
       switch (p.kind) {
         case 'floor': this.buildFloor(p, m, others(p), spaces); break;
         case 'incline': this.buildIncline(p, m, others(p), spaces.filter((s) => s.part !== p && s.part.kind === 'floor').map((s) => s.vol), voids); break;
         case 'lift': this.buildLift(p, m); break;
         case 'gates': this.buildGates(p, m); break;
-        case 'street': if (this.drawStreets) this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol))); break;
-        case 'canopy': this.buildCanopy(p, m, spaces.map((s) => s.vol)); break;
+        case 'street': if (this.drawStreets) {
+          const cut = [...spaces.filter((s) => s.part.kind !== 'floor').map((s) => s.vol), ...(this.open ? blockVolumes(this.open.style, this.open.frame) : [])];
+          this.streetCells(p, (q) => m.street.poly(q.map((v) => [...v, v[0] / 4, v[2] / 4]), cut));
+        } break;
+        case 'canopy':
+          // (not cut by the floors out in the open under it, which reach up to it)
+          if (this.open) {
+            if (p === roofCanopy) this.look.roofOver(st, this.open.style, p, this.open.on, spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol), group);
+          } else this.buildCanopy(p, m, spaces.map((s) => s.vol));
+          break;
         case 'sign': group.add(this.buildSign(p, m)); break;
         default: break;
       }
     }
     for (const p of st.parts) if ((p.kind === 'floor' && p.edges !== false) || p.kind === 'incline') this.buildWalls(p, m, others(p));
+    for (const p of st.parts) if (p.kind === 'floor' && p.ceiling === null && p.edges !== false) this.buildEdges(p, m, others(p));
     for (const p of st.parts) if (p.kind === 'incline') this.buildRailings(p, m);
+    if (this.open) {
+      const closed = spaces.filter((s) => !(s.part.kind === 'floor' && s.part.ceiling === null)).map((s) => s.vol);
+      this.look.build(st, this.open.style, this.open.on, [...spaces.map((s) => s.vol), ...voids], group, [...closed, ...voids], voids);
+    }
     for (const [name, mesh] of Object.entries(m) as [MaterialName, Mesh][]) {
       if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), this.mats[name]));
     }
+    for (const [mat, mesh] of own) if (!mesh.empty) group.add(new THREE.Mesh(mesh.build(), mat));
+    this.open = null;
     addLamps(group, this.lamps);
     return group;
   }
@@ -291,17 +299,39 @@ export class Stations {
     const c = p.corners;
     // the floor is cut where stairs or a lift pass down through it
     const through = spaces.filter((s) => s.part !== p && s.part.kind !== 'floor').map((s) => s.vol);
-    m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
-    if (p.ceiling === null) return;
-    const top = c.map((v): number[] => [v[0], v[1] + p.ceiling!, v[2], v[0] / 3, v[2] / 3]);
-    m.ceiling.poly(top, cut);
+    const room = this.roomOf(p);
+    // (none where it is the network's platform, paved as the platform is)
+    if (room?.floor) this.flat(room.floor, c, through);
+    else if (room?.floor !== null) m.floor.poly(c.map((v) => [...v, v[0] / 2, v[2] / 2]), through);
+    // (in a styled open station: a slab under it where it stands on a bridge, a roof over it)
+    if (room?.slab) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] - 0.02, v[2]]), room.slab, 0.5, through);
     // lights down the middle, along the longer side
     const [a, b, cc, d] = c;
     const l1 = Math.hypot(b[0] - a[0], b[2] - a[2]), l2 = Math.hypot(d[0] - a[0], d[2] - a[2]);
     const [p0, p1, q0, q1] = l2 >= l1 ? [a, d, b, cc] : [a, b, d, cc];
     const s0: XYZ = [(p0[0] + q0[0]) / 2, (p0[1] + q0[1]) / 2, (p0[2] + q0[2]) / 2];
     const s1: XYZ = [(p1[0] + q1[0]) / 2, (p1[1] + q1[1]) / 2, (p1[2] + q1[2]) / 2];
+    if (p.ceiling === null) {
+      // (open, under a block's roof: lamps hung from it, if the room has them)
+      if (room?.lamps) this.lampRow(m, s0, s1, room.lamps, cut);
+      return;
+    }
+    const top = c.map((v): number[] => [v[0], v[1] + p.ceiling!, v[2], v[0] / 3, v[2] / 3]);
+    if (room?.ceiling) this.flat(room.ceiling, top, cut, true);
+    else m.ceiling.poly(top, cut);
+    if (room?.roof) slab(this.open!.on(this.look.roofing), c.map((v): XYZ => [v[0], v[1] + p.ceiling! + 0.02 + room.roof!, v[2]]), room.roof, 0.5, cut);
     this.lampRow(m, s0, s1, p.ceiling - 0.04, cut);
+  }
+
+  // In a styled open station, the room whose finishes a floor or a flight of stairs takes.
+  private roomOf(p: FloorPart | InclinePart): Room | null {
+    return this.open ? roomOf(this.open.style, this.open.frame, p) : null;
+  }
+
+  // A floor or ceiling in a finish, its uvs in the station's frame.
+  private flat(f: Finish, verts: number[][], cut: Volume[], ceiling = false) {
+    const o = this.open!, [w] = T.FINISH_SIZE[f];
+    o.on(this.look.finish(f, ceiling)).poly(verts.map((v) => [v[0], v[1], v[2], o.frame.u(v[0], v[2]) / w, o.frame.s(v[0], v[2]) / w]), cut);
   }
 
   // A row of lamps `above` the line from a to b; indoors (`lights`), they light the room under them.
@@ -337,7 +367,27 @@ export class Stations {
     let u = -p.width / 2;
     const bounds = [u];
     for (const lane of p.lanes) {
-      const w = LANE[lane as 'E' | 'S'];
+      const w = LANE[lane as keyof typeof LANE];
+      if (lane === 'L') {
+        // an inclined lift: a steel trough up the slope, its car waiting at the foot, level, glazed
+        // all round under a steel roof
+        const d = -0.25;
+        m.skirt.poly([[...at(u, 0, d), 0, 0], [...at(u + w, 0, d), w, 0], [...at(u + w, 1, d), w, 1], [...at(u, 1, d), 0, 1]]);
+        const y0 = p.a[1] + 0.02, l = Math.min(2.0, run * 0.4), c0 = Math.min(0.3, run * 0.05) / run, c1 = c0 + l / run;
+        const q = (uu: number, t: number, y: number) => [p.a[0] + fx * run * t + rx * uu, y, p.a[2] + fz * run * t + rz * uu];
+        const u0 = u + 0.1, u1 = u + w - 0.1, top = y0 + 2.2;
+        const box4: [number, number][] = [[u0, c0], [u1, c0], [u1, c1], [u0, c1]];
+        for (let k = 0; k < 4; k++) {
+          const [ua, ta] = box4[k], [ub, tb] = box4[(k + 1) % 4];
+          m.glass.poly([[...q(ua, ta, y0), 0, 0], [...q(ub, tb, y0), 1, 0], [...q(ub, tb, top), 1, 1], [...q(ua, ta, top), 0, 1]]);
+          m.escalator.poly([[...q(ua, ta, top), 0, 0], [...q(ub, tb, top), 1, 0], [...q(ub, tb, top + 0.12), 1, 0.1], [...q(ua, ta, top + 0.12), 0, 0.1]]);
+        }
+        m.escalator.poly(box4.map(([uu, t]) => [...q(uu, t, top + 0.12), 0, 0]));
+        m.escalator.poly([...box4].reverse().map(([uu, t]) => [...q(uu, t, y0), 0, 0]));
+        u += w;
+        bounds.push(u);
+        continue;
+      }
       const mesh = lane === 'E' ? m.escalator : m.stairs;
       // each step: its riser, then its tread, so that the walking plane runs through the middle of
       // both; and a last riser up to the top
@@ -395,10 +445,14 @@ export class Stations {
     // out into the street, or through a floor at the top: no ceiling over the opening
     let tEnd = p.open === undefined ? 1 : Math.max(0, Math.min(1, (p.open - p.a[1] - p.ceiling) / (rise || 1)));
     if (this.throughFloor(p)) tEnd = Math.min(tEnd, Math.max(0, 1 - p.ceiling / (rise || 1)));
+    // (in a glass building, under its roof)
+    const room = this.roomOf(p);
+    if (room?.sill !== undefined || room?.parapet !== undefined) tEnd = 0;
     if (tEnd > 0) {
       const w2 = p.width / 2;
       const c0 = ceil(-w2, 0), c1 = ceil(w2, 0), c2 = ceil(w2, tEnd), c3 = ceil(-w2, tEnd);
-      m.ceiling.poly([[...c0, 0, 0], [...c1, p.width / 3, 0], [...c2, p.width / 3, run * tEnd / 3], [...c3, 0, run * tEnd / 3]], cut);
+      if (room?.ceiling) this.flat(room.ceiling, [c0, c1, c2, c3], cut, true);
+      else m.ceiling.poly([[...c0, 0, 0], [...c1, p.width / 3, 0], [...c2, p.width / 3, run * tEnd / 3], [...c3, 0, run * tEnd / 3]], cut);
       this.lampRow(m, at(0, 0) as XYZ, at(0, tEnd) as XYZ, p.ceiling - 0.04, cut);
     }
   }
@@ -410,6 +464,14 @@ export class Stations {
     const ceiling = p.kind === 'floor' ? p.ceiling : p.ceiling;
     const cx = corners.reduce((s, c) => s + c[0], 0) / corners.length, cz = corners.reduce((s, c) => s + c[2], 0) / corners.length;
     const n = corners.length;
+    const room = this.roomOf(p), finish = (p.kind === 'incline' ? room?.stairs : undefined) ?? room?.walls ?? undefined;
+    const sill = room?.sill === undefined ? undefined : this.open!.frame.st.platformY + room.sill;
+    const parapet = p.kind === 'incline' ? room?.parapet : undefined;
+    // (the walls facing left, to −u, in the room's `left` finish if it has one; those facing
+    // back, to −s, in its `back` finish)
+    const facing = (ox: number, oz: number) => (room?.left && ox * -this.open!.frame.fz + oz * this.open!.frame.fx < -0.5 ? room.left
+      : room?.back && ox * this.open!.frame.fx + oz * this.open!.frame.fz < -0.5 ? room.back : finish);
+    if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
       const len = Math.hypot(b[0] - a[0], b[2] - a[2]);
@@ -422,7 +484,7 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len);
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz), sill, parapet);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {
@@ -445,11 +507,41 @@ export class Stations {
     }
   }
 
+  // A floor out in the open: its edge where no floor goes on beyond it, from the floor down past
+  // where the city's ground is cut out under it, so that the ground beside it, where it is lower,
+  // doesn't show the hole under the floor.
+  private buildEdges(p: FloorPart, m: Meshes, cut: Volume[]) {
+    const c = p.corners, n = c.length;
+    for (let e = 0; e < n; e++) {
+      const a = c[e], b = c[(e + 1) % n], len = Math.hypot(b[0] - a[0], b[2] - a[2]);
+      if (len < 0.05) continue;
+      let ox = (b[2] - a[2]) / len, oz = -(b[0] - a[0]) / len;
+      const cx = c.reduce((t, v) => t + v[0], 0) / n, cz = c.reduce((t, v) => t + v[2], 0) / n;
+      if (ox * ((a[0] + b[0]) / 2 - cx) + oz * ((a[2] + b[2]) / 2 - cz) < 0) { ox = -ox; oz = -oz; }
+      const pieces = Math.max(1, Math.round(len / PIECE));
+      const at = (t: number, dy: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t + dy, a[2] + (b[2] - a[2]) * t];
+      let t0: number | null = null;
+      for (let i = 0; i <= pieces; i++) {
+        // (the street round an exit counts only where it is drawn: over the city's ground, which
+        // can be a little lower than the floor, the edge hides the cut under the floor)
+        const [x, y, z] = at((i + 0.5) / pieces, 0), open = i < pieces && !this.nextFloor(x + ox * PROBE, z + oz * PROBE, y, this.drawStreets);
+        if (open && t0 === null) t0 = i / pieces;
+        if (!open && t0 !== null) {
+          const t1 = i / pieces, d = UNDER + 0.1;
+          m.stairs.poly([[...at(t0, 0), 0, 0], [...at(t1, 0), (t1 - t0) * len / 2, 0], [...at(t1, -d), (t1 - t0) * len / 2, d / 2], [...at(t0, -d), 0, d / 2]], cut);
+          t0 = null;
+        }
+      }
+    }
+  }
+
   // The floor beyond an edge that can be stepped onto, and its ceiling's height (Infinity for the
-  // network's platforms, whose halls the network draws).
-  private nextFloor(x: number, z: number, y: number): { top: number | null } | null {
+  // network's platforms, whose halls the network draws); the street round the exits too, unless
+  // `streets` is false.
+  private nextFloor(x: number, z: number, y: number, streets = true): { top: number | null } | null {
     let best: { y: number; top: number | null } | null = null;
     for (const h of this.walk.query(x, z, this._hits)) {
+      if (!streets && h.data.street) continue;
       if (Math.abs(h.y - y) <= STEP && (!best || Math.abs(h.y - y) < Math.abs(best.y - y))) best = { y: h.y, top: h.data.top };
     }
     if (best) return best;
@@ -459,8 +551,22 @@ export class Stations {
     return null;
   }
 
-  private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number) {
+  private wallQuad(p: FloorPart | InclinePart, m: Meshes, a: XYZ, b: XYZ, t0: number, t1: number, bottom: 'floor' | number, ceiling: number | null, cut: Volume[], len: number,
+    finish?: Finish, sill?: number, parapet?: number) {
     const P = (t: number) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    // in a glass building, only up to the glass's sill: none where the floor is above it, and
+    // only the part below it where the floor rises through it (beside stairs with a parapet too,
+    // up to the sill or the parapet, whichever is higher)
+    if (sill !== undefined && parapet === undefined) {
+      const ya = P(t0)[1], yb = P(t1)[1];
+      if (Math.min(ya, yb) >= sill - 0.01) return;
+      if (Math.max(ya, yb) > sill + 0.01) {
+        const tk = t0 + ((t1 - t0) * (sill - ya)) / (yb - ya);
+        if (ya < yb) this.wallQuad(p, m, a, b, t0, tk, bottom, ceiling, cut, len, finish, sill, parapet);
+        else this.wallQuad(p, m, a, b, tk, t1, bottom, ceiling, cut, len, finish, sill, parapet);
+        return;
+      }
+    }
     const p0 = P(t0), p1 = P(t1);
     // the top: the ceiling; in the open, a parapet; around stairs coming up into the street, the
     // ceiling below the street and a parapet above it
@@ -468,6 +574,8 @@ export class Stations {
     // and down through a floor, no higher than the floor
     const cap = p.kind === 'incline' && this.throughFloor(p) ? p.b[1] : Infinity;
     const top = (q: number[]) => {
+      if (sill !== undefined) return parapet === undefined ? sill : Math.max(sill, q[1] + parapet);
+      if (parapet !== undefined) return q[1] + parapet;
       if (ceiling === null) return q[1] + PARAPET;
       if (open !== undefined) return Math.min(q[1] + ceiling, Math.max(open + PARAPET, q[1] + PARAPET));
       return Math.min(cap, q[1] + ceiling);
@@ -479,6 +587,14 @@ export class Stations {
       [p1[0], top(p1), p1[2], u1, top(p1) / 2], [p0[0], top(p0), p0[2], u0, top(p0) / 2],
     ];
     if (quad[2][1] <= quad[1][1] + 0.01 && quad[3][1] <= quad[0][1] + 0.01) return;
+    if (finish) {
+      // in a styled open station's finish: its uvs in metres along the wall and up from the floor
+      const [w, h] = T.FINISH_SIZE[finish], ends = [p0, p1, p1, p0];
+      const fq = quad.map((v, i) => [v[0], v[1], v[2], (i === 0 || i === 3 ? t0 : t1) * len / w, (v[1] - ends[i][1]) / h]);
+      this.open!.on(this.look.finish(finish)).poly(fq, cut);
+      if (T.FINISH_GLASS.includes(finish)) this.open!.on(this.look.pane).poly(fq, cut);
+      return;
+    }
     m.wall.poly(quad, cut);
   }
 
@@ -507,8 +623,10 @@ export class Stations {
     const dx = p.b[0] - p.a[0], dz = p.b[2] - p.a[2], run = Math.hypot(dx, dz) || 1;
     const fx = dx / run, fz = dz / run, rx = -fz, rz = fx;
     const rise = p.b[1] - p.a[1], top = p.b[1];
-    // the opening: from where the flight's ceiling passes up through the floor at the top
-    const t0 = Math.max(0, 1 - p.ceiling / (rise || 1));
+    // the opening: from where the flight's ceiling passes up through the floor at the top (all of
+    // it in a glass building, or between parapets, where the flight has no ceiling of its own)
+    const room = this.roomOf(p);
+    const t0 = room?.sill !== undefined || room?.parapet !== undefined ? 0 : Math.max(0, 1 - p.ceiling / (rise || 1));
     const floorAt = (x: number, z: number) => this.walk.query(x, z, this._hits).some((h) => Math.abs(h.y - top) < 0.15)
       || !!this.platforms?.query(x, z, this._plat).some((h) => Math.abs(h.y - top) < 0.15);
     const panel = (ax: number, az: number, bx: number, bz: number) => {
@@ -539,7 +657,7 @@ export class Stations {
 
   private buildLift(p: LiftPart, m: Meshes) {
     const c = liftCorners(p);
-    const y0 = Math.min(...p.levels) - LIFT.below, y1 = Math.max(...p.levels) + LIFT.above;
+    const y0 = Math.min(...p.levels) - LIFT.below, y1 = Math.max(...p.levels) + (p.above ?? LIFT.above);
     for (let i = 0; i < 4; i++) {
       const [ax, az] = c[i], [bx, bz] = c[(i + 1) % 4];
       m.glass.poly([[ax, y0, az, 0, 0], [bx, y0, bz, 1, 0], [bx, y1, bz, 1, 1], [ax, y1, az, 0, 1]]);
@@ -550,8 +668,9 @@ export class Stations {
     // the car, standing at the lowest stop, and a frame round the door at each
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw);
     box(m.steel, [p.x, Math.min(...p.levels) + 1.2, p.z], fx, fz, LIFT.width - 0.3, 2.4, LIFT.depth - 0.3);
-    for (const y of p.levels) {
-      const d: XYZ = [p.x + fx * (LIFT.depth / 2 + 0.02), y + 1.1, p.z + fz * (LIFT.depth / 2 + 0.02)];
+    for (const [i, y] of p.levels.entries()) {
+      const k = (p.through && i === 1 ? -1 : 1) * (LIFT.depth / 2 + 0.02);
+      const d: XYZ = [p.x + fx * k, y + 1.1, p.z + fz * k];
       box(m.steel, d, fx, fz, 1.2, 2.2, 0.06);
     }
   }

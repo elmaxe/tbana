@@ -230,7 +230,7 @@ export async function fromIon(token: string, box: Box, above = 25.9): Promise<Pi
           const gz = m[2] * p[i] + m[6] * p[i + 1] + m[10] * p[i + 2] + m[14];
           pos.set(fromEcef(gx, -gz, gy), i);
         }
-        // (a few pieces, out over open water, come without a texture)
+        // (now and then a piece comes untextured, out over open water among others: it is left out)
         const texRef = gl.materials[prim.material]?.pbrMetallicRoughness?.baseColorTexture;
         if (!texRef || prim.attributes.TEXCOORD_0 === undefined) continue;
         const tex = gl.textures[texRef.index];

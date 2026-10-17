@@ -65,12 +65,17 @@ interface Corrections {
   offGround?: Segment[];
   // surface track that is on the ground right up to a bridge: it keeps its ground anchors there
   toBridge?: Segment[];
+  // surface track on a viaduct that OpenStreetMap doesn't map as a bridge: drawn as one (read by
+  // tools/build-track-geometry.ts; its height here is as the other fixes have it)
+  viaducts?: Segment[];
   // bridges with a road or a valley under them: the rail at least `clearance` above the ground
   raised?: (Segment & { clearance: number })[];
   // the rail's height where the elevation model can't see it (on a bridge, under water), such as
   // from Google Earth's 3D model: x, z and the height at each point, anchored like a platform
   // within reach of the line between them
   rail?: { along: [number, number, number][]; reach: number; why: string }[];
+  // tracks crossing one over the other closer than STACKED: the rails' least distance apart there
+  stacked?: (Segment & { clearance: number })[];
 }
 interface Segment { along: [number, number][]; reach: number; why: string }
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
@@ -148,6 +153,9 @@ const sidings = sidingPieces(graph, lineTrack(graph));
 const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
 const STACKED = 6.5, CROSS_REACH = 7, JOINED = 250;
+// the rails' least distance apart where two tracks cross at a point: STACKED, unless a correction
+// reaches it
+const stackedAt = (x: number, z: number) => (corrections.stacked ?? []).find((f) => within([f])(x, z))?.clearance ?? STACKED;
 // Where the running tracks of two services cross in OpenStreetMap's plan (tools/lib/graph.ts
 // runningCrossings), the points within CROSSED of the crossing count as crossing: the tracks
 // may run within CROSS_REACH of each other for a while either side, at a shallow angle. Tracks
@@ -453,7 +461,9 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   // track stays where it is, and the other one moves. So too where the running tracks of two
   // services cross in plan (crossedNear, above), whatever their layers: both move, and where
   // OpenStreetMap gives them one layer (the red and green lines north of T-Centralen), the one
-  // above is the one that is mostly above them along the stretch, in the first solution.
+  // above is the one that is mostly above them along the stretch, in the first solution. Where the
+  // corrections say the structures between them are thinner (stacked), that clearance replaces
+  // STACKED.
   const pieceOfVar = new Map<number, { p: TrackPiece; s: number }>();
   for (const p of pieces) {
     const { s, v } = disc.get(p.id)!;
@@ -475,7 +485,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     }
     return Math.min((dist.get(b.p.from) ?? Infinity) + b.s, (dist.get(b.p.to) ?? Infinity) + b.p.length - b.s);
   }
-  const crossings: { a: number; b: number; order: number; fixed: number | null; pieces: string; orient: number }[] = [];
+  const crossings: { a: number; b: number; order: number; fixed: number | null; pieces: string; orient: number; gap: number }[] = [];
   {
     const grid = new Map<string, number[]>();
     for (const vi of pieceOfVar.keys()) {
@@ -499,7 +509,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
           // against a service's track, the other passes on the side it is already on (0: decided
           // from the first solution): OpenStreetMap's layers there are often only roughly right
           crossings.push({ a, b, order: fixed === null && layered ? Math.sign(pa.p.layer! - pb.p.layer!) : 0, fixed,
-            pieces: `${Math.min(pa.p.id, pb.p.id)}/${Math.max(pa.p.id, pb.p.id)}`, orient: pa.p.id < pb.p.id ? 1 : -1 });
+            pieces: `${Math.min(pa.p.id, pb.p.id)}/${Math.max(pa.p.id, pb.p.id)}`, orient: pa.p.id < pb.p.id ? 1 : -1, gap: stackedAt(x, z) });
         }
       }
     }
@@ -516,11 +526,11 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   const coverHeld = new Set<number>(), floorHeld = new Set<number>(), gradeHeld = new Map<number, number>(), stackHeld = new Set<number>(), bendHeld = new Map<number, number>();
   const holds = () => [
     ...[...stackHeld].map((k): Row => {
-      const { a, b, order, fixed } = crossings[k];
+      const { a, b, order, fixed, gap } = crossings[k];
       // a service's track stays where it is: only the other one moves
-      if (fixed === a) return { i: [b], c: [1], b: y[a] - order * STACKED, w: 1 / SIGMA.cover };
-      if (fixed === b) return { i: [a], c: [1], b: y[b] + order * STACKED, w: 1 / SIGMA.cover };
-      return { i: [a, b], c: [order, -order], b: STACKED, w: 1 / SIGMA.stacked };
+      if (fixed === a) return { i: [b], c: [1], b: y[a] - order * gap, w: 1 / SIGMA.cover };
+      if (fixed === b) return { i: [a], c: [1], b: y[b] + order * gap, w: 1 / SIGMA.cover };
+      return { i: [a, b], c: [order, -order], b: gap, w: 1 / SIGMA.stacked };
     }),
     ...[...coverHeld].map((vi): Row => ({ i: [vi], c: [1], b: coverAt(vi)!, w: 1 / SIGMA.cover })),
     ...[...floorHeld].map((vi): Row => ({ i: [vi], c: [1], b: floorAt(vi)!, w: 1 / SIGMA.cover })),
@@ -561,8 +571,8 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     crossings.forEach((c, k) => {
       if (!c.order) c.order = (c.fixed === null ? c.orient * Math.sign(mostly.get(c.pieces)!) : Math.sign(y[c.a] - y[c.b])) || 1;
       const dy = (y[c.a] - y[c.b]) * c.order;
-      if (!stackHeld.has(k) && dy < STACKED - 0.01) { stackHeld.add(k); changed++; }
-      else if (stackHeld.has(k) && dy > STACKED + 0.01) { stackHeld.delete(k); changed++; }
+      if (!stackHeld.has(k) && dy < c.gap - 0.01) { stackHeld.add(k); changed++; }
+      else if (stackHeld.has(k) && dy > c.gap + 0.01) { stackHeld.delete(k); changed++; }
     });
     if (!changed) break;
     y = solve(holds());

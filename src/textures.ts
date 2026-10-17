@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Finish, Paving } from './open-styles';
 
 // All textures are drawn procedurally so the project ships with no image assets.
 
@@ -224,10 +225,11 @@ export function trainEnd() {
 }
 
 // Station name sign, SL style (blue plate, white text).
-export function nameSign(text: string, bg = '#0c4da2') {
+// (without `border`, on a band of the same colour along a wall: no white edge round it)
+export function nameSign(text: string, bg = '#0c4da2', border = true) {
   const [c, x] = canvas(1024, 192);
   x.fillStyle = bg; x.fillRect(0, 0, 1024, 192);
-  x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 6; x.strokeRect(10, 10, 1004, 172);
+  if (border) { x.strokeStyle = 'rgba(255,255,255,0.9)'; x.lineWidth = 6; x.strokeRect(10, 10, 1004, 172); }
   x.fillStyle = '#fff';
   x.font = '600 104px "Helvetica Neue", Arial, sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
@@ -465,11 +467,11 @@ function hotorgetTileCanvas(height: number, { plate = 0, tilesFrom = 0, mirror =
   return c;
 }
 
-// A navy enamel name plate 0.63 × 0.09 m, centred on the origin, `scale` px to the metre:
-// the name in white capitals, spaced out.
-function drawNamePlate(x: CanvasRenderingContext2D, text: string, scale: number) {
+// A navy enamel name plate 0.63 × 0.09 m (or of `color`), centred on the origin, `scale` px to
+// the metre: the name in white capitals, spaced out.
+function drawNamePlate(x: CanvasRenderingContext2D, text: string, scale: number, color = '#1d2c5e') {
   const w = 0.63 * scale, h = 0.09 * scale;
-  x.fillStyle = '#1d2c5e';
+  x.fillStyle = color;
   x.fillRect(-w / 2, -h / 2, w, h);
   x.fillStyle = '#f4f2ea';
   x.font = `600 ${Math.round(h * 0.55)}px "Helvetica Neue", Arial, sans-serif`;
@@ -978,7 +980,11 @@ export type CaveMotif =
   // lines of small handwriting in many colours
   | { kind: 'writing'; colors: string[]; from: number; to: number }
   // cracks in the rock traced in paint: thin lines wandering every way, branching
-  | { kind: 'cracks'; colors: string[]; from: number; to: number; count: number };
+  | { kind: 'cracks'; colors: string[]; from: number; to: number; count: number }
+  // flowing bands, as of water or of folds in stone: wavering strokes up to `width` m wide,
+  // thinning to their ends, `length` m long, running about `angle` degrees round from along the
+  // cave (90: up the wall)
+  | { kind: 'swirls'; colors: string[]; from: number; to: number; count: number; width: number; length: number; angle?: number };
 
 export function caveRock(paint: CavePaint) {
   const PX = CAVE_PX, W = CAVE_ACROSS * PX, H = CAVE_REPEAT * PX;
@@ -1377,6 +1383,27 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
       for (let i = 0; i < m.count; i++) {
         x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
         crack(across(m.from, m.to), r() * L, r() * Math.PI * 2, 1.5 + r() * 3.5, 0.035 + r() * 0.025, 0);
+      }
+      break;
+    }
+    case 'swirls': {
+      x.lineCap = 'round';
+      for (let i = 0; i < m.count; i++) {
+        x.strokeStyle = m.colors[Math.floor(r() * m.colors.length)];
+        let u = across(m.from, m.to), dv = 0, a = ((m.angle ?? 0) * Math.PI) / 180 + (r() - 0.5) * 0.8;
+        const y = r() * L, n = Math.max(4, Math.round((m.length * (0.6 + r() * 0.8)) / 0.12));
+        const w = m.width * (0.4 + r() * 0.6), turn = (r() - 0.5) * 0.12, ph = r() * 6, pts: [number, number][] = [[u, 0]];
+        for (let k = 0; k < n; k++) {
+          a += turn + Math.sin(k * 0.3 + ph) * 0.07;
+          u = Math.min(m.to, Math.max(m.from, u + Math.sin(a) * 0.12)); dv += Math.cos(a) * 0.12;
+          pts.push([u, dv]);
+        }
+        wrap(y, m.length * 1.5 + 1, (yy) => {
+          for (let k = 1; k < pts.length; k++) {
+            x.lineWidth = w * Math.sin((Math.PI * k) / pts.length) + 0.01;
+            x.beginPath(); x.moveTo(pts[k - 1][0], yy + pts[k - 1][1]); x.lineTo(pts[k][0], yy + pts[k][1]); x.stroke();
+          }
+        });
       }
       break;
     }
@@ -1837,6 +1864,242 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
   return toTexture(c);
 }
 
+// Gärdet (1967): the track walls clad in white enamelled panels (2006), 1.2 m wide in rows `row`
+// high, from `panelsFrom` over a black plinth, with a grey strip along them `strip` high; along
+// them a row of pictures in white mounts (`art`: from, to, wide, apart), which are changed from
+// time to time: redrawn here as motifs of our own (an eye, a figure by the sea, a net of lines,
+// stripes, a red square, an island, a sheet of script). One repeat is GARDET_REPEAT m, drawn as
+// seen from the foot of the wall (`floor`) up to `top`.
+export const GARDET_REPEAT = 20.8;
+function gardetWallCanvas(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }) {
+  const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
+  const [c, x] = canvas(W, H);
+  const y = (h: number) => H - (h - floor) * PX;
+  const r = rng(2006);
+  // the plinth, dusty towards the track bed
+  x.fillStyle = '#18191b'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 2500, 0.12, 2007, true);
+  const dust = x.createLinearGradient(0, y(f.panelsFrom), 0, H);
+  dust.addColorStop(0, 'rgba(70,62,52,0)'); dust.addColorStop(1, 'rgba(70,62,52,0.5)');
+  x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+  // the panels, in rows between grey joints, a little sheen at the top of each
+  x.fillStyle = '#a9abad'; x.fillRect(0, 0, W, y(f.panelsFrom));
+  const n = Math.max(1, Math.round((top - f.panelsFrom) / f.row));
+  for (let k = 0; k < n; k++) {
+    const a = f.panelsFrom + ((top - f.panelsFrom) * k) / n, b = f.panelsFrom + ((top - f.panelsFrom) * (k + 1)) / n;
+    for (let i = 0; i < GARDET_REPEAT / 1.2; i++) {
+      const v = 236 + Math.floor(r() * 10);
+      x.fillStyle = `rgb(${v},${v},${v - 2})`;
+      x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+      const g = x.createLinearGradient(0, y(b), 0, y(a));
+      g.addColorStop(0, 'rgba(255,255,255,0.45)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(120,120,115,0.08)');
+      x.fillStyle = g; x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
+    }
+  }
+  x.fillStyle = '#8e9194'; x.fillRect(0, y(f.strip + 0.05), W, 0.1 * PX);
+  // the pictures
+  const [from, to, wide, apart] = f.art, count = Math.round(GARDET_REPEAT / apart);
+  for (let i = 0; i < count; i++) {
+    const cx = (i + 0.5) * (GARDET_REPEAT / count) * PX, pw = wide * PX, ph = (to - from) * PX, px = cx - pw / 2, py = y(to);
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(px + 3, py + 4, pw, ph);
+    x.fillStyle = '#9a9c9e'; x.fillRect(px - 1, py - 1, pw + 2, ph + 2);
+    x.fillStyle = '#f6f6f3'; x.fillRect(px, py, pw, ph);
+    const m = pw * 0.07, ix = px + m, iy = py + m, iw = pw - 2 * m, ih = ph - 2 * m - pw * 0.05;
+    x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
+    picture(x, ix, iy, iw, ih, i % 8, r);
+    x.restore();
+    // a caption under it
+    x.fillStyle = 'rgba(60,60,60,0.5)'; x.fillRect(cx - iw * 0.15, iy + ih + pw * 0.02, iw * 0.3, 2);
+  }
+  return c;
+}
+function picture(x: CanvasRenderingContext2D, ix: number, iy: number, iw: number, ih: number, kind: number, r: () => number) {
+  const disc = (cx: number, cy: number, rad: number, stops: [number, string][]) => {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    for (const [t, col] of stops) g.addColorStop(t, col);
+    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI * 2); x.fill();
+  };
+  if (kind === 0) {
+    // a net of pale lines over deep blue, two pale lobes in its middle
+    x.fillStyle = '#1d3d73'; x.fillRect(ix, iy, iw, ih);
+    x.strokeStyle = 'rgba(225,235,250,0.7)'; x.lineWidth = 1;
+    for (let k = 0; k < 40; k++) {
+      let px = ix + r() * iw, py = iy + r() * ih, a = r() * Math.PI * 2;
+      x.beginPath(); x.moveTo(px, py);
+      for (let j = 0; j < 12; j++) { a += (r() - 0.5) * 1.2; px += Math.cos(a) * iw * 0.05; py += Math.sin(a) * iw * 0.05; x.lineTo(px, py); }
+      x.stroke();
+    }
+    for (const d of [-1, 1]) disc(ix + iw / 2 + d * iw * 0.15, iy + ih * 0.45, iw * 0.17, [[0, '#f0e2c4'], [0.7, '#d8c08e'], [1, 'rgba(216,192,142,0)']]);
+  } else if (kind === 1 || kind === 6) {
+    // an eye's iris, filling the picture
+    x.fillStyle = '#f4f2ec'; x.fillRect(ix, iy, iw, ih);
+    const cx = ix + iw / 2, cy = iy + ih / 2, rad = Math.min(iw, ih) * 0.42;
+    const [a, b] = kind === 1 ? ['#c9a24a', '#6e5a24'] : ['#a8c46a', '#3e6a3a'];
+    disc(cx, cy, rad, [[0, '#2a1d10'], [0.28, '#3a2a14'], [0.32, a], [0.85, b], [1, '#2d2a1e']]);
+    x.strokeStyle = 'rgba(40,30,10,0.35)'; x.lineWidth = 1;
+    for (let k = 0; k < 90; k++) {
+      const t = (k / 90) * Math.PI * 2;
+      x.beginPath(); x.moveTo(cx + Math.cos(t) * rad * 0.32, cy + Math.sin(t) * rad * 0.32); x.lineTo(cx + Math.cos(t) * rad * 0.95, cy + Math.sin(t) * rad * 0.95); x.stroke();
+    }
+    disc(cx, cy, rad * 0.26, [[0, '#050505'], [0.9, '#0c0c0c'], [1, 'rgba(12,12,12,0)']]);
+    x.fillStyle = 'rgba(255,255,255,0.7)'; x.beginPath(); x.arc(cx - rad * 0.18, cy - rad * 0.2, rad * 0.06, 0, Math.PI * 2); x.fill();
+  } else if (kind === 2) {
+    // a figure by the sea, under a pale sky
+    const sky = x.createLinearGradient(0, iy, 0, iy + ih);
+    sky.addColorStop(0, '#5f8fc4'); sky.addColorStop(0.65, '#cfdde8'); sky.addColorStop(0.66, '#2f5f8f'); sky.addColorStop(1, '#244b72');
+    x.fillStyle = sky; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#c9b49a'; x.beginPath(); x.ellipse(ix + iw * 0.55, iy + ih * 0.66, iw * 0.1, ih * 0.09, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#8a8f96'; x.beginPath(); x.moveTo(ix + iw * 0.3, iy + ih); x.quadraticCurveTo(ix + iw * 0.55, iy + ih * 0.7, ix + iw * 0.8, iy + ih); x.fill();
+  } else if (kind === 3) {
+    // ochre, crossed by black lines that wander and black blocks
+    x.fillStyle = '#c99a3c'; x.fillRect(ix, iy, iw, ih);
+    x.strokeStyle = '#1a1a1a'; x.lineWidth = 2;
+    for (let k = 0; k < 7; k++) {
+      const yy = iy + ih * (0.1 + k * 0.12);
+      x.beginPath(); x.moveTo(ix, yy);
+      for (let t = 0; t <= 1; t += 0.1) x.lineTo(ix + iw * t, yy + Math.sin(t * 9 + k) * ih * 0.03);
+      x.stroke();
+    }
+    x.fillStyle = '#141414'; x.fillRect(ix + iw * 0.1, iy + ih * 0.8, iw * 0.35, ih * 0.08); x.fillRect(ix + iw * 0.55, iy + ih * 0.88, iw * 0.3, ih * 0.06);
+  } else if (kind === 4) {
+    // a red square on white, a pattern of small marks in it
+    x.fillStyle = '#efefeb'; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#b3241e'; x.fillRect(ix + iw * 0.15, iy + ih * 0.22, iw * 0.7, ih * 0.5);
+    x.fillStyle = '#e8c9a0';
+    for (let k = 0; k < 60; k++) x.fillRect(ix + iw * (0.2 + r() * 0.6), iy + ih * (0.27 + r() * 0.4), 2, 2);
+    x.fillStyle = '#f5f2ea'; x.beginPath(); x.arc(ix + iw / 2, iy + ih * 0.47, iw * 0.05, 0, Math.PI * 2); x.fill();
+  } else if (kind === 5) {
+    // a small dark island on a calm sea
+    const sky = x.createLinearGradient(0, iy, 0, iy + ih);
+    sky.addColorStop(0, '#9cb7cf'); sky.addColorStop(0.55, '#e6ecef'); sky.addColorStop(0.56, '#7d9ab2'); sky.addColorStop(1, '#4f6f8a');
+    x.fillStyle = sky; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#25292c'; x.beginPath(); x.ellipse(ix + iw * 0.5, iy + ih * 0.56, iw * 0.2, ih * 0.05, 0, Math.PI, 0); x.fill();
+  } else {
+    // a pale sheet of script in a dark frame
+    x.fillStyle = '#3c3a36'; x.fillRect(ix, iy, iw, ih);
+    x.fillStyle = '#e9e1cf'; x.fillRect(ix + iw * 0.12, iy + ih * 0.1, iw * 0.76, ih * 0.8);
+    x.fillStyle = 'rgba(60,50,40,0.6)';
+    for (let yy = iy + ih * 0.16; yy < iy + ih * 0.84; yy += 4) x.fillRect(ix + iw * 0.18, yy, iw * (0.5 + r() * 0.14), 1.4);
+  }
+}
+
+// Gärdet's track walls, turned for a sweep along the track as Karlaplan's are: u up the wall from
+// its foot (0) to the vault (1), v along the track, GARDET_REPEAT m per repeat; `mirror` for the
+// wall that sees the track's direction the other way round.
+export function gardetTrackWall(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }, mirror = false) {
+  const src = gardetWallCanvas(floor, top, f);
+  const [c, x] = canvas(src.height, src.width);
+  x.setTransform(0, 1, -1, 0, src.height, 0);
+  if (mirror) { x.translate(src.width, 0); x.scale(-1, 1); }
+  x.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// The wall behind Gärdet's platforms: panels of dark brown-grey concrete `panel` wide, cast with
+// fine diagonal grooves, on a pale plinth from the platform (`platform` high) to `plinth`; over
+// them a band in `band.color`, and a pale strip up to the vault. Two panels a repeat along the
+// wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along).
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string } }) {
+  const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
+  const [src, x] = canvas(W, H);
+  const y = (h: number) => H - (h - floor) * PX;
+  const r = rng(1967);
+  x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  speckle(x, W, H, 1500, 0.06, 1968);
+  stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
+  x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
+  x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
+  x.fillStyle = '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
+  speckle(x, W, y(f.band.to), 600, 0.05, 1969);
+  const [c, t] = canvas(src.height, src.width);
+  t.setTransform(0, 1, -1, 0, src.height, 0);
+  t.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+// panels of brown-grey concrete `pw` wide across the rectangle, cast with fine diagonal grooves, each a
+// little different in tone, in dark joints
+function stripedPanels(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, pw: number, r: () => number) {
+  for (let i = 0; i * pw < w - 1; i++) {
+    const px = x0 + i * pw, v = Math.floor(r() * 14) - 7;
+    x.fillStyle = '#222120'; x.fillRect(px, y0, pw, h);
+    x.fillStyle = `rgb(${128 + v},${118 + v},${106 + v})`; x.fillRect(px + 3, y0, pw - 6, h);
+    x.save(); x.beginPath(); x.rect(px + 3, y0, pw - 6, h); x.clip();
+    for (let k = -h; k < pw + h; k += 4) {
+      x.strokeStyle = 'rgba(52,46,40,0.3)'; x.lineWidth = 1.2;
+      x.beginPath(); x.moveTo(px + k, y0 + h); x.lineTo(px + k + h, y0); x.stroke();
+      x.strokeStyle = 'rgba(160,150,140,0.18)'; x.lineWidth = 0.8;
+      x.beginPath(); x.moveTo(px + k + 2, y0 + h); x.lineTo(px + k + 2 + h, y0); x.stroke();
+    }
+    // faintly mottled
+    for (let k = 0; k < 40; k++) {
+      x.fillStyle = `rgba(${r() < 0.5 ? '60,54,48' : '150,142,132'},${0.015 + r() * 0.025})`;
+      x.beginPath(); x.ellipse(px + r() * pw, y0 + r() * h, pw * (0.05 + r() * 0.12), h * (0.02 + r() * 0.05), 0, 0, Math.PI * 2); x.fill();
+    }
+    x.restore();
+  }
+}
+
+// Karl Axel Pehrson's beetles at Gärdet (1967), redrawn: a lit case `w` × `h` m in a steel frame,
+// white inside, eight fantastical beetles pinned in two columns, each different in shape and
+// colour (a metallic green, a red with black spots, a blue, a gold, a bronze). `variant` changes
+// them.
+export function beetleCase(w: number, h: number, variant: number) {
+  const PX = 320, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  const r = rng(1967 + variant * 31);
+  x.fillStyle = '#8d9296'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#d7dadc'; x.fillRect(3, 3, W - 6, H - 6);
+  const f = 0.04 * PX, g = x.createRadialGradient(W / 2, H * 0.4, 0, W / 2, H * 0.4, H * 0.7);
+  g.addColorStop(0, '#fbfbf8'); g.addColorStop(1, '#e6e8e3');
+  x.fillStyle = g; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+  // (small, a few cm long, in the middle of the case, in the colours of real beetles: metallic
+  // green, bronze, brown, black, a red, a gold)
+  const cols = [['#1f5a34', '#5fae6a'], ['#5a3a1e', '#a8774a'], ['#3a2a1e', '#7a5a3e'], ['#161616', '#5a5a5a'], ['#8e2a1a', '#d0603e'], ['#8a6a18', '#d8b450'], ['#1e3e4e', '#5f9aa8'], ['#4a3a14', '#9a8a4a']];
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 4; j++) {
+    const cx = W * (0.36 + i * 0.28), cy = H * (0.3 + j * 0.095), s = W * (0.055 + r() * 0.03);
+    const [dark, light] = cols[Math.floor(r() * cols.length)];
+    // the pin's shadow, a little to one side
+    x.fillStyle = 'rgba(60,60,60,0.12)'; x.beginPath(); x.ellipse(cx + s * 0.25, cy + s * 0.3, s * 0.5, s * 0.8, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = '#1e1a16'; x.lineWidth = Math.max(1, s * 0.08);
+    // legs, short and bent, and feelers
+    for (const sd of [-1, 1]) {
+      for (let l = 0; l < 3; l++) {
+        const a0 = cy - s * 0.25 + l * s * 0.35;
+        x.beginPath(); x.moveTo(cx + sd * s * 0.35, a0); x.lineTo(cx + sd * s * 0.7, a0 + (l - 1) * s * 0.25); x.lineTo(cx + sd * s * 0.8, a0 + (l - 0.8) * s * 0.45); x.stroke();
+      }
+      x.beginPath(); x.moveTo(cx + sd * s * 0.1, cy - s * 0.8); x.quadraticCurveTo(cx + sd * s * 0.3, cy - s * 1.15, cx + sd * s * (0.4 + r() * 0.2), cy - s * (1.15 + r() * 0.2)); x.stroke();
+    }
+    // head, shield and wing cases, with a sheen and a seam down the middle
+    x.fillStyle = '#1e1a16'; x.beginPath(); x.ellipse(cx, cy - s * 0.72, s * 0.17, s * 0.13, 0, 0, Math.PI * 2); x.fill();
+    const body = x.createLinearGradient(cx - s * 0.5, cy - s * 0.6, cx + s * 0.5, cy + s);
+    body.addColorStop(0, light); body.addColorStop(0.5, dark); body.addColorStop(1, dark);
+    x.fillStyle = body; x.beginPath(); x.ellipse(cx, cy - s * 0.45, s * 0.3, s * 0.2, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.ellipse(cx, cy + s * 0.2, s * (0.36 + r() * 0.08), s * (0.5 + r() * 0.12), 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = 'rgba(20,16,12,0.7)'; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(cx, cy - s * 0.25); x.lineTo(cx, cy + s * 0.7); x.stroke();
+    if (r() < 0.3) { x.fillStyle = 'rgba(15,12,10,0.8)'; for (let k = 0; k < 4; k++) { const sd = k % 2 ? 1 : -1; x.beginPath(); x.arc(cx + sd * s * 0.16, cy + s * (0.05 + Math.floor(k / 2) * 0.3), s * 0.06, 0, Math.PI * 2); x.fill(); } }
+    x.fillStyle = 'rgba(255,255,255,0.3)'; x.beginPath(); x.ellipse(cx - s * 0.14, cy + s * 0.05, s * 0.05, s * 0.2, 0, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// A white plate with the ways out to one end, in black, a line each, and an arrow at that end
+// (`left` or right, as seen); 4 m to 1 across.
+export function wayPlate(ways: string, left: boolean) {
+  const [c, x] = canvas(1024, 256);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, 1024, 256);
+  x.fillStyle = '#16171a';
+  x.textBaseline = 'middle';
+  const lines = ways.split(' · '), size = lines.length > 2 ? 54 : lines.length > 1 ? 70 : 96;
+  x.font = `500 ${size}px "Helvetica Neue", Arial, sans-serif`;
+  x.textAlign = left ? 'left' : 'right';
+  lines.forEach((w, i) => x.fillText(w, left ? 190 : 834, 128 + (i - (lines.length - 1) / 2) * size * 1.15, 640));
+  x.font = '600 150px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center';
+  x.fillText(left ? '←' : '→', left ? 95 : 929, 124);
+  return toTexture(c, { repeat: false });
+}
+
 // Larseric Vänerlöf's photomontage along Karlaplan's track wall (1983): old Östermalm in black and
 // white, scene after scene, each fading into the next. Redrawn, not copied: stone houses of the
 // 1890s with their bays and towers, the fountain on Karlaplan in its ring of trees, the lindens of
@@ -2097,14 +2360,15 @@ export function stadionEdge() {
   return toTexture(c);
 }
 
-// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m).
-export function stadionPlinth() {
+// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m); or,
+// `grey`, pale grey ones (Tekniska högskolan's).
+export function stadionPlinth(grey = false) {
   const [c, x] = canvas(384);
-  x.fillStyle = '#a9a294'; x.fillRect(0, 0, 384, 384);
+  x.fillStyle = grey ? '#8f908d' : '#a9a294'; x.fillRect(0, 0, 384, 384);
   const r = rng(177);
   for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
-    const v = 222 + Math.floor(r() * 12);
-    x.fillStyle = `rgb(${v},${v - 6},${v - 22})`;
+    const v = (grey ? 204 : 222) + Math.floor(r() * 12);
+    x.fillStyle = grey ? `rgb(${v},${v},${v - 3})` : `rgb(${v},${v - 6},${v - 22})`;
     x.fillRect(i * 48 + 1.5, j * 48 + 1.5, 45, 45);
   }
   speckle(x, 384, 384, 1500, 0.08, 178);
@@ -2128,17 +2392,18 @@ export function stadionCeiling() {
 }
 
 // Panels of green expanded steel mesh, on posts 1.2 m apart (the texture covers 1.2 × 1.2 m, a
-// post along its left edge), the dark rock showing through between the strands.
-export function stadionMesh() {
+// post along its left edge), the dark rock showing through between the strands; or in other
+// colours: the rock behind, the strands and the posts.
+export function stadionMesh(back = '#1d3a36', strand = '#5fb3a3', post = '#4fa595') {
   const [c, x] = canvas(256);
-  x.fillStyle = '#1d3a36'; x.fillRect(0, 0, 256, 256);
-  x.strokeStyle = '#5fb3a3'; x.lineWidth = 2.6;
+  x.fillStyle = back; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = strand; x.lineWidth = 2.6;
   const p = 256 / 24;
   for (let k = -24; k <= 48; k++) {
     x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + 128, 256); x.stroke();
     x.beginPath(); x.moveTo(k * p, 256); x.lineTo(k * p + 128, 0); x.stroke();
   }
-  x.fillStyle = '#4fa595'; x.fillRect(0, 0, 9, 256);
+  x.fillStyle = post; x.fillRect(0, 0, 9, 256);
   x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(9, 0, 3, 256);
   return toTexture(c);
 }
@@ -2151,8 +2416,8 @@ const RAINBOW = ['#d8321e', '#ee7a1c', '#f2cf2a', '#4aa83a', '#1f9a8a', '#2f6fd0
 // The wall over one of the passage's openings, as seen from the passage: the pillars' sky-blue
 // rock, and round the opening a rainbow, its seven bands `band` m wide. `w` m along and `h` m up
 // from the platform; the opening `inset` in from each end with its crown `crown` high. With
-// `redInside`, the red band is the inner one.
-export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint) {
+// `redInside`, the red band is the inner one. Without `rainbow`, the rock's paint alone.
+export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint, rainbow = true) {
   const PX = 48, W = Math.round(w * PX), H = Math.round(h * PX);
   const [c, x] = canvas(W, H);
   // the rock's paint, as on the pillars, upright (its foot, darkened by the track's dust, below
@@ -2164,7 +2429,7 @@ export function stadionPortal(w: number, h: number, inset: number, crown: number
   // the rainbow: the opening's half ellipse, grown band by band, the outer band first
   const hw = w / 2 - inset, mid = w / 2;
   x.setTransform(PX, 0, 0, -PX, 0, H);
-  const colours = redInside ? [...RAINBOW].reverse() : RAINBOW;
+  const colours = !rainbow ? [] : redInside ? [...RAINBOW].reverse() : RAINBOW;
   const r = rng(179), ph = [r() * 6, r() * 6];
   for (let k = colours.length; k >= 1; k--) {
     x.fillStyle = colours[colours.length - k];
@@ -2317,6 +2582,3438 @@ export function stadionArrow(blocks: boolean) {
   x.restore();
   x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 3; x.stroke();
   return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ Tekniska högskolan's hall
+// Lennart Mörk's art (1973) on the cores of rock down the island platform, from photographs
+// (Wikimedia Commons, 2005–2025): the rock modelled in pale grey folds; on the north-western end of
+// the north-western core a great round disc ringed like a lens in a dark crater, fields of dots
+// curving away from it; on the south-eastern end of the other, and along the cores' sides, the
+// machines of the sciences in relief, with a figure and a net of red and blue lines. Each is drawn
+// on the pale grey of the rock, which shows round its ragged edge.
+
+// the pale grey rock, mottled, with darker folds, `w` × `h` m at `PX` px a metre
+function morkRock(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number) {
+  x.fillStyle = '#c4c0b8'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < (W * H) / (PX * PX) * 6; i++) {
+    const cx = r() * W, cy = r() * H, rad = (0.2 + r() * 0.6) * PX, light = r() < 0.5;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, light ? 'rgba(232,229,222,0.5)' : 'rgba(150,145,136,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(cx - rad, cy - rad, 2 * rad, 2 * rad);
+  }
+  x.lineCap = 'round';
+  for (let i = 0; i < (W / PX) * 3; i++) {
+    let px = r() * W, py = H, a = -Math.PI / 2 + (r() - 0.5) * 0.6;
+    x.strokeStyle = r() < 0.3 ? 'rgba(130,104,80,0.35)' : 'rgba(110,106,100,0.3)';
+    x.lineWidth = (0.03 + r() * 0.06) * PX;
+    x.beginPath(); x.moveTo(px, py);
+    for (let k = 0; k < 30; k++) { a += (r() - 0.5) * 0.4; px += Math.cos(a) * 0.1 * PX; py += Math.sin(a) * 0.1 * PX; x.lineTo(px, py); }
+    x.stroke();
+  }
+}
+// cut the picture to a ragged outline, so that the rock round it shows through
+function raggedEdge(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number) {
+  x.globalCompositeOperation = 'destination-in';
+  x.fillStyle = '#000';
+  x.beginPath();
+  const n = 80, m = 0.25 * PX, ph = r() * 6;
+  for (let k = 0; k <= n; k++) {
+    const t = (k / n) * Math.PI * 2, rx = W / 2 - m * (0.6 + 0.4 * Math.sin(t * 5 + ph)), ry = H / 2 - m * (0.6 + 0.4 * Math.sin(t * 7 + ph));
+    const c = Math.cos(t), s = Math.sin(t), e = 6;
+    const px = W / 2 + rx * Math.sign(c) * Math.abs(c) ** (2 / e), py = H / 2 + ry * Math.sign(s) * Math.abs(s) ** (2 / e);
+    if (k) x.lineTo(px, py); else x.moveTo(px, py);
+  }
+  x.closePath(); x.fill();
+  x.globalCompositeOperation = 'source-over';
+}
+
+// The disc on the north-western core's end: ringed like a lens, 1.7 m across, in a dark crater, and
+// round it fields of dots in curving lines. 6.4 × 2.6 m.
+export function tekniskaEye() {
+  const PX = 100, W = 640, H = 260, [c, x] = canvas(W, H);
+  const r = rng(1973);
+  morkRock(x, W, H, PX, r);
+  const cx = W * 0.4, cy = H * 0.52;
+  // the dots, in lines curving out from round the crater
+  for (let k = 0; k < 26; k++) {
+    const a0 = (k / 26) * Math.PI * 2 + r() * 0.2, bend = 0.5 + r() * 0.5, len = 1.4 + r() * 2.2;
+    x.fillStyle = 'rgba(52,50,48,0.8)';
+    for (let d = 1.3; d < 1.3 + len; d += 0.07) {
+      const a = a0 + bend * (d - 1.3) / len, px = cx + Math.cos(a) * d * PX * 1.25, py = cy + Math.sin(a) * d * PX * 0.62;
+      if (px < 0 || px > W || py < 0 || py > H) continue;
+      x.beginPath(); x.arc(px, py, (0.012 + r() * 0.01) * PX, 0, Math.PI * 2); x.fill();
+    }
+  }
+  // the crater, dark round the disc
+  const cr = x.createRadialGradient(cx, cy, 0.8 * PX, cx, cy, 1.35 * PX);
+  cr.addColorStop(0, 'rgba(58,56,53,0.95)'); cr.addColorStop(0.55, 'rgba(90,87,82,0.7)'); cr.addColorStop(1, 'rgba(90,87,82,0)');
+  x.fillStyle = cr; x.beginPath(); x.arc(cx, cy, 1.35 * PX, 0, Math.PI * 2); x.fill();
+  // the disc, ringed, lit from above
+  const R = 0.85 * PX, g = x.createLinearGradient(cx, cy - R, cx, cy + R);
+  g.addColorStop(0, '#a19d96'); g.addColorStop(1, '#6f6b65');
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fill();
+  x.lineWidth = 1.3;
+  for (let rad = 0.08; rad < 0.85; rad += 0.065) {
+    x.strokeStyle = 'rgba(50,48,45,0.55)'; x.beginPath(); x.arc(cx, cy, rad * PX, 0, Math.PI * 2); x.stroke();
+    x.strokeStyle = 'rgba(220,216,208,0.25)'; x.beginPath(); x.arc(cx, cy - 1, rad * PX, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+  }
+  x.fillStyle = '#3c3a37';
+  for (const [dx, dy] of [[-0.18, -0.1], [0.12, -0.2], [0.2, 0.12], [-0.08, 0.2]]) { x.beginPath(); x.arc(cx + dx * PX, cy + dy * PX, 0.035 * PX, 0, Math.PI * 2); x.fill(); }
+  raggedEdge(x, W, H, PX, r);
+  return toTexture(c, { repeat: false });
+}
+
+// Machines of the sciences in relief on the pale rock: wheels and gears, levers and rods, boxes;
+// with `figure`, a standing figure at the left and a net of red and blue lines (a map's
+// projection) over the middle. 7 × 2.3 m.
+export function tekniskaRelief(figure: boolean, seed: number) {
+  const PX = 90, W = 630, H = 207, [c, x] = canvas(W, H);
+  const r = rng(seed);
+  morkRock(x, W, H, PX, r);
+  // each raised shape: its shadow below and to the right, its lit edge above and to the left
+  const raised = (path: () => void) => {
+    x.save(); x.translate(3, 4); path(); x.fillStyle = 'rgba(70,66,60,0.55)'; x.fill(); x.restore();
+    x.save(); x.translate(-1.5, -2); path(); x.fillStyle = 'rgba(245,243,238,0.6)'; x.fill(); x.restore();
+    path(); x.fillStyle = '#bdb9b1'; x.fill();
+  };
+  const gear = (gx: number, gy: number, rad: number, teeth: number) => raised(() => {
+    x.beginPath();
+    for (let k = 0; k <= teeth * 2; k++) {
+      const a = (k / (teeth * 2)) * Math.PI * 2, rr = k % 2 ? rad : rad * 1.14;
+      x.lineTo(gx + Math.cos(a) * rr, gy + Math.sin(a) * rr);
+    }
+    x.closePath();
+  });
+  const rect = (rx: number, ry: number, rw: number, rh: number, a = 0) => raised(() => {
+    x.beginPath(); x.save(); x.translate(rx, ry); x.rotate(a); x.rect(-rw / 2, -rh / 2, rw, rh); x.restore();
+  });
+  const x0 = figure ? W * 0.18 : 0.3 * PX;
+  for (let gx = x0; gx < W - 0.4 * PX;) {
+    const kind = r();
+    if (kind < 0.4) { const rad = (0.2 + r() * 0.35) * PX; gear(gx + rad, H * (0.45 + r() * 0.3), rad, 10 + Math.floor(r() * 10)); gx += rad * 2 + 0.15 * PX; }
+    else if (kind < 0.7) { const len = (0.8 + r() * 1.2) * PX; rect(gx + len / 2, H * (0.4 + r() * 0.35), len, 0.09 * PX, (r() - 0.5) * 0.6); gx += len * 0.8; }
+    else { const bw = (0.35 + r() * 0.5) * PX, bh = (0.3 + r() * 0.5) * PX; rect(gx + bw / 2, H * 0.62, bw, bh); gx += bw + 0.1 * PX; }
+  }
+  if (figure) {
+    // the net, over the middle
+    x.lineWidth = 1.4;
+    const nx = W * 0.62, ny = H * 0.3, rw = 1.5 * PX, rh = 0.5 * PX;
+    for (let k = -4; k <= 4; k++) {
+      x.strokeStyle = k % 2 ? 'rgba(196,52,40,0.85)' : 'rgba(46,88,170,0.85)';
+      x.beginPath(); x.ellipse(nx, ny, Math.abs(k) / 4 * rw + 2, rh, 0, 0, Math.PI * 2); x.stroke();
+      x.beginPath(); x.moveTo(nx - rw, ny + (k / 4) * rh); x.quadraticCurveTo(nx, ny + (k / 4) * rh * 1.3, nx + rw, ny + (k / 4) * rh); x.stroke();
+    }
+    // the figure, standing
+    const fx = W * 0.09, fy = H * 0.9, s = 0.95 * PX;
+    x.fillStyle = '#8a6a50';
+    x.beginPath(); x.arc(fx, fy - s * 1.65, s * 0.13, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.moveTo(fx - s * 0.22, fy - s * 1.45); x.lineTo(fx + s * 0.22, fy - s * 1.45); x.lineTo(fx + s * 0.18, fy - s * 0.8);
+    x.lineTo(fx + s * 0.12, fy); x.lineTo(fx - s * 0.12, fy); x.lineTo(fx - s * 0.18, fy - s * 0.8); x.closePath(); x.fill();
+  }
+  raggedEdge(x, W, H, PX, r);
+  return toTexture(c, { repeat: false });
+}
+
+// The diagram inlaid in the floor under the dodecahedron: in pale brass, an octagon and a circle in
+// it, rings of dark and pale stone at its middle, and from there lines in the colours of the
+// spectrum, as light split by a prism. 6 m square, transparent round it.
+export function tekniskaInlay() {
+  const S = 1024, PX = S / 6, [c, x] = canvas(S, S);
+  x.clearRect(0, 0, S, S);
+  x.translate(S / 2, S / 2); x.scale(PX, PX);
+  const brass = '#cdbd8e';
+  x.strokeStyle = brass; x.lineWidth = 0.035;
+  const oct = (rad: number) => {
+    x.beginPath();
+    for (let k = 0; k <= 8; k++) { const a = Math.PI / 8 + (k / 8) * Math.PI * 2; if (k) x.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); else x.moveTo(Math.cos(a) * rad, Math.sin(a) * rad); }
+    x.stroke();
+  };
+  oct(2.6); oct(2.35);
+  x.beginPath(); x.arc(0, 0, 1.55, 0, Math.PI * 2); x.stroke();
+  for (let k = 0; k < 8; k++) {
+    const a = Math.PI / 8 + (k / 8) * Math.PI * 2;
+    x.beginPath(); x.moveTo(Math.cos(a) * 2.35, Math.sin(a) * 2.35); x.lineTo(Math.cos(a + Math.PI / 8) * 1.55, Math.sin(a + Math.PI / 8) * 1.55); x.stroke();
+  }
+  // the spectrum, from the middle out past the octagon
+  ['#7a3fb0', '#2f5fd0', '#2f9a5a', '#f0d030', '#f08a20', '#d83020'].forEach((col, k) => {
+    const a = 0.45 + k * 0.055;
+    x.strokeStyle = col; x.lineWidth = 0.05;
+    x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * 2.95, Math.sin(a) * 2.95); x.stroke();
+  });
+  // the ray coming in
+  x.strokeStyle = brass; x.lineWidth = 0.035;
+  x.beginPath(); x.moveTo(-2.95 * Math.cos(0.5), -2.95 * Math.sin(0.5)); x.lineTo(0, 0); x.stroke();
+  for (let k = 7; k >= 1; k--) {
+    x.fillStyle = k % 2 ? '#2b2b2d' : '#a5a4a0';
+    x.beginPath(); x.arc(0, 0, k * 0.1, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ Farsta strand's hall
+// (src/hall-styles.ts)
+
+// The track walls, from the floor beside the track up to the ceiling, `height` m: dark concrete
+// between paler pilasters 0.8 m wide, every FS_WALL_REPEAT m, under a beam along the top; along
+// them three steel rails on posts; below, a plinth of paler concrete in cast lengths, `plinth` m
+// high. Turned for a sweep along the track, as Hötorget's: u up the wall, v along the track.
+export const FS_WALL_REPEAT = 5.4;
+export function farstaStrandWall(height: number, plinth: number, rails: number[], beam: [number, number]) {
+  const PX = 64, W = Math.round(FS_WALL_REPEAT * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
+  const r = rng(1971), Y = (h: number) => H - h * PX;
+  // the recesses between the pilasters, in shadow
+  x.fillStyle = '#2b2d2c'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 2500, 0.1, 71);
+  // the pilasters, at the repeat's ends, and the beam over them
+  for (const [x0, x1] of [[0, 0.4], [FS_WALL_REPEAT - 0.4, FS_WALL_REPEAT]]) {
+    x.fillStyle = '#5b5c59'; x.fillRect(x0 * PX, Y(beam[0]), (x1 - x0) * PX, (beam[0] - plinth) * PX);
+  }
+  x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0.4 * PX, Y(beam[0]), 0.06 * PX, (beam[0] - plinth) * PX);
+  x.fillRect((FS_WALL_REPEAT - 0.46) * PX, Y(beam[0]), 0.06 * PX, (beam[0] - plinth) * PX);
+  x.fillStyle = '#5f605d'; x.fillRect(0, Y(beam[1]), W, (beam[1] - beam[0]) * PX);
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(0, Y(beam[0]), W, 0.05 * PX);
+  x.fillStyle = '#232524'; x.fillRect(0, 0, W, Y(beam[1]));
+  // the plinth, in lengths with joints between
+  x.fillStyle = '#676863'; x.fillRect(0, Y(plinth), W, plinth * PX);
+  for (let k = 0; k < 4; k++) {
+    x.fillStyle = css(0x676863, Math.floor(r() * 12) - 6); x.fillRect(k * W / 4 + 2, Y(plinth) + 2, W / 4 - 4, plinth * PX - 2);
+  }
+  x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, Y(plinth), W, 0.04 * PX);
+  speckle(x, W, H, 1800, 0.08, 72, true);
+  // the rails, on posts at the pilasters and between them
+  const top = rails[rails.length - 1] + 0.12;
+  for (const px of [0.2, FS_WALL_REPEAT / 2, FS_WALL_REPEAT - 0.2]) {
+    x.fillStyle = '#3e3832'; x.fillRect(px * PX - 2, Y(top), 4, (top - rails[0] + 0.1) * PX);
+  }
+  for (const h of rails) {
+    x.fillStyle = '#6b5d4f'; x.fillRect(0, Y(h + 0.07), W, 0.07 * PX);
+    x.fillStyle = '#2a2420'; x.fillRect(0, Y(h), W, 0.025 * PX);
+  }
+  const [c, y] = canvas(H, W);
+  // (along, up) → (up from the left, along)
+  y.setTransform(0, 1, -1, 0, H, 0);
+  y.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// The ceiling: panels of dark grey perforated steel, 1.2 m along by 2.4 m across, in a grid of
+// thin pale joints, on steel beams across every 2.4 m (the texture covers 2.4 × 2.4 m, u across,
+// v along, a beam along its top edge).
+export function perforatedCeiling() {
+  const N = 384, PX = N / 2.4, [c, x] = canvas(N);
+  x.fillStyle = '#585c5e'; x.fillRect(0, 0, N, N);
+  // the holes, a fine dark grain
+  x.fillStyle = '#3c3f41';
+  for (let j = 2; j < N; j += 4) for (let i = (j % 8 === 2 ? 0 : 2); i < N; i += 4) x.fillRect(i, j, 1.6, 1.6);
+  // each panel a little lighter or darker than the next
+  const r = rng(1971);
+  for (let j = 0; j < 2; j++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},${0.02 + r() * 0.04})`; x.fillRect(0, j * 1.2 * PX, N, 1.2 * PX);
+  }
+  x.fillStyle = '#6c7072';
+  x.fillRect(0, 1.2 * PX - 1, N, 2); x.fillRect(0, 0, 2, N); x.fillRect(N - 2, 0, 2, N);
+  // the beam
+  x.fillStyle = '#5a5e61'; x.fillRect(0, 0, N, 0.1 * PX);
+  x.fillStyle = '#7d8184'; x.fillRect(0, 0.1 * PX, N, 2);
+  return toTexture(c);
+}
+
+// The columns' cladding: small tiles, 5 × 10 cm, in greys, stacked in columns with dark joints (the
+// texture covers 1 × 1 m, u round the column, v up it).
+export function mosaicColumn() {
+  const N = 400, PX = N, [c, x] = canvas(N), r = rng(1972);
+  x.fillStyle = '#4d5150'; x.fillRect(0, 0, N, N);
+  const w = 0.05 * PX, h = 0.1 * PX;
+  for (let i = 0; i < N / w; i++) for (let j = 0; j < N / h; j++) {
+    x.fillStyle = css(0x7b7f7e, Math.floor(r() * 18) - 9);
+    x.fillRect(i * w + 1, j * h + 1, w - 2, h - 2);
+  }
+  return toTexture(c);
+}
+
+// ------------------------------------------------------------------ Skanstull's hall
+// (src/hall-styles.ts)
+
+// The track walls, from the floor beside the track up to the ceiling, `height` m: small square
+// tiles, `tile` m, in `color` (each a shade lighter or darker, a few crazed), from `from` up; below
+// them a black band down to the floor; and along them posters in thin steel frames, `run` of them
+// `every` m apart, then `gap` m of bare tiles, three such groups to a repeat (heights from the
+// floor). The posters are made up: a pale ground, a block of colour, lines of type. Turned for a
+// sweep along the track, as Hötorget's: u up the wall, v along the track. Rådmansgatan's: the
+// tiles stop a plain band `top` m deep under the ceiling, and a dark plate with the station's name
+// hangs in the middle of each gap, its middle `plate.at` m up, turned for the wall that sees the
+// track's direction the other way round with `mirror`. Blackeberg's (`trees`, Ruben Heleander's
+// walls of 1987): the tunnel's rock left standing out of them in dark outcrops from the floor,
+// up to a little over the platform here and nearly to the ceiling there, rather than the black
+// band, and thin pale trees drawn on the tiles between them, trunks with a few branches.
+type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
+export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
+export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters,
+  { top = 0, plate, mirror = false, trees = false }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean } = {}) {
+  const repeat = beamedWallRepeat(posters);
+  const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
+  const r = rng(1933), Y = (h: number) => H - h * PX;
+  // the tiles, in grey joints
+  x.fillStyle = css(color, -46); x.fillRect(0, 0, W, Y(from));
+  const n = Math.round(repeat / tile), t = W / n;
+  for (let i = 0; i < n; i++) for (let j = 0; (j * tile) < height - from; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 12) - 6);
+    x.fillRect(i * t + 0.7, Y(from + (j + 1) * tile) + 0.7, t - 1.4, tile * PX - 1.4);
+  }
+  // a sheen across them, and the grime of ninety years low down
+  const g = x.createLinearGradient(0, Y(from + 1.2), 0, Y(from));
+  g.addColorStop(0, 'rgba(90,80,60,0)'); g.addColorStop(1, 'rgba(90,80,60,0.12)');
+  x.fillStyle = g; x.fillRect(0, Y(from + 1.2), W, 1.2 * PX);
+  if (trees) {
+    // the trees: a trunk leaning a little, thinning upwards, and a few branches off it, each
+    // forking once
+    x.strokeStyle = 'rgba(232,234,222,0.85)'; x.lineCap = 'round';
+    const branch = (x0: number, y0: number, a: number, l: number, w: number, depth: number) => {
+      const x1 = x0 + Math.sin(a) * l, y1 = y0 - Math.cos(a) * l;
+      x.lineWidth = w; x.beginPath(); x.moveTo(x0, y0); x.quadraticCurveTo((x0 + x1) / 2 + (r() - 0.5) * l * 0.2, (y0 + y1) / 2, x1, y1); x.stroke();
+      if (depth > 0) for (const s of [-1, 1]) branch(x1, y1, a + s * (0.35 + r() * 0.35), l * (0.45 + r() * 0.25), Math.max(1, w * 0.6), depth - 1);
+    };
+    for (let along = 1.5 + r() * 2; along < repeat - 1; along += 3 + r() * 4.5) {
+      const x0 = along * PX, y0 = Y(from + 0.2 + r() * 0.4), top = Y(height - 0.3 - r() * 0.6), lean = (r() - 0.5) * 0.12;
+      let px = x0, py = y0;
+      for (let k = 0; k < 8; k++) {
+        const ny = y0 + ((top - y0) * (k + 1)) / 8, nx = x0 + (ny - y0) * -lean + (r() - 0.5) * 3;
+        x.lineWidth = 3.2 - k * 0.3; x.beginPath(); x.moveTo(px, py); x.lineTo(nx, ny); x.stroke();
+        if (k >= 3 && r() < 0.55) branch(nx, ny, (r() < 0.5 ? -1 : 1) * (0.5 + r() * 0.5), (0.4 + r() * 0.5) * PX, 1.6, 1);
+        px = nx; py = ny;
+      }
+    }
+    // the rock: the floor's dark band rising here and there in outcrops, rough along their tops,
+    // with the tiles fitted round them
+    const rock = (seed: number) => {
+      const q = rng(seed);
+      x.beginPath(); x.moveTo(0, H);
+      for (let a = 0; a <= repeat; a += 0.25) {
+        const crest = Math.max(0, Math.sin(a * 0.9 + 1.3) * 0.7 + Math.sin(a * 0.37 + 0.4) * 1.1 + Math.sin(a * 2.3) * 0.2);
+        x.lineTo(a * PX, Y(from + crest * (0.9 + q() * 0.25) + q() * 0.08));
+      }
+      x.lineTo(W, H); x.closePath();
+    };
+    rock(1987); x.fillStyle = '#2f2c28'; x.fill();
+    x.save(); rock(1987); x.clip();
+    for (let i = 0; i < 1400; i++) {
+      const v = 34 + Math.floor(r() * 46);
+      x.fillStyle = `rgba(${v},${v - 3},${v - 7},0.55)`;
+      x.beginPath(); x.ellipse(r() * W, H - r() * H * 0.6, 2 + r() * 14, 2 + r() * 9, r() * 3, 0, Math.PI * 2); x.fill();
+    }
+    speckle(x, W, H, 3000, 0.2, 1988, true);
+    x.restore();
+  } else {
+    // the black band, its top edge a little paler
+    x.fillStyle = '#1e1e1f'; x.fillRect(0, Y(from), W, from * PX);
+    x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
+    speckle(x, W, from * PX, 900, 0.12, 1934, true);
+  }
+  if (top) {
+    // the plain band under the ceiling, a little shadow along its foot
+    x.fillStyle = '#e4dfd2'; x.fillRect(0, 0, W, top * PX);
+    x.fillStyle = 'rgba(60,50,30,0.25)'; x.fillRect(0, top * PX, W, 2);
+  }
+  if (plate) for (let g = 0; g < 3; g++) {
+    // the name plates, one in each gap
+    x.save();
+    x.translate((g * (posters.run * posters.every + posters.gap) + posters.run * posters.every + posters.gap / 2) * PX, Y(plate.at));
+    if (mirror) x.scale(-1, 1);
+    drawNamePlate(x, plate.name, PX, '#2b2320');
+    x.restore();
+  }
+  // the posters
+  const grounds = ['#f1efe9', '#e9eef2', '#f4ead8', '#1f2a3a', '#f2f0f0', '#dfe8e1'];
+  const blocks = ['#d9472b', '#2f6db3', '#f0b429', '#3a8f5c', '#8e3f8f', '#e66b9a', '#1b1b1b', '#4fb3c9'];
+  for (let k = 0; k < 3 * posters.run; k++) {
+    const group = Math.floor(k / posters.run), along = group * (posters.run * posters.every + posters.gap) + (k % posters.run) * posters.every;
+    const x0 = (along + (posters.every - posters.width) / 2) * PX, y0 = Y(posters.bottom + posters.height);
+    const w = posters.width * PX, h = posters.height * PX;
+    x.fillStyle = '#9ea2a4'; x.fillRect(x0 - 3, y0 - 3, w + 6, h + 6);
+    const ground = grounds[Math.floor(r() * grounds.length)], dark = ground === '#1f2a3a';
+    x.fillStyle = ground; x.fillRect(x0, y0, w, h);
+    if (r() < 0.4) {
+      // a photograph to the edges: a sky over a darker land or sea, and a line of type over it
+      const sky = x.createLinearGradient(0, y0, 0, y0 + h);
+      const top = blocks[Math.floor(r() * blocks.length)];
+      sky.addColorStop(0, top); sky.addColorStop(0.6, '#e8eef2'); sky.addColorStop(1, '#5b6a73');
+      x.fillStyle = sky; x.fillRect(x0, y0, w, h);
+      x.fillStyle = `rgba(30,40,45,${0.5 + r() * 0.4})`;
+      x.beginPath(); x.moveTo(x0, y0 + h * 0.75);
+      for (let s = 0; s <= 6; s++) x.lineTo(x0 + (w * s) / 6, y0 + h * (0.62 + r() * 0.12));
+      x.lineTo(x0 + w, y0 + h); x.lineTo(x0, y0 + h); x.fill();
+      x.fillStyle = 'rgba(255,255,255,0.9)'; x.fillRect(x0 + w * 0.1, y0 + h * 0.1, w * (0.5 + r() * 0.3), h * 0.05);
+      continue;
+    }
+    // a picture: a block of colour, or a disc on it
+    const bh = h * (0.35 + r() * 0.3), by = y0 + h * (0.08 + r() * 0.12);
+    x.fillStyle = blocks[Math.floor(r() * blocks.length)];
+    if (r() < 0.6) x.fillRect(x0 + w * 0.1, by, w * 0.8, bh);
+    else { x.beginPath(); x.arc(x0 + w / 2, by + bh / 2, Math.min(w, bh) * 0.42, 0, Math.PI * 2); x.fill(); }
+    if (r() < 0.5) {
+      x.fillStyle = blocks[Math.floor(r() * blocks.length)];
+      x.beginPath(); x.arc(x0 + w * (0.65 + r() * 0.2), by + bh * (0.1 + r() * 0.3), w * 0.12, 0, Math.PI * 2); x.fill();
+    }
+    // lines of type under it
+    x.fillStyle = dark ? 'rgba(255,255,255,0.85)' : 'rgba(30,30,30,0.8)';
+    x.fillRect(x0 + w * 0.1, by + bh + h * 0.06, w * (0.5 + r() * 0.3), h * 0.045);
+    for (let l = 0; l < 3; l++) x.fillRect(x0 + w * 0.1, by + bh + h * (0.15 + l * 0.04), w * (0.4 + r() * 0.4), h * 0.012);
+  }
+  speckle(x, W, H, 2500, 0.06, 1935);
+  const [c, y] = canvas(H, W);
+  // (along, up) → (up from the left, along)
+  y.setTransform(0, 1, -1, 0, H, 0);
+  y.drawImage(src, 0, 0);
+  return toTexture(c);
+}
+
+// ------------------------------------------------------------------ Medborgarplatsen's hall
+// (src/hall-styles.ts; its track walls are as Skanstull's, beamedHallWall)
+
+// The round columns: enamel of `base` colour, with bands of colour round them, the first's top
+// `top` above the rail and each `width` high, `pitch` apart down the column; a seam up it. As
+// roundPillar lays it on: u round the column and v up it, in metres; the canvas covers 5 m.
+export const RINGED_HEIGHT = 5;
+export function ringedColumn(base: number, rings: { colors: number[]; top: number; width: number; pitch: number }) {
+  const PX = 100, H = RINGED_HEIGHT * PX, [c, x] = canvas(64, H);
+  x.fillStyle = css(base); x.fillRect(0, 0, 64, H);
+  rings.colors.forEach((col, i) => {
+    x.fillStyle = css(col);
+    x.fillRect(0, (RINGED_HEIGHT - rings.top + i * rings.pitch) * PX, 64, rings.width * PX);
+  });
+  x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, 0, 2, H);
+  x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(2, 0, 2, H);
+  const t = toTexture(c);
+  t.repeat.set(1, 1 / RINGED_HEIGHT);
+  return t;
+}
+
+// Rådmansgatan's square columns: glossy square tiles, `tile` m, of `color` (each a shade lighter
+// or darker), in grey joints. As pillar lays it on: HOTORGET_REPEAT m to a repeat, across a face
+// and up it.
+export function tiledColumn(color: number, tile: number) {
+  const PX = 64, N = Math.round(HOTORGET_REPEAT * PX), n = Math.round(HOTORGET_REPEAT / tile), t = N / n;
+  const [c, x] = canvas(N, N), r = rng(1952);
+  x.fillStyle = css(color, -50); x.fillRect(0, 0, N, N);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 12) - 6);
+    x.fillRect(i * t + 0.8, j * t + 0.8, t - 1.6, t - 1.6);
+    // the glaze: lighter at the top of each tile
+    x.fillStyle = `rgba(255,255,255,${0.04 + r() * 0.05})`;
+    x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, (t - 3) * 0.35);
+  }
+  return toTexture(c);
+}
+
+// S:t Eriksplan's columns: concrete with its aggregate exposed, `color` with a mottle, and
+// flecked with its stones, black, white and brownish grey, a few millimetres to a centimetre
+// across. As pillar lays it on: HOTORGET_REPEAT m to a repeat, across a face and up it.
+export function aggregate(color: number) {
+  const N = 1024, PX = N / HOTORGET_REPEAT, [c, x] = canvas(N, N), r = rng(1952);
+  x.fillStyle = css(color); x.fillRect(0, 0, N, N);
+  for (let i = 0; i < 60; i++) {
+    x.fillStyle = `rgba(${r() < 0.5 ? '60,56,50' : '200,196,188'},${0.04 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * N, r() * N, 20 + r() * 80, 20 + r() * 80, 0, 0, Math.PI * 2); x.fill();
+  }
+  const stones: [string, number][] = [['28,27,26', 0.35], ['226,222,212', 0.2], ['120,108,96', 0.25], ['70,72,74', 0.2]];
+  for (let i = 0; i < 56000; i++) {
+    let k = r(), j = 0;
+    while (j < stones.length - 1 && k > stones[j][1]) { k -= stones[j][1]; j++; }
+    const s = (0.003 + r() * r() * 0.012) * PX;
+    x.fillStyle = `rgba(${stones[j][0]},${0.5 + r() * 0.5})`;
+    x.beginPath(); x.ellipse(r() * N, r() * N, s, s * (0.6 + r() * 0.4), r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
+}
+
+// The vault of the lengthening: cream panels, their joints across the hall every 1.2 m and,
+// fainter, along it every 0.6 m. u across the hall, v along it, 2.4 m a repeat both ways.
+export function vaultPanels(color: number) {
+  const [c, x] = canvas(240, 240), r = rng(1950);
+  x.fillStyle = css(color); x.fillRect(0, 0, 240, 240);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+    x.fillStyle = css(color, Math.floor(r() * 8) - 4); x.fillRect(i * 60 + 1, j * 120 + 2, 58, 116);
+  }
+  for (let i = 0; i < 4; i++) { x.fillStyle = css(color, -14); x.fillRect(i * 60, 0, 1, 240); }
+  for (let j = 0; j < 2; j++) {
+    x.fillStyle = css(color, -38); x.fillRect(0, j * 120, 240, 2);
+    x.fillStyle = css(color, 12); x.fillRect(0, j * 120 + 2, 240, 1);
+  }
+  speckle(x, 240, 240, 600, 0.05, 1951);
+  return toTexture(c);
+}
+
+// The long signs hung along the platform's edges: the name in white on black, and under it on a
+// white band the ways out, in black, an arrow at the end. In SL's blue (`blue`): the name in
+// white on navy over a yellow line, the ways out in white at its right end, an arrow after them.
+export function waysSign(name: string, ways: string, blue = false) {
+  const [c, x] = canvas(1536, 280);
+  if (blue) {
+    x.fillStyle = '#1f2f72'; x.fillRect(0, 0, 1536, 280);
+    x.fillStyle = '#f2c21b'; x.fillRect(0, 236, 1536, 16);
+    x.fillStyle = '#f4f4f0';
+    x.font = '600 128px "Helvetica Neue", Arial, sans-serif';
+    x.textAlign = 'left'; x.textBaseline = 'middle';
+    (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '10px';
+    x.fillText(name.toUpperCase(), 60, 124, 820);
+    (x as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px';
+    x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
+    x.textAlign = 'right';
+    ways.split(' · ').forEach((w, i, all) => x.fillText(w, 1390, 124 + (i - (all.length - 1) / 2) * 56));
+    x.font = '600 96px "Helvetica Neue", Arial, sans-serif';
+    x.fillText('→', 1490, 120);
+    return toTexture(c, { repeat: false });
+  }
+  x.fillStyle = '#16171a'; x.fillRect(0, 0, 1536, 280);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 196, 1536, 84);
+  x.fillStyle = '#f4f4f0';
+  x.font = '600 132px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'left'; x.textBaseline = 'middle';
+  x.fillText(name, 60, 104);
+  x.fillStyle = '#16171a';
+  x.font = '500 52px "Helvetica Neue", Arial, sans-serif';
+  x.fillText(ways, 60, 240);
+  x.font = '600 60px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'right';
+  x.fillText('→', 1490, 238);
+  return toTexture(c, { repeat: false });
+}
+
+// ------------------------------------------------------------------ styled open stations
+// (src/open-styles.ts)
+
+const css = (n: number, k = 0) => {
+  const ch = (s: number) => Math.max(0, Math.min(255, ((n >> s) & 255) + k));
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+};
+
+// A styled open station's platform paving, u across from the edge (0) to PAVING_ACROSS m in (1),
+// v along it, PAVING_REPEAT m a repeat: the edge stones, the ribbed strip for the blind, pale
+// slabs, then pavers.
+export const PAVING_ACROSS = 8, PAVING_REPEAT = 2.4;
+export function openPaving(p: Paving) {
+  const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
+  const r = rng(1950), C = p.colors;
+  const joint = css(C.pavers, -34);
+  // pavers: rectangles 24 × 12 cm (or as given), in a running bond along the platform, or in
+  // herringbone; some of them paler
+  x.fillStyle = joint; x.fillRect(0, 0, W, H);
+  const [plm, pwm] = p.paverSize ?? [0.24, 0.12], pw = pwm * PX, pl = plm * PX;
+  const tone = () => css(p.mix && r() < p.mix ? C.paler ?? C.pavers : C.pavers, Math.floor(r() * 14) - 7);
+  if (p.pattern === 'bond' || p.pattern === 'grid') {
+    // (a grid: the same, without the half offset; square tiles in straight rows both ways)
+    const off = p.pattern === 'bond' ? pl / 2 : 0;
+    for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
+      x.fillStyle = tone();
+      x.fillRect(i * pw + 0.6, j * pl + (i % 2) * off + 0.6, pw - 1.2, pl - 1.2);
+    }
+  } else if (p.pattern === 'asphalt') {
+    // asphalt, laid without joints: its stone showing dark and pale
+    x.fillStyle = css(C.pavers); x.fillRect(0, 0, W, H);
+    speckle(x, W, H, 40000, 0.35, 1952); speckle(x, W, H, 14000, 0.18, 1953, true);
+  } else if (p.pattern === 'fans') {
+    // small setts, 8 cm, in rows of fans 0.8 m wide, each row overlapping the one before it
+    const R = 0.57 * PX, sz = 0.08 * PX;
+    for (let row = -6; row * 0.4 * PX < H + R; row++) {
+      const cy = row * 0.4 * PX + R;
+      for (let col = -1; col * 0.8 * PX < W + R; col++) {
+        const cx = col * 0.8 * PX + (row % 2 ? 0.4 * PX : 0);
+        x.fillStyle = css(C.pavers, -16); x.beginPath(); x.moveTo(cx, cy); x.arc(cx, cy, R + 1, -0.75 * Math.PI, -0.25 * Math.PI); x.closePath(); x.fill();
+        for (let rr = R - sz / 2; rr > sz; rr -= sz) {
+          const n = Math.max(1, Math.round((rr * Math.PI / 2) / sz));
+          for (let k = 0; k < n; k++) {
+            const a = -0.75 * Math.PI + ((k + 0.5) / n) * Math.PI / 2;
+            x.save(); x.translate(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); x.rotate(a);
+            x.fillStyle = css(C.pavers, Math.floor(r() * 12) - 6); x.fillRect(-sz / 2 + 0.6, -sz / 2 + 0.6, sz - 1.2, sz - 1.2);
+            x.restore();
+          }
+        }
+      }
+    }
+  } else {
+    for (let i = -2; i * pw < W + pl; i++) for (let j = -2; j * pw < H + pl; j += 2) {
+      const ox = i * pw, oy = (j + i) * pw;
+      x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + 1, pl - 2, pw - 2);
+      x.fillStyle = css(C.pavers, Math.floor(r() * 18) - 9); x.fillRect(ox + 1, oy + pw + 1, pw - 2, pl - 2);
+    }
+  }
+  // (polished stone: pale veins wandering across it)
+  if (p.veins) {
+    for (let k = 0; k < 90; k++) {
+      let px = r() * W, py = r() * H, a = r() * Math.PI * 2;
+      x.strokeStyle = `rgba(228,230,230,${0.12 + r() * 0.2})`; x.lineWidth = 0.6 + r() * 1.2;
+      x.beginPath(); x.moveTo(px, py);
+      for (let s = 0; s < 8; s++) { a += (r() - 0.5) * 0.9; px += Math.cos(a) * 9; py += Math.sin(a) * 9; x.lineTo(px, py); }
+      x.stroke();
+    }
+  }
+  // pale slabs out to `slabs`, 30 cm square, or in courses along the platform, their joints across
+  // it staggered
+  const [sa, sl] = p.slabSize ?? [0.3, 0.3];
+  const slab = (a: number, b: number) => {
+    x.fillStyle = joint; x.fillRect(a * PX, 0, (b - a) * PX, H);
+    const n = Math.max(1, Math.round((b - a) / sa)), w = ((b - a) * PX) / n, l = sl * PX;
+    for (let i = 0; i < n; i++) for (let j = -1; j < H / l; j++) {
+      const off = sa === sl ? 0 : (i % 2) * l / 2;
+      x.fillStyle = css(C.slab, Math.floor(r() * 12) - 6);
+      x.fillRect(a * PX + i * w + 1.5, j * l + off + 1.5, w - 3, l - 3);
+    }
+  };
+  if (p.slabs > p.tactile[1]) slab(p.tactile[1], p.slabs);
+  // the strip for the blind: ribs along the platform, or rows of studs
+  const [t0, t1] = p.tactile;
+  x.fillStyle = css(C.tactile); x.fillRect(t0 * PX, 0, (t1 - t0) * PX, H);
+  if (p.studs) {
+    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) for (let j = 0.03; j < PAVING_REPEAT; j += 0.06) {
+      x.fillStyle = css(C.tactile, -24); x.beginPath(); x.arc((t0 + k) * PX + 0.6, j * PX + 0.6, 0.013 * PX, 0, Math.PI * 2); x.fill();
+      x.fillStyle = p.studColor === undefined ? css(C.tactile, 22) : css(p.studColor); x.beginPath(); x.arc((t0 + k) * PX, j * PX, 0.011 * PX, 0, Math.PI * 2); x.fill();
+    }
+  } else {
+    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
+      x.fillStyle = css(C.tactile, 26); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
+      x.fillStyle = css(C.tactile, -22); x.fillRect((t0 + k + 0.025) * PX, 0, 0.008 * PX, H);
+    }
+  }
+  for (let j = 0; j <= H; j += 0.6 * PX) { x.fillStyle = joint; x.fillRect(t0 * PX, j - 1, (t1 - t0) * PX, 2); }
+  // the edge stones, 60 cm long (or tiles, as given)
+  const [ea, el] = p.edgeTile ?? [p.edge, 0.6], en = Math.max(1, Math.round(p.edge / ea)), ew = (p.edge * PX) / en;
+  if (p.edgeTile) { x.fillStyle = css(C.edge, -28); x.fillRect(0, 0, p.edge * PX, H); }
+  for (let i = 0; i < en; i++) for (let j = 0; j * el * PX < H; j++) {
+    x.fillStyle = css(C.edge, Math.floor(r() * 10) - 5);
+    x.fillRect(i * ew + (i ? 1 : 0), j * el * PX + 1.5, ew - (i ? 2.5 : 1.5), el * PX - 3);
+  }
+  x.fillStyle = joint; x.fillRect(p.edge * PX - 1.5, 0, 2, H);
+  speckle(x, W, H, 6000, 0.1, 1951);
+  return toTexture(c);
+}
+
+// The face of a platform's edge over the track: dark grey, with a bracket every 1.2 m. u up the
+// face from the track bed (0) to the platform's top (1), v along, FACE_REPEAT m a repeat.
+export const FACE_REPEAT = 1.2;
+export function platformFace(color: number) {
+  const [c, x] = canvas(64, 128);
+  x.fillStyle = css(color); x.fillRect(0, 0, 64, 128);
+  x.fillStyle = css(color, -16); x.fillRect(46, 0, 18, 128);
+  x.fillStyle = css(color, 22); x.fillRect(46, 0, 2, 128);
+  x.fillStyle = css(color, 30); x.fillRect(34, 56, 26, 16);
+  x.fillStyle = css(color, -30); x.fillRect(34, 70, 26, 3);
+  speckle(x, 64, 128, 300, 0.12, 52);
+  return toTexture(c);
+}
+
+// The white boarding under a roof, the boards along the platform: u across 1 m, v along 2.4 m.
+export function roofBoards(color: number) {
+  const [c, x] = canvas(200, 240);
+  x.fillStyle = css(color); x.fillRect(0, 0, 200, 240);
+  const r = rng(77);
+  for (let i = 0; i < 10; i++) {
+    x.fillStyle = css(color, Math.floor(r() * 8) - 6); x.fillRect(i * 20 + 1, 0, 18, 240);
+    x.fillStyle = css(color, -38); x.fillRect(i * 20, 0, 1.2, 240);
+  }
+  speckle(x, 200, 240, 400, 0.05, 78);
+  return toTexture(c);
+}
+
+// Ribbed sheet metal under a roof, the ribs along the platform, 25 cm apart: u across 1 m, v
+// along 2.4 m.
+export function ribbedSheet(color: number) {
+  const [c, x] = canvas(200, 240);
+  x.fillStyle = css(color); x.fillRect(0, 0, 200, 240);
+  for (let i = 0; i < 4; i++) {
+    const o = i * 50;
+    x.fillStyle = css(color, 18); x.fillRect(o + 2, 0, 14, 240);
+    x.fillStyle = css(color, -30); x.fillRect(o + 16, 0, 3, 240);
+    x.fillStyle = css(color, -12); x.fillRect(o + 30, 0, 4, 240);
+  }
+  speckle(x, 200, 240, 300, 0.04, 79);
+  return toTexture(c);
+}
+
+// A fence of boards, 1.2 m a repeat along it and its whole height up: painted boards standing
+// side by side between two rails; or weathered boards slanting, a gap between each (`louvres`).
+export function fenceBoards(color: number, louvres: boolean) {
+  const W = 192, H = 256, [c, x] = canvas(W, H), r = rng(louvres ? 88 : 87);
+  if (louvres) {
+    x.clearRect(0, 0, W, H);
+    for (let i = -4; i < 12; i++) {
+      const x0 = i * 24;
+      x.fillStyle = css(color, Math.floor(r() * 16) - 8);
+      x.beginPath(); x.moveTo(x0, H); x.lineTo(x0 + 16, H); x.lineTo(x0 + 16 + 60, 0); x.lineTo(x0 + 60, 0); x.closePath(); x.fill();
+      x.fillStyle = css(color, -34); x.beginPath(); x.moveTo(x0 + 14, H); x.lineTo(x0 + 16, H); x.lineTo(x0 + 76, 0); x.lineTo(x0 + 74, 0); x.closePath(); x.fill();
+    }
+    x.fillStyle = css(color, -20); x.fillRect(0, 6, W, 8); x.fillRect(0, H - 14, W, 8);
+  } else {
+    x.fillStyle = css(color, -30); x.fillRect(0, 0, W, H);
+    for (let i = 0; i < 8; i++) {
+      x.fillStyle = css(color, Math.floor(r() * 10) - 5); x.fillRect(i * 24 + 1, 0, 22, H);
+      x.fillStyle = css(color, 14); x.fillRect(i * 24 + 1, 0, 2, H);
+    }
+  }
+  speckle(x, W, H, 900, 0.08, 89);
+  return toTexture(c);
+}
+
+// A chain-link fence: galvanised wire in diamonds 5 cm across, clear between. 0.5 × 0.5 m.
+export function chainLink(color = 'rgba(176,182,186,1)') {
+  const [c, x] = canvas(128);
+  x.clearRect(0, 0, 128, 128);
+  x.strokeStyle = color; x.lineWidth = 2.2;
+  for (let k = -128; k <= 256; k += 12.8) {
+    x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 128, 128); x.stroke();
+    x.beginPath(); x.moveTo(k, 128); x.lineTo(k + 128, 0); x.stroke();
+  }
+  return toTexture(c);
+}
+
+// A railing of upright bars, black, 12 cm apart, between a top rail and a bottom one, over 1.2 m
+// along it (u in metres / 1.2, v up it from 0 to 1); the gaps clear.
+export function barRailing(color = '#1d1f21') {
+  const W = 192, H = 128, [c, x] = canvas(W, H);
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = color;
+  x.fillRect(0, 0, W, 9); x.fillRect(0, H - 12, W, 6);
+  for (let i = 0; i < 10; i++) x.fillRect(i * W / 10 + 7, 0, 4, H - 6);
+  return toTexture(c);
+}
+
+// A black name sign hung under a platform's roof: the name in white, and under it the ways out,
+// to the left and to the right. 2.4 × 0.6 m.
+export function hangingSign(name: string, left: string, right: string, blue = false, plain = false) {
+  const W = 960, H = 240, [c, x] = canvas(W, H);
+  x.fillStyle = blue ? '#24307a' : '#161718'; x.fillRect(0, 0, W, H);
+  // (SL's blue ones: a yellow stripe along the foot)
+  if (blue) { x.fillStyle = '#f2c230'; x.fillRect(0, H - 22, W, 22); }
+  x.fillStyle = '#f2f2ee'; x.textBaseline = 'middle';
+  x.font = '600 108px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center';
+  // (`plain`: the name alone, in the middle)
+  if (plain) { x.fillText(name, W / 2, blue ? 112 : 124, W - 80); return toTexture(c, { repeat: false }); }
+  x.fillText(name, W / 2, 82, W - 80);
+  x.fillStyle = blue ? '#e8e8e2' : '#5a5c5e'; x.fillRect(30, 150, W - 60, 3);
+  x.fillStyle = '#f2f2ee'; x.font = '500 44px "Helvetica Neue", Arial, sans-serif';
+  const y = blue ? 186 : 197;
+  const arrow = (cx: number, dir: number) => {
+    x.beginPath(); x.moveTo(cx + dir * 18, y - 1); x.lineTo(cx - dir * 4, y - 17); x.lineTo(cx - dir * 4, y + 15); x.fill();
+    x.fillRect(Math.min(cx - dir * 22, cx - dir * 4), y - 5, 18, 8);
+  };
+  // (no way out that way if there's no name)
+  if (left) { arrow(48, -1); x.textAlign = 'left'; x.fillText(left, 80, y, W / 2 - 100); }
+  if (right) { arrow(W - 48, 1); x.textAlign = 'right'; x.fillText(right, W - 80, y, W / 2 - 100); }
+  return toTexture(c, { repeat: false });
+}
+
+// Birch bark round a trunk (across) and 0.4 m along it (up): chalk white, dark lenticels across the
+// trunk, and here and there a black patch.
+export function birchBark() {
+  const W = 64, H = 128, [c, x] = canvas(W, H), r = rng(1991);
+  x.fillStyle = '#e2dfd6'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 46; k++) { x.fillStyle = `rgba(42,40,36,${0.45 + r() * 0.45})`; x.fillRect(r() * W, r() * H, 4 + r() * 16, 1 + r() * 2.5); }
+  for (let k = 0; k < 3; k++) {
+    const cx = r() * W, cy = r() * H;
+    x.fillStyle = 'rgba(30,28,26,0.85)'; x.beginPath(); x.ellipse(cx, cy, 6 + r() * 8, 3 + r() * 6, r() * 0.5, 0, Math.PI * 2); x.fill();
+  }
+  return toTexture(c);
+}
+
+// The metro's round sign: a blue T on white in a blue ring.
+export function tRoundel() {
+  const N = 256, [c, x] = canvas(N);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, N, N);
+  x.strokeStyle = '#1f4f9c'; x.lineWidth = 16; x.beginPath(); x.arc(N / 2, N / 2, N / 2 - 12, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#1f4f9c'; x.fillRect(58, 64, 140, 34); x.fillRect(110, 64, 36, 132);
+  return toTexture(c, { repeat: false });
+}
+
+// A station clock's face: white, black bars for the hours and strokes for the minutes, black
+// hands (at ten past ten).
+export function clockFace() {
+  const N = 256, [c, x] = canvas(N);
+  x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, N, N);
+  x.translate(N / 2, N / 2);
+  x.fillStyle = '#141516';
+  for (let k = 0; k < 60; k++) {
+    x.save(); x.rotate((k * Math.PI) / 30);
+    if (k % 5 === 0) x.fillRect(-5, -118, 10, 30); else x.fillRect(-1.5, -118, 3, 10);
+    x.restore();
+  }
+  const hand = (turn: number, len: number, w: number) => { x.save(); x.rotate(turn * Math.PI * 2); x.fillRect(-w / 2, -len, w, len + 16); x.restore(); };
+  hand((10 + 10 / 60) / 12, 70, 12);
+  hand(10 / 60, 104, 8);
+  x.beginPath(); x.arc(0, 0, 9, 0, Math.PI * 2); x.fill();
+  return toTexture(c, { repeat: false });
+}
+
+// The station's name in white capitals on a blue enamel band, the T in a white ring before it and
+// a thin yellow line under it. `length` m long, 0.5 m high.
+// (`black`: the older black band, the name in white as written, without the yellow stripe)
+export function nameBand(name: string, length: number, black = false) {
+  const H = 100, W = Math.round(length * 200), [c, x] = canvas(W, H);
+  x.fillStyle = black ? '#151618' : '#18408f'; x.fillRect(0, 0, W, H);
+  if (!black) { x.fillStyle = '#e8c33a'; x.fillRect(0, H - 9, W, 5); }
+  x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textBaseline = 'middle';
+  const text = black ? name : name.toUpperCase().split('').join(String.fromCharCode(8202)), tw = Math.min(x.measureText(text).width, W - 140);
+  const x0 = (W - tw - 60) / 2;
+  x.strokeStyle = '#f4f4f0'; x.lineWidth = 4; x.beginPath(); x.arc(x0 + 20, H / 2 - 3, 20, 0, Math.PI * 2); x.stroke();
+  x.fillStyle = '#f4f4f0'; x.font = '700 30px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center'; x.fillText('T', x0 + 20, H / 2 - 2);
+  x.font = '600 50px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'left'; x.fillText(text, x0 + 60, H / 2 - 2, W - 140);
+  return toTexture(c, { repeat: false });
+}
+
+// A pane of Björn Olsén's light boxes (Kärrtorp, 1994): coloured glass, its tone mottled, lit from
+// behind, and on it a secret sign, a broad stroke curling and hooking in a paler shade with a darker
+// rim, a different one for each `sign`. The picture is the whole pane, 1 by 2.
+export function lightBoxGlass(color: number, sign: number) {
+  const W = 128, H = 256, [c, x] = canvas(W, H), r = rng(1994 + sign * 37);
+  const R = (color >> 16) & 255, G = (color >> 8) & 255, B = color & 255;
+  x.fillStyle = `rgb(${R},${G},${B})`; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 40; k++) {
+    const d = (r() - 0.5) * 50;
+    x.fillStyle = `rgba(${d > 0 ? '255,255,240' : '20,24,20'},${0.04 + r() * 0.06})`;
+    x.beginPath(); x.ellipse(r() * W, r() * H, 10 + r() * 40, 10 + r() * 60, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  // the sign: a stroke through four to six points, its ends hooked
+  const n = 4 + Math.floor(r() * 3), pts: [number, number][] = [], bend: number[] = [];
+  for (let k = 0; k < n; k++) { pts.push([W * (0.22 + r() * 0.56), H * (0.12 + (0.76 * k) / (n - 1)) + (r() - 0.5) * H * 0.08]); bend.push((r() - 0.5) * 60); }
+  const tone = (k: number) => `rgb(${Math.min(255, R + k)},${Math.min(255, G + k)},${Math.min(255, B + k)})`;
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  const draw = (w: number, style: string) => {
+    x.strokeStyle = style; x.lineWidth = w;
+    x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+    for (let k = 1; k < n; k++) { const [a, b] = pts[k - 1], [cx, cy] = pts[k]; x.quadraticCurveTo(a + bend[k], (b + cy) / 2, cx, cy); }
+    x.stroke();
+  };
+  draw(26, `rgba(${Math.max(0, R - 50)},${Math.max(0, G - 50)},${Math.max(0, B - 50)},0.7)`);
+  draw(20, tone(70));
+  // a blot or two where the stroke swells
+  for (let k = 0; k < 2; k++) {
+    const [px, py] = pts[1 + Math.floor(r() * (n - 2))];
+    x.fillStyle = tone(60); x.beginPath(); x.ellipse(px, py, 12 + r() * 14, 8 + r() * 10, r() * 3, 0, Math.PI * 2); x.fill();
+  }
+  speckle(x, W, H, 900, 0.12, 1995 + sign);
+  return toTexture(c, { repeat: false });
+}
+
+// Pine timbers glued up in thick layers, weathered to a pale grey-brown: the layers 12 cm deep,
+// their grain along them, a dark knot here and there. 1.2 m a repeat.
+export function laminatedWood() {
+  const N = 240, [c, x] = canvas(N);
+  const r = rng(1975);
+  for (let j = 0; j < 10; j++) {
+    const v = Math.floor(r() * 18);
+    x.fillStyle = `rgb(${168 + v},${136 + v},${98 + v})`; x.fillRect(0, j * 24, N, 24);
+    for (let k = 0; k < 14; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '110,84,58' : '210,188,150'},0.25)`; x.fillRect(0, j * 24 + r() * 24, N, 1); }
+    x.fillStyle = 'rgba(70,52,36,0.6)'; x.fillRect(0, j * 24, N, 1.5);
+    if (r() < 0.6) { x.fillStyle = 'rgba(80,56,36,0.7)'; x.beginPath(); x.ellipse(r() * N, j * 24 + 12, 4 + r() * 4, 3, 0, 0, Math.PI * 2); x.fill(); }
+  }
+  speckle(x, N, N, 900, 0.08, 1976);
+  return toTexture(c);
+}
+
+// A departure board: a pale strip naming the trains' direction, and the next two trains in
+// orange lights on black.
+export function trainsBoard(toward: string, trains: [string, string]) {
+  const W = 680, H = 200, [c, x] = canvas(W, H);
+  x.fillStyle = '#0e0f10'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#d6d9d6'; x.fillRect(0, 0, W, 44);
+  x.fillStyle = '#1a1b1c'; x.font = '500 28px "Helvetica Neue", Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(`Tåg mot ${toward}`, W / 2, 23, W - 40);
+  x.fillStyle = '#ff8a1e'; x.font = '700 50px "Courier New", monospace'; x.textAlign = 'left';
+  trains.forEach((t, k) => x.fillText(t, 22, 84 + k * 70, W - 44));
+  return toTexture(c, { repeat: false });
+}
+
+// Kristina Anshelm's Tallkrogsdraken (1998), redrawn: a black-outlined dragon whose round body is
+// Tallkrogen's ring of streets, yellow and blue, with four legs either side, a thin tail to the
+// left and a snake's head to the right, over the suburb seen from above (green gardens, red and
+// orange roofs) with an orange road along the bottom.
+export function tallkrogsdraken() {
+  const W = 1024, H = 700, [c, x] = canvas(W, H);
+  const r = rng(1998);
+  x.fillStyle = '#3e9147'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 260; k++) {
+    x.fillStyle = ['#2c7a37', '#57a957', '#78bf68', '#347f3c'][k % 4];
+    x.beginPath(); x.arc(r() * W, r() * H, 10 + r() * 30, 0, Math.PI * 2); x.fill();
+  }
+  // the houses: roofs seen from above, a pale wall along one side
+  const cx = 500, cy = 350, rx = 235, ry = 180;
+  for (let k = 0; k < 140; k++) {
+    const hx = r() * W, hy = r() * H;
+    if (((hx - cx) / (rx + 30)) ** 2 + ((hy - cy) / (ry + 30)) ** 2 < 1) continue;
+    x.save(); x.translate(hx, hy); x.rotate((r() - 0.5) * 1.6);
+    x.fillStyle = '#efe5cc'; x.fillRect(-19, -8, 38, 24);
+    x.fillStyle = ['#d24a26', '#e5702f', '#c43b22', '#ee8a3a'][k % 4]; x.fillRect(-19, -16, 38, 18);
+    x.fillStyle = 'rgba(80,20,10,0.5)'; x.fillRect(-19, -8, 38, 2);
+    x.restore();
+  }
+  // the road along the bottom
+  x.strokeStyle = '#e57d2e'; x.lineWidth = 9; x.beginPath(); x.moveTo(0, H - 60); x.bezierCurveTo(W * 0.3, H - 30, W * 0.6, H - 95, W, H - 70); x.stroke();
+  x.lineCap = 'round'; x.strokeStyle = '#121212';
+  // the legs, four above and four below, curling at their feet
+  x.lineWidth = 15;
+  for (const side of [-1, 1]) for (let k = 0; k < 4; k++) {
+    const lx = cx - 120 + k * 85, ly = cy + side * ry * Math.sqrt(1 - ((lx - cx) / rx) ** 2);
+    x.beginPath(); x.moveTo(lx, ly); x.quadraticCurveTo(lx - 20, ly + side * 90, lx + 12, ly + side * 150); x.quadraticCurveTo(lx + 30, ly + side * 168, lx + 46, ly + side * 158); x.stroke();
+  }
+  // the tail, thin and wavy, off to the left
+  x.lineWidth = 7; x.beginPath(); x.moveTo(cx - rx + 4, cy + 10);
+  x.bezierCurveTo(cx - rx - 80, cy - 40, cx - rx - 120, cy + 70, cx - rx - 210, cy + 20); x.bezierCurveTo(cx - rx - 260, cy - 5, 70, cy + 40, 40, cy + 10); x.stroke();
+  // the neck and the snake's head, to the right
+  x.lineWidth = 34; x.beginPath(); x.moveTo(cx + rx - 20, cy - 10); x.bezierCurveTo(cx + rx + 70, cy - 50, cx + rx + 110, cy + 40, cx + rx + 190, cy - 10); x.stroke();
+  x.strokeStyle = '#2a5fc0'; x.lineWidth = 18; x.stroke();
+  x.fillStyle = '#121212'; x.beginPath(); x.ellipse(cx + rx + 210, cy - 16, 36, 22, -0.3, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#2a5fc0'; x.beginPath(); x.ellipse(cx + rx + 210, cy - 16, 26, 13, -0.3, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#d8281e'; x.lineWidth = 5; x.beginPath(); x.moveTo(cx + rx + 242, cy - 26); x.lineTo(cx + rx + 272, cy - 34); x.moveTo(cx + rx + 262, cy - 31); x.lineTo(cx + rx + 276, cy - 22); x.stroke();
+  // the body: the ring of streets, yellow between blue rings round a centre to the right of its
+  // middle, crossed by black streets, in a heavy black outline
+  x.save(); x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.clip();
+  x.fillStyle = '#f0bf2a'; x.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+  x.fillStyle = 'rgba(255,240,170,0.35)'; x.beginPath(); x.ellipse(cx - 60, cy - 50, rx * 0.6, ry * 0.5, 0, 0, Math.PI * 2); x.fill();
+  const tx = cx + 70;
+  x.strokeStyle = '#2a5fc0';
+  for (const k of [0.25, 0.5, 0.75, 1.0]) {
+    x.lineWidth = 16; x.beginPath(); x.ellipse(tx, cy, rx * 0.62 * k, ry * 0.78 * k, 0, 0.2, Math.PI * 2 - 0.2); x.stroke();
+  }
+  x.fillStyle = '#2a5fc0'; x.beginPath(); x.arc(tx, cy, 18, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#121212'; x.lineWidth = 14;
+  x.beginPath(); x.moveTo(tx, cy - ry); x.lineTo(tx, cy + ry); x.stroke();
+  x.beginPath(); x.moveTo(cx - rx, cy); x.lineTo(tx - 30, cy); x.stroke();
+  for (const k of [-1, 1]) { x.beginPath(); x.ellipse(cx - 40, cy, 120, 130, 0, k > 0 ? -1.2 : Math.PI - 1.2, k > 0 ? 1.2 : Math.PI + 1.2); x.stroke(); }
+  x.restore();
+  x.strokeStyle = '#121212'; x.lineWidth = 18; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.stroke();
+  speckle(x, W, H, 5000, 0.06, 1999);
+  return toTexture(c, { repeat: false });
+}
+
+// Black branches over a wall, `n` of them, each from a root at its foot or its top, crooked and
+// forking as it goes, thinning to twigs; wrapping round the repeat.
+function branches(x: CanvasRenderingContext2D, W: number, H: number, PX: number, r: () => number, n: number, color: string, depth = 5) {
+  x.strokeStyle = color; x.lineCap = 'round';
+  const grow = (px: number, py: number, angle: number, width: number, len: number, depth: number) => {
+    let cx = px, cy = py, a = angle;
+    for (let k = 0; k < 4; k++) {
+      a += (r() - 0.5) * 0.7;
+      const nx = cx + Math.cos(a) * len / 4, ny = cy + Math.sin(a) * len / 4;
+      x.lineWidth = Math.max(1, width * (1 - k * 0.08));
+      for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) { x.beginPath(); x.moveTo(cx + dx, cy + dy); x.lineTo(nx + dx, ny + dy); x.stroke(); }
+      cx = nx; cy = ny;
+    }
+    if (depth === 0 || width < 1.5) return;
+    const forks = r() < 0.35 ? 3 : 2;
+    for (let f = 0; f < forks; f++) grow(cx, cy, a + (f - (forks - 1) / 2) * 0.9 + (r() - 0.5) * 0.5, width * 0.62, len * (0.7 + r() * 0.2), depth - 1);
+  };
+  for (let i = 0; i < n; i++) {
+    const up = i % 2 === 0;
+    grow(r() * W, up ? H : 0, (up ? -1 : 1) * Math.PI / 2 + (r() - 0.5) * 0.9, 0.07 * PX, (0.45 + r() * 0.25) * PX, depth);
+  }
+}
+
+// Polished aluminium, its surface crazed all over: pale cells of slightly different greys, dark
+// cracks between them (a Voronoi pattern on the repeat).
+export function crackle() {
+  const N = 256, [c, x] = canvas(N), r = rng(2012);
+  const pts = Array.from({ length: 90 }, () => [r() * N, r() * N, 186 + Math.floor(r() * 40)]);
+  const img = x.createImageData(N, N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    let d1 = 1e9, d2 = 1e9, v = 0;
+    for (const [px, py, pv] of pts) {
+      let dx = Math.abs(i - px), dy = Math.abs(j - py);
+      if (dx > N / 2) dx = N - dx;
+      if (dy > N / 2) dy = N - dy;
+      const d = dx * dx + dy * dy;
+      if (d < d1) { d2 = d1; d1 = d; v = pv; } else if (d < d2) d2 = d;
+    }
+    const edge = Math.sqrt(d2) - Math.sqrt(d1), k = (j * N + i) * 4;
+    const g = edge < 1.4 ? 70 : edge < 2.6 ? v - 50 : v;
+    img.data[k] = g; img.data[k + 1] = g + 2; img.data[k + 2] = g + 6; img.data[k + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  return toTexture(c);
+}
+
+// Small granite setts, about 10 cm, grey and a few pinkish, laid in rows in dark joints: a
+// metre square.
+// The photographic mosaic of a forest floor along Svedmyra's ticket hall: dry grass, rusty
+// needles and dark soil, mossy hollows, grey stones and twigs, all in small square tesserae. 13 by
+// 3 m, its picture across the whole width.
+export function forestFloor() {
+  const W = 2080, H = 480, [c, x] = canvas(W, H);
+  const r = rng(1930);
+  x.fillStyle = '#7b6446'; x.fillRect(0, 0, W, H);
+  // patches of ground, larger to smaller
+  const ground = ['#a88c58', '#8d6a3c', '#5b4632', '#9a5a32', '#6e5a3a', '#b59a68', '#5f6b3c', '#4a3b2e', '#7d7350'];
+  for (const [n, size] of [[220, 70], [700, 30], [2200, 12]] as const) {
+    for (let k = 0; k < n; k++) {
+      x.fillStyle = ground[Math.floor(r() * ground.length)];
+      x.globalAlpha = 0.35 + r() * 0.5;
+      x.beginPath(); x.ellipse(r() * W, r() * H, size * (0.5 + r()), size * (0.3 + r() * 0.6), r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+  }
+  x.globalAlpha = 1;
+  // blades of dry grass and fallen needles, every way
+  for (let k = 0; k < 2600; k++) {
+    const x0 = r() * W, y0 = r() * H, a = r() * Math.PI, l = 6 + r() * 22;
+    x.strokeStyle = ['#c8ae74', '#b5482a', '#d0b880', '#8c4a26'][Math.floor(r() * 4)]; x.lineWidth = 1 + r();
+    x.beginPath(); x.moveTo(x0, y0); x.lineTo(x0 + Math.cos(a) * l, y0 + Math.sin(a) * l); x.stroke();
+  }
+  // stones, grey, lit from above
+  for (let k = 0; k < 26; k++) {
+    const cx = r() * W, cy = r() * H, rx = 18 + r() * 46, ry = rx * (0.5 + r() * 0.3);
+    const g = x.createLinearGradient(cx, cy - ry, cx, cy + ry);
+    g.addColorStop(0, '#b9b7ae'); g.addColorStop(1, '#6c6b66');
+    x.fillStyle = g; x.beginPath(); x.ellipse(cx, cy, rx, ry, r() * 0.6 - 0.3, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(60,52,40,0.35)'; x.beginPath(); x.ellipse(cx + rx * 0.2, cy + ry * 0.85, rx * 0.9, ry * 0.25, 0, 0, Math.PI * 2); x.fill();
+  }
+  // twigs
+  for (let k = 0; k < 60; k++) {
+    let x0 = r() * W, y0 = r() * H, a = r() * Math.PI * 2;
+    x.strokeStyle = '#3b2c20'; x.lineWidth = 2 + r() * 2;
+    x.beginPath(); x.moveTo(x0, y0);
+    for (let j = 0; j < 4; j++) { a += r() * 0.8 - 0.4; x0 += Math.cos(a) * 18; y0 += Math.sin(a) * 18; x.lineTo(x0, y0); }
+    x.stroke();
+  }
+  // a tree's foot rising out of it near the left end
+  const tg = x.createLinearGradient(150, 0, 230, 0);
+  tg.addColorStop(0, '#6f685c'); tg.addColorStop(0.5, '#9a9284'); tg.addColorStop(1, '#5d574d');
+  x.fillStyle = tg; x.beginPath(); x.moveTo(150, 0); x.lineTo(230, 0); x.lineTo(250, H * 0.5); x.lineTo(130, H * 0.5); x.fill();
+  // the tesserae: each square one colour, about 2.5 cm, in dark joints
+  const t = 4, img = x.getImageData(0, 0, W, H), d = img.data;
+  for (let j = 0; j < H; j += t) for (let i = 0; i < W; i += t) {
+    const o = ((j + 1) * W + i + 1) * 4, v = 0.92 + r() * 0.16;
+    for (let b = 0; b < t; b++) for (let a = 0; a < t; a++) {
+      const q = ((j + b) * W + i + a) * 4, joint = a === t - 1 || b === t - 1;
+      for (let ch = 0; ch < 3; ch++) d[q + ch] = joint ? d[o + ch] * 0.55 : Math.min(255, d[o + ch] * v);
+    }
+  }
+  x.putImageData(img, 0, 0);
+  return toTexture(c, { repeat: false });
+}
+
+// Leif Tjerned's boxes of neon at Gullmarsplan (1995): the coloured glass in a box's underside,
+// lit from within: shards of saturated colour, oblongs, triangles and slivers, scattered over
+// the dark (`seed`, one box from another).
+export function neonGlass(seed: number) {
+  const W = 256, H = 128, [c, x] = canvas(W, H), r = rng(1995 + seed * 53);
+  x.fillStyle = '#121316'; x.fillRect(0, 0, W, H);
+  const colours = ['#2457ff', '#ffd21a', '#ff2e1f', '#1fc25e', '#f4f4ee', '#9a3cff', '#1fc8e6', '#ff7a1a'];
+  for (let k = 0; k < 26; k++) {
+    const cx = 10 + r() * (W - 20), cy = 8 + r() * (H - 16), a = r() * Math.PI, l = 10 + r() * 42, w = 4 + r() * 16;
+    const ca = Math.cos(a), sa = Math.sin(a), kind = r();
+    x.fillStyle = colours[Math.floor(r() * colours.length)];
+    x.shadowColor = x.fillStyle; x.shadowBlur = 6;
+    x.beginPath();
+    if (kind < 0.45) {
+      // an oblong
+      for (const [p, q] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * w / 2, cy + sa * p * l / 2 + ca * q * w / 2);
+    } else if (kind < 0.8) {
+      // a triangle
+      for (const [p, q] of [[-1, -1], [1, 0], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * w, cy + sa * p * l / 2 + ca * q * w);
+    } else {
+      // a sliver, slanting
+      for (const [p, q] of [[-1, -0.3], [1, -1], [1, 0.3], [-1, 1]]) x.lineTo(cx + ca * p * l / 2 - sa * q * 3, cy + sa * p * l / 2 + ca * q * 3);
+    }
+    x.closePath(); x.fill();
+  }
+  x.shadowBlur = 0;
+  return toTexture(c, { repeat: false });
+}
+
+// One of Leif Tjerned's angels at Gullmarsplan (Änglarna, 1997), cut out of aluminium and painted:
+// a woman lying back along the wall, her head at the upper left, in a red dress laced at the
+// bodice, its pleated skirt hemmed in a zigzag of blue, her arm hanging down beside it and her bare
+// legs stretched out to the right to red high-heeled shoes; behind her shoulders a great wing of
+// gold flaring up and back, and round its root a fan of feathers, red, blue, yellow, green and
+// white. Drawn on a clear ground, to be cut out (1.6 by 1, its foot along the bottom).
+export function angel() {
+  const W = 1024, H = 640, [c, x] = canvas(W, H);
+  const P = (u: number, v: number): [number, number] => [u * W, (1 - v) * H];
+  const shape = (fill: string, pts: [number, number][], stroke?: string) => {
+    x.fillStyle = fill; x.beginPath();
+    pts.forEach(([u, v], k) => { const [px, py] = P(u, v); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+    x.closePath(); x.fill();
+    if (stroke) { x.strokeStyle = stroke; x.lineWidth = 3; x.stroke(); }
+  };
+  // a limb from a to b, wa thick at a and wb at b (in parts of the height)
+  const limb = (fill: string, a: [number, number], b: [number, number], wa: number, wb: number, stroke: string) => {
+    const du = (b[0] - a[0]) * W, dv = (b[1] - a[1]) * H, l = Math.hypot(du, dv), nu = -dv / l / W * H, nv = du / l;
+    shape(fill, [[a[0] + nu * wa / 2, a[1] + nv * wa / 2], [b[0] + nu * wb / 2, b[1] + nv * wb / 2], [b[0] - nu * wb / 2, b[1] - nv * wb / 2], [a[0] - nu * wa / 2, a[1] - nv * wa / 2]], stroke);
+  };
+  // the feathers fanned round the wing's root, then the wing
+  const root: [number, number] = [0.24, 0.6], colours = ['#d8261c', '#2348b8', '#f2c21a', '#2f9a46', '#f4f2ea', '#d8261c', '#2348b8', '#f2c21a', '#2f9a46', '#d8261c', '#2348b8'];
+  colours.forEach((f, k) => {
+    const t = 1.85 + k * 0.16, r = 0.27 + (k % 3) * 0.07, w = 0.07;
+    const tip: [number, number] = [root[0] + Math.cos(t) * r * 0.62, root[1] + Math.sin(t) * r];
+    const side = (d: number): [number, number] => [root[0] + Math.cos(t + d) * r * 0.3, root[1] + Math.sin(t + d) * r * 0.48];
+    shape(f, [side(-w * 3), tip, side(w * 3)], '#1b1b1b');
+    if (f === '#f4f2ea') { x.fillStyle = '#1b1b1b'; for (let j = 1; j < 4; j++) { const [px, py] = P(root[0] + (tip[0] - root[0]) * j / 4, root[1] + (tip[1] - root[1]) * j / 4); x.beginPath(); x.arc(px, py, 5, 0, Math.PI * 2); x.fill(); } }
+  });
+  shape('#d9a521', [[0.22, 0.6], [0.15, 0.76], [0.1, 0.99], [0.27, 0.86], [0.31, 0.99], [0.37, 0.84], [0.5, 0.93], [0.4, 0.72], [0.33, 0.6]], '#6b4a10');
+  x.fillStyle = 'rgba(255,240,180,0.45)';
+  x.beginPath(); x.moveTo(...P(0.14, 0.94)); x.lineTo(...P(0.25, 0.8)); x.lineTo(...P(0.2, 0.74)); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(...P(0.45, 0.89)); x.lineTo(...P(0.33, 0.76)); x.lineTo(...P(0.36, 0.7)); x.closePath(); x.fill();
+  // her legs, stretched out to the right, and the shoes
+  const skin = '#e3b391', shade = '#b98466';
+  limb(skin, [0.54, 0.31], [0.86, 0.17], 0.1, 0.06, shade);
+  limb(skin, [0.53, 0.22], [0.83, 0.07], 0.1, 0.06, shade);
+  shape('#c8141e', [[0.85, 0.13], [0.97, 0.15], [0.98, 0.21], [0.87, 0.21]], '#5a0508');
+  shape('#c8141e', [[0.82, 0.03], [0.94, 0.04], [0.95, 0.1], [0.84, 0.11]], '#5a0508');
+  limb('#5a0508', [0.86, 0.13], [0.85, 0.08], 0.012, 0.012, '#5a0508');
+  // her arm hanging down beside her
+  limb(skin, [0.25, 0.54], [0.13, 0.2], 0.07, 0.05, shade);
+  shape(skin, [[0.1, 0.22], [0.15, 0.22], [0.14, 0.13], [0.11, 0.13]], shade);
+  // the dress: the bodice and its lacing, the pleated skirt and its blue zigzag hem
+  shape('#c0182a', [[0.19, 0.57], [0.34, 0.63], [0.44, 0.45], [0.3, 0.36]], '#5a0610');
+  x.strokeStyle = '#f2e6d8'; x.lineWidth = 3;
+  for (let k = 0; k < 5; k++) { const t = 0.2 + k * 0.15; x.beginPath(); x.moveTo(...P(0.25 + t * 0.1, 0.6 - t * 0.2)); x.lineTo(...P(0.31 + t * 0.1, 0.55 - t * 0.17)); x.stroke(); }
+  shape('#c0182a', [[0.3, 0.36], [0.44, 0.45], [0.58, 0.36], [0.57, 0.15], [0.36, 0.1], [0.27, 0.2]], '#5a0610');
+  x.strokeStyle = 'rgba(70,0,10,0.55)'; x.lineWidth = 4;
+  for (let k = 0; k < 9; k++) { const t = k / 9; x.beginPath(); x.moveTo(...P(0.33 + t * 0.12, 0.38 + t * 0.06)); x.lineTo(...P(0.3 + t * 0.26, 0.17 - t * 0.02 + Math.abs(t - 0.4) * 0.05)); x.stroke(); }
+  // (along the skirt's lower edge, from its back by her hip round to its front)
+  const edge = (t: number): [number, number] => t < 0.35 ? [0.27 + (t / 0.35) * 0.09, 0.2 - (t / 0.35) * 0.1] : [0.36 + ((t - 0.35) / 0.65) * 0.21, 0.1 + ((t - 0.35) / 0.65) * 0.05];
+  const top = Array.from({ length: 15 }, (_, k): [number, number] => { const [u, v] = edge(k / 14); return [u, v + 0.035 + (k % 2) * 0.035]; });
+  const foot = Array.from({ length: 15 }, (_, k): [number, number] => { const [u, v] = edge(1 - k / 14); return [u, v - 0.015]; });
+  shape('#2348b8', [...top, ...foot], '#101a50');
+  // her neck and head thrown back, her dark hair
+  shape(skin, [[0.18, 0.62], [0.24, 0.62], [0.24, 0.56], [0.18, 0.56]]);
+  x.fillStyle = '#2a1a12'; x.beginPath(); x.ellipse(...P(0.13, 0.68), 0.055 * W, 0.13 * H, -0.4, 0, Math.PI * 2); x.fill();
+  x.fillStyle = skin; x.beginPath(); x.ellipse(...P(0.155, 0.655), 0.035 * W, 0.095 * H, -0.4, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#7a2a20'; x.fillRect(...P(0.16, 0.61), 0.014 * W, 0.01 * H);
+  x.fillStyle = '#2a1a12'; x.fillRect(...P(0.15, 0.68), 0.01 * W, 0.008 * H); x.fillRect(...P(0.17, 0.675), 0.01 * W, 0.008 * H);
+  return toTexture(c, { repeat: false });
+}
+
+// Lines of handwriting in a box: rows of small joined loops and strokes, now and then a gap
+// between words, in `ink`.
+function handwriting(x: CanvasRenderingContext2D, r: () => number, x0: number, y0: number, x1: number, y1: number, row: number, ink: string, size = 1) {
+  x.strokeStyle = ink; x.lineWidth = 1.6 * size; x.lineCap = 'round';
+  for (let y = y0 + row; y < y1; y += row) {
+    let px = x0 + r() * 20, end = x1 - r() * row * 3;
+    while (px < end) {
+      const word = 20 + r() * 70;
+      x.beginPath(); x.moveTo(px, y);
+      for (let q = px; q < Math.min(px + word, end); q += 4 * size) {
+        const up = r() < 0.12 ? row * 0.55 : row * 0.22;
+        x.quadraticCurveTo(q + 2 * size, y - up * (0.5 + r()), q + 4 * size, y + (r() - 0.5) * 2);
+      }
+      x.stroke();
+      px += word + 8 + r() * 10;
+    }
+  }
+}
+
+// Helén Partos's Sirat (Vällingby, 2010): lace cut out of steel plate as crocheted doilies are,
+// dark brown with rust, each panel a piece of cloth of its own shape: rosettes of holes in rings
+// round a middle, petals between the rings, and a net of small holes between the rosettes, a
+// solid rim round its edge; cut out round its outline (photographs, 2013 and 2026). `k` picks
+// one of the panels. 2.6 by 2.7 m.
+export function siratLace(k: number) {
+  const W = 640, H = 664, [c, x] = canvas(W, H), r = rng(2010 + k * 17);
+  const cx = W * (0.47 + r() * 0.06), cy = H * (0.48 + r() * 0.06), w1 = r() * 6, w2 = r() * 6;
+  const R = (t: number) => 0.4 + 0.05 * Math.sin(3 * t + w1) + 0.035 * Math.sin(5 * t + w2) + 0.015 * Math.sin(11 * t + k);
+  const outline = () => {
+    x.beginPath();
+    for (let i = 0; i <= 120; i++) {
+      const t = (i / 120) * Math.PI * 2, rr = R(t), px = cx + Math.cos(t) * rr * W, py = cy + Math.sin(t) * rr * H;
+      if (i) x.lineTo(px, py); else x.moveTo(px, py);
+    }
+    x.closePath();
+  };
+  const steel = '#3c2b22';
+  x.clearRect(0, 0, W, H);
+  outline(); x.fillStyle = steel; x.fill();
+  // the net, cut all over
+  x.globalCompositeOperation = 'destination-out';
+  for (let j = 0; j * 20 < H; j++) for (let i = 0; i * 20 < W; i++) {
+    x.beginPath(); x.arc(i * 20 + (j % 2) * 10 + 10, j * 20 + 10, 6, 0, Math.PI * 2); x.fill();
+  }
+  // the rosettes: a solid disc each, and in it rings of round holes and of petals in turn
+  const rosettes: [number, number, number][] = [[cx + (r() - 0.5) * W * 0.1, cy + (r() - 0.5) * H * 0.1, W * (0.2 + r() * 0.05)]];
+  for (let q = 0; q < 2; q++) {
+    const a = r() * Math.PI * 2, d = 0.22 + r() * 0.08;
+    rosettes.push([cx + Math.cos(a) * d * W, cy + Math.sin(a) * d * H, W * (0.09 + r() * 0.05)]);
+  }
+  for (const [ox, oy, rad] of rosettes) {
+    x.globalCompositeOperation = 'source-over';
+    x.save(); outline(); x.clip();
+    x.fillStyle = steel; x.beginPath(); x.arc(ox, oy, rad, 0, Math.PI * 2); x.fill();
+    x.restore();
+    x.globalCompositeOperation = 'destination-out';
+    x.beginPath(); x.arc(ox, oy, rad * 0.09, 0, Math.PI * 2); x.fill();
+    const rings = Math.max(2, Math.round(rad / 22));
+    for (let m = 1; m <= rings; m++) {
+      const rr = (m / (rings + 0.4)) * rad, n = Math.max(6, Math.round((2 * Math.PI * rr) / 26));
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * Math.PI * 2 + (m % 2) * (Math.PI / n), px = ox + Math.cos(t) * rr, py = oy + Math.sin(t) * rr;
+        x.beginPath();
+        if (m % 2) x.ellipse(px, py, 9, 4.5, t, 0, Math.PI * 2);
+        else x.arc(px, py, 5.5, 0, Math.PI * 2);
+        x.fill();
+      }
+    }
+  }
+  // the rim, solid round the edge, and the rust on the steel
+  x.globalCompositeOperation = 'source-over';
+  outline(); x.strokeStyle = steel; x.lineWidth = 12; x.stroke();
+  x.globalCompositeOperation = 'source-atop';
+  for (let i = 0; i < 900; i++) {
+    x.fillStyle = r() < 0.5 ? 'rgba(122,62,32,0.35)' : 'rgba(20,14,10,0.3)';
+    x.fillRect(r() * W, r() * H, 2 + r() * 6, 2 + r() * 6);
+  }
+  x.globalCompositeOperation = 'source-over';
+  return toTexture(c, { repeat: false });
+}
+
+// Sture V Nilsson's Strindberg wall at Rådmansgatan (1983), 3.6 by 1.85 m on its black tiles: on
+// the left a page of his manuscript, a sketch faint behind its lines, and under it his signature,
+// both on white enamel in a bronze ground; on the right twelve squares of copper, bronze and steel,
+// his writing etched faintly into them.
+export function strindbergWall() {
+  const W = 1440, H = 740, [c, x] = canvas(W, H), r = rng(1983);
+  const ground = x.createLinearGradient(0, 0, W, H);
+  ground.addColorStop(0, '#a5814f'); ground.addColorStop(1, '#7d6340');
+  x.fillStyle = ground; x.fillRect(0, 0, W, H);
+  // the manuscript
+  x.fillStyle = '#ebe8e0'; x.fillRect(26, 22, 540, 380);
+  x.strokeStyle = 'rgba(120,130,140,0.35)'; x.lineWidth = 3;
+  x.beginPath(); x.ellipse(170, 250, 90, 120, 0.3, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.moveTo(110, 330); x.quadraticCurveTo(180, 200, 250, 340); x.stroke();
+  x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(295, 22, 3, 380);
+  handwriting(x, r, 50, 30, 285, 390, 26, '#2d3440');
+  handwriting(x, r, 310, 30, 550, 300, 26, '#2d3440');
+  // the signature
+  x.fillStyle = '#efede7'; x.fillRect(56, 450, 480, 200);
+  x.fillStyle = '#16181c'; x.font = 'italic 78px "Brush Script MT", "Segoe Script", cursive';
+  // (squeezed into the panel, whichever script the browser has)
+  const sw = x.measureText('August Strindberg').width;
+  x.save(); x.translate(80, 575); x.rotate(-0.06); x.scale(Math.min(1, 430 / sw), 1); x.fillText('August Strindberg', 0, 0); x.restore();
+  x.strokeStyle = '#16181c'; x.lineWidth = 4; x.beginPath(); x.moveTo(90, 610); x.quadraticCurveTo(300, 640, 500, 585); x.stroke();
+  // the squares of metal
+  const metals = ['#b4703e', '#8d6b3c', '#a9aaa5', '#c08a52', '#6f5a40', '#9c5a32', '#b9b8b2', '#8a7650', '#a06c3e', '#7c7d78', '#b8814a', '#94653a'];
+  const cw = 205, ch = 233;
+  for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) {
+    const sx = 598 + i * cw, sy = 22 + j * ch, col = metals[j * 4 + i];
+    x.save(); x.beginPath(); x.rect(sx + 3, sy + 3, cw - 6, ch - 6); x.clip();
+    x.fillStyle = col; x.fillRect(sx + 3, sy + 3, cw - 6, ch - 6);
+    const sheen = x.createLinearGradient(sx, sy, sx + cw * 0.6, sy + ch);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.18)'); sheen.addColorStop(1, 'rgba(0,0,0,0.18)');
+    x.fillStyle = sheen; x.fillRect(sx + 3, sy + 3, cw - 6, ch - 6);
+    for (let k = 0; k < 14; k++) {
+      x.fillStyle = `rgba(${r() < 0.5 ? '40,30,20' : '230,220,200'},${0.05 + r() * 0.1})`;
+      x.beginPath(); x.ellipse(sx + r() * cw, sy + r() * ch, 10 + r() * 40, 6 + r() * 25, r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+    handwriting(x, r, sx + 12, sy + 8, sx + cw - 12, sy + ch - 10, 20, 'rgba(40,28,18,0.35)', 0.8);
+    x.restore();
+  }
+  speckle(x, W, H, 6000, 0.08, 1983);
+  return toTexture(c, { repeat: false });
+}
+
+// Blå tornet, the house on Drottninggatan where Strindberg lived his last years, on the same
+// wall: its corner tower over five storeys of orange-red render, among lines of his writing in a
+// dark grey ground, 1.7 by 2.2 m.
+export function blueTower() {
+  const W = 520, H = 672, [c, x] = canvas(W, H), r = rng(1912);
+  x.fillStyle = '#2b2b2e'; x.fillRect(0, 0, W, H);
+  handwriting(x, r, 14, 10, W - 14, H - 10, 22, 'rgba(210,205,195,0.45)');
+  // the two fronts meeting at the corner, seen from below
+  const front = (pts: [number, number][], fill: string) => { x.fillStyle = fill; x.beginPath(); pts.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py))); x.closePath(); x.fill(); };
+  const cx = 300, top = 190, foot = 640;
+  front([[cx, top], [cx, foot], [100, foot - 20], [118, top + 50]], '#d4692e');
+  front([[cx, top], [cx, foot], [470, foot - 30], [452, top + 60]], '#b24f22');
+  // windows, storey by storey
+  for (let k = 0; k < 5; k++) {
+    const y = top + 70 + k * 78;
+    for (let i = 0; i < 4; i++) {
+      const lx = 130 + i * 42, ly = y + (4 - i) * 4;
+      x.fillStyle = '#3a261e'; x.fillRect(lx, ly, 22, 40);
+      x.fillStyle = 'rgba(255,230,190,0.5)'; x.fillRect(lx, ly - 4, 22, 3);
+    }
+    for (let i = 0; i < 3; i++) {
+      const lx = 320 + i * 44, ly = y + i * 5;
+      x.fillStyle = '#331f18'; x.fillRect(lx, ly, 22, 40);
+    }
+  }
+  // the tower on the corner: a round bay, its dome and lantern
+  x.fillStyle = '#c55d29'; x.fillRect(cx - 42, top - 70, 84, 120);
+  x.fillStyle = '#3a261e'; for (const dx of [-28, 8]) x.fillRect(cx + dx, top - 50, 20, 34);
+  x.fillStyle = '#4f6f7a'; x.beginPath(); x.ellipse(cx, top - 70, 46, 52, 0, Math.PI, 0); x.fill();
+  x.fillRect(cx - 6, top - 150, 12, 30);
+  x.fillStyle = '#2d3f46'; x.beginPath(); x.moveTo(cx - 10, top - 150); x.lineTo(cx, top - 180); x.lineTo(cx + 10, top - 150); x.fill();
+  // the cornice and the dark roofs over the fronts
+  x.fillStyle = '#e8b48a'; x.fillRect(118, top + 44, cx - 118, 8); x.fillRect(cx, top + 44, 452 - cx, 8);
+  front([[118, top + 44], [cx, top + 30], [cx, top + 44]], '#5a3a2c');
+  front([[cx, top + 30], [452, top + 50], [452, top + 54], [cx, top + 44]], '#4a2e24');
+  speckle(x, W, H, 2500, 0.1, 1912);
+  return toTexture(c, { repeat: false });
+}
+
+// Glass wind screens on a viaduct's edge, in steel frames 1.25 m apart: some panes printed with a
+// big green leaf (maple, lime, horse chestnut, rowan, oak, birch) outlined in white, the rest
+// plain. Eight panes across, 2.2 m high; the glass itself faintly tinted.
+export function leafGlass(leaves: boolean) {
+  const PX = 96, pw = 1.25 * PX, W = Math.round(8 * pw), H = Math.round(2.2 * PX), [c, x] = canvas(W, H);
+  const r = rng(leaves ? 1991 : 1992);
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = 'rgba(190,210,214,0.28)'; x.fillRect(0, 0, W, H);
+  const leaf = (kind: number, cx: number, cy: number, s: number) => {
+    x.save(); x.translate(cx, cy); x.rotate(r() * 0.5 - 0.25);
+    x.fillStyle = ['#3f8f3a', '#4c9b3e', '#3a8536'][kind % 3]; x.strokeStyle = 'rgba(240,244,236,0.95)'; x.lineWidth = 2.5;
+    const blade = (len: number, wd: number, a: number) => {
+      x.save(); x.rotate(a); x.beginPath(); x.moveTo(0, 0);
+      x.bezierCurveTo(wd, -len * 0.3, wd * 0.8, -len * 0.8, 0, -len); x.bezierCurveTo(-wd * 0.8, -len * 0.8, -wd, -len * 0.3, 0, 0);
+      x.fill(); x.stroke(); x.restore();
+    };
+    if (kind === 0) for (const a of [-1.3, -0.65, 0, 0.65, 1.3]) blade(s * (a === 0 ? 1 : 0.8), s * 0.42, a);        // maple
+    else if (kind === 1) for (const [dx, dy, k] of [[-0.3, -0.2, 0.55], [0.3, -0.5, 0.6], [0, 0.25, 0.5]]) {          // lime
+      x.save(); x.translate(dx * s, dy * s); blade(s * k, s * k * 0.75, r() - 0.5); x.restore();
+    }
+    else if (kind === 2) for (const a of [-1.6, -1.05, -0.5, 0, 0.5, 1.05, 1.6]) blade(s * (1 - Math.abs(a) * 0.22), s * 0.22, a); // horse chestnut
+    else if (kind === 3) {                                                                                                   // rowan
+      x.strokeStyle = '#3a6a30'; x.beginPath(); x.moveTo(0, s * 0.6); x.lineTo(0, -s); x.stroke(); x.strokeStyle = 'rgba(240,244,236,0.95)';
+      for (let k = 0; k < 6; k++) for (const side of [-1, 1]) {
+        x.save(); x.translate(0, s * 0.45 - k * s * 0.27); blade(s * 0.32, s * 0.09, side * 1.2); x.restore();
+      }
+      blade(s * 0.3, s * 0.09, 0);
+    } else if (kind === 4) {                                                                                                 // oak
+      x.beginPath(); x.moveTo(0, s * 0.5);
+      for (let k = 0; k <= 12; k++) { const t = k / 12, y = s * 0.5 - t * s * 1.4, w = s * 0.32 * Math.sin(Math.PI * t) * (k % 2 ? 0.65 : 1); x.lineTo(w, y); }
+      for (let k = 12; k >= 0; k--) { const t = k / 12, y = s * 0.5 - t * s * 1.4, w = s * 0.32 * Math.sin(Math.PI * t) * (k % 2 ? 0.65 : 1); x.lineTo(-w, y); }
+      x.fill(); x.stroke();
+    } else blade(s * 0.9, s * 0.55, 0);                                                                                     // birch
+    x.restore();
+  };
+  for (let k = 0; k < 8; k++) {
+    if (leaves && k % 4 !== 3) leaf((k * 5 + Math.floor(r() * 3)) % 6, k * pw + pw / 2, H * 0.62, 0.62 * PX);
+  }
+  // the frames: posts between the panes, a rail along the top and the foot
+  x.fillStyle = '#8c9296';
+  for (let k = 0; k <= 8; k++) x.fillRect(k * pw - 3, 0, 6, H);
+  x.fillRect(0, 0, W, 5); x.fillRect(0, H - 8, W, 8);
+  return toTexture(c);
+}
+
+// Small square setts in rows, grey with a few warmer.
+export function smallSetts() {
+  const W = 160, [c, x] = canvas(W, W), r = rng(1990);
+  x.fillStyle = '#4a4a48'; x.fillRect(0, 0, W, W);
+  const t = 16;
+  for (let j = 0; j < W / t; j++) {
+    let i = -((j * 7) % t);
+    while (i < W) {
+      const l = t - 3 + Math.floor(r() * 6), v = 120 + Math.floor(r() * 50), warm = r() < 0.25 ? 18 : 0;
+      x.fillStyle = `rgb(${v + warm},${v + warm / 3},${v - warm / 3})`;
+      for (const dx of [0, W]) x.fillRect(i + dx + 1.5, j * t + 1.5, l - 3, t - 3);
+      i += l;
+    }
+  }
+  speckle(x, W, W, 1500, 0.2, 73);
+  return toTexture(c);
+}
+
+// The finishes of a styled open station's halls, passages and stairs, each `size` m a repeat
+// (across, and up a wall or along a floor). Walls are drawn as seen, from the floor up; their
+// glass is left clear (the glass itself is drawn apart). `clamp`: drawn to a height, not repeating.
+export const FINISH_SIZE: Record<Finish, [number, number]> = {
+  clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
+  darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
+  whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
+  darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
+  highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
+  stripes: [2.4, 2.4], greenWindows: [1.2, 4], checkWindows: [1.5, 2.8], blueTiles: [1.2, 3], tiledWindows: [1.2, 3],
+  gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
+  redWindows: [1.2, 4.2], shutter: [1.2, 4.2], redPanels: [1.2, 3], perforated: [2.4, 2.4], lineMosaic: [4.8, 4.8],
+  creamPanels: [1.2, 1.2], blueGlazed: [1.2, 2.4], blueClerestory: [1.2, 4.2], steelFront: [1.2, 4.2], ribbedMetal: [1.2, 1.2],
+  whiteBranches: [2.4, 2.4], darkBranches: [2.4, 2.4], basketTiles: [1.2, 1.2], granite: [2.4, 2.4],
+  whitePerforated: [1.2, 1.2], roughcast: [2.4, 2.4], hallTiles: [1.2, 6.9], glassFront: [1.2, 6.9],
+  greenTerrazzo: [4.8, 4.8], squareTiles: [1.2, 1.2], whiteRender: [2.4, 2.4], bwTiles: [2.4, 2.4], tealWindows: [1.2, 3.2],
+  greenGlazed: [1.2, 3], greenFront: [1.2, 5.4], greenDoors: [1.2, 5.4], creamTiles: [1.2, 1.2], creamClerestory: [1.2, 5.4],
+  silverPerforated: [1.2, 3], libraryFront: [1.8, 8.3], libraryBack: [1.8, 8.3], libraryEntrance: [1.8, 8.3],
+  blackTiles: [1.2, 1.2], glassBlocks: [1.2, 1.2], blueMosaic: [2.4, 2.4], warmMosaic: [2.4, 2.4], brownWindows: [1.2, 3.2],
+  terracottaPanels: [1.2, 2.4], orangeTiles: [1.2, 1.2], redGranite: [2.4, 2.4], brick: [1.2, 1.2],
+  steelGlazed: [1.2, 3], darkTerrazzo: [2.4, 2.4], birchX: [5.4, 2.6],
+  tealTiles: [1.2, 3.4], darkWindows: [1.2, 3.2], blackFront: [1.2, 3.9], orangePanels: [1.2, 1.2],
+  splitBlocks: [1.2, 1.2], cladding: [1.2, 1.2], cladClerestory: [1.2, 7.6], frostedPanels: [1.2, 3.4],
+  redRock: [2.4, 2.4], redBand: [1.2, 2.15], redFront: [1.2, 6.9], gridPanels: [1.25, 3.25], navyTiles: [1.2, 1.2],
+  pineBoards: [1.2, 1.2], redTiles: [1.2, 1.2], bronzeGlass: [1.5, 3.6], greenTiles: [1.2, 1.2], crossMosaic: [4.8, 2.6],
+  crossTerrazzo: [2.4, 2.4], bronzeGlazed: [1.2, 3.6], pixelTiles: [4.8, 3.6],
+  ballast: [2.4, 2.4], strawTiles: [1.2, 1.2], reedTiles: [2.4, 2.4], iceTerrazzo: [7.2, 7.2], rockMosaic: [4.8, 3.6],
+  clinkerWindows: [1.2, 2.5], greyClerestory: [1.2, 2.5], portalTiles: [1.2, 1.2], liftPanes: [1.5, 4.8],
+  roxnerTiles: [2.4, 2.4], roxnerClerestory: [2.4, 4.8], greyGlazed: [1.2, 3], sageRender: [2.4, 2.4], bottleTiles: [1.2, 1.2],
+  purpleTiles: [2.4, 3.6], rivetedSteel: [1.2, 1.2],
+  glossTiles: [1.5, 1.5], stripeTiles: [1.5, 1.5], twoGreens: [1.9, 3.0], latticeConcrete: [1.2, 1.2],
+  scrollPanels: [7.8, 2.7], opPanels: [1.4, 4.8], circleFront: [1.2, 4.2], stripPanels: [0.9, 4], maroonGlazed: [1.2, 3.6], slateGlazed: [1.4, 4.6],
+  goranssonTiles: [1.8, 1.8], greenBooth: [2.1, 2.7],
+  barkGrey: [0.75, 2.4], barkRed: [0.75, 2.4], checkTiles: [1.2, 1.2], mosaicPosters: [4.8, 4.8], vallingbyCentrum: [3.6, 8.0],
+  wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
+  greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
+  partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
+  striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4],
+};
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles'];
+export function finish(name: Finish) {
+  const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  const r = rng(name.length * 131 + 7);
+  // heights up the wall, in metres, to the canvas's rows
+  const Y = (m: number) => H - m * PX;
+  const band = (from: number, to: number, fill: string) => { x.fillStyle = fill; x.fillRect(0, Y(to), W, (to - from) * PX); };
+  const yellow = '#e0b13a', grey = '#cfd1ce', steel = '#7a8086';
+  const pane = (from: number, to: number, frame: string, mullion: number) => {
+    x.clearRect(0, Y(to), W, (to - from) * PX);
+    x.fillStyle = frame;
+    x.fillRect(0, Y(to), mullion * PX / 2, (to - from) * PX);
+    x.fillRect(W - mullion * PX / 2, Y(to), mullion * PX / 2, (to - from) * PX);
+  };
+  const panels = (from: number, to: number) => {
+    band(from, to, grey);
+    x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(3, Y(to), W * 0.3, (to - from) * PX);
+    x.fillStyle = 'rgba(60,62,64,0.6)'; x.fillRect(0, Y(to), 2, (to - from) * PX); x.fillRect(W - 2, Y(to), 2, (to - from) * PX);
+    x.fillRect(0, Y((from + to) / 2), W, 2);
+  };
+  switch (name) {
+    case 'clerestory':
+      band(0, 4, '#8e9295');
+      band(0, 0.1, '#55585a');
+      panels(0.1, 2.1);
+      band(2.1, 2.2, yellow); pane(2.2, 2.9, yellow, 0.1); band(2.9, 3.0, yellow);
+      break;
+    case 'windows':
+      band(0, 4, '#8e9295');
+      band(0, 0.1, '#55585a');
+      panels(0.1, 0.9);
+      band(0.9, 0.98, yellow); pane(0.98, 2.2, yellow, 0.1); band(2.2, 2.27, yellow); pane(2.27, 3.0, yellow, 0.1); band(3.0, 3.08, yellow);
+      break;
+    case 'glazed':
+      pane(0, h, steel, 0.1);
+      x.fillStyle = steel; x.fillRect(0, Y(0.04), W, 0.08 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, Y(0.04), W, 2);
+      break;
+    case 'yellowTiles': {
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${218 + Math.floor(r() * 14)},${178 + Math.floor(r() * 12)},${88 + Math.floor(r() * 16)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'boardConcrete':
+      for (let j = 0; j * 0.1 * PX < H; j++) {
+        const v = 158 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(0, j * 0.1 * PX, W, 0.1 * PX);
+        x.fillStyle = 'rgba(80,78,74,0.18)'; x.fillRect(0, j * 0.1 * PX, W, 1);
+      }
+      for (let k = 0; k < 60; k++) { x.fillStyle = `rgba(80,76,70,${0.03 + r() * 0.05})`; x.fillRect(r() * W, r() * H, 20 + r() * 120, 3 + r() * 10); }
+      break;
+    case 'darkStone': {
+      x.fillStyle = '#2c2d2f'; x.fillRect(0, 0, W, H);
+      const t = 0.4 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 70 + Math.floor(r() * 14);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 4})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'pavers': {
+      x.fillStyle = '#56544f'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.2 * PX;
+      for (let i = 0; i * b < W; i++) for (let j = -1; j * a < H; j++) {
+        const v = 128 + Math.floor(r() * 20);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(i * b + 1.5, j * a + (i % 2) * a / 2 + 1.5, b - 3, a - 3);
+      }
+      break;
+    }
+    case 'triangles': {
+      // squares of 1.2 m split corner to corner: pale stone above and below, black at the sides
+      const t = 1.2 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const x0 = i * t, y0 = j * t, cx = x0 + t / 2, cy = y0 + t / 2;
+        const tri = (pts: number[][], fill: string) => { x.fillStyle = fill; x.beginPath(); x.moveTo(pts[0][0], pts[0][1]); for (const q of pts.slice(1)) x.lineTo(q[0], q[1]); x.closePath(); x.fill(); };
+        tri([[x0, y0], [x0 + t, y0], [cx, cy]], '#ddd5c4'); tri([[x0, y0 + t], [x0 + t, y0 + t], [cx, cy]], '#ddd5c4');
+        tri([[x0, y0], [x0, y0 + t], [cx, cy]], '#3b3c3e'); tri([[x0 + t, y0], [x0 + t, y0 + t], [cx, cy]], '#3b3c3e');
+      }
+      speckle(x, W, H, 9000, 0.18, 61); speckle(x, W, H, 4000, 0.12, 62, true);
+      break;
+    }
+    case 'whiteTiles': {
+      // 15 cm tiles, and at 1.5 m to 1.65 m a band of black lozenges on yellow
+      x.fillStyle = '#a9aba8'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      const y0 = Y(1.65);
+      for (let i = 0; i * t < W; i += 2) {
+        x.fillStyle = '#d9b238'; x.fillRect(i * t + 1, y0 + 1, t - 2, t - 2);
+        x.fillStyle = '#1e1f21'; x.beginPath();
+        x.moveTo(i * t + t / 2, y0 + 3); x.lineTo(i * t + t - 3, y0 + t / 2); x.lineTo(i * t + t / 2, y0 + t - 3); x.lineTo(i * t + 3, y0 + t / 2); x.closePath(); x.fill();
+      }
+      break;
+    }
+    case 'terrazzo': {
+      x.fillStyle = '#8f8f8b'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 168 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 4})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      speckle(x, W, H, 14000, 0.22, 64); speckle(x, W, H, 6000, 0.18, 65, true);
+      break;
+    }
+    case 'whitePanels':
+      x.fillStyle = '#e9eae6'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(70,72,74,0.45)'; x.fillRect(0, 0, 2, H); x.fillRect(W - 2, 0, 2, H);
+      x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(3, 0, 3, H);
+      break;
+    case 'greyTiles': {
+      x.fillStyle = '#4a4b4c'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 104 + Math.floor(r() * 14);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 3})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'redLineTiles': {
+      // 15 cm tiles, and at 1.2 m a thin dark red line (on the walls beside stairs it follows them
+      // down, as the walls' heights are measured up from the steps)
+      x.fillStyle = '#a9aba8'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 234 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      x.fillStyle = '#7a2622'; x.fillRect(0, Y(1.23), W, 0.03 * PX);
+      break;
+    }
+    case 'darkGlazed':
+      // two panes 0.7 m wide, the frames all but black; a sill rail at the foot
+      pane(0, h, '#26282a', 0.07);
+      x.fillStyle = '#26282a'; x.fillRect(W / 2 - 0.035 * PX, 0, 0.07 * PX, H); x.fillRect(0, Y(0.12), W, 0.12 * PX); x.fillRect(0, 0, W, 0.05 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0, Y(0.12), W, 1.5);
+      break;
+    case 'slate': {
+      // 60 by 30 cm, in a running bond, each slab a slightly different dark blue-grey, riven
+      x.fillStyle = '#2b2e31'; x.fillRect(0, 0, W, H);
+      const a = 0.6 * PX, b = 0.3 * PX;
+      for (let j = 0; j * b < H; j++) for (let i = -1; i * a < W; i++) {
+        const v = 74 + Math.floor(r() * 16), ox = i * a + (j % 2) * a / 2;
+        x.fillStyle = `rgb(${v - 4},${v + 1},${v + 8})`; x.fillRect(ox + 1.5, j * b + 1.5, a - 3, b - 3);
+        for (let k = 0; k < 6; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '30,32,36' : '140,146,152'},0.12)`; x.fillRect(ox + r() * a, j * b + r() * b, 8 + r() * 30, 1.5); }
+      }
+      break;
+    }
+    case 'darkTiles': {
+      // 30 by 60 cm, laid on end
+      x.fillStyle = '#26282a'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.6 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = 66 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v + 2},${v + 5})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+      }
+      break;
+    }
+    case 'greyPanels':
+      // standing panels 0.6 m wide, dark grey, with a seam between them
+      x.fillStyle = '#5a5f63'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 2; i++) {
+        x.fillStyle = 'rgba(30,32,34,0.6)'; x.fillRect(i * W / 2, 0, 2, H);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * W / 2 + 2, 0, 2, H);
+      }
+      break;
+    case 'highWindows': {
+      // pale grey blocks, 40 by 20 cm, to 2.5 m; above, windows in grey steel frames
+      band(0, 4, '#cfd0cd');
+      const a = 0.4 * PX, b = 0.2 * PX;
+      for (let j = 0; j * b < 2.5 * PX; j++) for (let i = -1; i * a < W; i++) {
+        const v = 196 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v + 1},${v - 1})`; x.fillRect(i * a + (j % 2) * a / 2 + 1, Y(0) - (j + 1) * b + 1, a - 2, b - 2);
+      }
+      band(2.5, 2.6, steel); pane(2.6, 3.9, steel, 0.1); band(3.9, 4, steel);
+      break;
+    }
+    case 'paleGreenTiles': {
+      x.fillStyle = '#93a8a0'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${178 + Math.floor(r() * 10)},${206 + Math.floor(r() * 8)},${194 + Math.floor(r() * 8)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'paleTiles': {
+      x.fillStyle = '#a6a49e'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 222 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 1},${v - 6})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'stripes': {
+      // bands of tiles 30 by 7.5 cm, white and black, the bands one to four rows deep
+      const rows = [2, 1, 3, 1, 2, 2, 1, 1, 3, 1, 2, 1, 3, 2, 1, 1, 2, 1, 1, 1];
+      const t = 0.075 * PX, a = 0.3 * PX;
+      x.fillStyle = '#8d8e8c'; x.fillRect(0, 0, W, H);
+      let j = 0;
+      rows.forEach((n, k) => {
+        const black = k % 2 === 1;
+        for (let q = 0; q < n; q++, j++) for (let i = -1; i * a < W; i++) {
+          const v = black ? 26 + Math.floor(r() * 10) : 232 + Math.floor(r() * 12);
+          x.fillStyle = `rgb(${v},${v},${v + (black ? 2 : -2)})`;
+          x.fillRect(i * a + (j % 2) * a / 2 + 1, Y(0) - (j + 1) * t + 1, a - 2, t - 2);
+        }
+      });
+      break;
+    }
+    case 'greenWindows': {
+      // green sheet-metal panels 0.6 m wide, ribbed, to 2.5 m; above, windows in grey steel frames
+      band(0, 4, '#3d7f58');
+      for (let i = 0; i * 0.15 * PX < W; i++) { x.fillStyle = i % 4 === 0 ? 'rgba(20,40,28,0.55)' : 'rgba(255,255,255,0.08)'; x.fillRect(i * 0.15 * PX, Y(2.5), 2, 2.5 * PX); }
+      band(0, 0.08, '#5b5f61');
+      band(2.5, 2.6, steel); pane(2.6, 3.9, steel, 0.1); band(3.9, 4, steel);
+      break;
+    }
+    case 'checkWindows': {
+      // 15 cm tiles checked in blue and white (now and then a pale blue or beige one) to 1.05 m; a
+      // dark steel sill, then two rows of panes in dark frames, and a steel head
+      const t = 0.15 * PX, dark = '#2a2e33';
+      x.fillStyle = '#9a9c9a'; x.fillRect(0, Y(1.05), W, 1.05 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 1.05 * PX + 1; j++) {
+        const k = r();
+        x.fillStyle = (i + j) % 2 ? (k < 0.12 ? '#d9cdb0' : '#eceeec') : (k < 0.2 ? '#8fb1d6' : '#2f5ea6');
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(1.05, 1.13, dark); pane(1.13, 1.95, dark, 0.08); band(1.95, 2.03, dark); pane(2.03, 2.7, dark, 0.08); band(2.7, 2.8, dark);
+      x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0, Y(1.13), W, 1.5);
+      break;
+    }
+    case 'blueTiles': {
+      // 15 cm tiles, white, a scattering of blue, pale blue and beige ones; from 2.4 m to 2.85 m a
+      // band checked in dark blue and white
+      x.fillStyle = '#a3a6a6'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = ['#2f5ea6', '#8fb1d6', '#d9cdb0', '#a7bcc6'];
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= H; j++) {
+        const y = (j + 0.5) * 0.15, k = r(), c = cols[Math.floor(r() * cols.length)], v = 232 + Math.floor(r() * 10);
+        x.fillStyle = y > 2.4 && y < 2.85 ? ((i + j) % 2 ? `rgb(${v},${v},${v})` : '#2a4f94') : k < 0.12 ? c : `rgb(${v},${v},${v - 2})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      break;
+    }
+    case 'tiledWindows': {
+      // 15 cm tiles in white, pale blue, beige and grey to 0.9 m; above, tall windows in dark blue
+      // frames
+      const t = 0.15 * PX, frame = '#1f2940', cols = ['#eceeec', '#eceeec', '#a9c3dc', '#ddd0b4', '#c3c8c8', '#e2b78e'];
+      x.fillStyle = '#9a9c9a'; x.fillRect(0, Y(0.9), W, 0.9 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 6; j++) {
+        x.fillStyle = cols[Math.floor(r() * cols.length)];
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.9, 0.98, frame); pane(0.98, 2.92, frame, 0.1); band(2.92, 3, frame);
+      break;
+    }
+    case 'gridTerrazzo': {
+      // cream terrazzo squares, 25 cm, set in a grid of dark grey strips 5 cm wide
+      x.fillStyle = '#4c4d4e'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, g = 0.05 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 214 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 6},${v - 22})`; x.fillRect(i * t + g / 2, j * t + g / 2, t - g, t - g);
+      }
+      speckle(x, W, H, 14000, 0.22, 68); speckle(x, W, H, 5000, 0.18, 69, true);
+      break;
+    }
+    case 'shopWindows': {
+      // two shop fronts 2.4 m wide: a steel plinth, a lit window to 2.5 m, the frame, a sign board
+      // on a band over it, and white render above
+      band(0, 3.6, '#e4e2dc');
+      const shop = x.createLinearGradient(0, Y(2.5), 0, Y(0.1));
+      shop.addColorStop(0, '#e2dccb'); shop.addColorStop(1, '#b8b09e');
+      x.fillStyle = shop; x.fillRect(0, Y(2.5), W, 2.4 * PX);
+      const bay = 2.4 * PX;
+      [['#7a2b2e', '#efe6d2'], ['#2b4a7a', '#f2f2ee']].forEach(([board, text], k) => {
+        const x0 = k * bay;
+        // shelves and goods behind the glass
+        for (const y of [0.7, 1.3, 1.9]) {
+          x.fillStyle = 'rgba(90,84,74,0.5)'; x.fillRect(x0 + 0.15 * PX, Y(y), bay - 0.3 * PX, 3);
+          for (let n = 0; n < 9; n++) {
+            x.fillStyle = ['#b2483c', '#3f6f9a', '#d6a640', '#5c8a52', '#efeae0'][Math.floor(r() * 5)];
+            x.fillRect(x0 + 0.2 * PX + r() * (bay - 0.5 * PX), Y(y + 0.12 + r() * 0.2), 0.08 * PX + r() * 0.12 * PX, 0.1 * PX + r() * 0.1 * PX);
+          }
+        }
+        x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(x0, Y(2.5), bay * 0.35, 2.4 * PX);
+        x.fillStyle = '#8e9498';
+        x.fillRect(x0, Y(2.5), 0.06 * PX, 2.4 * PX); x.fillRect(x0 + bay / 2 - 0.02 * PX, Y(2.5), 0.04 * PX, 2.4 * PX);
+        x.fillStyle = board; x.fillRect(x0 + 0.3 * PX, Y(3.02), bay - 0.6 * PX, 0.34 * PX);
+        x.fillStyle = text; x.fillRect(x0 + 0.6 * PX, Y(2.88), bay - 1.2 * PX, 0.06 * PX);
+      });
+      band(0, 0.1, '#7e8488'); band(2.5, 2.6, '#8e9498');
+      break;
+    }
+    case 'storeys': {
+      // a building of three storeys over its street: shop fronts under a dark band, then white
+      // render with a ribbon of windows along each floor, a dark box over the top one, and a coping
+      band(0, 10.8, '#d9d5cb');
+      // (the shops' glass grey-blue with the light of the shop behind it)
+      const shop = x.createLinearGradient(0, Y(3.3), 0, Y(0.2));
+      shop.addColorStop(0, '#a9b6bd'); shop.addColorStop(0.55, '#c9c3b3'); shop.addColorStop(1, '#8f9a9f');
+      x.fillStyle = shop; x.fillRect(0, Y(3.3), W, 3.1 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.22)'; x.fillRect(0.1 * PX, Y(3.2), W * 0.3, 2.9 * PX);
+      x.fillStyle = '#8e9498'; x.fillRect(0, Y(3.3), 0.06 * PX, 3.1 * PX); x.fillRect(W - 0.06 * PX, Y(3.3), 0.06 * PX, 3.1 * PX);
+      x.fillRect(W / 2 - 0.02 * PX, Y(3.3), 0.04 * PX, 3.1 * PX); x.fillRect(0, Y(2.6), W, 0.05 * PX);
+      band(0, 0.2, '#6f7376'); band(3.3, 4.1, '#3d4043');
+      const ribbon = (from: number, to: number) => {
+        const g = x.createLinearGradient(0, Y(to), 0, Y(from));
+        g.addColorStop(0, '#9fb0bc'); g.addColorStop(0.5, '#7d8c97'); g.addColorStop(1, '#8a97a0');
+        x.fillStyle = g; x.fillRect(0, Y(to), W, (to - from) * PX);
+        x.fillStyle = '#eceae4';
+        for (let k = 0; k <= 2; k++) x.fillRect(k * W / 2 - 0.04 * PX, Y(to), 0.08 * PX, (to - from) * PX);
+        x.fillRect(0, Y(to), W, 0.06 * PX); x.fillRect(0, Y(from + 0.06), W, 0.06 * PX);
+      };
+      ribbon(4.9, 6.6); ribbon(7.6, 9.3);
+      band(9.3, 9.6, '#3d4043'); band(10.6, 10.8, '#9a9a96');
+      break;
+    }
+    case 'liftWindows': {
+      // black steel panels on a concrete plinth, and two windows one over the other in pale frames
+      band(0, 3.9, '#1c1e21');
+      band(0, 0.4, '#a29e96');
+      for (const [from, to] of [[0.6, 1.75], [1.95, 3.05]]) {
+        x.fillStyle = '#d9d5ca'; x.fillRect(0.2 * PX, Y(to), W - 0.4 * PX, (to - from) * PX);
+        x.clearRect(0.26 * PX, Y(to - 0.06), W - 0.52 * PX, (to - from - 0.12) * PX);
+      }
+      x.fillStyle = 'rgba(0,0,0,0.6)'; x.fillRect(0, 0, 2, H);
+      break;
+    }
+    case 'redWindows': {
+      // Farsta strand's pavilion: a concrete plinth, glass in red steel frames to 2.95 m with a
+      // transom, then cream panels between the red posts
+      const red = '#a3302a';
+      band(0, 4.2, '#e0d9c6');
+      band(0, 0.75, '#a29e96'); band(0.71, 0.75, '#8a867e');
+      band(0.75, 0.85, red); pane(0.85, 2.1, red, 0.1); band(2.1, 2.17, red); pane(2.17, 2.95, red, 0.1); band(2.95, 3.07, red);
+      x.fillStyle = red; x.fillRect(0, Y(4.2), 0.05 * PX, 1.13 * PX); x.fillRect(W - 0.05 * PX, Y(4.2), 0.05 * PX, 1.13 * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(3.65), W, 2);
+      break;
+    }
+    case 'shutter': {
+      // a roller shutter down over a shop's front, its box over it, cream panels above
+      band(0, 4.2, '#e0d9c6');
+      band(0, 0.3, '#a29e96');
+      band(0.3, 2.7, '#d9dbd8');
+      for (let k = 0.3; k < 2.7; k += 0.08) { x.fillStyle = 'rgba(70,72,74,0.35)'; x.fillRect(0, Y(k + 0.01), W, 1.5); }
+      band(2.7, 2.98, '#b9bcbc'); band(2.98, 3.07, '#a3302a');
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(3.65), W, 2);
+      break;
+    }
+    case 'blueGlazed': {
+      // Globen's stair houses: a white panel to 0.9 m between blue rails, then glass in blue steel
+      // frames (the top row of the picture carried on up the wall, so glazed to the roof)
+      const blue = '#2f6fae';
+      band(0, 0.06, blue); band(0.06, 0.9, '#e4e6e3'); band(0.9, 0.98, blue); pane(0.98, 2.4, blue, 0.1);
+      x.fillStyle = blue; x.fillRect(0, Y(0.9), 0.05 * PX, 0.9 * PX); x.fillRect(W - 0.05 * PX, Y(0.9), 0.05 * PX, 0.9 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(0, Y(0.98), W, 1.5);
+      break;
+    }
+    case 'blueClerestory': {
+      // Globen's halls: white panels to 2.9 m, a dark blue band over a yellow line, and windows
+      // in blue frames above it, on up to the roof
+      const blue = '#2f6fae';
+      band(0, 0.12, '#55595c'); band(0.12, 2.9, '#e6e7e3');
+      x.fillStyle = 'rgba(70,72,74,0.4)'; x.fillRect(0, Y(2.9), 2, 2.78 * PX); x.fillRect(0, Y(1.5), W, 2);
+      band(2.9, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.33, blue); pane(3.33, 4.2, blue, 0.1);
+      break;
+    }
+    case 'steelFront': {
+      // their fronts: glass doors in brushed steel frames, a steel transom, a black sign band, the
+      // dark blue band and yellow line, windows in blue frames above
+      const steelLight = '#a9aeb1', blue = '#2f6fae';
+      band(0, 0.1, steelLight); pane(0.1, 2.4, steelLight, 0.14);
+      x.fillStyle = steelLight; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 0.08 * PX, 2.3 * PX); x.fillRect(0, Y(1.15), W, 0.06 * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 1.5, 2.3 * PX);
+      band(2.4, 2.55, steelLight); band(2.55, 2.88, '#1b1c1e');
+      x.fillStyle = '#f2f2ee'; x.fillRect(0.3 * PX, Y(2.79), 0.6 * PX, 0.06 * PX);
+      band(2.88, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.33, blue); pane(3.33, 4.2, blue, 0.1);
+      break;
+    }
+    case 'ribbedMetal':
+      // ribs 15 cm apart, across the picture
+      x.fillStyle = '#c9c4b8'; x.fillRect(0, 0, W, H);
+      for (let j = 0; j * 0.15 * PX < H; j++) {
+        x.fillStyle = 'rgba(80,76,68,0.35)'; x.fillRect(0, j * 0.15 * PX, W, 0.03 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, j * 0.15 * PX + 0.05 * PX, W, 0.02 * PX);
+      }
+      break;
+    case 'creamPanels':
+      // as over redWindows' glass
+      x.fillStyle = '#e0d9c6'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#a3302a'; x.fillRect(0, 0, 0.05 * PX, H); x.fillRect(W - 0.05 * PX, 0, 0.05 * PX, H);
+      break;
+    case 'redPanels':
+      x.fillStyle = '#8e2d27'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(3, 0, W * 0.4, H);
+      x.fillStyle = 'rgba(40,10,8,0.6)'; x.fillRect(0, 0, 2, H); x.fillRect(0, Y(1.5), W, 2);
+      break;
+    case 'perforated': {
+      // as the platform's ceiling (perforatedCeiling): 1.2 by 2.4 m panels, the holes a fine grain
+      x.fillStyle = '#585c5e'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#3c3f41';
+      for (let j = 2; j < H; j += 4) for (let i = (j % 8 === 2 ? 0 : 2); i < W; i += 4) x.fillRect(i, j, 1.6, 1.6);
+      x.fillStyle = '#6c7072'; x.fillRect(0, 0, W, 2); x.fillRect(0, Y(1.2), W, 2); x.fillRect(0, 0, 2, H);
+      break;
+    }
+    case 'lineMosaic': {
+      // Farsta strand's hall (Fredrik Jacobsson, 1993): pale grey slabs, 60 cm, and lines of dark
+      // mosaic 5 cm wide across them, along and at two slants, so that they cross in long
+      // triangles (each family wraps round the repeat)
+      x.fillStyle = '#a7a7a3'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 184 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 4})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      x.strokeStyle = '#46474a'; x.lineWidth = 0.05 * PX;
+      const line = (x0: number, y0: number, x1: number, y1: number) => {
+        for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+          x.beginPath(); x.moveTo(x0 * PX + dx, y0 * PX + dy); x.lineTo(x1 * PX + dx, y1 * PX + dy); x.stroke();
+        }
+      };
+      line(0, 0, 4.8, 2.4); line(0, 2.4, 4.8, 4.8);
+      line(0, 4.8, 4.8, 0);
+      line(2.4, 0, 2.4, 4.8);
+      break;
+    }
+    case 'whiteBranches': {
+      // Enskede gård's stairs: pale stone tiles, 30 by 60 cm on end, and black branches spreading
+      // over them from the foot and the top of the wall, as of a tree and its roots
+      x.fillStyle = '#9fa1a1'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.6 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = 214 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 2})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+      }
+      speckle(x, W, H, 6000, 0.1, 68);
+      branches(x, W, H, PX, rng(2012), 7, 'rgba(38,39,41,0.92)');
+      break;
+    }
+    case 'darkBranches': {
+      // its ticket hall: dark grey slabs, 20 cm wide and of different lengths, on end and
+      // staggered, and here and there a black branch over them
+      x.fillStyle = '#1f2123'; x.fillRect(0, 0, W, H);
+      const a = 0.2 * PX;
+      for (let i = 0; i * a < W; i++) {
+        let y = -r() * 0.6 * PX;
+        while (y < H) {
+          const l = (0.4 + r() * 0.5) * PX, v = 50 + Math.floor(r() * 14);
+          x.fillStyle = `rgb(${v},${v + 2},${v + 5})`; x.fillRect(i * a + 1, y + 1, a - 2, l - 2);
+          y += l;
+        }
+      }
+      branches(x, W, H, PX, rng(2013), 1, 'rgba(12,13,14,0.9)', 4);
+      break;
+    }
+    case 'basketTiles': {
+      // white tiles 15 by 30 cm, in pairs, each pair turned the other way from its neighbours
+      x.fillStyle = '#b4b5b1'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, q = t / 2;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) for (let k = 0; k < 2; k++) {
+        const v = 232 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`;
+        if ((i + j) % 2) x.fillRect(i * t + k * q + 1, j * t + 1, q - 2, t - 2);
+        else x.fillRect(i * t + 1, j * t + k * q + 1, t - 2, q - 2);
+      }
+      break;
+    }
+    case 'granite': {
+      // a retaining wall of rough granite blocks in courses, grey to a pinkish brown, in pale
+      // mortar
+      x.fillStyle = '#a8a397'; x.fillRect(0, 0, W, H);
+      let y = 0;
+      for (const ch of [0.42, 0.55, 0.38, 0.6, 0.45]) {
+        const hh = ch * PX;
+        let p = r() * 0.5 * PX;
+        const start = p;
+        while (p < start + W) {
+          const l = Math.min((0.35 + r() * 0.6) * PX, start + W - p), v = 92 + Math.floor(r() * 40), warm = Math.floor(r() * 14);
+          x.fillStyle = `rgb(${v + warm},${v + Math.floor(warm / 2)},${v - 2})`;
+          for (const dx of [0, -W]) {
+            x.beginPath();
+            x.moveTo(p + dx + 2 + r() * 4, y + 2 + r() * 4); x.lineTo(p + dx + l - 2 - r() * 4, y + 2 + r() * 4);
+            x.lineTo(p + dx + l - 2 - r() * 4, y + hh - 2 - r() * 4); x.lineTo(p + dx + 2 + r() * 4, y + hh - 2 - r() * 4);
+            x.closePath(); x.fill();
+          }
+          p += l;
+        }
+        y += hh;
+      }
+      speckle(x, W, H, 12000, 0.2, 69); speckle(x, W, H, 5000, 0.15, 70, true);
+      break;
+    }
+    case 'asphalt':
+      x.fillStyle = '#4b4c4d'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 16000, 0.22, 66); speckle(x, W, H, 8000, 0.16, 67, true);
+      break;
+    case 'whitePerforated': {
+      // white acoustic panels 60 cm square, a field of small square holes in each, a plain margin
+      x.fillStyle = '#c9cac6'; x.fillRect(0, 0, W, H);
+      const t = 0.6 * PX, m = 0.04 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 233 + Math.floor(r() * 6);
+        x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+        x.fillStyle = 'rgba(120,122,120,0.55)';
+        for (let a = m; a < t - m; a += 4) for (let b = m; b < t - m; b += 4) x.fillRect(i * t + a, j * t + b, 1.5, 1.5);
+      }
+      break;
+    }
+    case 'roughcast':
+      // grey render thrown on rough
+      x.fillStyle = '#a19e98'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.3, 71); speckle(x, W, H, 16000, 0.25, 72, true);
+      break;
+    case 'hallTiles': {
+      // a hall's high walls: white tiles 15 cm to 1.5 m, a row of windows in grey frames, white
+      // render behind the bridges' edges (boxed over it), and tall windows in black frames above
+      x.fillStyle = '#aeb0ad'; x.fillRect(0, Y(1.5), W, 1.5 * PX);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 10; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1, Y(1.5) + j * t + 1, t - 2, t - 2);
+      }
+      band(1.5, 1.56, '#3b3e41');
+      const g = x.createLinearGradient(0, Y(2.2), 0, Y(1.56));
+      g.addColorStop(0, '#9fb0b8'); g.addColorStop(1, '#6f7f88');
+      x.fillStyle = g; x.fillRect(0, Y(2.2), W, 0.64 * PX);
+      x.fillStyle = '#8d9296'; x.fillRect(0, Y(2.2), 0.05 * PX, 0.64 * PX); x.fillRect(W - 0.05 * PX, Y(2.2), 0.05 * PX, 0.64 * PX);
+      band(2.2, 2.28, '#3b3e41'); band(2.28, 3.78, '#eceae5'); band(3.78, 3.88, '#1c1d1f');
+      pane(3.88, 6.9, '#1c1d1f', 0.1);
+      x.fillStyle = '#1c1d1f'; x.fillRect(0, Y(5.4), W, 0.06 * PX);
+      break;
+    }
+    case 'glassFront': {
+      // a ticket hall's front: glass doors in brushed steel to 2.3 m, a steel transom, the band
+      // the station's name goes on, and glass in steel frames above
+      const st = '#a9aeb1';
+      band(0, 0.1, st); pane(0.1, 2.3, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.3), 0.08 * PX, 2.2 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+      band(2.3, 2.4, st); band(2.4, 2.8, '#22306e'); band(2.8, 2.9, st);
+      pane(2.9, 6.9, st, 0.08);
+      x.fillStyle = st; x.fillRect(0, Y(4.3), W, 0.06 * PX); x.fillRect(0, Y(5.6), W, 0.06 * PX);
+      break;
+    }
+    case 'greenTerrazzo': {
+      // green terrazzo, speckled pale and dark, and a pair of dark red lines along it
+      x.fillStyle = '#44705a'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 60000, 0.35, 74); speckle(x, W, H, 30000, 0.3, 75, true);
+      for (const k of [0.4, 0.52]) { x.fillStyle = '#7a2e26'; x.fillRect(k * PX, 0, 0.05 * PX, H); }
+      break;
+    }
+    case 'squareTiles': {
+      // white tiles 15 cm square, in grey joints
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 238 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'bwTiles': {
+      // 15 cm tiles, white, black and grey at random, a third of them doubled into one upright
+      // tile 30 cm tall, in pale grey joints
+      x.fillStyle = '#b4b6b3'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, n = Math.round(H / t);
+      const tone = () => { const k = r(); return k < 0.5 ? 236 + Math.floor(r() * 12) : k < 0.8 ? 22 + Math.floor(r() * 12) : 128 + Math.floor(r() * 30); };
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < n; j++) {
+        const tall = j + 1 < n && r() < 0.33, v = tone();
+        x.fillStyle = `rgb(${v},${v},${v + 1})`;
+        x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, (tall ? 2 * t : t) - 3);
+        if (tall) j++;
+      }
+      break;
+    }
+    case 'tealWindows': {
+      // small tiles 10 cm square, teal green, to 0.9 m; a dark steel sill, windows in dark frames
+      // to 2.2 m, their head, and over them the concrete beam the deck rests on
+      const t = 0.1 * PX, frame = '#26292c';
+      x.fillStyle = '#9fb3ae'; x.fillRect(0, Y(0.9), W, 0.9 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 9; j++) {
+        const v = Math.floor(r() * 14);
+        x.fillStyle = `rgb(${52 + v},${116 + v},${108 + v})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.9, 0.98, frame); pane(0.98, 2.2, frame, 0.1); band(2.2, 2.3, frame);
+      band(2.3, 3.2, '#a6a39b');
+      for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(80,78,72,${0.05 + r() * 0.1})`; x.fillRect(r() * W, Y(2.3) + r() * 0.9 * PX, 2 + r() * 10, 1); }
+      break;
+    }
+    case 'brownWindows': {
+      // small tiles 10 cm square in browns, dark and pale at random, to 1.6 m; a dark steel sill,
+      // windows in dark frames to 2.25 m, their head, and over them concrete cast against boards
+      const t = 0.1 * PX, frame = '#2a2b2c';
+      x.fillStyle = '#5b4a3c'; x.fillRect(0, Y(1.6), W, 1.6 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j < 16; j++) {
+        const v = r(), k = Math.floor(r() * 18);
+        const [cr, cg, cb] = v < 0.3 ? [92, 62, 42] : v < 0.65 ? [124, 86, 58] : v < 0.9 ? [150, 112, 78] : [70, 52, 40];
+        x.fillStyle = `rgb(${cr + k},${cg + k},${cb + k})`;
+        x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(1.6, 1.66, frame); pane(1.66, 2.25, frame, 0.08); band(2.25, 2.3, frame);
+      band(2.3, 3.2, '#a6a39b');
+      for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(70,68,62,${0.06 + r() * 0.08})`; x.fillRect(0, Y(2.3) + r() * 0.9 * PX, W, 1); }
+      break;
+    }
+    case 'greenGlazed':
+    case 'wiredGlazed': {
+      // a glazed hall's walls: glass from a kick panel at 0.3 m to its head at 2.9 m, in dark
+      // green steel frames 1.2 m apart, and a steel handrail across them at 1 m; or (`wiredGlazed`,
+      // Johannelund's beside its stairs) wired glass, translucent, a pale grey with a fine square
+      // mesh of wire in it
+      const g = '#2c4637';
+      band(0, 0.3, g); pane(0.3, 2.9, g, 0.09); band(2.9, 3, g);
+      if (name === 'wiredGlazed') {
+        const m = 0.045 * PX;
+        x.fillStyle = '#bfc6c3'; x.fillRect(m, Y(2.9), W - 2 * m, 2.6 * PX);
+        x.fillStyle = 'rgba(90,96,94,0.35)';
+        for (let k = m; k < W - m; k += 0.025 * PX) x.fillRect(k, Y(2.9), 1, 2.6 * PX);
+        for (let k = 0.3 * PX; k < 2.9 * PX; k += 0.025 * PX) x.fillRect(m, H - k, W - 2 * m, 1);
+        x.fillStyle = 'rgba(255,255,255,0.15)'; x.fillRect(m, Y(2.9), (W - 2 * m) * 0.3, 2.6 * PX);
+      }
+      x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(0, Y(0.3), W, 1.5);
+      x.fillStyle = '#9ba2a4'; x.fillRect(0, Y(1.04), W, 0.05 * PX);
+      break;
+    }
+    case 'greenFront':
+    case 'greenDoors':
+    case 'creamClerestory': {
+      // a ticket hall's walls: to 2.95 m, dark green steel panels on a grey plinth (or glass doors
+      // in brushed steel to 2.4 m under a green band, the doors'; or cream tiles inside); then
+      // windows in dark green frames, a transom at 4 m, to 4.95 m, and green steel (white render
+      // inside) above
+      const g = '#2c4637', st = '#a9aeb1';
+      if (name === 'greenFront') {
+        band(0, 2.95, g);
+        for (let i = 0; i * 0.3 * PX < W; i++) {
+          x.fillStyle = 'rgba(10,22,16,0.5)'; x.fillRect(i * 0.3 * PX, Y(2.95), 2, 2.95 * PX);
+          x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * 0.3 * PX + 2, Y(2.95), 2, 2.95 * PX);
+        }
+        band(0, 0.15, '#7d7f7c');
+      } else if (name === 'greenDoors') {
+        band(0, 0.1, st); pane(0.1, 2.4, st, 0.12);
+        x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.4), 0.08 * PX, 2.3 * PX); x.fillRect(0, Y(1.08), W, 0.07 * PX);
+        band(2.4, 2.95, g); band(2.4, 2.46, st);
+      } else {
+        x.fillStyle = '#b9b3a6'; x.fillRect(0, Y(2.95), W, 2.95 * PX);
+        const t = 0.15 * PX;
+        for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.95 * PX; j++) {
+          const v = Math.floor(r() * 10);
+          x.fillStyle = `rgb(${220 + v},${212 + v},${194 + v})`; x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+        }
+      }
+      band(2.95, 3.05, g); pane(3.05, 4.95, g, 0.1); band(4.95, 5.05, g);
+      x.fillStyle = g; x.fillRect(0, Y(4.03), W, 0.06 * PX);
+      band(5.05, 5.4, name === 'creamClerestory' ? '#e8e6e0' : g);
+      break;
+    }
+    case 'greenTiles': {
+      // sea-green tiles 15 cm square, in grey-green joints
+      x.fillStyle = '#5e7c70'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = `rgb(${86 + v},${162 + v},${136 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'crossMosaic': {
+      // Mari Pårup's mosaics (Medborgarplatsen's southern ticket hall, 1997): on warm yellow tiles,
+      // round clusters of Greek crosses fitted into each other, each cluster in its own tones, a few
+      // eight-pointed stars in them, their edges ragged where the crosses stop
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = `rgb(${218 + Math.floor(r() * 14)},${178 + Math.floor(r() * 12)},${88 + Math.floor(r() * 16)})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      const clusters: { c: number; h: number; rad: number; tones: string[] }[] = [
+        { c: 1.0, h: 1.4, rad: 0.62, tones: ['#c99a9a', '#a7a29c', '#d8c8b8', '#8c8a86', '#b88a84'] },
+        { c: 2.45, h: 1.35, rad: 0.66, tones: ['#e8e6e2', '#c8c8c6', '#d9d4c2', '#b0b2b0', '#e2d39a'] },
+        { c: 3.95, h: 1.4, rad: 0.78, tones: ['#c98a7c', '#d8a898', '#b46a5a', '#e0c0a8', '#a89a7a'] },
+      ];
+      const w = 0.045 * PX;
+      const cross = (cx: number, cy: number, fill: string) => {
+        x.fillStyle = fill;
+        x.fillRect(cx - w * 1.5 + 0.6, cy - w / 2 + 0.6, 3 * w - 1.2, w - 1.2);
+        x.fillRect(cx - w / 2 + 0.6, cy - w * 1.5 + 0.6, w - 1.2, 3 * w - 1.2);
+      };
+      const star = (cx: number, cy: number, R: number, fill: string) => {
+        x.fillStyle = fill; x.beginPath();
+        for (let k = 0; k < 16; k++) { const a = (k * Math.PI) / 8, q = k % 2 ? R * 0.45 : R; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); }
+        x.closePath(); x.fill();
+      };
+      for (const cl of clusters) {
+        const cx = cl.c * PX, cy = Y(cl.h), R = cl.rad * PX;
+        // (Greek crosses tile the plane on the lattice (2, 1), (−1, 2) of their arms' width)
+        for (let i = -20; i <= 20; i++) for (let j = -20; j <= 20; j++) {
+          const px = cx + (2 * i - j) * w, py = cy + (i + 2 * j) * w;
+          const d = Math.hypot(px - cx, py - cy) / R;
+          if (d > 1 + (r() - 0.5) * 0.25) continue;
+          cross(px, py, cl.tones[Math.floor(r() * cl.tones.length)]);
+        }
+        for (let k = 0; k < 5; k++) {
+          const a = r() * Math.PI * 2, q = r() * R * 0.7;
+          star(cx + Math.cos(a) * q, cy + Math.sin(a) * q, 0.07 * PX, k % 2 ? '#c8a040' : '#b8584a');
+        }
+      }
+      break;
+    }
+    case 'crossTerrazzo': {
+      // dark grey terrazzo, speckled, small pale Greek crosses set in it here and there
+      x.fillStyle = '#5f6162'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 40000, 0.3, 76); speckle(x, W, H, 20000, 0.25, 77, true);
+      const w = 0.04 * PX;
+      for (let k = 0; k < 7; k++) {
+        const cx = (0.2 + r() * 2.0) * PX, cy = (0.2 + r() * 2.0) * PX;
+        x.fillStyle = k % 3 ? '#d9d2bc' : '#c9b46a';
+        x.fillRect(cx - 1.5 * w, cy - w / 2, 3 * w, w); x.fillRect(cx - w / 2, cy - 1.5 * w, w, 3 * w);
+      }
+      break;
+    }
+    case 'creamTiles': {
+      // cream tiles 15 cm square, in pale grey joints
+      x.fillStyle = '#b9b3a6'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 10);
+        x.fillStyle = `rgb(${220 + v},${212 + v},${194 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'whiteRender':
+      // smooth white render
+      x.fillStyle = '#e8e6e0'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 9000, 0.12, 76); speckle(x, W, H, 6000, 0.15, 77, true);
+      break;
+    case 'silverPerforated': {
+      // Högdalen's stair houses: silver-grey sheet-metal panels 1.2 m wide and 3 m high, finely
+      // perforated inside a plain margin, in dark joints
+      const m = 0.05 * PX;
+      x.fillStyle = '#5f6468'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#b3b8bc'; x.fillRect(1.5, 1.5, W - 3, H - 3);
+      x.fillStyle = 'rgba(64,70,76,0.5)';
+      for (let j = m; j < H - m; j += 4) for (let i = m + ((j - m) % 8 ? 2 : 0); i < W - m; i += 4) x.fillRect(i, j, 1.4, 1.4);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(2, 2, W - 4, 1.5); x.fillRect(2, 2, 1.5, H - 4);
+      break;
+    }
+    case 'libraryFront':
+    case 'libraryBack':
+    case 'libraryEntrance': {
+      // Högdalen's building over its square, from the street up: to 3.6 m shop fronts of glass in
+      // steel frames on a dark plinth, a dark band where the canopy meets the wall (or plain
+      // white panels, the back's; or glass doors in brushed steel under SL's dark blue band and
+      // yellow line, the entrance's); then white panels, a band of windows from 5.2 m to 7.2 m,
+      // each in a white frame beside a dark blue pier, and white panels up to the coping
+      const st = '#a9aeb1', white = '#e9eae6', blue = '#24407a';
+      band(0, 8.3, white);
+      if (name === 'libraryFront') {
+        const shop = x.createLinearGradient(0, Y(3.6), 0, Y(0.15));
+        shop.addColorStop(0, '#a9b6bd'); shop.addColorStop(0.55, '#cbc5b5'); shop.addColorStop(1, '#8f9a9f');
+        x.fillStyle = shop; x.fillRect(0, Y(3.6), W, 3.45 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0.1 * PX, Y(3.5), W * 0.3, 3.2 * PX);
+        x.fillStyle = st; x.fillRect(0, Y(3.6), 0.06 * PX, 3.45 * PX); x.fillRect(W - 0.06 * PX, Y(3.6), 0.06 * PX, 3.45 * PX);
+        x.fillRect(W / 2 - 0.03 * PX, Y(3.6), 0.06 * PX, 3.45 * PX); x.fillRect(0, Y(2.6), W, 0.05 * PX);
+        band(0, 0.15, '#55595c'); band(3.6, 3.9, '#3d4043');
+      } else if (name === 'libraryEntrance') {
+        band(0, 0.1, st); pane(0.1, 2.5, st, 0.14);
+        x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.5), 0.08 * PX, 2.4 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+        band(2.5, 2.6, st); band(2.6, 3.2, '#22306e'); band(3.2, 3.25, '#e8b830'); band(3.25, 3.9, '#3d4043');
+      } else {
+        x.fillStyle = 'rgba(70,72,74,0.4)';
+        for (const k of [0, 0.5]) x.fillRect(k * W, Y(3.9), 2, 3.9 * PX);
+        x.fillRect(0, Y(2.0), W, 2);
+        band(0, 0.3, '#8e8b85');
+      }
+      // the white panels' joints
+      x.fillStyle = 'rgba(70,72,74,0.35)';
+      for (const y of [4.55, 5.2, 7.75]) x.fillRect(0, Y(y), W, 2);
+      for (const k of [0, 0.5]) { x.fillRect(k * W, Y(5.2), 2, 1.3 * PX); x.fillRect(k * W, Y(8.3), 2, 1.1 * PX); }
+      // the windows (their glass the sky's), each beside its pier
+      band(5.2, 7.2, blue);
+      const g = x.createLinearGradient(0, Y(7.1), 0, Y(5.3));
+      g.addColorStop(0, '#a9bccb'); g.addColorStop(0.5, '#7f909c'); g.addColorStop(1, '#8c9aa4');
+      const x0 = 0.45 * PX, ww = W - x0 - 0.02 * PX;
+      x.fillStyle = '#f2f2ee'; x.fillRect(x0, Y(7.15), ww, 1.9 * PX);
+      x.fillStyle = g; x.fillRect(x0 + 0.06 * PX, Y(7.09), ww - 0.12 * PX, 1.78 * PX);
+      x.fillStyle = '#f2f2ee'; x.fillRect(x0 + ww / 2 - 0.03 * PX, Y(7.09), 0.06 * PX, 1.78 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(x0 + 0.1 * PX, Y(7.05), ww * 0.25, 1.7 * PX);
+      band(8.15, 8.3, '#b8bab8');
+      break;
+    }
+    case 'blackTiles': {
+      // glossy black tiles 15 cm square, in pale grey joints, a glint on each
+      x.fillStyle = '#8d908f'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 18 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v + 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(i * t + 3, j * t + 3, t * 0.45, 2);
+      }
+      break;
+    }
+    case 'glassBlocks': {
+      // glass blocks 20 cm square in grey mortar, each pale green, brightest at its middle, with
+      // the ribs moulded in its face
+      x.fillStyle = '#b4b7b1'; x.fillRect(0, 0, W, H);
+      const t = 0.2 * PX, j0 = 0.015 * PX, s = t - 2 * j0;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const X = i * t + j0, Z = j * t + j0, v = Math.floor(r() * 12);
+        const g = x.createRadialGradient(X + s / 2, Z + s / 2, s * 0.1, X + s / 2, Z + s / 2, s * 0.72);
+        g.addColorStop(0, `rgb(${222 + v},${236 + v},${226 + v})`); g.addColorStop(1, `rgb(${146 + v},${168 + v},${158 + v})`);
+        x.fillStyle = g; x.fillRect(X, Z, s, s);
+        x.fillStyle = 'rgba(255,255,255,0.2)';
+        for (let k = 1; k < 4; k++) x.fillRect(X + (s * k) / 4, Z + 3, 1.2, s - 6);
+      }
+      break;
+    }
+    case 'blueMosaic':
+    case 'warmMosaic': {
+      // Rågsved's entrance: rectangles from 5 to 40 cm, cut on a 5 cm grid, each of small tesserae
+      // in one colour, in dark joints
+      const colors = name === 'blueMosaic'
+        ? ['#5b6670', '#7d8a94', '#a9b6bf', '#3f4c5a', '#c9d2d6', '#e4e7e6', '#8b9ba8', '#4e6a85', '#6f7f8c', '#9aa5a3', '#2f3a46', '#b8c4cc']
+        : ['#d9cbb0', '#c4a77d', '#b4612f', '#8a3b22', '#1f2c4a', '#2f6f74', '#6b6a3a', '#e9e2d2', '#4b4d4f', '#a68b5b', '#d78a3d', '#7a7f80'];
+      x.fillStyle = '#3c3d3c'; x.fillRect(0, 0, W, H);
+      const g = 0.05 * PX;
+      const cut = (x0: number, y0: number, w: number, h: number) => {
+        const most = (0.1 + r() * 0.3) * PX;
+        if ((w <= most && h <= most) || (w <= g && h <= g)) {
+          const v = Math.floor(r() * 14) - 7;
+          x.fillStyle = colors[Math.floor(r() * colors.length)]; x.fillRect(x0 + 1.5, y0 + 1.5, w - 3, h - 3);
+          x.fillStyle = `rgba(${v > 0 ? '255,255,255' : '0,0,0'},${Math.abs(v) / 60})`; x.fillRect(x0 + 1.5, y0 + 1.5, w - 3, h - 3);
+          x.fillStyle = 'rgba(30,30,30,0.22)';
+          for (let k = 0.025 * PX; k < w - 2; k += 0.025 * PX) x.fillRect(x0 + k, y0 + 1.5, 1, h - 3);
+          for (let k = 0.025 * PX; k < h - 2; k += 0.025 * PX) x.fillRect(x0 + 1.5, y0 + k, w - 3, 1);
+          return;
+        }
+        // (split the longer way, on the grid)
+        const across = w > h ? true : w < h ? false : r() < 0.5, len = across ? w : h, n = Math.round(len / g);
+        const k = Math.max(1, Math.min(n - 1, 1 + Math.floor(r() * (n - 1)))) * g;
+        if (across) { cut(x0, y0, k, h); cut(x0 + k, y0, w - k, h); } else { cut(x0, y0, w, k); cut(x0, y0 + k, w, h - k); }
+      };
+      cut(0, 0, W, H);
+      break;
+    }
+    case 'terracottaPanels':
+      // flat panels of terracotta-red enamel, 0.6 by 1.2 m, in fine dark joints
+      x.fillStyle = '#5a2a1e'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        const v = Math.floor(r() * 10) - 5;
+        x.fillStyle = `rgb(${150 + v},${70 + v},${50 + v})`;
+        x.fillRect(i * 0.6 * PX + 1, j * 1.2 * PX + 1, 0.6 * PX - 2, 1.2 * PX - 2);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * 0.6 * PX + 3, j * 1.2 * PX + 3, 0.18 * PX, 1.2 * PX - 6);
+      }
+      break;
+    case 'orangeTiles':
+      // glazed orange-red tiles, 20 cm square, in pale grout
+      x.fillStyle = '#b9a99a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
+        const v = Math.floor(r() * 18) - 9;
+        x.fillStyle = `rgb(${190 + v},${82 + v},${46 + v})`;
+        x.fillRect(i * 0.2 * PX + 1.5, j * 0.2 * PX + 1.5, 0.2 * PX - 3, 0.2 * PX - 3);
+      }
+      break;
+    case 'redGranite': {
+      // polished red-brown granite in slabs 0.6 by 1.2 m, the grain black and pink
+      x.fillStyle = '#3a2420'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) {
+        const v = Math.floor(r() * 12) - 6;
+        x.fillStyle = `rgb(${128 + v},${66 + v},${54 + v})`;
+        x.fillRect(i * 0.6 * PX + 1, j * 1.2 * PX + 1, 0.6 * PX - 2, 1.2 * PX - 2);
+      }
+      speckle(x, W, H, 26000, 0.35, 81); speckle(x, W, H, 9000, 0.2, 82, true);
+      break;
+    }
+    case 'brick': {
+      // red-brown brick, about 23 by 7.5 cm with 1 cm joints, in a running bond (five to the
+      // repeat across, fourteen courses up it)
+      x.fillStyle = '#9a9188'; x.fillRect(0, 0, W, H);
+      const bl = W / 5, bh = H / 14;
+      for (let j = 0; j * bh < H; j++) for (let i = -1; i * bl < W; i++) {
+        const v = Math.floor(r() * 26) - 13, ox = (j % 2) * bl / 2;
+        x.fillStyle = `rgb(${142 + v},${66 + v * 0.7},${48 + v * 0.5})`;
+        x.fillRect(i * bl + ox + 1, j * bh + 1, bl - 2, bh - 1.6);
+      }
+      break;
+    }
+    case 'steelGlazed': {
+      // a glass hall's walls: small white tiles to a steel sill at 0.85 m, every fourth a shade
+      // greyer; then windows in brushed steel frames 1.2 m apart, a transom at 2.25 m, to the head
+      // at 2.9 m
+      const st = '#a3a9ac', t = 0.1 * PX;
+      x.fillStyle = '#a7aaa8'; x.fillRect(0, Y(0.85), W, 0.85 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 0.85 * PX; j++) {
+        const v = 228 + Math.floor(r() * 10) - ((i + j) % 4 === 0 ? 16 : 0);
+        x.fillStyle = `rgb(${v},${v},${v - 1})`; x.fillRect(i * t + 1, Y(0) - (j + 1) * t + 1, t - 2, t - 2);
+      }
+      band(0.85, 0.95, st); pane(0.95, 2.25, st, 0.1); band(2.25, 2.33, st); pane(2.33, 2.9, st, 0.1); band(2.9, 3, st);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, Y(0.95), W, 2);
+      break;
+    }
+    case 'darkTerrazzo':
+      // dark grey terrazzo, chips of white and black in it
+      x.fillStyle = '#4e4f50'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.35, 91); speckle(x, W, H, 12000, 0.3, 92, true);
+      break;
+    case 'birchX': {
+      // dark grey stone slabs, 0.9 by 0.65 m; over them a broad X of birch bark from corner to
+      // corner, chalk white with dark lenticels across it
+      x.fillStyle = '#2f3133'; x.fillRect(0, 0, W, H);
+      const sw = W / 6, sh = H / 4;
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) {
+        const v = 58 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 3})`; x.fillRect(i * sw + 2, j * sh + 2, sw - 4, sh - 4);
+      }
+      const bw = 0.5 * PX;
+      for (const [ax, ay, bx, by] of [[0, H, W, 0], [0, 0, W, H]]) {
+        x.strokeStyle = '#ddd8cc'; x.lineWidth = bw; x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke();
+        const l = Math.hypot(bx - ax, by - ay), nx = -(by - ay) / l, ny = (bx - ax) / l;
+        for (let k = 0; k < 260; k++) {
+          const t = r(), o = (r() - 0.5) * bw * 0.9, cx = ax + (bx - ax) * t + nx * o, cy = ay + (by - ay) * t + ny * o;
+          x.save(); x.translate(cx, cy); x.rotate(Math.atan2(ny, nx));
+          x.fillStyle = `rgba(36,34,30,${0.5 + r() * 0.4})`; x.fillRect(-(4 + r() * 10), -1, 8 + r() * 20, 2 + r() * 2);
+          x.restore();
+        }
+      }
+      break;
+    }
+    case 'tealTiles': {
+      // Kärrtorp's ticket hall: pale teal tiles, 15 cm, to 2.35 m, a steel strip, and over them a
+      // band of black glass panels 1.2 m wide to the ceiling
+      x.fillStyle = '#5f8783'; x.fillRect(0, Y(2.35), W, 2.35 * PX);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.35 * PX + 1; j++) {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = `rgb(${112 + v},${168 + v},${164 + v})`; x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      band(2.35, 2.42, '#8d9396');
+      band(2.42, 3.4, '#121416');
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(4, Y(3.4), W * 0.35, 0.98 * PX);
+      x.fillStyle = '#2c3033'; x.fillRect(0, Y(3.4), 2, 0.98 * PX); x.fillRect(W - 2, Y(3.4), 2, 0.98 * PX);
+      break;
+    }
+    case 'darkWindows': {
+      // Kärrtorp's stair house: a dark grey-green panel to 0.95 m, then windows 0.6 m wide in
+      // frames all but black, a transom at 2.3 m, glass on up to the roof
+      const frame = '#1f2324';
+      band(0, 0.95, '#2f3a38');
+      x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, Y(0.95), W, 0.95 * PX);
+      band(0.95, 1.03, frame); pane(1.03, 2.3, frame, 0.07); band(2.3, 2.36, frame); pane(2.36, 3.2, frame, 0.07);
+      x.fillStyle = frame; x.fillRect(W / 2 - 0.035 * PX, 0, 0.07 * PX, Y(0.95));
+      break;
+    }
+    case 'blackFront': {
+      // Kärrtorp's ticket hall's front: glass doors in brushed steel to 2.35 m, SL's blue bands
+      // across them; the black band the station's name goes on, a steel ledge, and a band of
+      // glass in steel frames above
+      const st = '#a9aeb1';
+      band(0, 0.1, st); pane(0.1, 2.35, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.35), 0.08 * PX, 2.25 * PX);
+      x.fillStyle = '#25408f'; x.fillRect(0.07 * PX, Y(1.45), W - 0.14 * PX, 0.12 * PX);
+      band(2.35, 2.8, '#151618'); band(2.8, 3.1, st);
+      x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, Y(2.82), W, 2);
+      pane(3.1, 3.8, st, 0.08); band(3.8, 3.9, st);
+      break;
+    }
+    case 'splitBlocks': {
+      // Bagarmossen's ticket hall: grey concrete blocks with a split face, 40 by 20 cm, in a
+      // running bond
+      x.fillStyle = '#6c6b68'; x.fillRect(0, 0, W, H);
+      const bw = 0.4 * PX, bh = 0.2 * PX;
+      for (let j = 0; j * bh < H; j++) for (let i = -1; i * bw < W; i++) {
+        const v = 128 + Math.floor(r() * 18);
+        x.fillStyle = `rgb(${v},${v - 1},${v - 4})`; x.fillRect(i * bw + (j % 2) * bw / 2 + 2, j * bh + 2, bw - 4, bh - 4);
+      }
+      speckle(x, W, H, 9000, 0.25, 41); speckle(x, W, H, 5000, 0.2, 42, true);
+      break;
+    }
+    case 'cladding':
+    case 'cladClerestory': {
+      // silver-grey sheet metal, ribbed upright every 20 cm; Bagarmossen's pavilion's tall part
+      // has it to 4.5 m, and over it four rows of glass in grey frames, drawn as the photographs
+      // show it from the street, the sky's blue-grey in it rather than the hall behind
+      const top = name === 'cladding' ? h : 4.5;
+      band(0, top, '#aeb3b6');
+      for (let i = 0; i * 0.2 * PX < W; i++) {
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * 0.2 * PX, Y(top), 0.03 * PX, top * PX);
+        x.fillStyle = 'rgba(40,44,48,0.35)'; x.fillRect(i * 0.2 * PX + 0.03 * PX, Y(top), 0.015 * PX, top * PX);
+      }
+      if (name === 'cladClerestory') {
+        const fr = '#8c9296', rows = [4.62, 5.34, 6.06, 6.78, 7.5];
+        band(4.5, 7.6, fr);
+        for (let k = 0; k + 1 < rows.length; k++) {
+          const a = rows[k] + 0.03, b = rows[k + 1] - 0.03, g = x.createLinearGradient(0, Y(b), 0, Y(a));
+          g.addColorStop(0, '#c3ced6'); g.addColorStop(1, '#8e9ead');
+          x.fillStyle = g; x.fillRect(0.05 * PX, Y(b), W - 0.1 * PX, (b - a) * PX);
+          x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(b), W * 0.3, (b - a) * PX);
+        }
+      }
+      break;
+    }
+    case 'redRock': {
+      // the rock sprayed with concrete and painted red, as Skarpnäck's cave: a deep brick red,
+      // mottled darker and lighter in soft patches, the hollows near black
+      x.fillStyle = '#9a3519'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 70; i++) {
+        const cx = r() * W, cy = r() * H, rr = (0.15 + r() * 0.5) * PX, dark = r() < 0.4;
+        const g = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
+        g.addColorStop(0, dark ? 'rgba(80,24,12,0.45)' : 'rgba(190,76,38,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        for (const [ox, oy] of [[0, 0], [W, 0], [-W, 0], [0, H], [0, -H]]) { x.save(); x.translate(ox, oy); x.fillStyle = g; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2); x.restore(); }
+      }
+      speckle(x, W, H, 14000, 0.25, 93); speckle(x, W, H, 5000, 0.12, 94, true);
+      break;
+    }
+    case 'redBand': {
+      // Skarpnäck's hall: a band of windows high up in red steel frames, 1.2 m apart, a red
+      // sill under them and a red fascia over them; drawn as the photographs show it from the
+      // street, the sky's blue-grey in the glass rather than the hall behind
+      const red = '#a8342a';
+      band(0, h, red);
+      const a = 0.32, b = 1.62, g = x.createLinearGradient(0, Y(b), 0, Y(a));
+      g.addColorStop(0, '#c4ced5'); g.addColorStop(1, '#8b9aa7');
+      x.fillStyle = g; x.fillRect(0.05 * PX, Y(b), W - 0.1 * PX, (b - a) * PX);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(b), W * 0.3, (b - a) * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, Y(a) - 2, W, 2); x.fillRect(0, Y(1.75), W, 2);
+      break;
+    }
+    case 'redFront': {
+      // Skarpnäck's front: glass doors in brushed steel to 2.3 m, a steel transom, SL's dark blue
+      // band, and glass in red steel frames above
+      const st = '#a9aeb1', red = '#a8342a';
+      band(0, 0.1, st); pane(0.1, 2.3, st, 0.14);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.3), 0.08 * PX, 2.2 * PX); x.fillRect(0, Y(1.1), W, 0.06 * PX);
+      band(2.3, 2.4, st); band(2.4, 2.8, '#22306e'); band(2.8, 2.9, red);
+      pane(2.9, 6.9, red, 0.1);
+      x.fillStyle = red; x.fillRect(0, Y(4.3), W, 0.08 * PX); x.fillRect(0, Y(5.6), W, 0.08 * PX);
+      break;
+    }
+    case 'frostedPanels':
+      // Bagarmossen's pavilion: panels of frosted glass, white, in bronze frames on a concrete
+      // plinth, three rows of them, a transom at 2.6 m
+      band(0, h, '#8d7b5e');
+      band(0, 0.3, '#9a9890');
+      for (const [a, b] of [[0.36, 1.5], [1.56, 2.55], [2.65, 3.34]]) {
+        x.fillStyle = '#dfe2df'; x.fillRect(0.04 * PX, Y(b), W - 0.08 * PX, (b - a) * PX);
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(0.04 * PX, Y(b), W * 0.35, (b - a) * PX);
+        x.fillStyle = 'rgba(90,80,60,0.25)'; x.fillRect(0.04 * PX, Y(a) - 2, W - 0.08 * PX, 2);
+      }
+      break;
+    case 'orangePanels':
+      // flat steel panels painted orange, 1.2 m square
+      x.fillStyle = '#d0782c'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(3, 3, W * 0.4, H - 6);
+      x.fillStyle = 'rgba(60,24,8,0.5)'; x.fillRect(0, 0, 2, H); x.fillRect(0, 0, W, 2);
+      break;
+    case 'gridPanels':
+      // Skärmarbrink's hall: a dark grey plinth to 0.3 m, and over it flat panels, a pale grey
+      // white, 1.25 m wide and in three rows, in grey joints
+      band(0, 0.3, '#45484b');
+      band(0.3, h, '#8f9496');
+      for (const [a, b] of [[0.32, 1.28], [1.31, 2.27], [2.3, 3.23]]) {
+        const v = 226 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v + 1},${v - 1})`; x.fillRect(0.012 * PX, Y(b), W - 0.024 * PX, (b - a) * PX);
+        x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0.012 * PX, Y(b), W * 0.25, (b - a) * PX);
+      }
+      break;
+    case 'navyTiles': {
+      // Skärmarbrink's stair houses: glossy navy-blue tiles on end, 15 by 30 cm, in a stack bond
+      x.fillStyle = '#9ea3aa'; x.fillRect(0, 0, W, H);
+      const a = 0.15 * PX, b = 0.3 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = Math.floor(r() * 14);
+        x.fillStyle = `rgb(${24 + v},${36 + v},${92 + v * 2})`; x.fillRect(i * a + 1.5, j * b + 1.5, a - 3, b - 3);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * a + 3, j * b + 3, a * 0.3, b - 6);
+      }
+      break;
+    }
+    case 'pineBoards':
+      // boards of varnished pine 10 cm wide, a warm orange-brown, each a little different, with
+      // dark joints and streaks of grain along them
+      x.fillStyle = '#5a3a1c'; x.fillRect(0, 0, W, H);
+      for (let j = 0; j * 0.1 * PX < H; j++) {
+        const v = Math.floor(r() * 26);
+        x.fillStyle = `rgb(${176 + v},${118 + v * 0.7},${62 + v * 0.4})`; x.fillRect(0, j * 0.1 * PX + 1, W, 0.1 * PX - 2);
+        for (let k = 0; k < 10; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '110,64,26' : '214,160,96'},0.25)`; x.fillRect(r() * W, j * 0.1 * PX + 2 + r() * (0.1 * PX - 5), 20 + r() * 80, 1); }
+      }
+      break;
+    case 'redTiles': {
+      // Gullmarsplan's walls: glossy red tiles 30 cm square, in pale grey joints, a glint on each
+      x.fillStyle = '#a9a5a0'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 22);
+        x.fillStyle = `rgb(${178 + v},${18 + v * 0.4},${26 + v * 0.4})`; x.fillRect(i * t + 2, j * t + 2, t - 4, t - 4);
+        x.fillStyle = 'rgba(255,255,255,0.13)'; x.fillRect(i * t + 5, j * t + 5, t * 0.5, 3);
+        x.fillStyle = 'rgba(60,0,0,0.12)'; x.fillRect(i * t + 2, j * t + t * 0.6, t - 4, t * 0.4 - 2);
+      }
+      break;
+    }
+    case 'bronzeGlass': {
+      // Gullmarsplan's bus terminal: a curtain wall of tinted glass, bronze-grey, in dark frames
+      // 1.5 m apart, a transom every 1.8 m; drawn as seen from outside, the sky's grey in the glass
+      x.fillStyle = '#2e2a26'; x.fillRect(0, 0, W, H);
+      for (const [a, b] of [[0.04, 1.76], [1.84, 3.56]]) {
+        const g = x.createLinearGradient(0, Y(b), 0, Y(a));
+        g.addColorStop(0, '#8a8278'); g.addColorStop(1, '#4f4943');
+        x.fillStyle = g; x.fillRect(0.04 * PX, Y(b), W - 0.08 * PX, (b - a) * PX);
+        x.fillStyle = 'rgba(255,250,240,0.1)'; x.fillRect(0.04 * PX, Y(b), W * 0.28, (b - a) * PX);
+      }
+      break;
+    }
+    case 'bronzeGlazed': {
+      // S:t Eriksplan's northern stair house: clear glass in thick frames of dark bronze 0.6 m
+      // apart, a rail across them at 1.1 m, on a bronze sill
+      const br = '#5a4633';
+      pane(0, h, br, 0.14);
+      x.fillStyle = br; x.fillRect(W / 2 - 0.07 * PX, 0, 0.14 * PX, H); x.fillRect(0, Y(0.15), W, 0.15 * PX); x.fillRect(0, Y(1.15), W, 0.08 * PX);
+      x.fillStyle = 'rgba(255,236,210,0.2)'; x.fillRect(0, Y(0.15), W, 1.5);
+      break;
+    }
+    case 'pixelTiles': {
+      // Lars Arrhenius's tiles at Thorildsplan (2008): pale blue tiles 15 cm square in white joints,
+      // two rows of pale yellow along the floor, and figures and bands picked out in coloured tiles
+      // as in an old video game: a heart, a space invader, a cloud, toadstools, a note, a row of
+      // snow-capped peaks in navy and teal, and black tiles scattered as if breaking up
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      x.fillStyle = '#e4edf0'; x.fillRect(0, 0, W, H);
+      const grid: (string | null)[][] = Array.from({ length: cols }, () => Array(rows).fill(null));
+      const C: Record<string, string> = { k: '#16181c', w: '#f4f6f4', r: '#c8221f', g: '#3e9a62', n: '#27358a', t: '#2f9087', y: '#e2d886' };
+      // a figure, its rows written from the top, its bottom left tile at column i, row j
+      const put = (i: number, j: number, rowsTop: string[]) => rowsTop.forEach((line, k) => {
+        const jj = j + rowsTop.length - 1 - k;
+        for (let q = 0; q < line.length; q++) if (line[q] !== '.') grid[(i + q) % cols][jj % rows] = C[line[q]];
+      });
+      for (let i = 0; i < cols; i++) for (const j of [0, 1]) grid[i][j] = C.y;
+      put(2, 3, ['..kkk.kkk..', '.krrrkrrrk.', 'krrwrrrrrrk', 'krwrrrrrrrk', 'krrrrrrrrrk', '.krrrrrrrk.', '..krrrrrk..', '...krrrk...', '....krk....', '.....k.....']);
+      put(17, 4, ['..g.....g..', '...g...g...', '..ggggggg..', '.ggkgggkgg.', 'ggggggggggg', 'g.ggggggg.g', 'g.g.....g.g', '...gg.gg...']);
+      put(29, 3, ['..kk', '..kk', '..k.', '..k.', '..k.', '.kk.', 'kkk.', 'kkk.', '.k..']);
+      put(14, 2, ['.krrk.', 'krwrrk', 'rrrrwr', 'kkkkkk', '.kwwk.', '.kwwk.']);
+      // the peaks, each ten tiles across and five high, white at the top, in turn navy and teal
+      for (let p = 0; p * 8 < cols; p++) for (let q = 0; q < 5; q++) for (let i = p * 8 + q; i <= p * 8 + 9 - q; i++) {
+        grid[i % cols][14 + q] = q >= 3 ? C.w : p % 2 ? C.t : C.n;
+      }
+      put(3, 20, ['....kkkk......', '...kwwwwk.kk..', '.kkwwwwwwkwwk.', 'kwwwwwwwwwwwwk', 'kwwwwwwwwwwwwk', '.kkkkkkkkkkkk.']);
+      put(20, 21, ['..kkk.....', '.kwwwkkk..', 'kwwwwwwwk.', '.kkkkkkk..']);
+      // black tiles breaking away from the invader
+      for (let k = 0; k < 18; k++) {
+        const i = 28 + Math.floor(r() * 4) - Math.floor(r() * 3), j = 5 + Math.floor(r() * 8);
+        if (!grid[i % cols][j]) grid[i % cols][j] = C.k;
+      }
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const v = Math.floor(r() * 10) - 5;
+        let fill = grid[i][j];
+        if (!fill) fill = `rgb(${158 + v},${206 + v},${236 + v})`;
+        x.fillStyle = fill;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      x.fillStyle = 'rgba(255,255,255,0.12)';
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) x.fillRect(i * t + 2, H - (j + 1) * t + 2, t * 0.35, 2);
+      break;
+    }
+    case 'ballast':
+      // a track's ballast: crushed grey stone, some of it rust-brown
+      x.fillStyle = '#5f5b56'; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 7000; k++) {
+        const v = 78 + Math.floor(r() * 84), rust = r() < 0.3 ? 16 : 0, a = 4 + r() * 6;
+        x.fillStyle = `rgb(${v + rust},${v + rust / 3},${v - 4 - rust / 2})`;
+        x.fillRect(r() * W, r() * H, a, a * (0.55 + r() * 0.5));
+      }
+      speckle(x, W, H, 6000, 0.25, 93);
+      break;
+    case 'strawTiles':
+    case 'reedTiles': {
+      // glazed tiles 15 cm, straw yellow, in pale joints; Henjasaj Koda's Vassens viskningar
+      // (Alvik, 1999), `reedTiles`: reeds of white tiles rising across them, leaning, each swelling
+      // and narrowing up the wall (by diagonals of tiles, so that the picture repeats)
+      x.fillStyle = '#c9c2b2'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      const reeds = name === 'reedTiles' ? [0, 5, 9, 12].map((d) => ({ d, ph: r() * 6.3, w: 0.6 + r() * 0.8 })) : [];
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const reed = reeds.some((q) => {
+          const w = Math.max(0, q.w + 1.1 * Math.sin((2 * Math.PI * j) / rows + q.ph));
+          return ((i - j - q.d) % cols + cols) % cols < w;
+        });
+        const v = Math.floor(r() * 10);
+        x.fillStyle = reed ? `rgb(${236 + v / 2},${233 + v / 2},${222 + v / 2})` : `rgb(${214 + v},${193 + v},${132 + v})`;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      x.fillStyle = 'rgba(255,255,255,0.14)';
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) x.fillRect(i * t + 3, H - (j + 1) * t + 3, t * 0.4, 2);
+      break;
+    }
+    case 'iceTerrazzo': {
+      // Henjasaj Koda's Isens fjäll (Alvik, 1999): pale beige terrazzo, broad fields of blue-grey
+      // terrazzo across it, and small dark blue triangles scattered over the pale; brass strips
+      // along the fields' edges (each shape drawn again a repeat away, so that it tiles)
+      x.fillStyle = '#cbc3b1'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 26000, 0.25, 94); speckle(x, W, H, 9000, 0.25, 95, true);
+      const shape = (pts: number[][], fill: string, edge: string | null) => {
+        for (const ox of [-W, 0, W]) for (const oy of [-H, 0, H]) {
+          x.beginPath(); pts.forEach(([a, b], k) => (k ? x.lineTo(a * W + ox, b * H + oy) : x.moveTo(a * W + ox, b * H + oy))); x.closePath();
+          x.fillStyle = fill; x.fill();
+          if (edge) { x.strokeStyle = edge; x.lineWidth = 2; x.stroke(); }
+        }
+      };
+      const fields = [
+        [[0.02, 0.1], [0.55, 0.02], [0.3, 0.48]], [[0.45, 0.55], [0.98, 0.4], [0.82, 0.95], [0.5, 0.85]],
+        [[0.05, 0.62], [0.32, 0.72], [0.12, 0.98]],
+      ];
+      for (const f of fields) shape(f, '#76808c', '#b39a5e');
+      for (let k = 0; k < 14; k++) {
+        const cx = r(), cy = r(), a = 0.02 + r() * 0.025, t0 = r() * 6.3;
+        shape([0, 1, 2].map((q) => [cx + Math.cos(t0 + q * 2.1) * a, cy + Math.sin(t0 + q * 2.1) * a * (W / H)]), '#2d3c58', null);
+      }
+      speckle(x, W, H, 12000, 0.22, 96); speckle(x, W, H, 6000, 0.3, 97, true);
+      break;
+    }
+    case 'clinkerWindows': {
+      // Stora mossen's ticket hall (Marianna Zaborska, 2002): clinker tiles 15 cm square in mixed
+      // greens to 1 m, a steel sill, glass-fronted cases with maps in them to 1.75 m, and windows
+      // in steel frames on up to the ceiling
+      const t = 0.15 * PX, frame = '#8d9396';
+      x.fillStyle = '#c9cbc4'; x.fillRect(0, Y(1.0), W, 1.0 * PX);
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 1.0 * PX + 1; j++) {
+        const v = r(), k = Math.floor(r() * 16);
+        const [cr, cg, cb] = v < 0.3 ? [46, 84, 62] : v < 0.6 ? [74, 116, 88] : v < 0.85 ? [104, 138, 112] : [58, 98, 100];
+        x.fillStyle = `rgb(${cr + k},${cg + k},${cb + k})`;
+        x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      band(1.0, 1.06, frame);
+      band(1.06, 1.75, '#3b4448');
+      x.fillStyle = '#d9d4c2'; x.fillRect(0.08 * PX, Y(1.68), W - 0.16 * PX, 0.55 * PX);
+      for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(${90 + r() * 80},${110 + r() * 60},${120 + r() * 50},0.5)`; x.fillRect(0.1 * PX + r() * (W - 0.3 * PX), Y(1.66) + r() * 0.5 * PX, 2 + r() * 14, 1 + r() * 4); }
+      band(1.75, 1.8, frame); pane(1.8, 2.42, frame, 0.07); band(2.42, 2.5, '#2e3134');
+      break;
+    }
+    case 'greyClerestory': {
+      // Stora mossen's ticket hall from outside: grey sheet-metal panels to 1.75 m, a band of
+      // windows in dark frames to 2.42 m, and the dark head under the fascia
+      const frame = '#2b2e31';
+      band(0, 1.75, '#8c9194');
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(3, Y(1.75), W * 0.3, 1.75 * PX);
+      x.fillStyle = '#6f7477'; x.fillRect(W / 2 - 1, Y(1.75), 2, 1.75 * PX); x.fillRect(0, Y(1.75), 2, 1.75 * PX);
+      band(1.75, 1.82, frame); pane(1.82, 2.42, frame, 0.08); band(2.42, 2.5, frame);
+      break;
+    }
+    case 'portalTiles': {
+      // Stora mossen's passage under the tracks: glazed square tiles, 15 cm, a muted teal green
+      x.fillStyle = '#c3c8c2'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 14);
+        x.fillStyle = `rgb(${92 + v},${138 + v},${132 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'liftPanes': {
+      // Stora mossen's lift tower, from the ballast up: a dark plinth to the platform, then grey
+      // glass (tinted, and backed, so not seen through) in pale frames, two panes to a bay, a tall
+      // row under a short one, between piers and rails of dark blue-grey steel
+      const pier = '#3e4552', frame = '#c4c7c3';
+      band(0, 4.8, pier);
+      band(0, 1.15, '#4a4e52');
+      for (const [from, to] of [[1.25, 3.7], [3.85, 4.7]]) {
+        const x0 = 0.1 * PX, x1 = W - 0.1 * PX, top = Y(to), h = (to - from) * PX;
+        x.fillStyle = frame; x.fillRect(x0, top, x1 - x0, h);
+        for (const [a, b] of [[x0 + 6, W / 2 - 3], [W / 2 + 3, x1 - 6]]) {
+          const g = x.createLinearGradient(0, top, 0, top + h);
+          g.addColorStop(0, '#9aa2a8'); g.addColorStop(0.45, '#7f878d'); g.addColorStop(1, '#6e767c');
+          x.fillStyle = g; x.fillRect(a, top + 6, b - a, h - 12);
+          x.fillStyle = 'rgba(255,255,255,0.10)'; x.fillRect(a + (b - a) * 0.15, top + 6, (b - a) * 0.25, h - 12);
+        }
+      }
+      break;
+    }
+    case 'roxnerTiles':
+    case 'roxnerClerestory': {
+      // Rigmor Roxner's clinker (Abrahamsberg, 1999): glazed tiles 15 cm square in some twenty
+      // colours, greys, grey and sage greens, beiges, cream and white, set with "controlled
+      // randomness" (in her words), in pale joints; for the ticket hall's back wall, the tiles to
+      // 3 m, the concrete beam the tracks' deck rests on, and windows in dark frames above it
+      x.fillStyle = '#b9bab4'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = ['#e6e5dd', '#dcdad0', '#cfd0c6', '#c2c6bd', '#b3b9b0', '#a4ab9f', '#959d92', '#8a9187', '#c9c1ad', '#bdb39c',
+        '#d6ceb9', '#a9b4a8', '#9fb1a6', '#b8c4b8', '#7f8a83', '#cbd2c8', '#e9e6da', '#aeaba0', '#c4bba6', '#98a39c'];
+      const top = name === 'roxnerTiles' ? Infinity : 3.0;
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * 0.15 <= Math.min(top, h) + 1e-6; j++) {
+        x.fillStyle = cols[Math.floor(r() * cols.length)];
+        x.fillRect(i * t + 1.5, Y(0) - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      if (name === 'roxnerClerestory') {
+        const frame = '#26292b';
+        band(3.0, 3.35, '#9c9a94'); band(3.35, 3.43, frame); pane(3.43, 4.72, frame, 0.1); band(4.72, 4.8, frame);
+      }
+      break;
+    }
+    case 'greyGlazed': {
+      // Abrahamsberg's hall over the tracks (1999): a dark grey steel panel to 0.95 m, a rail on
+      // it, and glass in dark grey steel frames above, the panes 1.2 m wide
+      const frame = '#2f3438';
+      band(0, 0.95, '#3a3f43');
+      x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(0, Y(0.95), W, 2);
+      band(0.95, 1.03, frame); pane(1.03, h, frame, 0.1);
+      break;
+    }
+    case 'sageRender':
+      // smooth render, a pale grey green
+      x.fillStyle = '#a3b0a7'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 9000, 0.12, 100); speckle(x, W, H, 6000, 0.15, 101, true);
+      break;
+    case 'bottleTiles': {
+      // glazed tiles 15 cm square, a dark bottle green, in pale grey joints
+      x.fillStyle = '#9ea7a1'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = `rgb(${40 + v},${88 + v},${72 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
+    case 'purpleTiles': {
+      // Brommaplan's way from the gates to the escalator: tiles on end, 10 by 30 cm, in purples,
+      // lilac, dark blue and white at random in pale joints, to 2.5 m, and board-marked concrete
+      // above them (photographs, 2016)
+      x.fillStyle = '#a8a6a2'; x.fillRect(0, 0, W, H);
+      for (let j = 0; j * 0.32 < h; j++) {
+        const v = j % 3;
+        x.fillStyle = `rgb(${158 + v * 4},${155 + v * 3},${150 + v * 3})`; x.fillRect(0, Y(Math.min(h, (j + 1) * 0.32)), W, 0.32 * PX);
+      }
+      for (let k = 0; k < 50; k++) { x.fillStyle = 'rgba(70,70,68,0.18)'; x.fillRect(0, Y(2.5 + r() * (h - 2.5)), W, 1); }
+      const tw = 0.1 * PX, th = 0.3 * PX, cols = ['#7d5a8c', '#8e6c9e', '#a58bb5', '#b9a3c6', '#5e4472', '#26306e', '#1f2a5e', '#e8e6ea', '#d8d3dd', '#6a4f80'];
+      for (let i = 0; i * tw < W; i++) for (let j = 0; (j + 1) * 0.3 <= 2.5 + 1e-6; j++) {
+        x.fillStyle = cols[Math.floor(r() * cols.length)];
+        x.fillRect(i * tw + 1, Y(0) - (j + 1) * th + 1, tw - 2, th - 2);
+      }
+      band(2.5, 2.54, '#8d8f90');
+      break;
+    }
+    case 'rivetedSteel': {
+      // Brommaplan's ticket hall: brushed stainless steel panels 1.2 m wide, a row of rivets
+      // along each edge
+      const g = x.createLinearGradient(0, 0, W, 0);
+      g.addColorStop(0, '#b7bcc0'); g.addColorStop(0.5, '#cfd3d6'); g.addColorStop(1, '#b3b8bc');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 400; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '90,95,100'},0.12)`; x.fillRect(0, Math.floor(r() * H), W, 1); }
+      x.fillStyle = '#7d8388'; x.fillRect(0, 0, 2, H); x.fillRect(W - 2, 0, 2, H); x.fillRect(0, 0, W, 2);
+      for (let k = 0; k < 12; k++) {
+        const yy = (k + 0.5) * H / 12;
+        for (const xx of [0.04 * PX, W - 0.04 * PX]) { x.fillStyle = '#e4e7e9'; x.beginPath(); x.arc(xx, yy, 2.2, 0, Math.PI * 2); x.fill(); x.fillStyle = 'rgba(60,64,68,0.5)'; x.beginPath(); x.arc(xx + 0.8, yy + 0.8, 1.6, 0, Math.PI * 2); x.fill(); }
+      }
+      break;
+    }
+    case 'rockMosaic': {
+      // Henjasaj Koda's Orm och irisar (Alvik, 1999): a cement mosaic in black and pale cream,
+      // flowing striations as in polished rock, here in broad black fields, there in cream ones
+      // (functions of the repeat, so that it tiles)
+      const img = x.createImageData(W, H), d = img.data, a = (2 * Math.PI) / w, b = (2 * Math.PI) / h;
+      for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
+        const mx = px / PX, my = (H - py) / PX;
+        const warp = 1.4 * Math.sin(b * my + 0.9 * Math.sin(a * mx)) + 0.9 * Math.sin(2 * a * mx + b * my + 1.0) + 0.5 * Math.sin(3 * b * my - a * mx);
+        const field = Math.sin(2 * a * mx + 0.8 * warp) * Math.cos(2 * b * my - 0.6 * warp + 0.4);
+        const fine = Math.sin(26 * a * mx + 7 * b * my + 5 * warp) + 0.35 * Math.sin(61 * a * mx - 13 * b * my + 3 * warp);
+        const black = field > 0.42 || (field > -0.42 && fine > 0.45 - field * 1.2);
+        const k = (py * W + px) * 4, v = (px * 7 + py * 13) % 9;
+        if (black) { d[k] = 30 + v; d[k + 1] = 30 + v; d[k + 2] = 29 + v; } else { d[k] = 222 + v; d[k + 1] = 214 + v; d[k + 2] = 196 + v; }
+        d[k + 3] = 255;
+      }
+      x.putImageData(img, 0, 0);
+      speckle(x, W, H, 14000, 0.2, 98); speckle(x, W, H, 8000, 0.2, 99, true);
+      break;
+    }
+    case 'glossTiles':
+    case 'stripeTiles': {
+      // Åkeshov's ticket hall: glossy white tiles 25 cm square in pale grey joints; on the walls by
+      // the shop and the stairs (`stripeTiles`), upright stripes across them: a slip of red half a
+      // tile wide beside a column of ochre tiles, twice in each 1.5 m (photographs, 2021)
+      x.fillStyle = '#b4b5b2'; x.fillRect(0, 0, W, H);
+      const t = 0.25 * PX, cols: [number, string][] = name === 'stripeTiles'
+        ? [[0.25, 'w'], [0.25, 'w'], [0.125, 'r'], [0.25, 'o'], [0.25, 'w'], [0.125, 'r'], [0.25, 'o']]
+        : [[0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w'], [0.25, 'w']];
+      let x0 = 0;
+      for (const [cw, k] of cols) {
+        for (let j = 0; j * t < H; j++) {
+          const v = Math.floor(r() * 8);
+          x.fillStyle = k === 'r' ? `rgb(${196 + v},${70 + v},${58 + v})` : k === 'o' ? `rgb(${226 + v},${190 + v},${150 + v})` : `rgb(${238 + v / 2},${239 + v / 2},${236 + v / 2})`;
+          x.fillRect(x0 + 1.5, j * t + 1.5, cw * PX - 3, t - 3);
+          // the glaze's sheen, high on each tile
+          x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(x0 + 4, j * t + 5, cw * PX * 0.55, 3);
+        }
+        x0 += cw * PX;
+      }
+      break;
+    }
+    case 'goranssonTiles': {
+      // Mia Göransson's tiles at Råcksta (1990s): glazed tiles 15 cm square in whites and pale
+      // greys with a faint blue in some, in pale joints; scattered over them, singly and in short
+      // steps, relief tiles standing out a little, the size of one or two tiles, with the prints of
+      // leaves and stalks pressed into them (photographs, 2018: the ticket hall, the passage and
+      // the stairs' walls)
+      x.fillStyle = '#c3c5c3'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, n = Math.round(W / t);
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const k = r(), v = 224 + Math.floor(r() * 18), b = k < 0.3 ? 6 : 0;
+        x.fillStyle = `rgb(${v - b},${v - b / 2},${v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        // the glaze's sheen, high on each tile
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * t + 3, j * t + 3, t - 6, t * 0.18);
+      }
+      // the relief tiles: a lighter face, a shadow along the bottom and right where they stand
+      // out, and a leaf or a stalk on each (a stem with pairs of veins, or a single bent stalk)
+      const relief = (i: number, j: number, w: number, hh: number) => {
+        const x0 = i * t + 1, y0 = j * t + 1, ww = w * t - 2, hw = hh * t - 2;
+        x.fillStyle = 'rgba(70,74,78,0.55)'; x.fillRect(x0 + 3, y0 + 3, ww, hw);
+        const v = 232 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v - 3},${v - 1},${v})`; x.fillRect(x0, y0, ww, hw);
+        x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(x0, y0, ww, 2); x.fillRect(x0, y0, 2, hw);
+        x.strokeStyle = 'rgba(120,124,128,0.7)'; x.lineWidth = 1.3;
+        const cx = x0 + ww / 2, cy = y0 + hw / 2, a = r() * Math.PI, L = Math.min(ww, hw) * 0.42;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        x.beginPath(); x.moveTo(cx - dx * L, cy - dy * L); x.lineTo(cx + dx * L, cy + dy * L); x.stroke();
+        if (r() < 0.6) for (let q = -0.6; q <= 0.6; q += 0.3) {
+          const px = cx + dx * L * q, py = cy + dy * L * q, vl = L * 0.35;
+          x.beginPath(); x.moveTo(px, py); x.lineTo(px + (dx * 0.5 - dy * 0.85) * vl, py + (dy * 0.5 + dx * 0.85) * vl); x.stroke();
+          x.beginPath(); x.moveTo(px, py); x.lineTo(px + (dx * 0.5 + dy * 0.85) * vl, py + (dy * 0.5 - dx * 0.85) * vl); x.stroke();
+        }
+      };
+      for (const [i, j, w, hh] of [[1, 2, 2, 1], [5, 1, 1, 1], [8, 3, 2, 2], [3, 6, 1, 2], [10, 7, 1, 1], [0, 9, 2, 1], [6, 9, 1, 1], [9, 10, 2, 1], [2, 11, 1, 1]]) {
+        relief(i, j, w, hh);
+        // (a second, smaller tile stepped off some of them)
+        if ((i + j) % 3 === 0) relief(i + w, j + hh - 1, 1, 1);
+      }
+      break;
+    }
+    case 'greenBooth': {
+      // the kiosk on Råcksta's platform: square enamelled steel panels, a dull green, in four rows
+      // over the concrete base, a row above them with a window in a cream frame, and the cream
+      // band of the roof's edge over all (photographs, 2006 and 2018)
+      const green = '#5c7a4e';
+      band(0, h, '#2e3a2b');
+      const pw = W / 4, ph = 0.46 * PX;
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+        x.fillStyle = green; x.fillRect(i * pw + 2, Y((j + 1) * 0.46) + 2, pw - 4, ph - 4);
+        x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * pw + 2, Y((j + 1) * 0.46) + 2, pw * 0.3, ph - 4);
+        x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(i * pw + 2, Y((j + 1) * 0.46 - 0.4), pw - 4, 2);
+      }
+      // the window row: a panel each side of the window, the glass pale with the sky in it
+      x.fillStyle = green; x.fillRect(2, Y(2.3) + 2, W - 4, 0.46 * PX - 4);
+      x.fillStyle = '#d9cfa6'; x.fillRect(W / 2 - 0.55 * PX, Y(2.25), 1.1 * PX, 0.38 * PX);
+      const g = x.createLinearGradient(0, Y(2.22), 0, Y(1.9));
+      g.addColorStop(0, '#b9c8d4'); g.addColorStop(1, '#7f909c');
+      x.fillStyle = g; x.fillRect(W / 2 - 0.52 * PX, Y(2.22), 1.04 * PX, 0.32 * PX);
+      band(2.3, h, '#e3e1d8');
+      x.fillStyle = 'rgba(0,0,0,0.15)'; x.fillRect(0, Y(2.3), W, 2);
+      break;
+    }
+    case 'barkGrey':
+    case 'barkRed': {
+      // Casimir Djuric's concrete trees on Vällingby's platforms (1983): square columns cast with
+      // a bark of deep upright fissures, the plates between them split across here and there; grey
+      // concrete, or stained a red-brown (photographs, 2006 to 2019)
+      const red = name === 'barkRed', base = red ? [124, 74, 58] : [142, 140, 134];
+      const dark = red ? 'rgba(42,20,14,0.75)' : 'rgba(40,38,36,0.75)';
+      x.fillStyle = `rgb(${base.join(',')})`; x.fillRect(0, 0, W, H);
+      // the plates: upright strips of different widths, each a little lighter or darker
+      for (let px = 0; px < W;) {
+        const w = 8 + r() * 14, v = Math.floor(r() * 28) - 14;
+        x.fillStyle = `rgb(${base[0] + v},${base[1] + v},${base[2] + v})`; x.fillRect(px, 0, Math.min(w, W - px), H);
+        px += w;
+      }
+      // the fissures: dark lines wandering from top to bottom (their waves a whole number of times
+      // up the picture, so that it repeats), lit along one side
+      for (let k = 0; k < 9; k++) {
+        const x0 = r() * W, amp = 2 + r() * 4, waves = 1 + Math.floor(r() * 3), ph = r() * Math.PI * 2, wd = 2 + r() * 3;
+        const line = (dx: number, style: string, lw: number, o: number) => {
+          x.strokeStyle = style; x.lineWidth = lw; x.beginPath();
+          for (let y = 0; y <= H; y += 8) {
+            const xx = o + x0 + dx + Math.sin(ph + (y / H) * waves * Math.PI * 2) * amp;
+            if (y) x.lineTo(xx, y); else x.moveTo(xx, y);
+          }
+          x.stroke();
+        };
+        for (const o of [-W, 0, W]) { line(0, dark, wd, o); line(wd * 0.8, 'rgba(255,255,255,0.18)', 1.5, o); }
+      }
+      // short splits across the plates
+      for (let k = 0; k < 40; k++) { x.fillStyle = dark; x.fillRect(r() * W, r() * H, 4 + r() * 10, 1.5); }
+      break;
+    }
+    case 'checkTiles': {
+      // Vällingby's stair houses and its ticket hall under the bridge: glossy tiles on end, 15 by
+      // 30 cm, white and a pale blue-grey in a check, in pale joints (photographs, 2006 to 2019)
+      x.fillStyle = '#c9cbca'; x.fillRect(0, 0, W, H);
+      const a = 0.15 * PX, b = 0.3 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = Math.floor(r() * 8);
+        x.fillStyle = (i + j) % 2 ? `rgb(${150 + v},${158 + v},${165 + v})` : `rgb(${232 + v},${233 + v},${230 + v})`;
+        x.fillRect(i * a + 1.5, j * b + 1.5, a - 3, b - 3);
+        x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(i * a + 3, j * b + 3, a * 0.25, b - 6);
+      }
+      break;
+    }
+    case 'dripTiles':
+    case 'ochreDoor': {
+      // Johannelund's ticket hall and passage, and the rooms at its roofs' ends (1956): glazed
+      // tiles, 15 cm, a warm ochre yellow (as yellowTiles), in pale joints; in the hall
+      // (`dripTiles`) dark green ones along the top, from 2.1 m, dripping down the wall a few
+      // tiles at a time, a stray one here and there below; on a room's end (`ochreDoor`) a steel
+      // door painted orange, 1 m wide and 2.1 m high, 0.5 m in from its left (photographs, 2006
+      // to 2018)
+      x.fillStyle = '#b3aa96'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, cols = Math.round(W / t), rows = Math.round(H / t);
+      // (how many tiles down from the top each column's green reaches)
+      const drip = Array.from({ length: cols }, () => name === 'dripTiles' ? 4 + Math.floor(r() * r() * 6) : 0);
+      for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+        const down = rows - 1 - j, green = down < drip[i] || (name === 'dripTiles' && down < drip[i] + 4 && r() < 0.12);
+        const v = Math.floor(r() * 12);
+        x.fillStyle = green ? `rgb(${40 + v},${98 + v},${80 + v})` : `rgb(${218 + v},${178 + v},${88 + v})`;
+        x.fillRect(i * t + 1.5, H - (j + 1) * t + 1.5, t - 3, t - 3);
+      }
+      if (name === 'ochreDoor') {
+        x.fillStyle = '#8a4a1c'; x.fillRect(0.46 * PX, Y(2.14), 1.08 * PX, 2.14 * PX);
+        x.fillStyle = '#c8682a'; x.fillRect(0.5 * PX, Y(2.1), 1.0 * PX, 2.1 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(0.53 * PX, Y(2.07), 0.3 * PX, 2.04 * PX);
+        x.fillStyle = 'rgba(60,30,10,0.35)'; x.fillRect(0.5 * PX, Y(2.1), 1.0 * PX, 2);
+        x.fillStyle = '#a9aeb1'; x.fillRect(1.36 * PX, Y(1.07), 0.1 * PX, 0.03 * PX);
+      }
+      break;
+    }
+    case 'mosaicPosters': {
+      // Vällingby's walls beyond the tracks under the decks: a mosaic of small glossy tiles in dark
+      // greens, and posters in pairs in white frames along it at the platforms' eye height
+      // (photographs, 2013 to 2019); measured up from the track bed, 1.2 m under the platforms
+      x.fillStyle = '#1c342d'; x.fillRect(0, 0, W, H);
+      const t = 0.05 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 30);
+        x.fillStyle = r() < 0.15 ? `rgb(${62 + v},${112 + v},${98 + v})` : `rgb(${30 + v / 2},${80 + v},${68 + v})`;
+        x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      // each poster 1.2 by 1.75 m: a ground of one colour, a shape on it, lines of white text
+      const p0 = 2.3, p1 = 4.05, pw = 1.2 * PX;
+      const grounds = ['#e4508c', '#f0c233', '#3b7bd0', '#f1efe9', '#d9452f', '#6b3d8f'];
+      for (const [k, px0] of [[0, 1.0 * PX], [1, 2.6 * PX]] as [number, number][]) {
+        x.fillStyle = '#ebebe8'; x.fillRect(px0 - 0.05 * PX, Y(p1 + 0.05), pw + 0.1 * PX, (p1 - p0 + 0.1) * PX);
+        const g = grounds[(k * 3 + Math.floor(r() * 6)) % 6];
+        x.fillStyle = g; x.fillRect(px0, Y(p1), pw, (p1 - p0) * PX);
+        x.fillStyle = g === '#f1efe9' ? '#3b4a5a' : 'rgba(255,255,255,0.85)';
+        x.beginPath(); x.arc(px0 + pw * (0.35 + r() * 0.3), Y(p1 - 0.6), 0.3 * PX, 0, Math.PI * 2); x.fill();
+        for (let l = 0; l < 3; l++) x.fillRect(px0 + 0.12 * PX, Y(p0 + 0.55 - l * 0.14), pw * (0.5 + r() * 0.3), 0.07 * PX);
+      }
+      break;
+    }
+    case 'vallingbyCentrum': {
+      // Vällingby centrum's buildings round the station (1954): shop fronts under the white edge of
+      // a canopy, and over them pale sheet metal corrugated upright, a ribbon of windows in white
+      // frames along the upper floor, the sheet metal again up to the coping (photographs, 1955 to
+      // 2024)
+      const shop = x.createLinearGradient(0, Y(3.2), 0, Y(0.15));
+      shop.addColorStop(0, '#a6b2b8'); shop.addColorStop(0.5, '#cdc6b4'); shop.addColorStop(1, '#8c979c');
+      x.fillStyle = shop; x.fillRect(0, Y(3.2), W, 3.05 * PX);
+      band(0, 0.15, '#5f6366');
+      x.fillStyle = '#6d7377';
+      for (const m of [0, 1.2, 2.4]) x.fillRect(m * PX, Y(3.2), 0.06 * PX, 3.05 * PX);
+      x.fillRect(0, Y(2.45), W, 0.05 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(0.15 * PX, Y(3.1), 0.35 * PX, 2.8 * PX);
+      band(3.2, 3.85, '#e8e8e3'); band(3.2, 3.28, '#3b3f43');
+      const corrugated = (from: number, to: number) => {
+        band(from, to, '#cfd2d0');
+        for (let i = 0; i * 0.08 * PX < W; i++) {
+          x.fillStyle = 'rgba(90,96,100,0.22)'; x.fillRect(i * 0.08 * PX, Y(to), 0.03 * PX, (to - from) * PX);
+          x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(i * 0.08 * PX + 0.045 * PX, Y(to), 0.015 * PX, (to - from) * PX);
+        }
+      };
+      corrugated(3.85, 5.1);
+      band(5.1, 6.55, '#f0f0ec');
+      const glass = x.createLinearGradient(0, Y(6.45), 0, Y(5.2));
+      glass.addColorStop(0, '#a4b5c1'); glass.addColorStop(1, '#6f7f8a');
+      for (const m of [0, 1.2, 2.4]) {
+        x.fillStyle = glass; x.fillRect(m * PX + 0.07 * PX, Y(6.45), 1.06 * PX, 1.25 * PX);
+        x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(m * PX + 0.12 * PX, Y(6.4), 0.3 * PX, 1.15 * PX);
+      }
+      corrugated(6.55, 7.85);
+      band(7.85, 8.0, '#7d8285');
+      break;
+    }
+    case 'twoGreens': {
+      // the outside of Åkeshov's shop and staff rooms under the southern deck: flat panels about
+      // 0.95 m wide, a lighter green and a dark bottle green in turn, on a black plinth, a dark
+      // edge along their top (photographs, 2018 and 2021)
+      band(0, h, '#1f2324');
+      const pw = W / 2;
+      for (const [k, fill] of [[0, '#2f7c60'], [1, '#225f4b']] as [number, string][]) {
+        x.fillStyle = fill; x.fillRect(k * pw + 2, Y(h - 0.06), pw - 4, (h - 0.06 - 0.14) * PX);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(k * pw + 2, Y(h - 0.06), pw * 0.25, (h - 0.2) * PX);
+      }
+      band(0, 0.14, '#151617');
+      break;
+    }
+    case 'latticeConcrete': {
+      // the abutment beside Åkeshov's underpass: grey concrete under a diagonal lattice of
+      // weathered grey battens, crossing each other 0.4 m apart (photographs, 2018 and 2021)
+      x.fillStyle = '#86837d'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 6000, 0.12, 102);
+      const d = 0.4 * PX, bw = 0.06 * PX;
+      for (const dir of [1, -1]) {
+        for (let k = -6; k <= 6; k++) {
+          const c0 = k * d;
+          // (each batten drawn again a repeat away, so that it tiles)
+          for (const o of [-W, 0, W]) {
+            x.strokeStyle = 'rgba(40,40,38,0.45)'; x.lineWidth = bw + 4;
+            x.beginPath(); x.moveTo(c0 + o + 3, dir > 0 ? H + 3 : -3); x.lineTo(c0 + o + 3 + dir * H, dir > 0 ? 3 : H + 3); x.stroke();
+            x.strokeStyle = dir > 0 ? '#aba79e' : '#b3afa5'; x.lineWidth = bw;
+            x.beginPath(); x.moveTo(c0 + o, dir > 0 ? H : 0); x.lineTo(c0 + o + dir * H, dir > 0 ? 0 : H); x.stroke();
+          }
+        }
+      }
+      break;
+    }
+    case 'scrollPanels': {
+      // Åsa Lindström's ceramics in Ängbyplan's lift passage (1994): glazed tiles 15 cm square, in
+      // bands three tiles wide of white scrolls curling on black, between panels ten tiles wide,
+      // each patterned in its own colours: an olive grid with ochre dots, red and olive stripes,
+      // purple with red crosses and teal lozenges, brown with olive and ochre squares; and a frieze
+      // of the scrolls along the top (photographs, 2018)
+      const t = 0.15 * PX, rows = Math.round(H / t);
+      x.fillStyle = '#9c9a94'; x.fillRect(0, 0, W, H);
+      const scroll = (cx: number, cy: number, flip: boolean) => {
+        x.fillStyle = '#141416'; x.fillRect(cx + 1, cy + 1, t - 2, t - 2);
+        x.save(); x.translate(cx + t / 2, cy + t / 2); if (flip) x.scale(-1, 1);
+        x.fillStyle = '#f2f1ec';
+        x.beginPath(); x.arc(-t * 0.08, -t * 0.05, t * 0.36, 0.2 * Math.PI, 1.9 * Math.PI); x.arc(-t * 0.02, -t * 0.08, t * 0.2, 1.9 * Math.PI, 0.2 * Math.PI, true); x.fill();
+        x.beginPath(); x.arc(t * 0.12, t * 0.22, t * 0.11, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#141416'; x.beginPath(); x.arc(t * 0.12, t * 0.22, t * 0.05, 0, Math.PI * 2); x.fill();
+        x.restore();
+      };
+      const tile = (cx: number, cy: number, k: number) => {
+        const v = Math.floor(r() * 10) - 5, c = (rgb: [number, number, number]) => `rgb(${rgb[0] + v},${rgb[1] + v},${rgb[2] + v})`;
+        const fill = (rgb: [number, number, number], a: number, b: number, w: number, h: number) => { x.fillStyle = c(rgb); x.fillRect(cx + a * t, cy + b * t, w * t, h * t); };
+        if (k === 0) {
+          fill([86, 84, 40], 0.04, 0.04, 0.92, 0.92); fill([140, 136, 62], 0.04, 0.42, 0.92, 0.16); fill([140, 136, 62], 0.42, 0.04, 0.16, 0.92);
+          x.fillStyle = '#d9b443'; for (const [a, b] of [[0.2, 0.2], [0.8, 0.2], [0.2, 0.8], [0.8, 0.8]]) { x.beginPath(); x.arc(cx + a * t, cy + b * t, t * 0.07, 0, Math.PI * 2); x.fill(); }
+        } else if (k === 1) {
+          fill([128, 30, 44], 0.04, 0.04, 0.92, 0.92); fill([118, 116, 54], 0.04, 0.34, 0.92, 0.3); fill([226, 214, 178], 0.04, 0.32, 0.92, 0.03); fill([226, 214, 178], 0.04, 0.64, 0.92, 0.03);
+        } else if (k === 2) {
+          fill([84, 54, 104], 0.04, 0.04, 0.92, 0.92); fill([160, 40, 58], 0.42, 0.1, 0.16, 0.8); fill([160, 40, 58], 0.1, 0.42, 0.8, 0.16);
+          x.fillStyle = c([58, 140, 136]); x.beginPath(); x.moveTo(cx + 0.5 * t, cy + 0.3 * t); x.lineTo(cx + 0.7 * t, cy + 0.5 * t); x.lineTo(cx + 0.5 * t, cy + 0.7 * t); x.lineTo(cx + 0.3 * t, cy + 0.5 * t); x.fill();
+        } else {
+          fill([104, 72, 42], 0.04, 0.04, 0.92, 0.92); fill([128, 128, 58], 0.12, 0.12, 0.32, 0.32); fill([128, 128, 58], 0.56, 0.56, 0.32, 0.32);
+          fill([210, 172, 70], 0.56, 0.12, 0.32, 0.32); fill([210, 172, 70], 0.12, 0.56, 0.32, 0.32);
+        }
+      };
+      for (let i = 0; i * t < W; i++) {
+        const m = i % 13, panel = Math.floor(i / 13);
+        for (let j = 0; j < rows; j++) {
+          const cx = i * t, cy = j * t;
+          if (m < 3 || j < 2) scroll(cx, cy, (i + j) % 2 === 1);
+          else tile(cx, cy, panel % 4);
+          // the glaze's sheen, high on each tile
+          x.fillStyle = 'rgba(255,255,255,0.2)'; x.fillRect(cx + 3, cy + 3, t * 0.5, 2);
+        }
+      }
+      break;
+    }
+    case 'opPanels': {
+      // Åsa Lindström's ceramics beside the stairs at Ängbyplan (1994): glazed tiles 15 cm square,
+      // in panels four tiles wide patterned in black, white and grey (discs, lozenges, rings and
+      // checks, mirrored about each panel's middle), between strips of orange-red tiles, to
+      // 2.25 m; orange-red tiles above (photographs, 2024)
+      const t = 0.15 * PX, red = () => { const v = Math.floor(r() * 18) - 9; return `rgb(${204 + v},${70 + v * 0.5},${40 + v * 0.4})`; };
+      x.fillStyle = '#b8aea2'; x.fillRect(0, 0, W, H);
+      const motif = (cx: number, cy: number, k: number, flip: boolean) => {
+        const v = Math.floor(r() * 12);
+        x.fillStyle = k % 2 ? `rgb(${226 + v / 2},${226 + v / 2},${222 + v / 2})` : `rgb(${130 + v},${132 + v},${132 + v})`;
+        x.fillRect(cx + 1, cy + 1, t - 2, t - 2);
+        x.save(); x.translate(cx + t / 2, cy + t / 2); if (flip) x.scale(-1, 1);
+        x.fillStyle = '#18181a'; x.strokeStyle = '#18181a'; x.lineWidth = t * 0.08;
+        if (k === 0) { x.beginPath(); x.arc(0, 0, t * 0.3, 0, Math.PI * 2); x.fill(); x.fillStyle = '#e8e8e4'; x.beginPath(); x.arc(t * 0.08, -t * 0.06, t * 0.14, 0, Math.PI * 2); x.fill(); }
+        else if (k === 1) { x.beginPath(); x.moveTo(0, -t * 0.42); x.lineTo(t * 0.3, 0); x.lineTo(0, t * 0.42); x.lineTo(-t * 0.3, 0); x.fill(); }
+        else if (k === 2) { for (const rr of [0.36, 0.22, 0.08]) { x.beginPath(); x.arc(-t * 0.5, -t * 0.5, t * rr * 2, 0, Math.PI / 2); x.stroke(); } }
+        else { x.fillRect(-t / 2 + 1, -t / 2 + 1, t / 2 - 1, t / 2 - 1); x.fillRect(0, 0, t / 2 - 1, t / 2 - 1); x.fillStyle = '#e8e8e4'; x.beginPath(); x.arc(0, 0, t * 0.12, 0, Math.PI * 2); x.fill(); }
+        x.restore();
+      };
+      const panelRows = 15;
+      for (let p = 0; p < 2; p++) {
+        const x0 = p * 0.7 * PX;
+        for (let j = 0; j * t < H; j++) {
+          const cy = H - (j + 1) * t;
+          // the strip of red between the panels, half a tile wide
+          x.fillStyle = red(); x.fillRect(x0 + 1, cy + 1, 0.1 * PX - 2, t - 2);
+          for (let i = 0; i < 4; i++) {
+            const cx = x0 + 0.1 * PX + i * t;
+            if (j < panelRows) motif(cx, cy, (j + p * 2 + (i === 1 || i === 2 ? 1 : 0)) % 4, i >= 2);
+            else { x.fillStyle = red(); x.fillRect(cx + 1, cy + 1, t - 2, t - 2); }
+            x.fillStyle = 'rgba(255,255,255,0.16)'; x.fillRect(cx + 3, cy + 3, t * 0.5, 2);
+          }
+        }
+      }
+      break;
+    }
+    case 'circleFront': {
+      // Ängbyplan's doors from the ticket hall to the stair house: glass doors in brushed steel
+      // frames, a yellow line, SL's dark blue band with a white disc on it over each door, a
+      // steel transom, and glass in steel frames above (photographs, 2024)
+      const steelLight = '#a9aeb1';
+      band(0, 0.1, steelLight); pane(0.1, 2.3, steelLight, 0.12);
+      x.fillStyle = steelLight; x.fillRect(0, Y(1.05), W, 0.05 * PX);
+      band(2.3, 2.36, '#e8b830'); band(2.36, 2.84, '#1d2a66');
+      x.fillStyle = '#f2f2ee'; x.beginPath(); x.arc(W / 2, Y(2.6), 0.17 * PX, 0, Math.PI * 2); x.fill();
+      band(2.84, 2.92, steelLight); pane(2.92, 4.2, steelLight, 0.1);
+      break;
+    }
+    case 'stripPanels': {
+      // Ängbyplan's ticket hall: pale grey panels 0.9 m wide, a black strip between each two, to
+      // 2.6 m on a dark plinth; a dark steel sill, and windows in grey steel frames above
+      // (photographs, 2018 and 2024)
+      band(0, h, '#3a3d40');
+      band(0.1, 2.6, '#d3d5d2');
+      x.fillStyle = 'rgba(255,255,255,0.22)'; x.fillRect(0.06 * PX, Y(2.6), W * 0.3, 2.5 * PX);
+      x.fillStyle = '#18191b'; x.fillRect(0, Y(2.6), 0.03 * PX, 2.5 * PX); x.fillRect(W - 0.03 * PX, Y(2.6), 0.03 * PX, 2.5 * PX);
+      band(2.6, 2.72, '#3a3d40'); pane(2.72, 3.9, steel, 0.1); band(3.9, 4, steel);
+      break;
+    }
+    case 'maroonGlazed': {
+      // Ängbyplan's stair house: clear glass in steel frames painted a dark red-brown, 1.2 m apart,
+      // a transom 2.2 m up (photographs, 2024)
+      const mr = '#4b2a25';
+      pane(0, h, mr, 0.1);
+      x.fillStyle = mr; x.fillRect(0, Y(0.08), W, 0.08 * PX); x.fillRect(0, Y(2.24), W, 0.07 * PX);
+      x.fillStyle = 'rgba(255,230,220,0.18)'; x.fillRect(0, Y(0.08), W, 1.5);
+      break;
+    }
+    case 'slateGlazed': {
+      // Islandstorget's lift tower: clear glass in steel frames painted slate blue, 1.4 m apart, a
+      // transom every 1.15 m (photographs, 2018)
+      const sl = '#475f74';
+      pane(0, h, sl, 0.1);
+      x.fillStyle = sl;
+      for (const y of [0.05, 1.15, 2.3, 3.45, 4.55]) x.fillRect(0, Y(y + 0.05), W, 0.1 * PX);
+      break;
+    }
+    case 'greenEnamel':
+    case 'tornellEnamel': {
+      // Hässelby gård's ticket hall and stairs, done again in 2012 (SL's architect Stefan Hagdahl):
+      // panels of green glass enamel on steel, 1.2 m wide and 1.1 m high, in thin dark joints, each
+      // a shade off its neighbours and glossy, the light catching their upper halves; past the
+      // gates (`tornellEnamel`) Pia Törnell's I ett nu (2012) in the same panels, perforated and lit
+      // from behind, the holes broken loose from a grid and drawn into (or flung out of) a point in
+      // the middle of each wall (photographs, 2018; her page and hesselby.com)
+      x.fillStyle = '#20302a'; x.fillRect(0, 0, W, H);
+      const pw = 1.2 * PX, ph = 1.1 * PX;
+      for (let i = 0; i * pw < W; i++) for (let j = 0; j * ph < H; j++) {
+        const v = Math.floor(r() * 14) - 7, x0 = i * pw + 1.5, y0 = H - (j + 1) * ph + 1.5;
+        x.fillStyle = `rgb(${104 + v},${142 + v},${122 + v})`; x.fillRect(x0, y0, pw - 3, ph - 3);
+        const g = x.createLinearGradient(0, y0, 0, y0 + ph);
+        g.addColorStop(0, 'rgba(255,255,255,0.12)'); g.addColorStop(0.5, 'rgba(255,255,255,0.03)'); g.addColorStop(1, 'rgba(0,0,0,0.08)');
+        x.fillStyle = g; x.fillRect(x0, y0, pw - 3, ph - 3);
+      }
+      if (name === 'tornellEnamel') for (const [dx, dy, dr, violet] of tornellHoles(W, H, PX)) {
+        x.fillStyle = violet ? '#e4d6f2' : '#f4f2ee';
+        x.beginPath(); x.arc(dx, dy, dr, 0, Math.PI * 2); x.fill();
+      }
+      break;
+    }
+    case 'brownTiles': {
+      // the tiles round Hässelby gård's ticket hall, facing the square: dark brown, 20 cm square,
+      // in lighter joints (photographs, 2018)
+      x.fillStyle = '#76675b'; x.fillRect(0, 0, W, H);
+      const t = 0.2 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 16) - 8;
+        x.fillStyle = `rgb(${76 + v},${52 + v},${40 + v})`; x.fillRect(i * t + 2, j * t + 2, t - 4, t - 4);
+        x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(i * t + 3, j * t + 3, t * 0.3, t - 6);
+      }
+      break;
+    }
+    case 'partosTiles': {
+      // Hässelby strand's ramp and ticket hall: white tiles, 15 cm, in grey joints, and over them
+      // Christian Partos's Teleporteringar (Teleportings, 2000), clinker mosaic of small tiles,
+      // 4 cm, in yellows, greens, teals, a little red and pale blue, in clouds whose shapes smear
+      // out sideways into ragged streaks, as if half beamed elsewhere (photographs, 2018)
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 12);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * t + 3, j * t + 3, t * 0.3, t - 6);
+      }
+      // each cloud: a few blobs (x, y, rx, ry in metres) and the way its streaks run (-1 or 1)
+      const clouds: { blobs: [number, number, number, number][]; dir: number; hue: number }[] = [
+        { blobs: [[1.8, 1.7, 1.4, 0.75], [2.9, 2.05, 0.8, 0.5], [1.0, 1.35, 0.7, 0.45]], dir: 1, hue: 0 },
+        { blobs: [[5.3, 1.0, 1.1, 0.6], [6.2, 1.35, 0.7, 0.4], [4.5, 0.8, 0.5, 0.32]], dir: -1, hue: 1 },
+        { blobs: [[4.1, 3.0, 0.75, 0.42], [4.8, 3.25, 0.45, 0.28]], dir: 1, hue: 2 },
+      ];
+      const cols = [
+        ['#f2e14a', '#e9d63c', '#c9dc4c', '#9fcf5a', '#5fbf8a', '#3fb0a6', '#d94a3c', '#a8d4e6'],
+        ['#e4ef6a', '#b9e05a', '#7ccf6e', '#46b89a', '#2f9fb0', '#f0d848', '#e05a48', '#c9e8f0'],
+        ['#9fe0d0', '#6fcfc0', '#e8e070', '#f0a050', '#d8584a', '#b0dce8', '#80c870', '#f4ec90'],
+      ];
+      const m = 0.04 * PX;
+      for (let i = 0; i * m < W; i++) for (let j = 0; j * m < H; j++) {
+        const px = (i + 0.5) / PX * m, py = h - (j + 0.5) / PX * m;
+        for (const c of clouds) {
+          // how deep in the cloud, its blobs smeared towards their streaks' side
+          let f = 0;
+          for (const [bx, by, rx, ry] of c.blobs) {
+            const dx = (px - bx) / rx, dy = (py - by) / ry;
+            const sx = dx * c.dir > 0 ? dx / (1 + 2.5 * Math.abs(Math.sin(py * 23 + bx * 7)) ** 3) : dx;
+            f = Math.max(f, Math.exp(-(sx * sx + dy * dy) * 1.4));
+          }
+          if (f < 0.12 + r() * 0.25) continue;
+          const pal = cols[c.hue], k = Math.min(pal.length - 1, Math.floor((1 - f) * 5 + r() * 3.5));
+          x.fillStyle = pal[k]; x.fillRect(i * m + 0.75, H - (j + 1) * m + 0.75, m - 1.5, m - 1.5);
+          break;
+        }
+      }
+      break;
+    }
+    case 'cafeWall': {
+      // the tiles round Hässelby strand's lift and down the ramp's mouth, part of Christian Partos's
+      // Teleporteringar (2000): black and white tiles, 15 cm, in rows, each row shifted along from
+      // the one under it by a third of a tile and back again, so that the grey joints between the
+      // rows seem to slope (the café wall illusion; photographs, 2018)
+      x.fillStyle = '#8f918e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX, shifts = [0, 1 / 3, 2 / 3, 1 / 3];
+      for (let j = 0; j * t < H; j++) {
+        const off = shifts[j % shifts.length] * t;
+        for (let i = -1; i * t < W; i++) {
+          const v = Math.floor(r() * 8), black = (i & 1) === 0;
+          x.fillStyle = black ? `rgb(${20 + v},${20 + v},${22 + v})` : `rgb(${236 + v},${236 + v},${232 + v})`;
+          x.fillRect(i * t + off + 1, j * t + 1.5, t - 2, t - 3);
+          x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(i * t + off + 3, j * t + 3, t * 0.25, t - 6);
+        }
+      }
+      break;
+    }
+    case 'iridescentTiles': {
+      // over Hässelby strand's lift (Christian Partos, 2000): glazed tiles, 30 cm, shimmering like
+      // oil on water in olive and sage greens, ochres, mauves and teals, each changing colour across
+      // its face, and on some a copper spiral (photographs, 2018)
+      x.fillStyle = '#5a5e52'; x.fillRect(0, 0, W, H);
+      const t = 0.3 * PX, cols = ['#8a9a4a', '#a7a04c', '#7f9c78', '#b0884e', '#8e7a96', '#5f8f8a', '#9db06a', '#c0a060', '#6c8a5c', '#a07a80'];
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const x0 = i * t + 1.5, y0 = j * t + 1.5, s0 = t - 3;
+        const g = x.createLinearGradient(x0, y0, x0 + s0, y0 + s0);
+        g.addColorStop(0, cols[Math.floor(r() * cols.length)]); g.addColorStop(0.55, cols[Math.floor(r() * cols.length)]); g.addColorStop(1, cols[Math.floor(r() * cols.length)]);
+        x.fillStyle = g; x.fillRect(x0, y0, s0, s0);
+        x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(x0 + 3, y0 + 3, s0 * 0.4, s0 * 0.4);
+        if (r() < 0.14) {
+          x.strokeStyle = '#7a4a2a'; x.lineWidth = 2.5; x.beginPath();
+          for (let a = 0; a < Math.PI * 7; a += 0.2) {
+            const rr = a / (Math.PI * 7) * s0 * 0.36;
+            const px = x0 + s0 / 2 + Math.cos(a) * rr, py = y0 + s0 / 2 + Math.sin(a) * rr;
+            if (a === 0) x.moveTo(px, py); else x.lineTo(px, py);
+          }
+          x.stroke();
+        }
+      }
+      break;
+    }
+    case 'striated': {
+      // the walls of Gärdet's cores where they meet the passages through them: as the wall behind
+      // its platforms, panels of brown-grey concrete 1.25 m wide cast with fine diagonal grooves, on a
+      // pale plinth 0.3 m high
+      x.fillStyle = '#b4b1a9'; x.fillRect(0, Y(0.3), W, 0.3 * PX);
+      stripedPanels(x, 0, 0, W, Y(0.3), W / 2, r);
+      break;
+    }
+    case 'triangleTiles': {
+      // the end walls of Gärdet's platform halls: white tiles, 15 cm, in grey joints, and low on
+      // them a long triangle of small blue tiles rising from the floor to 1.5 m (photographs, 2010)
+      x.fillStyle = '#9fa19e'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v - 2},${v - 8})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      const m = 0.05 * PX;
+      for (let i = 0; i * m < W; i++) for (let j = 0; j * m < 1.5 * PX; j++) {
+        if (j * m > (i * m / W) * 1.5 * PX) continue;
+        const v = Math.floor(r() * 30) - 15;
+        x.fillStyle = `rgb(${28 + v * 0.5},${62 + v},${150 + v})`; x.fillRect(i * m + 0.8, H - (j + 1) * m + 0.8, m - 1.6, m - 1.6);
+      }
+      break;
+    }
+    case 'redClinker': {
+      // clinker, 25 by 12.5 cm, in a running bond, in shades of red-brown, rust, a dark
+      // brown-grey and grey (Gärdet's platforms and passages)
+      x.fillStyle = '#4a3a32'; x.fillRect(0, 0, W, H);
+      const bl = 0.25 * PX, bw = 0.125 * PX, cols = [[126, 82, 66], [160, 106, 78], [104, 80, 70], [140, 92, 70], [118, 70, 56], [112, 106, 100], [96, 92, 88]];
+      for (let i = 0; i * bw < W; i++) for (let j = -1; j * bl < H; j++) {
+        const [cr, cg, cb] = cols[Math.floor(r() * cols.length)], v = Math.floor(r() * 12) - 6;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`;
+        x.fillRect(i * bw + 1, j * bl + (i % 2) * bl / 2 + 1, bw - 2, bl - 2);
+      }
+      break;
+    }
+    case 'slats':
+      x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.1 * PX < W; i++) {
+        x.fillStyle = `rgb(${236 + Math.floor(r() * 8)},${236 + Math.floor(r() * 8)},${232 + Math.floor(r() * 8)})`;
+        x.fillRect(i * 0.1 * PX + 1.5, 0, 0.1 * PX - 3, H);
+      }
+      break;
+  }
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  const t = toTexture(c);
+  if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// The holes in Pia Törnell's enamel (tornellEnamel), [x, y, radius, violet] on its canvas (W by H
+// pixels, PX to the metre): a grid 9 cm apart whose holes are pulled towards a point in the middle
+// of the panel (or pushed out from it), more of them and closer the nearer it they lie, every
+// fourth or so lit violet rather than white.
+function tornellHoles(W: number, H: number, PX: number) {
+  const r = rng(2012), cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.62, out: [number, number, number, boolean][] = [];
+  const g = 0.09 * PX;
+  for (let gx = g / 2; gx < W; gx += g) for (let gy = g / 2; gy < H; gy += g) {
+    const dx = gx - cx, dy = gy - cy, d = Math.hypot(dx, dy), f = d / R;
+    // (thinned out towards the edges, where the plain panels take over)
+    if (r() > Math.max(0.08, 1.1 - f * 0.9)) continue;
+    // drawn in along the radius, and turned a little about the middle
+    const pull = 0.55 * Math.exp(-f * 1.6) * (0.6 + r() * 0.8), turn = (r() - 0.5) * 0.25 * (1 - Math.min(1, f));
+    const k = 1 - pull, a = Math.atan2(dy, dx) + turn;
+    const hx = cx + Math.cos(a) * d * k + (r() - 0.5) * g * 0.6, hy = cy + Math.sin(a) * d * k + (r() - 0.5) * g * 0.6;
+    if (hy < 0.06 * PX || hy > H - 0.06 * PX) continue;
+    out.push([hx, hy, (0.012 + r() * 0.01) * PX * (1.25 - Math.min(1, f) * 0.5), r() < 0.25]);
+  }
+  return out;
+}
+
+// What a finish gives out of its own light, or nothing: the light behind the holes in Pia Törnell's
+// enamel, and its glow through the panels about the middle.
+export function finishGlow(name: Finish) {
+  if (name !== 'tornellEnamel') return null;
+  const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  x.fillStyle = '#000000'; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, H * 0.45);
+  g.addColorStop(0, 'rgba(150,120,190,0.35)'); g.addColorStop(1, 'rgba(150,120,190,0)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (const [dx, dy, dr, violet] of tornellHoles(W, H, PX)) {
+    x.fillStyle = violet ? '#c9a6ff' : '#fffaf0';
+    x.beginPath(); x.arc(dx, dy, dr, 0, Math.PI * 2); x.fill();
+  }
+  const t = toTexture(c);
+  t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// Gert Marcus's glass at Bagarmossen (1994): `n` panels side by side, screen-printed in colours
+// that fade from each to the next through `colors` (CSS, from the first panel to the last), lit
+// from behind: cloudy, brighter across the middle, with faint streaks, and a thin dark seam at
+// each panel's ends. One panel to each 1/n of u, v up it.
+export function caveGlass(colors: string[], n: number) {
+  const PW = 48, PH = 32, [c, x] = canvas(PW * n, PH), r = rng(1994 + n);
+  const rgb = colors.map((s) => [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16)));
+  const at = (t: number) => {
+    const q = Math.max(0, Math.min(1, t)) * (rgb.length - 1), i = Math.min(rgb.length - 2, Math.floor(q)), f = q - i;
+    return rgb[i].map((v, j) => Math.round(v + (rgb[i + 1][j] - v) * f));
+  };
+  for (let px = 0; px < PW * n; px++) {
+    const [cr, cg, cb] = at(px / (PW * n - 1));
+    const g = x.createLinearGradient(0, 0, 0, PH);
+    g.addColorStop(0, `rgb(${cr * 0.7 | 0},${cg * 0.7 | 0},${cb * 0.7 | 0})`);
+    g.addColorStop(0.5, `rgb(${Math.min(255, cr * 1.15 + 30) | 0},${Math.min(255, cg * 1.15 + 30) | 0},${Math.min(255, cb * 1.15 + 30) | 0})`);
+    g.addColorStop(1, `rgb(${cr * 0.75 | 0},${cg * 0.75 | 0},${cb * 0.75 | 0})`);
+    x.fillStyle = g; x.fillRect(px, 0, 1, PH);
+  }
+  // clouds of lighter and darker colour, and streaks along
+  for (let k = 0; k < n * 14; k++) {
+    const cx = r() * PW * n, cy = r() * PH, rr = 3 + r() * 9, light = r() < 0.5;
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    g.addColorStop(0, light ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,20,0.14)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+  }
+  for (let k = 0; k < n * 4; k++) { x.fillStyle = `rgba(255,255,255,${0.05 + r() * 0.08})`; x.fillRect(r() * PW * n, 2 + r() * (PH - 4), 8 + r() * 30, 1); }
+  for (let k = 0; k < n; k++) { x.fillStyle = 'rgba(10,12,16,0.7)'; x.fillRect(k * PW, 0, 1, PH); x.fillRect(k * PW + PW - 1, 0, 1, PH); }
+  const tx = toTexture(c, { repeat: false });
+  return tx;
+}
+
+// Sheets of green glass stacked flat, seen edge on: a streak for each sheet's edge, eight of them
+// up the picture (a layer of the stack, about 12 cm), some weathered grey.
+export function stackedGlass() {
+  const W = 64, H = 64, [c, x] = canvas(W, H), r = rng(1989);
+  x.fillStyle = '#2c6f60'; x.fillRect(0, 0, W, H);
+  for (let y = 0; y < H; y += 8) {
+    for (let a = 0; a < W;) {
+      const grey = r() < 0.25, k = r(), l = 8 + r() * 40;
+      x.fillStyle = grey ? `rgba(96,104,100,${0.5 + 0.3 * k})` : k < 0.5 ? `rgba(20,62,52,${0.4 + 0.4 * k})` : `rgba(110,196,170,${0.25 + 0.5 * (k - 0.5)})`;
+      x.fillRect(a, y + 1, l, 5);
+      a += l;
+    }
+    x.fillStyle = 'rgba(12,36,30,0.6)'; x.fillRect(0, y, W, 1);
+  }
+  return toTexture(c);
+}
+
+// Bronze, darkened and worn; or dark with a green patina.
+export function bronze(patina = false) {
+  const [c, x] = canvas(128);
+  x.fillStyle = patina ? '#2a3230' : '#4b3b2b'; x.fillRect(0, 0, 128, 128);
+  const r = rng(patina ? 1995 : 1994);
+  for (let i = 0; i < 300; i++) {
+    if (patina) x.fillStyle = r() < 0.55 ? `rgba(70,118,104,${r() * 0.35})` : `rgba(18,20,20,${r() * 0.4})`;
+    else x.fillStyle = r() < 0.5 ? `rgba(120,92,58,${r() * 0.3})` : `rgba(30,26,22,${r() * 0.35})`;
+    x.fillRect(r() * 128, r() * 128, 2 + r() * 10, 2 + r() * 30);
+  }
+  return toTexture(c);
+}
+
+// A folding ruler's copper, darkened to brown and black, over 3 m of it (uv u in metres / 3, v
+// across its broad face): seams across the cladding every metre with rivets down them, the scale's
+// ticks along its top edge (every 10 cm, longer every 50), and its numbers along the middle,
+// black, and every third red, as a ruler's tens.
+export const RULER_REPEAT = 3;
+export function ruler() {
+  const PX = 128, W = RULER_REPEAT * PX, H = 128, [c, x] = canvas(W, H), r = rng(1983);
+  x.fillStyle = '#35332d'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 700; i++) {
+    const k = r();
+    x.fillStyle = k < 0.35 ? `rgba(110,88,60,${r() * 0.2})` : k < 0.7 ? `rgba(16,16,14,${r() * 0.35})` : k < 0.85 ? `rgba(78,108,92,${r() * 0.18})` : `rgba(150,128,96,${r() * 0.12})`;
+    x.fillRect(r() * W, r() * H, 4 + r() * 40, 2 + r() * 14);
+  }
+  for (let m = 0; m < RULER_REPEAT; m++) {
+    const sx = m * PX + 0.37 * PX;
+    x.fillStyle = 'rgba(12,12,10,0.7)'; x.fillRect(sx, 0, 2, H);
+    x.fillStyle = 'rgba(160,140,110,0.25)'; x.fillRect(sx + 2, 0, 1, H);
+    for (let k = 0; k < 10; k++) { x.fillStyle = 'rgba(190,170,130,0.45)'; x.fillRect(sx - 4, k * H / 10 + 5, 2, 2); x.fillRect(sx + 5, k * H / 10 + 5, 2, 2); }
+  }
+  x.fillStyle = 'rgba(8,8,8,0.85)';
+  for (let k = 0; k < RULER_REPEAT * 10; k++) x.fillRect(k * PX / 10, 0, 2, k % 5 === 0 ? 0.22 * H : 0.12 * H);
+  x.font = `${Math.round(0.36 * H)}px Georgia, "Times New Roman", serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  ['7', '8', '20'].forEach((t, m) => {
+    x.fillStyle = m === 2 ? '#c8261c' : 'rgba(8,8,8,0.9)';
+    x.fillText(t, (m + 0.75) * PX, 0.52 * H);
+  });
+  return toTexture(c);
+}
+
+// Pale Öland limestone, rough-hewn: grey-white, beds of it a little darker across it, speckled,
+// stained brown in places. A metre square.
+export function limestone() {
+  const [c, x] = canvas(128), r = rng(1984);
+  x.fillStyle = '#cbc8c0'; x.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128;) { const h = 3 + r() * 14; x.fillStyle = `rgba(${r() < 0.5 ? '110,104,94' : '235,232,226'},${0.06 + r() * 0.12})`; x.fillRect(0, y, 128, h); y += h; }
+  for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(140,112,80,${r() * 0.12})`; x.fillRect(r() * 128, r() * 128, 6 + r() * 30, 4 + r() * 20); }
+  speckle(x, 128, 128, 1500, 0.25, 1985);
+  return toTexture(c);
+}
+
+// Dark granite, split: grey with a warm brown cast, a coarse grain of black, white and pink
+// crystals, patches a little darker or paler. A metre square.
+export function granite() {
+  const N = 256, [c, x] = canvas(N), r = rng(1987);
+  x.fillStyle = '#7d7871'; x.fillRect(0, 0, N, N);
+  for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(${r() < 0.5 ? '70,62,56' : '190,182,170'},${0.04 + r() * 0.08})`; x.fillRect(r() * N, r() * N, 20 + r() * 80, 16 + r() * 60); }
+  speckle(x, N, N, 9000, 0.32, 1988); speckle(x, N, N, 5000, 0.22, 1989, true);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(176,124,108,${0.15 + r() * 0.25})`; x.fillRect(r() * N, r() * N, 1 + r() * 1.5, 1 + r() * 1.5); }
+  return toTexture(c);
 }
 
 // ---------------------------------------------------------------- the detailed buildings

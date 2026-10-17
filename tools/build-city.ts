@@ -8,7 +8,8 @@
 // data/ground-corrections.json, public/data/track-geometry.json and
 // public/data/station-layouts.json; writes public/data/city/ (see src/city-tile.ts).
 //
-// The ground is the elevation model, shaped where the track runs:
+// The ground is the elevation model (with the decks over the tracks it leaves out, from
+// data/ground-corrections.json), shaped where the track runs:
 // - Under open track it is lowered below the formation (the bank, the cutting's floor, the bridge
 //   deck's underside), and rises from a metre beyond the structure at the bank's slope until it
 //   meets the ground: the track runs in a shallow cutting wherever the ground is higher than it.
@@ -26,6 +27,11 @@
 // - Where the elevation model takes a deck for the ground (data/ground-corrections.json, as over
 //   Gamla stan's station under Centralbron), it is brought down to the street under it, and the
 //   tunnels there stand in the open; src/detail/ draws the decks.
+// - Where a street runs right over a tunnel whose crown the network has higher than the real one
+//   (data/ground-corrections.json, `shallow`, as in front of Islandstorget's hall), the ground is
+//   the elevation model's, raised only where it would show inside the tunnel (to the inside of its
+//   roof, for a grid step beside it, then falling away at the bank's slope): the tunnel stays
+//   buried, but raises no mound.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
@@ -52,7 +58,10 @@
 //   left out: the stations draw their own. So it is where one would reach down into a tunnel: the
 //   part over it stands on its roof.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
-//   of the building, and an exit's way out continues through the building to the outside.
+//   of the building, and an exit's way out continues through the building to the outside. The
+//   buildings a styled open station draws itself (src/open-styles.ts) are left out. A building
+//   the corrections say stands over a station (its stairs climbing into its ground floor) isn't
+//   cut: its walls are open where the station's parts pass through them, up to their ceiling.
 // - A building the depot's covered track runs through for at least SHED_TRACK is a hall (a shed):
 //   it stands on the ground, open inside, with a door wherever a track passes through its walls.
 //
@@ -68,6 +77,7 @@ import { CELL_PAVED, CELL_TRACK, CITY_TILE, CITY_VERSION, deltaDecode, encodeTil
 import type { Building, CityIndex, Door, RoofShape, Square, Street, StreetKind, Surface, Tree, WallStyle } from '../src/city-tile.ts';
 import { ROOF_SHAPES, STREET_CROSSING, STREET_KINDS, STREET_ONEWAY, STREET_SIDEWALK, STREET_ZEBRA } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
+import { OPEN_STYLES } from '../src/open-styles.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { LIFT, floorHeights, inclineCorners, liftCorners } from '../src/station-layout.ts';
 import type { StationLayouts } from '../src/station-layout.ts';
@@ -75,12 +85,16 @@ import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
 import * as S from '../src/sections.ts';
 import { buildRoof } from './lib/roofs.ts';
+import { deckAt } from './lib/decks.ts';
 
 const OUT = 'public/data/city';
 // over tunnels: the ground at least this far above the crown
 const COVER = 0.5;
 // ... and at least this far over its roof, even beside open track
 const ROOF_COVER = 0.15;
+// where a street runs right over a tunnel (`shallow`), the ground is kept this far over the inside
+// of its roof only
+const ROOF_SKIN = 0.05;
 // below open track: the ground this far under the formation
 const UNDER = 0.4;
 // the trains' space above the rails, which buildings over the track keep clear of
@@ -115,13 +129,18 @@ for (const b of osm.buildings) {
   if (wall) b.tags['building:colour'] = wall;
   if (roof) b.tags['roof:colour'] = roof;
 }
-// fixes to OSM's tags, each with its reason (data/building-corrections.json)
-const corrections: { buildings: { osm: string; tags: Record<string, string>; why: string }[] } | null =
+// fixes to OSM's buildings, each with its reason (data/building-corrections.json): their tags; an
+// outline in place of OSM's (world x, z in turn); and `overStation`, a building standing over a
+// station's stairs, which aren't cut out of it (below)
+const corrections: { buildings: { osm: string; tags?: Record<string, string>; outline?: number[]; overStation?: boolean; why: string }[] } | null =
   existsSync('data/building-corrections.json') ? JSON.parse(readFileSync('data/building-corrections.json', 'utf8')) : null;
+const overStation = new Set<string>();
 for (const c of corrections?.buildings ?? []) {
   const b = osm.buildings.find((b) => b.osm === c.osm);
   if (!b) throw new Error(`data/building-corrections.json: no building ${c.osm}`);
-  Object.assign(b.tags, c.tags);
+  Object.assign(b.tags, c.tags ?? {});
+  if (c.outline) b.rings = [c.outline];
+  if (c.overStation) overStation.add(c.osm);
 }
 // the buildings as the laser scan measured them, where it has (tools/fetch-laser.ts): eaves, roof's
 // top (RH 2000), roof shape ("skillion:<bearing>", "gabled:across"), points
@@ -137,10 +156,18 @@ const N = groundMeta.n, STEP = groundMeta.step;
 const raw = new Int16Array(gunzipSync(readFileSync('data/ground/city.bin.gz')).buffer.slice(0));
 const ground = new Map<string, Float32Array>();
 groundMeta.tiles.forEach(([i, j, base], t) => ground.set(`${i},${j}`, deltaDecode(raw.subarray(t * N * N, (t + 1) * N * N), N, base)));
+// (on a deck over the tracks, which the model leaves out, the deck: data/ground-corrections.json)
+for (const [key, h] of ground) {
+  const [i, j] = key.split(',').map(Number);
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const d = deckAt(i * CITY_TILE + c * STEP, j * CITY_TILE + r * STEP);
+    if (d !== null) h[r * N + c] = d;
+  }
+}
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
@@ -152,6 +179,9 @@ function fillGround(x: number, z: number): number | null {
   for (const o of groundFixes?.fill ?? []) if (inside([x, z], o.outline)) return o.ground;
   return null;
 }
+// Whether a street runs right over the tunnels at (x, z), as the model has it: they raise the
+// ground there only to keep it out of them.
+const shallowCover = (x: number, z: number) => (groundFixes?.shallow ?? []).some((o) => inside([x, z], o.outline));
 // the model's ground with these fixes
 function fixed(x: number, z: number, g: number) {
   const fill = fillGround(x, z), open = openGround(x, z);
@@ -490,7 +520,7 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
       const before = buried(k - 1) || buried(k);
       if (before !== base.buried) {
         const o = base.buried ? k - 1 : k + 1;
-        addMouth(p.x[k], p.z[k], p.x[o] - p.x[k], p.z[o] - p.z[k], p.y[k], ka, p.pair[k], platAt(k), besideAt(k));
+        addMouth(p.x[k], p.z[k], p.x[o] - p.x[k], p.z[o] - p.z[k], o > k, p.y[k], ka, p.pair[k], platAt(k), besideAt(k));
       }
     }
     if (ka === kb) {
@@ -504,7 +534,7 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     segs.push({ ax: mx, az: mz, bx: p.x[k + 1], bz: p.z[k + 1], ya: my, yb: p.y[k + 1], pair: base.pair, beside: base.beside, buried: buried(k + 1), kind: kb, plat: platAt(k + 1), clampA: !mouth, clampB: last, yard });
     // pointing out of the tunnel
     const out = tunnelClass(ka) ? 1 : -1;
-    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k), base.beside);
+    if (mouth) addMouth(mx, mz, out * (p.x[k + 1] - p.x[k]), out * (p.z[k + 1] - p.z[k]), out > 0, my, tunnelClass(ka) ? ka : kb, base.pair, platAt(k), base.beside);
   }
   // mouths at the piece's ends, where it meets a piece of the other class
   for (const k of [0, n - 1]) {
@@ -512,14 +542,16 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
     const here = ends.get(endKey(p.x[k], p.z[k]))!;
     if (!here.some((c) => !c)) continue; // a tunnel ending in nothing
     const o = k === 0 ? 1 : n - 2;
-    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], p.y[k], kindAt(k), p.pair[k], platAt(k), p.beside?.[k] ?? 0);
+    addMouth(p.x[k], p.z[k], p.x[k] - p.x[o], p.z[k] - p.z[o], k > 0, p.y[k], kindAt(k), p.pair[k], platAt(k), p.beside?.[k] ?? 0);
   }
 }
 
 // The tunnel's own space at a mouth, from wall to wall and floor to crown: the hole cut there.
-function addMouth(x: number, z: number, dx: number, dz: number, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat'], beside = 0) {
-  const l = Math.hypot(dx, dz) || 1;
-  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -1, beside), right: halfWidth(tunnel, pair, plat, 1, beside) });
+// `forward`: whether dx, dz (out of the tunnel) runs the way the piece does, which its sides (the
+// pair's, the platform's and the track beside) are told by; if not, they swap.
+function addMouth(x: number, z: number, dx: number, dz: number, forward: boolean, y: number, tunnel: StructureKind, pair: number, plat: Seg['plat'], beside = 0) {
+  const l = Math.hypot(dx, dz) || 1, s = forward ? 1 : -1;
+  mouths.push({ x, z, tx: dx / l, tz: dz / l, y, crown: crownOf(tunnel, pair, plat), left: halfWidth(tunnel, pair, plat, -s, beside), right: halfWidth(tunnel, pair, plat, s, beside) });
 }
 
 // Whether a cell of water (its middle at x, z) lies over a tunnel whose inside reaches up through
@@ -551,8 +583,8 @@ segs.forEach((s, id) => {
 });
 const segsNear = (x: number, z: number) => segIndex.get(`${Math.floor(x / SEG_CELL)},${Math.floor(z / SEG_CELL)}`) ?? [];
 
-// Where a point is from a segment: across (+ right), along (0..1), and the distance that counts;
-// null if it is beyond an end that doesn't round off.
+// Where a point is from a segment: across (+ right), along (0..1), and the distance that counts,
+// and whether it is beyond an end (that rounds off); null if it is beyond an end that doesn't.
 function relate(s: Seg, x: number, z: number) {
   const dx = s.bx - s.ax, dz = s.bz - s.az, l2 = dx * dx + dz * dz || 1, l = Math.sqrt(l2);
   const t = ((x - s.ax) * dx + (z - s.az) * dz) / l2;
@@ -560,32 +592,48 @@ function relate(s: Seg, x: number, z: number) {
   const across = ((x - s.ax) * -dz + (z - s.az) * dx) / l;
   const tc = Math.max(0, Math.min(1, t));
   const d = Math.hypot(s.ax + dx * tc - x, s.az + dz * tc - z);
-  return { t: tc, across, d, y: s.ya + (s.yb - s.ya) * tc };
+  return { t: tc, across, d, y: s.ya + (s.yb - s.ya) * tc, beyond: t !== tc };
 }
 
 // The ground at a point, shaped for the track: [height, whether it is beside open track a service
 // runs on (and so isn't walked on)]
 function shape(x: number, z: number, h0: number): [number, boolean] {
   let lower = -Infinity, upper = Infinity, upperRun = Infinity, beside = false, roof = -Infinity;
-  // where the ground is opened under a deck, nothing is raised over the tunnels
-  const open = openGround(x, z) !== null;
+  // where the ground is opened under a deck, nothing is raised over the tunnels; where a street
+  // runs right over them, only as far as the inside of their roofs
+  const open = openGround(x, z) !== null, shallow = shallowCover(x, z);
+  // on a deck over the tracks, the street runs on to its edge
+  const deck = deckAt(x, z) !== null;
   for (const id of segsNear(x, z)) {
     const s = segs[id];
     const r = relate(s, x, z);
     if (!r) continue;
     const side = r.across >= 0 ? 1 : -1;
-    const w = halfWidth(s.kind, s.pair, s.plat, side, s.beside);
+    // (on a deck, an open track's trench reaches only over its own half towards its pair, which
+    // may still be covered there, its mouth further on)
+    const w = deck && !(TUNNEL.has(s.kind) && s.buried) && s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2 : halfWidth(s.kind, s.pair, s.plat, side, s.beside);
     const out = Math.max(0, r.d - w);
     if (TUNNEL.has(s.kind) && s.buried) {
       if (open) continue;
-      lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       // over its own half of the tunnel, the ground stays over its roof
       const own = s.pair && Math.sign(s.pair) === side ? Math.abs(s.pair) / 2
         : s.beside && Math.sign(s.beside) === side ? Math.abs(s.beside) / 2 : halfWidth(s.kind, 0, s.plat, side);
+      if (shallow) {
+        // (a box's slab may stand through it; and for a grid step beside it too, even where the
+        // open track's trench rounds its end beside a mouth, or the 5 m grid's slope from there
+        // would cut into it)
+        const inner = s.kind === 'box' ? S.BOX.height : crownOf(s.kind, s.pair, s.plat);
+        lower = Math.max(lower, r.y + inner + ROOF_SKIN - Math.max(0, out - STEP) / 1.5);
+        if (r.d <= own + STEP) roof = Math.max(roof, r.y + inner + ROOF_SKIN);
+        continue;
+      }
+      lower = Math.max(lower, r.y + crownOf(s.kind, s.pair, s.plat) + COVER - out / 1.5);
       if (r.d <= own) roof = Math.max(roof, r.y + crownOf(s.kind, s.pair, s.plat) + ROOF_COVER);
     } else {
       // flat for a metre beyond the structure, then rising at the bank's slope (or 1:1 behind a
-      // cutting's walls)
+      // cutting's walls); the bank rounding off past the track's end doesn't reach under a deck,
+      // where the track goes on covered (as wide as a platform, it would sink the street there)
+      if (deck && r.beyond) continue;
       const floor = s.kind === 'bridge' ? r.y + S.FLOOR - S.BRIDGE.depth - UNDER : r.y + S.FLOOR - UNDER;
       const u = floor + Math.max(0, out - 1) / (s.kind === 'cutting' ? 1 : S.EMBANKMENT.slope);
       upper = Math.min(upper, u);
@@ -604,7 +652,8 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
 // the exits that come up into the street.
 // `way`: from an exit (the stairs' end in the street, or a lift's door) on through any buildings
 // to the outside
-interface StationCut { plan: XZ[]; exit: { x: number; z: number; dx: number; dz: number; width: number } | null; way: XZ[] | null }
+// (`top`, the part's ceiling at its highest)
+interface StationCut { plan: XZ[]; top: number; exit: { x: number; z: number; dx: number; dz: number; width: number } | null; way: XZ[] | null }
 const stationCuts: StationCut[] = [];
 function grow(plan: XZ[], m: number): XZ[] {
   // a convex polygon's edges moved out by m
@@ -646,7 +695,7 @@ for (const st of layouts.stations) {
       const dx = -Math.sin(p.yaw), dz = -Math.cos(p.yaw);
       exit = { x: p.x + (dx * LIFT.depth) / 2, z: p.z + (dz * LIFT.depth) / 2, dx, dz, width: LIFT.width };
     }
-    stationCuts.push({ plan: grow(plan, 0.6), exit, way: null });
+    stationCuts.push({ plan: grow(plan, 0.6), top: Math.max(...top), exit, way: null });
   }
 }
 
@@ -757,6 +806,8 @@ function colour(v: string | undefined) {
   return NAMED[s.replace(/[\s_-]/g, '')] ?? null;
 }
 
+// the buildings the styled open stations draw themselves (src/open-styles.ts)
+const drawnByStations = new Set(Object.values(OPEN_STYLES).flatMap((st) => st.buildings ?? []));
 interface Source { osm: string; tags: Record<string, string>; rings: Ring[]; part: boolean; area: number; c: XZ; hasParts?: boolean }
 const sources: Source[] = osm.buildings.map((b) => {
   const rings = b.rings.map((flat) => {
@@ -770,7 +821,7 @@ const sources: Source[] = osm.buildings.map((b) => {
   }).filter((r) => r.length >= 3);
   const part = !b.tags.building || b.tags.building === 'no';
   return { osm: b.osm, tags: b.tags, rings, part, area: rings.length ? Math.abs(ringArea(rings[0])) : 0, c: rings.length ? centroid(rings[0]) : [0, 0] as XZ };
-}).filter((s) => s.rings.length && s.area > 2);
+}).filter((s) => s.rings.length && s.area > 2 && !drawnByStations.has(s.osm));
 
 // buildings by 50 m cell, for finding neighbours and outlines around parts
 const BCELL = 50;
@@ -1002,6 +1053,41 @@ function doorsOf(ring: Ring): Door[] {
   return out;
 }
 
+// Where the stations' parts (convex plans) pass through a ring's walls: a door in each edge, up to
+// the part's ceiling; doors that overlap on a wall are made one.
+function passages(ring: XZ[], parts: StationCut[]): Door[] {
+  const out: Door[] = [];
+  for (let e = 0; e < ring.length; e++) {
+    const [ax, az] = ring[e], [bx, bz] = ring[(e + 1) % ring.length];
+    const len = Math.hypot(bx - ax, bz - az);
+    if (len < 0.01) continue;
+    const found: { from: number; to: number; top: number }[] = [];
+    for (const c of parts) {
+      // the edge clipped to the plan, a side at a time (inside is to the left of each side, for
+      // a positive shoelace area)
+      const n = c.plan.length;
+      const turn = Math.sign(c.plan.reduce((t, [px, pz], i) => t + px * c.plan[(i + 1) % n][1] - c.plan[(i + 1) % n][0] * pz, 0));
+      let t0 = 0, t1 = 1;
+      for (let i = 0; i < n && t0 < t1; i++) {
+        const [px, pz] = c.plan[i], [qx, qz] = c.plan[(i + 1) % n];
+        const side = (x: number, z: number) => ((qx - px) * (z - pz) - (qz - pz) * (x - px)) * turn;
+        const fa = side(ax, az), fb = side(bx, bz);
+        if (fa < 0 && fb < 0) t1 = 0;
+        else if (fa < 0) t0 = Math.max(t0, fa / (fa - fb));
+        else if (fb < 0) t1 = Math.min(t1, fa / (fa - fb));
+      }
+      if (t1 > t0) found.push({ from: t0 * len, to: t1 * len, top: c.top });
+    }
+    found.sort((p, q) => p.from - q.from);
+    for (const d of found) {
+      const last = out[out.length - 1];
+      if (last && last.edge === e && d.from <= last.to) { last.to = Math.max(last.to, d.to); last.top = Math.max(last.top, d.top); }
+      else out.push({ edge: e, ...d });
+    }
+  }
+  return out;
+}
+
 const tiles = new Map<string, Building[]>();
 let overTrack = 0, sheds = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
 let shaped = 0, unshaped = 0;
@@ -1037,7 +1123,10 @@ for (const s of sources) {
     for (const id of cutIndex.get(`${i},${j}`) ?? []) cuts.add(id);
   }
   let cut = false;
-  for (const id of cuts) {
+  // (a building over a station's stairs, which climb into its ground floor, isn't cut: its walls
+  // are open where they pass through them, up to their ceiling)
+  const over = overStation.has(s.osm) ? [...cuts].map((id) => stationCuts[id]) : null;
+  for (const id of over ? [] : cuts) {
     const c = stationCuts[id];
     const holes: Polygon[] = [c.plan, ...(c.way ? [c.way] : [])].map((r) => [[...r, r[0]]])
       .filter((h) => polygonClipping.intersection(shape, h).length);
@@ -1068,12 +1157,13 @@ for (const s of sources) {
     const clear = Math.max(...hits.map((h) => h.top));
     if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
   }
-  emit(list, shape, base, roofOpts);
+  emit(list, shape, base, roofOpts, over);
 }
 
 // Polygons as buildings: the outline with a positive shoelace area in x, z, courtyards negative.
-// The pieces of a building, each with its roof of its shape (where one can be built: else flat).
-function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>, roofOpts?: { direction: number | null; across: boolean }) {
+// The pieces of a building, each with its roof of its shape (where one can be built: else flat);
+// over a station, open where its parts pass through the walls.
+function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings'>, roofOpts?: { direction: number | null; across: boolean }, over?: StationCut[] | null) {
   for (const p of shape) {
     const rings = fromPoly(p).filter((r) => r.length >= 3 && Math.abs(ringArea(r)) > 1);
     if (!rings.length) continue;
@@ -1083,6 +1173,11 @@ function emit(list: Building[], shape: MultiPolygon, base: Omit<Building, 'rings
     if (roofOpts && b.roof !== 'flat' && (b.kind === 'building' || b.kind === 'part')) {
       const roof = buildRoof(rings, b.roof, b.roofHeight, roofOpts);
       if (roof) { b.roofMesh = roof; shaped++; } else unshaped++;
+    }
+    // (on the outline the walls are drawn along: the roof's, with its gables' peaks)
+    if (over?.length) {
+      const doors = passages(b.roofMesh?.tops[0]?.map(([x, z]): XZ => [x, z]) ?? rings[0], over);
+      if (doors.length) b.doors = doors;
     }
     list.push(b);
   }
