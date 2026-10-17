@@ -1,14 +1,17 @@
 import * as THREE from 'three';
 import { profile, box, merge, noseSkirtGeometry, DARK } from './kit';
 import type { Painter } from './kit';
-import type { CarDef, TrainSpec } from './train';
+import type { CarDef, LightDef, TrainSpec } from './train';
 import type { DoorStyle } from './doors';
 
 // SL C30 — Bombardier (now Alstom) MOVIA, built in Hennigsdorf, in service from 2020.
-// Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each 16.756 m car has its own
-// two FLEXX Eco inside-frame bogies; full-width open gangways with bellows join the cars. Smooth
+// Four-car unit A1–B1–B2–A2, 70.0 m over couplers, 2.915 m wide. Each car has its own two FLEXX
+// Eco inside-frame bogies, 11.0 m apart; 0.92 m open gangways with bellows join the cars. Smooth
 // painted aluminium: white body, SL-blue plug doors, rounded black-framed windows, a dark lower
 // skirt, and a white cab with a big black window frame ringed by an LED light collar.
+//
+// Lengths, door, window and bogie positions are from the side view and plan in SL's press
+// presentation of the C30 (docs/rolling-stock.md).
 
 const W = 1.4575;
 const prof = profile([[0, 0.95], [W, 0.95, 0.06], [W, 1.9, 0.9], [1.385, 3.1, 0.32], [1.05, 3.68, 0.55], [0, 3.75]]);
@@ -33,25 +36,22 @@ const M = {
 
 export const DOOR = 1.56;
 
-// Window frames between the doors, as [a, b] along the car (the glass is 5 cm inside the frame).
-// The interior cuts its window openings from the same list.
-function windowsBetween(out: [number, number][], xa: number, xb: number) {
-  const post = 0.32, max = 1.65;
-  const n = Math.max(1, Math.ceil((xb - xa + post) / (max + post)));
-  const w = (xb - xa - post * (n - 1)) / n;
-  for (let i = 0; i < n; i++) out.push([xa + i * (w + post), xa + i * (w + post) + w]);
-}
+// Window frames, as [a, b] along the car (the glass is 5 cm inside the frame): pairs of 1.26 m
+// windows between the doors, 0.6 m from the door leaves with a 0.31 m post between them, and a
+// narrow window near each gangway end. None between the cab door and the first door. The interior
+// cuts its window openings from the same list.
+const WIN = 1.26, POST = 0.31, FROM_DOOR = DOOR / 2 + 0.6;
 
 export function windowFrames(def: CarDef, x0: number, x1: number) {
-  const out: [number, number][] = [];
+  const out: [number, number][] = [[x0 + 0.45, x0 + 0.95]];
   const doors = [...def.doors].sort((a, b) => a - b);
-  let a = x0 + 0.42;
-  const end = def.cab ? x1 - 2.3 : x1 - 0.42;
-  for (const d of doors) {
-    if (d - DOOR / 2 - 0.3 - a > 0.6) windowsBetween(out, a, d - DOOR / 2 - 0.3);
-    a = d + DOOR / 2 + 0.3;
+  for (let i = 1; i < doors.length; i++) {
+    const a = doors[i - 1] + FROM_DOOR, b = doors[i] - FROM_DOOR;
+    const n = Math.max(1, Math.round((b - a + POST) / (WIN + POST)));
+    const w = (b - a - POST * (n - 1)) / n;
+    for (let k = 0; k < n; k++) out.push([a + k * (w + POST), a + k * (w + POST) + w]);
   }
-  if (end - a > 0.6) windowsBetween(out, a, end);
+  if (!def.cab) out.push([x1 - 0.95, x1 - 0.45]);
   return out;
 }
 
@@ -64,8 +64,9 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
 
   const doors = [...def.doors].sort((a, b) => a - b);
   for (const [a, b] of windowFrames(def, x0, x1)) {
-    p.rect(a, b, 1.9, 2.93, M.black, 0.16);
-    p.rect(a + 0.05, b - 0.05, 1.95, 2.88, M.glass, 0.12);
+    const r = b - a < 0.8 ? 0.22 : 0.16;
+    p.rect(a, b, 1.9, 2.93, M.black, r);
+    p.rect(a + 0.05, b - 0.05, 1.95, 2.88, M.glass, r - 0.04);
     p.rect(a + 0.12, b - 0.12, 2.8, 2.86, M.glassLit);
   }
 
@@ -75,11 +76,12 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
     p.rect(da, db, 0.99, 3.04, M.opening, 0.15);
   }
   if (def.cab) {
-    // cab side window: a dark slot just behind the nose; then the driver's door outline
-    p.rect(X(1.18), X(0.6), 1.92, 3.2, M.black, 0.1);
-    p.frame(X(2.05), X(1.38), 0.99, 3.02, 0.012, M.seam, 0.05);
-    p.rect(X(1.95), X(1.5), 2.05, 2.85, M.black, 0.08);
-    p.text(X(2.05) - 0.9, 3.28, def.number, 0.14, M.mark, { font: 'italic 700 {px}px Arial, Helvetica, sans-serif' });
+    // cab side window: a dark slot just behind the nose; then the driver's door, with a tall
+    // narrow window
+    p.rect(X(1.05), X(0.6), 1.92, 3.2, M.black, 0.1);
+    p.frame(X(1.91), X(1.095), 0.99, 3.06, 0.012, M.seam, 0.05);
+    p.rect(X(1.69), X(1.25), 1.95, 2.85, M.black, 0.08);
+    p.text(X(2.9), 3.28, def.number, 0.14, M.mark, { font: 'italic 700 {px}px Arial, Helvetica, sans-serif' });
   } else {
     p.text(x1 - 1.2, 3.28, def.number, 0.14, M.mark, { font: 'italic 700 {px}px Arial, Helvetica, sans-serif' });
   }
@@ -89,15 +91,22 @@ function paintSide(p: Painter, def: CarDef, x0: number, x1: number) {
 function paintFront(p: Painter, def: CarDef) {
   p.rect(-1.6, 1.6, 0.8, 3.8, M.white);
   p.rect(-1.6, 1.6, 0.8, 1.2, M.skirt);
-  p.rect(-1.1, 1.1, 1.64, 3.5, M.collar, 0.34);
-  p.rect(-1.045, 1.045, 1.69, 3.45, M.black, 0.3);
-  p.rect(-0.93, 0.93, 1.83, 3.08, M.glassFront, 0.17);
+  // the big black frame round the windscreen and the destination sign, up to the roof
+  p.rect(-1.13, 1.13, 1.58, 3.78, M.black, 0.36);
+  // the LED light collar: a U down both sides of the frame and across its foot, ending below
+  // the sign
+  p.fill((ctx) => {
+    ctx.roundRect(-1.1, 1.61, 2.2, 1.75, 0.333);
+    ctx.roundRect(-1.065, 1.645, 2.13, 2.1, 0.298);
+  }, M.collar, 'evenodd');
+  p.rect(-0.93, 0.93, 2.05, 3.08, M.glassFront, 0.17);
   // cab side windows, seen at the corners
   for (const s of [-1, 1]) p.rect(s * 1.24, s * 1.62, 1.92, 3.2, M.black, 0.06);
   // light clusters below the frame corners
-  for (const s of [-1, 1]) p.rect(s * 0.98, s * 1.2, 1.28, 1.64, M.black, 0.05);
-  p.logo(0, 1.76, 0.12, M.white);
-  p.text(-0.62, 1.52, def.number, 0.09, M.mark, { font: 'italic 700 {px}px Arial, Helvetica, sans-serif' });
+  for (const s of [-1, 1]) p.rect(s * 1.17, s * 1.36, 1.24, 1.62, M.black, 0.04);
+  // a big SL roundel lit in the foot of the frame, the unit number on the white below
+  p.logo(0, 1.86, 0.3, M.collar);
+  p.text(0.72, 1.42, def.number, 0.1, M.mark, { font: 'italic 700 {px}px Arial, Helvetica, sans-serif' });
   // coupler pocket
   p.rect(-0.38, 0.38, 0.8, 1.1, M.black, 0.06);
 }
@@ -113,6 +122,26 @@ const doors: DoorStyle = {
     p.rect(c - 0.21, c + 0.21, 1.52, 2.86, M.glass, 0.09);
   },
 };
+
+// The LED collar round the windscreen frame, as short pieces along its U over the strip painted
+// in paintFront: white when the cab leads, red when it trails.
+function collar(kind: 'head' | 'tail') {
+  const w = 0.035, z0 = 1.0825, y0 = 1.6275, r = 0.315;
+  const out: LightDef[] = [];
+  const n = 6, ya = y0 + r, yb = 3.1;
+  for (let i = 0; i < n; i++) {
+    const h = (yb - ya) / n;
+    for (const s of [-1, 1]) out.push({ kind, glow: true, z: s * z0, y: ya + h * (i + 0.5), w, h: h + 0.002 });
+  }
+  const za = z0 - r;
+  for (let i = 0; i < 3; i++) out.push({ kind, glow: true, z: -za + (2 * za * (i + 0.5)) / 3, y: y0, w: (2 * za) / 3 + 0.002, h: w });
+  // round the corners with overlapping discs
+  for (let k = 0; k <= 24; k++) {
+    const a = (k / 24) * (Math.PI / 2);
+    for (const s of [-1, 1]) out.push({ kind, glow: true, round: true, z: s * (za + r * Math.sin(a)), y: ya - r * Math.cos(a), w, h: w });
+  }
+  return out;
+}
 
 const skirtMat = new THREE.MeshStandardMaterial({ color: 0x4b5157, roughness: 0.55, metalness: 0.15 });
 
@@ -139,23 +168,26 @@ function extras(def: CarDef, x0: number, x1: number) {
   return out;
 }
 
-// B cars are the listed 16.756 m. The cab cars are taken a little longer so that the unit comes
-// to the listed 70.0 m over couplers.
-const A_LEN = 17.3, HALF = A_LEN / 2;
+// From the drawing: 18.246 m from the coupler face to the first gangway's centre, 16.756 m between
+// gangway centres, 0.92 m gangways. The nose is 0.35 m behind the coupler face, so a cab car's
+// body is 17.436 m and a middle car's 15.836 m. Doors 5.585 m apart, the first 4.283 m from the
+// coupler face; bogies 11.0 m apart, the leading one 4.368 m from the coupler face.
+const A_LEN = 17.436, HALF = A_LEN / 2, B_LEN = 15.836;
 const cars = {
   A: {
     length: A_LEN, cab: true, number: '2303A1',
-    doors: [HALF - 4.5, HALF - 9.75, HALF - 15.0],
-    bogies: [-5.5, 5.5],
+    doors: [HALF - 3.933, HALF - 9.518, HALF - 15.103],
+    bogies: [HALF - 15.018, HALF - 4.018],
   },
   B: {
-    length: 16.756, cab: false, number: '2303B1',
-    doors: [-5.35, 0, 5.35],
+    length: B_LEN, cab: false, number: '2303B1',
+    doors: [-5.585, 0, 5.585],
     bogies: [-5.5, 5.5],
   },
+  // the B car turned round, for its seats (c30-interior.ts)
   B2: {
-    length: 16.756, cab: false, number: '2303B2',
-    doors: [-5.35, 0, 5.35],
+    length: B_LEN, cab: false, number: '2303B2', flip: true,
+    doors: [-5.585, 0, 5.585],
     bogies: [-5.5, 5.5],
   },
 };
@@ -171,18 +203,19 @@ export const C30: TrainSpec = {
   },
   cars,
   formation: [['A', false], ['B', false], ['B2', false], ['A', true]],
-  gap: 0.6,
-  unitGap: 0.3,
+  gap: 0.92,
+  unitGap: 0.7,
   bellows: { scale: 0.975, pleat: 0.045, depth: 0.035 },
   endColor: 0x9aa0a6,
   bogie: { wheelbase: 1.9, wheelR: 0.39, inside: true },
-  coupler: { len: 0.75, y: 0.74, setback: 0.85 },
+  coupler: { len: 0.75, y: 0.74, setback: 0.55 },
   sign: { y: 3.25, w: 1.45, h: 0.22 },
   lights: [
-    { kind: 'head', z: 1.09, y: 1.53, w: 0.15, h: 0.15 },
-    { kind: 'head', z: -1.09, y: 1.53, w: 0.15, h: 0.15 },
-    { kind: 'tail', z: 1.09, y: 1.37, w: 0.15, h: 0.1 },
-    { kind: 'tail', z: -1.09, y: 1.37, w: 0.15, h: 0.1 },
+    { kind: 'head', z: 1.265, y: 1.52, w: 0.13, h: 0.14 },
+    { kind: 'head', z: -1.265, y: 1.52, w: 0.13, h: 0.14 },
+    { kind: 'tail', z: 1.265, y: 1.34, w: 0.13, h: 0.14 },
+    { kind: 'tail', z: -1.265, y: 1.34, w: 0.13, h: 0.14 },
+    ...collar('head'), ...collar('tail'),
   ],
   doors,
   paintSide, paintFront, extras,

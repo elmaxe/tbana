@@ -512,6 +512,7 @@ export const LIGHTS = {
   headOff: new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.15, metalness: 0.6 }),
   tailOn: new THREE.MeshStandardMaterial({ color: 0xff2a1a, emissive: 0xff1a0a, emissiveIntensity: 2.0, roughness: 0.2 }),
   tailOff: new THREE.MeshStandardMaterial({ color: 0x5a1712, roughness: 0.25, metalness: 0.2 }),
+  hidden: new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
 };
 
 // Skirt under a cab nose: a slab whose front edge follows xFront(z) in plan, from y0 to y1,

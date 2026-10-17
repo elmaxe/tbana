@@ -17,10 +17,12 @@ export type C20InteriorStyle = 'upgraded' | 'original';
 //
 // Two styles:
 //  - 'upgraded' (C20U): Alstom refurbished all 270 units in Västerås, 2020–2024, so this is how
-//    every C20 looks today. 102 seats. In each bay one side keeps two groups of four facing seats
-//    and the other gets a row of seats along the wall; the sides alternate. A multipurpose area
-//    with lean rails at each end of the middle car, extra yellow rails, TFT screens, and seats in
-//    the same "Plattan" triangle fabric as the C30.
+//    every C20 looks today. 102 seats. In each bay, and at the inner end of the cab cars, one side
+//    keeps two groups of four facing seats and the other gets a row of six seats along the wall
+//    (five in the middle car); the sides alternate. At the cab a pair of seats a side backs onto
+//    the bulkhead, with a priority seat along each wall. A multipurpose area with lean rails at
+//    each end of the middle car, extra yellow rails, TFT screens, and seats in the same "Plattan"
+//    triangle fabric as the C30.
 //  - 'original' (1997–2024): 126 seats, all in groups of four facing seats, in Lasse Åberg's navy
 //    moquette with sketches of Stockholm in coloured lines; tall yellow hoops on the backs.
 // Both: light grey-white walls, a silver-grey ceiling whose lowered centre spine carries two rows
@@ -29,9 +31,12 @@ export type C20InteriorStyle = 'upgraded' | 'original';
 // gangways with a turntable floor between the three sections.
 
 const F = 1.0;     // floor above the rail
-const IW = 1.38;   // inner half-width at the floor
+const IW = 1.3;    // inner half-width at seat height
+// The lining's cross-section from the SketchUp model: lower walls leaning out to the window sills,
+// the windows leaning in with the body, a sloping cove and a flat ceiling.
 const prof = liningProfile([
-  [0, F], [IW, F, 0.03], [IW, 1.9, 0.5], [1.33, 2.95, 0.15], [1.02, 3.25, 0.05], [0.8, 3.33, 0.04], [0, 3.35],
+  [0, F], [1.26, F, 0.02], [1.29, 1.26, 0.05], [1.33, 1.66, 0.05], [1.4, 1.85, 0.03], [1.3, 2.87, 0.05],
+  [1.17, 3.23, 0.06], [1.0, 3.26, 0.04], [0.62, 3.33, 0.04], [0, 3.35],
 ]);
 // The two rows of opal panels under the ceiling spine, neutral white, shining straight down.
 const LIGHTS: CabinLights = {
@@ -101,15 +106,15 @@ function makePaint(style: C20InteriorStyle) {
       p.rect(x + 0.015, x + 0.3, 3.012, 3.208, { c: bg, r: 0.5 });
     }
     for (const [a, b] of windowPanes(def, x0, x1)) {
-      p.rect(a - 0.07, b + 0.07, 1.86, 2.95, C.reveal, 0.14);
-      p.rect(a - 0.02, b + 0.02, 1.91, 2.9, C.rubber, 0.1);
-      p.rect(a, b, 1.93, 2.88, C.hole, 0.08);
+      p.rect(a - 0.07, b + 0.07, 1.81, 2.93, C.reveal, 0.12);
+      p.rect(a - 0.02, b + 0.02, 1.856, 2.881, C.rubber, 0.07);
+      p.rect(a, b, 1.876, 2.861, C.hole, 0.06);
     }
     for (const d of def.doors) {
       const da = d - DOOR / 2, db = d + DOOR / 2;
       // grey pillars with stainless kick plates, the pictogram strip and emergency boxes
       for (const [pa, pb] of [[da - 0.16, da], [db, db + 0.16]]) {
-        p.rect(pa, pb, F, 3.05, C.pillar);
+        p.rect(pa, pb, F, 3.07, C.pillar);
         p.rect(pa, pb, F, F + 0.3, C.steel);
         p.rect(pa, pb, F, F + 0.03, C.rubber);
       }
@@ -117,7 +122,7 @@ function makePaint(style: C20InteriorStyle) {
       p.rect(da - 0.13, da - 0.05, 2.35, 2.5, C.green);
       p.rect(da - 0.13, da - 0.05, 2.6, 2.72, C.red);
       // the doorway: the leaves are separate (doorLeaf below)
-      p.rect(da, db, F, 3.0, C.hole);
+      p.rect(da, db, F, 3.07, C.hole);
       // ribbed aluminium threshold
       p.rectT(da, db, floorEdge - 0.15, floorEdge, C.steel);
       for (let k = 0; k < 6; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.022, floorEdge - 0.132 + k * 0.022, C.ribbed);
@@ -127,12 +132,11 @@ function makePaint(style: C20InteriorStyle) {
 
 // Inside of a door leaf: grey-white with a black seal at the centre and a tall window.
 function doorLeaf(p: Painter, w: number) {
-  p.rect(0, w, 0.95, 3.0, C.door);
-  p.rect(0, 0.015, 0.95, 3.0, C.rubber);
-  const c = w / 2;
-  p.rect(c - 0.23, c + 0.23, 1.7, 2.88, C.rubber, 0.07);
-  p.rect(c - 0.2, c + 0.2, 1.73, 2.85, C.hole, 0.05);
-  p.rect(c - 0.15, c + 0.15, 2.9, 2.95, C.sticker);
+  p.rect(0, w, 0.95, 3.23, C.door);
+  p.rect(0, 0.015, 0.95, 3.23, C.rubber);
+  p.rect(0.13, 0.63, 1.856, 2.881, C.rubber, 0.06);
+  p.rect(0.15, 0.61, 1.876, 2.861, C.hole, 0.05);
+  p.rect(0.23, 0.53, 2.92, 2.98, C.sticker);
 }
 
 // ------------------------------------------------------------------ fabrics
@@ -306,19 +310,22 @@ function makeFurnish(style: C20InteriorStyle) {
       const top = F + SEAT.back - 0.02, z = zAisle(s) - s * 0.12;
       parts.add('yellow', rail([[x - 0.1, top - 0.05, z], [x - 0.1, top + 0.22, z], [x + 0.1, top + 0.22, z], [x + 0.1, top - 0.05, z]], 0.018, 0.09));
     };
-    // a row of seats along the wall from a to b on side s, priority seat at the `pEnd` end
-    const longRow = (a: number, b: number, s: number, pEnd: number) => {
-      const n = Math.max(1, Math.floor((b - a) / (W + 0.02)));
-      const pitch = (b - a) / n;
-      for (let k = 0; k < n; k++) {
-        const x = a + pitch * (k + 0.5);
-        S().along(parts, x, s, (pEnd < 0 && k === 0) || (pEnd > 0 && k === n - 1));
+    // a row of n seats along the wall on side s, from x0 (by a door) towards dir, the priority
+    // seat first, by the door. Two poles come down from a rail overhead and bend into the seat
+    // frame: one by the priority seat, one between the second and third seats from the far end.
+    const longRow = (x0: number, dir: number, n: number, s: number) => {
+      const p = W + 0.02;
+      for (let k = 0; k < n; k++) S().along(parts, x0 + dir * p * (k + 0.5), s, k === 0);
+      const x1 = x0 + dir * p * n;
+      parts.add('frame', new THREE.BoxGeometry(p * n, 0.07, 0.2).translate((x0 + x1) / 2, F + 0.36, s * (IW - 0.17)));
+      // the grey pedestal under the priority seat
+      parts.add('pillar', new THREE.BoxGeometry(p - 0.06, 0.32, 0.3).translate(x0 + dir * p / 2, F + 0.16, s * (IW - 0.2)));
+      const zp = s * (IW - SEAT.depth - 0.12), zs = s * (IW - SEAT.depth + 0.04);
+      parts.add('yellow', rail([[x0, F + 1.9, zp], [x1 + dir * 0.06, F + 1.9, zp], [x1 + dir * 0.06, ceilingY - 0.02, zp]], 0.017, 0.08));
+      for (const k of [1, n - 2]) {
+        const x = x0 + dir * p * k;
+        parts.add('yellow', rail([[x, F + 1.9, zp], [x, F + 0.62, zp], [x, F + 0.42, zs]], 0.017, 0.1));
       }
-      parts.add('frame', new THREE.BoxGeometry(b - a, 0.07, 0.2).translate((a + b) / 2, F + 0.36, s * (IW - 0.17)));
-      // poles at both ends of the row, joined by a yellow rail overhead
-      const zp = s * (IW - SEAT.depth - 0.12);
-      for (const x of [a - 0.04, b + 0.04]) parts.add('yellow', pole(x, zp, F, ceilingY - 0.02, 0.017));
-      parts.add('yellow', rail([[a - 0.04, F + 1.9, zp], [b + 0.04, F + 1.9, zp]], 0.017));
     };
     // multipurpose area: double lean rail on the wall and a pictogram
     const flexArea = (a: number, b: number, s: number) => {
@@ -335,16 +342,24 @@ function makeFurnish(style: C20InteriorStyle) {
       const len = b - a;
       const cabEnd = def.cab && b >= xb - 0.01;
       if (cabEnd) {
-        // one row of seats a side with their backs to the cab bulkhead
-        for (const s of [-1, 1]) pair(xb - 0.03, s, -1, upgraded);
+        // one pair of seats a side with their backs to the cab bulkhead, and in the upgrade a
+        // single priority seat along each wall beside the door screen (photos)
+        for (const s of [-1, 1]) {
+          pair(xb - 0.03, s, -1);
+          if (upgraded) S().along(parts, a + 0.06 + W / 2, s, true);
+        }
         continue;
       }
-      // the longitudinal side in the upgrade alternates from bay to bay
-      const longSide = ((bay + (def.flip ? 1 : 0)) % 2) ? -1 : 1;
+      // in the upgrade one side of each bay, and of a cab car's inner end, has a row along the
+      // wall: six seats in the cab cars and five in the middle car (photos), the priority seat by
+      // the door farther from the middle of the car. The side alternates along the car.
       const isBay = atDoorA && atDoorB;
+      const rowAt = upgraded && (isBay || (def.cab && len > 2.6)) ? (!atDoorA || (atDoorB && Math.abs(b) > Math.abs(a)) ? b : a) : null;
+      const longSide = ((bay + (def.flip ? 1 : 0)) % 2) ? -1 : 1;
       for (const s of [-1, 1]) {
-        if (upgraded && isBay && s === longSide) {
-          longRow(a + 0.08, b - 0.6, s, 1);
+        if (rowAt !== null && s === longSide) {
+          const dir = rowAt === a ? 1 : -1;
+          longRow(rowAt + dir * 0.06, dir, def.cab ? 6 : 5, s);
           continue;
         }
         if (len > 2.6) {
@@ -360,7 +375,7 @@ function makeFurnish(style: C20InteriorStyle) {
           group(a, b, s);
         }
       }
-      if (isBay) bay++;
+      if (rowAt !== null) bay++;
     }
 
     // doors: glass screens with poles at their aisle edges, poles in the pillar recesses, and a
@@ -389,10 +404,10 @@ function makeFurnish(style: C20InteriorStyle) {
         // TFT widescreens set into the cove beside the doorway, angled down
         for (const s of [-1, 1]) {
           const g = new THREE.PlaneGeometry(0.5, 0.29);
-          const slope = Math.atan2(1.33 - 1.02, 3.25 - 2.95);
+          const slope = Math.atan2(1.3 - 1.17, 3.23 - 2.87);
           // facing down and in, flush with the cove
           g.rotateX(slope).rotateY(s > 0 ? Math.PI : 0);
-          parts.add('screen', g.translate(d + e0(d) * (DOOR / 2 + 0.5), 3.1, s * 1.165));
+          parts.add('screen', g.translate(d + e0(d) * (DOOR / 2 + 0.5), 3.05, s * 1.2));
         }
         // ceiling rails from the door grip towards the bays
         for (const e of [-1, 1]) {
@@ -455,7 +470,7 @@ function make(style: C20InteriorStyle): InteriorSpec {
     floorY: F,
     lights: LIGHTS,
     endWall: 0.08,
-    cabDepth: 3.42,
+    cabDepth: 2.08,
     portal: PORTAL,
     pleat: 0.05,
     noPlate: true,

@@ -19,7 +19,9 @@ export interface CarDef {
   doors: number[]; bogies: number[]; flip?: boolean;
 }
 export interface NoseSpec extends CapOptions { face: Rim }
-export interface LightDef { kind: 'head' | 'tail'; z: number; y: number; w: number; h: number; round?: boolean }
+// A head or tail light on the nose: a w × h panel (or a disc w across) centred at (z, y). A `glow`
+// light is a strip lit in the body's paint, like the C30's light collar: it disappears when off.
+export interface LightDef { kind: 'head' | 'tail'; z: number; y: number; w: number; h: number; round?: boolean; glow?: boolean }
 export interface TrainSpec {
   id: string;
   title: string;
@@ -226,11 +228,12 @@ function interiorGroup(kit: TypeKit, def: CarDef, x0: number, x1: number, bellow
     group.add(new THREE.Mesh(endWallGeometry(it.lining, xb, -1), mats.bulkhead ?? mats.wall));
     // a plain driver's cab behind the bulkhead: floor, desk and seat (seen in the cutaway)
     const F = it.lining.floorY, cab: THREE.BufferGeometry[] = [];
+    const seat = Math.max(xb + 0.45, x1 - 2.25);
     cab.push(new THREE.BoxGeometry(x1 - xb - 0.8, 0.02, 2.5).translate((xb + x1 - 0.8) / 2, F + 0.01, 0));
-    cab.push(new THREE.BoxGeometry(0.7, 0.85, 2.3).translate(x1 - 1.35, F + 0.43, 0));
-    cab.push(new THREE.BoxGeometry(0.55, 0.06, 2.1).rotateZ(-0.35).translate(x1 - 1.55, F + 0.93, 0));
-    cab.push(new THREE.BoxGeometry(0.5, 0.5, 0.5).translate(x1 - 2.25, F + 0.25, 0));
-    cab.push(new THREE.BoxGeometry(0.1, 0.7, 0.5).translate(x1 - 2.48, F + 0.85, 0));
+    cab.push(new THREE.BoxGeometry(0.7, 0.85, 2.3).translate(seat + 0.9, F + 0.43, 0));
+    cab.push(new THREE.BoxGeometry(0.55, 0.06, 2.1).rotateZ(-0.35).translate(seat + 0.7, F + 0.93, 0));
+    cab.push(new THREE.BoxGeometry(0.5, 0.5, 0.5).translate(seat, F + 0.25, 0));
+    cab.push(new THREE.BoxGeometry(0.1, 0.7, 0.5).translate(seat - 0.23, F + 0.85, 0));
     group.add(new THREE.Mesh(merge(cab), mats.housing));
   } else {
     group.add(new THREE.Mesh(endWallGeometry(it.lining, xb, -1, [portal]), mats.wall));
@@ -284,20 +287,30 @@ function addCab(spec: TrainSpec, car: THREE.Object3D, x1: number): Cab {
   const sign = destinationSign(spec.sign.w, spec.sign.h);
   onNose(0, spec.sign.y, sign.mesh);
   car.add(sign.mesh);
+  // all the head lights in one mesh and all the tail lights in another (a light collar is many
+  // short pieces); glowing pieces hide when off, showing the paint under them
   const heads: THREE.Mesh[] = [], tails: THREE.Mesh[] = [];
-  for (const l of spec.lights) {
-    const g = l.round ? new THREE.CircleGeometry(l.w / 2, 20) : new THREE.PlaneGeometry(l.w, l.h);
-    const m = new THREE.Mesh(g, l.kind === 'head' ? LIGHTS.headOff : LIGHTS.tailOff);
-    m.name = l.kind;
-    onNose(l.z, l.y, m);
-    car.add(m);
-    (l.kind === 'head' ? heads : tails).push(m);
+  for (const kind of ['head', 'tail'] as const) {
+    for (const glow of [false, true]) {
+      const geos = spec.lights.filter((l) => l.kind === kind && !!l.glow === glow).map((l) => {
+        const g = l.round ? new THREE.CircleGeometry(l.w / 2, 12) : new THREE.PlaneGeometry(l.w, l.h);
+        const at = onNose(l.z, l.y, new THREE.Object3D());
+        at.updateMatrix();
+        return g.applyMatrix4(at.matrix);
+      });
+      if (!geos.length) continue;
+      const m = new THREE.Mesh(merge(geos), glow ? LIGHTS.hidden : kind === 'head' ? LIGHTS.headOff : LIGHTS.tailOff);
+      m.name = kind;
+      m.userData.glow = glow;
+      car.add(m);
+      (kind === 'head' ? heads : tails).push(m);
+    }
   }
   return {
     sign,
     setLights(mode: CabLights) {
-      for (const m of heads) m.material = mode === 'lead' ? LIGHTS.headOn : LIGHTS.headOff;
-      for (const m of tails) m.material = mode === 'tail' ? LIGHTS.tailOn : LIGHTS.tailOff;
+      for (const m of heads) m.material = mode === 'lead' ? LIGHTS.headOn : m.userData.glow ? LIGHTS.hidden : LIGHTS.headOff;
+      for (const m of tails) m.material = mode === 'tail' ? LIGHTS.tailOn : m.userData.glow ? LIGHTS.hidden : LIGHTS.tailOff;
     },
   };
 }
