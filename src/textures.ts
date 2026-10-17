@@ -3513,9 +3513,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   goranssonTiles: [1.8, 1.8], greenBooth: [2.1, 2.7],
   barkGrey: [0.75, 2.4], barkRed: [0.75, 2.4], checkTiles: [1.2, 1.2], mosaicPosters: [4.8, 4.8], vallingbyCentrum: [3.6, 8.0],
   wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
+  greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -5260,6 +5261,41 @@ export function finish(name: Finish) {
       for (const y of [0.05, 1.15, 2.3, 3.45, 4.55]) x.fillRect(0, Y(y + 0.05), W, 0.1 * PX);
       break;
     }
+    case 'greenEnamel':
+    case 'tornellEnamel': {
+      // Hässelby gård's ticket hall and stairs, done again in 2012 (SL's architect Stefan Hagdahl):
+      // panels of green glass enamel on steel, 1.2 m wide and 1.1 m high, in thin dark joints, each
+      // a shade off its neighbours and glossy, the light catching their upper halves; past the
+      // gates (`tornellEnamel`) Pia Törnell's I ett nu (2012) in the same panels, perforated and lit
+      // from behind, the holes broken loose from a grid and drawn into (or flung out of) a point in
+      // the middle of each wall (photographs, 2018; her page and hesselby.com)
+      x.fillStyle = '#20302a'; x.fillRect(0, 0, W, H);
+      const pw = 1.2 * PX, ph = 1.1 * PX;
+      for (let i = 0; i * pw < W; i++) for (let j = 0; j * ph < H; j++) {
+        const v = Math.floor(r() * 14) - 7, x0 = i * pw + 1.5, y0 = H - (j + 1) * ph + 1.5;
+        x.fillStyle = `rgb(${104 + v},${142 + v},${122 + v})`; x.fillRect(x0, y0, pw - 3, ph - 3);
+        const g = x.createLinearGradient(0, y0, 0, y0 + ph);
+        g.addColorStop(0, 'rgba(255,255,255,0.12)'); g.addColorStop(0.5, 'rgba(255,255,255,0.03)'); g.addColorStop(1, 'rgba(0,0,0,0.08)');
+        x.fillStyle = g; x.fillRect(x0, y0, pw - 3, ph - 3);
+      }
+      if (name === 'tornellEnamel') for (const [dx, dy, dr, violet] of tornellHoles(W, H, PX)) {
+        x.fillStyle = violet ? '#e4d6f2' : '#f4f2ee';
+        x.beginPath(); x.arc(dx, dy, dr, 0, Math.PI * 2); x.fill();
+      }
+      break;
+    }
+    case 'brownTiles': {
+      // the tiles round Hässelby gård's ticket hall, facing the square: dark brown, 20 cm square,
+      // in lighter joints (photographs, 2018)
+      x.fillStyle = '#76675b'; x.fillRect(0, 0, W, H);
+      const t = 0.2 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 16) - 8;
+        x.fillStyle = `rgb(${76 + v},${52 + v},${40 + v})`; x.fillRect(i * t + 2, j * t + 2, t - 4, t - 4);
+        x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(i * t + 3, j * t + 3, t * 0.3, t - 6);
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -5268,9 +5304,48 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
+// The holes in Pia Törnell's enamel (tornellEnamel), [x, y, radius, violet] on its canvas (W by H
+// pixels, PX to the metre): a grid 9 cm apart whose holes are pulled towards a point in the middle
+// of the panel (or pushed out from it), more of them and closer the nearer it they lie, every
+// fourth or so lit violet rather than white.
+function tornellHoles(W: number, H: number, PX: number) {
+  const r = rng(2012), cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.62, out: [number, number, number, boolean][] = [];
+  const g = 0.09 * PX;
+  for (let gx = g / 2; gx < W; gx += g) for (let gy = g / 2; gy < H; gy += g) {
+    const dx = gx - cx, dy = gy - cy, d = Math.hypot(dx, dy), f = d / R;
+    // (thinned out towards the edges, where the plain panels take over)
+    if (r() > Math.max(0.08, 1.1 - f * 0.9)) continue;
+    // drawn in along the radius, and turned a little about the middle
+    const pull = 0.55 * Math.exp(-f * 1.6) * (0.6 + r() * 0.8), turn = (r() - 0.5) * 0.25 * (1 - Math.min(1, f));
+    const k = 1 - pull, a = Math.atan2(dy, dx) + turn;
+    const hx = cx + Math.cos(a) * d * k + (r() - 0.5) * g * 0.6, hy = cy + Math.sin(a) * d * k + (r() - 0.5) * g * 0.6;
+    if (hy < 0.06 * PX || hy > H - 0.06 * PX) continue;
+    out.push([hx, hy, (0.012 + r() * 0.01) * PX * (1.25 - Math.min(1, f) * 0.5), r() < 0.25]);
+  }
+  return out;
+}
+
+// What a finish gives out of its own light, or nothing: the light behind the holes in Pia Törnell's
+// enamel, and its glow through the panels about the middle.
+export function finishGlow(name: Finish) {
+  if (name !== 'tornellEnamel') return null;
+  const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  x.fillStyle = '#000000'; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, H * 0.45);
+  g.addColorStop(0, 'rgba(150,120,190,0.35)'); g.addColorStop(1, 'rgba(150,120,190,0)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  for (const [dx, dy, dr, violet] of tornellHoles(W, H, PX)) {
+    x.fillStyle = violet ? '#c9a6ff' : '#fffaf0';
+    x.beginPath(); x.arc(dx, dy, dr, 0, Math.PI * 2); x.fill();
+  }
+  const t = toTexture(c);
+  t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
 

@@ -1476,14 +1476,29 @@
     },
     "Hässelby gård": {
       "drawing": "hasselby_gard.png",
-      "note": "An island platform on a viaduct. At its west end stairs go down through the platform to the ticket hall under the tracks, at the street.",
+      "note": "An island platform on a viaduct over Hässelby torg, a butterfly roof over its middle. Two openings through the platform's west end go down to the ticket hall under the tracks, at the square's level: the long one with an escalator and stairs, the short one at the very end with the lift's tower. The hall faces the square westwards, its gates beside the lift. Laid out from Lantmäteriet's laser scan (the square 7.9 m under the platform, the roof, the openings and the lift's tower), OpenStreetMap (the way in) and photographs (2006 to 2018); Albert Guillaumes' drawing has the two openings, the escalator beside the stairs, the lift between them and the way out to the west, as here.",
       "routes": [
-        { "from": [-31.124132758297392, 0.8], "width": 3, "go": [
-          {"stairs": -7.4, "toward": [-45.0, 1.1]},
-          {"walk": [-51.0, 1.2], "width": 6},
-          {"walk": [-51.0, -12.8], "width": 4},
+        { "from": [-39.6, 1.25], "width": 3.6, "go": [
+          {"escalators": -7.92, "toward": [-80, 1.25], "lanes": "ES", "open": true, "ceiling": 2.4},
+          {"walk": [-57.0, 1.25], "ceiling": 3.3}
+        ] },
+        { "from": [-56.6, 0.0], "h": -7.92, "width": 4.6, "go": [
+          {"walk": [-61.6, 0.0], "ceiling": 3.3},
           {"gates": true},
-          {"exit": {"at":  [-51.0, -26.8], "name":  "Hässelby gård"}}
+          {"walk": [-62.6, 0.0], "ceiling": 3.3}
+        ] },
+        { "from": [-62.4, 0.8], "h": -7.92, "width": 10.6, "go": [
+          {"walk": [-69.0, 0.8], "ceiling": 3.3},
+          {"walk": [-69.4, 0.8], "width": 2.4, "ceiling": 2.3},
+          {"exit": {"at": [-71.0, 0.8], "name": "Hässelby torg"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-45.0, 5.2], "width": 1.8, "go": [
+          {"walk": [-55.0, 5.2], "open": true},
+          {"walk": [-55.0, 3.35], "open": true},
+          {"walk": [-58.6, 3.35], "open": true},
+          {"lift": -7.92, "above": 3.7},
+          {"walk": [-57.4, 3.35], "ceiling": 3.3},
+          {"walk": [-57.4, 1.6], "ceiling": 3.3}
         ] }
       ]
     },

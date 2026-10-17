@@ -204,11 +204,13 @@ export class OpenLook {
   // ceiling, lit from below by the hemisphere's dark ground colour: so a little light of its own.
   finish(f: Finish, ceiling = false) {
     return this.mat(`finish:${f}:${ceiling}`, () => {
-      const map = T.finish(f);
+      const map = T.finish(f), glow = T.finishGlow(f);
       return new THREE.MeshStandardMaterial({
-        map, roughness: f === 'triangles' || f === 'darkStone' || f === 'blackTiles' ? 0.4 : 0.8, alphaTest: T.FINISH_GLASS.includes(f) ? 0.5 : 0,
-        // (a ceiling lit by the lamps under it: the dark steel panels more)
-        emissive: ceiling ? (f === 'perforated' ? 0x6a6a6a : 0x3a3936) : 0x000000, emissiveMap: ceiling ? map : null, side: THREE.DoubleSide,
+        map, roughness: f === 'triangles' || f === 'darkStone' || f === 'blackTiles' ? 0.4 : f === 'greenEnamel' || f === 'tornellEnamel' ? 0.35 : 0.8,
+        alphaTest: T.FINISH_GLASS.includes(f) ? 0.5 : 0,
+        // (a ceiling lit by the lamps under it: the dark steel panels more; a wall lit from behind)
+        emissive: glow ? 0xffffff : ceiling ? (f === 'perforated' ? 0x6a6a6a : 0x3a3936) : 0x000000, emissiveMap: glow ?? (ceiling ? map : null),
+        side: THREE.DoubleSide,
       });
     });
   }

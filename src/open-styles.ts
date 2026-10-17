@@ -304,7 +304,10 @@ export type Finish =
   | 'vallingbyCentrum' // shop fronts under a canopy's white edge, corrugated sheet metal, a ribbon of windows in white frames, to 8 m
   | 'wiredGlazed'   // as greenGlazed, the glass wired: translucent, a pale grey with a fine mesh of wire in it
   | 'dripTiles'     // small square tiles, a warm yellow (yellowTiles), under dark green ones dripping down from 2.1 m
-  | 'ochreDoor';    // as yellowTiles, an orange steel door in them 0.5 m from the left
+  | 'ochreDoor'     // as yellowTiles, an orange steel door in them 0.5 m from the left
+  | 'greenEnamel'   // panels of green glass enamel, 1.2 by 1.1 m, glossy, in thin dark joints
+  | 'tornellEnamel' // as greenEnamel, perforated in a burst about the middle of each 4.8 m and lit from behind (Pia Törnell's)
+  | 'brownTiles';   // dark brown tiles, 20 cm, in lighter joints
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -5753,6 +5756,118 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'bars', color: 0x24392e, points: [[-5.5, 10.75], [22.7, 10.75]], h: [0, 3.0] },
       { kind: 'bars', color: 0x24392e, points: [[10.5, -9.125], [22.7, -9.125]], h: [1.04, 1.3] },
       { kind: 'bars', color: 0x24392e, points: [[10.5, 7.925], [22.7, 7.925]], h: [1.04, 1.3] },
+    ],
+  },
+
+  // Hässelby gård (1 November 1956), in the middle of Hässelby gård's centrum: an island platform
+  // on a concrete viaduct over Hässelby torg at its west end and a road bridge over Astrakangatan
+  // further east, the tracks curving south-westwards along it towards Hässelby strand. Lantmäteriet's
+  // laser scan puts a butterfly roof over 68 m of it, from 15 m in from the platform's west end,
+  // 12 m wide, its valley 3.9 m over the platform's top (the scan's, 0.35 m over the network's) and
+  // its eaves 4.3 m on the northern side and 4.5 m on the southern, and two openings through the
+  // platform's west end down to the ticket hall under the tracks, at the square's level (7.9 m
+  // under the platform): a short one at the very end, where the lift tower stands, and a long one
+  // further in for the escalator and the stairs. Photographs (2006 to 2018): the underside grey
+  // corrugated sheet, the ribs across, on grey-blue steel beams across and purlins along, a dark
+  // fascia, pairs of tapered grey-blue columns down the middle, strip lights along it; black name
+  // signs hung from the roof, a departure board; the paving dark grey slabs since 2011, a ribbed
+  // yellowish strip for the blind and a pale band along the edges; a glazed waiting room in dark
+  // grey frames north of the columns, wooden benches; galvanised masts with two hat-shaped lamps on
+  // a crossbar out on the open ends, black name signs on some, and galvanised railings with mesh
+  // panels along the viaduct's edges.
+  //
+  // The openings are walled in board-marked concrete under black bar railings. The lift's tower,
+  // glass in black steel frames on a concrete base, stands against the short opening's southern
+  // side, its doors facing east into a small glass porch on the platform. Under the tracks, the
+  // ticket hall faces the square westwards between the viaduct's piers: dark brown tiles, a glazed
+  // front of steel-framed doors under SL's dark blue band with the name, and a flat concrete
+  // canopy with a white edge in front of it. Inside (done again in 2012 by SL's architect Stefan
+  // Hagdahl): a polished dark floor, a dark perforated ceiling, walls of green glass enamel, the
+  // ticket booth, the gates and the lift's glass shaft beside them; past the gates, where the
+  // escalator and the stairs come down, Pia Törnell's I ett nu (2012) covers the walls, the same
+  // enamel perforated and lit from behind, the holes drawn into a point or flung out of it.
+  //
+  // Not drawn: the skylights from the openings into the hall, the ticket booth, the posters and
+  // the machines, the white box of sand on the platform. The lift's shaft stands just past the
+  // gates rather than in their line. The network has the platform 1.2 m south of where it is at
+  // its west end, so the openings and the lift are drawn 1.2 m south of where they are, with it.
+  'Hässelby gård': {
+    roof: {
+      kind: 'butterfly',
+      from: -56.5, to: 11.5, width: 11.4, offset: -0.3,
+      middle: 3.2, edge: 3.7, thick: 0.25, fascia: 0.3,
+      rafters: 3.1, rafterAt: -53.4, rafterSize: [0.12, 0.3], deck: 'ribbedAcross', rafterColor: 0x6f7d88,
+      purlins: { at: [-4, -2, 2, 4], size: [0.1, 0.2] },
+      beam: 0.35,
+      // (none over the long opening, which the beams span)
+      columns: { every: 6.2, at: -53.4, size: 0.2, plinth: { size: 0.24, height: 0.03 }, pair: 1.4, gaps: [[-55, -38.5]] },
+      lamps: { offset: 1.6, length: 1.2, every: 3.1, at: [-3, 3] },
+      colors: { underside: 0x9aa2a6, fascia: 0x4a555c, top: 0xb6babb, steel: 0x6f7d88 },
+      signs: { at: [-33, -8], back: 'Hässelby torg', ahead: '' },
+      // (trains keep left: into town on the northern track)
+      boards: [
+        { s: -14, u: -2.4, toward: 'T-Centralen', trains: ['19 Hagsätra  3 min', '18 Farsta strand  7 min'] },
+        { s: -14, u: 2.4, toward: 'Hässelby strand', trains: ['19 Hässelby strand  4 min', '18 Hässelby strand  10 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.9, edgeTile: [0.9, 0.6], tactile: [0.9, 1.25], slabs: 1.25, pattern: 'bond', paverSize: [0.6, 0.4], mix: 0.2,
+      colors: { edge: 0xbdbbb5, tactile: 0xb9b08c, slab: 0x56585b, pavers: 0x56585b, face: 0x8e8b85, paler: 0x5e6063 },
+    },
+    rooms: [
+      { name: 'platform', s: [-70, 70], h: [-0.5, 0.5], walls: null, floor: null },
+      // (the opening's walls rise to the platform, the flights open overhead)
+      { name: 'stairs', s: [-53.5, -39], u: [-1, 3.5], h: [-8.5, 1], walls: 'greenEnamel', stairs: 'greenEnamel', floor: 'darkTerrazzo', sill: 0 },
+      { name: 'paid area', s: [-61.6, -53], h: [-8.5, -4], walls: 'tornellEnamel', floor: 'darkTerrazzo', ceiling: 'perforated' },
+      { name: 'hall', s: [-70.5, -61.6], h: [-8.5, -4], walls: 'greenEnamel', floor: 'darkTerrazzo', ceiling: 'perforated' },
+    ],
+    blocks: [
+      // the short opening at the platform's west end, its walls down to the hall's roof, open
+      // westwards under the platform's tip over the hall's canopy
+      { name: 'lift opening', plan: [[-68.3, -1.35], [-58.75, -1.35], [-58.75, 4.65], [-68.3, 4.65]], h: [-3.6, 0.05], from: -2.6,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], onPlatform: true },
+      // the gap between the two tracks' decks west of the platform's tip, over the hall's canopy
+      // (the network lays one deck across under both tracks), the decks' inner faces either side
+      { name: 'gap between the decks', plan: [[-95, -1.9], [-70.15, -2.4], [-70.15, 5.7], [-95, 5.9]], h: [-2.6, -1.55], from: -2.6,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], onPlatform: true },
+      // the long one, round the escalator and the stairs (walled by their own parts)
+      { name: 'stair opening', plan: [[-53.8, -0.55], [-39.6, -0.55], [-39.6, 3.05], [-53.8, 3.05]], h: [-7.92, 0.05], from: -7,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the lift's tower: concrete up from the hall's roof, glass in black frames over the platform,
+      // open eastwards to the porch (in the hall the lift's own glass shaft)
+      { name: 'lift tower', plan: [[-61.45, 2.1], [-58.75, 2.1], [-58.75, 4.6], [-61.45, 4.6]], h: [-3.6, 3.75], from: -3.6,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], band: { walls: 'darkGlazed', from: 0.05 }, roof: 0.15, roofColor: 0x2a2c2e, onPlatform: true },
+      { name: 'lift porch', plan: [[-58.75, 1.85], [-56.2, 1.85], [-56.2, 4.95], [-58.75, 4.95]], h: [0, 2.7], from: 0.05,
+        walls: 'darkGlazed', sides: [undefined, null, undefined, null], roof: 0.08, roofColor: 0x2a2c2e, onPlatform: true },
+      // the waiting room, north of the columns
+      { name: 'waiting room', plan: [[-26, -3.4], [-17, -3.4], [-17, -0.85], [-26, -0.85]], h: [0, 2.6], from: 0.02,
+        walls: 'greyGlazed', roof: 0.1, roofColor: 0x3c4044, onPlatform: true },
+      // the ticket hall under the tracks, between the city's blocks either side, facing the square
+      // under its canopy: brown tiles beside the glazed front
+      { name: 'hall, north', plan: [[-70, -9.1], [-53.7, -9.1], [-53.7, -4.6], [-70, -4.6]], h: [-8.5, -4.1], from: -7.92,
+        walls: 'brownTiles', sides: [undefined, undefined, null, undefined], roof: 0.5, eaves: [0, 0, 0, 1.8], roofColor: 0xd9d9d4, ground: true },
+      { name: 'hall', plan: [[-70, -4.6], [-53.7, -4.6], [-53.7, 6.6], [-70, 6.6]], h: [-8.5, -4.1], from: -7.92,
+        walls: 'brownTiles', sides: [null, undefined, null, 'steelFront'], roof: 0.5, eaves: [0, 0, 0, 1.8], roofColor: 0xd9d9d4, ground: true,
+        nameSign: { side: 3, at: 0.5, length: 4.4, bottom: -5.15 } },
+      { name: 'hall, south', plan: [[-70, 6.6], [-53.7, 6.6], [-52.3, 12.15], [-70, 12.15]], h: [-8.5, -4.1], from: -7.92,
+        walls: 'brownTiles', sides: [null, undefined, undefined, undefined], roof: 0.5, eaves: [0, 0, 0, 1.8], roofColor: 0xd9d9d4, ground: true },
+      // the escalator's shaft east of the hall, under the viaduct
+      { name: 'stair shaft', plan: [[-53.7, -1.0], [-39.6, -1.0], [-39.6, 3.5], [-53.7, 3.5]], h: [-8.5, -1.0], from: -7.92,
+        walls: 'boardConcrete', ground: true },
+    ],
+    art: [
+      // galvanised masts beside the short opening, and out on the open eastern end with the name
+      { kind: 'masts', height: 4.9, color: 0xa3a8ab, top: false, arm: 0.45, shade: 0xf2f2ee, at: [[-63.5, -2.55], [-63.5, 5.8]] },
+      { kind: 'masts', height: 5.0, color: 0xa3a8ab, top: false, arm: 0.45, shade: 0xf2f2ee, sign: 3.0, at: [[21, -0.15], [37.3, 0.05], [53.8, 0.55], [69.3, 1.5]] },
+    ],
+    benches: { at: [-31.7, -6.9, 5.5, 29, 45, 61], wood: true },
+    fences: [
+      // the railings along the viaduct's edges, mesh between galvanised posts
+      { points: [[-72.6, -7.46], [-63.1, -7.68], [-53.5, -7.92], [-43.9, -8.18], [-34.3, -8.47], [-24.8, -8.76], [-15.2, -9.01], [-5.6, -9.18], [3.9, -9.2], [13.5, -9.04], [23.1, -8.71], [32.6, -8.22], [42.2, -7.58], [51.7, -6.82], [61.2, -5.88], [70.7, -4.8]], h: [-1.05, 0.3], color: 0x9aa0a4 },
+      { points: [[-72.4, 10.79], [-62.8, 10.75], [-53.2, 10.65], [-43.6, 10.5], [-34.1, 10.27], [-24.5, 10], [-14.9, 9.7], [-5.3, 9.38], [4.3, 9.05], [13.8, 8.72], [23.4, 8.41], [33, 8.13], [42.6, 7.9], [52.2, 7.78], [61.7, 7.8], [71.3, 8.05]], h: [-1.05, 0.3], color: 0x9aa0a4 },
+      // black bars round the short opening, beside the lift's tower, and along the long one
+      { kind: 'bars', color: 0x1e1f21, points: [[-61.45, 4.65], [-68.3, 4.65], [-68.3, -1.35], [-58.75, -1.35], [-58.75, 2.1]], h: [0, 1.1] },
+      { kind: 'bars', color: 0x1e1f21, points: [[-39.6, -0.55], [-53.8, -0.55], [-53.8, 3.05], [-39.6, 3.05]], h: [0, 1.1] },
     ],
   },
 };
