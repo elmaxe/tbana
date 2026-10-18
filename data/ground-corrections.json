@@ -234,6 +234,14 @@
     {
       "outline": [[-222.3, -3768.8], [-221.1, -3768.1], [-219.9, -3767.3], [-216.0, -3762.2], [-215.2, -3760.9], [-214.4, -3759.6], [-212.5, -3752.5], [-212.5, -3751.0], [-212.4, -3749.6], [-214.6, -3744.1], [-216.2, -3742.5], [-217.5, -3739.7], [-226.0, -3742.3], [-232.6, -3740.0], [-235.4, -3740.3], [-238.6, -3740.9], [-238.5, -3745.0], [-238.3, -3749.1], [-238.1, -3755.0], [-236.6, -3757.3], [-237.7, -3758.5], [-237.5, -3760.2], [-236.8, -3769.1], [-235.4, -3772.6]],
       "why": "The round square at Frescati in front of Universitetet's station building, paved with stones (OpenStreetMap's pedestrian area): with the building's outlines left out for the station's own, too few buildings stand round it to pave it."
+    },
+    {
+      "outline": [[-989.0, -6626.2], [-934.3, -6632.0], [-910.3, -6403.2], [-965.0, -6397.5]],
+      "why": "Danderyds sjukhus's bus terminal over the station's southern half: the bus street and the platforms under the two long canopies either side of it, asphalt and concrete pavers from 10 m to 240 m south of the platform's middle (Lantmäteriet's laser scan has the canopies' roofs; photographs from the street, 2019). With no buildings beside it, it was grass."
+    },
+    {
+      "outline": [[-1002.6, -6717.3], [-987.2, -6718.9], [-993.1, -6774.6], [-1003.0, -6773.6], [-997.8, -6723.8], [-1003.3, -6723.3]],
+      "why": "The sunken walkway east of Danderyds sjukhus's northern ticket hall, whose door opens in its side: a path in a cutting 4.7 m deep, rising out of it to the north (Lantmäteriet's laser scan)."
     }
   ],
   "shallow": [

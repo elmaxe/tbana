@@ -27,8 +27,10 @@ export interface FlatHall {
   step: number;          // across the slope from the soffit up to the ceiling
   stepOutside?: boolean;
   // columns along the platform, `fromEdge` from the edge to their middle: square; or round
-  // (`round`), in one row down the middle of the platform (`middle`)
-  columns: { fromEdge: number; size: number; spacing: number; round?: boolean; middle?: boolean };
+  // (`round`), in one row down the middle of the platform (`middle`); only those within `near.reach`
+  // m of the point `near.at` (in the scene's metres), where the hall has them along part of its
+  // length only
+  columns: { fromEdge: number; size: number; spacing: number; round?: boolean; middle?: boolean; near?: { at: [number, number]; reach: number } };
   finish: TiledHall | ConcreteHall | BeamedHall;
   // once along each track wall, near the middle of the platform: a plate with the station's old
   // name between two posters, `apart` from it, with their middles `at` high
@@ -92,10 +94,19 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // the vault board-marked too (`vault.boarded`), with a lunette window in its end over the flat
 // part (`vault.window`): concrete from the flat ceiling up to `from`, glass in steel frames about
 // `frames` m apart above it, up to the vault, looking into the ticket hall over the flat part.
+// Danderyds sjukhus's, of 1978, a concrete box: the track walls in white enamel panels from the
+// black band up to `walls.enamel.top`, `rows` of them, each `width` long, with Klara Källström's
+// photographs of 2008 printed on them (tree trunks, the long shadows of trees, people in greens),
+// and the box's board-marked concrete above them up to the ceiling; overhead, over the tracks, the
+// board-marked concrete (`boarded`), and over the platform, from edge to edge, panels of dark
+// expanded metal hung `mesh.below` under it between a beam along each edge, with a tube lamp
+// across in a channel at every cross-section; round columns tiled in grey down the middle along
+// part of the platform (the hall's `columns.near`).
 export interface BeamedHall {
   kind: 'beams';
   walls: {
     color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number }; trees?: boolean;
+    enamel?: { top: number; rows: number; width: number };
     posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number };
   };
   beams?: { depth: number; width: number; between: number | null; along: number; color?: number };
@@ -113,6 +124,7 @@ export interface BeamedHall {
   boards?: { from: number; off?: number; east: Board; west: Board };
   vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number; boarded?: boolean; window?: { from: number; frames: number } };
   boarded?: boolean;
+  mesh?: { below: number };
 }
 export interface Board { toward: string; trains: [string, string] }
 
@@ -419,6 +431,43 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         west: { toward: 'Hässelby', trains: ['18 Hässelby strand  7 min', '19 Hässelby strand  11 min'] },
       },
       vault: { from: [-9981.5, -1829.0], toward: [-9974.9, -1822.2], crown: 7.6, color: 0x8a8680, lamps: 2.2, boarded: true, window: { from: 5.5, frames: 1.4 } },
+    },
+  },
+  // Danderyds sjukhus (1978): a concrete box just under the ground (photographs, 2009–2026). The
+  // track walls in Klara Källström's enamel (2008) over a black band; pale board-marked concrete
+  // over the tracks and above the panels; over the platform grey-brown expanded metal between beams
+  // along its edges, tube lamps across it; terrazzo underfoot, a white edge and a grooved strip;
+  // round columns in small grey tiles down the middle of the platform's southern half only, which
+  // photographs looking south from its middle show and those looking north don't (where along it
+  // they stand is read from them, not measured); long black name signs along the edges, clocks on
+  // the edge beams, and the departure boards across the platform.
+  'Danderyds sjukhus': {
+    kind: 'flat',
+    soffit: 4.75,
+    ceiling: 4.75,
+    step: 0,
+    columns: { fromEdge: 4.5, size: 1.2, spacing: 7, round: true, middle: true, near: { at: [-989.9, -6606.0], reach: 21 } },
+    finish: {
+      kind: 'beams',
+      walls: { color: 0xeeeeea, tile: 0.3, from: 1.4, enamel: { top: 3.2, rows: 4, width: 1.2 }, posters: { width: 1.2, height: 1.75, bottom: 1.75, every: 1.5, run: 2, gap: 13 } },
+      ceiling: 0xc6c2ba,
+      boarded: true,
+      mesh: { below: 0.3 },
+      column: 0x9da5aa,
+      columnTile: 0.06,
+      paving: {
+        edge: 0.62, tactile: [0.62, 0.95], slabs: 0.95, paverSize: [1.2, 1.2], mix: 0.06,
+        colors: { edge: 0xe2dfd8, tactile: 0xa9a291, slab: 0xd3ccbd, pavers: 0xd3ccbd, paler: 0xdad4c6, face: 0x6e6b64 },
+        pattern: 'grid',
+      },
+      signs: { every: 44, at: 3.75, ways: 'Huvudentré · Bussterminal' },
+      clocks: 3.4,
+      // (trains keep left: towards Mörby centrum on the western track)
+      boards: {
+        from: 3, off: 1.7,
+        east: { toward: 'Fruängen', trains: ['14 Fruängen  3 min', '14 Liljeholmen  9 min'] },
+        west: { toward: 'Mörby centrum', trains: ['14 Mörby centrum  2 min', '14 Mörby centrum  8 min'] },
+      },
     },
   },
 };

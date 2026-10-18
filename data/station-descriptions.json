@@ -488,30 +488,95 @@
     },
     "Danderyds sjukhus": {
       "drawing": "danderyds_sjukhus.png",
-      "note": "An island platform in a concrete box just under the ground. Escalators climb from each end to a ticket hall: by the hospital to the south, and to the bus terminal to the north.",
+      "note": "An island platform 180 m long in a concrete box just under the ground (OpenStreetMap's indoor ways, mapped from SL's plans; Lantmäteriet's laser scan). From its northern end an escalator and stairs, and a lift, climb 4.5 m to the northern ticket hall, which opens onto the sunken walkway beside it to the east, open to the south and climbing north by stairs to the street, a cycle path ramping up beside it; from the hall a passage runs north-west under the hospital's grounds to an escalator and stairs up under the canopy at the hospital's main entrance. From its southern end stairs, and a lift, climb to the southern ticket hall, from which passages run under the bus street to stairs up into the bus terminal's waiting hall, and to stairs and a lift up to the bus stops along its western side.",
       "routes": [
-        { "from": [-50, 0], "width": 5, "go": [
-          {"escalators": 5, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [87.5, 0.5], "width": 3.6, "go": [
+          {"escalators": 4.48, "toward": [200, 0.5], "lanes": "SE"},
+          {"walk": [97.5, 0.5], "width": 6},
+          {"walk": [102.5, 1.0], "width": 8},
           {"gates": true},
-          {"walk": 4},
-          {"mark": "south"},
-          {"exit": 13844014787}
+          {"walk": [115.5, 1.5], "width": 6},
+          {"mark": "north"},
+          {"walk": [115.4, 5.5], "width": 4},
+          {"walk": [115.4, 8.9], "open": true, "edges": false},
+          {"mark": "walkway"},
+          {"exit": 54110779, "by": "walk", "open": true}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 1091001564}
+        { "from": [86.5, -3.3], "width": 2.4, "go": [
+          {"walk": [89.8, -3.3], "open": true, "edges": false},
+          {"walk": [91.6, -3.3]},
+          {"lift": 4.48, "through": true},
+          {"walk": [97.5, -3.3]},
+          {"walk": [97.5, -1.0]}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 4696091196}
+        { "from": "north", "width": 4, "go": [
+          {"walk": [116.3, -16.9]},
+          {"walk": [138.2, -66.7]},
+          {"walk": [137.6, -71.0]},
+          {"escalators": 5.52, "toward": [133.8, -84.0], "lanes": "SE", "open": true},
+          {"exit": 12146570693, "by": "walk", "open": true}
         ] },
-        { "from": "south", "width": 4, "go": [
-          {"exit": 1091001417}
-        ] },
-        { "from": [50, 0], "width": 5, "go": [
-          {"escalators": 5, "toward": [150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [-83.5, -1.65], "h": 0.34, "width": 4, "go": [
+          {"stairs": 4.14, "toward": [-200, -1.65], "lanes": "SS"},
+          {"walk": [-92.6, -1.65]},
+          {"walk": [-92.6, 0.6], "width": 2.4},
+          {"walk": [-98.0, 0.6]},
+          {"walk": [-99.5, 0.0], "width": 6},
           {"gates": true},
-          {"exit": 54110779, "by": "walk"}
+          {"walk": [-104.4, 2.6], "width": 5},
+          {"mark": "south"}
+        ] },
+        { "from": [-84, 3.0], "h": 0.34, "width": 2.4, "go": [
+          {"walk": [-89.8, 3.0], "open": true, "edges": false},
+          {"walk": [-93.4, 3.0]},
+          {"walk": [-93.4, -2.0]},
+          {"walk": [-93.7, -2.0]},
+          {"lift": 4.14, "through": true},
+          {"walk": [-97.5, -2.0]},
+          {"walk": [-97.5, 0.6]}
+        ] },
+        { "from": "south", "width": 4, "go": [
+          {"walk": [-105.8, 7.0]},
+          {"mark": "south passages"},
+          {"walk": [-115.7, 37.0]},
+          {"stairs": 4.2, "to": [-121.9, 49.3], "open": true},
+          {"mark": "terminal"},
+          {"exit": 1091001417, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "terminal", "width": 3, "go": [
+          {"walk": [-121.9, 51.5], "open": true, "edges": false},
+          {"walk": [-115.5, 51.5], "open": true, "edges": false},
+          {"exit": 13844014775, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "terminal", "width": 3, "go": [
+          {"walk": [-121.9, 51.5], "open": true, "edges": false},
+          {"walk": [-127.5, 51.5], "open": true, "edges": false},
+          {"walk": [-127.5, 46.0], "open": true, "edges": false},
+          {"exit": 4696091196, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "south passages", "width": 3.5, "go": [
+          {"walk": [-112.4, 7.0]},
+          {"mark": "bus stop"},
+          {"walk": [-117.1, 8.3]},
+          {"exit": 1091001564, "by": "stairs", "open": true}
+        ] },
+        { "from": "bus stop", "width": 2.4, "go": [
+          {"walk": [-112.4, 5.5]},
+          {"exit": {"at": [-113.9, 5.5], "name": "Danderyds sjukhus"}, "by": "lift", "sign": false}
+        ] },
+        { "from": "walkway", "width": 7, "go": [
+          {"walk": [82.5, 8.9], "dh": 0.35, "open": true, "edges": false}
+        ] },
+        { "from": "walkway", "width": 7, "go": [
+          {"walk": [120.5, 8.9], "open": true, "edges": false},
+          {"stairs": 3.6, "toward": [200, 8.9], "open": true},
+          {"walk": [133.0, 8.9], "open": true, "edges": false},
+          {"stairs": 1.1, "toward": [200, 8.9], "open": true},
+          {"walk": [140.0, 8.9], "open": true, "edges": false}
+        ] },
+        { "from": [82.5, 14.45], "h": 5.75, "width": 4.1, "go": [
+          {"walk": [119, 14.45], "dh": 2.65, "open": true, "edges": false},
+          {"walk": [138, 14.45], "dh": 1.2, "open": true, "edges": false}
         ] }
       ]
     },

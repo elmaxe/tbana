@@ -280,6 +280,43 @@
       "why": "Skarpnäck: as for the eastern track, OSM ends the western one 85 m short of the platform's south end."
     }
   ],
+  "moves": [
+    {
+      "node": 91778258,
+      "to": [152385.3, 6586055.6],
+      "why": "Danderyds sjukhus, the western track 164 m south of the station's node: OSM only interpolated both tracks here (source=interpolation), straight and 5 m apart, too close for the island platform between them. OSM's indoor mapping (2026, from SL's plans and local knowledge), whose stairs, lifts and entrances at the street are where Google's mesh and Lantmäteriet's laser scan have them, puts the platform 8 to 12 m west of them and turned a little, its middle from 7.4 m west of OSM's tracks at the foot of the north escalator to 12.2 m west at the foot of the south stairs; the north escalator then climbs beside the sunken path the north entrance opens on (10.9 m high in the laser scan), not under it. The tracks are moved to either side of that line, 12.14 m apart (the platform's 9 m and its edges)."
+    },
+    {
+      "node": 91778256,
+      "to": [152368.5, 6586219.4],
+      "why": "Danderyds sjukhus, the western track at the station's node: moved onto the platform's line, as its node 164 m south."
+    },
+    {
+      "node": 1091016627,
+      "to": [152352.4, 6586375.9],
+      "why": "Danderyds sjukhus, the western track 158 m north of the station's node: moved onto the platform's line, as its node 164 m south."
+    },
+    {
+      "node": 3160187322,
+      "to": [152397.6, 6586054.1],
+      "why": "Danderyds sjukhus, the eastern track 167 m south of the station's node: moved onto the platform's line, as the western track's nodes."
+    },
+    {
+      "node": 3160187268,
+      "to": [152380.6, 6586220.4],
+      "why": "Danderyds sjukhus, the eastern track at the station's node: moved onto the platform's line, as the western track's nodes."
+    },
+    {
+      "node": 11218741191,
+      "to": [152365.6, 6586366.2],
+      "why": "Danderyds sjukhus, the eastern track 146 m north of the station's node: moved onto the platform's line, as the western track's nodes."
+    },
+    {
+      "node": 3160187323,
+      "to": [152364.8, 6586374.4],
+      "why": "Danderyds sjukhus, the eastern track 155 m north of the station's node: moved onto the platform's line, as the western track's nodes."
+    }
+  ],
   "platforms": [
     {
       "station": "Norsborg",
@@ -287,8 +324,10 @@
     },
     {
       "station": "Danderyds sjukhus",
-      "why": "OSM draws the island platform outside the western track, so the eastern track gets no platform and the western one has it on the wrong side. Both are placed from the station's node, which lies between the tracks.",
-      "replace": true
+      "why": "OSM draws the island platform outside the western track, so the eastern track gets no platform and the western one has it on the wrong side. Both are placed from the platform's middle, on its line between the moved tracks (see `moves`), 180 m long (Wikipedia): from 4 m short of where OSM's indoor mapping (2026) has the north end, at the north lift, to 4 m short of its south end, at the south lift.",
+      "replace": true,
+      "at": [152372.7, 6586237.8],
+      "length": 180
     },
     {
       "station": "Aspudden",

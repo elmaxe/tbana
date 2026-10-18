@@ -6104,5 +6104,108 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'escalator head', plan: [[-147.2, -9.6], [-147.2, 5.2], [-153.6, 5.2], [-153.6, -9.6]], h: [9.6, 13.6], from: 9.94, walls: 'roughcast', roof: 0.3, roofColor: 0xd8d8d4 },
     ],
   },
+  // Danderyds sjukhus: the hall is the network's (src/hall-styles.ts); here the ways up, 4.5 m to
+  // the ticket halls, and the bus terminal over the southern one. The ticket hall in the
+  // photographs (2020s): white tiles, a grey terrazzo floor in large squares, a white ceiling;
+  // the escalators, the passages and the southern hall are taken to be finished the same, and
+  // Hertha Hillfon's and Pierre Olofsson's art in the passages, of which no photographs were
+  // found, is left out. The terminal (Lantmäteriet's laser scan; photographs from the bus street,
+  // 2019): long flat canopies along both sides of the street, boarded underneath, dark at the
+  // edges, on a row of grey posts each; under the eastern one the waiting hall, glazed in dark
+  // frames, into which stairs climb from the passage under the street; under the western one a
+  // glass stair house in blue frames over the stairs from the same passage, and a lift beside it.
+  // The northern hall's doors open onto a sunken walkway beside it, 4.8 m down (the laser scan;
+  // photographs, 2016–2019): open to the south, where the ground is as low, and climbing north by
+  // stairs to the street; the hall's front onto it glazed in blue frames, concrete cast against
+  // boards over and beside it, a black railing along the street at its top; along its east side a
+  // cycle path ramps up between a grey steel railing and a tall wall of the same concrete. The
+  // passage north-west under the hospital's grounds comes up by an escalator under the flat
+  // canopy at the main entrance (the laser scan: its top 3.3 m over the ground; a photograph,
+  // 2020: a pale grey edge), on posts (where, inferred).
+  'Danderyds sjukhus': {
+    rooms: [
+      { name: 'south stairs', s: [-92, -83], u: [-4, 0.5], h: [-1, 6], walls: 'squareTiles', stairs: 'squareTiles', ceiling: 'whiteRender' },
+      // the platform's ends, under the hall the network draws: no floor or walls of their own
+      { name: 'platform ends', s: [84, 90], u: [-6, 6], h: [-1, 1.5], floor: null, walls: null },
+      { name: 'platform ends', s: [-90, -84], u: [-6, 6], h: [-1, 1.5], floor: null, walls: null },
+      { name: 'north lift lobby', s: [90, 95], u: [-6, -1.6], h: [-1, 3], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'south lift lobby', s: [-95, -90], u: [-6, 5], h: [-1, 3], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'north escalators', s: [86, 97], u: [-1.6, 4], h: [-1, 9], walls: 'squareTiles', stairs: 'squareTiles', ceiling: 'whiteRender' },
+      // the sunken walkway, its stairs and the ramp beside it, open to the sky
+      { name: 'sunken walkway', s: [80, 141], u: [5.2, 16.6], h: [3, 11], walls: null, floor: 'asphalt', stairs: 'granite' },
+      { name: 'north hall', s: [95, 120], u: [-12, 12], h: [3, 8], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'hospital passage', s: [100, 145], u: [-73.5, -12], h: [3, 8], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'hospital escalators', s: [128, 142], u: [-90, -73.5], h: [3, 12], walls: 'squareTiles', stairs: 'squareTiles', ceiling: 'whiteRender' },
+      { name: 'south hall', s: [-108, -90], u: [-8, 8], h: [3, 8], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      // the stairs up into the stair house and the waiting hall: walls only to a balustrade's
+      // height over their floors, the glass over them
+      { name: 'bus stop stairs', s: [-133, -122], u: [3, 12], h: [3, 10], walls: 'squareTiles', stairs: 'squareTiles', sill: 9.5 },
+      { name: 'terminal stairs', s: [-124, -116], u: [40, 50], h: [3, 10], walls: 'squareTiles', stairs: 'squareTiles', sill: 9.7 },
+      { name: 'passages under the street', s: [-125, -104], u: [4, 40], h: [3, 8], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'waiting hall', s: [-137, -99], u: [38, 57], h: [7.5, 10], walls: null, floor: 'terrazzo' },
+    ],
+    buildings: ['w63545446', 'w117542132'],
+    blocks: [
+      // the sunken walkway: the city's ground and the street cut away over it (the elevation
+      // model's 5 m grid humps over it), its floors the station's own
+      { name: 'sunken walkway', plan: [[84, 5.4], [84, 12.4], [140, 12.4], [140, 5.4]], h: [4.48, 10.4], from: 4.48,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      // its west wall, up to the street over the hall (15.7 m over the sea), glazed in front of the hall
+      { name: 'sunken walkway, west wall', plan: [[84, 5.1], [84, 5.4], [104, 5.4], [104, 5.1]], h: [4.48, 9.3], from: 4.48,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8f8d86, ground: true },
+      { name: "northern hall's front", plan: [[104, 5.1], [104, 5.4], [119, 5.4], [119, 5.1]], h: [4.48, 9.3], from: 4.48,
+        walls: 'blueGlazed', band: { walls: 'boardConcrete', from: 8.0 }, roof: 0.05, roofColor: 0x8f8d86, ground: true },
+      { name: 'sunken walkway, west wall by the stairs', plan: [[119, 5.1], [119, 5.4], [140, 5.4], [140, 5.1]], h: [4.48, 9.3], from: 4.48,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8f8d86, ground: true },
+      // the ramp along its east side, 12.2 m over the sea at its south end, 14.8 m at the stairs'
+      // foot and 16 m at the top (its floor the station's own), and the wall along it
+      { name: 'ramp', plan: [[84, 12.4], [84, 16.4], [119, 16.4], [119, 12.4]], h: [4.48, 7.75], from: 5.75, fall: 8.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'ramp, beside the stairs', plan: [[119, 12.4], [119, 16.4], [138, 16.4], [138, 12.4]], h: [4.48, 10.4], from: 8.4, fall: 9.6,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: "ramp's wall", plan: [[84, 16.5], [84, 16.9], [138, 16.9], [138, 16.5]], h: [5.75, 9.3], lowBack: 5.85, from: 5.75, fall: 9.6,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8f8d86, ground: true },
+      // the canopy at the hospital's main entrance, its top 19.7 m over the sea
+      { name: 'hospital canopy', plan: [[133, -109], [141, -109], [141, -72.5], [133, -72.5]], h: [12.78, 12.78], from: 12.78,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whiteRender', roof: 0.5, roofColor: 0xb4b7b8 },
+      { name: 'hospital canopy, by the doors', plan: [[126, -92], [133, -92], [133, -74], [126, -74]], h: [12.78, 12.78], from: 12.78,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whiteRender', roof: 0.5, roofColor: 0xb4b7b8 },
+      // the waiting hall (OpenStreetMap's outline, in two)
+      { name: 'waiting hall', plan: [[-111.46, 38.05], [-133.5, 38.0], [-135.5, 52.5], [-114.33, 54.25]], h: [8.3, 12.2], from: 8.68,
+        walls: 'darkGlazed', floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.05, ground: true },
+      { name: 'waiting hall, north wing', plan: [[-112.9, 46.1], [-100.07, 47.29], [-100.38, 55.44], [-114.33, 54.25]], h: [8.3, 12.2], from: 8.68,
+        walls: 'darkGlazed', sides: [undefined, undefined, undefined, null], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.05, ground: true },
+      { name: 'stair house', plan: [[-131.21, 4.96], [-119.41, 5], [-119.42, 10.51], [-131.22, 10.47]], h: [8.2, 12.1], from: 8.46,
+        walls: 'blueGlazed', floor: 'terrazzo', ceiling: 'pineBoards', roof: 0.3, roofColor: 0x3c3f42, ground: true },
+      // the canopies, their tops 18.95 m (west) and 19.1 m (east) over the sea
+      { name: 'western canopy', plan: [[-237, 7.8], [-30, 7.8], [-30, 12.8], [-237, 12.8]], h: [12.18, 12.18], from: 12.18,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.35, roofColor: 0x3c3f42 },
+      { name: 'eastern canopy, west half', plan: [[-202, 33.5], [-14, 33.5], [-14, 38.5], [-202, 38.5]], h: [12.33, 12.33], from: 12.33,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.35, roofColor: 0x3c3f42 },
+      { name: 'eastern canopy, east half', plan: [[-202, 48.5], [-14, 48.5], [-14, 55], [-202, 55]], h: [12.33, 12.33], from: 12.33,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.35, roofColor: 0x3c3f42 },
+      // (closed between its halves over the waiting hall)
+      { name: 'eastern canopy, over the waiting hall', plan: [[-137, 38.5], [-100, 38.5], [-100, 48.5], [-137, 48.5]], h: [12.33, 12.33], from: 12.33,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.35, roofColor: 0x3c3f42 },
+    ],
+    art: [
+      // the canopies' posts, about 6 m apart (photographs), clear of the buildings under them
+      { kind: 'columns', at: Array.from({ length: 34 }, (_, k): [number, number] => [-34 - 6 * k, 8.4]).filter(([s]) => s > -118.8 || s < -131.8),
+        from: 7.8, to: 12.18, size: 0.25, color: 0x8a8d8f },
+      { kind: 'columns', at: Array.from({ length: 31 }, (_, k): [number, number] => [-18 - 6 * k, 36]),
+        from: 7.8, to: 12.33, size: 0.25, color: 0x8a8d8f },
+      { kind: 'columns', at: Array.from({ length: 31 }, (_, k): [number, number] => [-18 - 6 * k, 51.8]).filter(([s]) => s > -99.5 || s < -136),
+        from: 7.8, to: 12.33, size: 0.25, color: 0x8a8d8f },
+      // the hospital canopy's, along its open sides
+      { kind: 'columns', at: [[140.4, -108.4], [140.4, -99.4], [140.4, -90.4], [140.4, -73.1], [133.6, -73.1]],
+        from: 9.9, to: 12.78, size: 0.3, color: 0xb4b7b8 },
+    ],
+    fences: [
+      // the ramp's railing and the one on its wall, and the street's along the walkway's top
+      { points: [[84, 12.5], [119, 12.5, 2.65], [138, 12.5, 3.85]], h: [5.75, 6.85], kind: 'bars', color: 0x7a7f83 },
+      { points: [[84, 16.7], [138, 16.7, 0.4]], h: [9.35, 10.45], kind: 'bars', color: 0x7a7f83 },
+      { points: [[84, 5.25], [140, 5.25]], h: [9.35, 10.45], kind: 'bars' },
+    ],
+  },
 
 };

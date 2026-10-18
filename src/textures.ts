@@ -2853,6 +2853,30 @@ export function perforatedCeiling() {
   return toTexture(c);
 }
 
+// Danderyds sjukhus's ceiling over the platform: grey-brown expanded metal, its strands catching
+// the light in small diamonds, the dark void showing through them, in panels between steel
+// profiles (the texture covers 1.8 m across the platform, u, by 2.5 m along it, v).
+export function meshCeiling() {
+  const PX = 160, W = Math.round(1.8 * PX), H = Math.round(2.5 * PX), [c, x] = canvas(W, H);
+  x.fillStyle = '#34322f'; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#8e8a83'; x.lineWidth = 2.2;
+  const dx = 0.06 * PX, dy = 0.03 * PX;
+  for (let j = 0; j * dy < H; j++) {
+    x.beginPath();
+    for (let i = 0; i * dx <= W; i++) {
+      const px = i * dx + (j % 2 ? dx / 2 : 0), py = j * dy;
+      x.moveTo(px - dx / 2, py); x.lineTo(px, py + dy / 2); x.lineTo(px + dx / 2, py);
+    }
+    x.stroke();
+  }
+  // each panel a shade off the next, the profiles round them
+  const r = rng(1978);
+  x.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},${0.02 + r() * 0.04})`; x.fillRect(0, 0, W, H / 2);
+  x.fillStyle = '#8c8f92'; x.fillRect(0, 0, 4, H); x.fillRect(0, 0, W, 3); x.fillRect(0, H / 2 - 1, W, 2);
+  x.fillStyle = 'rgba(0,0,0,0.4)'; x.fillRect(4, 0, 2, H);
+  return toTexture(c);
+}
+
 // The columns' cladding: small tiles, 5 × 10 cm, in greys, stacked in columns with dark joints (the
 // texture covers 1 × 1 m, u round the column, v up it).
 export function mosaicColumn() {
@@ -2881,10 +2905,15 @@ export function mosaicColumn() {
 // walls of 1987): the tunnel's rock left standing out of them in dark outcrops from the floor,
 // up to a little over the platform here and nearly to the ceiling there, rather than the black
 // band, and thin pale trees drawn on the tiles between them, trunks with a few branches.
+// Danderyds sjukhus's (`enamel`): white enamel panels from the black band up to `enamel.top`, in
+// `rows` rows of panels `width` long, with Klara Källström's photographs of 2008 printed across
+// them: tree trunks standing in the light, the long shadows of trees falling across the panels in
+// pairs of black stripes, and people in greens, standing, walking or on the phone; above them
+// the box's concrete, board-marked aslant, up to the ceiling.
 type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
 export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
 export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters,
-  { top = 0, plate, mirror = false, trees = false }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean } = {}) {
+  { top = 0, plate, mirror = false, trees = false, enamel }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean; enamel?: { top: number; rows: number; width: number } } = {}) {
   const repeat = beamedWallRepeat(posters);
   const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
   const r = rng(1933), Y = (h: number) => H - h * PX;
@@ -2944,6 +2973,7 @@ export function beamedHallWall(height: number, color: number, tile: number, from
     x.fillStyle = '#3a3a3b'; x.fillRect(0, Y(from), W, 2);
     speckle(x, W, from * PX, 900, 0.12, 1934, true);
   }
+  if (enamel) kallstromEnamel(x, W, H, PX, from, enamel, rng(2008));
   if (top) {
     // the plain band under the ceiling, a little shadow along its foot
     x.fillStyle = '#e4dfd2'; x.fillRect(0, 0, W, top * PX);
@@ -3000,6 +3030,99 @@ export function beamedHallWall(height: number, color: number, tile: number, from
   y.setTransform(0, 1, -1, 0, H, 0);
   y.drawImage(src, 0, 0);
   return toTexture(c);
+}
+
+// Danderyds sjukhus's track walls over the black band (beamedHallWall's `enamel`), drawn on its
+// canvas: `PX` to the metre, heights from the floor beside the track.
+function kallstromEnamel(x: CanvasRenderingContext2D, W: number, H: number, PX: number, from: number, enamel: { top: number; rows: number; width: number }, r: () => number) {
+  const Y = (h: number) => H - h * PX, e0 = from, e1 = enamel.top, ph = (e1 - e0) / enamel.rows;
+  // the concrete over the panels: a pale grey, cast against boards 10 cm wide laid aslant, the
+  // other way every 1.2 m, a little mottled
+  x.fillStyle = '#c9c6be'; x.fillRect(0, 0, W, Y(e1));
+  x.save(); x.beginPath(); x.rect(0, 0, W, Y(e1)); x.clip();
+  for (let k = 0; k * 1.2 * PX < W; k++) {
+    const x0 = k * 1.2 * PX, d = k % 2 ? 1 : -1;
+    x.save(); x.beginPath(); x.rect(x0, 0, 1.2 * PX, Y(e1)); x.clip();
+    for (let j = -40; j < 60; j++) {
+      const v = 190 + Math.floor(r() * 14);
+      x.strokeStyle = `rgba(${v - 60},${v - 62},${v - 68},0.22)`; x.lineWidth = 1;
+      const o = x0 + j * 0.1 * PX * Math.SQRT2;
+      x.beginPath(); x.moveTo(o, Y(e1)); x.lineTo(o + d * Y(e1), 0); x.stroke();
+    }
+    x.restore();
+    x.fillStyle = 'rgba(90,86,80,0.25)'; x.fillRect(x0, 0, 1, Y(e1));
+  }
+  for (let k = 0; k < 90; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '70,66,60' : '235,232,226'},${0.04 + r() * 0.06})`; x.beginPath(); x.ellipse(r() * W, r() * Y(e1), 10 + r() * 50, 5 + r() * 18, 0, 0, Math.PI * 2); x.fill(); }
+  x.restore();
+  // a steel trim along the panels' top
+  x.fillStyle = '#9a9c9d'; x.fillRect(0, Y(e1) - 2, W, 3);
+  // the panels, white enamel in grey joints
+  x.save(); x.beginPath(); x.rect(0, Y(e1), W, (e1 - e0) * PX); x.clip();
+  x.fillStyle = '#a9aaa8'; x.fillRect(0, Y(e1), W, (e1 - e0) * PX);
+  const pw = enamel.width * PX;
+  for (let j = 0; j < enamel.rows; j++) for (let i = 0; i * pw < W; i++) {
+    const v = 240 + Math.floor(r() * 6);
+    x.fillStyle = `rgb(${v},${v},${v - 3})`;
+    x.fillRect(i * pw + 1, Y(e0 + (j + 1) * ph) + 1, pw - 2, ph * PX - 2);
+  }
+  // the shadows of trees: pairs of black stripes rising across the panels, low and long
+  for (let along = r() * 3; along < W / PX - 2; along += 2.5 + r() * 4) {
+    const slope = 0.32 + r() * 0.22, len = (e1 - e0) / slope, w = 0.06 + r() * 0.03, gap = 0.16 + r() * 0.14;
+    x.strokeStyle = '#161616'; x.lineCap = 'butt';
+    const pair = r() < 0.75 ? [0, gap] : [0];
+    for (const g of pair) {
+      x.lineWidth = w * PX;
+      x.beginPath(); x.moveTo((along + g) * PX, Y(e0 - 0.1)); x.lineTo((along + g + len * 1.08) * PX, Y(e1 + 0.1)); x.stroke();
+    }
+  }
+  // the trunks, upright from the band to the top, birch-grey and streaked, one or two together
+  for (let along = 1 + r() * 4; along < W / PX - 1; along += 5 + r() * 8) {
+    for (let n = r() < 0.4 ? 2 : 1, k = 0; k < n; k++) {
+      const tx = (along + k * (0.4 + r() * 0.5)) * PX, tw = (0.09 + r() * 0.06) * PX;
+      const g = x.createLinearGradient(tx, 0, tx + tw, 0);
+      g.addColorStop(0, '#8d8372'); g.addColorStop(0.35, '#c9bea8'); g.addColorStop(0.7, '#b3a790'); g.addColorStop(1, '#6f6656');
+      x.fillStyle = g; x.fillRect(tx, Y(e1), tw, (e1 - e0) * PX);
+      for (let m = 0; m < 26; m++) {
+        x.fillStyle = `rgba(${r() < 0.6 ? '60,52,42' : '230,224,210'},${0.25 + r() * 0.35})`;
+        x.fillRect(tx + r() * tw * 0.8, Y(e0 + r() * (e1 - e0)), 1 + r() * tw * 0.4, 1 + r() * 3);
+      }
+    }
+  }
+  // people, in greens: some near and tall, some smaller and further off, standing, walking, a
+  // hand at the hip or a phone at the ear
+  const greens = ['#5f9e3e', '#4c8a3a', '#2f6e3a', '#7fb44a', '#3d7f47', '#93c25a'];
+  for (let along = 0.8 + r() * 3; along < W / PX - 1; along += 2.2 + r() * 5) {
+    const h = (r() < 0.35 ? 1.25 + r() * 0.35 : 0.55 + r() * 0.5) * PX, foot = Y(e0 + 0.06 + r() * 0.12);
+    person(x, along * PX, Math.min(foot, Y(e0) - 2), Math.min(h, (e1 - e0 - 0.15) * PX), greens[Math.floor(r() * greens.length)], r);
+  }
+  x.restore();
+}
+
+// A person's silhouette, `h` tall, standing on (cx, foot): head, body, legs apart or together, an
+// arm hanging, at the hip or raised to the ear.
+function person(x: CanvasRenderingContext2D, cx: number, foot: number, h: number, color: string, r: () => number) {
+  x.fillStyle = color; x.strokeStyle = color; x.lineCap = 'round';
+  const head = h * 0.13, shoulder = foot - h * 0.82, hip = foot - h * 0.47, wide = h * 0.13, lean = (r() - 0.5) * h * 0.06;
+  x.beginPath(); x.ellipse(cx + lean, foot - h + head / 2, head * 0.42, head / 2, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath();
+  x.moveTo(cx + lean - wide, shoulder); x.lineTo(cx + lean + wide, shoulder);
+  x.lineTo(cx + wide * 0.8, hip); x.lineTo(cx - wide * 0.8, hip); x.closePath(); x.fill();
+  // the legs: apart when walking
+  const stride = r() < 0.5 ? h * (0.1 + r() * 0.12) : h * 0.03;
+  x.lineWidth = h * 0.085;
+  x.beginPath(); x.moveTo(cx - wide * 0.4, hip); x.lineTo(cx - stride, foot - h * 0.02); x.stroke();
+  x.beginPath(); x.moveTo(cx + wide * 0.4, hip); x.lineTo(cx + stride, foot - h * 0.02); x.stroke();
+  // the arms
+  x.lineWidth = h * 0.06;
+  const pose = r();
+  for (const side of [-1, 1]) {
+    const sx = cx + lean + side * wide * 0.95, sy = shoulder + h * 0.02;
+    x.beginPath(); x.moveTo(sx, sy);
+    if (pose < 0.3 && side > 0) { x.lineTo(sx + side * h * 0.1, sy + h * 0.12); x.lineTo(cx + lean + side * head * 0.5, foot - h + head * 0.7); }
+    else if (pose < 0.6 && side < 0) { x.lineTo(sx + side * h * 0.12, sy + h * 0.15); x.lineTo(cx + side * wide * 0.8, hip); }
+    else x.lineTo(sx + side * h * 0.03, hip + h * 0.04);
+    x.stroke();
+  }
 }
 
 // ------------------------------------------------------------------ Medborgarplatsen's hall
