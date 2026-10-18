@@ -2384,19 +2384,46 @@ export function stadionPlinth(kind?: 'grey' | 'granite') {
 }
 
 // The ceiling: black expanded steel mesh between dark beams across the hall every 1.5 m (the
-// texture covers 1.5 × 1.5 m, the beam along its top edge: v along the track).
-export function stadionCeiling() {
+// texture covers 1.5 × 1.5 m, the beam along its top edge: v along the track); or in other
+// colours: behind the mesh, its strands and the beams.
+export function stadionCeiling(back = '#1e2023', strand = '#4a4d52', beam = '#383a3e') {
   const [c, x] = canvas(256);
-  x.fillStyle = '#1e2023'; x.fillRect(0, 0, 256, 256);
-  x.strokeStyle = '#4a4d52'; x.lineWidth = 2;
+  x.fillStyle = back; x.fillRect(0, 0, 256, 256);
+  x.strokeStyle = strand; x.lineWidth = 2;
   const p = 12;
   for (let k = -256; k < 512; k += p) {
     x.beginPath(); x.moveTo(k, 0); x.lineTo(k + 256, 256); x.stroke();
     x.beginPath(); x.moveTo(k, 256); x.lineTo(k + 256, 0); x.stroke();
   }
-  x.fillStyle = '#383a3e'; x.fillRect(0, 0, 256, 14);
+  x.fillStyle = beam; x.fillRect(0, 0, 256, 14);
   x.fillStyle = '#5a5d62'; x.fillRect(0, 14, 256, 2);
   return toTexture(c);
+}
+
+// Rock painted black, smoothed but still lumpy: 4.8 m along by the height of a track wall (a
+// cave's, from the track's floor up to its ceiling).
+export function blackRock() {
+  const W = 480, H = 520, [c, x] = canvas(W, H), r = rng(1978);
+  x.fillStyle = '#161618'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 900; k++) {
+    const cx = r() * W, cy = r() * H, rx = 6 + r() * 26, ry = 4 + r() * 14, v = Math.floor(r() * 26);
+    x.fillStyle = r() < 0.5 ? `rgba(${40 + v},${40 + v},${43 + v},0.35)` : `rgba(4,4,5,${0.25 + r() * 0.3})`;
+    for (const dx of [-W, 0, W]) { x.beginPath(); x.ellipse(cx + dx, cy, rx, ry, r() * Math.PI, 0, Math.PI * 2); x.fill(); }
+  }
+  speckle(x, W, H, 3000, 0.12, 1978);
+  return toTexture(c);
+}
+
+// A stripe painted along a wall in lengths of colour, from its one end to its other, a thin
+// dark line between them.
+export function colourStripe(colors: string[]) {
+  const W = 1024, H = 8, [c, x] = canvas(W, H), n = colors.length;
+  colors.forEach((col, k) => {
+    x.fillStyle = col; x.fillRect((k * W) / n, 0, W / n + 1, H);
+    x.fillStyle = 'rgba(0,0,0,0.5)'; x.fillRect((k * W) / n, 0, 1, H);
+  });
+  x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(0, 0, W, 1);
+  return toTexture(c, { repeat: false });
 }
 
 // Panels of green expanded steel mesh, on posts 1.2 m apart (the texture covers 1.2 × 1.2 m, a
@@ -6901,3 +6928,303 @@ export function scheinBlue() {
   return toTexture(c);
 }
 
+
+// Bergshamra's "Röster från det förflutna" (Göran Dahl, Carl Johan De Geer and Kristina Anshelm,
+// 1978), on the cores' sides: a row of `n` panels of black glass, each 1.35 m wide and 2.2 m high,
+// in frames of brushed steel, the dark rock showing through them, painted over several panels at
+// a time (photographs, 2009–2016): a yellow bus, a green serpent with runes along it as on a rune
+// stone, a green fish scaled in yellow, red drops along the top. `seed`: which and where.
+export function bergshamraGlass(n: number, seed: number) {
+  const PX = 80, W = Math.round(n * 1.35 * PX), H = Math.round(2.2 * PX), [c, x] = canvas(W, H), r = rng(seed);
+  const L = W / PX;
+  x.fillStyle = '#17181a'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < n * 70; k++) {
+    const v = Math.floor(r() * 22);
+    x.fillStyle = r() < 0.5 ? `rgba(${44 + v},${44 + v},${46 + v},0.4)` : `rgba(4,4,5,0.35)`;
+    x.beginPath(); x.ellipse(r() * W, r() * H, 4 + r() * 18, 3 + r() * 9, r() * Math.PI, 0, Math.PI * 2); x.fill();
+  }
+  // (in metres from the bottom left)
+  x.save(); x.setTransform(PX, 0, 0, -PX, 0, H);
+  const yellow = '#e2cd2b', green = '#207b36', dark = '#17181a';
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  const bus = (bx: number, bw: number) => {
+    // the body, filled, with a sloping front to the right; windows, a door and the wheels' arches
+    // left dark
+    x.fillStyle = yellow;
+    x.beginPath(); x.moveTo(bx, 0.45); x.lineTo(bx + bw, 0.45); x.lineTo(bx + bw, 1.3); x.lineTo(bx + bw - 0.35, 1.85); x.lineTo(bx + 0.1, 1.85); x.lineTo(bx, 1.75); x.closePath(); x.fill();
+    x.fillStyle = dark;
+    const nw = Math.max(3, Math.round((bw - 1.2) / 0.85));
+    for (let k = 0; k < nw; k++) x.fillRect(bx + 0.3 + k * ((bw - 1.3) / nw), 1.22, (bw - 1.3) / nw - 0.14, 0.48);
+    x.beginPath(); x.moveTo(bx + bw - 0.85, 1.22); x.lineTo(bx + bw - 0.12, 1.22); x.lineTo(bx + bw - 0.38, 1.7); x.lineTo(bx + bw - 0.85, 1.7); x.closePath(); x.fill();
+    x.fillRect(bx + bw - 1.6, 0.6, 0.5, 1.0);
+    for (const wx of [bx + 0.95, bx + bw - 0.75]) {
+      x.fillStyle = dark; x.beginPath(); x.arc(wx, 0.45, 0.42, 0, Math.PI); x.fill();
+      x.strokeStyle = yellow; x.lineWidth = 0.08; x.beginPath(); x.arc(wx, 0.42, 0.3, 0, Math.PI * 2); x.stroke();
+      x.beginPath(); x.arc(wx, 0.42, 0.08, 0, Math.PI * 2); x.stroke();
+    }
+  };
+  const serpent = (x0: number, x1: number, y: number, amp: number, phase: number) => {
+    const pts: [number, number][] = [];
+    for (let t = 0; t <= 1.0001; t += 0.01) pts.push([x0 + (x1 - x0) * t, y + amp * Math.sin(phase + t * Math.PI * 2.4) * (0.4 + 0.6 * Math.sin(Math.PI * Math.min(1, t * 1.6)))]);
+    const path = () => { x.beginPath(); pts.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py))); };
+    x.strokeStyle = green; x.lineWidth = 0.24; path(); x.stroke();
+    x.strokeStyle = yellow; x.lineWidth = 0.03; path(); x.stroke();
+    // the runes along it: staves with their twigs, dark on the green
+    x.strokeStyle = '#0d2913'; x.lineWidth = 0.022;
+    for (let k = 2; k < pts.length - 6; k += 2) {
+      const [ax, ay] = pts[k], [bx, by] = pts[k + 1], d = Math.hypot(bx - ax, by - ay) || 1, nx = -(by - ay) / d, ny = (bx - ax) / d;
+      x.beginPath(); x.moveTo(ax - nx * 0.08, ay - ny * 0.08); x.lineTo(ax + nx * 0.08, ay + ny * 0.08);
+      const tw = r();
+      if (tw < 0.6) { x.moveTo(ax + nx * 0.03, ay + ny * 0.03); x.lineTo(ax + nx * 0.08 + (bx - ax) * 0.6, ay + ny * 0.08 + (by - ay) * 0.6); }
+      if (tw > 0.4) { x.moveTo(ax - nx * 0.02, ay - ny * 0.02); x.lineTo(ax - nx * 0.07 + (bx - ax) * 0.6, ay - ny * 0.07 + (by - ay) * 0.6); }
+      x.stroke();
+    }
+    // the head at its far end, an eye in it, and the tail tapering at its start
+    const [hx, hy] = pts[pts.length - 1], [px, py] = pts[pts.length - 4], a = Math.atan2(hy - py, hx - px);
+    x.save(); x.translate(hx, hy); x.rotate(a);
+    x.fillStyle = green; x.beginPath(); x.ellipse(0.12, 0, 0.3, 0.17, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = yellow; x.lineWidth = 0.035; x.beginPath(); x.moveTo(0.2, -0.04); x.lineTo(0.42, -0.02); x.stroke();
+    x.fillStyle = yellow; x.beginPath(); x.arc(0.14, 0.06, 0.045, 0, Math.PI * 2); x.fill();
+    x.restore();
+  };
+  const fish = (fx: number, fy: number, s: number, dir: number) => {
+    x.save(); x.translate(fx, fy); x.scale(dir * s, s);
+    x.fillStyle = green;
+    x.beginPath(); x.ellipse(0, 0, 0.62, 0.3, 0, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.moveTo(-0.5, 0); x.lineTo(-0.95, 0.3); x.lineTo(-0.85, 0); x.lineTo(-0.95, -0.3); x.closePath(); x.fill();
+    x.beginPath(); x.moveTo(-0.1, 0.26); x.lineTo(0.15, 0.45); x.lineTo(0.25, 0.25); x.closePath(); x.fill();
+    x.strokeStyle = yellow; x.lineWidth = 0.035;
+    for (let i = 0; i < 5; i++) for (let j = -1; j <= 1; j++) {
+      const sx = -0.32 + i * 0.13, sy = j * 0.12 + (i % 2) * 0.06;
+      if ((sx / 0.6) ** 2 + (sy / 0.27) ** 2 > 0.8) continue;
+      x.beginPath(); x.arc(sx, sy, 0.065, -Math.PI / 2, Math.PI / 2); x.stroke();
+    }
+    x.beginPath(); x.arc(0.38, 0.06, 0.07, 0, Math.PI * 2); x.stroke();
+    x.fillStyle = dark; x.beginPath(); x.arc(0.39, 0.06, 0.03, 0, Math.PI * 2); x.fill();
+    x.beginPath(); x.moveTo(0.62, -0.02); x.lineTo(0.48, -0.08); x.stroke();
+    x.restore();
+  };
+  const k = seed % 3;
+  if (k === 0) {
+    bus(0.25, Math.min(6.2, L * 0.62));
+    serpent(0.1, L - 0.4, 0.95, 0.35, 0.3);
+    fish(Math.min(4.3, L * 0.45), 1.05, 1, 1);
+  } else if (k === 1) {
+    serpent(0.2, L - 0.3, 1.1, 0.55, 2);
+    fish(L * 0.3, 0.75, 0.9, -1);
+    fish(L * 0.72, 1.45, 0.7, 1);
+  } else {
+    bus(L * 0.4, Math.min(5.4, L * 0.55));
+    fish(L * 0.2, 1.2, 1.2, 1);
+    serpent(0.3, L * 0.95, 0.7, 0.25, 4);
+  }
+  // red drops along the top
+  x.fillStyle = '#c4321e';
+  for (let px = 0.1; px < L - 0.2; px += 0.25 + r() * 0.6) {
+    if (r() < 0.35) continue;
+    const w = 0.15 + r() * 0.45;
+    x.beginPath(); x.moveTo(px, 2.12); x.lineTo(px + w, 2.12); x.lineTo(px + w, 2.02);
+    x.quadraticCurveTo(px + w * 0.6, 1.98 - r() * 0.1, px + w / 2, 1.9 - r() * 0.12);
+    x.quadraticCurveTo(px + w * 0.4, 2.0, px, 2.0); x.closePath(); x.fill();
+  }
+  x.restore();
+  // a sheen on each pane, and the frames
+  for (let p = 0; p < n; p++) {
+    const g = x.createLinearGradient(p * 1.35 * PX, 0, (p + 1) * 1.35 * PX, H);
+    g.addColorStop(0, 'rgba(255,255,255,0.07)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.04)');
+    x.fillStyle = g; x.fillRect(p * 1.35 * PX, 0, 1.35 * PX, H);
+  }
+  x.fillStyle = '#a2a7aa';
+  for (let p = 0; p <= n; p++) x.fillRect(Math.min(W - 4, Math.max(0, p * 1.35 * PX - 2)), 0, 4, H);
+  x.fillRect(0, 0, W, 3); x.fillRect(0, H - 4, W, 4);
+  return toTexture(c, { repeat: false });
+}
+
+// Slabs of dark natural stone, greys and browns, mottled and veined, set in a band in the cores'
+// sides at Bergshamra over a pale plinth, the rock between them; `w` × `h` m, the joints left
+// clear for the rock to show.
+export function bergshamraStones(w: number, h: number, seed: number) {
+  const PX = 80, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H), r = rng(seed);
+  x.clearRect(0, 0, W, H);
+  const cols = ['#4b4743', '#58534d', '#3f3d3a', '#5f5a53', '#4f4b4a', '#665f56'];
+  let x0 = 0;
+  while (x0 < W - 0.3 * PX) {
+    const cw = Math.min(W - x0, (0.7 + r() * 0.9) * PX), rows = r() < 0.55 ? 1 : 2;
+    let y0 = 0;
+    for (let j = 0; j < rows; j++) {
+      const ch = j + 1 === rows ? H - y0 : H * (0.4 + r() * 0.2);
+      const g = 0.025 * PX + r() * 0.03 * PX, jig = () => (r() - 0.5) * 0.08 * PX;
+      const quad: [number, number][] = [[x0 + g + jig(), y0 + g + jig()], [x0 + cw - g + jig(), y0 + g + jig()], [x0 + cw - g + jig(), y0 + ch - g + jig()], [x0 + g + jig(), y0 + ch - g + jig()]];
+      x.save();
+      x.beginPath(); quad.forEach(([px, py], k) => (k ? x.lineTo(px, py) : x.moveTo(px, py))); x.closePath();
+      x.fillStyle = cols[Math.floor(r() * cols.length)]; x.fill();
+      x.clip();
+      for (let k = 0; k < (cw * ch) / 60; k++) {
+        const v = Math.floor(r() * 60);
+        x.fillStyle = r() < 0.5 ? `rgba(${110 + v},${104 + v},${96 + v},0.35)` : `rgba(20,18,16,0.3)`;
+        x.fillRect(x0 + r() * cw, y0 + r() * ch, 1 + r() * 3, 1 + r() * 3);
+      }
+      x.strokeStyle = 'rgba(190,184,172,0.35)'; x.lineWidth = 1 + r() * 2;
+      for (let k = 0; k < 2; k++) {
+        x.beginPath(); let vx = x0 + r() * cw, vy = y0;
+        x.moveTo(vx, vy);
+        while (vy < y0 + ch) { vx += (r() - 0.5) * 18; vy += 8 + r() * 10; x.lineTo(vx, vy); }
+        x.stroke();
+      }
+      const gl = x.createLinearGradient(x0, y0, x0 + cw, y0 + ch);
+      gl.addColorStop(0, 'rgba(255,255,255,0.1)'); gl.addColorStop(1, 'rgba(0,0,0,0.12)');
+      x.fillStyle = gl; x.fillRect(x0, y0, cw, ch);
+      x.restore();
+      y0 += ch;
+    }
+    x0 += cw;
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// Bergshamra's panels of photographs in black and white behind glass, in black frames: `kind` 0,
+// a collage 8 × 2.2 m of scenes of the city (a harbour, a road curving into the distance,
+// blocks of flats, people), and then two panes of chevrons in pale greys with little figures
+// drawn over them; 1, a man in a long coat standing, 1.4 × 2.4 m; 2, a landscape of trees by
+// water, dim, 5.2 × 2 m. Drawn in code, after the photographs of them (2015–2026).
+export function bergshamraPhotos(kind: number) {
+  const PX = 90, [w, h] = [[8, 2.2], [1.4, 2.4], [5.2, 2]][kind], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H), r = rng(1978 + kind);
+  const f = 0.06 * PX;
+  x.fillStyle = '#111213'; x.fillRect(0, 0, W, H);
+  const grey = (v: number) => `rgb(${v},${v},${v})`;
+  const scene = (x0: number, x1: number, y0: number, y1: number, k: number) => {
+    x.save(); x.beginPath(); x.rect(x0, y0, x1 - x0, y1 - y0); x.clip();
+    const g = x.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, grey(200 - k * 10)); g.addColorStop(1, grey(120 + k * 8));
+    x.fillStyle = g; x.fillRect(x0, y0, x1 - x0, y1 - y0);
+    const hz = y0 + (y1 - y0) * (0.35 + r() * 0.25);
+    if (k % 3 === 0) {
+      // a harbour: water, a quay, boats and cranes
+      x.fillStyle = grey(95); x.fillRect(x0, hz, x1 - x0, y1 - hz);
+      for (let q = 0; q < 6; q++) { x.fillStyle = grey(40 + r() * 40); const bx = x0 + r() * (x1 - x0), bw = 20 + r() * 50; x.fillRect(bx, hz + 6 + r() * 30, bw, 8 + r() * 6); x.fillRect(bx + bw * 0.3, hz - 10 - r() * 16, 4, 20); }
+      x.strokeStyle = grey(60); x.lineWidth = 3; x.beginPath(); x.moveTo(x0 + 20, hz); x.lineTo(x0 + 30, hz - 60); x.lineTo(x0 + 90, hz - 60); x.stroke();
+    } else if (k % 3 === 1) {
+      // a road curving into the distance
+      x.fillStyle = grey(70); x.fillRect(x0, hz, x1 - x0, y1 - hz);
+      x.fillStyle = grey(165);
+      x.beginPath(); x.moveTo(x0 + (x1 - x0) * 0.2, y1); x.quadraticCurveTo(x0 + (x1 - x0) * 0.9, hz + 40, x0 + (x1 - x0) * 0.55, hz);
+      x.lineTo(x0 + (x1 - x0) * 0.6, hz); x.quadraticCurveTo(x1 + 40, hz + 50, x1, y1); x.closePath(); x.fill();
+      x.strokeStyle = grey(240); x.setLineDash([8, 10]); x.lineWidth = 2;
+      x.beginPath(); x.moveTo(x0 + (x1 - x0) * 0.6, y1); x.quadraticCurveTo(x1 - 20, hz + 45, x0 + (x1 - x0) * 0.58, hz); x.stroke(); x.setLineDash([]);
+    } else {
+      // blocks of flats against the sky, people in front
+      for (let q = 0; q < 7; q++) {
+        const bx = x0 + q * (x1 - x0) / 7 + r() * 10, bw = (x1 - x0) / 8, bh = 40 + r() * 80, v = 60 + r() * 70;
+        x.fillStyle = grey(v); x.fillRect(bx, hz - bh, bw, bh + (y1 - hz));
+        x.fillStyle = grey(v + 50);
+        for (let wy = hz - bh + 6; wy < y1 - 30; wy += 12) for (let wx = bx + 4; wx < bx + bw - 6; wx += 10) x.fillRect(wx, wy, 5, 6);
+      }
+      for (let q = 0; q < 5; q++) { const px = x0 + r() * (x1 - x0), py = y1 - 10 - r() * 20; x.fillStyle = grey(25); x.fillRect(px - 5, py - 40, 10, 40); x.beginPath(); x.arc(px, py - 47, 6, 0, Math.PI * 2); x.fill(); }
+    }
+    x.restore();
+  };
+  if (kind === 0) {
+    const pw = (W - 2 * f) / 6;
+    for (let p = 0; p < 4; p++) scene(f + p * pw + 2, f + (p + 1) * pw - 2, f, H - f, p);
+    // the chevrons
+    x.save(); x.beginPath(); x.rect(f + 4 * pw + 2, f, 2 * pw - 4, H - 2 * f); x.clip();
+    x.fillStyle = grey(196); x.fillRect(f + 4 * pw, f, 2 * pw, H - 2 * f);
+    x.strokeStyle = grey(150); x.lineWidth = 3;
+    const d = 0.55 * PX;
+    for (let q = -10; q < 20; q++) {
+      x.beginPath(); x.moveTo(f + 4 * pw + q * d, f); x.lineTo(f + 4 * pw + q * d + (H - 2 * f), H - f); x.stroke();
+      x.beginPath(); x.moveTo(f + 4 * pw + q * d, H - f); x.lineTo(f + 4 * pw + q * d + (H - 2 * f), f); x.stroke();
+    }
+    x.strokeStyle = grey(45); x.lineWidth = 1.6;
+    for (let q = 0; q < 9; q++) {
+      const px = f + 4 * pw + 20 + r() * (2 * pw - 40), py = f + 20 + r() * (H - 2 * f - 50), s = 6 + r() * 6;
+      x.beginPath(); x.arc(px, py, s * 0.5, 0, Math.PI * 2); x.moveTo(px, py + s * 0.5); x.lineTo(px, py + s * 2); x.moveTo(px - s, py + s); x.lineTo(px + s, py + s * 1.2);
+      x.moveTo(px, py + s * 2); x.lineTo(px - s * 0.7, py + s * 3); x.moveTo(px, py + s * 2); x.lineTo(px + s * 0.7, py + s * 3); x.stroke();
+    }
+    x.restore();
+    x.fillStyle = '#111213';
+    for (let p = 0; p <= 6; p++) x.fillRect(f + p * pw - 2, 0, 4, H);
+  } else if (kind === 1) {
+    const g = x.createLinearGradient(0, f, 0, H - f);
+    g.addColorStop(0, grey(225)); g.addColorStop(1, grey(170));
+    x.fillStyle = g; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+    // the man, in a dark coat, his head and hands pale
+    const cx = W * 0.52;
+    x.fillStyle = grey(38);
+    x.beginPath(); x.moveTo(cx - 0.2 * PX, 0.5 * PX); x.lineTo(cx - 0.24 * PX, 1.75 * PX); x.lineTo(cx + 0.22 * PX, 1.75 * PX); x.lineTo(cx + 0.27 * PX, 0.5 * PX); x.closePath();
+    x.translate(0, 0); x.fill();
+    x.fillRect(cx - 0.12 * PX, 1.75 * PX, 0.08 * PX, 0.5 * PX); x.fillRect(cx + 0.05 * PX, 1.75 * PX, 0.08 * PX, 0.5 * PX);
+    x.fillStyle = grey(200); x.beginPath(); x.arc(cx + 0.02 * PX, 0.36 * PX, 0.1 * PX, 0, Math.PI * 2); x.fill();
+    x.fillStyle = grey(30); x.fillRect(cx - 0.08 * PX, 0.22 * PX, 0.2 * PX, 0.07 * PX);
+    x.fillStyle = grey(190); x.fillRect(cx - 0.3 * PX, 1.2 * PX, 0.08 * PX, 0.1 * PX);
+    x.fillStyle = grey(60); x.fillRect(cx - 0.18 * PX, 2.25 * PX, 0.36 * PX, 0.05 * PX);
+  } else {
+    // the landscape, dim behind the dark glass
+    const g = x.createLinearGradient(0, f, 0, H - f);
+    g.addColorStop(0, '#3a3e3d'); g.addColorStop(0.45, '#2b302e'); g.addColorStop(0.55, '#1d2221'); g.addColorStop(1, '#141716');
+    x.fillStyle = g; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+    const hz = H * 0.52;
+    for (let q = 0; q < 26; q++) {
+      const tx = f + r() * (W - 2 * f), th = (0.3 + r() * 0.6) * PX, tw = (0.15 + r() * 0.3) * PX, v = 20 + r() * 25;
+      x.fillStyle = `rgb(${v},${v + 8},${v + 2})`;
+      x.beginPath(); x.ellipse(tx, hz - th / 2, tw, th / 2, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = `rgba(${v},${v + 8},${v + 2},0.45)`;
+      x.beginPath(); x.ellipse(tx, hz + th / 2, tw, th / 2, 0, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = 'rgba(160,170,168,0.18)';
+    for (let q = 0; q < 30; q++) x.fillRect(f + r() * (W - 2 * f), hz + 4 + r() * (H - hz - f - 8), 20 + r() * 60, 1.5);
+  }
+  // the glass's sheen, and the frame
+  const sh = x.createLinearGradient(0, 0, W, H);
+  sh.addColorStop(0, 'rgba(255,255,255,0.08)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(255,255,255,0.05)');
+  x.fillStyle = sh; x.fillRect(0, 0, W, H);
+  x.strokeStyle = '#0c0c0d'; x.lineWidth = f; x.strokeRect(f / 2, f / 2, W - f, H - f);
+  return toTexture(c, { repeat: false });
+}
+
+// Rounded stones inlaid in Bergshamra's dark floor in drifts, reds, rust, beige and grey, and
+// among them the white outline of a fossil fish: a square 6 m across, clear between them.
+export function bergshamraInlay(seed: number) {
+  const S = 1024, PX = S / 6, [c, x] = canvas(S, S), r = rng(seed);
+  x.clearRect(0, 0, S, S);
+  const cols = ['#963527', '#a6532c', '#c4ae86', '#86807a', '#6c2a21', '#b07a52'];
+  // a drift along a curve across the square
+  const a0 = r() * Math.PI;
+  for (let k = 0; k < 110; k++) {
+    const t = r(), along = (t - 0.5) * 5.4, off = (r() - 0.5) * (0.9 + Math.sin(t * Math.PI) * 1.1) + Math.sin(t * 5 + seed) * 0.5;
+    const px = 3 + Math.cos(a0) * along - Math.sin(a0) * off, py = 3 + Math.sin(a0) * along + Math.cos(a0) * off;
+    if (px < 0.15 || px > 5.85 || py < 0.15 || py > 5.85) continue;
+    const rx = (0.03 + r() * 0.08) * (r() < 0.08 ? 2 : 1), ry = rx * (0.6 + r() * 0.4);
+    x.fillStyle = cols[Math.floor(r() * cols.length)];
+    x.beginPath(); x.ellipse(px * PX, py * PX, rx * PX, ry * PX, r() * Math.PI, 0, Math.PI * 2); x.fill();
+    x.fillStyle = 'rgba(255,255,255,0.12)';
+    x.beginPath(); x.ellipse(px * PX - rx * PX * 0.25, py * PX - ry * PX * 0.3, rx * PX * 0.4, ry * PX * 0.3, 0, 0, Math.PI * 2); x.fill();
+  }
+  // the fossil: a fish's spine and ribs, its skull and tail, in white
+  x.save(); x.translate((3 + Math.sin(a0) * 1.6) * PX, (3 - Math.cos(a0) * 1.6) * PX); x.rotate(a0 + 0.4); x.scale(PX, PX);
+  x.strokeStyle = '#e9e6dd'; x.lineWidth = 0.035; x.lineCap = 'round';
+  x.beginPath(); x.moveTo(-0.6, 0); x.quadraticCurveTo(0, -0.06, 0.55, 0); x.stroke();
+  for (let k = 0; k < 11; k++) {
+    const sx = -0.45 + k * 0.09, l = 0.22 * Math.sin(Math.PI * (k + 1) / 12);
+    x.beginPath(); x.moveTo(sx, 0); x.lineTo(sx - 0.05, -l); x.moveTo(sx, 0); x.lineTo(sx - 0.05, l); x.stroke();
+  }
+  x.beginPath(); x.ellipse(0.66, 0, 0.13, 0.1, 0, 0, Math.PI * 2); x.stroke();
+  x.beginPath(); x.moveTo(-0.6, 0); x.lineTo(-0.82, -0.18); x.moveTo(-0.6, 0); x.lineTo(-0.82, 0.18); x.moveTo(-0.82, -0.18); x.lineTo(-0.82, 0.18); x.stroke();
+  x.restore();
+  return toTexture(c, { repeat: false });
+}
+
+// Small square tiles, 10 cm, glossy violet blues in dark joints (1.2 m square): the block round
+// Bergshamra's lifts at the platform's north end.
+export function violetTiles() {
+  const PX = 80, W = 96, H = 96, [c, x] = canvas(W, H), r = rng(1979);
+  x.fillStyle = '#2a2a44'; x.fillRect(0, 0, W, H);
+  const t = 0.1 * PX;
+  for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+    const v = Math.floor(r() * 30), hue = r();
+    x.fillStyle = hue < 0.6 ? `rgb(${70 + v},${64 + v},${150 + v})` : hue < 0.85 ? `rgb(${86 + v},${70 + v},${160 + v})` : `rgb(${50 + v},${58 + v},${138 + v})`;
+    x.fillRect(i * t + 0.6, j * t + 0.6, t - 1.2, t - 1.2);
+    x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * t + 1, j * t + 1, t * 0.4, 1);
+  }
+  return toTexture(c);
+}

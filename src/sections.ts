@@ -17,8 +17,10 @@ export const ISLAND_WIDTH = 9;
 // 12 m across with 4 m of platform beside each (measured on Albert Guillaumes' drawing, scaled by
 // the platform's length: eight of the old cars, 141 m); Tekniska högskolan's, round two cores of
 // rock 15 m across with 6 m of platform beside each (his drawing, its scale read off
-// Roslagsbanan's platforms beside it)
-export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20, 'Tekniska högskolan': 27.4, Universitetet: 31.6 };
+// Roslagsbanan's platforms beside it); Universitetet's (his drawing's proportions, Wikipedia's
+// length); Bergshamra's, round two cores 15.5 m across (his drawing), between OpenStreetMap's
+// outer edges and its tracks
+export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20, 'Tekniska högskolan': 27.4, Universitetet: 31.6, Bergshamra: 28 };
 export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
 // stations whose two platforms each reach across to a middle track between them that no service

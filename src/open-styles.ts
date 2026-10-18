@@ -6066,5 +6066,43 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         onPlatform: true },
     ],
   },
+  // Bergshamra: the cave is the network's (src/hall-styles.ts, src/network.ts); here the ways up
+  // and the two entrances. The escalators climb through the northern core in rock sprayed grey,
+  // to a ticket hall with walls of board-marked concrete, a ceiling of dark expanded metal between
+  // beams and a floor of dark grey tiles (photographs, 2016); the southern passage runs between
+  // walls of rock under a white ceiling (photograph, 2015).
+  'Bergshamra': {
+    rooms: [
+      // the cave's ends, where the platform's last metres lie behind the end walls: no floor or walls
+      // of their own (the platform and the walls drawn in network.ts are there)
+      { name: 'way in', s: [-88.6, -80], u: [-3, 4.5], h: [-1, 4], floor: null, walls: null, ceiling: 'whiteRender' },
+      { name: 'lift landings', s: [83, 88.6], u: [-5, 2], h: [-1, 1], floor: null, walls: null },
+      { name: 'escalators', s: [44, 72], u: [-4, 3], h: [-1, 15], walls: 'roughcast', stairs: 'roughcast', ceiling: 'whiteRender' },
+      { name: 'north hall', s: [70, 92], u: [-30, 5], h: [13, 16], walls: 'boardConcrete', floor: 'darkTiles', ceiling: 'perforated' },
+      { name: 'north escalator', s: [80, 92], u: [-42, -26], h: [13, 24], walls: 'boardConcrete', stairs: 'boardConcrete', ceiling: 'perforated' },
+      { name: 'south passage', s: [-140, -88], u: [-6, 8], h: [-1, 4], walls: 'roughcast', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'south escalators', s: [-158.6, -138], u: [-11, 8], h: [-1, 14], walls: 'roughcast', stairs: 'roughcast', ceiling: 'whiteRender' },
+      { name: 'south hall', s: [-175, -150], u: [-15, 5], h: [9, 14], walls: 'roughcast', floor: 'darkTiles', ceiling: 'perforated' },
+    ],
+    buildings: ['w134204538', 'w33038481', 'w984591540'],
+    blocks: [
+      // the pavilion on Bergshamra torg over the escalator and the stairs down: black steel posts,
+      // walls of black expanded metal, a black fascia with the station's name on SL's blue band
+      // over the way in, open to the west (photograph, 2016; OpenStreetMap's outline)
+      { name: 'north pavilion', plan: [[83.15, -41.19], [89.26, -41.16], [89.26, -31.91], [83.15, -31.91]], h: [20.6, 24.4], from: 20.95,
+        walls: 'perforated', sides: [null, 'perforated', 'perforated', 'perforated'], band: { walls: 'blackTiles', from: 23.9 },
+        nameSign: { side: 0, at: 0.5, length: 4.4, bottom: 23.85 }, roof: 0.3, eaves: 0.2 },
+      // the southern ticket hall on Kraus torg (1987): one storey, grey roughcast, its glass front
+      // with the doors under a black band with the name and a canopy towards the square, a box of
+      // windows on its white ribbed roof; to the north, under Bergshamravägen's edge, the lift's
+      // head and the escalators' (photographs, 2009–2016; OpenStreetMap's outline; Google's mesh)
+      { name: 'south hall', plan: [[-152.96, -14.03], [-159.96, 4.23], [-173.32, -0.9], [-166.32, -19.14]], h: [9.6, 14.1], from: 9.94,
+        walls: 'roughcast', sides: [undefined, undefined, 'blackFront', undefined], band: { walls: 'blackTiles', from: 13.7 }, eaves: [0.3, 0.3, 2.8, 0.3],
+        nameSign: { side: 2, at: 0.55, length: 4.6, bottom: 12.29, black: true }, floor: 'darkTiles', ceiling: 'perforated', roof: 0.4, roofColor: 0xd8d8d4 },
+      { name: 'roof windows', plan: [[-156.5, -11], [-161, 0.8], [-168.5, -2.1], [-164, -13.9]], h: [14.1, 15.7], from: 14.1, walls: 'darkWindows', roof: 0.3, roofColor: 0x2a2b2c },
+      { name: 'lift head', plan: [[-139.5, -6.2], [-139.5, -0.8], [-147.2, -0.8], [-147.2, -6.2]], h: [9.6, 13.4], from: 9.94, walls: 'roughcast', roof: 0.3, roofColor: 0xd8d8d4 },
+      { name: 'escalator head', plan: [[-147.2, -9.6], [-147.2, 5.2], [-153.6, 5.2], [-153.6, -9.6]], h: [9.6, 13.6], from: 9.94, walls: 'roughcast', roof: 0.3, roofColor: 0xd8d8d4 },
+    ],
+  },
 
 };

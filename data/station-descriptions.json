@@ -442,19 +442,47 @@
     },
     "Bergshamra": {
       "drawing": "bergshamra.png",
-      "note": "Two platform halls far apart, one for each track, joined by passages. From the northern one, escalators climb over the western hall to the ticket hall at Bergshamra torg.",
+      "note": "An island platform 177 m long and 28 m wide round two cores of rock, a passage between them about 40 m north of its middle (Albert Guillaumes' drawing; OpenStreetMap's indoor ways). From a notch in the northern core's end by the passage three escalators climb 14 m through the core to the northern ticket hall, from which an escalator and stairs climb to the pavilion on Bergshamra torg and a lift to the courtyard beside it; two lifts climb to the hall from the platform's northern end. From its southern end a passage on the level runs under Bergshamravägen to three escalators and a lift up to the southern ticket hall on Kraus torg (1987).",
       "routes": [
-        { "from": [0, -10], "width": 8, "go": [
-          {"walk": [0, 10]}
-        ] },
-        { "from": [70, -10], "width": 12, "go": [
-          {"walk": [70, 10]}
-        ] },
-        { "from": [73, 0], "width": 5, "go": [
-          {"escalators": 14, "toward": [85.4, -40.6], "lanes": "EES"},
-          {"walk": 4, "width": 7},
+        { "from": [46.3, -0.5], "width": 4.8, "go": [
+          {"escalators": 14, "toward": [150, -0.5], "lanes": "EEE"},
+          {"walk": [84.5, -0.5], "width": 8},
+          {"walk": [85.7, -12.9], "width": 5},
           {"gates": true},
-          {"exit": 7825739267}
+          {"walk": [86.3, -23.4]},
+          {"mark": "north passage"},
+          {"walk": [86.4, -27.4]},
+          {"exit": 7825739267, "by": "escalators", "lanes": "SE"}
+        ] },
+        { "from": "north passage", "width": 3, "go": [
+          {"exit": {"at": [86.2, -23.4], "name": "Bergshamra torg"}, "by": "lift"}
+        ] },
+        { "from": [84, -2.75], "h": 0.07, "width": 2.4, "go": [
+          {"walk": [85.6, -2.75], "open": true, "edges": false},
+          {"lift": 13.93},
+          {"walk": [84.5, -2.75]}
+        ] },
+        { "from": [84, -0.05], "h": 0.07, "width": 2.4, "go": [
+          {"walk": [85.6, -0.05], "open": true, "edges": false},
+          {"lift": 13.93},
+          {"walk": [84.5, -0.05]}
+        ] },
+        { "from": [-80.6, 0.8], "width": 6, "go": [
+          {"walk": [-88.5, 0.8], "open": true, "edges": false},
+          {"walk": [-95.3, 0.3]},
+          {"walk": [-127.9, 4.2], "width": 5},
+          {"walk": [-139.5, 3.3]},
+          {"escalators": 9.94, "toward": [-157.3, -2.9], "lanes": "EEE"},
+          {"walk": [-160.4, -4], "width": 8},
+          {"walk": [-164, -5.2]},
+          {"gates": true},
+          {"exit": 59645771, "by": "walk"}
+        ] },
+        { "from": [-136, -2.6], "width": 3, "go": [
+          {"walk": [-139.4, -2.6]},
+          {"lift": 9.94, "through": true},
+          {"walk": [-158.5, -8.8]},
+          {"walk": [-160.4, -4]}
         ] }
       ]
     },

@@ -541,14 +541,18 @@ export interface CaveIsland {
   // over the middle of the platform where there are none, at its ends and in the passage
   vault?: { wall: number; crown: number; middle: number };
   // the track walls: panels of steel mesh up to `panels`, and a white band over them with the
-  // station's name; or (`walls: 'rights'`) Françoise Schein's tiles up to it
+  // station's name; or (`walls: 'rights'`) Françoise Schein's tiles up to it; or (`walls:
+  // 'stripe'`) the rock black up to it with `stripe` along it, from `from` to `to` high, in
+  // lengths of colour from the platform's one end to its other (`colors`, one list for each wall:
+  // the first for the track whose frame runs the island's way)
   panels: number;
-  walls?: 'rights';
+  walls?: 'rights' | 'stripe';
+  stripe?: { from: number; to: number; colors: [string[], string[]] };
   // its fittings' colours, where they aren't Stadion's green steel and cream tiles: the mesh
   // panels' rock, strands and posts (CSS colours), and pale grey tiles or dark granite on the
   // plinth; `fence`, the fences' colours where they aren't the panels', and `fenceHeight`, theirs
-  // (1.5 m)
-  fittings?: { mesh: [string, string, string]; plinth?: 'grey' | 'granite'; fence?: [string, string, string]; fenceHeight?: number };
+  // (1.5 m); `ceiling`, the ceiling's mesh, strands and beams where it isn't black
+  fittings?: { mesh: [string, string, string]; plinth?: 'grey' | 'granite'; fence?: [string, string, string]; fenceHeight?: number; ceiling?: [string, string, string] };
   // a dodecahedron of glass in a frame of brass hung over the middle of the passage, `size` m
   // across its corners, its middle `at` m over the platform, and a diagram inlaid in the floor
   // under it
@@ -652,6 +656,38 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
       panels: 3.6,
       walls: 'rights',
       fittings: { mesh: ['#26282a', '#8d9194', '#6f7377'], plinth: 'granite' },
+    },
+  },
+  // Bergshamra (29 January 1978), in Solna under Bergshamra's centre, its platform 20 m under the
+  // northern entrance (Swedish Wikipedia): an island platform 28 m wide round two cores of rock, a passage
+  // between them about 40 m north of the platform's middle (Albert Guillaumes' drawing, 2024, and
+  // OpenStreetMap's indoor ways, which put the escalators' foot there). Photographs (Wikimedia
+  // Commons, 2007–2026): the rock sprayed a mid grey, lumpy, low over the passage and the ends; a
+  // flat ceiling of silver expanded metal over the tracks and the platform, tubes across it on
+  // its beams; the track walls black, with a stripe along them about 1.2 m over the platform in
+  // lengths of violet, blue, green, orange red, yellow and sky blue (the order read from
+  // photographs, so approximate); the floor polished dark grey in large squares, a cream edge.
+  // "Röster från det förflutna" (Göran Dahl, Carl Johan De Geer and Kristina Anshelm, 1978):
+  // dark natural stone set in the cores' sides over a pale plinth, rows of black glass painted
+  // with a yellow bus, a green serpent of runes and a green fish, panels of photographs in black
+  // and white, and stones and fossils inlaid in the floor. The art and the fittings are in
+  // src/network.ts.
+  'Bergshamra': {
+    paint: { seed: 1978, bands: [{ from: 0, color: '#18181a' }, { from: 7.5, color: '#87867f', edge: 'ragged' }],
+      motifs: [{ kind: 'dabs', colors: ['#121213', '#232325'], from: 0, to: 7.4, size: 0.5, count: 180 },
+        { kind: 'dabs', colors: ['#a3a29b', '#76756e', '#b8b7b0'], from: 7.6, to: 18, size: 0.8, count: 160 }] },
+    island: {
+      pillars: { width: 15.5, gap: 15, ends: [11.2, 11.3], at: 39, fenced: 0, plinth: 0.3,
+        paint: { seed: 1979, bands: [{ from: 0, color: '#8e8d87' }],
+          motifs: [{ kind: 'dabs', colors: ['#a9a8a2', '#bdbcb6', '#7b7a74', '#9c9b95'], from: 0, to: 18, size: 0.8, count: 280 },
+            { kind: 'swirls', colors: ['#c8c7c1', '#6f6e68'], from: 0, to: 18, count: 90, width: 0.12, length: 1.6 }] },
+        fencedPaint: { seed: 1979, bands: [{ from: 0, color: '#8e8d87' }] } },
+      ceiling: 4.6,
+      vault: { wall: 4.8, crown: 6.8, middle: 6.2 },
+      panels: 4.6,
+      walls: 'stripe',
+      stripe: { from: 2.15, to: 2.45, colors: [['#3c3f9c', '#1d62b3', '#2e8c3f', '#d3522c', '#e5c12b', '#1f8fc5'], ['#e5c12b', '#2e8c3f', '#1f8fc5', '#d3522c', '#3c3f9c', '#1d62b3']] },
+      fittings: { mesh: ['#18181a', '#2a2a2c', '#222224'], plinth: 'grey', ceiling: ['#5f6265', '#c4c7ca', '#9a9da0'] },
     },
   },
   // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in
