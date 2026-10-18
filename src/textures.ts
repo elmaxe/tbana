@@ -1997,26 +1997,55 @@ export function gardetTrackWall(floor: number, top: number, f: { panelsFrom: num
 
 // The wall behind Gärdet's platforms: panels of dark brown-grey concrete `panel` wide, cast with
 // fine diagonal grooves, on a pale plinth from the platform (`platform` high) to `plinth`; over
-// them a band in `band.color`, and a pale strip up to the vault. Two panels a repeat along the
-// wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along).
-export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string } }) {
+// them a band in `band.color`, and a pale strip up to the vault (in `wall`). Two panels a repeat
+// along the wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along). With
+// `rods`, Mariatorget's ceramic rods in place of the panels, on a dark plinth.
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wall?: string }) {
   const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
   const [src, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
   const r = rng(1967);
   x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
-  x.fillStyle = '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  x.fillStyle = f.rods ? '#38393a' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
   speckle(x, W, H, 1500, 0.06, 1968);
-  stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
+  if (f.rods) ceramicRods(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
+  else stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
   x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
   x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
-  x.fillStyle = '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
+  x.fillStyle = f.wall ?? '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
   speckle(x, W, y(f.band.to), 600, 0.05, 1969);
   const [c, t] = canvas(src.height, src.width);
   t.setTransform(0, 1, -1, 0, src.height, 0);
   t.drawImage(src, 0, 0);
   return toTexture(c);
 }
+// Karin Björquist's and Kjell Abramson's rods at Mariatorget (1964), glazed at Gustavsberg, across
+// the rectangle (`PX` to the metre): upright rods of ceramic about 6 cm across, side by side in dark
+// joints, in lengths of about half a metre whose ends line up across the wall; each rounded,
+// lighter down its middle, in a yellow ochre running through gold to brown, darker in streaks
+// here and there (photographs, 2005–2024)
+function ceramicRods(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number) {
+  x.fillStyle = '#6b4c22'; x.fillRect(x0, y0, w, h);
+  const n = Math.max(1, Math.round(w / (0.06 * PX))), dw = w / n;
+  const rows = Math.max(1, Math.round(h / (0.55 * PX))), dh = h / rows;
+  const cols = [[232, 186, 78], [226, 176, 66], [238, 196, 96], [218, 164, 62], [224, 172, 74], [196, 140, 56]];
+  for (let i = 0; i < n; i++) {
+    // (a streak: a few rods browner, all the way up)
+    const streak = Math.max(0, Math.sin(i * 0.37 + 1.3) * Math.sin(i * 0.11) - 0.45) * 60;
+    for (let j = 0; j < rows; j++) {
+      const [cr, cg, cb] = cols[Math.floor(r() * cols.length)], v = Math.floor(r() * 14) - 7 - streak;
+      const px = x0 + i * dw, py = y0 + j * dh;
+      x.fillStyle = `rgb(${cr + v},${cg + v * 0.9},${cb + v * 0.6})`; x.fillRect(px + 0.8, py + 0.6, dw - 1.6, dh - 1.2);
+      // the glaze pooled a little darker towards the foot of each length, and the rod's roundness
+      const g = x.createLinearGradient(0, py, 0, py + dh);
+      g.addColorStop(0, 'rgba(255,240,190,0.1)'); g.addColorStop(1, 'rgba(90,55,15,0.14)');
+      x.fillStyle = g; x.fillRect(px + 0.8, py + 0.6, dw - 1.6, dh - 1.2);
+      x.fillStyle = 'rgba(90,55,15,0.2)'; x.fillRect(px + 0.8, py + 0.6, dw * 0.18, dh - 1.2); x.fillRect(px + dw * 0.82 - 0.8, py + 0.6, dw * 0.18, dh - 1.2);
+      x.fillStyle = 'rgba(255,246,210,0.28)'; x.fillRect(px + dw * 0.4, py + 2, dw * 0.16, dh - 4);
+    }
+  }
+}
+
 // panels of brown-grey concrete `pw` wide across the rectangle, cast with fine diagonal grooves, each a
 // little different in tone, in dark joints
 function stripedPanels(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, pw: number, r: () => number) {
@@ -3878,6 +3907,50 @@ function handwriting(x: CanvasRenderingContext2D, r: () => number, x0: number, y
   }
 }
 
+// Britt-Louise Sundell's gates of wrought iron at Mariatorget (1964), folded back against the
+// walls of the halls at the platforms' ends by day: flat black bars dividing the grille into
+// rectangles of many sizes, each filled with short lengths of tube set side by side as rings,
+// large or small, or with upright bars and here and there a ball; cut out round the iron
+// (photographs, 2010–2019). 4.8 by 2.4 m.
+export function sundellGate() {
+  const W = 960, H = 480, [c, x] = canvas(W, H), r = rng(1964);
+  x.clearRect(0, 0, W, H);
+  x.strokeStyle = '#1e1e1d'; x.fillStyle = '#1e1e1d';
+  const cells: [number, number, number, number][] = [];
+  const split = (x0: number, y0: number, w: number, h: number, depth: number) => {
+    if (depth > 4 || (w < 120 && h < 120) || (depth > 1 && r() < 0.2)) { cells.push([x0, y0, w, h]); return; }
+    if (w > h * (0.7 + r() * 0.7)) { const k = Math.round(w * (0.3 + r() * 0.4)); split(x0, y0, k, h, depth + 1); split(x0 + k, y0, w - k, h, depth + 1); }
+    else { const k = Math.round(h * (0.3 + r() * 0.4)); split(x0, y0, w, k, depth + 1); split(x0, y0 + k, w, h - k, depth + 1); }
+  };
+  split(10, 10, W - 20, H - 20, 0);
+  for (const [x0, y0, w, h] of cells) {
+    if (r() < 0.8) {
+      // rings, as many as fit in rows and columns
+      const d = [16, 22, 30, 42, 60][Math.floor(r() * 5)];
+      const nx = Math.max(1, Math.floor(w / d)), ny = Math.max(1, Math.floor(h / d)), sx = w / nx, sy = h / ny;
+      x.lineWidth = Math.max(2.5, d * 0.13);
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+        x.beginPath(); x.arc(x0 + (i + 0.5) * sx, y0 + (j + 0.5) * sy, Math.max(2, Math.min(sx, sy) / 2 - x.lineWidth / 2), 0, Math.PI * 2); x.stroke();
+      }
+    } else {
+      // upright bars, and a ball on one
+      x.lineWidth = 5;
+      for (let k = 14; k < w - 6; k += 24) { x.beginPath(); x.moveTo(x0 + k, y0); x.lineTo(x0 + k, y0 + h); x.stroke(); }
+      x.beginPath(); x.arc(x0 + 14 + 24 * Math.floor(r() * Math.max(1, (w - 20) / 24)), y0 + h * (0.3 + r() * 0.4), 9, 0, Math.PI * 2); x.fill();
+    }
+  }
+  // the flat bars between the rectangles, and the frame
+  x.lineWidth = 8;
+  for (const [x0, y0, w, h] of cells) x.strokeRect(x0, y0, w, h);
+  x.lineWidth = 16; x.strokeRect(8, 8, W - 16, H - 16);
+  // a little light caught on the iron's top edges
+  x.globalCompositeOperation = 'source-atop';
+  x.fillStyle = 'rgba(150,150,145,0.18)';
+  for (let j = 0; j < H; j += 6) x.fillRect(0, j, W, 1.5);
+  x.globalCompositeOperation = 'source-over';
+  return toTexture(c);
+}
+
 // Helén Partos's Sirat (Vällingby, 2010): lace cut out of steel plate as crocheted doilies are,
 // dark brown with rust, each panel a piece of cloth of its own shape: rosettes of holes in rings
 // round a middle, petals between the rings, and a net of small holes between the rosettes, a
@@ -4124,10 +4197,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   wiredGlazed: [1.2, 3], dripTiles: [2.4, 2.7], ochreDoor: [3.6, 3.15],
   greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
-  striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4],
+  striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -6016,6 +6089,17 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'rods': {
+      // the ends of Mariatorget's cores, as the walls behind its platforms: Björquist's and
+      // Abramson's ceramic rods from 0.25 to 2.5 m over a dark plinth, a white band over them to
+      // 2.92 m, and cream render above
+      x.fillStyle = '#e3dccb'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#38393a'; x.fillRect(0, Y(0.25), W, 0.25 * PX);
+      ceramicRods(x, 0, Y(2.5), W, 2.25 * PX, PX, r);
+      x.fillStyle = '#2e3236'; x.fillRect(0, Y(2.92) - 2, W, 0.42 * PX + 4);
+      x.fillStyle = '#e8e7e2'; x.fillRect(0, Y(2.92), W, 0.42 * PX);
+      break;
+    }
     case 'redClinker': {
       // clinker, 25 by 12.5 cm, in a running bond, in shades of red-brown, rust, a dark
       // brown-grey and grey (Gärdet's platforms and passages)
@@ -6036,7 +6120,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

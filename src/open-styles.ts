@@ -313,7 +313,8 @@ export type Finish =
   | 'iridescentTiles' // shimmering tiles, 30 cm, in greens, ochres and mauves, a copper spiral on some
   | 'striated'      // dark concrete panels 1.25 m wide, cast with fine diagonal grooves, on a pale plinth
   | 'triangleTiles' // white tiles, 15 cm, a long triangle of small blue tiles rising low across them
-  | 'redClinker';   // clinker in a running bond, red-browns and a dark brown-grey
+  | 'redClinker'    // clinker in a running bond, red-browns and a dark brown-grey
+  | 'rods';         // upright rods of yellow-brown glazed ceramic over a dark plinth, a white band over them (Björquist's and Abramson's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -392,8 +393,9 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // Nilsson's Strindberg wall at Rådmansgatan: his manuscript, his signature and squares of etched
 // copper (`strindberg`), Blå tornet, the house he died in (`blueTower`), and one of Helén Partos's
 // panels of steel lace at Vällingby (`sirat`, cut out round its outline, a panel of its own at each
-// `s`).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// `s`), and Britt-Louise Sundell's gates of wrought iron at Mariatorget (`sundell`, cut out round
+// the iron).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -6238,5 +6240,79 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'glassFront', sides: [undefined, null, null, null], nameSign: { side: 0, at: 0.5, length: 4.4, bottom: 25.95 } },
     ],
   },
-
+  // Mariatorget (its halls: src/hall-styles.ts). The ends of the rock between the halls, and the
+  // passage through it, from Albert Guillaumes's drawing; the escalators, halls, stairs and doors
+  // from OpenStreetMap's indoor ways (2026). Photographs (2005–2024, Wikimedia Commons): round the
+  // core's ends, grey stone slabs underfoot, also over the platforms' ends, a flat white ceiling,
+  // and the core's end in the same ceramic rods as its sides; the passage through the middle
+  // floored in polished dark terrazzo between walls of dark grey-green stone. At the foot of the
+  // escalators white tiles and a round white column, by the western one Asmund Arle's bronze
+  // Människa och pelare (a figure by a pillar), and Britt-Louise Sundell's iron gates folded back
+  // against the walls; the escalators' shafts in white tiles; the ticket halls in white tiles
+  // laid in pairs turned from each other, dark clinker underfoot, white ceilings with tubes; the
+  // vestibules in the same tiles under ceilings of varnished boards, red-brown clinker underfoot.
+  // The doors: glass in brushed steel under SL's blue band with the name, in the corner buildings
+  // (Torkel Knutssonsgatan 33; Swedenborgsgatan 4, on its cut-off corner), a T on a bracket over them;
+  // from the eastern hall a lift up to a glass house on Wollmar Yxkullsgatan's pavement beside them.
+  'Mariatorget': {
+    rooms: [
+      { name: 'passage, opening west', s: [-1, 5], u: [-6, -4.4], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'passage, opening east', s: [-1, 5], u: [4.4, 6], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'passage', s: [-1, 5], u: [-4.4, 4.4], h: [-1, 0.5], walls: 'darkStone', floor: 'darkTerrazzo', ceiling: 'whiteRender' },
+      { name: 'western end, over the western platform', s: [-79, -69], u: [-9.5, -4.4], h: [-1, 0.5], walls: null, floor: 'darkStone' },
+      { name: 'western end, over the eastern platform', s: [-79, -69], u: [4.4, 9.5], h: [-1, 0.5], walls: null, floor: 'darkStone' },
+      { name: 'western end', s: [-78, -69], u: [-4.4, 4.4], h: [-1, 0.5], walls: 'rods', back: 'glossTiles', floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'eastern end, over the western platform', s: [69, 79], u: [-9.5, -4.4], h: [-1, 0.5], walls: null, floor: 'darkStone' },
+      { name: 'eastern end, over the eastern platform', s: [69, 79], u: [4.4, 9.5], h: [-1, 0.5], walls: null, floor: 'darkStone' },
+      { name: 'eastern end', s: [69, 77.4], u: [-4.4, 4.4], h: [-1, 0.5], walls: 'glossTiles', back: 'rods', floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'western lobby', s: [-95, -77.6], u: [-8, 10], h: [-1, 0.5], walls: 'glossTiles', floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'western escalators', s: [-118, -86], u: [-2, 18], h: [-1, 19], walls: 'glossTiles', stairs: 'glossTiles', ceiling: 'whitePanels' },
+      { name: 'western hall', s: [-140, -115], u: [6, 30], h: [17, 20], walls: 'basketTiles', floor: 'darkTiles', ceiling: 'whitePanels' },
+      { name: 'western vestibule', s: [-162, -140], u: [18, 42], h: [17, 20], walls: 'basketTiles', floor: 'redClinker', ceiling: 'pineBoards' },
+      { name: 'eastern lobby', s: [77.4, 100], u: [-12, 8], h: [-1, 0.5], walls: 'glossTiles', floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'eastern escalators', s: [96, 121], u: [-17, 0], h: [-1, 16], walls: 'glossTiles', stairs: 'glossTiles', ceiling: 'whitePanels' },
+      { name: "the lift house's floor, and outside its door", s: [140.8, 145], u: [-31, -28.5], h: [19, 21], walls: null, floor: 'asphalt' },
+      { name: 'eastern stairs', s: [128, 152], u: [-46, -24], h: [15, 21], walls: 'basketTiles', stairs: 'basketTiles', floor: 'redClinker', ceiling: 'pineBoards' },
+      { name: 'eastern hall', s: [117, 137], u: [-26, -10], h: [14, 17], walls: 'basketTiles', floor: 'darkTiles', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      // the halls' ends over the platforms' ends, in the white tiles of the lobbies beyond them (the
+      // rock over the tracks, where they run on into their tunnels)
+      { name: 'western hall, western end', plan: [[-77.9, -9.95], [-77.6, -9.95], [-77.6, -4.3], [-77.9, -4.3]], h: [-0.1, 6], from: 0, walls: 'glossTiles', onPlatform: true, inHall: true },
+      { name: 'eastern hall, western end', plan: [[-77.9, 4.3], [-77.6, 4.3], [-77.6, 9.95], [-77.9, 9.95]], h: [-0.1, 6], from: 0, walls: 'glossTiles', onPlatform: true, inHall: true },
+      { name: 'western hall, eastern end', plan: [[77.4, -9.95], [77.7, -9.95], [77.7, -4.3], [77.4, -4.3]], h: [-0.1, 6], from: 0, walls: 'glossTiles', onPlatform: true, inHall: true },
+      { name: 'eastern hall, eastern end', plan: [[77.4, 4.3], [77.7, 4.3], [77.7, 9.95], [77.4, 9.95]], h: [-0.1, 6], from: 0, walls: 'glossTiles', onPlatform: true, inHall: true },
+      // the lobbies' walls beyond them, where the halls the network draws run on behind them over
+      // the tracks to their tunnels
+      { name: "western lobby's wall, by the western hall", plan: [[-82.3, -4.59], [-77.9, -4.59], [-77.9, -4.29], [-82.3, -4.29]], h: [-0.1, 3.4], from: 0, walls: 'glossTiles', inHall: true },
+      { name: "western lobby's wall, by the eastern hall", plan: [[-80.5, 4.29], [-77.9, 4.29], [-77.9, 4.59], [-80.5, 4.59]], h: [-0.1, 3.4], from: 0, walls: 'glossTiles', inHall: true },
+      { name: "eastern lobby's wall, by the western hall", plan: [[77.7, -4.59], [87.5, -4.59], [87.5, -4.29], [77.7, -4.29]], h: [-0.1, 3.4], from: 0, walls: 'glossTiles', inHall: true },
+      { name: "eastern lobby's wall, by the eastern hall", plan: [[77.7, 4.29], [79.4, 4.29], [79.4, 4.59], [77.7, 4.59]], h: [-0.1, 3.4], from: 0, walls: 'glossTiles', inHall: true },
+      // the lift's house on Wollmar Yxkullsgatan's pavement (OpenStreetMap's outline; its roof
+      // 3.85 m up and its canopy 2.5 m up, reaching 1.9 m out over the door, from the laser scan):
+      // glass in anthracite frames, a grey panel over the canopy (photographs, 2015–2021)
+      { name: 'lift house', plan: [[140.3, -26.8], [142.5, -28.2], [141.3, -30.1], [139.1, -28.6]], h: [20.1, 23.85], from: 20.22,
+        walls: 'darkGlazed', roof: 0.25, roofColor: 0x2e3134 },
+      { name: "lift house's panel over the door", plan: [[142.5, -28.2], [141.3, -30.1], [141.35, -30.13], [142.55, -28.23]], h: [22.72, 23.85], from: 22.72, walls: 'roughcast' },
+      { name: "lift house's canopy", plan: [[142.55, -28.12], [141.25, -30.18], [142.85, -31.19], [144.15, -29.13]], h: [22.7, 22.7], from: 22.7,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'perforated', roof: 0.12, roofColor: 0x2e3134 },
+      // the doors, in the buildings' walls where the vestibules meet them (OpenStreetMap's entrances)
+      { name: 'western doors', plan: [[-157.34, 37.05], [-160.86, 31.95], [-161.16, 32.15], [-157.64, 37.25]], h: [18.1, 21.4], from: 18.4,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 4.4, bottom: 20.75 } },
+      { name: 'eastern doors', plan: [[149.38, -39.63], [150.03, -42.76], [150.42, -42.68], [149.77, -39.55]], h: [19.7, 22.98], from: 19.98,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3, bottom: 22.33 } },
+    ],
+    art: [
+      // the round columns: one before the western escalators, two in the eastern lobby
+      { kind: 'columns', at: [[-79.6, 0.4], [80.5, -0.5], [88.5, -0.5]], from: 0, to: 3.3, size: 0.95, color: 0xefefeb },
+      // Arle's figure, beside the western column, facing the escalators
+      { kind: 'guardian', s: -80.6, u: -0.4, turn: Math.PI, height: 0.95, casing: [0, 0] },
+      // Sundell's gates, folded back against the lobbies' walls
+      { kind: 'mural', picture: 'sundell', s: -81.2, u: -4.28, turn: Math.PI / 2, bottom: 0.02, top: 2.22, width: 4.4 },
+      { kind: 'mural', picture: 'sundell', s: 83.4, u: 4.28, turn: -Math.PI / 2, bottom: 0.02, top: 2.22, width: 4.4 },
+      // the T on its bracket over each door
+      { kind: 'roundel', s: -159.9, u: 35.04, h: 22.6, size: 0.8, foot: 21.95 },
+      { kind: 'roundel', s: 150.69, u: -41.0, h: 24.2, size: 0.8, foot: 23.55 },
+    ],
+  },
 };

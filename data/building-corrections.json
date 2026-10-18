@@ -63,6 +63,16 @@
       "osm": "w10507357",
       "overStation": true,
       "why": "Mörby centrum, the shopping centre on Mörbyplan, whose ground floor holds the station's ticket hall at the top of its escalators and the passage on through the centre to the doors onto Mörbyplan (OpenStreetMap's indoor ways, 2026; sv.wikipedia): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1362054500",
+      "overStation": true,
+      "why": "Torkel Knutssonsgatan 33, whose ground floor holds the vestibule of Mariatorget's western way out, its glass doors on the street (sv.wikipedia; OpenStreetMap's indoor ways, 2026; photographs, 2009): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w232424988",
+      "overStation": true,
+      "why": "Swedenborgsgatan 4, on the corner of Wollmar Yxkullsgatan, whose ground floor holds the top of the stairs from Mariatorget's eastern ticket hall and the glass doors at the corner (sv.wikipedia; OpenStreetMap's indoor ways, 2026; photographs, 2024): it is left whole, not cut through its full height, its wall open at the doors."
     }
   ]
 }

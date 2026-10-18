@@ -108,32 +108,52 @@
     },
     "Mariatorget": {
       "drawing": "mariatorget.png",
-      "note": "Two platform halls, one for each track, joined at both ends and in the middle. Escalators climb from each end to a ticket hall, and stairs to the street.",
+      "note": "Two platform halls, one for each track, the platforms within, either side of a core of rock about 9 m wide that stops short of their ends, joined round its ends and by a passage a little east of its middle (Albert Guillaumes's drawing; OpenStreetMap's platforms). From the western end three escalators and an inclined lift climb west-south-west to a ticket hall at street level under the courtyards, and on to the doors at Torkel Knutssonsgatan 33; from the eastern end three escalators and an inclined lift climb east-north-east to a hall under Wollmar Yxkullsgatan, from which two flights of stairs climb to the doors at the corner of Swedenborgsgatan, and a lift to its glass house on Wollmar Yxkullsgatan's pavement (OpenStreetMap's indoor ways; the lift house's height from Lantmäteriet's laser scan; the eastern hall's depth inferred from its stairs and the escalators' length).",
       "routes": [
-        { "from": [0, -6], "width": 6, "go": [
-          {"walk": [0, 6]}
+        { "from": [1.9, -5.4], "width": 4.6, "go": [
+          {"walk": [1.9, -4.5], "open": true, "edges": false},
+          {"walk": [1.9, 4.5], "ceiling": 2.85},
+          {"walk": [1.9, 5.4], "open": true, "edges": false}
         ] },
-        { "from": [-70, -6], "width": 6, "go": [
-          {"walk": [-70, 6]}
+        { "from": [-73.55, -8.65], "h": 0.01, "width": 8.1, "go": [
+          {"walk": [-73.55, -4.5], "open": true, "edges": false},
+          {"walk": [-73.55, 4.5], "ceiling": 3.3},
+          {"walk": [-73.55, 8.65], "open": true, "edges": false}
         ] },
-        { "from": [70, -6], "width": 6, "go": [
-          {"walk": [70, 6]}
+        { "from": [73.95, -8.65], "h": 0.01, "width": 6.9, "go": [
+          {"walk": [73.95, -4.5], "open": true, "edges": false},
+          {"walk": [73.95, 4.5], "ceiling": 3.3},
+          {"walk": [73.95, 8.65], "open": true, "edges": false}
         ] },
-        { "from": [70, 0], "width": 6, "go": [
-          {"walk": [92, 0]},
-          {"escalators": 15, "toward": [147.6, -42.9], "lanes": "EES"},
-          {"walk": 8, "width": 8},
+        { "from": [-77.6, 0.0], "h": 0.01, "width": 8.6, "go": [
+          {"walk": [-87.0, 0.0], "ceiling": 3.3},
+          {"escalators": 18.4, "toward": [-127.7, 18.0], "lanes": "LEEE"},
+          {"walk": 3, "width": 9, "ceiling": 3.0},
+          {"walk": [-138.5, 22.6], "width": 10, "ceiling": 3.0},
           {"gates": true},
-          {"walk": 4},
-          {"exit": 247203403}
+          {"walk": [-151.1, 29.0], "width": 5, "ceiling": 3.0},
+          {"exit": 247203342, "by": "walk", "ceiling": 3.0, "sign": false}
         ] },
-        { "from": [-70, 0], "width": 6, "go": [
-          {"walk": [-92, 0]},
-          {"escalators": 12, "toward": [-158.8, 36.3], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [77.4, 0.0], "h": 0.01, "width": 8.6, "go": [
+          {"walk": [95.0, 0.0], "ceiling": 3.3},
+          {"escalators": 15.49, "toward": [119.5, -14.5], "lanes": "EEEL"},
+          {"walk": 3, "width": 9, "ceiling": 3.0},
+          {"walk": [128.6, -19.6], "width": 9, "ceiling": 3.0},
           {"gates": true},
-          {"walk": 4},
-          {"exit": 247203342}
+          {"walk": [135.6, -24.2], "width": 7, "ceiling": 3.0},
+          {"mark": "eastern hall"},
+          {"stairs": 1.55, "toward": [134.2, -29.5], "lanes": "ss", "ceiling": 2.8},
+          {"walk": [133.2, -30.6], "width": 3, "ceiling": 3.0},
+          {"stairs": 3.0, "to": [145.3, -42.1], "lanes": "ss"},
+          {"walk": [149.71, -41.2], "width": 3.2, "ceiling": 3.0},
+          {"exit": {"at": [149.71, -41.2], "name": "Mariatorget"}, "by": "walk", "sign": false}
+        ] },
+        { "from": "eastern hall", "width": 2.4, "go": [
+          {"walk": [137.43, -26.28], "ceiling": 3.0},
+          {"walk": [139.535, -27.62], "ceiling": 3.0},
+          {"lift": 4.72, "above": 3.4, "through": true},
+          {"walk": [142.3, -29.38], "open": true},
+          {"exit": {"at": [142.91, -29.77], "name": "Wollmar Yxkullsgatan"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

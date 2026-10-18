@@ -1464,11 +1464,12 @@ export class OpenLook {
     const m = on(this.mat(`mural:${a.picture}${a.picture === 'sirat' ? lace : ''}`, () => {
       const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
         : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
-          : a.picture === 'sirat' ? T.siratLace(lace) : T.tallkrogsdraken();
-      // (an angel, and the lace, cut out round their outlines)
-      const cut = a.picture === 'angel' || a.picture === 'sirat';
+          : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate() : T.tallkrogsdraken();
+      // (an angel, the lace and the iron, cut out round their outlines)
+      const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell';
+      const steel = a.picture === 'sirat' || a.picture === 'sundell';
       return new THREE.MeshStandardMaterial({
-        map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: a.picture === 'sirat' ? 0.1 : 0.25, roughness: 0.4, metalness: a.picture === 'sirat' ? 0.4 : 0,
+        map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: steel ? 0.1 : 0.25, roughness: 0.4, metalness: steel ? 0.4 : 0,
         alphaTest: cut ? 0.5 : 0, side: THREE.DoubleSide,
       });
     }));

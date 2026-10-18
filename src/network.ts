@@ -160,8 +160,8 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   | `beam${'Wall' | 'WallMirror' | 'Ceiling' | 'Column' | 'Along' | 'Vault' | 'End' | 'Mark' | 'EndWall' | 'Pane' | 'Frame' | 'Mesh'}:${string}`
   // a styled vault's own finish (Gärdet's): its track walls (the other way round, for the wall that
   // sees the track's direction the other way), the wall behind its platform, its vault, and the
-  // wooden seats of its benches
-  | `vault${'Art' | 'ArtMirror' | 'Back' | 'Roof'}:${string}` | 'benchWood';
+  // wooden seats of its benches, and their stone bases (Mariatorget's)
+  | `vault${'Art' | 'ArtMirror' | 'Back' | 'Roof'}:${string}` | 'benchWood' | 'benchStone';
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -209,6 +209,7 @@ function materials() {
     vaultEdge: new THREE.MeshStandardMaterial({ map: T.edgeBand(), roughness: 0.6 }),
     fitting: new THREE.MeshStandardMaterial({ color: 0xc4c6c7, roughness: 0.5, metalness: 0.3 }),
     benchWood: new THREE.MeshStandardMaterial({ color: 0xb98a4e, roughness: 0.6 }),
+    benchStone: new THREE.MeshStandardMaterial({ color: 0x45474a, roughness: 0.45 }),
     glassBack: new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.6 }),
     // Stadion's (src/hall-styles.ts)
     stFloor: new THREE.MeshStandardMaterial({ map: T.stadionFloor(), roughness: 0.3 }),
@@ -550,6 +551,7 @@ export class Network {
         return { key: 'vault', pts };
       }, { uScale: 0.25, vScale: 1 / 6 });
       if (f?.cases) this.vaultCases(run, mine, f, b, group);
+      if (f?.benches) this.vaultBenches(run, mine, f, b);
     }
     // a styled hall: its wall, and the roof over it (the wall is the outline's first two points
     // where the other track is to the right, its last two where it is to the left)
@@ -2024,7 +2026,7 @@ export class Network {
     };
     const key = `${p.station} band`;
     let name = this.signs.get(key);
-    if (!name) { name = new THREE.MeshBasicMaterial({ map: T.nameSign(p.station, f.backWall.band.color, false) }); this.signs.set(key, name); }
+    if (!name) { name = new THREE.MeshBasicMaterial({ map: T.nameSign(p.station, f.backWall.band.sign ?? f.backWall.band.color, false) }); this.signs.set(key, name); }
     put(name, 1.7, 0.32, 0);
     const ends = f.exits.map((e) => ({ name: e.name, d: right.x * (e.x - sm.x) + right.z * (e.z - sm.z) }));
     for (const left of [true, false]) {
@@ -2069,6 +2071,28 @@ export class Network {
         for (let s = 0; s < 3; s++) box(b.benchWood, seat.clone().addScaledVector(out, (s - 1) * 0.13), sm, 0.11, 0.04, 1.6);
         for (const e of [-0.6, 0.6]) box(b.steel, at(sm, back - p.side * 0.32, H + 0.21).addScaledVector(t, d * benchAt + e), sm, 0.36, 0.42, 0.05);
       }
+    }
+  }
+
+  // A styled vault's long benches against the wall behind its platform, about every
+  // `benches.every` m, where the wall isn't open to a passage: boards of wood on a dark stone base
+  private vaultBenches(run: Sample[], mine: (sm: Sample) => boolean, f: VaultFinish, b: Record<MaterialName, MeshBuilder>) {
+    const c = f.benches!, H = S.PLATFORM_HEIGHT, half = c.length / 2;
+    let next = -Infinity;
+    for (const sm of run) {
+      if (!mine(sm) || sm.along < next) continue;
+      const p = sm.plat!, back = structureSpan(sm)[p.side > 0 ? 1 : 0];
+      const t = new THREE.Vector3(sm.rz, 0, -sm.rx), out = new THREE.Vector3(-p.side * sm.rx, 0, -p.side * sm.rz);
+      // (the wall whole along it, and the platform there)
+      const clear = [-half - 0.5, -half / 2, 0, half / 2, half + 0.5].every((d) => {
+        const q = at(sm, back - p.side * 0.4, H + 1.0).addScaledVector(t, d);
+        return !this.holes.some((o) => insideVolume(o, q.x, q.y, q.z));
+      }) && run.some((q) => q.plat === p && q.along > sm.along + half + 2) && run.some((q) => q.plat === p && q.along < sm.along - half - 2);
+      if (!clear) continue;
+      next = sm.along + c.every;
+      box(b.benchStone, at(sm, back - p.side * 0.3, H + 0.17).addScaledVector(t, half), sm, 0.46, 0.34, c.length);
+      // two boards along the seat
+      for (const k of [-1, 1]) box(b.benchWood, at(sm, back - p.side * 0.3, H + 0.38).addScaledVector(t, half).addScaledVector(out, k * 0.12), sm, 0.22, 0.08, c.length + 0.1);
     }
   }
 

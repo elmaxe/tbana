@@ -493,18 +493,23 @@ export interface VaultStyle {
 //   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
 //   the name signs (the name in white on the band's colour) and the ways out (white plates, an
 //   arrow to the exit they lead to: `exits`, in the scene's metres) are on, and a pale strip up to
-//   the vault;
+//   the vault (in `wall`, if given); with `rods`, upright rods of glazed ceramic in place of the
+//   panels, on a dark plinth; with `band.sign`, the name in white on a plate of that colour on the
+//   band;
 // - `vault`: the vault's colour;
 // - `paving`: the platform, paved as an open station's;
 // - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
-//   `w` wide and `h` high from `bottom`, about every `every` m, with a bench either side.
+//   `w` wide and `h` high from `bottom`, about every `every` m, with a bench either side;
+// - `benches`: long benches of wooden boards on a dark stone base against the wall behind the
+//   platform, each `length` long, about every `every` m.
 export interface VaultFinish {
   trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string } };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
   cases?: { w: number; h: number; bottom: number; gap: number; every: number };
+  benches?: { length: number; every: number };
 }
 
 // Östermalmstorg (1965), 38 m down: a hall in rock for each
@@ -526,6 +531,17 @@ export interface VaultFinish {
 // band of white stones along the edge and a grey strip with brass studs inside it. Set into the
 // wall behind the platform, Karl Axel Pehrson's lit cases of fantastical beetles (1967), in pairs
 // between benches.
+//
+// Mariatorget (1964), about 20 m under the streets of Södermalm: the same plan, the platforms
+// either side of a core of rock about 9 m wide, joined through it by a passage a little east of
+// the middle and round its ends, which stop short of the platforms' (Albert Guillaumes's drawing;
+// OpenStreetMap's platforms). Photographs (2005–2024, Wikimedia Commons): over each hall a smooth
+// cream vault with a row of lamps along it; the track walls in white enamelled panels over a black
+// plinth (2006), with framed pictures; the wall behind the platform in Karin Björquist's and Kjell
+// Abramson's upright rods of yellow-brown glazed ceramic (made at Gustavsberg), over a dark plinth,
+// under a white band carrying the name in white on a black plate and the ways out on white plates,
+// cream above; long benches of wooden boards on dark stone before them; the platform pale grey
+// terrazzo, a band of cream tiles along the edge and a black strip with brass studs inside it.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -542,6 +558,21 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
         pattern: 'bond',
       },
       cases: { w: 0.62, h: 1.75, bottom: 1.5, gap: 0.5, every: 18 },
+    },
+  },
+  'Mariatorget': {
+    spring: 4.45, risePerWidth: 0.22, signAt: 3.76, signEvery: 38,
+    finish: {
+      trackWall: { panelsFrom: 1.45, row: 0.6, strip: 2.25, art: [1.6, 3.1, 1.3, 2.6] },
+      backWall: { panel: 1.25, plinth: 1.32, band: { from: 3.55, to: 3.97, color: '#e8e7e2', sign: '#161616' }, rods: true, wall: '#e3dccb' },
+      exits: [{ name: 'Torkel Knutssonsgatan · Polishuset', x: -77.6, z: 1584.8 }, { name: 'Mariatorget · Swedenborgsgatan', x: 238.2, z: 1622.0 }],
+      vault: 0xebe3d1,
+      paving: {
+        edge: 0.9, edgeTile: [0.3, 0.3], tactile: [0.92, 1.22], studs: true, studColor: 0xb59a52, slabs: 0, paverSize: [1.2, 1.2], mix: 0.25,
+        colors: { edge: 0xe4e0d4, tactile: 0x3c3c3a, slab: 0xc9c5ba, pavers: 0xc4c0b5, paler: 0xcdc9be, face: 0x3e3c3a },
+        pattern: 'grid',
+      },
+      benches: { length: 6, every: 22 },
     },
   },
 };

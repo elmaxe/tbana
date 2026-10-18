@@ -114,6 +114,12 @@
       "outline": [-10688.98, -3513.14, -10728.69, -3555.42, -10667.47, -3612.93, -10627.76, -3570.65],
       "heights": [30.02, 30.18, 29.18, 29.01],
       "why": "Kirunaplan, Vällingby's bus terminal, crosses the tracks on a deck from the front of Vällingby centrum to the car park's deck, 58 m along the platforms' covered south-eastern part and 84 m across. The elevation model leaves the deck out and has the ground falling into the tracks' cutting under it, 5 m down, so that the bus stops stood in a pit. The plane fits the laser scan's points on the deck to 8 cm, falling from 30.2 m on its south-western side to 29.2 m on its north-eastern. (The car park's deck beyond it is drawn by the station, src/open-styles.ts: the ground under it is the road at the platforms' level, which the platforms look out onto.)"
+    },
+    {
+      "name": "Mariatorget: the corner of Swedenborgsgatan and Wollmar Yxkullsgatan",
+      "outline": [235.7, 1601.0, 250.7, 1606.6, 242.3, 1629.1, 227.3, 1623.5],
+      "heights": [21.27, 21.44, 21.49, 21.77],
+      "why": "Mariatorget's eastern doors are on the cut-off corner of Swedenborgsgatan 4, at the pavement's level. A light well about 2 m wide and 3 m deep runs along the building's front on Swedenborgsgatan up to the corner (the laser scan's ground points in it at 18.2–18.8 m, the pavement beside it at 21.3–21.5), and the elevation model's 5 m grid smooths it into a trough that took the street in front of the doors half a metre down. The plane goes through the laser scan's pavement at the outline's corners (medians of its ground points within 2.5 m)."
     }
   ],
   "open": [
