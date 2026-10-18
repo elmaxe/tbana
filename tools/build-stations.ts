@@ -29,8 +29,9 @@ import { subtractAll } from '../src/clip.ts';
 import type { Volume } from '../src/clip.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, TrackGeometry } from '../src/track-geometry.ts';
+import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph } from '../src/track-graph.ts';
-import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT } from '../src/sections.ts';
+import { HALL, BOX, ISLAND_WIDTH, PLATFORM_EDGE, PLATFORM_HEIGHT, PLATFORM_SIDING_STATIONS } from '../src/sections.ts';
 import { CANOPY_HEIGHT, ESCALATOR_SLOPE, LANE, STAIR_SLOPE, floorHeights, inclineCorners, solidOf, spaceOf } from '../src/station-layout.ts';
 import type { CanopyPart, Exit, FloorPart, InclinePart, Part, StationLayout, StreetPart, VoidPart, XYZ } from '../src/station-layout.ts';
 import { interp } from './lib/graph.ts';
@@ -88,8 +89,11 @@ function tangentAt(g: GeometryPiece, s: number) {
 }
 
 interface Frame { x: number; z: number; y: number; tx: number; tz: number }
+// (without the platform track that no service runs on at a station that draws one: Liljeholmen's
+// third track, which curves across its middle island)
+const running = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
 function frameOf(name: string, axis?: Description['axis']): Frame {
-  const tracks = platformTracks(name);
+  const tracks = platformTracks(name).filter((t) => !PLATFORM_SIDING_STATIONS.has(name) || running.has(t.piece));
   if (!tracks.length) throw new Error(`${name}: no platform in the track geometry`);
   let x = 0, z = 0, y = 0;
   for (const t of tracks) {

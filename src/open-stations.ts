@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -295,6 +295,7 @@ export class OpenLook {
       else if (a.kind === 'ruler') this.ruler(a, frame, on);
       else if (a.kind === 'stone') this.stone(a, frame, on);
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
+      else if (a.kind === 'deckCeiling') this.deckCeiling(a, frame, on, outside(cut));
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
       else if (a.kind === 'bird') this.bird(a, frame, on);
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
@@ -402,7 +403,7 @@ export class OpenLook {
       const [sa, ua, ha = 0] = a.points[i], [sb, ub, hb = 0] = a.points[i + 1], l = Math.hypot(sb - sa, ub - ua);
       const ns = (-(ub - ua) / l) * side, nu = ((sb - sa) / l) * side;
       const P = (t: number, w: number) => [...frame.at(sa + (sb - sa) * t + ns * w, ua + (ub - ua) * t + nu * w, ha + (hb - ha) * t + 0.008),
-        w / T.PAVING_ACROSS, (along + l * t) / T.PAVING_REPEAT];
+        w / T.PAVING_ACROSS, (along + l * t) / T.pavingRepeat(paving)];
       m.poly([P(0, 0), P(1, 0), P(1, a.width), P(0, a.width)]);
       along += l;
     }
@@ -784,8 +785,73 @@ export class OpenLook {
   }
 
   private roundColumns(a: Columns, frame: Frame, on: On) {
-    const m = on(this.color(a.color, 0.85, 0));
-    for (const [s, u] of a.at) limb(m, frame.at(s, u, a.from), frame.at(s, u, a.to), a.size, a.size);
+    const m = on(this.color(a.color, 0.85, 0)), C = a.crown;
+    a.at.forEach(([s, u], k) => {
+      limb(m, frame.at(s, u, a.from), frame.at(s, u, C ? a.to - C.h : a.to), a.size, a.size);
+      if (!C) return;
+      // the funnel, from the column's top out to its rim, and a dark disc over it
+      const color = C.colors[k % C.colors.length];
+      const lit = on(this.mat(`crown:${color}`, () => {
+        const map = T.litCrown(color);
+        return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.8, roughness: 0.4, side: THREE.DoubleSide });
+      }));
+      const n = 16, P = (i: number, r: number, h: number) => { const t = (i / n) * Math.PI * 2; return frame.at(s + Math.cos(t) * r, u + Math.sin(t) * r, h); };
+      for (let i = 0; i < n; i++) {
+        lit.poly([[...P(i, a.size / 2, a.to - C.h), i / n, 1], [...P(i + 1, a.size / 2, a.to - C.h), (i + 1) / n, 1],
+          [...P(i + 1, C.size / 2, a.to), (i + 1) / n, 0], [...P(i, C.size / 2, a.to), i / n, 0]]);
+      }
+      m.poly(Array.from({ length: n }, (_, i) => [...P(i, C.size / 2, a.to + 0.01), 0, 0]));
+    });
+  }
+
+  // A ceiling under a deck: the beams across the hall (each an I, its flanges and web), the panels
+  // between them in barrels along it on their ribs, and the strip lights under them
+  private deckCeiling(a: DeckCeiling, frame: Frame, on: On, cut: Volume[]) {
+    // (left out over the openings in the deck)
+    cut = [...cut, ...(a.holes ?? []).map(([s0, s1, u0, u1]) => {
+      const c = ([[s0, u0], [s1, u0], [s1, u1], [s0, u1]] as const).map(([s, u]): [number, number] => { const p = frame.at(s, u, 0); return [p[0], p[2]]; });
+      return prism(c, c.map(() => frame.st.platformY + a.lampAt - 0.5), c.map(() => frame.st.platformY + a.spring + a.rise + 1));
+    })];
+    const red = on(this.color(a.color, 0.6, 0.3)), steel = on(this.color(0x5c6064, 0.6, 0.4)), panels = on(this.finish('silverPerforated', true));
+    const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
+    const { fx, fz } = frame, [bw, bd] = a.beam, [u0, u1] = a.u, um = (u0 + u1) / 2, span = u1 - u0, t = 0.03;
+    const beams: number[] = [];
+    for (let s = a.at - Math.floor((a.at - a.s[0]) / a.every) * a.every; s <= a.s[1] + 1e-6; s += a.every) beams.push(s);
+    for (const s of beams) {
+      box(red, frame.at(s, um, a.soffit + t / 2), fx, fz, span, t, bw, cut);
+      box(red, frame.at(s, um, a.soffit + bd - t / 2), fx, fz, span, t, bw, cut);
+      box(red, frame.at(s, um, a.soffit + bd / 2), fx, fz, span, bd - 2 * t, 0.02, cut);
+    }
+    // the barrels, bay by bay between the beams, and strip by strip across, each rising as a
+    // parabola from its ribs to its crown
+    const n = 6, strips = Math.ceil(span / a.panel - 0.01), w = span / strips;
+    const h = (k: number) => a.spring + a.rise * 4 * (k / n) * (1 - k / n);
+    const arc = [0];
+    for (let k = 1; k <= n; k++) arc.push(arc[k - 1] + Math.hypot(w / n, h(k) - h(k - 1)));
+    const edges = [a.s[0], ...beams.filter((s) => s > a.s[0] && s < a.s[1]), a.s[1]];
+    for (let b = 0; b + 1 < edges.length; b++) {
+      const s0 = edges[b] + (b ? bw / 2 : 0), s1 = edges[b + 1] - (b + 2 < edges.length ? bw / 2 : 0);
+      for (let j = 0; j < strips; j++) {
+        const ua = u0 + j * w;
+        for (let k = 0; k < n; k++) {
+          const p = ua + (w * k) / n, q = ua + (w * (k + 1)) / n;
+          panels.poly([[...frame.at(s0, p, h(k)), arc[k] / 1.2, s0 / 3], [...frame.at(s1, p, h(k)), arc[k] / 1.2, s1 / 3],
+            [...frame.at(s1, q, h(k + 1)), arc[k + 1] / 1.2, s1 / 3], [...frame.at(s0, q, h(k + 1)), arc[k + 1] / 1.2, s0 / 3]], cut);
+        }
+      }
+    }
+    for (let j = 0; j <= strips; j++) box(steel, frame.at((a.s[0] + a.s[1]) / 2, u0 + j * w, a.spring - 0.05), fx, fz, 0.06, 0.1, a.s[1] - a.s[0], cut);
+    // the strip lights: fittings 1.5 m long, nearly end to end, along each row
+    for (const row of a.lamps) {
+      for (let i = 0; i + 1 < row.length; i++) {
+        const [sa, ua] = row[i], [sb, ub] = row[i + 1], l = Math.hypot(sb - sa, ub - ua), m = Math.max(1, Math.round(l / 1.6));
+        const o = frame.at(sa, ua, 0), e = frame.at(sb, ub, 0), dx = (e[0] - o[0]) / l, dz = (e[2] - o[2]) / l;
+        for (let k = 0; k < m; k++) {
+          const c = (k + 0.5) / m;
+          box(lamp, frame.at(sa + (sb - sa) * c, ua + (ub - ua) * c, a.lampAt), dx, dz, 0.12, 0.05, Math.min(1.5, l / m - 0.05), cut);
+        }
+      }
+    }
   }
 
   // Birgitta Muhr's tulips (Uppväxter, 2002): a ring of setts, a leaf rising from the foot behind

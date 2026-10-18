@@ -3564,11 +3564,12 @@ const css = (n: number, k = 0) => {
 };
 
 // A styled open station's platform paving, u across from the edge (0) to PAVING_ACROSS m in (1),
-// v along it, PAVING_REPEAT m a repeat: the edge stones, the ribbed strip for the blind, pale
-// slabs, then pavers.
+// v along it, PAVING_REPEAT m a repeat (or its lines' repeat: pavingRepeat): the edge stones, the
+// ribbed strip for the blind, pale slabs, then pavers.
 export const PAVING_ACROSS = 8, PAVING_REPEAT = 2.4;
+export const pavingRepeat = (p: Paving) => p.lines?.every ?? PAVING_REPEAT;
 export function openPaving(p: Paving) {
-  const PX = 100, W = PAVING_ACROSS * PX, H = PAVING_REPEAT * PX, [c, x] = canvas(W, H);
+  const PX = 100, W = PAVING_ACROSS * PX, H = pavingRepeat(p) * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
   const joint = css(C.pavers, -34);
   // pavers: rectangles 24 × 12 cm (or as given), in a running bond along the platform, or in
@@ -3623,6 +3624,16 @@ export function openPaving(p: Paving) {
       x.stroke();
     }
   }
+  // (thin lines of brass in the terrazzo: two zigzags across from near the strip for the blind,
+  // crossing each other, between lines along it, and a third further in)
+  if (p.lines) {
+    const L = p.lines.every, a = p.tactile[1] + 0.3, b = a + 3.0, c2 = b + 3.0;
+    x.strokeStyle = css(p.lines.color); x.lineWidth = 1.6;
+    const path = (pts: [number, number][]) => { x.beginPath(); pts.forEach(([u, v], i) => (i ? x.lineTo(u * PX, v * PX) : x.moveTo(u * PX, v * PX))); x.stroke(); };
+    path([[a, 0], [b, L / 2], [a, L]]); path([[b, 0], [a, L / 2], [b, L]]);
+    path([[b, 0], [c2, L / 4], [b, L / 2], [c2, (3 * L) / 4], [b, L]]);
+    for (const u of [a, b]) path([[u, 0], [u, L]]);
+  }
   // pale slabs out to `slabs`, 30 cm square, or in courses along the platform, their joints across
   // it staggered
   const [sa, sl] = p.slabSize ?? [0.3, 0.3];
@@ -3640,7 +3651,7 @@ export function openPaving(p: Paving) {
   const [t0, t1] = p.tactile;
   x.fillStyle = css(C.tactile); x.fillRect(t0 * PX, 0, (t1 - t0) * PX, H);
   if (p.studs) {
-    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) for (let j = 0.03; j < PAVING_REPEAT; j += 0.06) {
+    for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) for (let j = 0.03; j < H / PX; j += 0.06) {
       x.fillStyle = css(C.tactile, -24); x.beginPath(); x.arc((t0 + k) * PX + 0.6, j * PX + 0.6, 0.013 * PX, 0, Math.PI * 2); x.fill();
       x.fillStyle = p.studColor === undefined ? css(C.tactile, 22) : css(p.studColor); x.beginPath(); x.arc((t0 + k) * PX, j * PX, 0.011 * PX, 0, Math.PI * 2); x.fill();
     }
@@ -4061,6 +4072,19 @@ export function forestFloor() {
   }
   x.putImageData(img, 0, 0);
   return toTexture(c, { repeat: false });
+}
+
+// The lit funnel on one of Liljeholmen's columns, round it (u) and up it (v): upright stripes of
+// `color` and white, lit from within, between thin dark ribs, under a dark rim.
+export function litCrown(color: number) {
+  const W = 256, H = 64, [c, x] = canvas(W, H), n = 16, w = W / n;
+  x.fillStyle = '#f2eee4'; x.fillRect(0, 0, W, H);
+  x.fillStyle = css(color);
+  for (let k = 0; k < n; k += 2) x.fillRect(k * w + 2, 0, w - 4, H);
+  x.fillStyle = '#2a2224';
+  for (let k = 0; k < n; k++) x.fillRect(k * w - 1, 0, 2, H);
+  x.fillRect(0, 0, W, 5); x.fillRect(0, H - 3, W, 3);
+  return toTexture(c);
 }
 
 // Leif Tjerned's boxes of neon at Gullmarsplan (1995): the coloured glass in a box's underside,
@@ -4532,6 +4556,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
   striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
   wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0], narrowTiles: [0.84, 0.96],
+  brassTerrazzo: [4.8, 9.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed'];
@@ -6442,6 +6467,20 @@ export function finish(name: Finish) {
       // Hornstull's white tiles on end, round its lobbies and up its shafts (whiteBricks)
       whiteBricks(x, 0, 0, W, H, PX, r);
       break;
+    case 'brassTerrazzo': {
+      // Liljeholmen's halls: green terrazzo, speckled pale and dark, and thin lines of brass across
+      // it at two slants and along it, crossing in long triangles (each wrapping round the repeat)
+      x.fillStyle = '#86a28a'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 70000, 0.3, 78); speckle(x, W, H, 30000, 0.25, 79, true);
+      x.strokeStyle = '#b8964a'; x.lineWidth = 0.012 * PX;
+      const line = (x0: number, y0: number, x1: number, y1: number) => {
+        for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+          x.beginPath(); x.moveTo(x0 * PX + dx, y0 * PX + dy); x.lineTo(x1 * PX + dx, y1 * PX + dy); x.stroke();
+        }
+      };
+      line(0.6, 0, 4.2, 9.6); line(4.2, 0, 0.6, 9.6); line(0.6, 0, 0.6, 9.6); line(2.4, 0, 4.8, 4.8); line(0, 4.8, 2.4, 9.6);
+      break;
+    }
     case 'uprightTiles':
       uprightTiles(x, 0, 0, W, H, PX, r);
       break;

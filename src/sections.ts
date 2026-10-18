@@ -27,6 +27,10 @@ export const SIDE_PLATFORM_WIDTH = 5;
 // stops at (Högdalen's, to the depot; Vällingby's, where trains turn): each platform's far edge
 // follows that track, its width the gap between the two
 export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen', 'Vällingby']);
+// stations whose platform track that no service runs on is drawn, with its platform: Liljeholmen's
+// third track, along the western edge of its middle island (on Albert Guillaumes's drawing, where
+// trains turning back at Liljeholmen stand)
+export const PLATFORM_SIDING_STATIONS = new Set(['Liljeholmen']);
 
 export const GAUGE = 1.435;
 export const RAIL = { head: 0.07, height: 0.15 };

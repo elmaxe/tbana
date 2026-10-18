@@ -103,6 +103,18 @@
       "osm": "w1560103082",
       "overStation": true,
       "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the tall part with the round roof over the hall and the doors on Hornsbruksgatan: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w165343351",
+      "tags": { "min_height": "5.6" },
+      "overStation": true,
+      "why": "The L-shaped block of flats on Liljeholmstorget's deck over Liljeholmen's platforms, at their north end: the station's northern hall is in its ground floor, the stairs and escalators from the platforms climbing into it through the deck, and its doors open onto the square and the street (OpenStreetMap's indoor mapping; photographs). It is left whole, not cut through its full height, and stands from the courtyard on the deck up (15.4 m, the laser scan; 5.6 m over its lowest ground), the hall (the station's blocks) under it."
+    },
+    {
+      "osm": "w165343354",
+      "tags": { "min_height": "8.4" },
+      "overStation": true,
+      "why": "The northernmost of the three point blocks on the west side of Liljeholmstorget's deck, over Liljeholmen's platforms: the stairs from the western island climb under it into the northern hall (OpenStreetMap's indoor mapping). It is left whole, not cut through its full height, and stands from the courtyard on the deck up (15.4 m, the laser scan; 8.4 m over its lowest ground, on Liljeholmsgränd's side), the hall and its own ground floor (the station's blocks) under it."
     }
   ]
 }

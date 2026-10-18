@@ -120,6 +120,12 @@
       "outline": [235.7, 1601.0, 250.7, 1606.6, 242.3, 1629.1, 227.3, 1623.5],
       "heights": [21.27, 21.44, 21.49, 21.77],
       "why": "Mariatorget's eastern doors are on the cut-off corner of Swedenborgsgatan 4, at the pavement's level. A light well about 2 m wide and 3 m deep runs along the building's front on Swedenborgsgatan up to the corner (the laser scan's ground points in it at 18.2–18.8 m, the pavement beside it at 21.3–21.5), and the elevation model's 5 m grid smooths it into a trough that took the street in front of the doors half a metre down. The plane goes through the laser scan's pavement at the outline's corners (medians of its ground points within 2.5 m)."
+    },
+    {
+      "name": "Liljeholmen: Liljeholmstorget's deck over the platforms",
+      "outline": [-2106.6, 2331.7, -1997.4, 2250.6, -1970.2, 2287.2, -2079.4, 2368.3],
+      "heights": [9.93, 9.75, 9.9, 9.92],
+      "why": "Liljeholmen's platforms, from the hall of 1964 at their south end to 64 m north of their middle, are in a hall under a deck built over the open station in the 2000s, which carries Liljeholmstorget, the buildings on its west side and their courtyard; the station draws the hall (src/open-styles.ts). The elevation model leaves the deck out and sags under it to 7.5–9 m, 2.5–4.3 m over the platforms, through the hall's ceiling. Lantmäteriet's laser scan (2021) has the deck at 9.75–9.93 m, about 5.2 m over the platforms, from the hall of 1964 to the north hall. The outline reaches 5 m beyond the hall's western wall, under the blocks of flats over Liljeholmsgränd, so that the 5 m grid's slope down to the street stays out of the hall."
     }
   ],
   "open": [

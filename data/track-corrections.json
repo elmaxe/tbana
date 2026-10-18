@@ -541,6 +541,13 @@
       "reach": 5,
       "length": 143,
       "why": "The south-western island's middle, as for the north-eastern one."
+    },
+    {
+      "station": "Liljeholmen",
+      "extend": true,
+      "at": [151338.8, 6577284.5],
+      "length": 147,
+      "why": "OSM's eastern platform (2026), the one the buses dock along at its back, is drawn turned about 2° from the eastern track, so that only its southern 94 m read as beside it and the platform stopped 55 m short of the others' north end. It runs the length of the station beside the track, as the others do (Albert Guillaumes' drawing, 2024; photographs): from the middle of the island platforms, 147 m."
     }
   ],
   "straight": [
@@ -568,6 +575,11 @@
       "station": "Hornstull",
       "width": 5.45,
       "why": "Hornstull's side platforms are 5.45 m wide, from the edge to the wall of the rock core between the halls (OpenStreetMap's platform outlines, mapped indoors with the escalators, lifts and the passages through the core)."
+    },
+    {
+      "station": "Liljeholmen",
+      "width": 6,
+      "why": "Liljeholmen's eastern platform is 6 m wide from its edge to the glass wall of the bus terminal behind it (OpenStreetMap's outline, mapped indoors, 5.8 to 6.1 m along its southern two thirds)."
     }
   ],
   "points": [
@@ -598,6 +610,22 @@
     {
       "at": [148919.7, 6579838.4],
       "why": "Alvik, the northern track at the platform's west end: OSM has no point on it between 63 m inside the platform and the bridge 36 m beyond it."
+    },
+    {
+      "at": [151270.9, 6577249.4],
+      "why": "Liljeholmen, the third track at the south end of its platform: OSM has no point on it between 16 m north of the platforms' middle and 108 m south of it, where it rises towards the sidings beyond the station, so its height sloped straight between them and the western edge of the middle island stood half a metre over its eastern edge at that end. The island is level, as the station's other platforms are."
+    },
+    {
+      "at": [151261.8, 6577261.8],
+      "why": "Liljeholmen, the western track (track 1) at the south end of the platforms: OSM has no point on it between 9 m and 116 m south of the platforms' middle, where it comes out into the open, so its height sloped straight between them and the platform's south end stood a quarter of a metre over its middle. The platforms are level."
+    },
+    {
+      "at": [151268.5, 6577252.7],
+      "why": "Liljeholmen, the second track at the south end of the platforms: OSM has no point on it between 14 m and 117 m south of the platforms' middle, so its height sloped straight between them, as the western track's did."
+    },
+    {
+      "at": [151277.7, 6577240.4],
+      "why": "Liljeholmen, the eastern track (track 4) at the south end of the platforms: OSM has no point on it between 6 m north of the platforms' middle and 117 m south of it, so its height sloped straight between them, as the western track's did."
     }
   ]
 }

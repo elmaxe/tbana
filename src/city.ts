@@ -610,8 +610,8 @@ function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: 
     const bottom = b.kind === 'roof' ? top - 0.4 : b.bottom;
     // the walls, facing out from the outline and into the courtyards (a shed's also facing in);
     // with its doors left open up to their tops (a shed's, where the tracks run in, or where a
-    // station's stairs pass through the walls of a building over them); under a roof of its
-    // shape, up to it
+    // station's stairs pass through the walls of a building over them, if it stands lower than
+    // their tops); under a roof of its shape, up to it
     const shed = b.kind === 'shed';
     const roofLike = b.kind === 'roof';
     const wb = roofLike ? w.plaster : w[style];
@@ -629,7 +629,7 @@ function buildingGeometry(buildings: Building[], t: Tile, toUv: ((x: number, z: 
         let at = 0;
         for (const d of doors) {
           if (d.from > at) parts.push([at, d.from, bottom]);
-          if (d.top < top) parts.push([d.from, d.to, d.top]);
+          if (d.top < top) parts.push([d.from, d.to, Math.max(d.top, bottom)]);
           at = d.to;
         }
         if (at < len) parts.push([at, len, bottom]);

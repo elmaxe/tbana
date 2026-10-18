@@ -62,7 +62,8 @@ interface Corrections {
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
   // north), the platform is placed from that point instead of the station's node, and with
   // `length` it is that long rather than 145 m. With `extend`,
-  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
+  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead
+  // (or to `length` about their nearest point to `at`).
   // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
   // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
   platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; extend?: boolean; shortRuns?: number }[];
@@ -463,13 +464,25 @@ for (const c of corrections.platforms ?? []) {
   }
   if (c.extend) {
     // OSM's platform is drawn short of the 145 m it is: each of its tracks is lengthened about
-    // its middle
+    // its middle (or about its nearest point to `at`, to `length`)
     let grown = 0;
+    const half = (c.length ?? 145) / 2;
     for (const t of st.platforms.flatMap((p) => p.tracks)) {
       if (t.s1 - t.s0 >= 140) continue;
-      const len = pieces[t.piece].length, mid = Math.min(len - 72.5, Math.max(72.5, (t.s0 + t.s1) / 2));
-      t.s0 = round(Math.max(0, mid - 72.5));
-      t.s1 = round(Math.min(len, mid + 72.5));
+      const p = pieces[t.piece], len = p.length;
+      let mid = (t.s0 + t.s1) / 2;
+      if (c.at) {
+        const x = c.at[0] - ORIGIN.e, z = ORIGIN.n - c.at[1];
+        let best = Infinity;
+        for (let i = 1, s = 0; i < p.points.length; i++) {
+          const r = distToSegment(x, z, p.points[i - 1], p.points[i]);
+          if (r.d < best) { best = r.d; mid = s + Math.hypot(r.px - p.points[i - 1][0], r.pz - p.points[i - 1][1]); }
+          s += Math.hypot(p.points[i][0] - p.points[i - 1][0], p.points[i][1] - p.points[i - 1][1]);
+        }
+      }
+      mid = Math.min(len - half, Math.max(half, mid));
+      t.s0 = round(Math.max(0, mid - half));
+      t.s1 = round(Math.min(len, mid + half));
       grown++;
     }
     if (!grown) throw new Error(`correction: ${c.station}'s platforms are long enough already (${c.why})`);

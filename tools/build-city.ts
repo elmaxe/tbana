@@ -56,7 +56,8 @@
 // - Where a building stands over open track, the part over the track's space is lifted to clear
 //   the trains (or left out if there is nothing above), and roofs on posts over the platforms are
 //   left out: the stations draw their own. So it is where one would reach down into a tunnel: the
-//   part over it stands on its roof.
+//   part over it stands on its roof, or over a hall a station draws under a deck
+//   (src/open-styles.ts, `hall`), on the deck.
 // - Where a station's exit, passage or hall reaches the surface inside a building, it is cut out
 //   of the building, and an exit's way out continues through the building to the outside. The
 //   buildings a styled open station draws itself (src/open-styles.ts) are left out. A building
@@ -1088,6 +1089,21 @@ function passages(ring: XZ[], parts: StationCut[]): Door[] {
   return out;
 }
 
+// the halls stations draw under decks (src/open-styles.ts, `hall`), and the deck's underside over
+// each (RH 2000)
+const hallDecks = Object.entries(OPEN_STYLES).flatMap(([name, st]) => {
+  const lay = layouts.stations.find((l) => l.name === name);
+  return st.hall?.deck !== undefined && lay ? [{ ...st.hall, top: lay.platformY + st.hall.deck }] : [];
+});
+function hallDeckAt(x: number, z: number): number | null {
+  for (const h of hallDecks) {
+    const [hx, hz, yaw] = h.at, fx = -Math.sin(yaw), fz = -Math.cos(yaw), dx = x - hx, dz = z - hz;
+    const s = dx * fx + dz * fz, u = -dx * fz + dz * fx;
+    if (s >= h.s[0] && s <= h.s[1] && u >= h.u[0] && u <= h.u[1]) return h.top;
+  }
+  return null;
+}
+
 const tiles = new Map<string, Building[]>();
 let overTrack = 0, sheds = 0, roofsDropped = 0, cutForStations = 0, outside = 0;
 let shaped = 0, unshaped = 0;
@@ -1153,8 +1169,9 @@ for (const s of sources) {
     const union = polygonClipping.union(hits[0].poly, ...hits.slice(1).map((h) => h.poly));
     const over = polygonClipping.intersection(shape, union);
     shape = polygonClipping.difference(shape, union);
-    // the part over the track, lifted clear of the trains (or the tunnel's roof)
-    const clear = Math.max(...hits.map((h) => h.top));
+    // the part over the track, lifted clear of the trains (or the tunnel's roof; under a deck over
+    // a station's hall, onto the deck)
+    const clear = Math.max(...hits.map((h) => h.top), hallDeckAt(s.c[0], s.c[1]) ?? -Infinity);
     if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
   }
   emit(list, shape, base, roofOpts, over);

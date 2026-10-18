@@ -34,6 +34,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
+import { PLATFORM_SIDING_STATIONS } from '../src/sections.ts';
 import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
@@ -147,8 +148,13 @@ if (!ground.length) console.warn(`data/ground/<line>-line.json missing: no groun
 // the services' track pinned where the first fit put it, so that the crossovers, sidings and
 // depots are fitted to the line and don't move it.
 const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
-// the sidings and turnback tracks (tools/lib/graph.ts)
+// the sidings and turnback tracks (tools/lib/graph.ts), and the track at a platform that no
+// service runs on, where it is drawn (Liljeholmen's third track: PLATFORM_SIDING_STATIONS), which
+// is laid at the height of the running line beside it rather than held level on its own
 const sidings = sidingPieces(graph, lineTrack(graph));
+const platformSidings = new Set(graph.stations.filter((st) => PLATFORM_SIDING_STATIONS.has(st.name))
+  .flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))).filter((id) => !run.has(id)));
+for (const id of platformSidings) sidings.add(id);
 // the line a piece belongs to: as OpenStreetMap names it, or the line of the services on it
 const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
@@ -300,7 +306,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     for (const pl of st.platforms) {
       for (const t of pl.tracks) {
         const d = disc.get(t.piece);
-        if (!d) continue;
+        if (!d || platformSidings.has(t.piece)) continue;
         d.s.forEach((s, k) => {
           if (s < t.s0 || s > t.s1) return;
           onPlatform.add(d.v[k]);

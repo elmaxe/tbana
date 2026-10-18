@@ -11,7 +11,7 @@ import { cutIndexed, insideVolume, loft, subtractAll } from './clip.ts';
 import type { Volume } from './clip.ts';
 import { CAVE_STYLES, HALL_STYLES, VAULT_STYLES } from './hall-styles';
 import type { BeamedHall, CaveIsland, CaveStyle, ConcreteHall, FlatHall, HallStyle, TiledHall, VaultFinish, VaultHall, VaultStyle } from './hall-styles';
-import { OPEN_STYLES } from './open-styles';
+import { OPEN_STYLES, hallDrawn } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
@@ -55,6 +55,9 @@ interface Sample {
   yard: boolean;                   // track no service runs on: crossovers, sidings, depots
   ground: number | null;
   plat: GeometryPlatform | null;
+  // a platform on the track's other side too (Liljeholmen's eastern track, between an island and
+  // the platform along the bus terminal), drawn in a second pass with it as `plat`
+  opposite: GeometryPlatform | null;
   third: 1 | -1;                   // the conductor rail's side
   skip: boolean;                   // the station draws it all
   noTrack: boolean;                // the station draws the track
@@ -317,6 +320,7 @@ export class Network {
     for (const [k, piece] of Object.values(geometry.pieces).entries()) {
       this.addRuns(this.samples[k]);
       this.addFloors(this.samples[k]);
+      if (this.samples[k].some((sm) => sm.opposite)) this.addFloors(oppositeOf(this.samples[k]));
       piece.x.forEach((x, i) => {
         const key = `${Math.floor(x / POINT_CELL)},${Math.floor(piece.z[i] / POINT_CELL)}`;
         (this.points.get(key) ?? this.points.set(key, []).get(key)!).push({ x, y: piece.y[i], z: piece.z[i], kind: STRUCTURE_KINDS[piece.kind[i]] });
@@ -505,7 +509,8 @@ export class Network {
     });
 
     // the structure around it
-    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) && !vaultStyle(sm) && !caveStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    // (none under a hall a station draws itself: src/open-styles.ts)
+    sweep(b.rock, run, (sm) => (sm.kind === 'rock' && !hallStyle(sm) && !vaultStyle(sm) && !caveStyle(sm) && !hallDrawn(sm.x, sm.z) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
     // a painted cave: its rock, painted as that station's is (u up the wall and on over the roof,
     // v along the station, the same for both of its tracks)
     for (const station of new Set(run.filter((sm) => caveStyle(sm)).map((sm) => sm.plat!.station))) {
@@ -514,7 +519,7 @@ export class Network {
       sweep(b[key] ??= new MeshBuilder(), run, (sm) => (caveStyle(sm) && sm.plat!.station === station ? shellOutline(sm) : null),
         { u: (u, v, _, sm) => caveAcross(sm, u, v) / T.CAVE_ACROSS, v: (u, v, sm) => caveAlong(sm, u, v) / T.CAVE_REPEAT });
     }
-    sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) && !vaultStyle(sm) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
+    sweep(b.concrete, run, (sm) => (sm.kind === 'box' && !hallStyle(sm) && !vaultStyle(sm) && !hallDrawn(sm.x, sm.z) ? shellOutline(sm) : null), { uScale: 0.25, vScale: 0.25 });
     // a styled vault: the wall across the track (its art drawn to be read from the platform), the
     // wall behind the platform, and the vault
     // (in Östermalmstorg's finish, or a station's own: its materials made the first time it is met)
@@ -688,6 +693,7 @@ export class Network {
     this.openStructure(run, b);
     this.islandHall(run, b, group);
     this.platforms(run, b, group, lamps);
+    if (run.some((sm) => sm.opposite)) this.platforms(oppositeOf(run), b, group, lamps);
     this.columns(samples, run, b, group);
     this.posters(samples, run, group);
     this.blocks(samples, run, b, group);
@@ -829,12 +835,12 @@ export class Network {
         // (one out to a middle track: to halfway, and the far half from that track's edge, below)
         if (p.reach) return { key: `h${p.side}`, pts: p.side > 0 ? [[e, H], [(e + o) / 2, H]] : [[(e + o) / 2, H], [e, H]] };
         return { key: `p${p.side}`, pts: p.side > 0 ? [[e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H]] };
-      }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.PAVING_ACROSS, vScale: 1 / T.PAVING_REPEAT });
+      }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.PAVING_ACROSS, vScale: 1 / T.pavingRepeat(paving) });
       sweep(b[pave], run, (sm) => {
         if (!mine(sm) || !sm.plat!.reach) return null;
         const p = sm.plat!, o = platformOuter(sm), m = (p.side * S.PLATFORM_EDGE + o) / 2;
         return { key: `r${p.side}`, pts: p.side > 0 ? [[m, H], [o, H]] : [[o, H], [m, H]] };
-      }, { u: (u, _, __, sm) => (Math.abs(platformOuter(sm)) - Math.abs(u)) / T.PAVING_ACROSS, vScale: 1 / T.PAVING_REPEAT });
+      }, { u: (u, _, __, sm) => (Math.abs(platformOuter(sm)) - Math.abs(u)) / T.PAVING_ACROSS, vScale: 1 / T.pavingRepeat(paving) });
       sweep(b[face] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
         const e = sm.plat!.side * S.PLATFORM_EDGE;
@@ -893,7 +899,7 @@ export class Network {
           for (const d of [-0.7, 0.7]) box(b.fitting, at(sm, u + d, v - 0.085), sm, 0.012, 0.17, 0.012);
         }
         // (a styled hall has its own name plates)
-        else if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm) && !islandStyle(sm)) {
+        else if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm) && !islandStyle(sm) && !openStyle(sm)) {
           // (on a painted cave's rock, where it is)
           const w = caveStyle(sm) ? wall - Math.sign(wall) * caveInward(sm, wall, 2.4) : wall;
           const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 0.68), this.signMaterial(p.station));
@@ -2458,6 +2464,9 @@ function platformOuter(sm: Sample) {
   // out to the middle track's edge (its distance is positive: no service runs on it)
   const d = p.side > 0 ? sm.right : sm.left;
   if (p.reach && d > 0) return p.side * (d - S.PLATFORM_EDGE);
+  // (an island under a hall a station draws, Liljeholmen's, where its tracks close in: to halfway
+  // to the next track)
+  if (p.island && d && openStyle(sm)?.hall) return p.side * Math.max(S.PLATFORM_EDGE + 0.05, Math.min(S.PLATFORM_EDGE + p.width, Math.abs(d) / 2));
   return p.side * (S.PLATFORM_EDGE + p.width);
 }
 
@@ -2573,7 +2582,7 @@ function islandStyle(sm: Sample): CaveIsland | null {
 // A styled open station (src/open-styles.ts): a platform out in the open, under its own roof.
 function openStyle(sm: Sample): OpenStyle | null {
   const p = sm.plat;
-  return p && sm.kind !== 'rock' && sm.kind !== 'box' ? OPEN_STYLES[p.station] ?? null : null;
+  return p && ((sm.kind !== 'rock' && sm.kind !== 'box') || hallDrawn(sm.x, sm.z)) ? OPEN_STYLES[p.station] ?? null : null;
 }
 // A flat hall in concrete (src/hall-styles.ts): Farsta strand's; or a beamed one, Skanstull's, which
 // is paved, lit and signed as one.
@@ -3129,6 +3138,9 @@ function nearestSample(list: Sample[], x: number, z: number) {
 // A platform the track graph splits in two along one track (where it takes the track to leave
 // the platform for a short stretch, as at Karlaplan) is one platform, as along the other track.
 const PLATFORM_JOIN = 45;
+// The samples with the platform on the other side as theirs, for the second pass that draws it.
+const oppositeOf = (run: Sample[]): Sample[] => run.map((sm) => ({ ...sm, plat: sm.opposite, opposite: null }));
+
 function joinPlatforms(list: GeometryPlatform[]): GeometryPlatform[] {
   const out: GeometryPlatform[] = [];
   for (const p of [...list].sort((a, b) => a.s0 - b.s0)) {
@@ -3213,12 +3225,13 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
     const left = nearest(g.left), right = nearest(g.right);
     const se = lerp(g.s, e);
     const plat = platforms.find((p) => se >= p.s0 && se <= p.s1) ?? null;
+    const opposite = plat && platforms.find((p) => p.side !== plat.side && se >= p.s0 && se <= p.s1) || null;
     const third: 1 | -1 = plat ? (-plat.side as 1 | -1) : pair ? (pair > 0 ? -1 : 1) : beside ? (beside > 0 ? -1 : 1) : (dir > 0 ? -1 : 1);
     const skip = exclude.some((x) => !x.trackOnly && se >= x.s0 && se <= x.s1);
     const noTrack = skip || exclude.some((x) => se >= x.s0 && se <= x.s1);
     const v = plat ? vaults.get(plat) : undefined;
     const vault = typeof v === 'object' ? (e > v.q) === v.after : !!v;
-    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, beside, besideDy, left, right, yard, ground, plat, third, skip, noTrack, vault };
+    return { s, kind: STRUCTURE_KINDS[g.kind[near]], pair, pairDy, beside, besideDy, left, right, yard, ground, plat, opposite, third, skip, noTrack, vault };
   };
   // where something changes
   const breaks = new Set<number>();
@@ -3286,7 +3299,7 @@ function densify(g: GeometryPiece, dir: number, exclude: Exclusion[], yard: bool
   }
   // drop repeated places that aren't changes
   return out.filter((sm, i) => i === 0 || sm.along - out[i - 1].along > 0.05 || sm.kind !== out[i - 1].kind
-    || !sm.pair !== !out[i - 1].pair || !sm.beside !== !out[i - 1].beside || sm.plat !== out[i - 1].plat || sm.vault !== out[i - 1].vault || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack
+    || !sm.pair !== !out[i - 1].pair || !sm.beside !== !out[i - 1].beside || sm.plat !== out[i - 1].plat || sm.opposite !== out[i - 1].opposite || sm.vault !== out[i - 1].vault || sm.skip !== out[i - 1].skip || sm.noTrack !== out[i - 1].noTrack
     || !shares(sm, -1) !== !shares(out[i - 1], -1) || !shares(sm, 1) !== !shares(out[i - 1], 1)
     || bare(sm) !== bare(out[i - 1]) || !widened(sm, -1) !== !widened(out[i - 1], -1) || !widened(sm, 1) !== !widened(out[i - 1], 1));
 }

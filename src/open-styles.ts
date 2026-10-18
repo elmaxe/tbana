@@ -45,6 +45,26 @@ export interface OpenStyle {
   // a flat roof of their own; `under`, down the middle of one of `roofs` (its index), as a row of
   // benches can be
   shelters?: { s: [number, number]; u: [number, number]; roof?: boolean; under?: number }[];
+  // a station under a deck whose hall it draws itself (Liljeholmen's): within `s` and `u` of its
+  // frame (`at`: its layout's x, z and yaw), the network (src/network.ts) draws no tunnel round
+  // the tracks, nor lamps over the platforms or name signs on the walls, paves the platforms as
+  // `paving`, and takes each half of an island no track pairs with across it to halfway to the
+  // next track (a hall lights its platforms as a tunnel's are lit); and where the buildings on
+  // the deck stand over the tracks, the city (tools/build-city.ts) stands them on the deck, `deck`
+  // metres over the platforms, not on a tunnel's roof under the hall's ceiling
+  hall?: { at: [number, number, number]; s: [number, number]; u: [number, number]; deck?: number };
+}
+
+// whether the network leaves the tunnel at (x, z) to a station that draws its own hall
+let HALLS: NonNullable<OpenStyle['hall']>[] | null = null;
+export function hallDrawn(x: number, z: number) {
+  HALLS ??= Object.values(OPEN_STYLES).flatMap((st) => (st.hall ? [st.hall] : []));
+  for (const h of HALLS) {
+    const [hx, hz, yaw] = h.at, fx = -Math.sin(yaw), fz = -Math.cos(yaw), dx = x - hx, dz = z - hz;
+    const s = dx * fx + dz * fz, u = -dx * fz + dz * fx;
+    if (s >= h.s[0] && s <= h.s[1] && u >= h.u[0] && u <= h.u[1]) return true;
+  }
+  return false;
 }
 
 export interface Benches { at: number[]; across?: boolean; double?: boolean; wood?: boolean; roof?: number }
@@ -147,6 +167,9 @@ export interface Paving {
   // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, small setts
   // laid in fans, or asphalt, laid without joints (in the pavers' colour)
   pattern: 'herringbone' | 'bond' | 'grid' | 'fans' | 'asphalt';
+  // thin lines of brass let into it, crossing it in long triangles that repeat `every` m along
+  // the platform (Liljeholmen's terrazzo)
+  lines?: { color: number; every: number };
 }
 
 // The finishes in a box: from `s[0]` to `s[1]` along, across `u` (all of it by default), and
@@ -319,7 +342,8 @@ export type Finish =
   | 'uprightTiles'  // white glazed tiles on end, 10 by 20 cm, in pale grey joints
   | 'bandGlazed'    // clear glass in brushed steel frames 1.3 m apart, a kick panel, a transom with SL's dark blue band over a yellow line
   | 'shards'        // grey concrete set with skewed plates of colour, greys, white, blues, beige and brick red (John Stenborg's)
-  | 'narrowTiles';  // white glazed tiles on end, 7 by 24 cm, in a running bond up the wall, in grey joints (Hornstull's)
+  | 'narrowTiles'   // white glazed tiles on end, 7 by 24 cm, in a running bond up the wall, in grey joints (Hornstull's)
+  | 'brassTerrazzo'; // green terrazzo, thin lines of brass crossing it in long triangles (Liljeholmen's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -368,7 +392,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -497,8 +521,26 @@ export interface Catenary { kind: 'catenary'; masts: [number, number, number][];
 // `width` in from it, to the line's right (or `left`).
 export interface EdgePaving { kind: 'edgePaving'; points: ([number, number] | [number, number, number])[]; width: number; left?: boolean }
 
-// Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`.
-export interface Columns { kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number }
+// Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`; and
+// (`crown`) on each a funnel `h` deep, spreading to `size` across at its top, its sides lit from
+// within in upright stripes of one of `colors` in turn and white (Liljeholmen's).
+export interface Columns {
+  kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number;
+  crown?: { h: number; size: number; colors: number[] };
+}
+
+// A ceiling under a deck (Liljeholmen's): steel beams across the hall, painted `color`, `beam`
+// across and deep, every `every` m (one at `at`) from s[0] to s[1], each from u[0] to u[1], their
+// undersides `soffit` high; between them panels of grey perforated sheet metal in shallow barrels
+// along the hall, each `panel` across, springing from steel ribs along it `spring` high and rising
+// `rise` to its crown; and strip lights in a row along each of `lamps` (points [s, u]), hung
+// `lampAt` high. Cut where the station's stairs climb through it, and left out over the openings
+// in the deck, `holes` ([s0, s1, u0, u1]).
+export interface DeckCeiling {
+  kind: 'deckCeiling'; s: [number, number]; u: [number, number]; every: number; at: number; beam: [number, number]; soffit: number;
+  panel: number; spring: number; rise: number; color: number; lamps: [number, number][][]; lampAt: number;
+  holes?: [number, number, number, number][];
+}
 
 // A tulip of bronze, `height` high, at s, u (in the station's frame), in a ring of setts: from a
 // broad leaf on its foot, patinated green, rising behind it and twisting, its stem climbs, leaning
@@ -6425,6 +6467,164 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'roundel', s: -147.43, u: -45.31, h: 15.4, size: 0.8, foot: 14.8, along: true },
       { kind: 'roundel', s: -158.42, u: 21.97, h: 14.95, size: 0.8, foot: 14.35, along: true },
       { kind: 'roundel', s: 109.43, u: 18.52, h: 22.45, size: 0.8, foot: 21.85 },
+    ],
+  },
+
+  // Liljeholmen (1 October 1964, open between the hill and the square; covered in the 2000s by the
+  // deck that carries Liljeholmstorget and the buildings on it, and given its bus terminal, SL's
+  // first underground, behind a platform beyond the eastern track). The platforms are in a hall
+  // under the deck, which the station draws itself (`hall`): from west to east an island between
+  // the line's two tracks, an island between its third track, where trains turning back stand, and
+  // the eastern track, and a platform beyond the eastern track, the glass wall of the bus terminal
+  // behind it (OpenStreetMap's platforms and indoor ways, 2026; Albert Guillaumes's drawing, 2024).
+  // From photographs (2008 to 2025):
+  //
+  // The platforms are green terrazzo, thin lines of brass crossing it in long triangles, a band of
+  // white terrazzo along the edges and a strip of brass studs. Over them the deck's steel beams,
+  // painted a dark red, cross the hall about every 7.5 m, and between them panels of grey
+  // perforated sheet metal curve in shallow barrels along it on steel ribs; strip lights hang in
+  // long rows along the platforms' edges. The walls beyond the tracks are white tiles. Down the
+  // eastern platform a row of dark red columns, a funnel lit in stripes of red or blue and white on
+  // each under the beams (SL: light plays with prisms, glass mosaic, LEDs and lit columns), and
+  // behind them the glass wall with the doors to the bus terminal: white tiles, a ceiling of pine
+  // boards, wooden benches, and glazed booths along the bays the buses dock at, lettered A to L.
+  // On the middle island, round grey columns in its northern half.
+  //
+  // At the south end stairs and an escalator from each platform climb under the deck into the
+  // hall of 1964 on the square (the laser scan: its floor 5.0 m over the platforms, its roof 12.7
+  // m): board-marked concrete, Carl-Axel Lunding's reliefs, the gates in a line across it and a
+  // passage behind them, doors onto the square under a canopy with a timber underside on dark
+  // steel posts, and a stair house down to Liljeholmsgränd to the west, where a glazed walkway
+  // runs south along the street to the inclined lift up Nybohovsberget. At the north end stairs
+  // and escalators from each platform climb into the hall in the ground floor of the buildings on
+  // the deck (5.2 m over the platforms), joined by a bridge over the tracks, its doors onto the
+  // square and the street.
+  'Liljeholmen': {
+    hall: { at: [-2033.27, 2309.62, -0.9321], s: [-124.6, 107], u: [-24, 24], deck: 4.6 },
+    paving: {
+      edge: 0.9, tactile: [0.95, 1.25], studs: true, studColor: 0xb08d3c, slabs: 0,
+      colors: { edge: 0xe4e2da, tactile: 0x88a28a, slab: 0x88a28a, pavers: 0x88a28a, face: 0x4a4c4e },
+      pattern: 'asphalt', lines: { color: 0xb08d3c, every: 9.6 },
+    },
+    buildings: ['w89361910', 'w1557820130', 'w1557820131', 'w1557820132', 'w1557820133', 'w100736312', 'w1335914891', 'w1335914892'],
+    rooms: [
+      // (the landings at the platforms' south ends and beyond the eastern platform by its stairs,
+      // open under the deck)
+      { name: 'landings', s: [-84, -72.5], u: [-20, 17], h: [-0.5, 1], walls: null, floor: 'brassTerrazzo', stairs: 'squareTiles', parapet: 1.1 },
+      { name: "eastern platform's landing", s: [4, 8], u: [12, 19.5], h: [-0.5, 1], walls: null, floor: 'brassTerrazzo', stairs: 'squareTiles', parapet: 1.1 },
+      // the flights from the platforms, climbing open under the deck between walls of white tiles
+      { name: 'flights', s: [-96, 36], u: [-20, 20], h: [-0.5, 4.6], walls: null, floor: 'brassTerrazzo', stairs: 'squareTiles', parapet: 1.1 },
+      // (the halls' walls and ceilings are their shells')
+      { name: 'south hall', s: [-108, -88], u: [-23, 24], h: [4.5, 5.5], walls: null, floor: 'brassTerrazzo', lamps: 4.2 },
+      { name: 'stairs to Liljeholmsgränd', s: [-107, -100.5], u: [-31, -22.5], h: [-1, 5.5], walls: null, floor: 'terrazzo', stairs: 'squareTiles', parapet: 1.0, lamps: 2.8 },
+      { name: 'walkway', s: [-210, -104], u: [-32, -21], h: [3, 5.5], walls: null, floor: 'terrazzo', lamps: 2.7 },
+      { name: 'north hall', s: [-12, 34], u: [-13, 28], h: [4.5, 6], walls: null, floor: 'brassTerrazzo', lamps: 3.2 },
+    ],
+    blocks: [
+      // the walls along the hall: beyond the western track, white tiles; at the back of the eastern
+      // platform, the glass wall to the bus terminal, the doors in it glass in brushed steel under the
+      // name; beyond the eastern track north and south of the platforms, white tiles
+      { name: 'west wall', plan: [[-124.6, -20.1], [-104, -20.61], [-104, -20.91], [-124.6, -20.4]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[-104, -20.61], [-84.8, -20.77], [-84.8, -21.07], [-104, -20.91]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[-84.8, -20.77], [-66, -20.6], [-66, -20.9], [-84.8, -21.07]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[-66, -20.6], [-37, -19.35], [-37, -19.65], [-66, -20.9]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[-37, -19.35], [-8, -18.1], [-8, -18.4], [-37, -19.65]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[-8, -18.1], [11, -16.6], [11, -16.9], [-8, -18.4]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[11, -16.6], [30, -14.8], [30, -15.1], [11, -16.9]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[30, -14.8], [49, -12.8], [49, -13.1], [30, -15.1]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[49, -12.8], [69, -10.7], [69, -11.0], [49, -13.1]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[69, -10.7], [88, -8.8], [88, -9.1], [69, -11.0]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'west wall', plan: [[88, -8.8], [107, -7.3], [107, -7.6], [88, -9.1]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'glass wall', plan: [[-73, 16.33], [-67, 16.48], [-67, 16.6], [-73, 16.45]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[-67, 16.48], [-38, 17.01], [-38, 17.13], [-67, 16.6]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[-38, 17.01], [-9, 17.53], [-9, 17.65], [-38, 17.13]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[-9, 17.53], [1.4, 17.53], [1.4, 17.65], [-9, 17.65]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'doors to the buses, south', plan: [[1.4, 17.53], [5.4, 17.53], [5.4, 17.65], [1.4, 17.65]], h: [0, 4.0], from: 0, walls: 'glassFront', inHall: true },
+      { name: 'glass wall', plan: [[5.4, 17.53], [5.4, 19.0], [5.4, 19.12], [5.4, 17.65]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[5.4, 19.0], [16.3, 19.0], [16.3, 19.12], [5.4, 19.12]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'doors to the buses, north', plan: [[16.3, 19.0], [20.3, 19.0], [20.3, 19.12], [16.3, 19.12]], h: [0, 4.0], from: 0, walls: 'glassFront', inHall: true },
+      { name: 'glass wall', plan: [[20.3, 19.0], [24, 19.0], [24, 19.12], [20.3, 19.12]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[24, 19.0], [24, 17.35], [24, 17.47], [24, 19.12]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[24, 17.35], [49, 16.77], [49, 16.89], [24, 17.47]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[49, 16.77], [68.3, 15.94], [68.3, 16.06], [49, 16.89]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'glass wall', plan: [[68.3, 15.94], [74, 15.64], [74, 15.76], [68.3, 16.06]], h: [0, 4.0], from: 0, walls: 'glazed', inHall: true },
+      { name: 'east wall, north', plan: [[74, 15.64], [74, 10.47], [74, 10.77], [74, 15.94]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'east wall, north', plan: [[74, 10.47], [87.5, 9.71], [87.5, 10.01], [74, 10.77]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'east wall, north', plan: [[87.5, 9.71], [97.1, 9.1], [97.1, 9.4], [87.5, 10.01]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'east wall, north', plan: [[97.1, 9.1], [107, 8.45], [107, 8.75], [97.1, 9.4]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'east wall, south', plan: [[-124.6, 17.0], [-73, 17.0], [-73, 17.3], [-124.6, 17.3]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      { name: 'east wall, south', plan: [[-73, 17.0], [-73, 16.33], [-73, 16.63], [-73, 17.3]], h: [-1.7, 4.3], from: -1.7, walls: 'squareTiles', inHall: true },
+      // the bus terminal behind the glass wall: its waiting hall, and the road the buses dock along
+      { name: 'bus terminal', plan: [[-52, 16.87], [5.4, 17.65], [5.4, 26], [-52, 26]], h: [0, 3.2], from: 0, walls: 'squareTiles',
+        sides: [null, 'squareTiles', 'glazed', 'squareTiles'], floor: 'lineMosaic', ceiling: 'pineBoards', roof: 0.2, inHall: true },
+      { name: 'bus terminal, north', plan: [[5.4, 19.12], [24, 19.12], [24, 26], [5.4, 26]], h: [0, 3.2], from: 0, walls: 'squareTiles',
+        sides: [null, 'squareTiles', 'glazed', null], floor: 'lineMosaic', ceiling: 'pineBoards', roof: 0.2, inHall: true },
+      { name: 'bus road', plan: [[-52, 26], [28, 26], [28, 34], [-52, 34]], h: [-0.15, 4.4], from: -0.15, walls: 'boardConcrete',
+        sides: [null, 'boardConcrete', 'boardConcrete', 'boardConcrete'], floor: 'asphalt', ceiling: 'boardConcrete', roof: 0.3, inHall: true },
+      // the hall of 1964 on the square: its shell from the deck up, and below it the wall along
+      // Liljeholmsgränd; its front onto the square under the canopy, shops either side of the doors
+      { name: 'south hall', plan: [[-72.3, -22], [-124.3, -22], [-124.3, 17.4], [-72.3, 17.4]], h: [4.0, 12.7], from: 5.0,
+        walls: 'boardConcrete', sides: ['boardConcrete', 'boardConcrete', null, 'whiteRender'], floor: 'brassTerrazzo', ceiling: 'boardConcrete', roof: 0.4, roofColor: 0x3e4144 },
+      { name: 'south hall, along Liljeholmsgränd', plan: [[-72.3, -22], [-124.3, -22], [-124.3, -22.3], [-72.3, -22.3]], h: [-0.7, 5.0], from: -0.7, walls: 'boardConcrete' },
+      { name: 'shops, north', plan: [[-76, 17.3], [-96, 17.3], [-96, 17.4], [-76, 17.4]], h: [4.9, 8.2], from: 4.9, walls: 'shopWindows' },
+      { name: 'doors to the square', plan: [[-96, 17.3], [-113, 17.3], [-113, 17.4], [-96, 17.4]], h: [4.8, 8.2], from: 4.8, walls: 'glassFront' },
+      { name: 'shops, south', plan: [[-113, 17.3], [-124.3, 17.3], [-124.3, 17.4], [-113, 17.4]], h: [4.8, 8.2], from: 4.8, walls: 'shopWindows' },
+      { name: 'front over the canopy', plan: [[-72.3, 17.3], [-124.3, 17.3], [-124.3, 17.4], [-72.3, 17.4]], h: [8.2, 12.7], from: 8.2, walls: 'whiteRender' },
+      { name: 'canopy', plan: [[-76, 17.4], [-120, 17.4], [-120, 24.5], [-76, 24.5]], h: [8.2, 8.2], from: 8.2,
+        walls: 'whiteRender', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.55, roofColor: 0x3a3c3e },
+      // the glass stair house down to Liljeholmsgränd, and the walkway south from it along the street
+      { name: 'stair house', plan: [[-100.5, -22.3], [-106.6, -22.3], [-106.6, -31.5], [-100.5, -31.5]], h: [-0.7, 8.6], from: -0.7,
+        walls: 'glazed', sides: [null, 'glazed', 'glazed', 'glazed'], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x45494d },
+      { name: 'walkway', plan: [[-106.6, -22.3], [-106.6, -30.5], [-204, -30.5], [-204, -24.6]], h: [4.7, 8.0], from: 5.0, fall: 3.75,
+        walls: 'glazed', sides: [null, 'glazed', 'glazed', 'glazed'], floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x45494d },
+      // the northern hall, at the deck's level (5.2 m over the platforms, the laser scan) in the
+      // ground floor of the buildings on it, round the opening in the deck over the middle island's
+      // stairs, the deck's red edge round the opening; over it the courtyard between the buildings
+      // (the laser scan: 15.4 m, 10.7 m over the platforms), the buildings standing on it
+      // (data/building-corrections.json). (Its plans overlap a little, so that no sliver of the
+      // city's ground is left between their cuts.)
+      { name: 'north hall, south', plan: [[-10, -13.2], [-6.1, -13.2], [-6.1, 20.6], [-10, 20.6]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [undefined, null, undefined, 'glassFront'], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, south', plan: [[-6.2, -13.2], [-0.9, -13.2], [-0.9, 20.7], [-6.2, 20.7]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [undefined, null, null, null], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, south', plan: [[-6.2, 20.5], [-0.9, 20.5], [-0.9, 25.3], [-6.2, 25.3]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [null, null, 'glassFront', undefined], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, west', plan: [[-1, -13.2], [16.1, -13.2], [16.1, -5.7], [-1, -5.7]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [undefined, null, null, null], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, east', plan: [[-1, 11.9], [16.1, 11.9], [16.1, 25.4], [-1, 25.4]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [null, null, 'glassFront', null], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, over the tracks', plan: [[15.9, -13.2], [30.7, -12.4], [30.7, 25.8], [15.9, 25.8]], h: [5.2, 9.4], from: 5.2, ground: true,
+        walls: 'whitePanels', sides: [undefined, undefined, undefined, null], floor: 'brassTerrazzo', ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      { name: 'north hall, over the opening', plan: [[-1, -5.8], [16, -5.8], [16, 12], [-1, 12]], h: [9.4, 9.4], from: 9.4,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePerforated', roof: 1.3, roofColor: 0x5d6b4f },
+      // the point block's ground floor round the hall, under the courtyard, down to Liljeholmsgränd
+      // on the west
+      { name: "point block's ground floor", plan: [[-12.9, -26.9], [2.5, -26.5], [3.6, -13.2], [-13.3, -13.2]], h: [2.2, 10.2], from: 5.2,
+        walls: 'whiteRender', sides: [undefined, undefined, null, undefined], roof: 0.5, roofColor: 0x5d6b4f },
+      { name: "point block's ground floor", plan: [[-13.3, -13.2], [-10.05, -13.2], [-10.05, -4.0], [-11.5, -4.0]], h: [5.2, 10.2], from: 5.2,
+        walls: 'whiteRender', sides: [null, null, undefined, undefined], roof: 0.5, roofColor: 0x5d6b4f },
+      { name: 'the opening in the deck', plan: [[-1, -5.8], [16, -5.8], [16, 12], [-1, 12]], h: [3.98, 5.2], from: 3.98, ground: 0.6,
+        walls: 'redPanels', inHall: true },
+    ],
+    // the glass balustrade round the opening, open where the middle island's stairs come up
+    fences: [
+      { points: [[-1, -5.8], [16, -5.8], [16, 3.2]], h: [5.2, 6.3], kind: 'glass' },
+      { points: [[16, 7.4], [16, 12], [-1, 12], [-1, -5.8]], h: [5.2, 6.3], kind: 'glass' },
+    ],
+    art: [
+      { kind: 'deckCeiling', holes: [[-1, 16, -5.8, 12]], s: [-124.6, 107], u: [-21, 19.2], every: 7.5, at: 3.75, beam: [0.32, 0.62], soffit: 3.98,
+        panel: 2.4, spring: 4.25, rise: 0.32, color: 0x6b2326, lampAt: 3.35,
+        lamps: [[[-72, -16.05], [-66, -16.0], [-37, -14.75], [-8, -13.5], [11, -12.0], [30, -10.2], [49, -8.2], [68, -6.21], [73, -5.66]], [[-72, -8.48], [-66, -8.3], [-37, -7.7], [-8, -7.1], [11, -7.0], [30, -7.1], [49, -7.3], [68, -7.6], [73, -7.59]], [[-72, -0.24], [-66, -0.1], [-37, 0.64], [-8, 1.39], [11, 2.08], [30, 2.91], [49, 4.08], [68, 5.68], [73, 6.14]], [[-72, 6.58], [-66, 6.73], [-37, 7.25], [-8, 7.76], [11, 7.75], [30, 7.5], [49, 7.0], [68, 6.18], [73, 5.92]], [[-72, 10.98], [-66, 11.13], [-37, 11.65], [-8, 12.16], [11, 12.15], [30, 11.9], [49, 11.4], [68, 10.58], [73, 10.32]]] },
+      // the eastern platform's columns, lit at their heads, and the middle island's
+      { kind: 'columns', size: 0.6, from: 0, to: 3.98, color: 0x5e2427, crown: { h: 0.9, size: 1.7, colors: [0xd8262a, 0x2856d4] },
+        at: [[-63.75, 14.54], [-56.25, 14.67], [-48.75, 14.81], [-41.25, 14.95], [-33.75, 15.08], [-26.25, 15.22], [-18.75, 15.35], [-11.25, 15.49], [-3.75, 15.53], [3.75, 15.53], [18.75, 15.42], [26.25, 15.32], [33.75, 15.17], [41.25, 14.97], [48.75, 14.78], [56.25, 14.46], [63.75, 14.14]] },
+      { kind: 'columns', size: 0.45, from: 0, to: 3.98, color: 0xa2a6a8, at: [[26.25, 5.15], [33.75, 5.27], [41.25, 5.4], [48.75, 5.54]] },
+      // the canopy's posts, and the walkway's
+      { kind: 'columns', size: 0.25, from: 4.6, to: 8.2, color: 0x2e3236,
+        at: [[-78, 24], [-84, 24], [-90, 24], [-96, 24], [-102, 24], [-108, 24], [-114, 24], [-119.6, 24]] },
+      { kind: 'columns', size: 0.35, from: -1.5, to: 4.6, color: 0x8d9093,
+        at: [[-116, -27.4], [-128, -27.6], [-140, -27.8], [-152, -28.0], [-164, -28.2], [-176, -28.4], [-188, -28.6]] },
+      { kind: 'roundel', s: -98, u: 24.3, h: 9.4, size: 0.9, foot: 8.75 },
     ],
   },
 };
