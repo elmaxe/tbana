@@ -2360,10 +2360,18 @@ export function stadionEdge() {
   return toTexture(c);
 }
 
-// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m); or,
-// `grey`, pale grey ones (Tekniska högskolan's).
-export function stadionPlinth(grey = false) {
+// The plinth round the pillars: small cream tiles, 0.15 m square (the texture covers 1.2 m); or
+// pale grey ones (Tekniska högskolan's); or polished dark granite in slabs 0.6 m long
+// (Universitetet's).
+export function stadionPlinth(kind?: 'grey' | 'granite') {
   const [c, x] = canvas(384);
+  if (kind === 'granite') {
+    x.fillStyle = '#3a3c3e'; x.fillRect(0, 0, 384, 384);
+    speckle(x, 384, 384, 9000, 0.35, 179); speckle(x, 384, 384, 4000, 0.12, 180, true);
+    x.fillStyle = '#2a2b2d'; x.fillRect(0, 0, 384, 2); x.fillRect(0, 0, 2, 384); x.fillRect(192, 0, 2, 384);
+    return toTexture(c);
+  }
+  const grey = kind === 'grey';
   x.fillStyle = grey ? '#8f908d' : '#a9a294'; x.fillRect(0, 0, 384, 384);
   const r = rng(177);
   for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
@@ -6666,3 +6674,230 @@ export function departureBoard() {
   for (let y = 0; y < 128; y += 3) x.fillRect(0, y, 512, 1);
   return toTexture(c, { repeat: false, aniso: 4 });
 }
+
+// Françoise Schein's track walls at Universitetet (1997): white glazed tiles, 15 cm, in pale
+// joints, and across them the articles of the Universal Declaration of Human Rights in Swedish,
+// in black capitals, an article's number large in among them, and Linnaeus's journeys drawn in
+// blue lines; a red line along the top (photographs, 2005–2021). From the track's floor (a dark
+// foot to the rail's level) to `h` m over the rail; the texture covers 9.6 m along, and `article`
+// picks the article.
+const RIGHTS = [
+  [1, 'ALLA MÄNNISKOR ÄR FÖDDA FRIA OCH LIKA I VÄRDE OCH RÄTTIGHETER. DE ÄR UTRUSTADE MED FÖRNUFT OCH SAMVETE OCH BÖR HANDLA GENTEMOT VARANDRA I EN ANDA AV BRODERSKAP.'],
+  [3, 'VAR OCH EN HAR RÄTT TILL LIV, FRIHET OCH PERSONLIG SÄKERHET.'],
+  [19, 'VAR OCH EN HAR RÄTT TILL ÅSIKTSFRIHET OCH YTTRANDEFRIHET. DENNA RÄTT INNEFATTAR FRIHET ATT UTAN INGREPP HYSA ÅSIKTER SAMT ATT SÖKA, TA EMOT OCH SPRIDA UPPLYSNINGAR OCH TANKAR GENOM VARJE SLAGS UTTRYCKSMEDEL OCH OBEROENDE AV TERRITORIELLA GRÄNSER.'],
+  [26, 'VAR OCH EN HAR RÄTT TILL UTBILDNING. UTBILDNINGEN SKALL VARA KOSTNADSFRI, ÅTMINSTONE PÅ DE ELEMENTÄRA OCH GRUNDLÄGGANDE STADIERNA. ELEMENTARUNDERVISNING SKALL VARA OBLIGATORISK. YRKESUTBILDNING OCH TEKNISK UTBILDNING SKALL VARA ALLMÄNT TILLGÄNGLIG.'],
+  [27, 'VAR OCH EN HAR RÄTT ATT FRITT DELTAGA I SAMHÄLLETS KULTURELLA LIV, ATT NJUTA AV KONST OCH ATT BLI DELAKTIG AV VETENSKAPENS FRAMSTEG OCH DESS FÖRDELAR.'],
+] as const;
+export function scheinRights(h: number, article: number) {
+  const seed = 1997 + article * 7, PX = 100, W = 960, foot = 0.6, H = Math.round((h + foot) * PX), [c, x] = canvas(W, H);
+  const r = rng(seed), Y = (y: number) => H - (y + foot) * PX, t = 0.15 * PX;
+  x.fillStyle = '#4a4a48'; x.fillRect(0, Y(0), W, foot * PX);
+  x.fillStyle = '#c9c7c0'; x.fillRect(0, 0, W, Y(0));
+  for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * 0.15 <= h + 1e-6; j++) {
+    const v = 236 + Math.floor(r() * 10);
+    x.fillStyle = `rgb(${v},${v},${v - 4})`; x.fillRect(i * t + 1, Y((j + 1) * 0.15) + 1, t - 2, t - 2);
+  }
+  // the red line, and the top row of tiles over it
+  x.fillStyle = '#b8231c'; x.fillRect(0, Y(h - 0.12), W, 0.05 * PX);
+  // the article, two letters to a tile, a line of text to each row of tiles from 0.6 m up
+  const [num, text] = RIGHTS[article % RIGHTS.length];
+  x.fillStyle = '#1d1d1f'; x.font = `500 ${0.1 * PX}px "Helvetica Neue", Arial, sans-serif`;
+  x.textBaseline = 'middle'; x.textAlign = 'center';
+  const per = W / 7.5, rows = Math.floor((h - 0.75) / 0.15);
+  let k = Math.floor(r() * text.length);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < per; i++) {
+    x.fillText(text[k++ % text.length], (i + 0.5) * 7.5, Y(0.6 + (j + 0.5) * 0.15));
+  }
+  // the number, in a field of plain tiles
+  const nx = (0.6 + r() * 8) * PX, ny = Y(1.6 + r() * Math.max(0, h - 2.6));
+  x.fillStyle = 'rgb(240,240,236)'; x.fillRect(nx - 0.45 * PX, ny - 0.4 * PX, 0.9 * PX, 0.75 * PX);
+  x.fillStyle = '#1d1d1f'; x.font = `600 ${0.5 * PX}px "Helvetica Neue", Arial, sans-serif`;
+  x.fillText(String(num), nx, ny);
+  // the journeys in blue: routes wandering across, a coast, figures and plants on fields of white
+  x.strokeStyle = '#2b4fa0'; x.fillStyle = '#2b4fa0'; x.lineWidth = 1.6; x.lineCap = 'round';
+  for (let m = 0; m < 10; m++) {
+    const cx = (0.4 + r() * 8.8) * PX, cy = Y(1 + r() * Math.max(0.2, h - 1.8)), s = (0.25 + r() * 0.3) * PX;
+    x.fillStyle = 'rgb(240,240,236)'; x.fillRect(cx - s, cy - s * 0.8, s * 2, s * 1.6);
+    x.fillStyle = '#2b4fa0';
+    const kind = m % 3;
+    x.beginPath();
+    if (kind === 0) {
+      // a figure
+      x.arc(cx, cy - s * 0.45, s * 0.14, 0, Math.PI * 2);
+      x.moveTo(cx, cy - s * 0.3); x.lineTo(cx, cy + s * 0.2);
+      x.moveTo(cx - s * 0.35, cy - s * 0.1); x.lineTo(cx + s * 0.35, cy - s * 0.15);
+      x.moveTo(cx, cy + s * 0.2); x.lineTo(cx - s * 0.25, cy + s * 0.65);
+      x.moveTo(cx, cy + s * 0.2); x.lineTo(cx + s * 0.25, cy + s * 0.65);
+    } else if (kind === 1) {
+      // a plant
+      x.moveTo(cx, cy + s * 0.7); x.quadraticCurveTo(cx + s * 0.2, cy, cx, cy - s * 0.7);
+      for (let l = 0; l < 4; l++) {
+        const ly = cy + s * (0.4 - l * 0.3), d = l % 2 ? 1 : -1;
+        x.moveTo(cx + s * 0.05, ly); x.quadraticCurveTo(cx + d * s * 0.5, ly - s * 0.25, cx + d * s * 0.2, ly - s * 0.4);
+      }
+    } else {
+      // a stretch of coast
+      x.moveTo(cx - s, cy);
+      for (let q = 0; q < 12; q++) x.lineTo(cx - s + (q + 1) * s / 6, cy + (r() - 0.5) * s * 0.7);
+    }
+    x.stroke();
+  }
+  speckle(x, W, H, 1500, 0.06, seed + 7);
+  return toTexture(c);
+}
+
+// One of Schein's panels of Linnaeus's journeys on the cores' sides: teal glazed tiles, 15 cm, a
+// map's coasts and the dotted line of a journey in white, little drawings and lines of writing,
+// in a frame of brushed steel, and beside it a panel of steel perforated with large holes.
+// 8.4 × 2.6 m, the map panel 5.6 m of it.
+export function linnePanel(seed: number) {
+  const PX = 100, W = 840, H = 260, [c, x] = canvas(W, H), r = rng(seed);
+  const M = 560, f = 0.06 * PX, t = 0.15 * PX;
+  x.fillStyle = '#c3c6c6'; x.fillRect(0, 0, M, H);
+  x.fillStyle = '#9fa4a6'; x.fillRect(f * 0.5, f * 0.5, M - f, H - f);
+  x.fillStyle = '#9fb4ae'; x.fillRect(f, f, M - 2 * f, H - 2 * f);
+  for (let i = 0; f + i * t < M - f; i++) for (let j = 0; f + j * t < H - f; j++) {
+    const v = Math.floor(r() * 22);
+    x.fillStyle = `rgb(${24 + v},${118 + v},${104 + v})`;
+    x.fillRect(f + i * t + 1, f + j * t + 1, Math.min(t - 2, M - f - (f + i * t) - 1), Math.min(t - 2, H - f - (f + j * t) - 1));
+  }
+  // the map: a long coast down the middle with islands, in white
+  x.strokeStyle = 'rgba(240,244,240,0.9)'; x.lineWidth = 2; x.lineJoin = 'round';
+  const x0 = (0.6 + r() * 1.6) * PX;
+  x.beginPath(); x.moveTo(x0, f + 6);
+  for (let y = f + 6; y < H - f - 6; y += 8) x.lineTo(x0 + Math.sin(y / 23 + seed) * 18 + (r() - 0.5) * 10 + (y - f) * 0.5, y);
+  x.stroke();
+  for (let k = 0; k < 7; k++) {
+    const ix = x0 + 30 + r() * 120, iy = f + 20 + r() * (H - 2 * f - 40);
+    x.beginPath(); x.ellipse(ix, iy, 3 + r() * 9, 2 + r() * 5, r() * 3, 0, Math.PI * 2); x.stroke();
+  }
+  // the journey, dotted, and its places
+  x.fillStyle = 'rgba(245,245,240,0.95)';
+  let px = x0 + 20, py = H - f - 20;
+  for (let k = 0; k < 90; k++) {
+    px += 2.5 + r() * 2; py += (r() - 0.62) * 6;
+    if (px > M - f - 12 || py < f + 10) break;
+    x.beginPath(); x.arc(px, Math.min(H - f - 8, py), 1.6, 0, Math.PI * 2); x.fill();
+    if (k % 18 === 9) { x.beginPath(); x.arc(px, py, 4, 0, Math.PI * 2); x.fill(); }
+  }
+  // drawings in black, and lines of writing in white
+  x.strokeStyle = 'rgba(20,28,26,0.85)'; x.lineWidth = 1.6;
+  for (let k = 0; k < 4; k++) {
+    const dx = (2.6 + k * 0.7 + r() * 0.3) * PX, dy = f + 30 + r() * (H - 2 * f - 60), s = 14 + r() * 10;
+    x.beginPath();
+    if (k % 2) { x.moveTo(dx - s, dy + s); x.lineTo(dx, dy - s); x.lineTo(dx + s, dy + s); x.closePath(); }
+    else { x.rect(dx - s, dy - s * 0.6, s * 2, s * 1.2); x.moveTo(dx - s, dy - s * 0.6); x.lineTo(dx + s, dy + s * 0.6); }
+    x.stroke();
+  }
+  x.strokeStyle = 'rgba(236,240,236,0.8)'; x.lineWidth = 1.1;
+  for (let k = 0; k < 14; k++) {
+    const lx = (3.6 + r() * 1.2) * PX, ly = f + 14 + k * 15;
+    if (ly > H - f - 10) break;
+    x.beginPath(); x.moveTo(lx, ly);
+    for (let q = 0; q < 20; q++) x.lineTo(lx + q * 3.5, ly + (r() - 0.5) * 4);
+    x.stroke();
+  }
+  // the perforated panel, standing on its own a little beyond
+  const P0 = M + 0.2 * PX;
+  const g = x.createLinearGradient(P0, 0, W, 0);
+  g.addColorStop(0, '#a9adb0'); g.addColorStop(0.5, '#c7cbcd'); g.addColorStop(1, '#9ea2a5');
+  x.fillStyle = g; x.fillRect(P0, 0, W - P0, H);
+  x.fillStyle = '#4a4c4e';
+  for (let j = 0; j < 14; j++) for (let i = 0; i < 14; i++) {
+    const hx = P0 + 12 + i * 17 + (j % 2) * 8.5, hy = 12 + j * 17.5;
+    if (hx > W - 8 || hy > H - 8) continue;
+    x.beginPath(); x.arc(hx, hy, 5.5, 0, Math.PI * 2); x.fill();
+  }
+  // (between the two, nothing: the rock shows through)
+  x.clearRect(M, 0, P0 - M, H);
+  return toTexture(c, { repeat: false });
+}
+
+// Small square tiles, 10 cm, a pale lilac grey, in pale joints, `w` × `h` m (the north core's end
+// at Universitetet, behind the emergency exit's block).
+export function lilacTiles(w: number, h: number) {
+  const PX = 50, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H), r = rng(1975);
+  x.fillStyle = '#bdb8bd'; x.fillRect(0, 0, W, H);
+  const t = 0.1 * PX;
+  for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+    const v = Math.floor(r() * 16);
+    x.fillStyle = `rgb(${176 + v},${164 + v},${178 + v})`; x.fillRect(i * t + 0.5, j * t + 0.5, t - 1, t - 1);
+  }
+  x.fillStyle = '#58565a'; x.fillRect(0, H - 0.12 * PX, W, 0.12 * PX);
+  return toTexture(c, { repeat: false });
+}
+
+// The emergency exit's block at Universitetet's north end: glossy red tiles, 15 cm; on its face
+// towards the platform two pairs of green doors with the white running man, a green sign over
+// each; up to a ragged edge `top` m up, the rock above it. One face, `w` × `h` m; `doors` 2 for
+// the face with the pairs, 1 for a single red door, 0 for none.
+export function exitBlock(w: number, h: number, top: number, doors: number, seed: number) {
+  const PX = 100, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H), r = rng(seed);
+  const Y = (y: number) => H - y * PX;
+  x.fillStyle = '#a9a4a0'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 2500, 0.15, seed);
+  // the tiles, up to a ragged edge
+  const edge: number[] = [];
+  for (let i = 0; i <= W; i += 10) edge.push(top - 0.05 - r() * 0.15 - (r() < 0.1 ? r() * 0.25 : 0));
+  x.fillStyle = '#8e2a20';
+  x.beginPath(); x.moveTo(0, Y(0));
+  edge.forEach((e, k) => x.lineTo(k * 10, Y(e)));
+  x.lineTo(W, Y(0)); x.closePath(); x.fill();
+  x.save(); x.clip();
+  const t = 0.15 * PX;
+  for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+    const v = Math.floor(r() * 18);
+    x.fillStyle = `rgb(${200 + v},${44 + v / 2},${30 + v / 2})`; x.fillRect(i * t + 0.75, Y((j + 1) * 0.15) + 0.75, t - 1.5, t - 1.5);
+  }
+  x.restore();
+  const door = (cx: number, dw: number, color: string, man: boolean) => {
+    x.fillStyle = '#3a3a38'; x.fillRect(cx - dw / 2 - 3, Y(2.15), dw + 6, 2.15 * PX);
+    x.fillStyle = color; x.fillRect(cx - dw / 2, Y(2.1), dw, 2.1 * PX);
+    if (!man) return;
+    x.fillStyle = '#20231f'; x.fillRect(cx - 1, Y(2.1), 2, 2.1 * PX);
+    // the running man on each leaf
+    for (const lx of [cx - dw / 4, cx + dw / 4]) {
+      x.fillStyle = '#e8ece6';
+      x.beginPath(); x.arc(lx - 4, Y(1.6), 0.09 * PX, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = '#e8ece6'; x.lineWidth = 0.09 * PX; x.lineCap = 'round';
+      x.beginPath();
+      x.moveTo(lx - 6, Y(1.42)); x.lineTo(lx + 2, Y(1.0));
+      x.moveTo(lx - 4, Y(1.38)); x.lineTo(lx - 22, Y(1.2)); x.moveTo(lx - 4, Y(1.38)); x.lineTo(lx + 14, Y(1.28));
+      x.moveTo(lx + 2, Y(1.0)); x.lineTo(lx - 14, Y(0.62)); x.moveTo(lx + 2, Y(1.0)); x.lineTo(lx + 18, Y(0.72));
+      x.stroke();
+    }
+  };
+  if (doors === 2) {
+    for (const f of [0.3, 0.7]) {
+      door(W * f, 1.75 * PX, '#2d7a3c', true);
+      x.fillStyle = '#2fae4a'; x.fillRect(W * f - 0.3 * PX, Y(3.15), 0.6 * PX, 0.2 * PX);
+      x.fillStyle = '#eef6ee'; x.fillRect(W * f - 0.12 * PX, Y(3.07), 0.24 * PX, 0.04 * PX);
+    }
+  } else if (doors === 1) door(W * 0.3, 0.9 * PX, '#8f231b', false);
+  return toTexture(c, { repeat: false });
+}
+
+// The deep blue wall west of the lobby at Universitetet's south end (Schein's, 1997): glossy
+// tiles, 15 cm, blues mottled, and on them in white "To write the human rights" over lines of
+// smaller writing. 4.8 × 3.6 m.
+export function scheinBlue() {
+  const PX = 100, W = 480, H = 360, [c, x] = canvas(W, H), r = rng(1948);
+  x.fillStyle = '#9aa3b8'; x.fillRect(0, 0, W, H);
+  const t = 0.15 * PX;
+  for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+    const v = Math.floor(r() * 30);
+    x.fillStyle = `rgb(${18 + v / 2},${48 + v},${128 + v * 1.5})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+  }
+  x.fillStyle = '#26282c'; x.fillRect(0, H - 0.1 * PX, W, 0.1 * PX);
+  x.fillStyle = 'rgba(240,244,250,0.92)'; x.font = `500 ${0.1 * PX}px "Helvetica Neue", Arial, sans-serif`;
+  x.textBaseline = 'middle'; x.fillText('TO WRITE THE HUMAN RIGHTS', 0.9 * PX, H - 2.3 * PX);
+  x.strokeStyle = 'rgba(236,240,248,0.85)'; x.lineWidth = 1.2;
+  for (let k = 0; k < 8; k++) {
+    const ly = H - 2.12 * PX + k * 0.08 * PX, lx = 0.9 * PX, len = (1.6 + r() * 0.6) * PX;
+    x.beginPath(); x.moveTo(lx, ly);
+    for (let q = 0; q * 3 < len; q++) x.lineTo(lx + q * 3, ly + (r() - 0.5) * 3);
+    x.stroke();
+  }
+  return toTexture(c);
+}
+

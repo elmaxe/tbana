@@ -143,6 +143,8 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // ... the fittings of an island cave not in Stadion's colours, and its dodecahedron and the
   // diagram in its floor (Tekniska högskolan's)
   | `st${'Mesh' | 'Fence' | 'Plinth' | 'Rail' | 'Glass' | 'Brass' | 'Inlay'}:${string}`
+  // ... Universitetet's track walls in Schein's tiles, one article on each, and its fittings
+  | `stWall${number}:${string}` | `un${'Tiles' | 'Steel' | 'Bench' | 'Block' | 'End' | 'Teal' | 'Blue' | 'Render' | 'Sill'}:${string}`
   // a cave's panels of glass along its walls, the eastern's and the western's, and their backing
   | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
@@ -1246,32 +1248,45 @@ export class Network {
     for (let i = 0; i + 1 < run.length; i++) {
       const sa = run[i], sb = run[i + 1], st = islandStyle(sa), isl = st && this.islandOf(sa);
       if (!st || !isl || islandStyle(sb) !== st || sb.along - sa.along < 0.01) continue;
-      const hw = st.pillars.width / 2, gap = st.pillars.gap / 2, end = isl.half - st.pillars.ends;
+      const hw = st.pillars.width / 2, gap = st.pillars.gap / 2, reach = st.ceilingReach;
       const ta = isl.s(sa), tb = isl.s(sb);
+      // beyond the pillars, at the platform's ends
+      const beyond = (s: number) => s > isl.outer(1) || s < isl.outer(-1);
       // this track's side of the frame, and its wall (a little into the rock, which is rough)
       const side = Math.sign(isl.w(sa)) || 1, span = structureSpan(sa), wall = sm0Wall(sa, span);
       const uw = wall + Math.sign(wall) * 0.5;
       // (the passage's part reaching a little into the pillars, past their rounded and rough
       // corners, so the part over the middle stays hidden inside them)
       const cuts = [0, 1], pass = gap + 1.2;
-      for (const c of [-pass, pass]) { const f = (c - ta) / (tb - ta); if (f > 0 && f < 1) cuts.push(f); }
+      for (const c of [isl.mid - pass, isl.mid + pass, isl.outer(-1), isl.outer(1)]) { const f = (c - ta) / (tb - ta); if (f > 0 && f < 1) cuts.push(f); }
       cuts.sort((x, y) => x - y);
       for (let k = 0; k + 1 < cuts.length; k++) {
-        const A = lerpSample(sa, sb, cuts[k]), B = lerpSample(sa, sb, cuts[k + 1]);
-        const passage = Math.abs(ta + (tb - ta) * (cuts[k] + cuts[k + 1]) / 2) < pass;
-        // to the pillars' face beside the passage, else on over the middle to overlap the other half
+        const A = lerpSample(sa, sb, cuts[k]), B = lerpSample(sa, sb, cuts[k + 1]), tm = ta + (tb - ta) * (cuts[k] + cuts[k + 1]) / 2;
+        const passage = Math.abs(tm - isl.mid) < pass;
+        // to the pillars' face beside the passage, else on over the middle to overlap the other
+        // half; or only so far past the platform's edge
         const w = passage ? side * hw : -side * OVERLAP;
+        const far = (C: Sample) => (reach === undefined ? isl.uAt(C, w) : C.plat!.side * (S.PLATFORM_EDGE + reach));
         const y = st.ceiling + A.pairDy / 2;
-        const pts = [at(A, uw, y), at(B, uw, y), at(B, isl.uAt(B, w), y), at(A, isl.uAt(A, w), y)];
+        const pts = [at(A, uw, y), at(B, uw, y), at(B, far(B), y), at(A, far(A), y)];
         b.stCeiling.quad(pts[0], pts[1], pts[2], pts[3], ...pts.map((q) => [isl.w(q) / 1.5, isl.s(q) / 1.5] as UV) as [UV, UV, UV, UV]);
+        if (st.vault) this.islandVault(isl, st, st.vault, A, B, uw, passage || beyond(tm) ? -side * OVERLAP : side * (hw - 0.6), b);
       }
-      // tubes across it, one over the track and one over the platform, out to the pillars or
-      // where there are none, on to the middle
-      for (let t = Math.ceil(Math.min(ta, tb) / TUBES) * TUBES; t < Math.max(ta, tb); t += TUBES) {
-        const C = lerpSample(sa, sb, (t - ta) / (tb - ta)), y = st.ceiling + C.pairDy / 2 - 0.04;
-        const p = C.plat!, e = p.side * S.PLATFORM_EDGE, f = isl.uAt(C, Math.abs(t) > end ? 0 : side * hw);
-        box(b.lamp, at(C, 0, y), C, 2.2, 0.05, 0.12);
-        box(b.lamp, at(C, (e + f) / 2, y), C, Math.abs(f - e) - 0.5, 0.05, 0.12);
+      if (reach !== undefined) {
+        // rows of tubes along: over the track, the platform's edge and the platform
+        for (let t = Math.ceil(Math.min(ta, tb) / 1.5) * 1.5; t < Math.max(ta, tb); t += 1.5) {
+          const C = lerpSample(sa, sb, (t - ta) / (tb - ta)), y = st.ceiling + C.pairDy / 2 - 0.04, e = C.plat!.side * S.PLATFORM_EDGE;
+          for (const u of [0, e, e + C.plat!.side * (reach - 0.6)]) box(b.lamp, at(C, u, y), C, 0.12, 0.05, 1.2);
+        }
+      } else {
+        // tubes across it, one over the track and one over the platform, out to the pillars or
+        // where there are none, on to the middle
+        for (let t = Math.ceil(Math.min(ta, tb) / TUBES) * TUBES; t < Math.max(ta, tb); t += TUBES) {
+          const C = lerpSample(sa, sb, (t - ta) / (tb - ta)), y = st.ceiling + C.pairDy / 2 - 0.04;
+          const p = C.plat!, e = p.side * S.PLATFORM_EDGE, f = isl.uAt(C, beyond(t) ? 0 : side * hw);
+          box(b.lamp, at(C, 0, y), C, 2.2, 0.05, 0.12);
+          box(b.lamp, at(C, (e + f) / 2, y), C, Math.abs(f - e) - 0.5, 0.05, 0.12);
+        }
       }
       // on the wall: a white plate with the name every 25 m
       const u = wall - Math.sign(wall) * 0.45;
@@ -1284,20 +1299,55 @@ export class Network {
       }
     }
     for (const station of new Set(run.filter((sm) => islandStyle(sm)).map((sm) => sm.plat!.station))) {
-      const { mesh } = this.islandFittings(station, islandStyle(run.find((sm) => islandStyle(sm) && sm.plat!.station === station)!)!, b);
+      const st = islandStyle(run.find((sm) => islandStyle(sm) && sm.plat!.station === station)!)!;
+      let mesh = this.islandFittings(station, st, b).mesh, repeat = 1.2;
+      if (st.walls === 'rights') {
+        // Schein's tiles: an article on the one wall, another on the other
+        const k = run[0].pair > 0 ? 3 : 0, key: MaterialName = `stWall${k}:${station}`;
+        this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.scheinRights(st.panels, k), emissive: 0x262626, roughness: 0.3, side: THREE.DoubleSide });
+        mesh = b[key] ??= new MeshBuilder();
+        repeat = 9.6;
+      }
       sweep(mesh, run, (sm) => {
-        const st = islandStyle(sm);
-        if (!st || sm.plat!.station !== station) return null;
+        const s = islandStyle(sm);
+        if (!s || sm.plat!.station !== station) return null;
         const u = sm0Wall(sm, structureSpan(sm)), p = u - Math.sign(u) * 0.45;
-        return { key: 'mesh', pts: [[p, S.FLOOR], [p, st.panels]] };
-      }, { u: (_, __, along) => along / 1.2, v: (_, v) => (v - S.FLOOR) / 1.2 });
+        return { key: 'mesh', pts: [[p, S.FLOOR], [p, s.panels]] };
+      }, { u: (_, __, along) => along / repeat, v: (_, v) => (st.walls ? (v - S.FLOOR) / (st.panels - S.FLOOR) : (v - S.FLOOR) / 1.2) });
     }
     sweep(b.stBand, run, (sm) => {
       const st = islandStyle(sm);
-      if (!st) return null;
+      if (!st || st.walls) return null;
       const u = sm0Wall(sm, structureSpan(sm)), p = u - Math.sign(u) * 0.46;
       return { key: 'band', pts: [[p, st.panels], [p, st.panels + 0.3]] };
     });
+  }
+
+  // The rock over an island cave's hall where it is low (Universitetet's), between two of a
+  // track's samples: across from its wall (`uw`, from the track) up to the pillars' face, or on
+  // over the middle, to `wEnd` across the island's frame; lumpy, as the pillars are.
+  private islandVault(isl: Island, st: CaveIsland, v: { wall: number; crown: number; middle: number }, A: Sample, B: Sample, uw: number, wEnd: number, b: Record<MaterialName, MeshBuilder>) {
+    const key: MaterialName = `pillar:${isl.station}`;
+    this.mats[key] ??= islandRock(st.pillars.paint);
+    const rock = b[key] ??= new MeshBuilder(), hw = st.pillars.width / 2;
+    const n = Math.max(1, Math.ceil(Math.abs(isl.s(B) - isl.s(A)) / 0.8));
+    const first = rock.pos.length / 3;
+    const cols = Math.max(2, Math.ceil(Math.abs(Math.abs(isl.w(at(A, uw, 0))) - Math.abs(wEnd)) / 0.6) + 1);
+    for (let r = 0; r <= n; r++) {
+      const C = lerpSample(A, B, r / n), w0 = isl.w(at(C, uw, 0)), aw0 = Math.abs(w0);
+      for (let j = 0; j < cols; j++) {
+        const w = w0 + ((wEnd - w0) * j) / (cols - 1), aw = Math.abs(w);
+        // up from the wall to the crown over the pillars' faces, then down a little to the middle
+        // (and up again on its far side, where it overlaps the other half)
+        const y = aw >= hw
+          ? v.wall + (v.crown - v.wall) * Math.sin((Math.PI / 2) * Math.min(1, (aw0 - aw) / (aw0 - hw)))
+          : v.middle + (v.crown - v.middle) * (3 * (aw / hw) ** 2 - 2 * (aw / hw) ** 3);
+        const p = at(C, isl.uAt(C, w), y + C.pairDy / 2);
+        p.y -= VAULT_ROUGH * bump(p) + VAULT_ROUGH;
+        rock.vertex(p.x, p.y, p.z, (aw0 - aw) / T.CAVE_ACROSS, isl.s(p) / T.CAVE_REPEAT);
+      }
+    }
+    rock.grid(n + 1, cols, first);
   }
 
   private islandOf(sm: Sample) {
@@ -1310,7 +1360,7 @@ export class Network {
     if (!f) return { mesh: b.stMesh, fence: b.stMesh, fenceHeight: 1.5, plinth: b.stPlinth, rail: b.stRail };
     this.mats[`stMesh:${station}`] ??= new THREE.MeshStandardMaterial({ map: T.stadionMesh(...f.mesh), roughness: 0.6, side: THREE.DoubleSide });
     if (f.fence) this.mats[`stFence:${station}`] ??= new THREE.MeshStandardMaterial({ map: T.stadionMesh(...f.fence), roughness: 0.6, side: THREE.DoubleSide });
-    this.mats[`stPlinth:${station}`] ??= new THREE.MeshStandardMaterial({ map: T.stadionPlinth(f.greyTiles), roughness: 0.4, side: THREE.DoubleSide });
+    this.mats[`stPlinth:${station}`] ??= new THREE.MeshStandardMaterial({ map: T.stadionPlinth(f.plinth), roughness: 0.4, side: THREE.DoubleSide });
     this.mats[`stRail:${station}`] ??= new THREE.MeshStandardMaterial({ color: (f.fence ?? f.mesh)[2], roughness: 0.5, metalness: 0.2 });
     const mesh = b[`stMesh:${station}`] ??= new MeshBuilder();
     return {
@@ -1322,9 +1372,10 @@ export class Network {
   // An island cave's middle (Stadion's): the two pillars of rock, the walls over the passage's
   // openings with the rainbow round them, the fences along the pillars' outer ends, and the art.
   private buildIsland(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
-    const st = isl.st, { width, ends, fenced, plinth } = st.pillars, hw = width / 2, gap = st.pillars.gap / 2;
-    const end = isl.half - ends, len = end - gap, fence = end - len * fenced, blue = fence - gap;
-    if (len < 6) return;
+    const st = isl.st, { width, fenced, plinth } = st.pillars, hw = width / 2, gap = st.pillars.gap / 2;
+    // (Stadion's and Tekniska högskolan's pillars are alike, either side of the middle)
+    const end = isl.outer(1), len = end - gap, fence = end - len * fenced, blue = fence - gap;
+    if (Math.min(isl.outer(1) - isl.inner(1), isl.inner(-1) - isl.outer(-1)) < 6) return;
     const station = isl.station;
     const mat = (key: MaterialName, make: () => THREE.Material) => { this.mats[key] ??= make(); return b[key] ??= new MeshBuilder(); };
     const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint)), fencedRock = mat(`fenced:${station}`, () => islandRock(st.pillars.fencedPaint));
@@ -1365,12 +1416,22 @@ export class Network {
         const seed = 1980 + (ps + 1) + (side + 1) / 2;
         arts.push({ ps, side, s: ps * (gap + len * 0.55), y: plinth + 1.3, w: 7, h: 2.3, map: () => T.tekniskaRelief(false, seed), key: `tkMachines${seed}` });
       }
+    } else if (station === 'Universitetet') {
+      // Schein's panels of Linnaeus's journeys along the cores' sides, one to each side of the
+      // northern core and two to each of the southern
+      for (const ps of [-1, 1]) for (const side of [-1, 1]) {
+        const s0 = isl.inner(ps), pl = isl.outer(ps) - s0, n = Math.abs(pl) > 60 ? 2 : 1;
+        for (let k = 0; k < n; k++) {
+          const seed = 1735 + (ps + 1) * 4 + (side + 1) * 2 + k;
+          arts.push({ ps, side, s: s0 + (pl * (k + 1)) / (n + 1), y: plinth + 1.45, w: 8.4, h: 2.6, map: () => T.linnePanel(seed), key: `unLinne${seed}` });
+        }
+      }
     }
     // how much of the rock's roughness is left at (s, w, y): none on the art and a little round it
     const smooth = (s: number, w: number, y: number) => {
       let f = 1;
       for (const a of arts) {
-        if (a.side ? Math.sign(w) !== a.side || Math.abs(Math.abs(w) - hw) > 0.05 : Math.abs(s - a.ps * end) > 0.05) continue;
+        if (a.side ? Math.sign(w) !== a.side || Math.abs(Math.abs(w) - hw) > 0.05 : Math.abs(s - isl.outer(a.ps)) > 0.05) continue;
         const d = Math.max(Math.abs((a.side ? s : w) - a.s) - a.w / 2, Math.abs(y - a.y) - a.h / 2);
         f = Math.min(f, Math.max(0, Math.min(1, d / 0.6)));
       }
@@ -1378,16 +1439,16 @@ export class Network {
     };
     const ramp = (y: number, from: number) => Math.max(0, Math.min(1, (y - from) / 0.6));
     for (const ps of [-1, 1]) {
-      const c = ps * (gap + len / 2);
+      const pl = Math.abs(isl.outer(ps) - isl.inner(ps)), c = (isl.outer(ps) + isl.inner(ps)) / 2;
       // none where the stairs or escalators come down
-      if ([-1, 0, 1].some((k) => this.holes.some((o) => { const q = isl.P(c + (k * len) / 2, 0, 1.5); return insideVolume(o, q.x, q.y, q.z); }))) continue;
-      const ring = roundedRect(c, len / 2, hw, 1.0, 0.35);
+      if ([-1, 0, 1].some((k) => this.holes.some((o) => { const q = isl.P(c + (k * pl) / 2, 0, 1.5); return insideVolume(o, q.x, q.y, q.z); }))) continue;
+      const ring = roundedRect(c, pl / 2, hw, 1.0, 0.35);
       const rows = [plinth, plinth + 0.25, plinth + 0.6];
       for (let y = plinth + 1.1; y < isl.top; y += 0.5) rows.push(y);
       rows.push(isl.top);
       // the rock, painted blue near the passage and on the outer end, and green behind the fences
       // along the sides, in runs of columns
-      const zone = (j: number) => Math.abs((ring[j].s + ring[j + 1].s) / 2) > fence && Math.abs((ring[j].w + ring[j + 1].w) / 2) > hw - 0.5;
+      const zone = (j: number) => ps * ((ring[j].s + ring[j + 1].s) / 2 - isl.inner(ps)) > pl * (1 - fenced) && Math.abs((ring[j].w + ring[j + 1].w) / 2) > hw - 0.5;
       for (let j0 = 0; j0 + 1 < ring.length;) {
         let j1 = j0 + 1;
         while (j1 + 1 < ring.length && zone(j1) === zone(j0)) j1++;
@@ -1413,7 +1474,7 @@ export class Network {
       fit.plinth.grid(3, ring.length, first);
       // the fences along its outer end, with benches against them, and the name over them
       if (fenced <= 0) continue;
-      const s0 = ps > 0 ? fence : -end, s1 = ps > 0 ? end : -fence, fh = fit.fenceHeight;
+      const fe = isl.inner(ps) + ps * pl * (1 - fenced), s0 = Math.min(fe, isl.outer(ps)), s1 = Math.max(fe, isl.outer(ps)), fh = fit.fenceHeight;
       for (const side of [-1, 1]) {
         const w = side * (hw + 0.55);
         fit.fence.quad(isl.P(s0, w, 0), isl.P(s1, w, 0), isl.P(s1, w, fh), isl.P(s0, w, fh), [s0 / 1.2, 0], [s1 / 1.2, 0], [s1 / 1.2, fh / 1.2], [s0 / 1.2, fh / 1.2]);
@@ -1429,78 +1490,83 @@ export class Network {
       }
     }
     // the walls over the passage's openings: the rainbow on their inner faces, the rock outside
-    const { inset, thickness } = st.portal, crown = st.portal.crown - S.PLATFORM_HEIGHT, half = gap - inset;
-    const e0 = -(gap + 0.8), e1 = gap + 0.8;
-    const cols: number[] = [];
-    for (let s = e0; s < -half - 0.01; s += 0.3) cols.push(s);
-    const K = 28;
-    for (let k = 0; k <= K; k++) cols.push(-half * Math.cos((Math.PI * k) / K));
-    for (let s = half + 0.3; s < e1 + 0.01; s += 0.3) cols.push(Math.min(s, e1));
-    const bottom = (s: number) => (Math.abs(s) < half ? crown * Math.sqrt(Math.max(0, 1 - (s / half) ** 2)) : 0);
-    const M = 20, W0 = hw - thickness, vault = crown + (st.portal.rise ?? 2);
-    // (the paint as high as the faces reach along their profile, over the vault too)
-    let arc = 0;
-    for (let k = 1; k <= 24; k++) {
-      const a0 = (Math.PI / 2) * ((k - 1) / 24), a1 = (Math.PI / 2) * (k / 24);
-      arc += Math.hypot(W0 * (Math.cos(a1) - Math.cos(a0)), (vault - crown) * (Math.sin(a1) - Math.sin(a0)));
-    }
-    const H = Math.max(isl.top, crown + arc);
-    for (const side of [-1, 1] as const) {
-      const key: MaterialName = `portal${side > 0 ? 1 : 0}:${station}`;
-      const face = mat(key, () => {
-        const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, st.portal.paint ?? st.pillars.paint, !st.portal.paint);
-        return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
-      });
-      // the inner face: up from the floor or the arch to the crown's height, then curving over the
-      // passage to meet the other's over its middle, a vault with the rainbow over it; pushed out
-      // into the passage by its roughness (none at the seam). V is how far up it from the platform.
-      const inner = (s: number) => {
-        const yb = bottom(s), poly: [number, number][] = [];
-        for (let k = 0; k < 8; k++) poly.push([W0, yb + ((crown - yb) * k) / 8]);
-        for (let k = 0; k <= 24; k++) {
-          const a = (Math.PI / 2) * (k / 24);
-          poly.push([W0 * Math.cos(a), crown + (vault - crown) * Math.sin(a)]);
-        }
-        const cum = [0];
-        for (let k = 1; k < poly.length; k++) cum.push(cum[k - 1] + Math.hypot(poly[k][0] - poly[k - 1][0], poly[k][1] - poly[k - 1][1]));
-        const out: { p: THREE.Vector3; V: number }[] = [];
-        for (let r = 0, k = 1; r <= M; r++) {
-          const L = (cum[cum.length - 1] * r) / M;
-          while (k < cum.length - 1 && cum[k] < L) k++;
-          const f = (L - cum[k - 1]) / (cum[k] - cum[k - 1] || 1), [w0, y0] = poly[k - 1], [w1, y1] = poly[k];
-          const aw = w0 + (w1 - w0) * f, y = y0 + (y1 - y0) * f, tl = Math.hypot(w1 - w0, y1 - y0) || 1;
-          // (into the passage: square to the profile, towards its middle and down)
-          const nw = -(y1 - y0) / tl, ny = (w1 - w0) / tl;
-          const d = PORTAL_ROUGH * bump(isl.P(s, side * aw, y)) * ramp(y, 0) * Math.max(0, Math.min(1, aw / 0.5));
-          out.push({ p: isl.P(s, side * (aw + nw * d), y + ny * d), V: yb + L });
-        }
-        return out;
-      };
-      // (the outer face, as rough as the pillars' faces it carries on from)
-      const outer = (s: number, y: number) => {
-        const w = side * hw, d = PILLAR_ROUGH * bump(isl.P(s, w, y)) * ramp(y, 0);
-        return isl.P(s, w + side * d, y);
-      };
-      const faces = cols.map(inner);
-      let first = face.pos.length / 3;
-      for (let r = 0; r <= M; r++) {
-        cols.forEach((s, j) => { const { p, V } = faces[j][r]; face.vertex(p.x, p.y, p.z, (s - e0) / (e1 - e0), V / H); });
+    const portal = st.portal;
+    if (portal) {
+      // (in a frame from the passage's middle)
+      const P = (s: number, w: number, y: number) => isl.P(isl.mid + s, w, y);
+      const { inset, thickness } = portal, crown = portal.crown - S.PLATFORM_HEIGHT, half = gap - inset;
+      const e0 = -(gap + 0.8), e1 = gap + 0.8;
+      const cols: number[] = [];
+      for (let s = e0; s < -half - 0.01; s += 0.3) cols.push(s);
+      const K = 28;
+      for (let k = 0; k <= K; k++) cols.push(-half * Math.cos((Math.PI * k) / K));
+      for (let s = half + 0.3; s < e1 + 0.01; s += 0.3) cols.push(Math.min(s, e1));
+      const bottom = (s: number) => (Math.abs(s) < half ? crown * Math.sqrt(Math.max(0, 1 - (s / half) ** 2)) : 0);
+      const M = 20, W0 = hw - thickness, vault = crown + (portal.rise ?? 2);
+      // (the paint as high as the faces reach along their profile, over the vault too)
+      let arc = 0;
+      for (let k = 1; k <= 24; k++) {
+        const a0 = (Math.PI / 2) * ((k - 1) / 24), a1 = (Math.PI / 2) * (k / 24);
+        arc += Math.hypot(W0 * (Math.cos(a1) - Math.cos(a0)), (vault - crown) * (Math.sin(a1) - Math.sin(a0)));
       }
-      face.grid(M + 1, cols.length, first);
-      first = rock.pos.length / 3;
-      for (let r = 0; r <= M; r++) {
-        for (const s of cols) {
-          const y = bottom(s) + ((isl.top - bottom(s)) * r) / M, p = outer(s, y);
-          rock.vertex(p.x, p.y, p.z, (y + T.STADION_FOOT) / T.CAVE_ACROSS, s / T.CAVE_REPEAT);
+      const H = Math.max(isl.top, crown + arc);
+      for (const side of [-1, 1] as const) {
+        const key: MaterialName = `portal${side > 0 ? 1 : 0}:${station}`;
+        const face = mat(key, () => {
+          const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, portal.paint ?? st.pillars.paint, !portal.paint);
+          return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
+        });
+        // the inner face: up from the floor or the arch to the crown's height, then curving over the
+        // passage to meet the other's over its middle, a vault with the rainbow over it; pushed out
+        // into the passage by its roughness (none at the seam). V is how far up it from the platform.
+        const inner = (s: number) => {
+          const yb = bottom(s), poly: [number, number][] = [];
+          for (let k = 0; k < 8; k++) poly.push([W0, yb + ((crown - yb) * k) / 8]);
+          for (let k = 0; k <= 24; k++) {
+            const a = (Math.PI / 2) * (k / 24);
+            poly.push([W0 * Math.cos(a), crown + (vault - crown) * Math.sin(a)]);
+          }
+          const cum = [0];
+          for (let k = 1; k < poly.length; k++) cum.push(cum[k - 1] + Math.hypot(poly[k][0] - poly[k - 1][0], poly[k][1] - poly[k - 1][1]));
+          const out: { p: THREE.Vector3; V: number }[] = [];
+          for (let r = 0, k = 1; r <= M; r++) {
+            const L = (cum[cum.length - 1] * r) / M;
+            while (k < cum.length - 1 && cum[k] < L) k++;
+            const f = (L - cum[k - 1]) / (cum[k] - cum[k - 1] || 1), [w0, y0] = poly[k - 1], [w1, y1] = poly[k];
+            const aw = w0 + (w1 - w0) * f, y = y0 + (y1 - y0) * f, tl = Math.hypot(w1 - w0, y1 - y0) || 1;
+            // (into the passage: square to the profile, towards its middle and down)
+            const nw = -(y1 - y0) / tl, ny = (w1 - w0) / tl;
+            const d = PORTAL_ROUGH * bump(P(s, side * aw, y)) * ramp(y, 0) * Math.max(0, Math.min(1, aw / 0.5));
+            out.push({ p: P(s, side * (aw + nw * d), y + ny * d), V: yb + L });
+          }
+          return out;
+        };
+        // (the outer face, as rough as the pillars' faces it carries on from)
+        const outer = (s: number, y: number) => {
+          const w = side * hw, d = PILLAR_ROUGH * bump(P(s, w, y)) * ramp(y, 0);
+          return P(s, w + side * d, y);
+        };
+        const faces = cols.map(inner);
+        let first = face.pos.length / 3;
+        for (let r = 0; r <= M; r++) {
+          cols.forEach((s, j) => { const { p, V } = faces[j][r]; face.vertex(p.x, p.y, p.z, (s - e0) / (e1 - e0), V / H); });
         }
+        face.grid(M + 1, cols.length, first);
+        first = rock.pos.length / 3;
+        for (let r = 0; r <= M; r++) {
+          for (const s of cols) {
+            const y = bottom(s) + ((isl.top - bottom(s)) * r) / M, p = outer(s, y);
+            rock.vertex(p.x, p.y, p.z, (y + T.STADION_FOOT) / T.CAVE_ACROSS, s / T.CAVE_REPEAT);
+          }
+        }
+        rock.grid(M + 1, cols.length, first);
+        // under the arch, from the one face to the other
+        const arch = cols.map((s, j) => [s, j]).filter(([s]) => Math.abs(s) <= half + 1e-6);
+        first = rock.pos.length / 3;
+        for (const [s, j] of arch) { const p = faces[j][0].p; rock.vertex(p.x, p.y, p.z, (bottom(s) + T.STADION_FOOT + thickness) / T.CAVE_ACROSS, s / T.CAVE_REPEAT); }
+        for (const [s] of arch) { const p = outer(s, bottom(s)); rock.vertex(p.x, p.y, p.z, (bottom(s) + T.STADION_FOOT) / T.CAVE_ACROSS, s / T.CAVE_REPEAT); }
+        rock.grid(2, arch.length, first);
       }
-      rock.grid(M + 1, cols.length, first);
-      // under the arch, from the one face to the other
-      const arch = cols.map((s, j) => [s, j]).filter(([s]) => Math.abs(s) <= half + 1e-6);
-      first = rock.pos.length / 3;
-      for (const [s, j] of arch) { const p = faces[j][0].p; rock.vertex(p.x, p.y, p.z, (bottom(s) + T.STADION_FOOT + thickness) / T.CAVE_ACROSS, s / T.CAVE_REPEAT); }
-      for (const [s] of arch) { const p = outer(s, bottom(s)); rock.vertex(p.x, p.y, p.z, (bottom(s) + T.STADION_FOOT) / T.CAVE_ACROSS, s / T.CAVE_REPEAT); }
-      rock.grid(2, arch.length, first);
     }
     // the art, on the smoothed rock, reading from the platform
     for (const a of arts) {
@@ -1522,7 +1588,121 @@ export class Network {
       g.computeVertexNormals();
       group.add(new THREE.Mesh(g, m));
     }
-    if (st.dodecahedron) this.dodecahedron(isl, st.dodecahedron, crown + (st.portal.rise ?? 2), group);
+    if (st.dodecahedron && st.portal) this.dodecahedron(isl, st.dodecahedron, st.portal.crown - S.PLATFORM_HEIGHT + (st.portal.rise ?? 2), group);
+    if (station === 'Universitetet') this.universitetet(isl, b, group);
+  }
+
+  // Universitetet's island cave (src/hall-styles.ts), besides its pillars: the emergency exit's
+  // block of red tiles at the north end, the end walls (small lilac grey tiles behind the block,
+  // yellow at each edge of the platform; at the south end teal tiles to the east of the lobby and
+  // deep blue to the west), stainless steel cylinders hung from the rock, and white benches
+  // along the cores. The lobby itself is the station's (src/open-styles.ts).
+  private universitetet(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+    const station = isl.station, st = isl.st, hw = st.pillars.width / 2, edge = S.islandWidth(station) / 2;
+    // +1 where s runs north; w then runs east (the station's frame's u, roughly)
+    const n = isl.t.z < 0 ? 1 : -1;
+    const plane = (m: THREE.Material, p: THREE.Vector3[], uv = [0, 0, 1, 0, 1, 1, 0, 1]) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(p.flatMap((q) => [q.x, q.y, q.z]), 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex([0, 1, 2, 0, 2, 3]);
+      g.computeVertexNormals();
+      group.add(new THREE.Mesh(g, m));
+    };
+    const mat = (key: MaterialName, make: () => THREE.Material) => (this.mats[key] ??= make());
+    const tiles = (key: MaterialName, make: () => THREE.Texture) => mat(key, () => {
+      const map = make();
+      return new THREE.MeshStandardMaterial({ map, emissive: 0x303030, emissiveMap: map, roughness: 0.35, side: THREE.DoubleSide });
+    });
+    // a wall across the island at s, from `from` to `to` across it (left to right as it is seen),
+    // y0 to y1 over the platform, its texture repeating every `size`
+    const across = (m: THREE.Material, s: number, from: number, to: number, y0: number, y1: number, size: [number, number]) => {
+      const u = Math.abs(to - from) / size[0];
+      plane(m, [isl.P(s, from, y0), isl.P(s, to, y0), isl.P(s, to, y1), isl.P(s, from, y1)], [0, y0 / size[1], u, y0 / size[1], u, y1 / size[1], 0, y1 / size[1]]);
+    };
+    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint));
+    // the same in the rock, its paint (as on the pillars) up the wall in u and along it in v
+    const rockAcross = (s: number, from: number, to: number, y0: number, y1: number) => {
+      const v = Math.abs(to - from) / T.CAVE_REPEAT, a = y0 / T.CAVE_ACROSS, b = y1 / T.CAVE_ACROSS;
+      plane(rock, [isl.P(s, from, y0), isl.P(s, to, y0), isl.P(s, to, y1), isl.P(s, from, y1)], [a, 0, a, v, b, v, b, 0]);
+    };
+    const H = 3.6, top = st.vault!.crown + 1, E = n;
+    // (the end walls a little in front of where the hall's two tracks stop sharing it, whose rock
+    // round the tunnels going on is rough, and on the slant of the tracks as they part)
+    const north = n > 0 ? isl.hall[1] : isl.hall[0], south = n > 0 ? isl.hall[0] : isl.hall[1];
+    // the north end wall's rock, from edge to edge of the platform and up into the rock over it,
+    // seen from the south; its tiles a little in front of it
+    const sn = north - n * 0.8, fn = sn - n * 0.03, yh = (edge - hw) / 2;
+    rockAcross(sn, -E * edge, E * edge, 0, top);
+    // (and over each track, above its trains, out into the rock: the hall goes on a few metres
+    // over the tracks beyond the platform's ends, to where they part)
+    const over = (at: number) => { for (const k of [-1, 1]) rockAcross(at, k * edge, k * (edge + 7), 3.4, top); };
+    over(sn);
+    across(tiles(`unTiles:${station}`, () => T.lilacTiles(2 * hw, H)), fn, -E * hw, E * hw, 0, H, [2 * hw, H]);
+    const yellow = tiles(`unEnd:${station}`, () => T.finish('ochreDoor'));
+    across(yellow, fn, -E * edge, -E * hw, 0, 3.15, [yh, 3.15]);
+    across(yellow, fn, E * hw, E * edge, 0, 3.15, [yh, 3.15]);
+    // the south end wall, seen from the north: teal to the east of the lobby's opening (by the
+    // station's frame, from 8 m west of the platform's middle to 4 m east of it) and deep blue
+    // to the west, the rock over the opening down to the lobby's ceiling; and teal round the
+    // opening, back to the lobby (the rock in the way cut away by src/open-styles.ts)
+    const ss = south + n * 0.8, fs = ss + n * 0.03, lobby = -n * (isl.half - 0.1);
+    rockAcross(ss, E * edge, E * 4, 0, top);
+    rockAcross(ss, -E * 8, -E * edge, 0, top);
+    rockAcross(ss, E * 4, -E * 8, H, top);
+    over(ss);
+    const teal = tiles(`unTeal:${station}`, () => T.finish('portalTiles'));
+    across(teal, fs, E * edge, E * 4, 0, H, [1.2, 1.2]);
+    across(tiles(`unBlue:${station}`, () => T.scheinBlue()), fs, -E * 8, -E * edge, 0, H, [4.8, H]);
+    const deep = Math.abs(lobby - ss) / 1.2;
+    // (on along the lobby, a little behind its own walls, which stop short where the platform's
+    // floor reaches in beside it: from the lobby's floor in station-layouts.json)
+    for (const [w0, s1, w1] of [[E * 4.03, -n * 86.3, E * 3.83], [-E * 8.03, -n * 86, -E * 8.23]]) {
+      const l = Math.hypot(s1 - ss, w1 - w0) / 1.2;
+      plane(teal, [isl.P(ss, w0, 0), isl.P(s1, w1, 0), isl.P(s1, w1, H), isl.P(ss, w0, H)], [0, 0, l, 0, l, H / 1.2, 0, H / 1.2]);
+    }
+    const render = tiles(`unRender:${station}`, () => T.finish('whiteRender'));
+    plane(render, [isl.P(ss, E * 4, H), isl.P(ss, -E * 8, H), isl.P(lobby, -E * 8, H), isl.P(lobby, E * 4, H)], [0, 0, 10, 0, 10, deep, 0, deep]);
+    // and the floor from the platform's end, 0.1 m up, down to the lobby's, over what is left of
+    // the rock under the way in
+    const sill = mat(`unSill:${station}`, () => Object.assign(this.mats.platform.clone(), { side: THREE.DoubleSide }));
+    plane(sill, [isl.P(south, E * 4, 0.097), isl.P(south, -E * 8, 0.097), isl.P(-n * 77.85, -E * 8, 0), isl.P(-n * 78.14, E * 4, 0)], [0, 0, 6, 0, 6, 0.5, 0, 0.5]);
+    // the block, 6.2 m across and 4.4 m along, 2.5 m from the north end wall, its doors facing
+    // south, up into the rock over it
+    const c = sn - n * 4.7, bw = 3.1, bd = 2.2 * n, bh = 6.6, tile = 5.4;
+    const face = (key: MaterialName, w: number, doors: number, seed: number) => mat(key, () => {
+      const map = T.exitBlock(w, bh, tile, doors, seed);
+      return new THREE.MeshStandardMaterial({ map, emissive: 0x3a3a3a, emissiveMap: map, roughness: 0.3, side: THREE.DoubleSide });
+    });
+    const front = face(`unBlock:${station}:0`, 6.2, 2, 1), sides = face(`unBlock:${station}:1`, 4.4, 1, 2), back = face(`unBlock:${station}:2`, 6.2, 0, 3);
+    plane(front, [isl.P(c - bd, n * -bw, 0), isl.P(c - bd, n * bw, 0), isl.P(c - bd, n * bw, bh), isl.P(c - bd, n * -bw, bh)]);
+    plane(back, [isl.P(c + bd, n * bw, 0), isl.P(c + bd, n * -bw, 0), isl.P(c + bd, n * -bw, bh), isl.P(c + bd, n * bw, bh)]);
+    for (const side of [-1, 1]) {
+      const w = side * bw * n;
+      plane(sides, [isl.P(c - bd * side, w, 0), isl.P(c + bd * side, w, 0), isl.P(c + bd * side, w, bh), isl.P(c - bd * side, w, bh)]);
+    }
+    // the cylinders, stainless steel, hung from the rock: a row across the south end, a pair in the
+    // passage
+    const steel = mat(`unSteel:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xc4c8cb, emissive: 0x4a4c4e, roughness: 0.3, metalness: 0.4 }));
+    const tube = new THREE.CylinderGeometry(0.32, 0.32, 3.6, 20);
+    for (const [s, w] of [[ss + n * 4, -7], [ss + n * 4, 0], [ss + n * 4.5, 7], [isl.mid, -4], [isl.mid + 2, 4]]) {
+      const m = new THREE.Mesh(tube, steel);
+      m.position.copy(isl.P(s, w, 3.4 + 1.8));
+      group.add(m);
+    }
+    // the benches along the cores, slabs of white stone off their plinths
+    const bench = b[`unBench:${station}`] ??= new MeshBuilder();
+    mat(`unBench:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xe6e5e0, emissive: 0x2a2a2a, roughness: 0.5 }));
+    for (const ps of [-1, 1]) {
+      const s0 = isl.inner(ps), pl = isl.outer(ps) - s0;
+      for (let k = 1; k * 9 < Math.abs(pl) - 3; k++) {
+        const s = s0 + Math.sign(pl) * k * 9;
+        for (const side of [-1, 1]) {
+          box(bench, isl.P(s, side * (hw + 0.6), 0.44), isl.sm, 0.5, 0.08, 2.2);
+          for (const e of [-0.95, 0.95]) box(bench, isl.P(s + e, side * (hw + 0.6), 0.2), isl.sm, 0.45, 0.4, 0.08);
+        }
+      }
+    }
   }
 
   // A dodecahedron of glass in a frame of brass, hung from the vault over the middle of an island
@@ -2123,7 +2303,12 @@ interface Island {
   t: THREE.Vector3;
   n: THREE.Vector3;
   half: number;        // half the platform's length
+  hall: [number, number]; // where its two tracks share the hall, along s (their ends a little apart)
   top: number;         // a little over the hall's crown, over the platform
+  mid: number;         // the passage's middle, along s
+  // the pillar towards -s's (`ps` -1) or +s's (1) outer end, along s, and its end by the passage
+  outer(ps: number): number;
+  inner(ps: number): number;
   P(s: number, w: number, y: number): THREE.Vector3;
   s(p: { x: number; z: number }): number;
   w(p: { x: number; z: number }): number;
@@ -2145,8 +2330,14 @@ function islands(all: Sample[][]): Island[] {
     const span = structureSpan(sm), crown = S.HALL.spring + (span[1] - span[0]) * S.HALL.risePerWidth + sm.pairDy / 2;
     const s = (p: { x: number; z: number }) => (p.x - o.x) * t.x + (p.z - o.z) * t.z;
     const w = (p: { x: number; z: number }) => (p.x - o.x) * n.x + (p.z - o.z) * n.z;
+    // (the passage north of the middle, and the ends north and south, by which way s runs)
+    const st = islandStyle(first)!, north = t.z < 0 ? 1 : -1, half = (a1 - a0) / 2, gap = st.pillars.gap / 2;
+    const [south, nth] = typeof st.pillars.ends === 'number' ? [st.pillars.ends, st.pillars.ends] : st.pillars.ends;
+    const passage = (st.pillars.at ?? 0) * north, ends = north > 0 ? [south, nth] : [nth, south];
+    const shared = on.filter((q) => islandStyle(q)).map(s);
     out.push({
-      station: first.plat!.station, st: islandStyle(first)!, sm, o, t, n, half: (a1 - a0) / 2, top: crown - S.PLATFORM_HEIGHT + 1.2,
+      station: first.plat!.station, st, sm, o, t, n, half, hall: [Math.min(...shared), Math.max(...shared)], top: crown - S.PLATFORM_HEIGHT + 1.2,
+      mid: passage, outer: (ps) => ps * (half - ends[ps > 0 ? 1 : 0]), inner: (ps) => passage + ps * gap,
       P: (s, w, y) => new THREE.Vector3(o.x + t.x * s + n.x * w, o.y + y, o.z + t.z * s + n.z * w),
       s, w,
       uAt: (q, wq) => (wq - w(q)) / (q.rx * n.x + q.rz * n.z),
@@ -2188,7 +2379,7 @@ function roundedRect(c: number, hl: number, hw: number, rc: number, step: number
 
 // The pillars' rock, and the walls over the passage: pushed out and in by up to this much in
 // lumps (smooth noise in [-1, 1], from where they are).
-const PILLAR_ROUGH = 0.4, PORTAL_ROUGH = 0.25;
+const PILLAR_ROUGH = 0.4, PORTAL_ROUGH = 0.25, VAULT_ROUGH = 0.4;
 function bump(p: THREE.Vector3) {
   return lumps(p.x / 3.2, p.y / 2.4, p.z / 3.2) * 0.5 + lumps(p.x / 1.3 + 17, p.y / 1.1, p.z / 1.3) * 0.35 + lumps(p.x / 0.5 + 31, p.y / 0.45, p.z / 0.5) * 0.15;
 }

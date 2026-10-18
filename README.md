@@ -295,6 +295,9 @@ each with its reason:
 - Tekniska högskolan's island platform, 157 m long and 27 m wide round its two cores of rock
   (Albert Guillaumes' drawing), where OpenStreetMap's is 183 m long and 15 m wide, and its
   tracks held straight
+- Universitetet's island platform, 156 m long since 1997 (Swedish Wikipedia) and 31.6 m wide
+  round its two cores of rock (Albert Guillaumes' drawing), where OpenStreetMap's is 146 m long
+  and 10 m wide, and its tracks held straight
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.
@@ -414,7 +417,9 @@ nearest track on each side.
 **The structure.** Each point is in a rock tunnel, a concrete box (cut and cover, near the
 mouths, and wherever the rock over the tunnel would be less than 12 m), a cutting, on the
 ground, on an embankment, or on a bridge. The two tracks of a line share a tunnel, bridge or bank
-where they run side by side. From Gamla stan towards T-Centralen the red and green lines' four
+where they run side by side, and an island platform's hall to the platform's ends (at the islands
+measured wide, where the tracks start to part before those ends, the check that two points are
+each other's nearest is looser). From Gamla stan towards T-Centralen the red and green lines' four
 tracks share one box, each track's part reaching halfway to the next (with a step in the floor
 where they part for T-Centralen's two levels), and at Gamla stan each island platform's hall is
 shared by the two lines' tracks either side of it.

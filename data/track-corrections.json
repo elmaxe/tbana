@@ -359,6 +359,13 @@
       "why": "OSM draws the island platform 183 m long and 15 m wide, from the foot of the north-western escalators to beyond the south-eastern end, and its tracks 19 m apart. Albert Guillaumes' drawing (2024), whose scale is read off Roslagsbanan's platforms beside it (each end within 3 m of OSM's), has the platform 157 m long and 27 m wide, round two cores of rock 61 m long, with a lobby 10 m long and 10 m wide at each end, narrower than the platform, to the escalators. This point is between the tracks, 10 m short of the north-western escalators' foot, which OSM's indoor mapping (2026) places, plus half the platform."
     },
     {
+      "station": "Universitetet",
+      "replace": true,
+      "at": [153053.4, 6583487.4],
+      "length": 156,
+      "why": "OSM draws the island platform 146 m long and 10 m wide, its tracks 12 m apart. Wikipedia has the platform 156 m long since 1997, when 24 m of its original 180 m were cut off at the north end, and Albert Guillaumes' drawing (2024) has it about a fifth as wide as it is long (31.6 m), round two cores of rock, the escalators climbing from a lobby 12 m wide at its south end. The drawing's escalators lie across it where OSM's indoor ways (2026) place them, 3 m left of the platform's middle to 8 m right of it. This point is between the tracks, half the platform from its south end, which is where OSM's is, 8 m short of the escalators' foot."
+    },
+    {
       "station": "Bagarmossen",
       "replace": true,
       "at": [157542.1, 6573352.4],
@@ -491,7 +498,8 @@
   ],
   "straight": [
     {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."},
-    {"station": "Tekniska högskolan", "apart": 30.54, "why": "Tekniska högskolan's island platform is 27.4 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock; OpenStreetMap has its tracks straight and parallel along it. Held only by the platform's width, the fit bowed the tracks 2 m inward at each end."}
+    {"station": "Tekniska högskolan", "apart": 30.54, "why": "Tekniska högskolan's island platform is 27.4 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock; OpenStreetMap has its tracks straight and parallel along it. Held only by the platform's width, the fit bowed the tracks 2 m inward at each end."},
+    {"station": "Universitetet", "apart": 34.74, "why": "Universitetet's island platform is 31.6 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock."}
   ],
   "widths": [
     {

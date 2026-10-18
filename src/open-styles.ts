@@ -6038,4 +6038,33 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'south-eastern hall', s: [104, 200], u: [-45, 60], h: [12, 15], walls: 'whitePanels', floor: 'terrazzo', ceiling: 'ribbedMetal' },
     ],
   },
+  // Universitetet's hall is an island cave (src/hall-styles.ts). The lobby from the platform's
+  // south end to the escalators between walls of teal tiles, dark granite underfoot; the
+  // escalators, four and an inclined lift, climb about 21 m to the south-south-east under a smooth
+  // white vault (photographs, 2015–2019; their places OpenStreetMap's indoor ways). The ticket
+  // hall in the sunken building of brick by the square at Frescati: its inside not in the
+  // photographs, so its finishes are a guess, the brick inside too and pale terrazzo.
+  'Universitetet': {
+    rooms: [
+      { name: 'lobby', s: [-87, -77.8], u: [-9, 5], h: [-1, 0.5], walls: 'portalTiles', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'escalators', s: [-132, -85], u: [-10, 10], h: [-1, 22], walls: 'whiteRender', stairs: 'whiteRender', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [-152, -128], u: [-12, 35], h: [20, 23], walls: null, floor: 'terrazzo', ceiling: 'whitePanels' },
+    ],
+    buildings: ['w134204536', 'w1530871698'],
+    blocks: [
+      // David Helldén's entrance building (1975), sunk into the slope so as to keep the view from
+      // the campus to the Academy of Sciences and Brunnsviken: a bastion under a roof of grass,
+      // clad in brick since; its glass front with the doors and a shop faces the round square to
+      // the north under a canopy (OpenStreetMap's outline and roof; photographs, 2019)
+      { name: 'ticket hall', plan: [[-120.7, -21.9], [-134.8, 32.2], [-157.5, 30.1], [-137, -20]], h: [18.3, 25.8], from: 21.31,
+        walls: 'brick', sides: [undefined, 'glassFront', undefined, undefined], band: { walls: 'brick', from: 24.3 }, eaves: [0, 3.6, 0, 0],
+        nameSign: { side: 1, at: 0.45, length: 5, bottom: 23.75 }, floor: 'terrazzo', ceiling: 'whitePanels', roof: 0.4, roofColor: 0x5f7d45, ground: true },
+      // the way into the lobby, through the rock where the platform's hall ends a metre short of
+      // the platform: cut away (its teal walls are the hall's, in src/network.ts), from just over
+      // the platform's floor, which is 0.1 m higher here than at its middle
+      { name: 'way into the lobby', plan: [[-75.8, -8], [-78.4, -8], [-78.4, 4], [-75.8, 4]], h: [1.12, 3.6], from: 1.12, walls: 'portalTiles', sides: [null, null, null, null],
+        onPlatform: true },
+    ],
+  },
+
 };

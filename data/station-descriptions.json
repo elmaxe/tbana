@@ -426,13 +426,16 @@
     },
     "Universitetet": {
       "drawing": "universitetet.png",
-      "note": "An island platform under the university's campus. Escalators climb from its south end to the ticket hall and the exit by Frescati.",
+      "note": "An island platform 156 m long and 31.6 m wide round two cores of rock, a passage between them 21 m north of its middle (Albert Guillaumes' drawing). From a lobby at its south end four escalators and an inclined lift climb about 21 m to the south-south-east (OpenStreetMap's indoor ways) to the ticket hall in the sunken building by the square at Frescati.",
       "routes": [
-        { "from": [-60, 0], "width": 5, "go": [
-          {"escalators": 15, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [-78, -2], "width": 12, "go": [
+          {"walk": [-86.2, -2.2]},
+          {"escalators": 21.3, "toward": [-150, 5], "lanes": "LEEEE"},
+          {"walk": 4, "width": 12},
+          {"walk": [-136.5, 3.9], "width": 10},
+          {"walk": [-139.8, 10.9], "width": 8},
           {"gates": true},
-          {"walk": 3},
+          {"walk": [-144.6, 24.4], "width": 6},
           {"exit": 148405704}
         ] }
       ]

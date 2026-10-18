@@ -520,26 +520,35 @@ export interface CaveStyle {
 // Heights here are above the top of the rail, as for the styled halls above.
 export interface CaveIsland {
   // two long pillars of rock down the middle of the platform, `width` across, a passage `gap`
-  // long between them, and `ends` m of open platform beyond them; their rock painted as `paint`
-  // says, and towards their outer ends, over `fenced` of their length (none if 0), as
-  // `fencedPaint` says, behind fences of steel mesh with benches; a tiled plinth round their foot,
-  // `plinth` high
-  pillars: { width: number; gap: number; ends: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
+  // long between them, and `ends` m of open platform beyond them (or [south, north], where the
+  // two differ; `at`, the passage's middle this far north of the platform's, if not at it); their
+  // rock painted as `paint` says, and towards their outer ends, over `fenced` of their length
+  // (none if 0), as `fencedPaint` says, behind fences of steel mesh with benches; a tiled plinth
+  // round their foot, `plinth` high
+  pillars: { width: number; gap: number; ends: number | [number, number]; at?: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
   // the passage's openings to the platform each side: arches `inset` in from the pillars' ends
   // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them; or,
   // with `paint`, the walls and the vault over the passage painted so instead; the vault `rise`
-  // over the crowns (2 m if not given)
-  portal: { inset: number; crown: number; thickness: number; paint?: CavePaint; rise?: number };
+  // over the crowns (2 m if not given). Without it, the passage is open under the rock.
+  portal?: { inset: number; crown: number; thickness: number; paint?: CavePaint; rise?: number };
   // a flat ceiling of steel mesh `ceiling` high over the tracks and the platform, but not over
-  // the passage, with fluorescent tubes across it
+  // the passage, with fluorescent tubes across it; or, with `ceilingReach`, only over the track
+  // and out to that far past the platform's edge, with rows of tubes along it
   ceiling: number;
+  ceilingReach?: number;
+  // the rock over the hall where it is low, rather than the cave's own vault, out of sight over
+  // the ceiling: up from the track walls at `wall` to `crown` at the pillars' faces, and `middle`
+  // over the middle of the platform where there are none, at its ends and in the passage
+  vault?: { wall: number; crown: number; middle: number };
   // the track walls: panels of steel mesh up to `panels`, and a white band over them with the
-  // station's name
+  // station's name; or (`walls: 'rights'`) Françoise Schein's tiles up to it
   panels: number;
+  walls?: 'rights';
   // its fittings' colours, where they aren't Stadion's green steel and cream tiles: the mesh
-  // panels' rock, strands and posts (CSS colours), and pale grey tiles on the plinth; `fence`, the
-  // fences' colours where they aren't the panels', and `fenceHeight`, theirs (1.5 m)
-  fittings?: { mesh: [string, string, string]; greyTiles: boolean; fence?: [string, string, string]; fenceHeight?: number };
+  // panels' rock, strands and posts (CSS colours), and pale grey tiles or dark granite on the
+  // plinth; `fence`, the fences' colours where they aren't the panels', and `fenceHeight`, theirs
+  // (1.5 m)
+  fittings?: { mesh: [string, string, string]; plinth?: 'grey' | 'granite'; fence?: [string, string, string]; fenceHeight?: number };
   // a dodecahedron of glass in a frame of brass hung over the middle of the passage, `size` m
   // across its corners, its middle `at` m over the platform, and a diagram inlaid in the floor
   // under it
@@ -604,8 +613,45 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
             { kind: 'swirls', colors: ['#eef2f6', '#f7f8fa', '#d4dde8'], from: 5.8, to: 18, count: 130, width: 0.4, length: 3 }] } },
       ceiling: 4.4,
       panels: 2.3,
-      fittings: { mesh: ['#0e0e0f', '#3b3c3e', '#2a2b2d'], greyTiles: true, fence: ['#1f1f20', '#634742', '#523b36'], fenceHeight: 2.2 },
+      fittings: { mesh: ['#0e0e0f', '#3b3c3e', '#2a2b2d'], plinth: 'grey', fence: ['#1f1f20', '#634742', '#523b36'], fenceHeight: 2.2 },
       dodecahedron: { size: 2.6, at: 4.4 },
+    },
+  },
+  // Universitetet (12 January 1975), about 25 m down under the university's campus at Frescati
+  // (Swedish Wikipedia): the same plan as Stadion's on a still wider island, 156 m long since
+  // 1997, when 24 m of its north end were cut off, and about 31.6 m wide round two cores of rock,
+  // 37 m long to the north of a passage 13 m long and 82 m to the south of it (Albert Guillaumes'
+  // drawing, 2024, its width a fifth of its length). Photographs (Wikimedia Commons, 2005–2021):
+  // the rock left bare, a pale grey tinged pink, low over the platform and the ends; a narrow
+  // ceiling of steel mesh with rows of tubes over each track and the platform's edge; the track
+  // walls in Françoise Schein's tiles (1997): the Universal Declaration of Human Rights in black
+  // capitals on white, Linnaeus's journeys drawn over it in blue, a red line along the top. On the
+  // cores' sides, her panels of his journeys, maps in teal tiles framed in steel, beside steel
+  // perforated with large holes, over a plinth of dark granite; stainless steel cylinders hung
+  // from the rock at the ends; the floor polished dark granite in large squares with a pale edge.
+  // At the north end, the emergency exit up to the unfinished entrance by Naturhistoriska
+  // riksmuseet: a block of red tiles reaching up to the rock, green doors with the running man in
+  // it; behind it the end wall in small lilac grey tiles, yellow tiles at each edge of the
+  // platform. At the south end the lobby to the escalators between walls of teal and of deep blue
+  // tiles. The art and the fittings at the ends are in src/network.ts; the floor is Stadion's.
+  'Universitetet': {
+    paint: { seed: 1975, bands: [{ from: 0, color: '#cdc9c5' }],
+          motifs: [{ kind: 'dabs', colors: ['#c2bdb9', '#dad6d2', '#c9bfbb', '#b8b3af'], from: 0, to: 18, size: 0.8, count: 260 },
+            { kind: 'dabs', colors: ['#c7b1ad', '#bfa9a5'], from: 0, to: 18, size: 1.4, count: 18 }] },
+    island: {
+      pillars: { width: 19.4, gap: 13.1, ends: [9.8, 13.7], at: 20.75, fenced: 0, plinth: 0.8,
+        paint: { seed: 1976, bands: [{ from: 0, color: '#cdc9c5' }],
+          motifs: [{ kind: 'dabs', colors: ['#c2bdb9', '#dad6d2', '#c9bfbb', '#b8b3af'], from: 0, to: 18, size: 0.8, count: 260 },
+            { kind: 'dabs', colors: ['#c7b1ad', '#bfa9a5'], from: 0, to: 18, size: 1.4, count: 18 }] },
+        fencedPaint: { seed: 1976, bands: [{ from: 0, color: '#cdc9c5' }],
+          motifs: [{ kind: 'dabs', colors: ['#c2bdb9', '#dad6d2', '#c9bfbb', '#b8b3af'], from: 0, to: 18, size: 0.8, count: 260 },
+            { kind: 'dabs', colors: ['#c7b1ad', '#bfa9a5'], from: 0, to: 18, size: 1.4, count: 18 }] } },
+      ceiling: 5.2,
+      ceilingReach: 3.2,
+      vault: { wall: 4.4, crown: 8.6, middle: 7.0 },
+      panels: 3.6,
+      walls: 'rights',
+      fittings: { mesh: ['#26282a', '#8d9194', '#6f7377'], plinth: 'granite' },
     },
   },
   // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in

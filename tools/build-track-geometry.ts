@@ -316,9 +316,10 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     }
     return best;
   }
-  // ... and only if that track's nearest is this one again
+  // ... and only if that track's nearest is this one again (within 3 m, or `slack` of the way
+  // across to it, where it is further)
   function mutualPartner(grid: Map<string, Seg[]>, pos: (v: number) => [number, number], self: TrackPiece, s: number, x: number, z: number, y: number,
-    reach: number, dy: number, minDy = 0, alike = false) {
+    reach: number, dy: number, minDy = 0, alike = false, slack = 0) {
     const dir = oneWay(self.id);
     if (!dir) return null;
     const [tx, tz] = tangent(self, s);
@@ -326,7 +327,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     if (!b) return null;
     const [ux, uz] = tangent(b.piece, b.s), dirB = oneWay(b.piece.id);
     const back = partner(grid, pos, b.piece, b.x, b.z, b.y, [ux * dirB, uz * dirB], reach, dy, minDy, alike);
-    if (!back || Math.hypot(back.x - x, back.z - z) > 3) return null;
+    if (!back || Math.hypot(back.x - x, back.z - z) > Math.max(3, slack * b.d)) return null;
     return b;
   }
 
@@ -818,9 +819,10 @@ for (const p of pieces) {
       if (o && STRUCTURE_KINDS[o.kind[o.s.reduce((m, v, j) => (Math.abs(v - c.s) < Math.abs(o.s[m] - c.s) ? j : m), 0)]] === 'bridge') b = c;
     }
     // across an island platform they share (whose ends OpenStreetMap puts a few metres apart on
-    // the two tracks)
+    // the two tracks; and at an island measured wide, where the tracks start to part at its ends,
+    // further from each other's nearest point)
     if (!b && here) {
-      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_REACH, SHARE_DY, 0, true);
+      const c = mutualPartner(alignedGrid, pos, p, g.s[k], x, z, y, ISLAND_REACH, SHARE_DY, 0, true, here.station in ISLAND_WIDTHS ? 0.1 : 0);
       if (c && platformNear(c.piece.id, c.s, Math.max(STEP, ISLAND_ENDS), Math.max(STEP, ISLAND_ENDS))?.osm === here.osm) b = c;
     }
     // (not across another line's track)
