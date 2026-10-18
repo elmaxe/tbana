@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -312,6 +312,7 @@ export class OpenLook {
       else if (a.kind === 'tramTrack') this.tramTrack(a, frame, on);
       else if (a.kind === 'catenary') this.catenary(a, frame, on);
       else if (a.kind === 'edgePaving') this.edgePaving(a, style, st.name, frame, on);
+      else if (a.kind === 'wreath') this.wreath(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1545,6 +1546,86 @@ export class OpenLook {
     }
   }
 
+  // The wooden wreath: a ring of leaves round a circle `size` across in the plane of e1 and e2 (along
+  // and across the platform, hung flat; or along the wall and up, standing on it), lumpy with its
+  // carved leaves; a ribbon wound round it; flowers on its outer side and underside (or its face);
+  // and, hung, four wires up to a plate on the ceiling.
+  private wreath(a: Wreath, frame: Frame, on: On) {
+    const flat = a.turn === undefined, rr = a.thick / 2, R = a.size / 2 - rr, o = frame.at(a.s, a.u, a.h);
+    const sd: XYZ = [frame.fx, 0, frame.fz], ud: XYZ = [-frame.fz, 0, frame.fx], up: XYZ = [0, 1, 0];
+    const comb = (p: XYZ, q: XYZ, i: number, j: number): XYZ => [p[0] * i + q[0] * j, p[1] * i + q[1] * j, p[2] * i + q[2] * j];
+    // (standing: facing (ds, du), its e1 along the wall to the viewer's right, e2 up)
+    const face: XYZ = flat ? up : comb(sd, ud, Math.cos(a.turn!), Math.sin(a.turn!));
+    const e1: XYZ = flat ? sd : comb(sd, ud, Math.sin(a.turn!), -Math.cos(a.turn!)), e2: XYZ = flat ? ud : up;
+    const add = (...v: XYZ[]): XYZ => v.reduce((t, w) => [t[0] + w[0], t[1] + w[1], t[2] + w[2]], [0, 0, 0] as XYZ);
+    const mul = (v: XYZ, k: number): XYZ => [v[0] * k, v[1] * k, v[2] * k];
+    // the point at angle t round the ring and f round its thickness (0 outwards, π/2 to `face`),
+    // `out` m out from its surface
+    const radial = (t: number): XYZ => add(mul(e1, Math.cos(t)), mul(e2, Math.sin(t)));
+    const tangent = (t: number): XYZ => add(mul(e1, -Math.sin(t)), mul(e2, Math.cos(t)));
+    const normal = (t: number, f: number): XYZ => add(mul(radial(t), Math.cos(f)), mul(face, Math.sin(f)));
+    const lump = (t: number, f: number) => 1 + 0.12 * Math.abs(Math.sin(t * R * 9 + Math.sin(f * 3) * 1.4)) * Math.abs(Math.sin(f * 2.5 + t * 3));
+    const P = (t: number, f: number, out = 0): XYZ => add(o, mul(radial(t), R), mul(normal(t, f), rr * lump(t, f) + out));
+    const leaves = on(this.mat('wreath:leaves', () => {
+      const map = T.wreathLeaves();
+      return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.22, roughness: 0.6, side: THREE.DoubleSide });
+    }));
+    const N = Math.max(36, Math.round(a.size * 26)), M = 12, around = (2 * Math.PI * R) / 0.5;
+    for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
+      const t0 = (i / N) * Math.PI * 2, t1 = ((i + 1) / N) * Math.PI * 2, f0 = (j / M) * Math.PI * 2, f1 = ((j + 1) / M) * Math.PI * 2;
+      leaves.poly([[...P(t0, f0), (i / N) * around, j / M], [...P(t1, f0), ((i + 1) / N) * around, j / M], [...P(t1, f1), ((i + 1) / N) * around, (j + 1) / M], [...P(t0, f1), (i / N) * around, (j + 1) / M]]);
+    }
+    // the ribbon: red, wound round it seven times, narrow; or broad bands of orange-red
+    const ribbon = on(this.color(flat ? 0xd0241c : 0xe0502a, 0.4, 0.05));
+    const turns = flat ? 7 : 6, width = flat ? 0.14 : a.thick * 0.55, steps = flat ? 420 : 0;
+    if (flat) {
+      for (let k = 0; k < steps; k++) {
+        const t0 = (k / steps) * Math.PI * 2, t1 = ((k + 1) / steps) * Math.PI * 2, f0 = t0 * turns, f1 = t1 * turns;
+        const a0 = P(t0, f0, 0.03), a1 = P(t1, f1, 0.03), w0 = mul(tangent(t0), width / 2), w1 = mul(tangent(t1), width / 2);
+        ribbon.poly([[...add(a0, mul(w0, -1)), 0, 0], [...add(a0, w0), 1, 0], [...add(a1, w1), 1, 1], [...add(a1, mul(w1, -1)), 0, 1]]);
+      }
+    } else {
+      for (let k = 0; k < turns; k++) {
+        const t = (k / turns) * Math.PI * 2, n = 16;
+        for (let j = 0; j < n; j++) {
+          const f0 = (j / n) * Math.PI * 2, f1 = ((j + 1) / n) * Math.PI * 2;
+          const q = (f: number, side: number) => add(P(t + side * width / (2 * R) + f * 0.04, f, 0.02));
+          ribbon.poly([[...q(f0, -1), 0, 0], [...q(f0, 1), 1, 0], [...q(f1, 1), 1, 1], [...q(f1, -1), 0, 1]]);
+        }
+      }
+    }
+    // the flowers, each cut out round its outline, facing out from where it sits
+    const flowers = on(this.mat('wreath:flowers', () => {
+      const map = T.wreathFlowers();
+      return new THREE.MeshStandardMaterial({ map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.25, roughness: 0.5, alphaTest: 0.5, side: THREE.DoubleSide });
+    }));
+    const r = T.rng(Math.round(a.s * 10 + a.u));
+    const count = flat ? 22 : 8;
+    for (let k = 0; k < count; k++) {
+      const t = ((k + r() * 0.5) / count) * Math.PI * 2;
+      // (hung: on its outer side and underside, as it is seen from under it; standing: on its face)
+      const f = flat ? -1.3 + r() * 1.6 : Math.PI / 2 + (r() - 0.5) * 0.9;
+      const kind = flat ? (k % 7 === 0 ? 0 : 1 + (k % 3)) : k % 2 === 0 ? 0 : 2;
+      const size = (kind === 0 ? (flat ? 0.4 : 0.16) : flat ? 0.2 : 0.12) / 2;
+      const c = P(t, f, 0.05), n = normal(t, f), tt = tangent(t), b: XYZ = [n[1] * tt[2] - n[2] * tt[1], n[2] * tt[0] - n[0] * tt[2], n[0] * tt[1] - n[1] * tt[0]];
+      const Q = (i: number, j: number, uu: number, vv: number) => [...add(c, mul(tt, i * size), mul(b, j * size)), (kind + uu) / 4, vv];
+      flowers.poly([Q(-1, -1, 0, 0), Q(1, -1, 1, 0), Q(1, 1, 1, 1), Q(-1, 1, 0, 1)]);
+    }
+    if (flat && a.ceiling !== undefined) {
+      // four wires up to a round plate on the ceiling
+      const steel = on(this.color(0x8d9296, 0.4, 0.6)), top = frame.at(a.s, a.u, a.ceiling - 0.03);
+      for (let k = 0; k < 4; k++) {
+        const t = Math.PI / 4 + (k * Math.PI) / 2;
+        limb(steel, P(t, Math.PI / 2, 0.01), add(top, mul(radial(t), 0.22)), 0.012, 0.012);
+      }
+      const n = 20, plate = on(this.color(0x6f7478, 0.5, 0.5));
+      for (let k = 0; k < n; k++) {
+        const t0 = (k / n) * Math.PI * 2, t1 = ((k + 1) / n) * Math.PI * 2;
+        plate.poly([[...top, 0, 0], [...add(top, mul(radial(t0), 0.3)), 1, 0], [...add(top, mul(radial(t1), 0.3)), 1, 1]]);
+      }
+    }
+  }
+
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
     const lace = Math.abs(Math.round(a.s)) % 3;
@@ -1552,7 +1633,8 @@ export class OpenLook {
       const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
         : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
           : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate()
-            : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves() : T.tallkrogsdraken();
+            : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves()
+              : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief() : T.tallkrogsdraken();
       // (an angel, the lace and the iron, cut out round their outlines)
       const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';

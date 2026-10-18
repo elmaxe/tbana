@@ -1873,8 +1873,11 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
 // size and colour in place of the panels, over a strip of brushed steel, and the pictures in thin
 // black frames with no mounts (Zinkensdamm's). With `bricks`, Berndt Helleberg's red bricks and
 // his black band with its figures, the name among them (Hornstull's, `hellebergWall`), and no pictures.
+// With `kransen`, Midsommarkransen's narrow cream tiles on end (`kransenTiles`), a dark blue band
+// from `band[0]` to `band[1]` with the name on it in white capitals four times a repeat, a thin
+// red stripe at `red` and a dark blue-grey one at `low`, and no pictures (photographs, 2005–2016).
 export const GARDET_REPEAT = 20.8;
-export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string } }
+export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number } }
 function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
   const [c, x] = canvas(W, H);
@@ -1889,6 +1892,24 @@ function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   if (f.bricks) {
     hellebergWall(x, W, H, y, f.panelsFrom, top, f.bricks.name, PX, r);
     x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+    return c;
+  }
+  if (f.kransen) {
+    const k = f.kransen;
+    kransenTiles(x, 0, 0, W, y(f.panelsFrom), PX, r);
+    // (the grime of the trains on the tiles' lowest rows)
+    const grime = x.createLinearGradient(0, y(f.panelsFrom + 0.8), 0, y(f.panelsFrom));
+    grime.addColorStop(0, 'rgba(60,54,44,0)'); grime.addColorStop(1, 'rgba(60,54,44,0.45)');
+    x.fillStyle = grime; x.fillRect(0, y(f.panelsFrom + 0.8), W, 0.8 * PX);
+    const stripe = (at: number, hh: number, col: string) => { x.fillStyle = col; x.fillRect(0, y(at + hh), W, hh * PX); };
+    stripe(k.low, 0.05, '#2f3546');
+    stripe(k.red, 0.05, '#9a2b24');
+    stripe(k.band[0], k.band[1] - k.band[0], '#1f2f5c');
+    x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(0, y(k.band[1]), W, 1.5);
+    const bh = (k.band[1] - k.band[0]) * PX;
+    x.fillStyle = '#f2f2ee'; x.font = `600 ${Math.round(bh * 0.62)}px "Helvetica Neue", Arial, sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    for (let i = 0; i < 4; i++) x.fillText(k.name.toUpperCase(), (i + 0.5) * (W / 4), y(k.band[0]) - bh / 2 + 1);
     return c;
   }
   if (f.tiles) {
@@ -2027,21 +2048,34 @@ export function gardetTrackWall(floor: number, top: number, f: GardetTrackWall, 
 // along the wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along). With
 // `rods`, Mariatorget's ceramic rods in place of the panels, on a dark plinth; with `wine`,
 // Zinkensdamm's narrow wine-red tiles (`wineTiles`); with `upright`, Hornstull's narrow white tiles
-// on end (`whiteBricks`), above the band as well as below it.
-export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; upright?: boolean; wall?: string }) {
+// on end (`whiteBricks`), above the band as well as below it; with `kransen`, Midsommarkransen's
+// narrow cream tiles on end (`kransenTiles`) down to a dark skirting, and the band in glazed tiles
+// 0.4 m wide.
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; wall?: string }) {
   const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
   const [src, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
   const r = rng(1967);
   x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
-  x.fillStyle = f.rods ? '#38393a' : f.wine ? '#2c2826' : f.upright ? '#2a2a29' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  x.fillStyle = f.rods ? '#38393a' : f.wine ? '#2c2826' : f.upright || f.kransen ? '#2a2a29' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
   speckle(x, W, H, 1500, 0.06, 1968);
   if (f.rods) ceramicRods(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
+  else if (f.kransen) kransenTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.wine) wineTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.upright) whiteBricks(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
   x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
   x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
+  if (f.kransen) {
+    // (the band's tiles, each a shade off the next, the glaze catching the light along their tops)
+    const n = Math.max(1, Math.round(W / (0.4 * PX))), tw = W / n, th = (f.band.to - f.band.from) * PX;
+    for (let i = 0; i < n; i++) {
+      const v = Math.floor(r() * 16) - 8;
+      x.fillStyle = `rgba(${v > 0 ? 255 : 0},${v > 0 ? 230 : 0},${v > 0 ? 210 : 0},${Math.abs(v) / 90})`; x.fillRect(i * tw + 1, y(f.band.to) + 1, tw - 2, th - 2);
+      x.fillStyle = 'rgba(30,18,12,0.6)'; x.fillRect(i * tw, y(f.band.to), 1.5, th);
+      x.fillStyle = 'rgba(255,235,215,0.18)'; x.fillRect(i * tw + 2, y(f.band.to) + 2, tw - 4, th * 0.12);
+    }
+  }
   x.fillStyle = f.wall ?? '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
   if (f.upright) whiteBricks(x, 0, 0, W, y(f.band.to) - 2, PX, r);
   else speckle(x, W, y(f.band.to), 600, 0.05, 1969);
@@ -2132,6 +2166,24 @@ function whiteBricks(x: CanvasRenderingContext2D, x0: number, y0: number, w: num
       // (the glaze catching the light down each tile, and a little shadow at its foot)
       x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(x0 + i * a + a * 0.2, yy - b + 2, a * 0.25, b - 4);
       x.fillStyle = 'rgba(90,90,85,0.08)'; x.fillRect(x0 + i * a + 0.8, yy - b * 0.3, a - 1.6, b * 0.3 - 0.8);
+    }
+  }
+  x.restore();
+}
+
+// Glazed tiles on end, `tw` by `th` m, in a stack bond (their joints running straight up and
+// across), a cream with a faint olive cast, each a shade off its neighbours, in grey joints, across
+// the rectangle from its foot up (Midsommarkransen's walls, 1964: photographs, 2005–2016)
+function kransenTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number, tw = 0.05, th = 0.24) {
+  x.fillStyle = '#8e8a7a'; x.fillRect(x0, y0, w, h);
+  const n = Math.max(1, Math.round(w / (tw * PX))), a = w / n, b = th * PX;
+  x.save(); x.beginPath(); x.rect(x0, y0, w, h); x.clip();
+  for (let i = 0; i < n; i++) {
+    for (let yy = y0 + h; yy > y0; yy -= b) {
+      const v = Math.floor(r() * 14) - 7, o = Math.floor(r() * 6);
+      x.fillStyle = `rgb(${214 + v},${206 + v + o * 0.3},${170 + v - o})`; x.fillRect(x0 + i * a + 0.6, yy - b + 0.6, a - 1.2, b - 1.2);
+      // (the glaze catching the light down each tile)
+      x.fillStyle = 'rgba(255,255,248,0.3)'; x.fillRect(x0 + i * a + a * 0.25, yy - b + 1.5, a * 0.22, b - 3);
     }
   }
   x.restore();
@@ -4269,6 +4321,211 @@ export function stenborgLeaves() {
   return toTexture(c);
 }
 
+// The panel on the wall at the end of Midsommarkransen's middle hall (photographs, 2016–2025),
+// 6.6 by 2.55 m: a frame of posts and rails painted dark green, wound with red stripes as a
+// maypole is; along its top a dark board with FÖRSTADEN · MIDSOMMARKRANSEN in gold capitals; in
+// its middle a panorama drawn in black on white of the garden suburb as it was, houses packed up
+// its hills among trees; either side of it a field of dark blue-grey boards, upright, for the
+// wooden wreaths on them (drawn apart, src/open-stations.ts); at either end a grey steel door;
+// dark boards under it all.
+export function forstadenPanel() {
+  const PX = 160, Wm = 6.6, Hm = 2.55, W = Math.round(Wm * PX), H = Math.round(Hm * PX), [c, x] = canvas(W, H), r = rng(1979);
+  const X = (m: number) => m * PX, Y = (m: number) => H - m * PX;
+  // the boards behind it all
+  x.fillStyle = '#2a3036'; x.fillRect(0, 0, W, H);
+  for (let i = 0; i * 0.14 * PX < W; i++) {
+    const v = Math.floor(r() * 10) - 5;
+    x.fillStyle = `rgb(${46 + v},${54 + v},${62 + v})`; x.fillRect(i * 0.14 * PX + 1, 0, 0.14 * PX - 2, H);
+  }
+  // the panorama: a pale sky, hills, and houses up them, smaller as they climb, among trees
+  const px0 = X(1.94), px1 = X(4.66), py0 = Y(2.15), py1 = Y(0.51), pw = px1 - px0, ph = py1 - py0;
+  x.save(); x.beginPath(); x.rect(px0, py0, pw, ph); x.clip();
+  const sky = x.createLinearGradient(0, py0, 0, py1);
+  sky.addColorStop(0, '#e9e7e0'); sky.addColorStop(1, '#d8d5cc');
+  x.fillStyle = sky; x.fillRect(px0, py0, pw, ph);
+  const hill = (t: number) => py0 + ph * (0.28 + 0.12 * Math.sin(t * 5.2 + 0.6) + 0.06 * Math.sin(t * 13 + 2));
+  x.fillStyle = '#cfccc2'; x.beginPath(); x.moveTo(px0, py1);
+  for (let t = 0; t <= 1.001; t += 0.02) x.lineTo(px0 + pw * t, hill(t));
+  x.lineTo(px1, py1); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(30,30,30,0.5)'; x.lineWidth = 1; x.stroke();
+  // (hatching on the hill)
+  x.strokeStyle = 'rgba(40,40,40,0.18)';
+  for (let k = 0; k < 260; k++) {
+    const t = r(), hx = px0 + pw * t, hy = hill(t) + r() * (py1 - hill(t));
+    x.beginPath(); x.moveTo(hx, hy); x.lineTo(hx + 6, hy - 3); x.stroke();
+  }
+  // houses, from the top of the hills down, so the nearer cover the further
+  for (let row = 0; row < 9; row++) {
+    const depth = row / 8, size = 7 + depth * 22;
+    for (let k = 0; k < 14 + row * 2; k++) {
+      const t = r(), hx = px0 + pw * t, top = hill(t) + (py1 - hill(t)) * (depth * 0.85 + r() * 0.08);
+      const w = size * (0.8 + r() * 0.6), hh = size * (0.5 + r() * 0.3);
+      if (r() < 0.25) {
+        // a tree: a dark round crown
+        x.fillStyle = 'rgba(40,42,38,0.55)'; x.beginPath(); x.arc(hx, top, size * 0.35, 0, Math.PI * 2); x.fill();
+        continue;
+      }
+      x.fillStyle = '#f2f0ea'; x.fillRect(hx - w / 2, top - hh, w, hh);
+      x.strokeStyle = 'rgba(25,25,25,0.75)'; x.lineWidth = 0.8; x.strokeRect(hx - w / 2, top - hh, w, hh);
+      x.fillStyle = '#4a4a46'; x.beginPath(); x.moveTo(hx - w / 2 - 1, top - hh); x.lineTo(hx, top - hh - size * 0.4); x.lineTo(hx + w / 2 + 1, top - hh); x.closePath(); x.fill();
+      x.fillStyle = 'rgba(25,25,25,0.7)';
+      for (let j = 0; j < 3; j++) x.fillRect(hx - w / 2 + w * (0.2 + j * 0.25), top - hh * 0.65, Math.max(1, w * 0.08), Math.max(1, hh * 0.2));
+    }
+  }
+  // a road winding up through it
+  x.strokeStyle = 'rgba(30,30,30,0.6)'; x.lineWidth = 1.2; x.beginPath();
+  x.moveTo(px0 + pw * 0.05, py1 - 4); x.bezierCurveTo(px0 + pw * 0.4, py1 - ph * 0.1, px0 + pw * 0.5, py1 - ph * 0.35, px0 + pw * 0.8, py1 - ph * 0.45); x.stroke();
+  x.restore();
+  x.strokeStyle = '#1b1d1e'; x.lineWidth = 3; x.strokeRect(px0, py0, pw, ph);
+  // the frame: posts and rails, dark green wound with red stripes
+  const striped = (x0: number, y0: number, w: number, h: number, upright: boolean) => {
+    x.fillStyle = '#245a34'; x.fillRect(x0, y0, w, h);
+    x.save(); x.beginPath(); x.rect(x0, y0, w, h); x.clip();
+    x.fillStyle = '#c7362a';
+    const step = 0.22 * PX, len = upright ? h : w;
+    for (let k = -2; k * step < len + step; k++) {
+      x.beginPath();
+      if (upright) { const yy = y0 + k * step; x.moveTo(x0, yy); x.lineTo(x0 + w, yy - w * 0.9); x.lineTo(x0 + w, yy - w * 0.9 + step * 0.3); x.lineTo(x0, yy + step * 0.3); }
+      else { const xx = x0 + k * step; x.moveTo(xx, y0 + h); x.lineTo(xx + h * 0.9, y0); x.lineTo(xx + h * 0.9 + step * 0.3, y0); x.lineTo(xx + step * 0.3, y0 + h); }
+      x.closePath(); x.fill();
+    }
+    x.restore();
+  };
+  // the board along the top, and its name
+  x.fillStyle = '#20262c'; x.fillRect(0, Y(2.5), W, 0.3 * PX);
+  x.fillStyle = '#d9b45a'; x.font = `600 ${Math.round(0.19 * PX)}px Georgia, "Times New Roman", serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('FÖRSTADEN · MIDSOMMARKRANSEN', W / 2, Y(2.35) + 1);
+  striped(0, Y(2.55), W, 0.05 * PX, false);
+  striped(0, Y(2.2), W, 0.05 * PX, false);
+  // the grey steel doors at either end, and the rails along the foot between them
+  for (const xm of [0.08, 5.8]) {
+    x.fillStyle = '#4d5154'; x.fillRect(X(xm), Y(2.15), X(0.72), X(2.15));
+    x.fillStyle = '#5c6063'; x.fillRect(X(xm) + 4, Y(2.15) + 4, X(0.72) - 8, X(2.15) - 8);
+    x.fillStyle = '#9a9ea1'; x.fillRect(X(xm < 1 ? xm + 0.6 : xm + 0.07), Y(1.15), 4, X(0.22));
+  }
+  x.fillStyle = '#e8c21c'; x.fillRect(X(5.82 + 0.28), Y(1.72), X(0.16), X(0.11));
+  for (const yy of [0.17, 0.47]) striped(X(0.8), Y(yy + 0.04), X(5.0), 0.04 * PX, false);
+  for (const xm of [0, 0.8, 1.86, 4.66, 5.72, 6.52]) striped(X(xm), Y(2.2), 0.08 * PX, 2.2 * PX, true);
+  return toTexture(c, { repeat: false });
+}
+
+// The painted wooden relief of a summer night on the wall behind one of Midsommarkransen's
+// platforms (photograph, 2005; sv.wikipedia, citing SL, gives the station's reliefs to Lisbet
+// Lindholm and to Dag Wallin, and doesn't say which this is): tall upright boards side by side,
+// birches white with black marks at either side, between them boards painted deep blue at their
+// ragged heads running down into yellow and orange; a red bird spreading its wings, a red figure
+// and a green one, a tall orange one, on a dark rock; each board carved round, lit from above and
+// the left.
+export function summerNightRelief() {
+  const W = 540, H = 490, [c, x] = canvas(W, H), r = rng(1964);
+  x.fillStyle = '#2a2220'; x.fillRect(0, 0, W, H);
+  const widths: number[] = [];
+  for (let at = 6; at < W - 30; ) { const w = 26 + r() * 22; widths.push(w); at += w + 2; }
+  let xx = 6;
+  widths.forEach((w, i) => {
+    // birches at either side, the rest painted deep blue at their heads running down into yellow
+    // and orange, their heads ragged
+    const birch = i === 0 || i >= widths.length - 3;
+    const top = birch && i > 0 ? 4 + r() * 12 : 16 + r() * 60;
+    x.save(); x.beginPath(); x.moveTo(xx, H); x.lineTo(xx + 1, top + 12);
+    x.lineTo(xx + w * 0.3, top + r() * 8); x.lineTo(xx + w * 0.62, top + 3 + r() * 12); x.lineTo(xx + w - 1, top + 14); x.lineTo(xx + w, H);
+    x.closePath(); x.clip();
+    if (birch) {
+      x.fillStyle = '#eeede6'; x.fillRect(xx, 0, w, H);
+      x.fillStyle = '#151515';
+      for (let k = 0; k < 14; k++) { const yy = top + 20 + r() * (H - top - 60); x.fillRect(xx + r() * w * 0.5, yy, w * (0.3 + r() * 0.4), 3 + r() * 4); }
+    } else {
+      const f = 0.3 + r() * 0.3, g = x.createLinearGradient(0, top, 0, H);
+      g.addColorStop(0, '#1b3584'); g.addColorStop(f * 0.85, '#2c56b8');
+      g.addColorStop(Math.min(1, f + 0.12), i % 3 === 1 ? '#e07a22' : '#e8b628'); g.addColorStop(1, i % 3 === 1 ? '#c8601a' : '#d9a524');
+      x.fillStyle = g; x.fillRect(xx, 0, w, H);
+      // (brushed streaks: blue running down into the yellow, yellow up into the blue)
+      const meet = top + (H - top) * f;
+      for (let k = 0; k < 9; k++) {
+        x.fillStyle = r() < 0.6 ? 'rgba(38,76,172,0.8)' : 'rgba(232,180,40,0.7)';
+        x.fillRect(xx + r() * w, meet - 50 + r() * 70, 3 + r() * 5, 30 + r() * 80);
+      }
+    }
+    // (each board carved round, lit from above and the left)
+    const sh = x.createLinearGradient(xx, 0, xx + w, 0);
+    sh.addColorStop(0, 'rgba(255,255,255,0.3)'); sh.addColorStop(0.35, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.35)');
+    x.fillStyle = sh; x.fillRect(xx, 0, w, H);
+    x.restore();
+    xx += w + 2;
+  });
+  // the figures: a red bird with its wings spread, to the left; a red figure and a green one
+  // standing close; a tall one, orange, its head small
+  x.fillStyle = '#c3221c'; x.beginPath();
+  x.moveTo(W * 0.14, H * 0.38); x.quadraticCurveTo(W * 0.22, H * 0.47, W * 0.29, H * 0.43); x.quadraticCurveTo(W * 0.34, H * 0.48, W * 0.42, H * 0.36);
+  x.quadraticCurveTo(W * 0.35, H * 0.56, W * 0.28, H * 0.54); x.quadraticCurveTo(W * 0.21, H * 0.54, W * 0.14, H * 0.38); x.fill();
+  x.beginPath(); x.ellipse(W * 0.47, H * 0.68, 22, 62, 0.04, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.arc(W * 0.47, H * 0.68 - 72, 15, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#4f7a34'; x.beginPath(); x.ellipse(W * 0.53, H * 0.71, 18, 54, -0.06, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.arc(W * 0.53, H * 0.71 - 62, 12, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#e88a1c'; x.beginPath(); x.ellipse(W * 0.63, H * 0.55, 17, 150, 0.02, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.arc(W * 0.632, H * 0.55 - 160, 11, 0, Math.PI * 2); x.fill();
+  x.fillStyle = 'rgba(255,240,180,0.35)'; x.beginPath(); x.ellipse(W * 0.625, H * 0.5, 5, 120, 0.02, 0, Math.PI * 2); x.fill();
+  // the rock along the foot
+  x.fillStyle = '#3d3330'; x.beginPath(); x.moveTo(0, H);
+  for (let t = 0; t <= 1.001; t += 0.05) x.lineTo(W * t, H * (0.8 + 0.1 * t) - Math.sin(t * 7 + 1) * 16 - r() * 10);
+  x.lineTo(W, H); x.closePath(); x.fill();
+  x.fillStyle = 'rgba(120,96,80,0.35)';
+  for (let k = 0; k < 40; k++) x.fillRect(r() * W, H * 0.88 + r() * H * 0.1, 8 + r() * 20, 2);
+  return toTexture(c, { repeat: false });
+}
+
+// The leaves of Midsommarkransen's wooden wreath (1978): carved leaves overlapping like scales,
+// painted greens, their veins darker, round the ring (a repeat 0.5 m along it and once round its
+// thickness).
+export function wreathLeaves() {
+  const W = 256, H = 256, [c, x] = canvas(W, H), r = rng(1978);
+  x.fillStyle = '#1f4a22'; x.fillRect(0, 0, W, H);
+  for (let k = 0; k < 90; k++) {
+    const cx = r() * W, cy = r() * H, len = 34 + r() * 18, wid = 16 + r() * 8, a = -0.4 + (r() - 0.5) * 0.6;
+    const v = Math.floor(r() * 30);
+    for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+      x.save(); x.translate(cx + dx, cy + dy); x.rotate(a);
+      x.fillStyle = `rgb(${46 + v},${118 + v * 1.2},${52 + v * 0.6})`; x.beginPath(); x.ellipse(0, 0, len / 2, wid / 2, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'rgba(255,255,220,0.12)'; x.beginPath(); x.ellipse(-2, -3, len / 2.4, wid / 3.4, 0, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = 'rgba(20,50,20,0.7)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(-len / 2, 0); x.lineTo(len / 2, 0); x.stroke();
+      x.lineWidth = 0.8;
+      for (let j = -2; j <= 2; j++) { x.beginPath(); x.moveTo(j * len / 7, 0); x.lineTo(j * len / 7 + len / 10, -wid / 3); x.moveTo(j * len / 7, 0); x.lineTo(j * len / 7 + len / 10, wid / 3); x.stroke(); }
+      x.strokeStyle = 'rgba(10,30,10,0.6)'; x.lineWidth = 1.2; x.beginPath(); x.ellipse(0, 0, len / 2, wid / 2, 0, 0, Math.PI * 2); x.stroke();
+      x.restore();
+    }
+  }
+  return toTexture(c);
+}
+
+// The flowers on Midsommarkransen's wreath, carved and painted (KransenKidz, 2025; photographs):
+// side by side, each cut out round its outline: an ox-eye daisy, a buttercup, a harebell, a violet.
+export function wreathFlowers() {
+  const S = 128, [c, x] = canvas(S * 4, S);
+  const petals = (cx: number, n: number, len: number, wid: number, col: string, edge: string) => {
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      x.save(); x.translate(cx, S / 2); x.rotate(a);
+      x.fillStyle = col; x.beginPath(); x.ellipse(len / 2, 0, len / 2, wid / 2, 0, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = edge; x.lineWidth = 1.5; x.stroke();
+      x.restore();
+    }
+  };
+  // a daisy
+  petals(S / 2, 16, 58, 13, '#f6f6f2', 'rgba(150,150,140,0.7)');
+  x.fillStyle = '#e8b21e'; x.beginPath(); x.arc(S / 2, S / 2, 14, 0, Math.PI * 2); x.fill();
+  // a buttercup
+  petals(S * 1.5, 5, 46, 34, '#f2c428', 'rgba(150,110,10,0.7)');
+  x.fillStyle = '#c99410'; x.beginPath(); x.arc(S * 1.5, S / 2, 9, 0, Math.PI * 2); x.fill();
+  // a harebell, seen from its mouth
+  petals(S * 2.5, 5, 50, 30, '#2a4fc4', 'rgba(10,20,80,0.8)');
+  x.fillStyle = '#16307e'; x.beginPath(); x.arc(S * 2.5, S / 2, 16, 0, Math.PI * 2); x.fill();
+  // a violet
+  petals(S * 3.5, 5, 48, 34, '#5b3c8e', 'rgba(30,15,50,0.8)');
+  x.fillStyle = '#f0d040'; x.beginPath(); x.arc(S * 3.5, S / 2, 8, 0, Math.PI * 2); x.fill();
+  return toTexture(c, { repeat: false });
+}
+
 export function sundellGate() {
   const W = 960, H = 480, [c, x] = canvas(W, H), r = rng(1964);
   x.clearRect(0, 0, W, H);
@@ -4556,10 +4813,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
   striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
   wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0], narrowTiles: [0.84, 0.96],
-  brassTerrazzo: [4.8, 9.6],
+  brassTerrazzo: [4.8, 9.6], kransenTiles: [0.6, 0.96], kransenHall: [1.2, 3.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -6467,6 +6724,24 @@ export function finish(name: Finish) {
       // Hornstull's white tiles on end, round its lobbies and up its shafts (whiteBricks)
       whiteBricks(x, 0, 0, W, H, PX, r);
       break;
+    case 'kransenTiles':
+      // Midsommarkransen's cream tiles on end, in its passages and up its shafts (kransenTiles)
+      kransenTiles(x, 0, 0, W, H, PX, r);
+      break;
+    case 'kransenHall': {
+      // the walls of Midsommarkransen's middle hall: its cream tiles on end to 2.5 m over a dark
+      // skirting, a band of brown glazed tiles 0.4 m wide to 2.9 m, and white render above
+      // (photographs, 2016–2025)
+      x.fillStyle = '#ecebe6'; x.fillRect(0, 0, W, H);
+      kransenTiles(x, 0, Y(2.5), W, 2.42 * PX, PX, r);
+      band(0, 0.08, '#2a2a29');
+      band(2.5, 2.9, '#5a3a2b');
+      for (let i = 0; i * 0.4 * PX < W; i++) {
+        x.fillStyle = 'rgba(30,18,12,0.6)'; x.fillRect(i * 0.4 * PX, Y(2.9), 1.5, 0.4 * PX);
+        x.fillStyle = 'rgba(255,235,215,0.18)'; x.fillRect(i * 0.4 * PX + 2, Y(2.9) + 2, 0.4 * PX - 4, 0.05 * PX);
+      }
+      break;
+    }
     case 'brassTerrazzo': {
       // Liljeholmen's halls: green terrazzo, speckled pale and dark, and thin lines of brass across
       // it at two slants and along it, crossing in long triangles (each wrapping round the repeat)
@@ -6538,7 +6813,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

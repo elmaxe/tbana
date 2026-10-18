@@ -115,6 +115,11 @@
       "tags": { "min_height": "8.4" },
       "overStation": true,
       "why": "The northernmost of the three point blocks on the west side of Liljeholmstorget's deck, over Liljeholmen's platforms: the stairs from the western island climb under it into the northern hall (OpenStreetMap's indoor mapping). It is left whole, not cut through its full height, and stands from the courtyard on the deck up (15.4 m, the laser scan; 8.4 m over its lowest ground, on Liljeholmsgränd's side), the hall and its own ground floor (the station's blocks) under it."
+    },
+    {
+      "osm": "w67549300",
+      "overStation": true,
+      "why": "The long building on Svandammsvägen (Coop Midsommarkransen and the shops beside it), whose ground floor Midsommarkransen's stairs climb into from the passage under it, coming out between its shops (OpenStreetMap's indoor ways and entrance): it is left whole, not cut through its full height."
     }
   ]
 }

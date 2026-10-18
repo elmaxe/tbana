@@ -701,22 +701,39 @@
     },
     "Midsommarkransen": {
       "drawing": "midsommarkransen.png",
-      "note": "Two platform halls far apart, one for each track, joined at the north-east end. From there escalators climb over each hall to an exit on either side of Svandammsvägen.",
+      "note": "Two straight platform halls, one for each track, the tracks on the outside and the side platforms within, either side of a core of rock about 17 m wide, joined through it by a hall a little north-east of the middle (Albert Guillaumes's drawing; OpenStreetMap's platforms). From the hall's north-eastern side three escalators climb north-east inside the core to a passage 12 m up, beside them a corridor to a lift and to the south-eastern platform; past the gates the passage splits: north-west a long walkway rises gently under the hill and Tegelbruksvägen to a door at the hill's foot, and south-east a passage crosses over the south-eastern hall to stairs up into the building on Svandammsvägen, coming out between its shops (OpenStreetMap's indoor ways, 2026, with the escalators, lift and stairs; the passage's height from the escalators' length, the exits' from the ground).",
       "routes": [
-        { "from": [60, -11], "width": 8, "go": [
-          {"walk": [60, 11]}
+        { "from": [30, -9.13], "width": 12, "go": [
+          {"walk": [30, -8.53], "open": true, "edges": false},
+          {"walk": [30, 8.53], "ceiling": 3.35},
+          {"walk": [30, 9.13], "open": true, "edges": false}
         ] },
-        { "from": [60, 0], "width": 4, "go": [
-          {"escalators": 10, "toward": [60, 60], "lanes": "EE"},
-          {"walk": 6, "width": 6},
+        { "from": [36, 1.75], "h": 0.01, "width": 4.8, "go": [
+          {"escalators": 12.3, "toward": [100, 1.75], "lanes": "EEE"},
+          {"walk": [66, 2.0], "width": 6, "ceiling": 3.0},
           {"gates": true},
-          {"exit": 534287980}
+          {"walk": [75.3, 2.0], "width": 6, "ceiling": 3.0},
+          {"mark": "junction"}
         ] },
-        { "from": [60, 0], "width": 4, "go": [
-          {"escalators": 10, "toward": [60, -60], "lanes": "EE"},
-          {"walk": 6, "width": 6},
-          {"gates": true},
-          {"exit": 534288006}
+        { "from": "junction", "width": 4, "go": [
+          {"walk": [77.4, 41.0], "ceiling": 3.0},
+          {"walk": [70.3, 49.2], "ceiling": 3.0},
+          {"stairs": 3.8, "to": [61.0, 59.9], "lanes": "SS"},
+          {"exit": {"at": [59.95, 61.02], "name": "Svandammsvägen"}, "by": "walk", "ceiling": 3.0, "sign": false}
+        ] },
+        { "from": "junction", "width": 4, "go": [
+          {"walk": [75.1, -3.8], "width": 3.6, "ceiling": 3.0},
+          {"exit": {"at": [71.81, -65.22], "name": "Tegelbruksvägen"}, "by": "walk", "ceiling": 3.0, "sign": false}
+        ] },
+        { "from": [36, 6.2], "h": 0.01, "width": 2.4, "go": [
+          {"walk": [59.9, 6.2], "ceiling": 2.8},
+          {"mark": "lift foot"},
+          {"lift": 12.3, "through": true},
+          {"walk": [65.0, 3.5], "ceiling": 3.0}
+        ] },
+        { "from": "lift foot", "width": 2.4, "go": [
+          {"walk": [59.0, 8.53], "ceiling": 2.8},
+          {"walk": [59.0, 9.13], "open": true, "edges": false}
         ] }
       ]
     },

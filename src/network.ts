@@ -164,7 +164,7 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // a styled vault's own finish (Gärdet's): its track walls (the other way round, for the wall that
   // sees the track's direction the other way), the wall behind its platform, its vault, and the
   // wooden seats of its benches, and their stone bases (Mariatorget's)
-  | `vault${'Art' | 'ArtMirror' | 'Back' | 'Roof'}:${string}` | 'benchWood' | 'benchStone';
+  | `vault${'Art' | 'ArtMirror' | 'Back' | 'Roof' | 'RoofDark'}:${string}` | 'benchWood' | 'benchStone';
 
 // The styled halls' surfaces (src/hall-styles.ts): Hötorget's, Farsta strand's, Karlaplan's and
 // Östermalmstorg's.
@@ -536,25 +536,42 @@ export class Network {
         roof = b[`vaultRoof:${station}`] ??= new MeshBuilder();
         artRepeat = T.GARDET_REPEAT; backU = (_, v) => (v - S.FLOOR) / (vs.spring - S.FLOOR); backRepeat = 2 * f.backWall.panel;
       }
+      // (the track wall up to a folded ceiling's foot over the track)
+      const trackTop = vs.fold?.track ?? vs.spring;
       for (const [mb, side] of [[art[0], -1], [art[1], 1]] as const) {
         sweep(mb, run, (sm) => {
           if (!mine(sm) || sm.plat!.side !== side) return null;
           const [a, c] = structureSpan(sm), u = side > 0 ? a : c;
-          return { key: 'art', pts: side > 0 ? [[u, S.FLOOR], [u, vs.spring]] : [[u, vs.spring], [u, S.FLOOR]] };
-        }, { u: (_, v) => (v - S.FLOOR) / (vs.spring - S.FLOOR), vScale: 1 / artRepeat });
+          return { key: 'art', pts: side > 0 ? [[u, S.FLOOR], [u, trackTop]] : [[u, trackTop], [u, S.FLOOR]] };
+        }, { u: (_, v) => (v - S.FLOOR) / (trackTop - S.FLOOR), vScale: 1 / artRepeat });
       }
       sweep(back, run, (sm) => {
         if (!mine(sm)) return null;
         const [a, c] = structureSpan(sm), u = sm.plat!.side > 0 ? c : a;
         return { key: 'back', pts: sm.plat!.side > 0 ? [[u, vs.spring], [u, S.FLOOR]] : [[u, S.FLOOR], [u, vs.spring]] };
       }, { u: backU, vScale: 1 / backRepeat });
-      sweep(roof, run, (sm) => {
-        if (!mine(sm)) return null;
-        const [a, c] = structureSpan(sm), rise = (c - a) * vs.risePerWidth, n = 16;
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, S.archHeight(a, c, vs.spring, rise, u)]); }
-        return { key: 'vault', pts };
-      }, { uScale: 0.25, vScale: 1 / 6 });
+      if (vs.fold) {
+        // a folded ceiling: the plane over the platform, and the one over the track (in a colour
+        // of its own, if it has one), each from its wall to the ridge
+        const fold = vs.fold, dark = f && fold.dark !== undefined ? b[`vaultRoofDark:${station}`] ??= new MeshBuilder() : roof;
+        for (const [mb, overTrack] of [[roof, false], [dark, true]] as const) {
+          sweep(mb, run, (sm) => {
+            if (!mine(sm)) return null;
+            const [a, c] = structureSpan(sm), side = sm.plat!.side, ridge = side * fold.ridge;
+            const end = (side > 0) === overTrack ? a : c;
+            const pts: [number, number][] = [[end, vaultRoof(vs, sm, a, c, end)], [ridge, fold.crown]];
+            return { key: overTrack ? 'overTrack' : 'overPlatform', pts: end > ridge ? pts.reverse() : pts };
+          }, { uScale: 0.25, vScale: 1 / 6 });
+        }
+      } else {
+        sweep(roof, run, (sm) => {
+          if (!mine(sm)) return null;
+          const [a, c] = structureSpan(sm), n = 16;
+          const pts: [number, number][] = [];
+          for (let i = 0; i <= n; i++) { const u = a + ((c - a) * i) / n; pts.push([u, vaultRoof(vs, sm, a, c, u)]); }
+          return { key: 'vault', pts };
+        }, { uScale: 0.25, vScale: 1 / 6 });
+      }
       const taken = f?.cases ? this.vaultCases(run, mine, f, b, group) : [];
       if (f?.benches) this.vaultBenches(run, mine, f, b, taken);
     }
@@ -982,7 +999,7 @@ export class Network {
         // in a styled vault, a row of fittings hung under it over the platform's edge, nearly end
         // to end
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.6);
-        const v = S.archHeight(a, c, vs.spring, (c - a) * vs.risePerWidth, u) - 0.3;
+        const v = vaultRoof(vs, sm, a, c, u) - 0.3;
         box(b.fitting, at(sm, u, v + 0.04), sm, 0.34, 0.08, 2.2);
         box(b.lamp, light = at(sm, u, v - 0.005), sm, 0.28, 0.02, 2.1);
         box(b.fitting, at(sm, u, v + 0.2), sm, 0.04, 0.24, 0.04);
@@ -2008,12 +2025,14 @@ export class Network {
   private vaultMaterials(station: string, vs: VaultStyle, f: VaultFinish) {
     if (this.mats[`vaultRoof:${station}`]) return;
     for (const mirror of [false, true]) {
-      this.mats[`vaultArt${mirror ? 'Mirror' : ''}:${station}`] = new THREE.MeshStandardMaterial({ map: T.gardetTrackWall(S.FLOOR, vs.spring, f.trackWall, mirror), roughness: 0.4, side: THREE.DoubleSide });
+      this.mats[`vaultArt${mirror ? 'Mirror' : ''}:${station}`] = new THREE.MeshStandardMaterial({ map: T.gardetTrackWall(S.FLOOR, vs.fold?.track ?? vs.spring, f.trackWall, mirror), roughness: 0.4, side: THREE.DoubleSide });
     }
     this.mats[`vaultBack:${station}`] = new THREE.MeshStandardMaterial({ map: T.gardetBackWall(S.FLOOR, vs.spring, S.PLATFORM_HEIGHT, f.backWall), roughness: 0.9, side: THREE.DoubleSide });
     // (lit from below, by the lamps, which light nothing: so it glows a little, as Östermalmstorg's)
     const plaster = T.vaultPlaster();
     this.mats[`vaultRoof:${station}`] = new THREE.MeshStandardMaterial({ map: plaster, color: f.vault, emissive: 0x7f7a70, emissiveMap: plaster, roughness: 0.85, side: THREE.DoubleSide });
+    // (a folded ceiling's plane over the track, darker, glowing less)
+    if (vs.fold?.dark !== undefined) this.mats[`vaultRoofDark:${station}`] = new THREE.MeshStandardMaterial({ map: plaster, color: vs.fold.dark, emissive: 0x2e2d2a, emissiveMap: plaster, roughness: 0.85, side: THREE.DoubleSide });
   }
 
   // A styled vault's own name sign, on the band along the wall behind the platform, with a plate
@@ -2503,21 +2522,26 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     full.push([a, h - k], [a + k, h], [b - k, h], [b, h - k]);
   } else {
     let spring: number, rise: number;
+    const vs = sm.plat ? vaultStyle(sm) : null;
     if (sm.plat) {
-      const vs = vaultStyle(sm);
       spring = vs?.spring ?? S.HALL.spring; rise = width * (vs?.risePerWidth ?? S.HALL.risePerWidth);
     }
     else if (sm.pair) {
       spring = S.ROCK.doubleSpring;
       rise = ((S.ROCK.doubleCrown - S.ROCK.doubleSpring) * width) / (2 * S.ROCK.doubleWall + S.TRACK_CENTRES);
     } else { spring = S.ROCK.singleSpring; rise = S.ROCK.singleCrown - S.ROCK.singleSpring; }
-    full.push([a, spring]);
-    const n = 16;
-    for (let i = 1; i < n; i++) {
-      const u = a + (width * i) / n;
-      full.push([u, S.archHeight(a, b, spring, rise, u)]);
+    if (vs?.fold) {
+      // (a folded ceiling: its two planes, from the wall at a to the ridge and on to the wall at b)
+      full.push([a, vaultRoof(vs, sm, a, b, a)], [sm.plat!.side * vs.fold.ridge, vs.fold.crown], [b, vaultRoof(vs, sm, a, b, b)]);
+    } else {
+      full.push([a, spring]);
+      const n = 16;
+      for (let i = 1; i < n; i++) {
+        const u = a + (width * i) / n;
+        full.push([u, S.archHeight(a, b, spring, rise, u)]);
+      }
+      full.push([b, spring]);
     }
-    full.push([b, spring]);
   }
   full.push([b, S.FLOOR]);
   // the part to draw, as distances along the outline
@@ -2753,6 +2777,17 @@ function lumps(x: number, y: number, z: number) {
 }
 // A styled vault (src/hall-styles.ts): a hall in rock of its own, for a track with a platform
 // beside it.
+// The height of a styled vault's ceiling at u, across a sample's hall from a to c: its arch, or a
+// folded ceiling's planes, from the walls up to the ridge (src/hall-styles.ts VaultStyle.fold)
+function vaultRoof(vs: VaultStyle, sm: Sample, a: number, c: number, u: number) {
+  const f = vs.fold;
+  if (!f) return S.archHeight(a, c, vs.spring, (c - a) * vs.risePerWidth, u);
+  const side = sm.plat!.side, ridge = side * f.ridge, wall = side > 0 ? c : a, track = side > 0 ? a : c;
+  const towardWall = (u - ridge) * side >= 0, end = towardWall ? wall : track;
+  const t = Math.min(1, Math.abs(u - ridge) / Math.max(0.01, Math.abs(end - ridge)));
+  return f.crown + ((towardWall ? vs.spring : f.track) - f.crown) * t;
+}
+
 function vaultStyle(sm: Sample): VaultStyle | null {
   const p = sm.plat;
   return p && !p.island && !sm.pair && sm.kind === 'rock' ? VAULT_STYLES[p.station] ?? null : null;

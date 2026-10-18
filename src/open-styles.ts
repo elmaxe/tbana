@@ -343,7 +343,9 @@ export type Finish =
   | 'bandGlazed'    // clear glass in brushed steel frames 1.3 m apart, a kick panel, a transom with SL's dark blue band over a yellow line
   | 'shards'        // grey concrete set with skewed plates of colour, greys, white, blues, beige and brick red (John Stenborg's)
   | 'narrowTiles'   // white glazed tiles on end, 7 by 24 cm, in a running bond up the wall, in grey joints (Hornstull's)
-  | 'brassTerrazzo'; // green terrazzo, thin lines of brass crossing it in long triangles (Liljeholmen's)
+  | 'brassTerrazzo' // green terrazzo, thin lines of brass crossing it in long triangles (Liljeholmen's)
+  | 'kransenTiles'  // cream glazed tiles on end, 5 by 24 cm, in a stack bond, in grey joints (Midsommarkransen's)
+  | 'kransenHall';  // as kransenTiles to 2.5 m, a band of brown glazed tiles to 2.9 m, white render above
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -392,7 +394,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -425,7 +427,19 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // `s`), and Britt-Louise Sundell's gates of wrought iron at Mariatorget (`sundell`, cut out round
 // the iron), and the paintings on the ends of Zinkensdamm's platforms, Göran T Karlsson's
 // (`karlsson`) and John Stenborg's (`stenborg`).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// And at Midsommarkransen, the panel at the end of its middle hall, FÖRSTADEN · MIDSOMMARKRANSEN
+// over a panorama of the suburb (`forstaden`), and the painted wooden relief of a summer night on a
+// platform's wall (`summerNight`).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+
+// The midsummer wreath of carved and painted alder at Midsommarkransen (1978, inaugurated 1979; Hans
+// Flemström Nilsson, Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the
+// suburb's people): a fat ring of leaves `size` m across, `thick` m round its thickness, a red
+// ribbon wound round it, and on it ox-eye daisies, buttercups, harebells and violets; hung flat on
+// four wires from a round plate on the ceiling (`ceiling` high), its middle `h` high at s, u; or
+// (`turn`) standing on a wall, facing `turn` as a guardian does, its ribbon in broad bands of
+// orange-red (the two smaller ones on the panel in the middle hall).
+export interface Wreath { kind: 'wreath'; s: number; u: number; h: number; size: number; thick: number; ceiling?: number; turn?: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -6625,6 +6639,79 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'columns', size: 0.35, from: -1.5, to: 4.6, color: 0x8d9093,
         at: [[-116, -27.4], [-128, -27.6], [-140, -27.8], [-152, -28.0], [-164, -28.2], [-176, -28.4], [-188, -28.6]] },
       { kind: 'roundel', s: -98, u: 24.3, h: 9.4, size: 0.9, foot: 8.75 },
+    ],
+  },
+
+  // Midsommarkransen (5 April 1964), in rock about 21 m under the hill between Svandammsvägen and
+  // Övre Bergsvägen: two platform halls, one for each track, the platforms within either side of a
+  // core of rock, joined through it by a hall a little north-east of the middle (the halls are
+  // src/hall-styles.ts's VAULT_STYLES; OpenStreetMap's platforms and indoor ways, 2026; Albert
+  // Guillaumes's drawing, 2024). From photographs (2005–2025, Wikimedia Commons; KransenKidz, 2025):
+  //
+  // The middle hall's walls are the halls' cream tiles on end to about 2.5 m, under a band of brown
+  // glazed tiles, its ceiling white, its floor polished dark grey stone; it opens to the platforms
+  // either side through screens of glass in steel frames. Over its middle hangs the midsummer
+  // wreath (1978, inaugurated 1979): carved and painted alder, over 3 m across, made by Hans and
+  // Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the suburb's people in a
+  // workshop by Skvallertorget, hung flat on four wires from a plate on the ceiling. On the hall's
+  // south-western wall a panel framed in posts and rails of dark green wound with red, FÖRSTADEN ·
+  // MIDSOMMARKRANSEN in gold along its top, over a panorama of the old garden suburb in black on
+  // white, and either side of it a smaller wreath of theirs on dark boards. On the wall behind the
+  // north-western platform a painted wooden relief of a summer night, birches and boards of deep
+  // blue, yellow and orange, red figures among them, on a dark rock (sv.wikipedia gives the
+  // station's reliefs to Lisbet Lindholm, "Blommor till Midsommarkransen", 1990, and to Dag Wallin;
+  // which this is isn't said).
+  //
+  // From the hall's north-eastern side three escalators climb inside the core to a passage 12 m up,
+  // a corridor beside them to the lift and to the south-eastern platform; past the gates the
+  // passage splits. North-west, a walkway 61 m long, lined in the same tiles, rises gently under
+  // Tegelbruksvägen to the entrance at the foot of the hill: a box of board-marked concrete set into
+  // the slope, glass doors under SL's blue band, a flat roof reaching out over them on a soffit of
+  // varnished boards, and the T on its roof. South-east, a passage crosses over the south-eastern
+  // hall to stairs up into the building on Svandammsvägen, whose doors open between its shops.
+  'Midsommarkransen': {
+    rooms: [
+      { name: 'middle hall, opening north-west', s: [23.5, 36.5], u: [-9.3, -8.4], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'middle hall, opening south-east', s: [23.5, 36.5], u: [8.4, 9.3], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'middle hall', s: [23.5, 36.5], u: [-8.4, 8.4], h: [-1, 0.5], walls: 'kransenHall', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'lift corridor, opening', s: [57.5, 60.5], u: [8.4, 9.3], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'lift corridor', s: [35, 61.5], u: [4.9, 8.4], h: [-1, 0.5], walls: 'kransenTiles', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'escalators', s: [33, 58.5], u: [-1, 4.5], h: [-1, 13.5], walls: 'kransenTiles', stairs: 'kransenTiles', ceiling: 'whiteRender' },
+      { name: 'stairs to Svandammsvägen', s: [55, 75], u: [45, 64], h: [11, 17], walls: 'kransenTiles', stairs: 'kransenTiles', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'passage', s: [55, 80], u: [-6, 45], h: [11, 14], walls: 'kransenTiles', floor: 'darkTiles', ceiling: 'whiteRender' },
+      { name: 'walkway to Tegelbruksvägen', s: [64, 80], u: [-67, -6], h: [11, 17], walls: 'kransenTiles', floor: 'darkTiles', ceiling: 'whiteRender' },
+    ],
+    buildings: ['w572407066'],
+    blocks: [
+      // the entrance at the foot of the hill, its doors, and its roof reaching out over them
+      { name: 'entrance at the foot of the hill', plan: [[67.3, -65.1], [75.2, -65.1], [75.1, -60.85], [67.2, -60.95]], h: [15.0, 18.95], from: 15.65,
+        walls: 'boardConcrete', ceiling: 'whiteRender', roof: 0.4, roofColor: 0x55634a, ground: true },
+      // the walls of rough granite holding the slope back either side of it
+      { name: 'retaining wall west of the entrance', plan: [[60.5, -65.0], [67.2, -65.0], [67.2, -64.2], [60.5, -64.2]], h: [14.6, 18.6], from: 14.83, walls: 'granite' },
+      { name: 'retaining wall east of the entrance', plan: [[75.2, -64.9], [90.0, -64.9], [90.0, -64.1], [75.2, -64.1]], h: [14.6, 16.6], from: 14.83, walls: 'granite' },
+      { name: 'doors to Tegelbruksvägen', plan: [[69.9, -65.1], [73.7, -65.1], [73.7, -65.4], [69.9, -65.4]], h: [15.5, 18.65], from: 15.65,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3.6, bottom: 18.0 } },
+      { name: "entrance's roof", plan: [[66.8, -66.4], [75.7, -66.4], [75.7, -65.1], [66.8, -65.1]], h: [18.95, 18.95], from: 18.95,
+        walls: 'whiteRender', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.4, roofColor: 0xd5d8d9 },
+      // the doors in the building on Svandammsvägen
+      { name: 'doors to Svandammsvägen', plan: [[58.72, 59.69], [61.38, 62.12], [61.18, 62.35], [58.52, 59.92]], h: [15.9, 19.5], from: 16.14,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3.6, bottom: 18.95 } },
+      // and the piers of polished granite either side of them
+      { name: 'pier west of the doors', plan: [[58.09, 59.12], [58.72, 59.69], [58.52, 59.92], [57.89, 59.35]], h: [15.9, 19.5], from: 16.14, walls: 'redGranite' },
+      { name: 'pier east of the doors', plan: [[61.38, 62.12], [62.01, 62.69], [61.81, 62.92], [61.18, 62.35]], h: [15.9, 19.5], from: 16.14, walls: 'redGranite' },
+    ],
+    // the screens between the middle hall and the platforms
+    fences: [
+      { points: [[24, -8.53], [36, -8.53]], h: [0, 3.35], kind: 'glass' },
+      { points: [[24, 8.53], [36, 8.53]], h: [0, 3.35], kind: 'glass' },
+    ],
+    art: [
+      { kind: 'wreath', s: 30, u: 0, h: 2.6, size: 3.3, thick: 0.42, ceiling: 3.35 },
+      { kind: 'mural', picture: 'forstaden', s: 24.0, u: 0, turn: 0, bottom: 0, top: 2.55, width: 6.6 },
+      { kind: 'wreath', s: 24.16, u: 1.93, h: 1.67, size: 0.95, thick: 0.2, turn: 0 },
+      { kind: 'wreath', s: 24.16, u: -1.93, h: 1.67, size: 0.95, thick: 0.2, turn: 0 },
+      { kind: 'mural', picture: 'summerNight', s: -18, u: -8.53, turn: -Math.PI / 2, bottom: 0.45, top: 2.9, width: 2.7 },
+      { kind: 'roundel', s: 71.8, u: -64.2, h: 20.35, size: 1.0, foot: 19.35 },
     ],
   },
 };

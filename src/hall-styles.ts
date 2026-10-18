@@ -476,12 +476,16 @@ export const HALL_STYLES: Record<string, HallStyle> = {
 // up to `spring`, then a shallow vault (`risePerWidth` of the hall's width) in smooth white
 // plaster with a row of lamps along it over the platform; white name signs on the wall behind the
 // platform, `signAt` high, every `signEvery` m. Östermalmstorg's finish, unless it has a `finish`
-// of its own.
+// of its own. With `fold`, a folded ceiling in place of the vault: two flat planes meeting in a
+// ridge along the hall `fold.ridge` m from the track's middle towards the platform, `fold.crown`
+// high, one falling to the wall behind the platform at `spring`, the other to the track wall at
+// `fold.track`; the plane over the track in `fold.dark`, if given (Midsommarkransen's).
 export interface VaultStyle {
   spring: number;
   risePerWidth: number;
   signAt: number;
   signEvery: number;
+  fold?: { ridge: number; crown: number; track: number; dark?: number };
   finish?: VaultFinish;
 }
 
@@ -490,6 +494,9 @@ export interface VaultStyle {
 //   the vault over a black plinth, a grey strip along them `strip` high; and a row of framed
 //   pictures, `art[0]` to `art[1]` high and `art[2]` wide, about `art[3]` m apart; with `tiles`,
 //   small square tiles of that size and colour in place of the panels, over a strip of steel;
+//   with `kransen`, narrow cream tiles on end and no pictures, a dark blue band along them from
+//   `band[0]` to `band[1]` with the name on it in white again and again, a thin red stripe at
+//   `red` and a dark one at `low` (Midsommarkransen's);
 // - `backWall`: panels of dark concrete, `panel` wide, cast with fine diagonal grooves, on a pale
 //   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
 //   the name signs (the name in white on the band's colour) and the ways out (white plates, an
@@ -497,6 +504,8 @@ export interface VaultStyle {
 //   the vault (in `wall`, if given); with `rods`, upright rods of glazed ceramic in place of the
 //   panels, on a dark plinth; with `band.sign`, the name in white on a plate of that colour on the
 //   band; with `wine`, Zinkensdamm's narrow wine-red tiles in place of the panels, on a dark plinth;
+//   with `kransen`, Midsommarkransen's narrow cream tiles on end in place of the panels, down to a
+//   dark skirting, and the band of brown tiles;
 // - `vault`: the vault's colour;
 // - `paving`: the platform, paved as an open station's;
 // - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
@@ -505,8 +514,8 @@ export interface VaultStyle {
 //   platform, each `length` long, about every `every` m; with `backs`, a pair of benches with
 //   backs, of wooden boards on steel legs, in their place.
 export interface VaultFinish {
-  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string } };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; wall?: string };
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number } };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
@@ -567,6 +576,19 @@ export interface VaultFinish {
 // sea, earth and desert, side by side in dark frames under a dark fascia, and benches with backs
 // between them; the platform dark grey terrazzo, a band of white tiles along the edge and a dark
 // strip with yellow studs inside it.
+//
+// Midsommarkransen (1964), about 21 m under the hill between Svandammsvägen and Övre Bergsvägen,
+// on the same plan: the platforms either side of a core of rock about 17 m wide, joined through it
+// by a hall a little north-east of the middle (Albert Guillaumes's drawing; OpenStreetMap's
+// platforms). Photographs (2005–2016, Wikimedia Commons): over each hall a folded ceiling in place
+// of a vault, a long plane rising from the wall behind the platform to a ridge over the platform's
+// edge, where a row of lamps hangs, and a steeper one falling to the track wall over the trains'
+// roofs, dark grey since the 2010s; the walls in narrow glazed tiles on end, a cream with an
+// olive cast, in a stack bond; along the track walls a dark blue band with the name in white again
+// and again, a thin red stripe under it and a dark one at the platform's height; along the top of
+// the wall behind the platform a band of brown glazed tiles, the name signs black, hung from it;
+// benches with backs, of wooden boards on steel brackets; the platform polished dark grey stone in
+// squares, a band of cream tiles along the edge and a dark ribbed strip inside it.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -629,6 +651,22 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
       },
       cases: { w: 1.2, h: 2.0, bottom: 1.3, gap: 0.12, every: 40, run: 5, theme: 'elements' },
       benches: { length: 2.8, every: 18, backs: true },
+    },
+  },
+  'Midsommarkransen': {
+    spring: 4.35, risePerWidth: 0, signAt: 4.15, signEvery: 36,
+    fold: { ridge: 2.17, crown: 5.5, track: 4.1, dark: 0x7c7e7f },
+    finish: {
+      trackWall: { panelsFrom: 0.3, row: 0.6, strip: 2.25, art: [0, 0, 0, 20.8], kransen: { name: 'Midsommarkransen', band: [2.45, 2.75], red: 2.15, low: 0.95 } },
+      backWall: { panel: 0.6, plinth: 1.1, band: { from: 3.95, to: 4.35, color: '#5a3a2b', sign: '#232425' }, kransen: true, wall: '#5a3a2b' },
+      exits: [{ name: 'Svandammsvägen', x: -2653.9, z: 3331.2 }, { name: 'Tegelbruksvägen', x: -2739.0, z: 3237.2 }],
+      vault: 0xe6e5e0,
+      paving: {
+        edge: 1.2, edgeTile: [0.3, 0.3], tactile: [1.22, 1.5], studs: false, slabs: 0, paverSize: [0.5, 0.5], mix: 0.12,
+        colors: { edge: 0xe2ddcd, tactile: 0x3a3b3c, slab: 0x4b4d50, pavers: 0x47494c, paler: 0x515357, face: 0x3e3c3a },
+        pattern: 'grid',
+      },
+      benches: { length: 2.4, every: 20, backs: true },
     },
   },
 };
