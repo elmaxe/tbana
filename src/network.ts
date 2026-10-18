@@ -2018,6 +2018,11 @@ export class Network {
     // to the right of someone facing the wall
     const right = new THREE.Vector3(-p.side * sm.rz, 0, p.side * sm.rx);
     const o = at(sm, back - p.side * 0.03, vs.signAt);
+    // (none where the wall is open, over a passage through it, under its plates either side)
+    for (const d of [-2.9, 0, 2.9]) {
+      const q = at(sm, back - p.side * 0.4, vs.signAt - 0.3).addScaledVector(right, d);
+      if (this.holes.some((v) => insideVolume(v, q.x, q.y, q.z))) return false;
+    }
     const put = (m: THREE.Material, w: number, h: number, d: number) => {
       const plate = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
       plate.position.copy(o).addScaledVector(right, d);
@@ -2076,6 +2081,7 @@ export class Network {
 
   // A styled vault's long benches against the wall behind its platform, about every
   // `benches.every` m, where the wall isn't open to a passage: boards of wood on a dark stone base
+  // (or a pair of benches with backs)
   private vaultBenches(run: Sample[], mine: (sm: Sample) => boolean, f: VaultFinish, b: Record<MaterialName, MeshBuilder>) {
     const c = f.benches!, H = S.PLATFORM_HEIGHT, half = c.length / 2;
     let next = -Infinity;
@@ -2090,6 +2096,20 @@ export class Network {
       }) && run.some((q) => q.plat === p && q.along > sm.along + half + 2) && run.some((q) => q.plat === p && q.along < sm.along - half - 2);
       if (!clear) continue;
       next = sm.along + c.every;
+      if (c.backs) {
+        // a pair of benches, a little apart, each of wooden boards on steel legs: two along the
+        // seat and two along the back, leaning back a little
+        const bw = (c.length - 0.3) / 2;
+        for (const d of [half - bw / 2 - 0.15, half + bw / 2 + 0.15]) {
+          for (const k of [0, 1]) box(b.benchWood, at(sm, back - p.side * (0.42 + k * 0.17), H + 0.44).addScaledVector(t, d), sm, 0.15, 0.04, bw);
+          for (const k of [0, 1]) box(b.benchWood, at(sm, back - p.side * (0.25 - k * 0.03), H + 0.62 + k * 0.2).addScaledVector(t, d), sm, 0.03, 0.15, bw);
+          for (const e of [-1, 1]) {
+            box(b.steel, at(sm, back - p.side * 0.42, H + 0.21).addScaledVector(t, d + e * (bw / 2 - 0.15)), sm, 0.38, 0.42, 0.05);
+            box(b.steel, at(sm, back - p.side * 0.26, H + 0.65).addScaledVector(t, d + e * (bw / 2 - 0.15)), sm, 0.04, 0.5, 0.05);
+          }
+        }
+        continue;
+      }
       box(b.benchStone, at(sm, back - p.side * 0.3, H + 0.17).addScaledVector(t, half), sm, 0.46, 0.34, c.length);
       // two boards along the seat
       for (const k of [-1, 1]) box(b.benchWood, at(sm, back - p.side * 0.3, H + 0.38).addScaledVector(t, half).addScaledVector(out, k * 0.12), sm, 0.22, 0.08, c.length + 0.1);

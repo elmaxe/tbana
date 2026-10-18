@@ -1464,7 +1464,8 @@ export class OpenLook {
     const m = on(this.mat(`mural:${a.picture}${a.picture === 'sirat' ? lace : ''}`, () => {
       const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
         : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
-          : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate() : T.tallkrogsdraken();
+          : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate()
+            : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves() : T.tallkrogsdraken();
       // (an angel, the lace and the iron, cut out round their outlines)
       const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';

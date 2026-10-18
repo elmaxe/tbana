@@ -1869,9 +1869,12 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
 // them a row of pictures in white mounts (`art`: from, to, wide, apart), which are changed from
 // time to time: redrawn here as motifs of our own (an eye, a figure by the sea, a net of lines,
 // stripes, a red square, an island, a sheet of script). One repeat is GARDET_REPEAT m, drawn as
-// seen from the foot of the wall (`floor`) up to `top`.
+// seen from the foot of the wall (`floor`) up to `top`. With `tiles`, small square tiles of that
+// size and colour in place of the panels, over a strip of brushed steel, and the pictures in thin
+// black frames with no mounts (Zinkensdamm's).
 export const GARDET_REPEAT = 20.8;
-function gardetWallCanvas(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }) {
+export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string } }
+function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
   const [c, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
@@ -1882,9 +1885,26 @@ function gardetWallCanvas(floor: number, top: number, f: { panelsFrom: number; r
   const dust = x.createLinearGradient(0, y(f.panelsFrom), 0, H);
   dust.addColorStop(0, 'rgba(70,62,52,0)'); dust.addColorStop(1, 'rgba(70,62,52,0.5)');
   x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+  if (f.tiles) {
+    // the tiles, each a shade off its neighbours, in grey joints, over the steel strip
+    const t = f.tiles.size * PX, c0 = parseInt(f.tiles.color.slice(1), 16), cr = c0 >> 16, cg = (c0 >> 8) & 255, cb = c0 & 255;
+    x.fillStyle = '#5f6362'; x.fillRect(0, 0, W, y(f.panelsFrom));
+    for (let j = 0; y(f.panelsFrom) - j * t > -t; j++) {
+      for (let i = 0; i * t < W; i++) {
+        const v = Math.floor(r() * 14) - 7;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`;
+        x.fillRect(i * t + 1, y(f.panelsFrom) - (j + 1) * t + 1, t - 2, t - 2);
+        x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * t + 1, y(f.panelsFrom) - (j + 1) * t + 1, t - 2, t * 0.3);
+      }
+    }
+    const sy = y(f.panelsFrom), sh = 0.12 * PX;
+    x.fillStyle = '#b4b8ba'; x.fillRect(0, sy, W, sh);
+    x.fillStyle = 'rgba(255,255,255,0.4)'; x.fillRect(0, sy, W, 2);
+    x.fillStyle = 'rgba(40,40,40,0.4)'; x.fillRect(0, sy + sh - 2, W, 2);
+  }
   // the panels, in rows between grey joints, a little sheen at the top of each
-  x.fillStyle = '#a9abad'; x.fillRect(0, 0, W, y(f.panelsFrom));
-  const n = Math.max(1, Math.round((top - f.panelsFrom) / f.row));
+  else x.fillStyle = '#a9abad', x.fillRect(0, 0, W, y(f.panelsFrom));
+  const n = f.tiles ? 0 : Math.max(1, Math.round((top - f.panelsFrom) / f.row));
   for (let k = 0; k < n; k++) {
     const a = f.panelsFrom + ((top - f.panelsFrom) * k) / n, b = f.panelsFrom + ((top - f.panelsFrom) * (k + 1)) / n;
     for (let i = 0; i < GARDET_REPEAT / 1.2; i++) {
@@ -1896,20 +1916,20 @@ function gardetWallCanvas(floor: number, top: number, f: { panelsFrom: number; r
       x.fillStyle = g; x.fillRect(i * 1.2 * PX + 2, y(b) + 2, 1.2 * PX - 4, (b - a) * PX - 4);
     }
   }
-  x.fillStyle = '#8e9194'; x.fillRect(0, y(f.strip + 0.05), W, 0.1 * PX);
+  if (!f.tiles) x.fillStyle = '#8e9194', x.fillRect(0, y(f.strip + 0.05), W, 0.1 * PX);
   // the pictures
   const [from, to, wide, apart] = f.art, count = Math.round(GARDET_REPEAT / apart);
   for (let i = 0; i < count; i++) {
     const cx = (i + 0.5) * (GARDET_REPEAT / count) * PX, pw = wide * PX, ph = (to - from) * PX, px = cx - pw / 2, py = y(to);
     x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(px + 3, py + 4, pw, ph);
-    x.fillStyle = '#9a9c9e'; x.fillRect(px - 1, py - 1, pw + 2, ph + 2);
+    x.fillStyle = f.tiles ? '#1d1e20' : '#9a9c9e'; x.fillRect(px - 1, py - 1, pw + 2, ph + 2);
     x.fillStyle = '#f6f6f3'; x.fillRect(px, py, pw, ph);
-    const m = pw * 0.07, ix = px + m, iy = py + m, iw = pw - 2 * m, ih = ph - 2 * m - pw * 0.05;
+    const m = pw * (f.tiles ? 0.03 : 0.07), ix = px + m, iy = py + m, iw = pw - 2 * m, ih = ph - 2 * m - (f.tiles ? 0 : pw * 0.05);
     x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
     picture(x, ix, iy, iw, ih, i % 8, r);
     x.restore();
     // a caption under it
-    x.fillStyle = 'rgba(60,60,60,0.5)'; x.fillRect(cx - iw * 0.15, iy + ih + pw * 0.02, iw * 0.3, 2);
+    if (!f.tiles) x.fillStyle = 'rgba(60,60,60,0.5)', x.fillRect(cx - iw * 0.15, iy + ih + pw * 0.02, iw * 0.3, 2);
   }
   return c;
 }
@@ -1986,7 +2006,7 @@ function picture(x: CanvasRenderingContext2D, ix: number, iy: number, iw: number
 // Gärdet's track walls, turned for a sweep along the track as Karlaplan's are: u up the wall from
 // its foot (0) to the vault (1), v along the track, GARDET_REPEAT m per repeat; `mirror` for the
 // wall that sees the track's direction the other way round.
-export function gardetTrackWall(floor: number, top: number, f: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] }, mirror = false) {
+export function gardetTrackWall(floor: number, top: number, f: GardetTrackWall, mirror = false) {
   const src = gardetWallCanvas(floor, top, f);
   const [c, x] = canvas(src.height, src.width);
   x.setTransform(0, 1, -1, 0, src.height, 0);
@@ -1999,16 +2019,18 @@ export function gardetTrackWall(floor: number, top: number, f: { panelsFrom: num
 // fine diagonal grooves, on a pale plinth from the platform (`platform` high) to `plinth`; over
 // them a band in `band.color`, and a pale strip up to the vault (in `wall`). Two panels a repeat
 // along the wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along). With
-// `rods`, Mariatorget's ceramic rods in place of the panels, on a dark plinth.
-export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wall?: string }) {
+// `rods`, Mariatorget's ceramic rods in place of the panels, on a dark plinth; with `wine`,
+// Zinkensdamm's narrow wine-red tiles (`wineTiles`).
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; wall?: string }) {
   const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
   const [src, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
   const r = rng(1967);
   x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
-  x.fillStyle = f.rods ? '#38393a' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  x.fillStyle = f.rods ? '#38393a' : f.wine ? '#2c2826' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
   speckle(x, W, H, 1500, 0.06, 1968);
   if (f.rods) ceramicRods(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
+  else if (f.wine) wineTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
   x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
   x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
@@ -2043,6 +2065,47 @@ function ceramicRods(x: CanvasRenderingContext2D, x0: number, y0: number, w: num
       x.fillStyle = 'rgba(90,55,15,0.2)'; x.fillRect(px + 0.8, py + 0.6, dw * 0.18, dh - 1.2); x.fillRect(px + dw * 0.82 - 0.8, py + 0.6, dw * 0.18, dh - 1.2);
       x.fillStyle = 'rgba(255,246,210,0.28)'; x.fillRect(px + dw * 0.4, py + 2, dw * 0.16, dh - 4);
     }
+  }
+}
+
+// The glazed tiles on the walls behind Zinkensdamm's platforms (1964), across the rectangle (`PX`
+// to the metre, its rows from the foot up): narrow tiles on end, about 3.5 cm wide, in rows a third
+// of a metre high, in pale grey joints, in dark wine reds, burgundy and brown, a few blue-greys
+// among them; in each row a tile of ochre about 7 cm wide every 1.1 m, a third of that further
+// along in each row up (photographs, 2005–2011). The rectangle 2.2 m wide repeats.
+function wineTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number) {
+  x.fillStyle = '#8a8580'; x.fillRect(x0, y0, w, h);
+  const n = Math.max(1, Math.round(w / (0.035 * PX))), dw = w / n, rowH = 0.33 * PX;
+  const cols = [[80, 36, 38], [90, 42, 40], [68, 38, 40], [76, 48, 42], [64, 54, 60], [98, 54, 44], [54, 42, 48], [86, 32, 34], [104, 60, 46]];
+  for (let j = 0; j * rowH < h - 2; j++) {
+    const bottom = y0 + h - j * rowH, yy = Math.max(y0, bottom - rowH), hh = bottom - yy;
+    if (hh <= 2) continue;
+    // (an ochre tile, two tiles wide, where this row's next 1.1 m begins)
+    const shift = ((j % 3) / 3) * 1.1 * PX, gap = 1.1 * PX;
+    for (let i = 0; i < n; i++) {
+      const px = x0 + i * dw, along = (((px - x0 - shift) % gap) + gap) % gap;
+      const ochre = along < dw;
+      if (along >= dw && along < 2 * dw) continue;
+      const ww = ochre ? 2 * dw : dw;
+      let rr: number, gg: number, bb: number;
+      if (ochre) [rr, gg, bb] = [200 + Math.floor(r() * 20), 140 + Math.floor(r() * 18), 60 + Math.floor(r() * 16)];
+      else { const [a, b, c] = cols[Math.floor(r() * cols.length)], v = Math.floor(r() * 16) - 8; [rr, gg, bb] = [a + v, b + v * 0.7, c + v * 0.6]; }
+      x.fillStyle = `rgb(${rr},${gg},${bb})`; x.fillRect(px + 0.6, yy + 1, ww - 1.2, hh - 2);
+      // (the glaze catching the light down each tile)
+      x.fillStyle = 'rgba(255,235,220,0.09)'; x.fillRect(px + ww * 0.3, yy + 2, ww * 0.25, hh - 4);
+    }
+  }
+}
+
+// White glazed tiles on end, `tw` by `th` m, each a shade off its neighbours, in pale grey joints,
+// across the rectangle (Zinkensdamm's escalator hall, seen through its glass screens)
+function uprightTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number, tw = 0.1, th = 0.2) {
+  x.fillStyle = '#b9bbb8'; x.fillRect(x0, y0, w, h);
+  const a = tw * PX, b = th * PX;
+  for (let i = 0; i * a < w; i++) for (let j = 0; j * b < h; j++) {
+    const v = 238 + Math.floor(r() * 10);
+    x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(x0 + i * a + 1, y0 + j * b + 1, a - 2, b - 2);
+    x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(x0 + i * a + 1, y0 + j * b + 1, a - 2, b * 0.2);
   }
 }
 
@@ -3912,6 +3975,71 @@ function handwriting(x: CanvasRenderingContext2D, r: () => number, x0: number, y
 // rectangles of many sizes, each filled with short lengths of tube set side by side as rings,
 // large or small, or with upright bars and here and there a ball; cut out round the iron
 // (photographs, 2010–2019). 4.8 by 2.4 m.
+// Göran T Karlsson's painting at the western end of Zinkensdamm's platform for the trains south
+// (1991), 3.7 by 3 m: on a white panel, a square of dark blue-black turning teal in its middle, a
+// dome of red rising from its foot and a wedge of red hanging from its top edge (photographs,
+// 2005–2011; redrawn as near as they show it)
+export function karlssonPainting() {
+  const W = 1110, H = 900, [c, x] = canvas(W, H), r = rng(1991);
+  x.fillStyle = '#ecebe6'; x.fillRect(0, 0, W, H);
+  const ix = 0.14 * W, iy = 0.1 * H, iw = 0.67 * W, ih = 0.84 * H;
+  const P = (u: number, v: number): [number, number] => [ix + u * iw, iy + v * ih];
+  x.fillStyle = 'rgba(0,0,0,0.15)'; x.fillRect(ix + 4, iy + 5, iw, ih);
+  x.fillStyle = '#19212d'; x.fillRect(ix, iy, iw, ih);
+  x.save(); x.beginPath(); x.rect(ix, iy, iw, ih); x.clip();
+  for (const [u, v, rad, col] of [[0.32, 0.42, 0.3, 'rgba(38,84,108,0.7)'], [0.2, 0.7, 0.25, 'rgba(24,42,78,0.7)'], [0.75, 0.3, 0.3, 'rgba(16,24,34,0.6)']] as const) {
+    const [cx, cy] = P(u, v), g = x.createRadialGradient(cx, cy, 0, cx, cy, rad * iw);
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(ix, iy, iw, ih);
+  }
+  // (brushwork)
+  for (let k = 0; k < 900; k++) {
+    const [px, py] = P(r(), r());
+    x.strokeStyle = `rgba(${r() < 0.5 ? '60,100,130' : '8,12,20'},${0.08 + r() * 0.1})`; x.lineWidth = 2 + r() * 4;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r() - 0.5) * 40, py + (r() - 0.5) * 40); x.stroke();
+  }
+  x.fillStyle = '#d6301f';
+  x.beginPath(); x.moveTo(...P(0.3, 1.02)); x.quadraticCurveTo(...P(0.31, 0.5), ...P(0.6, 0.49)); x.lineTo(...P(0.62, 1.02)); x.closePath(); x.fill();
+  x.fillStyle = '#c62a1c';
+  x.beginPath(); x.moveTo(...P(0.4, -0.02)); x.lineTo(...P(0.61, -0.02)); x.lineTo(...P(0.47, 0.17)); x.closePath(); x.fill();
+  for (let k = 0; k < 300; k++) {
+    const [px, py] = P(0.33 + r() * 0.27, 0.55 + r() * 0.45);
+    x.strokeStyle = `rgba(${r() < 0.5 ? '240,80,50' : '150,20,15'},0.15)`; x.lineWidth = 2 + r() * 3;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r() - 0.5) * 30, py + (r() - 0.5) * 30); x.stroke();
+  }
+  x.restore();
+  return toTexture(c);
+}
+
+// John Stenborg's painting at the eastern end of Zinkensdamm's platform for the trains north
+// (2003), 3.9 by 2.6 m: on a pale grey ground, leaves in greens and pale blue-grey shards
+// scattered every way (photographs, 2011; redrawn as near as they show it)
+export function stenborgLeaves() {
+  const W = 1170, H = 780, [c, x] = canvas(W, H), r = rng(2003);
+  x.fillStyle = '#b9c0c1'; x.fillRect(0, 0, W, H);
+  const shard = (cx: number, cy: number, s: number, col: string) => {
+    const a = r() * Math.PI;
+    x.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const t = a + (i * Math.PI) / 2 + (r() - 0.5) * 0.6, d = s * (0.5 + r() * 0.6);
+      i ? x.lineTo(cx + Math.cos(t) * d, cy + Math.sin(t) * d) : x.moveTo(cx + Math.cos(t) * d, cy + Math.sin(t) * d);
+    }
+    x.closePath(); x.fillStyle = col; x.fill();
+  };
+  for (let k = 0; k < 70; k++) shard(r() * W, r() * H, 30 + r() * 70, ['#a6b6c2', '#c8d2d8', '#8e9eac', '#dfe4e4', '#b2c0c8'][Math.floor(r() * 5)]);
+  const leaf = (cx: number, cy: number, len: number, a: number, col: string) => {
+    x.save(); x.translate(cx, cy); x.rotate(a);
+    x.beginPath(); x.moveTo(-len / 2, 0); x.quadraticCurveTo(0, -len * 0.32, len / 2, 0); x.quadraticCurveTo(0, len * 0.32, -len / 2, 0);
+    x.fillStyle = col; x.fill();
+    x.strokeStyle = 'rgba(210,235,190,0.5)'; x.lineWidth = 2; x.beginPath(); x.moveTo(-len * 0.45, 0); x.lineTo(len * 0.45, 0); x.stroke();
+    x.restore();
+  };
+  for (let k = 0; k < 46; k++) leaf(r() * W, r() * H, 70 + r() * 150, r() * Math.PI, ['#3f8a3a', '#5aa04a', '#2f6e34', '#7ab85a', '#4c9440'][Math.floor(r() * 5)]);
+  for (let k = 0; k < 30; k++) shard(r() * W, r() * H, 10 + r() * 22, r() < 0.6 ? '#2a5a2e' : '#e8ece8');
+  x.strokeStyle = '#3a3e40'; x.lineWidth = 6; x.strokeRect(3, 3, W - 6, H - 6);
+  return toTexture(c);
+}
+
 export function sundellGate() {
   const W = 960, H = 480, [c, x] = canvas(W, H), r = rng(1964);
   x.clearRect(0, 0, W, H);
@@ -4198,9 +4326,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
   striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
+  wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -6100,6 +6229,47 @@ export function finish(name: Finish) {
       x.fillStyle = '#e8e7e2'; x.fillRect(0, Y(2.92), W, 0.42 * PX);
       break;
     }
+    case 'wineTiles':
+      // Zinkensdamm's wine-red tiles, where they turn the corners of its core (wineTiles)
+      wineTiles(x, 0, 0, W, H, PX, r);
+      break;
+    case 'uprightTiles':
+      uprightTiles(x, 0, 0, W, H, PX, r);
+      break;
+    case 'bandGlazed': {
+      // the screens between Zinkensdamm's platforms and the foot of its escalators: clear glass in
+      // brushed steel frames 1.3 m apart, a steel kick panel to 0.35 m, a transom 1.93 m up
+      // carrying SL's dark blue band over a yellow line, glass above it to a steel rail at 3.05 m
+      // (photographs, 2005)
+      const st = '#9ca1a5';
+      pane(0, h, st, 0.1);
+      band(0, 0.35, st); band(1.93, 2.1, st); band(1.97, 2.06, '#1f3b8a'); band(1.95, 1.97, yellow); band(3.05, h, st);
+      x.fillStyle = 'rgba(255,255,255,0.35)';
+      for (const y of [0.35, 2.1, 3.05]) x.fillRect(0, Y(y), W, 1.5);
+      break;
+    }
+    case 'shards': {
+      // John Stenborg's walls of Zinkensdamm's entrance pavilion: grey concrete, and set in it
+      // shards of colour, each a skewed four-sided plate a third to two thirds of a metre across,
+      // tilted every way: dark and pale greys, white, sky blue and a deeper blue, beige and a
+      // brick red (photographs, 2011)
+      x.fillStyle = '#8f8e8a'; x.fillRect(0, 0, W, H);
+      const cols = ['#4a4e52', '#4a4e52', '#6f7276', '#5a5e62', '#d8d8d2', '#e4e3de', '#8fb4d0', '#9cc0da', '#4f84b8', '#c9a882', '#d2b494', '#8e4a36', '#a8aaac'];
+      const count = Math.round((w * h) / 0.28);
+      for (let k = 0; k < count; k++) {
+        const cx = r() * W, cy = r() * H, a = r() * Math.PI, hw = (0.1 + r() * 0.16) * PX, hh = (0.16 + r() * 0.2) * PX;
+        const k1 = 0.6 + r() * 0.5, k2 = 0.6 + r() * 0.5, col = cols[Math.floor(r() * cols.length)];
+        const q = [[-hw, -hh], [hw * k1, -hh], [hw, hh * k2], [-hw * k2, hh]].map(([px, py]) => [px * Math.cos(a) - py * Math.sin(a), px * Math.sin(a) + py * Math.cos(a)]);
+        for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+          x.beginPath();
+          q.forEach(([px, py], i) => (i ? x.lineTo(cx + dx + px, cy + dy + py) : x.moveTo(cx + dx + px, cy + dy + py)));
+          x.closePath();
+          x.fillStyle = col; x.fill();
+          x.strokeStyle = 'rgba(40,40,40,0.25)'; x.lineWidth = 1.5; x.stroke();
+        }
+      }
+      break;
+    }
     case 'redClinker': {
       // clinker, 25 by 12.5 cm, in a running bond, in shades of red-brown, rust, a dark
       // brown-grey and grey (Gärdet's platforms and passages)
@@ -6120,7 +6290,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

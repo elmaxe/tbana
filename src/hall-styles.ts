@@ -488,28 +488,30 @@ export interface VaultStyle {
 // A vaulted hall's own finish (heights above the rails, as the hall's):
 // - `trackWall`: white enamelled panels, 1.2 m wide in rows `row` high, from `panelsFrom` up to
 //   the vault over a black plinth, a grey strip along them `strip` high; and a row of framed
-//   pictures, `art[0]` to `art[1]` high and `art[2]` wide, about `art[3]` m apart;
+//   pictures, `art[0]` to `art[1]` high and `art[2]` wide, about `art[3]` m apart; with `tiles`,
+//   small square tiles of that size and colour in place of the panels, over a strip of steel;
 // - `backWall`: panels of dark concrete, `panel` wide, cast with fine diagonal grooves, on a pale
 //   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
 //   the name signs (the name in white on the band's colour) and the ways out (white plates, an
 //   arrow to the exit they lead to: `exits`, in the scene's metres) are on, and a pale strip up to
 //   the vault (in `wall`, if given); with `rods`, upright rods of glazed ceramic in place of the
 //   panels, on a dark plinth; with `band.sign`, the name in white on a plate of that colour on the
-//   band;
+//   band; with `wine`, Zinkensdamm's narrow wine-red tiles in place of the panels, on a dark plinth;
 // - `vault`: the vault's colour;
 // - `paving`: the platform, paved as an open station's;
 // - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
 //   `w` wide and `h` high from `bottom`, about every `every` m, with a bench either side;
 // - `benches`: long benches of wooden boards on a dark stone base against the wall behind the
-//   platform, each `length` long, about every `every` m.
+//   platform, each `length` long, about every `every` m; with `backs`, a pair of benches with
+//   backs, of wooden boards on steel legs, in their place.
 export interface VaultFinish {
-  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number] };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wall?: string };
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string } };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
   cases?: { w: number; h: number; bottom: number; gap: number; every: number };
-  benches?: { length: number; every: number };
+  benches?: { length: number; every: number; backs?: boolean };
 }
 
 // Östermalmstorg (1965), 38 m down: a hall in rock for each
@@ -542,6 +544,17 @@ export interface VaultFinish {
 // under a white band carrying the name in white on a black plate and the ways out on white plates,
 // cream above; long benches of wooden boards on dark stone before them; the platform pale grey
 // terrazzo, a band of cream tiles along the edge and a black strip with brass studs inside it.
+//
+// Zinkensdamm (1964), about 19 m under Ringvägen, Mariatorget's sister: the same plan, the
+// platforms either side of a core of rock 9 m wide, joined a little west of the middle (Albert
+// Guillaumes's drawing; OpenStreetMap's platforms). Photographs (2005–2011, Wikimedia Commons;
+// sv.wikipedia): over each hall a smooth pale grey vault with a row of lamps along it; the track
+// walls in small grey tiles over a strip of steel, with posters in thin black frames (since 1998
+// a yearly show of pictures among the advertising); the wall behind the platform in narrow
+// glazed tiles on end in wine reds and browns, an ochre tile every metre or so in each row, under
+// a black band carrying the name on a black plate; benches with backs, of wooden boards on steel
+// legs, in pairs; the platform red-brown clinker in a running bond, a strip of white tiles and a
+// band of grey concrete along the edge.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -573,6 +586,21 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
         pattern: 'grid',
       },
       benches: { length: 6, every: 22 },
+    },
+  },
+  'Zinkensdamm': {
+    spring: 4.4, risePerWidth: 0.22, signAt: 4.1, signEvery: 36,
+    finish: {
+      trackWall: { panelsFrom: 1.3, row: 0.6, strip: 2.25, art: [2.0, 3.8, 1.25, 3.2], tiles: { size: 0.15, color: '#9a9e9b' } },
+      backWall: { panel: 1.1, plinth: 1.1, band: { from: 3.9, to: 4.3, color: '#2b2c2e', sign: '#141414' }, wine: true, wall: '#dcdcd6' },
+      exits: [{ name: 'Ringvägen · Hornsgatan', x: -514.5, z: 1536.7 }],
+      vault: 0xdcdcd6,
+      paving: {
+        edge: 0.6, tactile: [0.62, 0.9], studs: false, slabs: 0, paverSize: [0.25, 0.125], mix: 0.35,
+        colors: { edge: 0xb9b7b1, tactile: 0xe8e8e4, slab: 0xb9b7b1, pavers: 0x8c4f3e, paler: 0x6e5249, face: 0x3e3c3a },
+        pattern: 'bond',
+      },
+      benches: { length: 3.6, every: 16, backs: true },
     },
   },
 };

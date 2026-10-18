@@ -314,7 +314,11 @@ export type Finish =
   | 'striated'      // dark concrete panels 1.25 m wide, cast with fine diagonal grooves, on a pale plinth
   | 'triangleTiles' // white tiles, 15 cm, a long triangle of small blue tiles rising low across them
   | 'redClinker'    // clinker in a running bond, red-browns and a dark brown-grey
-  | 'rods';         // upright rods of yellow-brown glazed ceramic over a dark plinth, a white band over them (Björquist's and Abramson's)
+  | 'rods'          // upright rods of yellow-brown glazed ceramic over a dark plinth, a white band over them (Björquist's and Abramson's)
+  | 'wineTiles'     // narrow glazed tiles on end in wine reds and browns, rows a third of a metre high, an ochre tile every 1.1 m in each
+  | 'uprightTiles'  // white glazed tiles on end, 10 by 20 cm, in pale grey joints
+  | 'bandGlazed'    // clear glass in brushed steel frames 1.3 m apart, a kick panel, a transom with SL's dark blue band over a yellow line
+  | 'shards';       // grey concrete set with skewed plates of colour, greys, white, blues, beige and brick red (John Stenborg's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -394,8 +398,9 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // copper (`strindberg`), Blå tornet, the house he died in (`blueTower`), and one of Helén Partos's
 // panels of steel lace at Vällingby (`sirat`, cut out round its outline, a panel of its own at each
 // `s`), and Britt-Louise Sundell's gates of wrought iron at Mariatorget (`sundell`, cut out round
-// the iron).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// the iron), and the paintings on the ends of Zinkensdamm's platforms, Göran T Karlsson's
+// (`karlsson`) and John Stenborg's (`stenborg`).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // Two big armchairs and a low table between them, each built up of thick timbers, at s, u, the
 // chairs facing each other across the table along `turn` (as a guardian's).
@@ -6313,6 +6318,56 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the T on its bracket over each door
       { kind: 'roundel', s: -159.9, u: 35.04, h: 22.6, size: 0.8, foot: 21.95 },
       { kind: 'roundel', s: 150.69, u: -41.0, h: 24.2, size: 0.8, foot: 23.55 },
+    ],
+  },
+  // Zinkensdamm (1964): its halls are a vault style (src/hall-styles.ts); here the join through the
+  // core, the escalators' foot behind glass screens, the escalators, ticket hall and passage in
+  // white tiles on end, the stairs up into the pavilion at Ringvägen 8 panelled in wood
+  // (photographs through its doors, 2011), and the lift
+  'Zinkensdamm': {
+    buildings: ['w141745824'],
+    rooms: [
+      { name: 'join, opening north', s: [-5.6, 3.1], u: [-6, -4.4], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'join, opening south', s: [-5.6, 3.1], u: [4.4, 6], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'join', s: [-5.6, 2.95], u: [-4.4, 4.4], h: [-1, 0.5], walls: 'wineTiles', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: "escalators' foot", s: [2.95, 9.5], u: [-4.6, 4.6], h: [-1, 0.5], walls: null, floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'escalators', s: [8, 34], u: [-5, 5], h: [-1, 15.5], walls: 'uprightTiles', stairs: 'uprightTiles', ceiling: 'whitePanels' },
+      { name: 'ticket hall', s: [33, 51], u: [-5, 5], h: [13, 16], walls: 'uprightTiles', floor: 'redClinker', ceiling: 'whitePanels' },
+      { name: 'passage', s: [49, 84.5], u: [-8, 13], h: [13, 16], walls: 'uprightTiles', floor: 'redClinker', ceiling: 'whitePanels' },
+      { name: 'stairs into the pavilion', s: [77, 86], u: [11, 19.9], h: [13, 19.5], walls: 'pineBoards', stairs: 'pineBoards', floor: 'greyTiles', ceiling: 'pineBoards' },
+      { name: "pavilion's vestibule", s: [77, 86], u: [19.9, 26], h: [17, 19.5], walls: null, floor: 'greyTiles' },
+    ],
+    blocks: [
+      // the glass screens between the platforms and the escalators' foot, and the black band over
+      // them, where the foot's opening cuts the network's wall
+      { name: 'screen, north', plan: [[2.95, -4.62], [9.0, -4.62], [9.0, -4.48], [2.95, -4.48]], h: [-0.1, 2.9], from: 0, walls: 'bandGlazed', onPlatform: true, inHall: true },
+      { name: 'screen, south', plan: [[2.95, 4.48], [9.0, 4.48], [9.0, 4.62], [2.95, 4.62]], h: [-0.1, 2.9], from: 0, walls: 'bandGlazed', onPlatform: true, inHall: true },
+      { name: 'band over the north screen', plan: [[2.95, -4.62], [9.0, -4.62], [9.0, -4.48], [2.95, -4.48]], h: [2.9, 3.35], from: 2.9, walls: 'blackTiles', inHall: true },
+      { name: 'band over the south screen', plan: [[2.95, 4.48], [9.0, 4.48], [9.0, 4.62], [2.95, 4.62]], h: [2.9, 3.35], from: 2.9, walls: 'blackTiles', inHall: true },
+      // the pavilion at Ringvägen 8 (OpenStreetMap's outline; its roof 2.9 m over the pavement,
+      // from the laser scan): John Stenborg's walls round the stairs, and a vestibule of glass in
+      // brushed steel at its south end, with doors on three sides (photographs, 2011)
+      { name: 'pavilion', plan: [[78.3, 12.3], [84.1, 12.3], [84.1, 20.4], [78.3, 20.4]], h: [17.6, 21.1], from: 18.2,
+        walls: 'shards', sides: [undefined, undefined, null, undefined], roof: 0.3, roofColor: 0x7d7c78 },
+      { name: "pavilion's vestibule", plan: [[78.3, 20.4], [84.1, 20.4], [84.1, 24.6], [78.3, 24.6]], h: [17.6, 21.1], from: 18.22,
+        walls: 'glassFront', sides: [null, undefined, undefined, undefined], floor: 'greyTiles', roof: 0.3, roofColor: 0x3a3c3e },
+      // the lift's house on Ringvägen's pavement (its roof 3.85 m up, a canopy 2.5 m up over its
+      // door, from the laser scan): glass in black frames (photographs, 2020)
+      { name: 'lift house', plan: [[80.4, -9.9], [82.8, -9.9], [82.8, -7.2], [80.4, -7.2]], h: [19.0, 23.0], from: 19.14,
+        walls: 'darkGlazed', roof: 0.25, roofColor: 0x2e3134 },
+      { name: "lift house's canopy", plan: [[79.9, -7.2], [82.8, -7.2], [82.8, -6.3], [79.9, -6.3]], h: [21.65, 21.65], from: 21.65,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'perforated', roof: 0.12, roofColor: 0x2e3134 },
+    ],
+    art: [
+      // the paintings on the halls' ends (which the network draws, in the vault's plaster, round
+      // the tunnels going on): Göran T Karlsson's on the platform for the trains south, John
+      // Stenborg's on the other (photographed at one end each; the same at the other)
+      { kind: 'mural', picture: 'karlsson', s: -68.6, u: 7.1, turn: 0, bottom: 0.05, top: 3.05, width: 3.7 },
+      { kind: 'mural', picture: 'karlsson', s: 68.7, u: 7.1, turn: Math.PI, bottom: 0.05, top: 3.05, width: 3.7 },
+      { kind: 'mural', picture: 'stenborg', s: 68.9, u: -7.15, turn: Math.PI, bottom: 0.2, top: 2.8, width: 3.9 },
+      { kind: 'mural', picture: 'stenborg', s: -69.0, u: -7.15, turn: 0, bottom: 0.2, top: 2.8, width: 3.9 },
+      // the T on its post on the vestibule's roof
+      { kind: 'roundel', s: 83.6, u: 24.1, h: 21.85, size: 0.8, foot: 21.1 },
     ],
   },
 };

@@ -549,13 +549,19 @@
     {"station": "Universitetet", "apart": 34.74, "why": "Universitetet's island platform is 31.6 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock."},
     {"station": "Bergshamra", "apart": 31.14, "why": "Bergshamra's island platform is 28 m wide, straight, round two cores of rock (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight). OpenStreetMap has its tracks nearly straight and parallel along it; held only by two side platforms, the fit bowed them 4 m inward at each end."},
     {"station": "Mörby centrum", "apart": 27.14, "why": "Mörby centrum's island platform is 24 m wide and straight, round two cores of rock (OpenStreetMap's platform outline, 2026; Albert Guillaumes' drawing, 2024, in the same proportions). OpenStreetMap draws the tracks straight but sketches the eastern one outside the platform, so they were placed for the network's usual island, 9 m wide."},
-    {"station": "Mariatorget", "apart": 22.95, "why": "Mariatorget's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 9 m wide (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 4.8 m wide, their edges by the tracks 20 m apart). OpenStreetMap's sketch of the tracks bows them 2 m apart in the middle, and the fit followed it."}
+    {"station": "Mariatorget", "apart": 22.95, "why": "Mariatorget's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 9 m wide (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 4.8 m wide, their edges by the tracks 20 m apart). OpenStreetMap's sketch of the tracks bows them 2 m apart in the middle, and the fit followed it."},
+    {"station": "Zinkensdamm", "apart": 22.9, "why": "Zinkensdamm, built with Mariatorget (1964), has the same plan: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a rock core about 9 m wide (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.5 m wide, their edges by the tracks 19.7 m apart). OpenStreetMap's sketch of the tracks bows them 3 m apart in the middle, and the fit followed it."}
   ],
   "widths": [
     {
       "station": "Ropsten",
       "width": 5.8,
       "why": "Each of Ropsten's two viaducts carries one track and one side platform, 5.8 m from the platform edge to the railing over the open gap between them (Lantmäteriet's laser scan, 2021: the roofs and the parked train's roof)."
+    },
+    {
+      "station": "Zinkensdamm",
+      "width": 5.4,
+      "why": "Zinkensdamm's side platforms are 5.4–5.5 m wide, from the edge to the wall of the rock core between the halls (OpenStreetMap's platform outlines, mapped indoors with the escalators and lifts)."
     }
   ],
   "points": [

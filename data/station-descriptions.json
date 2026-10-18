@@ -159,18 +159,30 @@
     },
     "Zinkensdamm": {
       "drawing": "zinkensdamm.png",
-      "note": "Two platform halls, one for each track, joined in the middle. From there stairs and an escalator climb over the southern hall to the ticket hall.",
+      "note": "Two straight platform halls, one for each track, the tracks on the outside and the side platforms within, either side of a core of rock 9 m wide, joined a little west of the middle (Albert Guillaumes's drawing; OpenStreetMap's platforms). East of the join three escalators and an inclined lift climb east inside the core, behind glass screens at their foot, to the ticket hall under Brännkyrkagatan; a passage runs on east under the street to a cross passage under Ringvägen's pavement, with stairs south up into the entrance pavilion at Ringvägen 8 and a lift north to its glass house on the pavement (OpenStreetMap's indoor ways; the pavilion's and the lift house's outlines and heights from Lantmäteriet's laser scan; the ticket hall's depth inferred from the stairs into the pavilion).",
       "routes": [
-        { "from": [10, -6], "width": 8, "go": [
-          {"walk": [10, 6]}
+        { "from": [-1, -5.4], "width": 8, "go": [
+          {"walk": [-1, -4.5], "open": true, "edges": false},
+          {"walk": [-1, 4.5], "ceiling": 3.2},
+          {"walk": [-1, 5.4], "open": true, "edges": false}
         ] },
-        { "from": [10, 0], "width": 5, "go": [
-          {"walk": [18, 0]},
-          {"escalators": 12, "toward": [60, 20], "lanes": "SE"},
-          {"walk": 8, "width": 7},
+        { "from": [3, 0], "width": 9, "go": [
+          {"walk": [9, 0], "ceiling": 3.2},
+          {"escalators": 14.51, "toward": [40, 0], "lanes": "EEEL"},
+          {"walk": 3, "width": 9, "ceiling": 3.0},
           {"gates": true},
-          {"walk": 3},
-          {"exit": 1551627389}
+          {"walk": [50, 0], "width": 9, "ceiling": 3.0},
+          {"walk": [79.3, 0], "width": 4.5, "ceiling": 2.7},
+          {"walk": [81.6, 0], "width": 5, "ceiling": 2.8},
+          {"mark": "cross passage"},
+          {"walk": [81.6, 12.4], "width": 4.4, "ceiling": 2.8},
+          {"stairs": 3.71, "toward": [81.6, 30], "lanes": "SS", "ceiling": 2.8},
+          {"walk": [81.4, 23.9], "width": 5.2, "ceiling": 3.0},
+          {"exit": 1551627389, "by": "walk", "ceiling": 3.0, "sign": false}
+        ] },
+        { "from": "cross passage", "width": 3, "go": [
+          {"walk": [81.6, -5.4], "ceiling": 2.8},
+          {"exit": {"at": [81.6, -6.9], "name": "Ringvägen"}, "by": "lift", "sign": false}
         ] }
       ]
     },
