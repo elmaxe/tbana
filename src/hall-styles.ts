@@ -505,12 +505,12 @@ export interface VaultStyle {
 //   platform, each `length` long, about every `every` m; with `backs`, a pair of benches with
 //   backs, of wooden boards on steel legs, in their place.
 export interface VaultFinish {
-  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string } };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; wall?: string };
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string } };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
-  cases?: { w: number; h: number; bottom: number; gap: number; every: number };
+  cases?: { w: number; h: number; bottom: number; gap: number; every: number; run?: number; theme?: 'beetles' | 'elements' };
   benches?: { length: number; every: number; backs?: boolean };
 }
 
@@ -555,6 +555,18 @@ export interface VaultFinish {
 // a black band carrying the name on a black plate; benches with backs, of wooden boards on steel
 // legs, in pairs; the platform red-brown clinker in a running bond, a strip of white tiles and a
 // band of grey concrete along the edge.
+//
+// Hornstull (1964), under Hornsbruksgatan, on the same plan: the platforms either side of a core of
+// rock 11.5 m wide in two lengths, joined round its ends and between them (Albert Guillaumes's
+// drawing; OpenStreetMap's platforms). Its track walls are Berndt Helleberg's (1964, on the theme of
+// the cave at Altamira): handmade bricks of red glaze from the Netherlands, with a black band let
+// into them and white figures hanging from it, and the name among them in white (sv.wikipedia;
+// photographs, 2005–2026). Over each hall a smooth pale vault with a row of lamps along it; the wall
+// behind the platform in narrow white tiles on end, over a dark plinth, under a dark band carrying
+// the name on a black plate; set out from it, Helleberg's lit cases of 1992 on the themes of sky,
+// sea, earth and desert, side by side in dark frames under a dark fascia, and benches with backs
+// between them; the platform dark grey terrazzo, a band of white tiles along the edge and a dark
+// strip with yellow studs inside it.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -601,6 +613,22 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
         pattern: 'bond',
       },
       benches: { length: 3.6, every: 16, backs: true },
+    },
+  },
+  'Hornstull': {
+    spring: 4.4, risePerWidth: 0.22, signAt: 3.9, signEvery: 36,
+    finish: {
+      trackWall: { panelsFrom: 0.7, row: 0.6, strip: 2.25, art: [2.0, 3.8, 1.25, 3.2], bricks: { name: 'Hornstull' } },
+      backWall: { panel: 1.12, plinth: 1.12, band: { from: 3.7, to: 4.1, color: '#2b2c2e', sign: '#141414' }, upright: true, wall: '#e2e1dc' },
+      exits: [{ name: 'Långholmsgatan · Hornsgatan · Bergsunds strand', x: -1415.9, z: 1734.7 }, { name: 'Hornsbruksgatan · Högalidsparken', x: -1167.4, z: 1659.7 }],
+      vault: 0xe4e2dc,
+      paving: {
+        edge: 0.9, edgeTile: [0.3, 0.3], tactile: [0.92, 1.22], studs: true, studColor: 0xd8b02a, slabs: 0, paverSize: [1.2, 1.2], mix: 0.15,
+        colors: { edge: 0xe8e6e0, tactile: 0x353534, slab: 0x88898c, pavers: 0x85868a, paler: 0x8c8d90, face: 0x3e3c3a },
+        pattern: 'grid',
+      },
+      cases: { w: 1.2, h: 2.0, bottom: 1.3, gap: 0.12, every: 40, run: 5, theme: 'elements' },
+      benches: { length: 2.8, every: 18, backs: true },
     },
   },
 };

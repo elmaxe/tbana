@@ -1871,9 +1871,10 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
 // stripes, a red square, an island, a sheet of script). One repeat is GARDET_REPEAT m, drawn as
 // seen from the foot of the wall (`floor`) up to `top`. With `tiles`, small square tiles of that
 // size and colour in place of the panels, over a strip of brushed steel, and the pictures in thin
-// black frames with no mounts (Zinkensdamm's).
+// black frames with no mounts (Zinkensdamm's). With `bricks`, Berndt Helleberg's red bricks and
+// his black band with its figures, the name among them (Hornstull's, `hellebergWall`), and no pictures.
 export const GARDET_REPEAT = 20.8;
-export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string } }
+export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string } }
 function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
   const [c, x] = canvas(W, H);
@@ -1885,6 +1886,11 @@ function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   const dust = x.createLinearGradient(0, y(f.panelsFrom), 0, H);
   dust.addColorStop(0, 'rgba(70,62,52,0)'); dust.addColorStop(1, 'rgba(70,62,52,0.5)');
   x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+  if (f.bricks) {
+    hellebergWall(x, W, H, y, f.panelsFrom, top, f.bricks.name, PX, r);
+    x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+    return c;
+  }
   if (f.tiles) {
     // the tiles, each a shade off its neighbours, in grey joints, over the steel strip
     const t = f.tiles.size * PX, c0 = parseInt(f.tiles.color.slice(1), 16), cr = c0 >> 16, cg = (c0 >> 8) & 255, cb = c0 & 255;
@@ -2020,22 +2026,25 @@ export function gardetTrackWall(floor: number, top: number, f: GardetTrackWall, 
 // them a band in `band.color`, and a pale strip up to the vault (in `wall`). Two panels a repeat
 // along the wall; turned for a sweep (u up from the wall's foot `floor` to `top`, v along). With
 // `rods`, Mariatorget's ceramic rods in place of the panels, on a dark plinth; with `wine`,
-// Zinkensdamm's narrow wine-red tiles (`wineTiles`).
-export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; wall?: string }) {
+// Zinkensdamm's narrow wine-red tiles (`wineTiles`); with `upright`, Hornstull's narrow white tiles
+// on end (`whiteBricks`), above the band as well as below it.
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; upright?: boolean; wall?: string }) {
   const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
   const [src, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
   const r = rng(1967);
   x.fillStyle = '#3c3a37'; x.fillRect(0, 0, W, H);
-  x.fillStyle = f.rods ? '#38393a' : f.wine ? '#2c2826' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
+  x.fillStyle = f.rods ? '#38393a' : f.wine ? '#2c2826' : f.upright ? '#2a2a29' : '#b4b1a9'; x.fillRect(0, y(f.plinth), W, (f.plinth - platform) * PX);
   speckle(x, W, H, 1500, 0.06, 1968);
   if (f.rods) ceramicRods(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.wine) wineTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
+  else if (f.upright) whiteBricks(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
   x.fillStyle = '#2e3236'; x.fillRect(0, y(f.band.to) - 2, W, (f.band.to - f.band.from) * PX + 4);
   x.fillStyle = f.band.color; x.fillRect(0, y(f.band.to), W, (f.band.to - f.band.from) * PX);
   x.fillStyle = f.wall ?? '#cbc8bf'; x.fillRect(0, 0, W, y(f.band.to) - 2);
-  speckle(x, W, y(f.band.to), 600, 0.05, 1969);
+  if (f.upright) whiteBricks(x, 0, 0, W, y(f.band.to) - 2, PX, r);
+  else speckle(x, W, y(f.band.to), 600, 0.05, 1969);
   const [c, t] = canvas(src.height, src.width);
   t.setTransform(0, 1, -1, 0, src.height, 0);
   t.drawImage(src, 0, 0);
@@ -2107,6 +2116,202 @@ function uprightTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: nu
     x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(x0 + i * a + 1, y0 + j * b + 1, a - 2, b - 2);
     x.fillStyle = 'rgba(255,255,255,0.5)'; x.fillRect(x0 + i * a + 1, y0 + j * b + 1, a - 2, b * 0.2);
   }
+}
+
+// White glazed tiles on end, `tw` by `th` m, in a running bond up the wall (each column half a tile
+// up from its neighbours), cream to a cooler white and a little uneven, in grey joints, across the
+// rectangle (Hornstull's walls behind the platforms, round its lobbies and up its shafts, 1964)
+function whiteBricks(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number, tw = 0.07, th = 0.24) {
+  x.fillStyle = '#9d9c96'; x.fillRect(x0, y0, w, h);
+  const n = 2 * Math.max(1, Math.round(w / (2 * tw * PX))), a = w / n, b = th * PX;
+  x.save(); x.beginPath(); x.rect(x0, y0, w, h); x.clip();
+  for (let i = 0; i < n; i++) {
+    for (let yy = y0 + h + ((i % 2) * b) / 2; yy > y0; yy -= b) {
+      const v = 230 + Math.floor(r() * 16), warm = Math.floor(r() * 6);
+      x.fillStyle = `rgb(${v + warm - 2},${v},${v - 5 - warm})`; x.fillRect(x0 + i * a + 0.8, yy - b + 0.8, a - 1.6, b - 1.6);
+      // (the glaze catching the light down each tile, and a little shadow at its foot)
+      x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(x0 + i * a + a * 0.2, yy - b + 2, a * 0.25, b - 4);
+      x.fillStyle = 'rgba(90,90,85,0.08)'; x.fillRect(x0 + i * a + 0.8, yy - b * 0.3, a - 1.6, b * 0.3 - 0.8);
+    }
+  }
+  x.restore();
+}
+
+// Berndt Helleberg's track walls at Hornstull (1964), across a repeat `W` wide: a grey concrete
+// plinth up to `from`, and over it, up to `top`, handmade bricks of red glaze from the Netherlands
+// laid on end, about 6 by 24 cm, in a running bond up the wall, oranges to deep reds, in pale grey
+// joints; along them, about three quarters of the way up, a black band, jagged like a crack in a
+// cave's wall, and hanging from it here and there figures of white and pale grey glazed pieces (the
+// theme the cave at Altamira); and once a repeat the name in white tiles among the bricks, about
+// halfway up (sv.wikipedia; photographs, 2005–2026)
+function hellebergWall(x: CanvasRenderingContext2D, W: number, H: number, y: (h: number) => number, from: number, top: number, name: string, PX: number, r: () => number) {
+  x.fillStyle = '#8e8c87'; x.fillRect(0, y(from), W, H - y(from));
+  speckle(x, W, H, 3000, 0.1, 2008, true);
+  const y0 = y(top), y1 = y(from), n = 2 * Math.round(W / (0.12 * PX)), bw = W / n, bh = 0.24 * PX;
+  x.fillStyle = '#a49b90'; x.fillRect(0, y0, W, y1 - y0);
+  const cols = [[196, 78, 46], [182, 66, 40], [208, 94, 56], [164, 56, 36], [188, 80, 50], [148, 50, 34], [214, 104, 64], [174, 70, 44]];
+  for (let i = 0; i < n; i++) {
+    for (let yy = y1 + ((i % 2) * bh) / 2; yy > y0; yy -= bh) {
+      const t = Math.max(y0, yy - bh), b = Math.min(y1, yy);
+      if (b - t < 2) continue;
+      const [cr, cg, cb] = cols[Math.floor(r() * cols.length)], v = Math.floor(r() * 20) - 10;
+      x.fillStyle = `rgb(${cr + v},${cg + v * 0.6},${cb + v * 0.5})`; x.fillRect(i * bw + 0.6, t + 0.6, bw - 1.2, b - t - 1.2);
+      x.fillStyle = 'rgba(255,225,200,0.13)'; x.fillRect(i * bw + bw * 0.25, t + 2, bw * 0.22, b - t - 4);
+      x.fillStyle = 'rgba(40,10,5,0.12)'; x.fillRect(i * bw + 0.6, b - (b - t) * 0.25, bw - 1.2, (b - t) * 0.25 - 0.6);
+    }
+  }
+  x.fillStyle = 'rgba(40,36,30,0.3)'; x.fillRect(0, y1 - 1, W, 3);
+  // the black band: whole numbers of waves along the repeat, so that it runs on into the next
+  const band = (px: number) => {
+    const t = (px / W) * Math.PI * 2;
+    return from + (top - from) * (0.76 + 0.05 * Math.sin(t * 2 + 0.7) + 0.03 * Math.sin(t * 5 + 2.1) + 0.015 * Math.sin(t * 13 + 0.3));
+  };
+  const N = 420, pts: [number, number][] = [];
+  for (let k = 0; k <= N; k++) pts.push([(k / N) * W, y(band((k / N) * W)) + (k % N === 0 ? 0 : (r() - 0.5) * 0.07 * PX)]);
+  x.strokeStyle = '#151413'; x.lineCap = 'round'; x.lineJoin = 'round';
+  for (let k = 0; k < N; k++) {
+    x.lineWidth = (0.02 + 0.04 * Math.abs(Math.sin(k * 0.21) * Math.sin(k * 0.047))) * PX;
+    x.beginPath(); x.moveTo(pts[k][0], pts[k][1]); x.lineTo(pts[k + 1][0], pts[k + 1][1]); x.stroke();
+  }
+  // (cracks branching off it, short and jagged)
+  x.lineWidth = 0.015 * PX;
+  for (let k = 0; k < 18; k++) {
+    let px = r() * W, py = y(band(px)), dir = r() < 0.5 ? 1 : -1;
+    x.beginPath(); x.moveTo(px, py);
+    for (let j = 0; j < 5; j++) { px += (r() - 0.5) * 0.25 * PX; py += dir * (0.04 + r() * 0.12) * PX; x.lineTo(px, py); }
+    x.stroke();
+  }
+  // the figures, clear of the name in the middle of the repeat
+  const piece = (px: number, py: number, pw: number, ph: number, a: number, col: string) => {
+    for (const o of [-W, 0, W]) {
+      x.save(); x.translate(px + o, py); x.rotate(a); x.fillStyle = col; x.fillRect(-pw / 2, 0, pw, ph); x.restore();
+    }
+  };
+  const whites = ['#f4f3ee', '#e4e4df', '#cfd5d8', '#b8c2c8', '#ebe6da', '#9aa4aa', '#f0efe8'];
+  const K = 7;
+  for (let k = 0; k < K; k++) {
+    const cx = ((k + 0.25 + r() * 0.5) / K) * W, half = (0.35 + r() * 0.75) * PX;
+    if (Math.abs(cx - W / 2) < half + 1.4 * PX) continue;
+    for (let sx = cx - half; sx < cx + half; sx += bw * (0.7 + r() * 0.7)) {
+      const t = (sx - cx) / half, env = Math.max(0, 1 - t * t), px = ((sx % W) + W) % W;
+      const len = (0.12 + r() * 0.95) * env * PX, start = y(band(px)) - 0.08 * PX * r();
+      for (let yy = start; yy < start + len;) {
+        const ph = (0.04 + r() * 0.09) * PX;
+        piece(px + (r() - 0.5) * bw * 0.6, yy, bw * (0.8 + r() * 0.6), ph, (r() - 0.5) * 0.6, r() < 0.1 ? '#1b1b1b' : whites[Math.floor(r() * whites.length)]);
+        yy += ph + 1 + r() * 2;
+      }
+    }
+  }
+  // the name, in white tiles cut into pieces by the joints
+  const ty = y(from + (top - from) * 0.42), size = 0.3 * PX, text = name.toUpperCase().split('').join(' ');
+  x.font = `bold ${size}px sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillStyle = '#efeee9'; x.fillText(text, W / 2, ty);
+  const tw = x.measureText(text).width;
+  x.strokeStyle = 'rgba(150,144,136,0.9)'; x.lineWidth = 1;
+  for (let px = Math.floor((W / 2 - tw / 2) / bw) * bw; px < W / 2 + tw / 2; px += bw) { x.beginPath(); x.moveTo(px, ty - size * 0.6); x.lineTo(px, ty + size * 0.6); x.stroke(); }
+  for (let k = 0; k < 60; k++) {
+    const px = W / 2 - tw / 2 + r() * tw, py = ty + (r() - 0.5) * size;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + bw, py + (r() - 0.5) * 2); x.stroke();
+  }
+}
+
+// Berndt Helleberg's cases in the walls behind Hornstull's platforms (1992), on the themes of sky,
+// sea, earth and desert (`variant` 0–3), redrawn: a lit case `w` × `h` m in a black steel frame, a
+// pale lining, and in it the theme, as its colours and a few shapes of its own (what each case
+// holds is not known here)
+export function elementsCase(w: number, h: number, variant: number) {
+  const PX = 320, W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+  const r = rng(1992 + variant * 17), f = 0.05 * PX;
+  x.fillStyle = '#1c1d1f'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#efe9dc'; x.fillRect(f, f, W - 2 * f, H - 2 * f);
+  const ix = f + 0.08 * PX, iy = f + 0.12 * PX, iw = W - 2 * ix, ih = H - 2 * iy;
+  const g = x.createLinearGradient(0, iy, 0, iy + ih);
+  const stops = [['#6f9cc8', '#d8e6ef'], ['#1f5f7a', '#7fb6c2'], ['#4a3424', '#9c7a4e'], ['#f0d9a0', '#c4914c']][variant % 4];
+  g.addColorStop(0, variant === 2 ? stops[1] : stops[0]); g.addColorStop(1, variant === 2 ? stops[0] : stops[1]);
+  x.save(); x.globalAlpha = 0.6;
+  x.fillStyle = g; x.fillRect(ix, iy, iw, ih);
+  if (variant % 4 === 0) {
+    // clouds
+    for (let k = 0; k < 9; k++) {
+      const cx = ix + r() * iw, cy = iy + ih * (0.2 + r() * 0.6), s = iw * (0.08 + r() * 0.12);
+      x.fillStyle = 'rgba(255,255,255,0.75)';
+      for (let j = 0; j < 4; j++) { x.beginPath(); x.ellipse(cx + (j - 1.5) * s * 0.6, cy + (r() - 0.5) * s * 0.3, s * 0.55, s * 0.35, 0, 0, Math.PI * 2); x.fill(); }
+    }
+  } else if (variant % 4 === 1) {
+    // waves, and a few fish
+    x.strokeStyle = 'rgba(230,245,250,0.55)'; x.lineWidth = 3;
+    for (let k = 0; k < 9; k++) {
+      const yy = iy + ih * (0.08 + k * 0.1);
+      x.beginPath(); for (let t = 0; t <= 1.001; t += 0.05) x.lineTo(ix + iw * t, yy + Math.sin(t * 12 + k) * ih * 0.012); x.stroke();
+    }
+    for (let k = 0; k < 5; k++) {
+      const cx = ix + iw * (0.2 + r() * 0.6), cy = iy + ih * (0.3 + r() * 0.6), s = iw * (0.06 + r() * 0.05);
+      x.fillStyle = ['#d8c27a', '#c8d8dc', '#e08a5a'][k % 3];
+      x.beginPath(); x.ellipse(cx, cy, s, s * 0.4, 0, 0, Math.PI * 2); x.fill();
+      x.beginPath(); x.moveTo(cx + s * 0.9, cy); x.lineTo(cx + s * 1.5, cy - s * 0.4); x.lineTo(cx + s * 1.5, cy + s * 0.4); x.fill();
+    }
+  } else if (variant % 4 === 2) {
+    // layers of soil and stones, grass along the top
+    for (let k = 0; k < 6; k++) {
+      x.fillStyle = `rgba(${60 + k * 12},${44 + k * 8},${30 + k * 4},0.35)`;
+      x.fillRect(ix, iy + ih * (0.2 + k * 0.13), iw, ih * 0.06);
+    }
+    for (let k = 0; k < 22; k++) {
+      x.fillStyle = ['#8a8580', '#6e6862', '#a49a8a', '#5a4e44'][k % 4];
+      x.beginPath(); x.ellipse(ix + r() * iw, iy + ih * (0.25 + r() * 0.7), iw * (0.02 + r() * 0.05), iw * (0.015 + r() * 0.03), r() * 3, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = '#5a8a3a'; x.fillRect(ix, iy, iw, ih * 0.08);
+  } else {
+    // dunes under a sun
+    x.fillStyle = 'rgba(255,250,225,0.9)'; x.beginPath(); x.arc(ix + iw * 0.7, iy + ih * 0.2, iw * 0.12, 0, Math.PI * 2); x.fill();
+    for (let k = 0; k < 4; k++) {
+      x.fillStyle = `rgba(${200 - k * 14},${150 - k * 14},${80 - k * 10},0.6)`;
+      x.beginPath(); x.moveTo(ix, iy + ih); const y0 = iy + ih * (0.45 + k * 0.13);
+      for (let t = 0; t <= 1.001; t += 0.05) x.lineTo(ix + iw * t, y0 + Math.sin(t * 5 + k * 1.7) * ih * 0.04);
+      x.lineTo(ix + iw, iy + ih); x.fill();
+    }
+  }
+  x.restore();
+  // the light from the top of the case, and the glass
+  const l = x.createLinearGradient(0, f, 0, H * 0.5);
+  l.addColorStop(0, 'rgba(255,250,235,0.35)'); l.addColorStop(1, 'rgba(255,250,235,0)');
+  x.fillStyle = l; x.fillRect(f, f, W - 2 * f, H / 2);
+  return toTexture(c);
+}
+
+// Eva Ziggy Berglund's column at Hornstull, I minnet gjutet (2012), round an older pillar: its
+// light upper part in acrystal, cast with hundreds of things from the neighbourhood, hands, mouths,
+// noses, textiles, nuts and chains (`dark` false); its dark foot in cast iron, a ring of big lips
+// round it and fish swimming below, a strip of gold and blue mosaic down it (`dark` true). One
+// turn round the column, 2 m wide; its rows of things up it (sv.wikipedia; photographs, 2013)
+export function ziggyColumn(dark: boolean) {
+  const W = 640, H = 640, [c, x] = canvas(W, H), r = rng(dark ? 2012 : 2013);
+  x.fillStyle = dark ? '#2e2c2a' : '#e2e0da'; x.fillRect(0, 0, W, H);
+  const blob = (cx: number, cy: number, rw: number, rh: number, light: string, shade: string) => {
+    for (const o of [-W, 0, W]) {
+      x.fillStyle = shade; x.beginPath(); x.ellipse(cx + o + rw * 0.15, cy + rh * 0.2, rw, rh, 0, 0, Math.PI * 2); x.fill();
+      x.fillStyle = light; x.beginPath(); x.ellipse(cx + o, cy, rw, rh, 0, 0, Math.PI * 2); x.fill();
+    }
+  };
+  if (dark) {
+    for (let k = 0; k < 160; k++) blob(r() * W, r() * H, 6 + r() * 16, 4 + r() * 10, ['#3e3b38', '#4a4642', '#353230'][k % 3], '#1a1918');
+    // fish, in low relief
+    for (let k = 0; k < 6; k++) {
+      const cx = r() * W, cy = H * (0.45 + r() * 0.45), s = 30 + r() * 20;
+      blob(cx, cy, s, s * 0.35, '#56514b', '#1e1c1a');
+    }
+    // the strip of mosaic down it
+    for (let yy = 0; yy < H; yy += 16) { x.fillStyle = ['#c9a23a', '#d8b450', '#3a5a8a', '#b8b8b0'][Math.floor(r() * 4)]; x.fillRect(W * 0.3, yy + 1, 14, 14); }
+  } else {
+    for (let k = 0; k < 340; k++) blob(r() * W, r() * H, 5 + r() * 14, 3 + r() * 10, ['#f2f0ea', '#e8e6df', '#d9d6ce'][k % 3], 'rgba(120,115,105,0.6)');
+    // hands, reaching up
+    for (let k = 0; k < 10; k++) {
+      const cx = r() * W, cy = r() * H;
+      for (let j = 0; j < 4; j++) blob(cx - 18 + j * 12, cy - 22, 4, 16, '#f6f4ee', 'rgba(110,105,95,0.6)');
+      blob(cx, cy, 22, 18, '#f6f4ee', 'rgba(110,105,95,0.6)');
+    }
+  }
+  return toTexture(c);
 }
 
 // panels of brown-grey concrete `pw` wide across the rectangle, cast with fine diagonal grooves, each a
@@ -4326,7 +4531,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   greenEnamel: [2.4, 3.3], tornellEnamel: [4.8, 3.3], brownTiles: [1.2, 1.2],
   partosTiles: [7.2, 4.8], cafeWall: [1.2, 1.2], iridescentTiles: [2.4, 2.4],
   striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
-  wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0],
+  wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0], narrowTiles: [0.84, 0.96],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed'];
@@ -6233,6 +6438,10 @@ export function finish(name: Finish) {
       // Zinkensdamm's wine-red tiles, where they turn the corners of its core (wineTiles)
       wineTiles(x, 0, 0, W, H, PX, r);
       break;
+    case 'narrowTiles':
+      // Hornstull's white tiles on end, round its lobbies and up its shafts (whiteBricks)
+      whiteBricks(x, 0, 0, W, H, PX, r);
+      break;
     case 'uprightTiles':
       uprightTiles(x, 0, 0, W, H, PX, r);
       break;
@@ -6290,7 +6499,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

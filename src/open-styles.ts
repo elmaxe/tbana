@@ -318,7 +318,8 @@ export type Finish =
   | 'wineTiles'     // narrow glazed tiles on end in wine reds and browns, rows a third of a metre high, an ochre tile every 1.1 m in each
   | 'uprightTiles'  // white glazed tiles on end, 10 by 20 cm, in pale grey joints
   | 'bandGlazed'    // clear glass in brushed steel frames 1.3 m apart, a kick panel, a transom with SL's dark blue band over a yellow line
-  | 'shards';       // grey concrete set with skewed plates of colour, greys, white, blues, beige and brick red (John Stenborg's)
+  | 'shards'        // grey concrete set with skewed plates of colour, greys, white, blues, beige and brick red (John Stenborg's)
+  | 'narrowTiles';  // white glazed tiles on end, 7 by 24 cm, in a running bond up the wall, in grey joints (Hornstull's)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -366,7 +367,7 @@ export interface Block {
   dome?: { spring: number; arch: number; crown: number; thick: number; beam: number; frames: number; frame: number };
 }
 
-export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller
+export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
   | TramTrack | Catenary | EdgePaving | Revolver;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
@@ -547,6 +548,12 @@ export interface Mushrooms { kind: 'mushrooms'; at: [number, number][]; size: nu
 // `size` across, in `tiles` from the floor (`from` high) up to `flare`, where a capital of white
 // plaster spreads in straight sides to a square `head` across under the ceiling, `ceiling` high.
 export interface Capitals { kind: 'capitals'; at: [number, number][]; size: number; tiles: Finish; from: number; flare: number; head: number; ceiling: number }
+
+// Eva Ziggy Berglund's column at Hornstull, I minnet gjutet (2012), at s, u, standing on the floor
+// `from` high and spreading under the ceiling `ceiling` high: a bulging foot of cast iron, a ring of
+// cast things round its top; over it a trunk of pale acrystal with a ring of mouths round it, and
+// a capital curving out to the ceiling, `head` across (photographs, 2013).
+export interface CastColumn { kind: 'castColumn'; s: number; u: number; from: number; ceiling: number; head: number }
 
 // Leif Tjerned's boxes of neon (Gullmarsplan, 1995): dark boxes hung under the ceiling, `ceiling`
 // high, at the points ([s, u], in the station's frame), each `size` along, across and deep, with
@@ -1842,17 +1849,17 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         nameSign: { side: 2, at: 0.4, length: 5, bottom: -1.6 } },
       { name: "deck's north fascia, east", plan: [[-106, -9.5], [-87, -9.6], [-87, -9.85], [-106, -9.75]], h: [-2.2, -0.5], from: -2.2,
         walls: 'boardConcrete', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86, onPlatform: true },
-      { name: "deck's south fascia", plan: [[-126, 5.8], [-87, 5.6], [-87, 5.85], [-126, 6.05]], h: [-2.2, -0.5], from: -2.2,
+      { name: "deck's south fascia", plan: [[-126, 5.87], [-87, 5.6], [-87, 5.85], [-126, 6.05]], h: [-2.2, -0.5], from: -2.2,
         walls: 'boardConcrete', sides: [null, undefined, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86,
         nameSign: { side: 2, at: 0.69, length: 5, bottom: -1.6 } },
       // the bank's walls of granite, east of the deck and west of the rooms
       { name: "bank's north wall", plan: [[-87, -9.6], [-76, -9.45], [-76, -9.7], [-87, -9.85]], h: [-4.45, -0.5], from: -4.45,
         walls: 'granite', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86 },
-      { name: "bank's south wall", plan: [[-87, 5.6], [-76, 5.8], [-76, 6.05], [-87, 5.85]], h: [-4.45, -0.5], from: -4.45,
+      { name: "bank's south wall", plan: [[-87, 5.6], [-76, 5.87], [-76, 6.05], [-87, 5.85]], h: [-4.45, -0.5], from: -4.45,
         walls: 'granite', sides: [null, undefined, undefined, null], roof: 0.02, roofColor: 0x8f8d86 },
       { name: "bank's north wall, west", plan: [[-146, -7.85], [-126, -9.05], [-126, -9.3], [-146, -8.1]], h: [-4.45, -0.5], from: -4.45,
         walls: 'granite', sides: [null, null, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86 },
-      { name: "bank's south wall, west", plan: [[-146, 7.15], [-126, 5.8], [-126, 6.05], [-146, 7.4]], h: [-4.45, -0.5], from: -4.45,
+      { name: "bank's south wall, west", plan: [[-146, 7.15], [-126, 5.87], [-126, 6.05], [-146, 7.4]], h: [-4.45, -0.5], from: -4.45,
         walls: 'granite', sides: [null, null, undefined, undefined], roof: 0.02, roofColor: 0x8f8d86 },
     ],
     art: [
@@ -3111,9 +3118,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'gables', plan: [[65.65, -11], [74.15, -11], [74.15, 10.8], [65.65, 10.8]], h: [8.3, 8.3], from: 8.3,
         walls: 'gridPanels', sides: [null, null, null, null], roofColor: 0x34383c, gables: { count: 3, rise: 1.1, color: 0x1c1d1f, trim: 0xe6e6e2 } },
       { name: 'kiosk', plan: [[74.05, -11], [74.15, -11], [74.15, -4.2], [74.05, -4.2]], h: [4.7, 7.95], from: 4.7, walls: 'shopWindows' },
-      { name: 'doors', plan: [[74.05, -4.2], [74.15, -4.2], [74.15, 5.8], [74.05, 5.8]], h: [4.7, 7.95], from: 4.7, walls: 'blackFront',
+      { name: 'doors', plan: [[74.05, -4.2], [74.15, -4.2], [74.15, 5.87], [74.05, 5.8]], h: [4.7, 7.95], from: 4.7, walls: 'blackFront',
         nameSign: { side: 1, at: 0.5, length: 4.4, bottom: 7.05, black: true } },
-      { name: 'front, south-west', plan: [[74.05, 5.8], [74.15, 5.8], [74.15, 10.8], [74.05, 10.8]], h: [4.7, 7.95], from: 4.7, walls: 'gridPanels' },
+      { name: 'front, south-west', plan: [[74.05, 5.87], [74.15, 5.87], [74.15, 10.8], [74.05, 10.8]], h: [4.7, 7.95], from: 4.7, walls: 'gridPanels' },
       { name: 'canopy', plan: [[74.15, -11], [75.75, -11], [75.75, 10.8], [74.15, 10.8]], h: [7.95, 7.95], from: 7.95,
         walls: 'pineBoards', sides: [null, null, null, null], ceiling: 'pineBoards', roof: 0.35, roofColor: 0x1c1d1f },
       // the stair houses, their roofs climbing with the flights from the platforms to the hall, and
@@ -4785,7 +4792,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels' })),
       ...([
         [[90.8, -3.06], [103.6, -1.42], [103.6, -0.01], [90.8, -1.11]],
-        [[90.8, 4.69], [103.6, 5.79], [103.6, 7.6], [90.8, 7.6]],
+        [[90.8, 4.69], [103.6, 5.86], [103.6, 7.6], [90.8, 7.6]],
       ] as [number, number][][]).map((plan): Block => ({ name: 'flat roof between the decks', plan, h: [-2.95, -0.55], from: -2.95,
         walls: 'whiteRender', sides: [undefined, 'glazed', undefined, undefined], ceiling: 'whiteRender', roof: 0.15, roofColor: 0x7a7d80 })),
       // under the northern deck beside the hall, and the shop and staff rooms under the southern,
@@ -5760,7 +5767,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // dark green chain-link along the platforms' backs, and across the northern roof's west end (a
       // lighter green than it is: the mesh blurs to a solid band from afar, which in the real green
       // reads as a black wall)
-      { points: [[-70, -5.8], [-60, -6.5], [-50, -7.05], [-40, -7.51], [-30, -7.85], [-20, -8.05], [-10, -8.15], [-5.5, -8.16]], h: [0, 2.2], color: 0x46644f },
+      { points: [[-70, -5.87], [-60, -6.5], [-50, -7.05], [-40, -7.51], [-30, -7.85], [-20, -8.05], [-10, -8.15], [-5.5, -8.16]], h: [0, 2.2], color: 0x46644f },
       { points: [[-5.5, -8.16], [-5.5, -12.55]], h: [0, 3.0], color: 0x46644f },
       { points: [[24.5, -8.9], [35, -8.9], [37, -8.0], [40, -7.94], [50, -7.83], [60, -7.68], [69, -7.5]], h: [0, 2.2], color: 0x46644f },
       { points: [[-75, 11.2], [-69, 10.99], [-60, 10.41], [-50, 9.82], [-40, 9.32], [-30, 8.92], [-20, 8.6], [-10, 8.36], [-5.5, 8.27], [-5.5, 10.85]], h: [0, 2.2], color: 0x46644f },
@@ -6368,6 +6375,56 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'mural', picture: 'stenborg', s: -69.0, u: -7.15, turn: 0, bottom: 0.2, top: 2.8, width: 3.9 },
       // the T on its post on the vestibule's roof
       { kind: 'roundel', s: 83.6, u: 24.1, h: 21.85, size: 0.8, foot: 21.1 },
+    ],
+  },
+  // Hornstull (1964): its halls are a vault style (src/hall-styles.ts); here the passage through
+  // the core and the lobbies round its ends in white tiles on end, as behind the platforms, under
+  // white ceilings, the floor dark terrazzo as the platforms'; the escalators' shafts in the same
+  // tiles; beyond the gates, the passage lined with shops, rebuilt with the buildings over it in
+  // 2012, its floor pale stone and its ceiling white, round columns down its middle and among them
+  // Eva Ziggy Berglund's (photographs, 2013); the ticket hall before the gates, the passages to
+  // the doors and the hall in the building on Hornsbruksgatan in white tiles (no photographs found:
+  // a guess). The doors are in the buildings' walls (OpenStreetMap's entrances), glass in steel
+  // under a blue band with the name, the T on a bracket over them (photographs, 2013).
+  'Hornstull': {
+    rooms: [
+      { name: 'crossing, opening north', s: [-15, -9], u: [-7, -5.6], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'crossing, opening south', s: [-15, -9], u: [5.6, 7], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'crossing', s: [-15, -9], u: [-5.6, 5.6], h: [-1, 0.5], walls: 'narrowTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
+      { name: 'western lobby, opening north', s: [-67.5, -56], u: [-7, -5.6], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'western lobby, opening south', s: [-67.5, -56], u: [5.6, 7], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'western lobby', s: [-67.5, -56], u: [-5.6, 5.6], h: [-1, 0.5], walls: 'narrowTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
+      { name: 'eastern lobby, opening north', s: [46, 67.5], u: [-7, -5.6], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'eastern lobby, opening south', s: [46, 67.5], u: [5.6, 7], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'eastern lobby', s: [46, 67.5], u: [-5.6, 5.6], h: [-1, 0.5], walls: 'narrowTiles', floor: 'darkTerrazzo', ceiling: 'whitePanels' },
+      { name: 'western escalators', s: [-81, -67], u: [-6.5, 2], h: [-1, 8.5], walls: 'narrowTiles', stairs: 'narrowTiles', ceiling: 'whitePanels' },
+      { name: 'eastern escalators', s: [67, 99], u: [-2, 13], h: [-1, 19.5], walls: 'narrowTiles', stairs: 'narrowTiles', ceiling: 'whitePanels' },
+      { name: 'passage to Långholmsgatan', s: [-153, -140], u: [-49, -9.5], h: [6.5, 12], walls: 'glossTiles', stairs: 'glossTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'passage to Hornsgatan', s: [-158, -145], u: [-9.5, 25], h: [6.5, 12], walls: 'glossTiles', stairs: 'glossTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'passage to Bergsunds strand', s: [-200, -158], u: [-7, 10], h: [6.5, 11], walls: 'glossTiles', stairs: 'glossTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'ticket hall', s: [-97, -80], u: [-8, 3.5], h: [6.5, 8.5], walls: 'glossTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'shops', s: [-147, -96], u: [-10, 3], h: [6.5, 8.5], walls: 'shopWindows', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'eastern hall', s: [96, 116], u: [3, 20], h: [17, 19.5], walls: 'glossTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      { name: 'doors to Långholmsgatan', plan: [[-146.34, -47.4], [-146.82, -43.03], [-147.12, -43.06], [-146.64, -47.43]], h: [11.0, 14.6], from: 11.14,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3.6, bottom: 13.95 } },
+      { name: 'doors to Hornsgatan', plan: [[-157.29, 19.9], [-157.88, 24.26], [-158.18, 24.22], [-157.58, 19.86]], h: [10.5, 14.1], from: 10.65,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3.6, bottom: 13.45 } },
+      { name: 'doors to Hornsbruksgatan', plan: [[107.38, 17.35], [111.73, 18.02], [111.69, 18.31], [107.34, 17.65]], h: [18.0, 21.6], from: 18.15,
+        walls: 'glassFront', sides: [null, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 3.6, bottom: 20.95 } },
+    ],
+    art: [
+      // the round columns in the eastern lobby (Albert Guillaumes's drawing), and down the middle
+      // of the passage of shops (photographs, 2013)
+      { kind: 'columns', at: [[51, -3.8], [58, -3.8], [51, 3.8], [58, 3.8]], from: 0, to: 2.6, size: 0.9, color: 0xeeeeea },
+      { kind: 'columns', at: [[-108, -2.88], [-118, -3.41], [-128, -3.94]], from: 7.51, to: 10.51, size: 0.7, color: 0xf0efea },
+      // Eva Ziggy Berglund's column, by the florist's
+      { kind: 'castColumn', s: -138, u: -4.46, from: 7.51, ceiling: 10.51, head: 2.2 },
+      // the T on its bracket over each door
+      { kind: 'roundel', s: -147.43, u: -45.31, h: 15.4, size: 0.8, foot: 14.8, along: true },
+      { kind: 'roundel', s: -158.42, u: 21.97, h: 14.95, size: 0.8, foot: 14.35, along: true },
+      { kind: 'roundel', s: 109.43, u: 18.52, h: 22.45, size: 0.8, foot: 21.85 },
     ],
   },
 };

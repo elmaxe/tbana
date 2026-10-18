@@ -188,38 +188,54 @@
     },
     "Hornstull": {
       "drawing": "hornstull.png",
-      "note": "Two platform halls, one for each track, joined at both ends and in the middle. From the west end, escalators and stairs climb to a ticket hall with exits round Hornstull; from the east end, a long flight to Långholmsgatan.",
+      "note": "Two straight platform halls, one for each track, the tracks on the outside and the side platforms within, either side of a core of rock 11.5 m wide in two lengths, joined round its ends and by a passage between its lengths (Albert Guillaumes's drawing; OpenStreetMap's platforms). From the western end two escalators, stairs and an inclined lift climb west to a hall under Hornsbruksgatan, past the gates and along a passage lined with shops to the doors in the buildings round Hornstull: stairs and an escalator north to Långholmsgatan, stairs south to Hornsgatan, and a passage west to stairs up to Bergsunds strand under a building's arcade. From the eastern end three escalators and an inclined lift climb east to a hall at street level in the building on Hornsbruksgatan's northern side, by Högalidsparken (OpenStreetMap's indoor ways, 2026, with the gates, shops and lifts; the western hall's depth from its stairs to the streets, the eastern escalators' rise from the street).",
       "routes": [
-        { "from": [0, -6], "width": 8, "go": [
-          {"walk": [0, 6]}
+        { "from": [-12, -6.75], "width": 6, "go": [
+          {"walk": [-12, -5.85], "open": true, "edges": false},
+          {"walk": [-12, 5.85], "ceiling": 2.6},
+          {"walk": [-12, 6.75], "open": true, "edges": false}
         ] },
-        { "from": [-62, -5], "width": 6, "go": [
-          {"walk": [-62, 6]}
+        { "from": [-61.75, -6.75], "h": 0.01, "width": 11.5, "go": [
+          {"walk": [-61.75, -5.85], "open": true, "edges": false},
+          {"walk": [-61.75, 5.85], "ceiling": 2.6},
+          {"walk": [-61.75, 6.75], "open": true, "edges": false}
         ] },
-        { "from": [62, -6], "width": 6, "go": [
-          {"walk": [62, 6]}
+        { "from": [56.75, -6.75], "h": 0.01, "width": 21.5, "go": [
+          {"walk": [56.75, -5.85], "open": true, "edges": false},
+          {"walk": [56.75, 5.85], "ceiling": 2.6},
+          {"walk": [56.75, 6.75], "open": true, "edges": false}
         ] },
-        { "from": [-62, 0], "width": 6, "go": [
-          {"walk": [-85, 0]},
-          {"escalators": 8, "toward": [-130, 0], "lanes": "EES"},
-          {"walk": 6, "width": 7},
+        { "from": [-67.5, -2.25], "h": 0.01, "width": 7, "go": [
+          {"escalators": 7.5, "toward": [-100, -2.25], "lanes": "EESL"},
+          {"walk": [-96, -2.25], "width": 10, "ceiling": 3.0},
           {"gates": true},
-          {"walk": [-130, -5], "width": 6},
-          {"mark": "west"},
-          {"exit": 247202926}
+          {"walk": [-148.92, -5.04], "width": 8, "ceiling": 3.0},
+          {"mark": "junction"}
         ] },
-        { "from": "west", "width": 4, "go": [
-          {"exit": 247202977}
+        { "from": "junction", "width": 5, "go": [
+          {"walk": [-144.94, -36.53], "ceiling": 3.0},
+          {"escalators": 3.64, "toward": [-143.44, -48.44], "lanes": "sE"},
+          {"walk": [-143.92, -44.72], "width": 4, "ceiling": 3.0},
+          {"exit": {"at": [-146.83, -45.24], "name": "Långholmsgatan"}, "by": "walk", "ceiling": 3.0, "sign": false}
         ] },
-        { "from": "west", "width": 4, "go": [
-          {"exit": 9346527528}
+        { "from": "junction", "width": 4.5, "go": [
+          {"walk": [-149.1, 6.61], "ceiling": 3.0},
+          {"mark": "south"},
+          {"stairs": 3.16, "toward": [-149.42, 27.2], "lanes": "SS"},
+          {"walk": [-149.34, 22.01], "ceiling": 3.0},
+          {"exit": {"at": [-157.83, 22.05], "name": "Hornsgatan"}, "by": "walk", "ceiling": 3.0, "sign": false}
         ] },
-        { "from": [62, 0], "width": 6, "go": [
-          {"walk": [80, 0]},
-          {"escalators": 14, "toward": [130, 0], "lanes": "EES"},
-          {"walk": 5, "width": 7},
+        { "from": "south", "width": 6, "go": [
+          {"walk": [-196.1, 5.89], "ceiling": 3.0},
+          {"exit": {"at": [-194.06, -5.71], "name": "Bergsunds strand"}, "by": "stairs", "lanes": "SS"}
+        ] },
+        { "from": [67.5, 2.8], "h": 0.01, "width": 6.6, "go": [
+          {"escalators": 18.14, "toward": [98.28, 9.55], "lanes": "EEEL"},
+          {"walk": [104.36, 10.77], "width": 9, "ceiling": 3.0},
           {"gates": true},
-          {"exit": 247203059}
+          {"walk": [110.25, 11.97], "width": 7, "ceiling": 3.0},
+          {"walk": [109.98, 14.97], "width": 5, "ceiling": 3.0},
+          {"exit": {"at": [109.53, 17.94], "name": "Hornsbruksgatan"}, "by": "walk", "ceiling": 3.0, "sign": false}
         ] }
       ]
     },

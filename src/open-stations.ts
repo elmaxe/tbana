@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -306,6 +306,7 @@ export class OpenLook {
       else if (a.kind === 'revolver') this.revolver(a, frame, on);
       else if (a.kind === 'mushrooms') this.mushrooms(a, frame, on);
       else if (a.kind === 'capitals') this.capitals(a, frame, on);
+      else if (a.kind === 'castColumn') this.castColumn(a, frame, on);
       else if (a.kind === 'neonBoxes') this.neonBoxes(a, frame, on);
       else if (a.kind === 'tramTrack') this.tramTrack(a, frame, on);
       else if (a.kind === 'catenary') this.catenary(a, frame, on);
@@ -446,6 +447,26 @@ export class OpenLook {
         tiles.poly([[...P(k, e, h0), 0, 0], [...P(k + 1, e, h0), a.size / w, 0], [...P(k + 1, e, h1), a.size / w, (h1 - h0) / hh], [...P(k, e, h1), 0, (h1 - h0) / hh]]);
         plaster.poly([[...P(k, e, h1), 0, 0], [...P(k + 1, e, h1), 0, 0], [...P(k + 1, a.head / 2, a.ceiling), 0, 0], [...P(k, a.head / 2, a.ceiling), 0, 0]]);
       }
+    }
+  }
+
+  // Eva Ziggy Berglund's column: turned round its axis from a profile of radii up it, the cast
+  // iron of its foot to its ring of things, and the acrystal above, each its relief once round.
+  private castColumn(a: CastColumn, frame: Frame, on: On) {
+    const k = (a.ceiling - a.from) / 2.9, top = a.head / 2;
+    // (heights over the floor, and radii, for a column under a ceiling 2.9 m up)
+    const profile: [number, number][] = [[0, 0.42], [0.25, 0.47], [0.55, 0.5], [0.85, 0.46], [1.0, 0.4], [1.06, 0.44], [1.14, 0.43], [1.2, 0.36],
+      [1.55, 0.36], [1.6, 0.42], [1.78, 0.42], [1.84, 0.36], [2.15, 0.37], [2.35, 0.46], [2.55, 0.62], [2.75, top * 0.8], [2.9, top]];
+    const iron = on(this.mat('castColumn:iron', () => new THREE.MeshStandardMaterial({ map: T.ziggyColumn(true), roughness: 0.5, metalness: 0.15, side: THREE.DoubleSide })));
+    const pale = on(this.mat('castColumn:pale', () => new THREE.MeshStandardMaterial({ map: T.ziggyColumn(false), roughness: 0.55, side: THREE.DoubleSide })));
+    const n = 24;
+    const P = (i: number, j: number) => {
+      const [h, r] = profile[j], t = (i / n) * Math.PI * 2;
+      return [...frame.at(a.s + Math.cos(t) * r, a.u + Math.sin(t) * r, a.from + h * k), i / n, (h * k) / 2];
+    };
+    for (let j = 0; j + 1 < profile.length; j++) {
+      const m = profile[j][0] < 1.2 ? iron : pale;
+      for (let i = 0; i < n; i++) m.poly([P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)]);
     }
   }
 

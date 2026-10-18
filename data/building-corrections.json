@@ -73,6 +73,36 @@
       "osm": "w232424988",
       "overStation": true,
       "why": "Swedenborgsgatan 4, on the corner of Wollmar Yxkullsgatan, whose ground floor holds the top of the stairs from Mariatorget's eastern ticket hall and the glass doors at the corner (sv.wikipedia; OpenStreetMap's indoor ways, 2026; photographs, 2024): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1377222623",
+      "overStation": true,
+      "why": "The office block on Långholmsgatan at Hornstull, whose ground floor holds the top of the escalator and stairs up from Hornstull's passage of shops and the glass doors in its west front, where OpenStreetMap has the entrance: it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1356784711",
+      "overStation": true,
+      "why": "The block on Hornsgatan at Hornstull, whose ground floor holds the top of the stairs up from Hornstull's passage of shops and the glass doors in its west front, where OpenStreetMap has the entrance: it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103079",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the low part with the round roof over the top of the escalators: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103083",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the part over the top of the escalators: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103084",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the part with the round roof over the hall's western end: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103082",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the tall part with the round roof over the hall and the doors on Hornsbruksgatan: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
     }
   ]
 }
