@@ -6207,5 +6207,36 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[84, 5.25], [140, 5.25]], h: [9.35, 10.45], kind: 'bars' },
     ],
   },
+  // Mörby centrum (its cave: src/hall-styles.ts). The escalators climb 23.6 m from the passage, in
+  // a notch in the southern core's end, south-west over the western track to the ticket hall on the
+  // shopping centre's ground floor, at Mörbyplan's level (Lantmäteriet's laser scan: 30.2 m over the
+  // sea, the platform at 6.6). OpenStreetMap's indoor ways (2026) give their direction, the gates and
+  // the hall's door, but draw them 31 m long, too short for the climb at 30 degrees: their top is
+  // kept a little short of the gates and their foot moved north into the passage to fit. The hall
+  // (photographs, 2016): gates of brushed steel, white tiles, a low ceiling of dark grey perforated
+  // metal, a dark floor; its front onto the centre's passage glazed, the doors under a black band
+  // with the name. The passage through the centre to Mörbyplan: shop fronts either side, a floor of
+  // cream terrazzo, a white slatted ceiling (yellow beams across it in the photographs, not drawn);
+  // the doors onto Mörbyplan glazed in brushed steel under the centre's band (a photograph, 2009),
+  // where OpenStreetMap has the entrance, at the corner of the centre's outline.
+  'Mörby centrum': {
+    rooms: [
+      { name: 'escalators', s: [-46, -8], u: [-24, 6], h: [-1, 23], walls: 'whiteRender', stairs: 'whiteRender', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [-53, -41], u: [-31, -17], h: [23, 25], walls: null, floor: 'darkTiles', ceiling: 'perforated' },
+      { name: 'passage', s: [-63, -30], u: [-69, -18], h: [23, 25], walls: null, floor: 'gridTerrazzo', ceiling: 'slats' },
+    ],
+    blocks: [
+      { name: 'ticket hall', plan: [[-54.18, -22.26], [-49.85, -30.16], [-41.96, -25.83], [-46.29, -17.93]], h: [23.6, 27.2], from: 23.6,
+        walls: 'squareTiles', sides: ['blackFront', undefined, null, undefined], nameSign: { side: 0, at: 0.5, length: 4.4, bottom: 25.95, black: true } },
+      { name: 'passage, east wall', plan: [[-49.85, -30.16], [-31.26, -64.06], [-31.04, -63.94], [-49.64, -30.04]], h: [23.6, 27.2], from: 23.6, walls: 'shopWindows' },
+      { name: 'passage, west wall', plan: [[-59.84, -26.51], [-37.4, -67.42], [-37.62, -67.54], [-60.06, -26.63]], h: [23.6, 27.2], from: 23.6, walls: 'shopWindows' },
+      { name: 'passage, south end', plan: [[-59.84, -26.51], [-53.7, -23.14], [-53.82, -22.92], [-59.96, -26.29]], h: [23.6, 27.2], from: 23.6, walls: 'shopWindows' },
+      // (the centre's floor over the passage, where the street the elevation model lays over the
+      // centre's lower part doesn't run on through it)
+      { name: 'centre over the passage', plan: [[-59.84, -26.51], [-53.7, -23.14], [-31.26, -64.06], [-37.4, -67.42]], h: [23.6, 27.2], from: 23.6, walls: 'shopWindows', sides: [null, null, null, null] },
+      { name: 'doors onto Mörbyplan', plan: [[-37.4, -67.42], [-31.26, -64.06], [-31.4, -63.8], [-37.54, -67.16]], h: [23.6, 27.6], from: 23.6,
+        walls: 'glassFront', sides: [undefined, null, null, null], nameSign: { side: 0, at: 0.5, length: 4.4, bottom: 25.95 } },
+    ],
+  },
 
 };

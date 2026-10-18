@@ -578,8 +578,10 @@ export interface CaveIsland {
   // the passage's openings to the platform each side: arches `inset` in from the pillars' ends
   // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them; or,
   // with `paint`, the walls and the vault over the passage painted so instead; the vault `rise`
-  // over the crowns (2 m if not given). Without it, the passage is open under the rock.
-  portal?: { inset: number; crown: number; thickness: number; paint?: CavePaint; rise?: number };
+  // over the crowns (2 m if not given); with `spring`, the arches spring that high from upright
+  // sides, and with `frame`, bands of these colours go round them in place of the rainbow (CSS
+  // colours, the outer first). Without it, the passage is open under the rock.
+  portal?: { inset: number; crown: number; thickness: number; paint?: CavePaint; rise?: number; spring?: number; frame?: string[] };
   // a flat ceiling of steel mesh `ceiling` high over the tracks and the platform, but not over
   // the passage, with fluorescent tubes across it; or, with `ceilingReach`, only over the track
   // and out to that far past the platform's edge, with rows of tubes along it
@@ -593,10 +595,11 @@ export interface CaveIsland {
   // station's name; or (`walls: 'rights'`) Françoise Schein's tiles up to it; or (`walls:
   // 'stripe'`) the rock black up to it with `stripe` along it, from `from` to `to` high, in
   // lengths of colour from the platform's one end to its other (`colors`, one list for each wall:
-  // the first for the track whose frame runs the island's way)
+  // the first for the track whose frame runs the island's way), and the rock under it, if not
+  // black, `rock`'s colour mottled with its lighter one
   panels: number;
   walls?: 'rights' | 'stripe';
-  stripe?: { from: number; to: number; colors: [string[], string[]] };
+  stripe?: { from: number; to: number; colors: [string[], string[]]; rock?: [string, string] };
   // its fittings' colours, where they aren't Stadion's green steel and cream tiles: the mesh
   // panels' rock, strands and posts (CSS colours), and pale grey tiles or dark granite on the
   // plinth; `fence`, the fences' colours where they aren't the panels', and `fenceHeight`, theirs
@@ -737,6 +740,44 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
       walls: 'stripe',
       stripe: { from: 2.15, to: 2.45, colors: [['#3c3f9c', '#1d62b3', '#2e8c3f', '#d3522c', '#e5c12b', '#1f8fc5'], ['#e5c12b', '#2e8c3f', '#1f8fc5', '#d3522c', '#3c3f9c', '#1d62b3']] },
       fittings: { mesh: ['#18181a', '#2a2a2c', '#222224'], plinth: 'grey', ceiling: ['#5f6265', '#c4c7ca', '#9a9da0'] },
+    },
+  },
+  // Mörby centrum (29 January 1978), the red line's northern end, in a cave 20–22 m under
+  // Mörbyleden and Gamla landsvägen (Swedish Wikipedia): an island platform 24 m wide round two
+  // cores of rock 14.4 m across, a passage between them a little south of its middle, and 8.4 m of
+  // open platform beyond the northern core; the southern core runs on to the platform's end,
+  // between two tongues of it (Albert Guillaumes' drawing, 2024; OpenStreetMap's indoor ways, whose
+  // escalators start by the passage). Photographs (Wikimedia Commons, 2005–2024): Karin Ek's and
+  // Gösta Wessel's shadow paintings, the rock sprayed a pale grey-white and painted in large soft
+  // patches of pink, grey-green and blue-grey that follow its lumps, on the cores, over the passage
+  // and on the track walls over a pale band about 1.3 m above the platform, the rock under it dark
+  // grey, mottled; a flat ceiling of dark expanded metal over the tracks and the platform, tubes
+  // across it on pale beams; over the passage's openings, arches in pale concrete frames on upright
+  // sides, the vault over it painted; the floor polished dark grey with a pale edge. On the
+  // southern core's corner by the escalators, blue and yellow upright stripes (src/network.ts).
+  'Mörby centrum': {
+    paint: { seed: 1978, bands: [{ from: 0, color: '#3f3f3d' }, { from: 3.05, color: '#cfcdc8', edge: 'soft' }],
+      motifs: [{ kind: 'dabs', colors: ['#5a5a57', '#6e6d69'], from: 0, to: 3, size: 0.5, count: 120 },
+        { kind: 'dabs', colors: ['#a7b0aa', '#9ca69f', '#b0b8b8'], from: 3.3, to: 18, size: 2.2, count: 45 },
+        { kind: 'dabs', colors: ['#d2b4b6', '#c9a9ad'], from: 3.3, to: 18, size: 1.6, count: 18 },
+        { kind: 'swirls', colors: ['#e9e8e4', '#a5aaa6'], from: 3.3, to: 18, count: 55, width: 0.25, length: 2.6 }] },
+    island: {
+      pillars: { width: 14.4, gap: 13, ends: [0, 8.4], at: -3, fenced: 0, plinth: 0.12,
+        paint: { seed: 1979, bands: [{ from: 0, color: '#dcdad5' }],
+          motifs: [{ kind: 'dabs', colors: ['#b3bdba', '#a8b3b1', '#bdc4c3'], from: 0, to: 18, size: 2.2, count: 45 },
+            { kind: 'dabs', colors: ['#d6b8ba', '#cdadb1'], from: 0, to: 18, size: 1.6, count: 20 },
+            { kind: 'swirls', colors: ['#efeeea', '#e7e6e2', '#a9adaa'], from: 0, to: 18, count: 70, width: 0.25, length: 2.6 }] },
+        fencedPaint: { seed: 1979, bands: [{ from: 0, color: '#dcdad5' }] } },
+      portal: { inset: 0.6, crown: 5.3, spring: 3.6, thickness: 0.6, rise: 3, frame: ['#d2d0ca', '#dcdad4'],
+        paint: { seed: 1980, bands: [{ from: 0, color: '#e8e7e3' }],
+          motifs: [{ kind: 'dabs', colors: ['#a9b7b6', '#b6c1c0', '#9fadae'], from: 3, to: 18, size: 2, count: 55 },
+            { kind: 'dabs', colors: ['#d3aeb3', '#c9a1a8'], from: 3, to: 18, size: 1.6, count: 12 },
+            { kind: 'swirls', colors: ['#f0efeb', '#e8e7e3', '#a3abaa'], from: 3, to: 18, count: 70, width: 0.25, length: 2.8 }] } },
+      ceiling: 4.4,
+      panels: 2.2,
+      walls: 'stripe',
+      stripe: { from: 2.2, to: 2.45, colors: [['#d6d1c3'], ['#d6d1c3']], rock: ['#424240', '#b9b8b2'] },
+      fittings: { mesh: ['#3f3f3d', '#55534f', '#4a4846'], plinth: 'grey', ceiling: ['#2b2b2a', '#6d6b67', '#a4a29d'] },
     },
   },
   // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in

@@ -582,21 +582,16 @@
     },
     "Mörby centrum": {
       "drawing": "morby_centrum.png",
-      "note": "The line's northern end: a wide island platform deep in the rock. Long escalators climb from it to the ticket hall under the shopping centre.",
+      "note": "The line's northern end: an island platform 24 m wide in a cave 23 m under Mörbyplan, round two cores of rock, a passage between them a little south of the platform's middle (Albert Guillaumes' drawing; OpenStreetMap's indoor ways). From a notch in the southern core's end by the passage four escalators and an inclined lift climb 23.6 m to the south-west, over the western track, to the ticket hall on the ground floor of the shopping centre, from which a passage through the centre leads out to Mörbyplan.",
       "routes": [
-        { "from": [-20, 0], "width": 5, "go": [
-          {"escalators": 18, "toward": [-90, 0], "lanes": "EES"},
-          {"walk": 6, "width": 8},
+        { "from": [-9.5, 0.0], "width": 8.2, "go": [
+          {"escalators": 23.6, "toward": [-44.12, -21.71], "lanes": "LEEEE"},
+          {"walk": 2.5, "width": 8.2},
           {"gates": true},
-          {"walk": 3},
-          {"mark": "hall"},
-          {"exit": 13843669822}
-        ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 2714879925}
-        ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 14104756348}
+          {"walk": [-52.02, -26.21], "width": 8, "ceiling": 3.0},
+          {"walk": [-55.09, -27.89], "width": 7, "ceiling": 3.6},
+          {"walk": [-34.33, -65.74], "width": 7, "ceiling": 3.6},
+          {"exit": {"at": [-33.27, -67.67], "name": "Mörbyplan"}}
         ] }
       ]
     },

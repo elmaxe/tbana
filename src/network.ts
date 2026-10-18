@@ -1346,10 +1346,10 @@ export class Network {
         mesh = b[key] ??= new MeshBuilder();
         repeat = 9.6;
       } else if (st.walls === 'stripe') {
-        // the rock black and smoothed up to the ceiling, and the stripe along it, its lengths of
-        // colour from the island's -s end to its +s end
+        // the rock black (or the stripe's `rock`) and smoothed up to `panels`, and the stripe along
+        // it, its lengths of colour from the island's -s end to its +s end
         const key: MaterialName = `stWall0:${station}`;
-        this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.blackRock(), roughness: 0.85, side: THREE.DoubleSide });
+        this.mats[key] ??= new THREE.MeshStandardMaterial({ map: T.blackRock(st.stripe?.rock), roughness: 0.85, side: THREE.DoubleSide });
         mesh = b[key] ??= new MeshBuilder();
         repeat = 4.8;
         const stripe = st.stripe!, isl = this.islands.find((i) => i.station === station);
@@ -1493,6 +1493,11 @@ export class Network {
           arts.push({ ps, side, s: s0 + (pl * (k + 1)) / (n + 1), y: plinth + 1.45, w: 8.4, h: 2.6, map: () => T.linnePanel(seed), key: `unLinne${seed}` });
         }
       }
+    } else if (station === 'Mörby centrum') {
+      // the blue and yellow stripes on the southern core's end by the passage, at its western
+      // corner, beside the way into the escalators
+      const north = isl.t.z < 0 ? 1 : -1, west = isl.n.x > 0 ? -1 : 1;
+      arts.push({ ps: -north, side: 0, inner: true, s: west * 5.85, y: plinth + 1.9, w: 1.9, h: 3.6, map: () => T.rockStripes(['#2c55a6', '#e2b42e'], 8), key: 'mcStripes' });
     } else if (station === 'Bergshamra') {
       // "Röster från det förflutna": along the cores' sides, rows of black glass painted with
       // the bus, the serpent and the fish between bands of dark natural stone (one row to each
@@ -1524,8 +1529,8 @@ export class Network {
     for (const ps of [-1, 1]) {
       const pl = Math.abs(isl.outer(ps) - isl.inner(ps)), c = (isl.outer(ps) + isl.inner(ps)) / 2;
       // none where the stairs or escalators come down (a little in from its ends: escalators
-      // may start in a notch in its end, as at Bergshamra)
-      if ([-1, 0, 1].some((k) => this.holes.some((o) => { const q = isl.P(c + k * (pl / 2 - 3), 0, 1.5); return insideVolume(o, q.x, q.y, q.z); }))) continue;
+      // may start in a notch in its end, as at Bergshamra and Mörby centrum)
+      if ([-1, 0, 1].some((k) => this.holes.some((o) => { const q = isl.P(c + k * (pl / 2 - 6), 0, 1.5); return insideVolume(o, q.x, q.y, q.z); }))) continue;
       const ring = roundedRect(c, pl / 2, hw, 1.0, 0.35);
       const rows = [plinth, plinth + 0.25, plinth + 0.6];
       for (let y = plinth + 1.1; y < isl.top; y += 0.5) rows.push(y);
@@ -1579,13 +1584,14 @@ export class Network {
       // (in a frame from the passage's middle)
       const P = (s: number, w: number, y: number) => isl.P(isl.mid + s, w, y);
       const { inset, thickness } = portal, crown = portal.crown - S.PLATFORM_HEIGHT, half = gap - inset;
+      const spring = portal.spring === undefined ? 0 : portal.spring - S.PLATFORM_HEIGHT;
       const e0 = -(gap + 0.8), e1 = gap + 0.8;
       const cols: number[] = [];
       for (let s = e0; s < -half - 0.01; s += 0.3) cols.push(s);
       const K = 28;
       for (let k = 0; k <= K; k++) cols.push(-half * Math.cos((Math.PI * k) / K));
       for (let s = half + 0.3; s < e1 + 0.01; s += 0.3) cols.push(Math.min(s, e1));
-      const bottom = (s: number) => (Math.abs(s) < half ? crown * Math.sqrt(Math.max(0, 1 - (s / half) ** 2)) : 0);
+      const bottom = (s: number) => (Math.abs(s) < half ? spring + (crown - spring) * Math.sqrt(Math.max(0, 1 - (s / half) ** 2)) : 0);
       const M = 20, W0 = hw - thickness, vault = crown + (portal.rise ?? 2);
       // (the paint as high as the faces reach along their profile, over the vault too)
       let arc = 0;
@@ -1597,7 +1603,7 @@ export class Network {
       for (const side of [-1, 1] as const) {
         const key: MaterialName = `portal${side > 0 ? 1 : 0}:${station}`;
         const face = mat(key, () => {
-          const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, portal.paint ?? st.pillars.paint, !portal.paint);
+          const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, portal.paint ?? st.pillars.paint, portal.frame ?? !portal.paint, spring);
           return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
         });
         // the inner face: up from the floor or the arch to the crown's height, then curving over the

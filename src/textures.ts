@@ -2401,13 +2401,16 @@ export function stadionCeiling(back = '#1e2023', strand = '#4a4d52', beam = '#38
 }
 
 // Rock painted black, smoothed but still lumpy: 4.8 m along by the height of a track wall (a
-// cave's, from the track's floor up to its ceiling).
-export function blackRock() {
+// cave's, from the track's floor up to its ceiling). Or in another colour, mottled with a lighter
+// one (CSS colours).
+export function blackRock(colors?: [string, string]) {
   const W = 480, H = 520, [c, x] = canvas(W, H), r = rng(1978);
-  x.fillStyle = '#161618'; x.fillRect(0, 0, W, H);
+  const light = colors ? [1, 3, 5].map((i) => parseInt(colors[1].slice(i, i + 2), 16)) : null;
+  x.fillStyle = colors?.[0] ?? '#161618'; x.fillRect(0, 0, W, H);
   for (let k = 0; k < 900; k++) {
     const cx = r() * W, cy = r() * H, rx = 6 + r() * 26, ry = 4 + r() * 14, v = Math.floor(r() * 26);
-    x.fillStyle = r() < 0.5 ? `rgba(${40 + v},${40 + v},${43 + v},0.35)` : `rgba(4,4,5,${0.25 + r() * 0.3})`;
+    x.fillStyle = light ? (r() < 0.5 ? `rgba(${light.join(',')},${0.12 + r() * 0.3})` : `rgba(0,0,0,${0.08 + r() * 0.14})`)
+      : r() < 0.5 ? `rgba(${40 + v},${40 + v},${43 + v},0.35)` : `rgba(4,4,5,${0.25 + r() * 0.3})`;
     for (const dx of [-W, 0, W]) { x.beginPath(); x.ellipse(cx + dx, cy, rx, ry, r() * Math.PI, 0, Math.PI * 2); x.fill(); }
   }
   speckle(x, W, H, 3000, 0.12, 1978);
@@ -2450,9 +2453,11 @@ const RAINBOW = ['#d8321e', '#ee7a1c', '#f2cf2a', '#4aa83a', '#1f9a8a', '#2f6fd0
 
 // The wall over one of the passage's openings, as seen from the passage: the pillars' sky-blue
 // rock, and round the opening a rainbow, its seven bands `band` m wide. `w` m along and `h` m up
-// from the platform; the opening `inset` in from each end with its crown `crown` high. With
-// `redInside`, the red band is the inner one. Without `rainbow`, the rock's paint alone.
-export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint, rainbow = true) {
+// from the platform; the opening `inset` in from each end with its crown `crown` high, its arch
+// springing from upright sides `spring` high (from the floor, if 0). With `redInside`, the red
+// band is the inner one. Without `rainbow`, the rock's paint alone; or, given colours, bands of
+// them round the opening, the outer first, in place of the rainbow's.
+export function stadionPortal(w: number, h: number, inset: number, crown: number, band: number, redInside: boolean, paint: CavePaint, rainbow: boolean | string[] = true, spring = 0) {
   const PX = 48, W = Math.round(w * PX), H = Math.round(h * PX);
   const [c, x] = canvas(W, H);
   // the rock's paint, as on the pillars, upright (its foot, darkened by the track's dust, below
@@ -2464,7 +2469,7 @@ export function stadionPortal(w: number, h: number, inset: number, crown: number
   // the rainbow: the opening's half ellipse, grown band by band, the outer band first
   const hw = w / 2 - inset, mid = w / 2;
   x.setTransform(PX, 0, 0, -PX, 0, H);
-  const colours = !rainbow ? [] : redInside ? [...RAINBOW].reverse() : RAINBOW;
+  const colours = Array.isArray(rainbow) ? rainbow : !rainbow ? [] : redInside ? [...RAINBOW].reverse() : RAINBOW;
   const r = rng(179), ph = [r() * 6, r() * 6];
   for (let k = colours.length; k >= 1; k--) {
     x.fillStyle = colours[colours.length - k];
@@ -2473,7 +2478,7 @@ export function stadionPortal(w: number, h: number, inset: number, crown: number
     for (let i = 0; i <= n; i++) {
       // (wavering a little, as brushed over the lumps)
       const t = Math.PI * (i / n), wob = 1 + 0.025 * Math.sin(t * 7 + ph[0] + k * 0.3) + 0.015 * Math.sin(t * 17 + ph[1]);
-      const s = mid - Math.cos(t) * (hw + k * band) * wob, y = Math.sin(t) * (crown + k * band) * wob;
+      const s = mid - Math.cos(t) * (hw + k * band) * wob, y = spring + Math.sin(t) * (crown - spring + k * band) * wob;
       if (i) x.lineTo(s, y); else x.moveTo(s, -0.1);
     }
     x.lineTo(mid + hw + k * band, -0.1); x.closePath(); x.fill();
@@ -2482,6 +2487,22 @@ export function stadionPortal(w: number, h: number, inset: number, crown: number
   // light on its lumps over the paint, so that it is painted on the rock
   rockShade(x, W, H, Math.round(w * h * 1.5), '255,255,255', 0.16, PX * 0.6, r);
   rockShade(x, W, H, Math.round(w * h * 1.5), '0,0,0', 0.18, PX * 0.6, r);
+  return toTexture(c, { repeat: false });
+}
+
+// Upright stripes painted in turn of these colours over a panel of rock, `n` of them across it, a
+// little uneven as brushed over its lumps (Mörby centrum's, by the escalators): the whole panel.
+export function rockStripes(colors: string[], n: number) {
+  const W = 64 * n, H = 512, [c, x] = canvas(W, H), r = rng(1978 + n);
+  for (let k = 0; k < n; k++) {
+    x.fillStyle = colors[k % colors.length];
+    x.beginPath(); x.moveTo(k * 64 - 1, 0);
+    for (let y = 0; y <= H; y += 32) x.lineTo(k * 64 - 1 + (r() - 0.5) * 3, y);
+    for (let y = H; y >= 0; y -= 32) x.lineTo((k + 1) * 64 + 1 + (r() - 0.5) * 3, y);
+    x.closePath(); x.fill();
+  }
+  rockShade(x, W, H, n * 40, '255,255,255', 0.14, 26, r);
+  rockShade(x, W, H, n * 40, '0,0,0', 0.18, 26, r);
   return toTexture(c, { repeat: false });
 }
 
