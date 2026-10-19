@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -317,6 +317,7 @@ export class OpenLook {
       else if (a.kind === 'crossVault') this.crossVault(a, frame, on);
       else if (a.kind === 'sawtooth') this.sawtooth(a, frame, on);
       else if (a.kind === 'gallery') this.gallery(a, frame, on);
+      else if (a.kind === 'globes') this.globes(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1157,9 +1158,9 @@ export class OpenLook {
     }
     // strip lights, hung under the rafters (lying along the platform, or across it); or in a long
     // round housing, hung lower
-    const L = R.lamps, lampRows = L.at ?? [-L.offset, L.offset];
+    const L = R.lamps, lampRows = (s: number) => L.edges !== undefined ? [-(half(s) - L.edges), half(s) - L.edges] : L.at ?? [-L.offset, L.offset];
     const housing = L.tube ? on(this.color(0xdcdedd, 0.4, 0.5)) : under, drop = L.tube ? rd + 0.25 : 0.13;
-    for (let s = R.from + L.every / 2; s < R.to; s += L.every) for (const u of lampRows) {
+    for (let s = R.from + L.every / 2; s < R.to; s += L.every) for (const u of lampRows(s)) {
       const [fx, fz] = line.dir(s);
       if (L.across) {
         // (kept in from the roof's edge where it narrows; from the lower end of the fitting, the
@@ -1175,7 +1176,7 @@ export class OpenLook {
       else box(under, line.at(s, u, h(u, s) - drop), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
       box(lamp, line.at(s, u, h(u, s) - drop - (L.tube ? 0.1 : 0.03)), fx, fz, L.tube ? 0.16 : 0.1, 0.02, L.length, cut);
     }
-    if (L.tube) for (const u of lampRows) for (let s = R.from + 1; s < R.to; s += R.rafters * 2) box(steel, line.at(s, u, h(u, s) - (drop - 0.1) / 2), ...line.dir(s), 0.03, drop - 0.1, 0.03, cut);
+    if (L.tube) for (let s = R.from + 1; s < R.to; s += R.rafters * 2) for (const u of lampRows(s)) box(steel, line.at(s, u, h(u, s) - (drop - 0.1) / 2), ...line.dir(s), 0.03, drop - 0.1, 0.03, cut);
     // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
     // and those the roof cases; a beam across over each pair, the columns on up through it to the
     // rafters
@@ -1787,6 +1788,23 @@ export class OpenLook {
         glass.poly([lip[i], lip[j], dome[j], dome[i]]);
       }
       glass.poly(dome);
+    }
+  }
+
+  // Lamp posts with white globes, on posts standing on the walkway or the deck beside it.
+  private globes(a: Globes, frame: Frame, on: On) {
+    const post = on(this.color(a.color ?? 0x1e1f21, 0.5, 0.4));
+    const globe = on(this.mat('globe', () => new THREE.MeshStandardMaterial({ color: 0xf2f0e8, emissive: 0xfff3dc, emissiveIntensity: 0.55, roughness: 0.35 })));
+    for (const [s, u, foot] of a.at) {
+      const top = foot + a.height, n = a.cluster ?? 0;
+      bar(post, frame.at(s, u, foot), frame.at(s, u, top - 0.2), 0.11, 0.11);
+      ball(globe, frame.at(s, u, top), 0.22);
+      for (let k = 0; k < n; k++) {
+        const t = (k / n) * Math.PI * 2, ds = Math.cos(t) * 0.5, du = Math.sin(t) * 0.5;
+        bar(post, frame.at(s, u, top - 0.62), frame.at(s + ds, u + du, top - 0.62), 0.04, 0.04);
+        bar(post, frame.at(s + ds, u + du, top - 0.62), frame.at(s + ds, u + du, top - 0.5), 0.04, 0.04);
+        ball(globe, frame.at(s + ds, u + du, top - 0.3), 0.2);
+      }
     }
   }
 

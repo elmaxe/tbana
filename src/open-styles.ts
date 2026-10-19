@@ -133,9 +133,10 @@ export interface ButterflyRoof {
     portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
-  // across the roof's middle): fittings `length` long, `every` apart; `tube`, in a long round
-  // housing hung under the rafters; `across`, the fittings lying across the platform
-  lamps: { offset: number; length: number; every: number; at?: number[]; tube?: boolean; across?: boolean };
+  // across the roof's middle, or this far in from its edges, `edges`, however wide it is there):
+  // fittings `length` long, `every` apart; `tube`, in a long round housing hung under the rafters;
+  // `across`, the fittings lying across the platform
+  lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // name signs hung under the beam at these `s`, with the way out at each end of the platform
   // (none if empty); or, between a pair of beams, from the rafters, `bottom` over the platform;
@@ -388,7 +389,9 @@ export type Finish =
   | 'malarhojdenBrick' // brick, 25 cm, dark browns and red-browns with orange-reds and ochres, a running bond (Mälarhöjden's)
   | 'uprightBoards'  // concrete cast against upright boards, 10 cm, weathered darker down from the top
   | 'malarhojdenHall' // glazed tiles on end, 5 by 20 cm, browns and tan, to 1.8 m; uprightBoards above (Mälarhöjden's ticket hall)
-  | 'malarhojdenFront'; // the middle of Mälarhöjden's front: uprightBoards, a shop window, the doors under the blue name band, a newsagent's window
+  | 'malarhojdenFront' // the middle of Mälarhöjden's front: uprightBoards, a shop window, the doors under the blue name band, a newsagent's window
+  | 'bredangHall'   // dark brown boards on end to 2 m, a ribbon of windows in dark brown frames above, a dark fascia (Bredäng's ticket hall)
+  | 'bredangFront'; // glass in slim dark frames, the doors to 2.4 m, a yellow line, SL's dark blue band, glass above to 5 m (Bredäng's doors)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -437,7 +440,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -519,6 +522,11 @@ export interface CrossVault { kind: 'crossVault'; s: [number, number]; u: [numbe
 // higher end, standing out from the face to the right of the line (`out`: 1) or to its left (-1);
 // and round white lamps on the face every `lamps.every` m, `lamps.h` over the line.
 export interface Sawtooth { kind: 'sawtooth'; from: [number, number, number]; to: [number, number, number]; every: number; out: 1 | -1; lamps?: { every: number; h: number } }
+
+// Lamp posts at the points ([s, u, foot], in the station's frame, each standing `foot` over the
+// platform): a dark post `height` high with a white globe on its top, and (`cluster`) that many
+// more round it on short arms a little lower (Bredäng's walkway).
+export interface Globes { kind: 'globes'; at: [number, number, number][]; height: number; cluster?: number; color?: number }
 
 // The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
 // over the bank, its front along `front` ([s, u] points, facing the platform), `depth` m deep
@@ -8019,6 +8027,149 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     ],
     art: [
       { kind: 'roundel', s: 164.0, u: 9.5, h: 13.6, size: 0.75, foot: 10.15, striped: true },
+    ],
+  },
+  // Bredäng (16 May 1965; Ahlgren, Olsson and Silow, AOS arkitektkontor): an island platform on a
+  // viaduct over Bredängs Allé, the bus street, the station's base building and Bredängstorget,
+  // widening from about 4 m at its west tip, which is on the embankment, to about 14 m at its
+  // east end as its tracks splay apart. The laser scan puts a long flat roof over it from 19.5 m
+  // west of its middle to the end of the ticket hall, its top 3.4 m over the platform, as wide as
+  // the platform and a little more. Photographs (2006 to 2024) show it boarded underneath in dark
+  // stained timber along the platform, on dark glulam beams across it, which reach out past two
+  // light grey steel I-beams along it to the edges, where their ends show; the beams on two rows
+  // of slim grey steel columns; a thin dark fascia and a dark grey covering; rows of strip lights
+  // along both sides; black name signs hung across the platform, clocks and departure boards.
+  // Glass shelters stand down its middle on bands of red-brown pavers, with wooden benches; the
+  // paving is asphalt, with a pale edge band and a grey ribbed strip. Galvanised railings run
+  // along the decks' edges beyond the tracks. Out on the open west tip, lamp posts and a sign.
+  //
+  // At the platform's east end, between the tracks and at its level, the ticket hall (OpenStreetMap's
+  // indoor mapping): a glass wall across the platform, the gates, and beyond them a well with an
+  // escalator and stairs down eastwards to a lobby on the square, under a deck at the platform's
+  // level. Its walls, under the roof, are dark brown with a ribbon of windows high up (photographs
+  // from the air, 2014); the end of the well stands out past the roof in red brick under SL's dark
+  // blue band with the name, glazed on its north side, and at its south-east corner the lift's
+  // round tower in small teal tiles (the laser scan: 4.5 m over the platform). A walk along the
+  // south side of the well leads out onto the deck, and from its east tip a walkway runs east
+  // between the tracks on a deck of its own over the square, then on along the ground; railings
+  // with upright bars, and black lamp posts with white globes along its south side, clusters of
+  // them near the hall (the laser scan; photographs, 1999 to 2005). Under the decks, the base
+  // building: one storey of shops (OpenStreetMap's outline, which the city leaves out), its glass
+  // doors to the square under the deck in its east face, under SL's dark blue band with the name
+  // (photograph, 2016). The decks stand on round concrete piers.
+  //
+  // Not drawn: the copper panels in the roof's underside, Lena Kriström's Pusselbitar (1982, wooden
+  // reliefs in the ticket hall, of which no photograph was found), the lift itself (only its tower),
+  // the newsagent's and the shops' signs, and Erik Höglund's granite ring on the square. Guesses:
+  // the ticket hall's inside, the well's and the lobby's finishes, the piers' places, the shelters'
+  // places, and the walkway's parapets where it runs on along the ground.
+  'Bredäng': {
+    roof: {
+      kind: 'butterfly',
+      from: -19.5, to: 113, width: 12.2,
+      shape: [[-19.5, 0, 10.8], [0, 0, 12.2], [20, 0, 13.3], [40, -0.2, 14.3], [60, 0, 15.0], [80, 0, 15.3], [100, -0.1, 15.5], [113, -0.2, 15.4]],
+      middle: 3.1, edge: 3.1, thick: 0.3, fascia: 0.25,
+      rafters: 1.3, rafterSize: [0.14, 0.32], rafterColor: 0x2e2119, deck: 'boards',
+      beam: 0.5,
+      columns: { every: 6.5, at: -16, size: 0.14, plinth: { size: 0.22, height: 0.08 }, edges: 2.5 },
+      lamps: { offset: 0, edges: 1.4, length: 1.5, every: 1.55, tube: true },
+      colors: { underside: 0x3b2a20, fascia: 0x2a2826, top: 0x4b4e50, steel: 0xb7bbbd },
+      signs: { at: [-8, 26, 58], back: '', ahead: '', across: 3.0 },
+      clocks: [[20, -3.6], [86, -4.0]],
+      // (trains keep left: those towards the city stop on the northern track)
+      boards: [
+        { s: 32, u: -3.4, toward: 'T-Centralen', trains: ['13 Ropsten  3 min', '13 Ropsten  13 min'] },
+        { s: 32, u: 3.4, toward: 'Norsborg', trains: ['13 Norsborg  5 min', '13 Norsborg  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.6, tactile: [0.6, 1.0], slabs: 1.0,
+      colors: { edge: 0xd6d5cf, tactile: 0x85878a, slab: 0x58595b, pavers: 0x58595b, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    buildings: ['w97467649'],
+    rooms: [
+      { name: 'platform before the hall', s: [86, 93.85], u: [5, 11], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'walk south of the well', s: [106.3, 117.2], u: [14.25, 17], h: [-0.3, 0.3], walls: null, floor: 'asphalt', slab: 1.0 },
+      { name: 'deck east of the well', s: [117.2, 123.55], u: [3, 18], h: [-0.3, 0.3], walls: null, floor: 'asphalt' },
+      { name: 'walkway over the square', s: [123.55, 156.2], h: [-1.0, 0.3], walls: null, floor: 'asphalt' },
+      { name: 'walkway', s: [156.2, 220], h: [-2.5, 0.3], walls: null, floor: 'asphalt', slab: 0.6 },
+      { name: 'ticket hall', s: [93.85, 117.3], h: [-0.3, 0.3], walls: null, floor: 'terrazzo', slab: 1.0 },
+      { name: 'lobby', s: [116.9, 125], h: [-6.5, -5.5], walls: 'whiteRender', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'escalator and stairs', s: [105, 117.0], h: [-6.5, 0.3], walls: 'whiteRender', stairs: 'whiteRender', ceiling: 'whiteRender' },
+    ],
+    blocks: [
+      // the ticket hall's floor where its ways leave it open, and the walk's
+      { name: "ticket hall's floor", plan: [[93.4, 0.95], [106.4, 2.0], [106.4, 16.53], [93.4, 15.17]], h: [0, 0], walls: 'bredangHall', sides: [null, null, null, null], floor: 'terrazzo' },
+      { name: "north side's floor", plan: [[106.4, 2.0], [113.0, 2.6], [113.0, 6.6], [106.4, 6.6]], h: [0, 0], walls: 'bredangHall', sides: [null, null, null, null], floor: 'terrazzo' },
+      { name: "walk's floor", plan: [[106.4, 14.3], [117.3, 14.3], [117.3, 17.4], [106.4, 16.53]], h: [0, 0], walls: 'bredangHall', sides: [null, null, null, null], floor: 'asphalt' },
+      // its walls: glass across the platform, dark brown under a ribbon of windows along the
+      // tracks and along the well's south side, glass at its east end beside the brick
+      { name: 'glass wall', plan: [[93.4, 0.92], [93.55, 0.92], [93.55, 15.2], [93.4, 15.2]], h: [-1.0, 3.1], walls: 'glazed' },
+      { name: 'north wall', plan: [[93.5, 0.92], [113.0, 2.6], [113.0, 2.7], [93.5, 1.02]], h: [-1.0, 3.1], walls: 'bredangHall' },
+      { name: 'south wall', plan: [[93.5, 15.17], [106.4, 16.48], [106.4, 16.58], [93.5, 15.27]], h: [-1.0, 3.1], walls: 'bredangHall' },
+      { name: "well's south wall", plan: [[106.4, 14.22], [113.0, 14.22], [113.0, 14.28], [106.4, 14.28]], h: [-1.0, 3.1], walls: 'bredangHall' },
+      { name: 'glass at the east end', plan: [[112.9, 2.6], [113.0, 2.6], [113.0, 5.6], [112.9, 5.6]], h: [-1.0, 3.1], walls: 'glazed' },
+      // the end of the well, in brick, open to the hall
+      { name: "well's end", plan: [[113.0, 5.6], [117.3, 5.6], [117.3, 14.25], [113.0, 14.25]], h: [0, 2.65], walls: 'brick', sides: [undefined, undefined, undefined, null],
+        ceiling: 'whiteRender', roof: 0.15, roofColor: 0x4a4c4e, nameSign: { side: 1, at: 0.35, length: 3.6, bottom: 1.6 } },
+      // the decks at the platform's level east of the hall and beside the well, and the walkway's
+      // over the square, falling eastwards
+      { name: 'deck east of the well', plan: [[117.3, 3.9], [123.6, 6.0], [123.6, 13.5], [117.3, 17.4]], h: [-1.0, -1.0], from: -1.0,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.95, roofColor: 0x8e8c87 },
+      { name: 'ledge beside the well', plan: [[113.0, 3.6], [117.3, 3.9], [117.3, 5.6], [113.0, 5.6]], h: [-1.0, -1.0], from: -1.0,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.95, roofColor: 0x8e8c87 },
+      { name: "walkway's deck", plan: [[123.6, 8.6], [123.6, 12.6], [156.1, 15.75], [156.1, 11.75]], h: [-1.0, -1.0], from: -1.0, fall: -1.78,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.95, roofColor: 0x8e8c87 },
+      // the base building under the decks (OpenStreetMap's outline): up to the hall's slab between
+      // the platform's edges, under the tracks' decks beside them, and its roof outside them; the
+      // doors to the square under the deck in its east face
+      { name: 'base building, under the hall, north', plan: [[96.34, 1.07], [125.28, 3.76], [124.01, 6.5], [93.80, 6.5]], h: [-6.6, -1.15], from: -6.4,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, null, undefined], roof: 0.1, roofColor: 0x55585a },
+      { name: 'base building, the doors', plan: [[93.80, 6.5], [124.01, 6.5], [120.77, 13.5], [90.52, 13.5]], h: [-6.6, -1.05], from: -6.0,
+        walls: 'shopWindows', sides: [null, 'bredangFront', null, undefined], floor: 'terrazzo', ceiling: 'whiteRender',
+        nameSign: { side: 1, at: 0.5, length: 3.6, bottom: 2.46 - 6.0 } },
+      { name: 'base building, under the hall, south', plan: [[90.52, 13.5], [120.77, 13.5], [118.72, 17.93], [89.97, 14.68]], h: [-6.6, -1.15], from: -6.4,
+        walls: 'shopWindows', sides: [null, undefined, 'boardConcrete', undefined], roof: 0.1, roofColor: 0x55585a },
+      { name: 'base building, under the northern deck', plan: [[98.48, -3.5], [128.63, -3.5], [125.28, 3.76], [96.34, 1.07]], h: [-6.6, -2.75], from: -6.4,
+        walls: 'shopWindows', sides: [null, undefined, null, undefined], roof: 0.1, roofColor: 0x55585a },
+      { name: 'base building, north', plan: [[106.29, -20.18], [130.92, -8.45], [128.63, -3.5], [98.48, -3.5]], h: [-6.6, -2.0], from: -6.4,
+        walls: 'shopWindows', sides: [undefined, undefined, 'boardConcrete', undefined], roof: 0.1, roofColor: 0x55585a },
+      { name: 'base building, under the southern deck', plan: [[89.97, 14.68], [118.72, 17.93], [116.7, 22.3], [87.94, 19.0]], h: [-6.6, -2.75], from: -6.4,
+        walls: 'shopWindows', sides: [null, undefined, null, undefined], roof: 0.1, roofColor: 0x55585a },
+      { name: 'base building, south', plan: [[87.94, 19.0], [116.7, 22.3], [111.24, 34.11], [86.51, 22.06]], h: [-6.6, -2.0], from: -6.4,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, undefined, undefined], roof: 0.1, roofColor: 0x55585a },
+    ],
+    art: [
+      // the lift's tower, in small teal tiles
+      { kind: 'columns', at: [[116.8, 12.0]], from: -6.0, to: 4.45, size: 2.6, color: 0x5aa59f },
+      // the decks' piers, round, under the tracks (and the walkway's)
+      { kind: 'columns', at: [[4, -6.89], [18, -6.18], [32, -5.38], [46, -4.46], [60, -3.45], [79, -1.96], [139, 3.58], [151, 4.86], [4, 6.74], [18, 8.2], [32, 9.7], [46, 11.26], [58, 12.62], [74, 14.43], [139, 21.92], [151, 23.5]], from: -12.5, to: -2.6, size: 0.9, color: 0x9d9a93 },
+      { kind: 'columns', at: [[139, 11.95]], from: -12.5, to: -1.36, size: 0.8, color: 0x9d9a93 },
+      // the red-brown pavers under the shelters
+      { kind: 'checks', solid: true, color: 0x8a4c3c, at: [[11, 0], [41, 0], [73, 0]], rows: 50, cols: 5, tile: 0.24, size: [0.24, 0.24] },
+      // lamp posts and the sign on the open west tip
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.5, at: [[-52, -3.26], [-38, -2.67]] },
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.5, sign: 2.6, at: [[-27, -2.11]] },
+      // the lamps along the walkway: clusters near the hall, single globes on along it
+      { kind: 'globes', height: 3.7, cluster: 4, at: [[119.6, 17.2, 0], [126.5, 11.6, -0.06]] },
+      { kind: 'globes', height: 3.7, at: [[135, 12.75, -0.29], [143.5, 12.95, -0.49], [152.5, 14.44, -0.71], [160.5, 15.41, -0.88], [169, 16.75, -1.05], [178.5, 17.08, -1.24], [186.5, 18.67, -1.41], [195.5, 18.76, -1.59], [203.5, 20.15, -1.66]] },
+    ],
+    shelters: [{ s: [8, 14], u: [-0.8, 0.8] }, { s: [38, 44], u: [-0.8, 0.8] }, { s: [70, 76], u: [-0.8, 0.8] }],
+    benches: { at: [-2, 24, 30, 56, 62], wood: true },
+    fences: [
+      // the decks' railings beyond the tracks, and along their inner edges east of the hall
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.6, -0.5], points: [[-10, -10.16], [-2, -9.87], [6, -9.52], [14, -9.12], [22, -8.68], [30, -8.22], [38, -7.72], [46, -7.18], [54, -6.61], [62, -6.02], [70, -5.4], [78, -4.76], [86, -4.1], [94, -3.42], [102, -2.7], [110, -1.97], [118, -1.22], [126, -0.45], [134, 0.34], [142, 1.17], [150, 2.03], [152, 2.25]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.6, -0.5], points: [[-10, 8.02], [-2, 8.84], [6, 9.66], [14, 10.49], [22, 11.34], [30, 12.21], [38, 13.09], [46, 13.98], [54, 14.89], [62, 15.79], [70, 16.7], [78, 17.6], [86, 18.51], [94, 19.42], [102, 20.33], [110, 21.23], [118, 22.15], [126, 23.09], [134, 24.04], [142, 25.03], [150, 26.08], [152, 26.36]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.6, -0.5], points: [[123.6, 4.75], [130.6, 5.44], [137.6, 6.15], [144.6, 6.88], [151.6, 7.65], [152, 7.69]] },
+      { kind: 'rails', color: 0x9aa0a4, h: [-1.6, -0.5], points: [[123.9, 17.4], [130.9, 18.23], [137.9, 19.06], [144.9, 19.97], [151.9, 20.9], [152, 20.92]] },
+      // round the deck east of the hall and along the walkway over the square, upright bars
+      { kind: 'bars', color: 0x8f9498, h: [0, 1.1], points: [[106.4, 16.6], [117.0, 16.9], [121.0, 16.6], [122.6, 14.5], [123.6, 12.6]] },
+      { kind: 'bars', color: 0x8f9498, h: [0, 1.1], points: [[113.0, 3.9], [117.3, 4.3], [121.0, 5.0], [123.0, 6.5], [123.6, 8.6]] },
+      { kind: 'bars', color: 0x8f9498, h: [0, 1.1], points: [[123.6, 8.6, -0.05], [131.7, 9.31, -0.24], [139.9, 10.03, -0.43], [148.0, 10.75, -0.61], [156.1, 11.48, -0.8]] },
+      { kind: 'bars', color: 0x8f9498, h: [0, 1.1], points: [[123.6, 12.6, -0.05], [131.7, 13.31, -0.24], [139.9, 14.03, -0.43], [148.0, 14.75, -0.61], [156.1, 15.48, -0.8]] },
+      // and along the ground, chain-link over the northern track's cutting
+      { h: [0, 1.4], points: [[156.1, 11.88, -0.79], [166, 12.85, -0.99], [176, 13.84, -1.19], [186, 14.82, -1.39], [196, 15.81, -1.6], [201, 16.3, -1.7]] },
     ],
   },
 };

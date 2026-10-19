@@ -1018,13 +1018,35 @@
     },
     "Bredäng": {
       "drawing": "bredang.png",
-      "note": "A long island platform, its east end on a bridge over the road. Stairs go down from there to the ticket hall under the bridge.",
+      "note": "A long island platform on a viaduct over Bredängs Allé, the bus street, the station's base building and Bredängstorget, widening eastwards as its tracks splay apart; its narrow west tip is on the embankment. At its east end, between the tracks and at the platform's level, the ticket hall: a glass wall across the platform, the gates (OpenStreetMap's indoor mapping: the hall's wall 11 m east of the station's node, the validator 18 m), and beyond them a well with an escalator and stairs down eastwards to a lobby on the square, under a deck at the platform's level, its doors in the base building's east face (OpenStreetMap's indoor mapping: the escalator's top 26 m east of the node, the doors 40 m). A walk along the south side of the well leads out onto that deck, and from its east tip a walkway runs east between the tracks, over the square on a deck of its own and on along the ground to Gröna Stugans stig (its heights from Lantmäteriet's laser scan). The lift down to the square, in a round tower beside the well, isn't drawn as a lift.",
       "routes": [
-        { "from": [90, 7.5], "width": 4, "go": [
-          {"stairs": -6, "toward": [150, 9]},
-          {"walk": 6, "width": 6},
+        { "from": [88.0, 8.16], "width": 3.0, "go": [
+          {"walk": [94.6, 8.16], "open": true, "edges": false},
+          {"walk": [100.5, 8.81], "width": 13.9, "open": true, "edges": false},
           {"gates": true},
-          {"exit": 13752272272, "by": "walk"}
+          {"walk": [106.4, 9.46], "open": true, "edges": false}
+        ] },
+        { "from": [106.4, 4.8], "h": 0.005, "width": 3.6, "go": [
+          {"walk": [112.8, 4.8], "open": true, "edges": false}
+        ] },
+        { "from": [106.4, 11.95], "h": 0.005, "width": 4.5, "go": [
+          {"walk": [117.0, 11.95], "open": true, "edges": false}
+        ] },
+        { "from": [106.4, 8.15], "width": 3.1, "go": [
+          {"escalators": -6.0, "toward": [200, 8.15], "lanes": "sE", "open": true},
+          {"walk": [118.6, 8.15], "ceiling": 5.0}
+        ] },
+        { "from": [117.0, 10.0], "h": -6.0, "width": 7.0, "go": [
+          {"walk": [121.0, 10.0], "ceiling": 5.0},
+          {"walk": [121.8, 10.0], "width": 2.4, "ceiling": 2.7},
+          {"exit": {"at": [123.4, 10.0], "name": "Bredängstorget"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [106.4, 15.4], "width": 2.2, "go": [
+          {"walk": [117.3, 15.4], "open": true, "edges": false},
+          {"walk": [123.0, 10.6], "open": true, "edges": false},
+          {"walk": [154.3, 13.3], "dh": -0.75, "width": 3.6, "open": true, "edges": false},
+          {"walk": [201.0, 17.9], "dh": -0.95, "width": 3.0, "open": true, "edges": false},
+          {"exit": {"at": [215.9, 19.4], "name": "Gröna Stugans stig"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

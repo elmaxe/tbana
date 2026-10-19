@@ -5420,9 +5420,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   wesselClinker: [1.2, 0.96], wesselBricks: [1.2, 0.91], axelsbergTiles: [1.2, 1.2], axelsbergFront: [18.0, 4.8],
   glulam: [1.2, 1.2], ribbedBoards: [1.2, 1.2], cobbles: [2.4, 2.4], axelsbergRamp: [1.2, 1.2], axelsbergFloor: [1.2, 1.2],
   malarhojdenBrick: [2.6, 2.4], uprightBoards: [1.2, 2.4], malarhojdenHall: [1.2, 4.8], malarhojdenFront: [14.4, 3.4],
+  bredangHall: [1.2, 3.1], bredangFront: [1.3, 5.0],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8185,6 +8186,33 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'bredangHall': {
+      // the walls of Bredäng's ticket hall, under the platform's roof: dark brown boards on end,
+      // 10 cm, to 2.0 m, a beam, and a ribbon of windows in dark brown frames above, under a dark
+      // fascia (photographs from the air and from the walkway, 2005 and 2014)
+      for (let i = 0; i * 0.1 * PX < W; i++) {
+        const v = Math.floor(r() * 12) - 6;
+        x.fillStyle = `rgb(${70 + v},${48 + v * 0.7},${36 + v * 0.5})`; x.fillRect(i * 0.1 * PX, Y(2.0), 0.1 * PX, 2.0 * PX);
+        x.fillStyle = 'rgba(18,11,8,0.6)'; x.fillRect(i * 0.1 * PX, Y(2.0), 2, 2.0 * PX);
+      }
+      band(0, 0.08, '#2c2420');
+      band(2.0, 2.12, '#3a2a20');
+      pane(2.12, 2.95, '#3a2a20', 0.1);
+      x.fillStyle = '#3a2a20'; x.fillRect(0, Y(2.17), W, 0.05 * PX); x.fillRect(0, Y(2.95), W, 0.05 * PX);
+      band(2.95, 3.1, '#2a2826');
+      break;
+    }
+    case 'bredangFront': {
+      // the doors from Bredängstorget, under the deck: glass in slim dark frames 1.3 m apart, the
+      // doors to 2.4 m, a yellow line, SL's dark blue band (the block's sign puts the name on it),
+      // and glass above in the same frames up to the deck (photograph, 2016)
+      const dark = '#2e3236';
+      pane(0, h, dark, 0.08);
+      x.fillStyle = dark; x.fillRect(0, Y(0.06), W, 0.06 * PX); x.fillRect(0, Y(1.05), W, 0.04 * PX); x.fillRect(0, Y(4.0), W, 0.05 * PX);
+      band(2.4, 2.46, '#e0b13a'); band(2.46, 3.0, '#1d2a66'); band(3.0, 3.06, dark);
+      band(4.9, 5.0, dark);
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -8193,7 +8221,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront', 'bredangHall', 'bredangFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
