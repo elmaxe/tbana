@@ -159,9 +159,9 @@
     },
     {
       "name": "Mälarhöjden: the square in front of the station",
-      "outline": [-5833.4, 3396.8, -5827.1, 3391.9, -5816.7, 3405.4, -5806.9, 3418.0, -5814.4, 3423.8, -5821.4, 3409.0],
+      "outline": [-5836.6, 3399.3, -5827.1, 3391.9, -5816.7, 3405.4, -5806.9, 3418.0, -5817.9, 3426.6, -5825.4, 3412.1],
       "heights": [35.0, 34.1, 34.46, 34.64, 34.82, 34.71],
-      "why": "The square in front of Mälarhöjden's station, from its front at the foot of the church's hill 6–9 m out, along the whole front. Lantmäteriet's laser scan (2021) has it at 34.6–34.8 m right up to the front, falling to 34.1–34.5 m towards Slättgårdsvägen and the corner of Hägerstensvägen; the elevation model's 5 m grid smooths the hill behind into it, up to 36.0–36.6 m at the doors, which would bury their foot (the hall's floor, behind them, is at 34.7 m)."
+      "why": "The square in front of Mälarhöjden's station, along its whole front at the foot of the church's hill, from 6–9 m out to 5–6 m in under the front (whose walls stand on it). Lantmäteriet's laser scan (2021) has it at 34.6–34.8 m right up to the front, falling to 34.1–34.5 m towards Slättgårdsvägen and the corner of Hägerstensvägen; the elevation model's 5 m grid smooths the hill behind into it, up to 36.0–36.6 m at the doors, which would bury their foot (the hall's floor, behind them, is at 34.7 m). The plane is fitted to the laser scan's square and carried in under the front, so that the 5 m grid's slope down from the hill stays inside the building."
     }
   ],
   "open": [
