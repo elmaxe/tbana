@@ -132,6 +132,12 @@
       "outline": [-2106.6, 2331.7, -1997.4, 2250.6, -1970.2, 2287.2, -2079.4, 2368.3],
       "heights": [9.93, 9.75, 9.9, 9.92],
       "why": "Liljeholmen's platforms, from the hall of 1964 at their south end to 64 m north of their middle, are in a hall under a deck built over the open station in the 2000s, which carries Liljeholmstorget, the buildings on its west side and their courtyard; the station draws the hall (src/open-styles.ts). The elevation model leaves the deck out and sags under it to 7.5–9 m, 2.5–4.3 m over the platforms, through the hall's ceiling. Lantmäteriet's laser scan (2021) has the deck at 9.75–9.93 m, about 5.2 m over the platforms, from the hall of 1964 to the north hall. The outline reaches 5 m beyond the hall's western wall, under the blocks of flats over Liljeholmsgränd, so that the 5 m grid's slope down to the street stays out of the hall."
+    },
+    {
+      "name": "Hägerstensåsen: the end of Sedelvägen before the station's pavilion",
+      "outline": [-4540.9, 3993.6, -4532.9, 3987.8, -4515.2, 4012.0, -4523.2, 4017.9],
+      "heights": [52.45, 52.45, 52.45, 52.45],
+      "why": "The tracks go into the tunnel to Telefonplan under Hägerstensåsen's pavilion, whose doors open east onto the end of Sedelvägen, 5.8 m over the platform (Lantmäteriet's laser scan: 52.4–52.8 m). The network has the tunnel's mouths under the pavilion's east end, and the open track's trench, rounding off past them, opened a pit in the street before its doors; on the deck it stops at the mouths, and the street (raised to its level, below) runs on to the pavilion."
     }
   ],
   "open": [
@@ -191,6 +197,11 @@
       "outline": [[669, 1184.5], [707, 1202], [707, 1241], [733, 1241], [733, 1218], [752, 1227], [753, 1229], [758, 1241], [761, 1252], [767, 1250], [808, 1269], [800, 1283], [790, 1288], [740, 1290], [700, 1292], [655, 1290], [655, 1200]],
       "ground": 12.5,
       "why": "Södermalmstorg, from the pavilions over the water square to Slussbrogatan and Guldbron's Söder end. The elevation model is from the rebuilding of Slussen, when the square was a pit 2–11 m deep with ramps and spoil in it; the finished square is paved and level with Guldbron's Söder end at 12.5 m (Lantmäteriet's laser scan of the bridge, 2021), rising to the south-west towards Hornsgatan, where the model's ground still stands above this and is kept. The outline reaches to Guldbron's end (the deck covers the ground beyond it) and keeps a grid cell (5 m) back from the pavilions' walls over the water square and from the stairs' flights, so that the ground's slope down from it lies under the pavilions' roofs and the stairs' landing (src/detail/slussen.ts)."
+    },
+    {
+      "outline": [[-4540.9, 3993.6], [-4532.9, 3987.8], [-4515.2, 4012.0], [-4523.2, 4017.9]],
+      "ground": 52.45,
+      "why": "Hägerstensåsen: the end of Sedelvägen in front of the station's pavilion over the tracks, 5.8 m over the platform at its doors (Lantmäteriet's laser scan: 52.4–52.8 m; the elevation model's 52.5 m at the doors). The elevation model dips there into the cutting at the tunnel's mouth under the pavilion, so the street before its doors was a pit; raised to the street, the tunnel is buried under it."
     }
   ],
   "paved": [
@@ -273,6 +284,10 @@
     {
       "outline": [[-1002.6, -6717.3], [-987.2, -6718.9], [-993.1, -6774.6], [-1003.0, -6773.6], [-997.8, -6723.8], [-1003.3, -6723.3]],
       "why": "The sunken walkway east of Danderyds sjukhus's northern ticket hall, whose door opens in its side: a path in a cutting 4.7 m deep, rising out of it to the north (Lantmäteriet's laser scan)."
+    },
+    {
+      "outline": [[-4540.9, 3993.6], [-4532.9, 3987.8], [-4515.2, 4012.0], [-4523.2, 4017.9]],
+      "why": "Hägerstensåsen: the end of Sedelvägen in front of the station's pavilion, asphalt (a photograph, 2016; Google's 3D model)."
     }
   ],
   "shallow": [

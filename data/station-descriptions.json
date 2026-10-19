@@ -780,19 +780,39 @@
     },
     "Hägerstensåsen": {
       "drawing": "hagerstenasen.png",
-      "note": "An island platform in the open, its south-west end on a bridge. Stairs go down from that end to a ticket hall under the bridge, and up from the other end to one over the tracks.",
+      "note": "An island platform in the open between two tracks, its west end on the bridge over Personnevägen, its east end against the station's building over the mouth of the tunnel to Telefonplan. From the west end a stair house between the tracks leads to an escalator and stairs down west to the ticket hall under the bridge, at the street, and a lift beyond them; its doors are in its west front. From the east end a lobby leads to stairs and an escalator up east to the pavilion over the tracks, its doors east onto Sedelvägen, and a glazed lift beside it. Laid out from OpenStreetMap's indoor mapping (the escalator from 59.6 m to 67.7 m west, the gates at 76 m, the doors at 80 m; the stairs and escalator from 102.4 m east, the gates at 119.5 m, the doors at 129 m), Lantmäteriet's laser scan (the street 5 m under the platform at the west end, the square 5.8 m over it at the east end) and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-38, 0], "width": 2, "go": [
-          {"stairs": -5.4, "toward": [-100, 0]},
-          {"walk": 6, "width": 6},
+        { "from": [-51.0, 1.15], "width": 3.1, "go": [
+          {"walk": [-59.6, 1.15], "open": true},
+          {"escalators": -5.0, "toward": [-200, 1.15], "lanes": "Es"},
+          {"walk": [-70.5, 1.15], "open": true},
+          {"walk": [-76.1, 1.15], "width": 6.0, "open": true},
           {"gates": true},
-          {"exit": 4353129206, "by": "walk"}
+          {"walk": [-81.6, 1.15], "open": true},
+          {"walk": [-85.0, 1.15], "width": 2.6, "ceiling": 2.4},
+          {"exit": {"at": [-88.5, 1.15], "name": "Personnevägen"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [80, 0], "width": 4, "go": [
-          {"stairs": 6, "toward": [150, 0]},
-          {"walk": 6, "width": 6},
+        { "from": [-51.0, 3.3], "width": 1.2, "go": [
+          {"walk": [-68.7, 3.3], "open": true},
+          {"lift": -5.0, "above": 3.0, "through": true},
+          {"walk": [-74.0, 3.3], "open": true}
+        ] },
+        { "from": [95.0, 0.95], "width": 3.1, "go": [
+          {"walk": [98.0, 0.95], "open": true},
+          {"walk": [98.8, 0.95], "width": 2.0, "ceiling": 2.3},
+          {"walk": [102.4, 0.95], "width": 3.1, "open": true},
+          {"escalators": 5.8, "toward": [200, 0.95], "lanes": "sE"},
+          {"walk": [114.8, 0.95], "open": true},
+          {"walk": [119.5, 0.95], "width": 5.0, "open": true},
           {"gates": true},
-          {"exit": 6963266, "by": "walk"}
+          {"walk": [128.3, 0.95], "open": true},
+          {"walk": [130.0, 0.95], "width": 2.6, "ceiling": 2.3},
+          {"exit": {"at": [133.5, 0.95], "name": "Sedelvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [100.6, 3.4], "width": 2.0, "go": [
+          {"walk": [99.0, 3.4], "open": true},
+          {"lift": 5.8, "above": 3.8},
+          {"walk": [117.0, 3.4], "width": 1.4, "open": true}
         ] }
       ]
     },

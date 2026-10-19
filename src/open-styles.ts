@@ -354,7 +354,12 @@ export type Finish =
   | 'blastedRock'   // the rough grey face of a cutting blasted through the rock, cracked and stained rust brown
   | 'kioskFront'    // a newsagent's front: shop windows with posters between yellow posts, black panels over them
   | 'tfpWestFront'  // Telefonplan's station building to the west: the newsagent's, the station's doors, a florist's, brick
-  | 'tfpSouthFront'; // and to the south, brick: a florist's board, the station's doors, an orange door, three windows
+  | 'tfpSouthFront' // and to the south, brick: a florist's board, the station's doors, an orange door, three windows
+  | 'tricolourWindows' // tiles, 15 cm, oxblood, white and grey in diagonal rows, to a sill; clear glass in oxblood frames above
+  | 'tricolourTiles' // the same tiles all the way up
+  | 'quarryTiles'   // unglazed floor tiles, 20 cm, red-brown and dark grey at random, in dark joints
+  | 'darkBoards'    // narrow boards of dark-stained timber, a ceiling's
+  | 'hgaFront';     // Hägerstensåsen's pavilion to Sedelvägen: brown ribbed panels, the glass doors, brick with a newsagent's, clerestory windows over them
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -7000,6 +7005,150 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'masts', at: [[24.9, -0.6], [43.9, -1.07], [60.6, -3.0], [74.6, -3.6]], height: 4.8, color: 0xc9a43a, top: false, arm: 0.9, sign: 2.7, shade: 0x9a9c9e },
       // the round sign on its bracket beside the main doors
       { kind: 'roundel', s: -100.65, u: 11.35, h: 8.96, size: 0.8, foot: 8.55, along: true },
+    ],
+  },
+
+  // Hägerstensåsen (5 April 1964; a tram stop from 1946): an island platform in the open between
+  // two tracks, the north one curving along it, its west end on the bridge over Personnevägen, its
+  // east end in a rock cutting against the station's building over the mouth of the tunnel to
+  // Telefonplan (Swedish Wikipedia; OpenStreetMap). Over all of it a flat roof, its underside 3.5 m
+  // over the platform (Lantmäteriet's laser scan, which puts its top 4.8 m over the track bed from
+  // one end to the other), widening to 11.6 m where the tracks part: white boards along the
+  // platform between white beams cantilevered either way from a steel beam along it, painted
+  // oxblood, on pairs of oxblood posts with a tie and a brace between them, a dark fascia and
+  // covering, strip lights along both edges; a black name sign and white signs to the exits; grey
+  // slabs in a bond, a pale edge and a ribbed strip; galvanised mesh railings beyond both tracks
+  // (photographs, 2005 and 2016).
+  //
+  // At the west end a waiting room with glass doors onto the platform (its finishes are the east
+  // one's: a dado of glazed tiles in oxblood, white and grey, glass in oxblood frames, a floor of
+  // red-brown and grey tiles; a guess at this end) leads into a stair house between the tracks, an
+  // escalator and stairs down west beside the lift to the ticket hall under the bridge, at the
+  // street 5 m below (OpenStreetMap's indoor mapping: the escalator from 59.6 m to 67.7 m west of
+  // the middle, the gates at 76 m, the doors at 80 m; the laser scan; Albert Guillaumes' drawing):
+  // white-painted walls, a sloping ceiling of dark-stained boards, clerestory windows in oxblood
+  // frames, the floor of red-brown and grey tiles (a photograph, 2016). Its outside, white render
+  // and a glass front with SL's blue band to the street, is a guess.
+  //
+  // At the east end the lift stands on the platform in a glazed tower framed in oxblood, and the
+  // waiting room behind it (a photograph, 2016) leads to the stairs and an escalator up east,
+  // between walls of the same tiles, into the pavilion over the tracks at Sedelvägen, 5.8 m up
+  // (OpenStreetMap: the stairs from 102.4 m east, the gates at 119.5 m, the doors at 129 m): a flat
+  // roof with a deep dark fascia over a row of clerestory windows in teak-brown frames; its front
+  // dark brown ribbed sheet to the glass doors under SL's blue band, red-brown brick beyond them
+  // with a newsagent's window and its boards; the round sign on a pole before it (a photograph,
+  // 2016; Google's 3D mesh). No art is known at the station.
+  //
+  // Not drawn: the glass balustrades round the grated wells either side of the pavilion's doors,
+  // the booth by the gates, the downpipes by the posts, the mesh gate at the platform's east end,
+  // and the shelter's exact place (a guess).
+  'Hägerstensåsen': {
+    roof: {
+      kind: 'butterfly',
+      from: -50.5, to: 98.4, width: 10.1,
+      shape: [[-50.5, -2.59, 7.2], [-40, -2.2, 7.7], [-20, -1.78, 9.3], [-10, -1.3, 9.25], [0, -1.04, 10.1], [10, -0.46, 10.1], [20, -0.14, 10.8],
+        [30, -0.03, 11.4], [40, -0.13, 11.6], [50, -0.08, 11.2], [60, -0.42, 11.25], [70, -0.76, 10.5], [80, -0.9, 9.8], [89, -1.42, 8.9]],
+      climb: [[-50, 0.22], [-20, 0]],
+      middle: 3.45, edge: 3.55, thick: 0.33, fascia: 0.22,
+      rafters: 1.9, rafterSize: [0.1, 0.24], deck: 'boards',
+      beam: 0.45,
+      columns: { every: 7.6, at: 0, size: 0.18, plinth: { size: 0.25, height: 0.02 }, pair: 1.3, offset: 1.6, ties: [0.6, 2.4], between: [-50, 92] },
+      lamps: { offset: 3.3, length: 1.5, every: 1.9, at: [-3.3, 3.3] },
+      colors: { underside: 0xe9e7e0, fascia: 0x3a3c3f, top: 0x77746f, steel: 0x5c2b25 },
+      signs: { at: [-38, -5, 30, 70], back: 'Personnevägen', ahead: 'Hägerstensåsen' },
+      // (trains keep left: those towards T-Centralen stop on the northern track)
+      boards: [
+        { s: 72, u: -2.6, toward: 'T-Centralen', trains: ['14 Mörby centrum  4 min', '14 Mörby centrum  14 min'] },
+        { s: 72, u: 3.2, toward: 'Fruängen', trains: ['14 Fruängen  6 min', '14 Fruängen  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.9, tactile: [0.9, 1.25], slabs: 1.25, paverSize: [0.6, 0.4], mix: 0.08,
+      colors: { edge: 0xd9d7d0, tactile: 0xc2c0ba, slab: 0x9a9893, pavers: 0x9a9893, paler: 0x8a8c90, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w1060586560', 'w651818427'],
+    rooms: [
+      // (the waiting rooms' walls and ceilings are their blocks')
+      { name: 'west waiting room', s: [-59.6, -50], u: [-1.2, 4.5], h: [-0.3, 0.3], walls: null, floor: 'quarryTiles', lamps: 3.2 },
+      { name: 'stairs down to the ticket hall', s: [-71.5, -59.6], u: [-1.1, 4.5], h: [-5.5, 0.5], walls: 'whiteRender', stairs: 'whiteRender', floor: 'quarryTiles', ceiling: 'darkBoards', parapet: 1.0, lamps: 3.2 },
+      { name: 'ticket hall', s: [-85.5, -68], u: [-8, 9], h: [-5.5, -4.5], walls: null, floor: 'quarryTiles', ceiling: 'darkBoards', lamps: 2.8 },
+      { name: 'Personnevägen', s: [-95, -83], u: [-8, 9], h: [-5.5, -4.5], walls: null, floor: 'pavers' },
+      { name: 'stairs up to the pavilion', s: [102.3, 112.6], u: [-0.7, 2.6], h: [-0.3, 0.3], walls: 'tricolourTiles', stairs: 'tricolourTiles', floor: 'quarryTiles', ceiling: 'whitePanels', parapet: 1.0 },
+      { name: 'east waiting room', s: [98.3, 103.6], u: [-1.4, 5.1], h: [-0.3, 0.3], walls: null, floor: 'quarryTiles', lamps: 3.2 },
+      { name: "platform's east end", s: [88, 98.4], u: [-6, 6], h: [-0.3, 0.3], walls: null, floor: 'pavers' },
+      { name: 'pavilion', s: [98.3, 129.3], u: [-7, 10.5], h: [5.5, 6.1], walls: null, floor: 'quarryTiles', ceiling: 'whitePanels', lamps: 2.9 },
+      { name: 'Sedelvägen', s: [129, 140], u: [-12, 12], h: [5.5, 6.2], walls: null, floor: 'asphalt' },
+    ],
+    blocks: [
+      // the west waiting room on the platform, its glass doors east onto it
+      { name: 'west waiting room', plan: [[-59.6, -1.0], [-51.3, -1.0], [-51.3, 4.2], [-59.6, 4.2]], h: [-1.0, 3.6],
+        walls: 'tricolourWindows', sides: [undefined, 'maroonGlazed', undefined, null], floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.25, roofColor: 0x47494c, onPlatform: true },
+      // the stair house between the tracks, white inside, down to the hall; over the platform a
+      // row of windows in oxblood frames under its sloping roof
+      { name: 'stair house', plan: [[-71.5, -0.45], [-71.5, 4.45], [-59.6, 4.45], [-59.6, -1.0]], h: [-5, 2.6], from: -5,
+        walls: 'whiteRender', sides: [undefined, undefined, null, undefined], onPlatform: true },
+      { name: "stair house's top", plan: [[-71.5, -0.45], [-71.5, 4.45], [-59.6, 4.45], [-59.6, -1.0]], h: [2.6, 6.3], from: 2.6, lowBack: 4.0,
+        walls: 'whiteRender', sides: ['maroonGlazed', 'maroonGlazed', undefined, undefined], ceiling: 'darkBoards', roof: 0.25, roofColor: 0x47494c, onPlatform: true },
+      // the ticket hall under the bridge: under each track's deck, and between them, where its
+      // ceiling rises under a roof of its own to its glass front to the street
+      { name: 'ticket hall, north', plan: [[-62.7, -1.0], [-62.9, -7.9], [-81.1, -7.5], [-82.75, -1.0]], h: [-5.5, -2.0], from: -5,
+        walls: 'whiteRender', sides: [undefined, undefined, undefined, null], floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x77756f, ground: true, onPlatform: true },
+      { name: 'ticket hall, south', plan: [[-62.5, 4.1], [-62.5, 8.2], [-85.1, 8.7], [-84.0, 4.1]], h: [-6.5, -2.0], from: -5,
+        walls: 'whiteRender', sides: [undefined, undefined, undefined, null], floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x77756f, ground: true, onPlatform: true },
+      { name: 'ticket hall', plan: [[-71.5, 4.1], [-84.0, 4.1], [-82.75, -1.0], [-71.5, -1.0]], h: [-5, 1.8], from: -5, low: 0.5,
+        walls: 'whiteRender', sides: [null, 'glassFront', null, null], floor: 'quarryTiles', ceiling: 'darkBoards', roof: 0.25, roofColor: 0x47494c,
+        ground: true, onPlatform: true, nameSign: { side: 1, at: 0.58, length: 3.0, bottom: -2.62 } },
+      { name: "ticket hall's north wall", plan: [[-71.5, -1.1], [-82.75, -1.1], [-82.75, -1.0], [-71.5, -1.0]], h: [-1.6, 1.8], from: -1.6, low: 0.5, walls: 'whiteRender', onPlatform: true },
+      { name: "ticket hall's south wall", plan: [[-71.5, 4.1], [-84.0, 4.1], [-84.0, 4.2], [-71.5, 4.2]], h: [-1.6, 1.8], from: -1.6, low: 0.5, walls: 'whiteRender', onPlatform: true },
+      // at the east end: the lift's glazed tower on the platform, open to the waiting room behind it
+      { name: "lift's tower", plan: [[96.0, 2.1], [99.0, 2.1], [99.0, 4.8], [96.0, 4.8]], h: [0, 9.6],
+        walls: 'maroonGlazed', sides: [undefined, null, undefined, undefined], roof: 0.12, roofColor: 0x4b2a25, onPlatform: true },
+      { name: 'east waiting room', plan: [[98.4, -1.3], [103.6, -1.3], [103.6, 5.0], [98.4, 5.0]], h: [-1.0, 3.6],
+        walls: 'tricolourWindows', sides: [undefined, 'tricolourTiles', undefined, undefined], floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.25, roofColor: 0x47494c, onPlatform: true },
+      // the corridor from the lift's top stop to the pavilion, beside the stairs, on a wall of its own
+      { name: 'corridor from the lift', plan: [[99.0, 2.65], [114.6, 2.65], [114.6, 5.0], [99.0, 5.0]], h: [3.6, 8.45], from: 5.8,
+        walls: 'cladding', sides: [undefined, null, undefined, undefined], floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3c3e41 },
+      { name: "corridor's foot", plan: [[103.7, 2.65], [114.6, 2.65], [114.6, 5.0], [103.7, 5.0]], h: [-1.0, 3.6], walls: 'boardConcrete', onPlatform: true },
+      // the stairs' walls, sloping with them, and their roof
+      { name: "stairs' north wall", plan: [[111.1, -0.7], [102.4, -0.7], [102.4, -0.8], [111.1, -0.8]], h: [0, 8.45], low: 3.45,
+        walls: 'cladding', sides: ['tricolourTiles', undefined, undefined, null] },
+      { name: "stairs' north wall, top", plan: [[114.6, -0.7], [111.1, -0.7], [111.1, -0.8], [114.6, -0.8]], h: [0, 8.45],
+        walls: 'cladding', sides: ['tricolourTiles', null, undefined, null] },
+      { name: "stairs' south wall", plan: [[111.1, 2.62], [102.4, 2.62], [102.4, 2.52], [111.1, 2.52]], h: [0, 8.45], low: 3.45,
+        walls: 'tricolourTiles', sides: [null, undefined, undefined, null] },
+      { name: "stairs' south wall, top", plan: [[114.6, 2.62], [111.1, 2.62], [111.1, 2.52], [114.6, 2.52]], h: [0, 8.45],
+        walls: 'tricolourTiles', sides: [null, null, undefined, null] },
+      { name: "stairs' roof", plan: [[111.1, -0.8], [111.1, 2.65], [102.4, 2.65], [102.4, -0.8]], h: [3.44, 8.45], from: 3.44, lowBack: 3.45,
+        walls: 'cladding', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3c3e41 },
+      { name: "stairs' roof, top", plan: [[111.1, -0.8], [114.6, -0.8], [114.6, 2.65], [111.1, 2.65]], h: [8.44, 8.45], from: 8.44,
+        walls: 'cladding', sides: [null, null, null, null], ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3c3e41 },
+      // the pavilion over the tracks, its doors east onto Sedelvägen
+      // under its west front the tunnel's mouth, a wall of concrete over the cutting
+      { name: 'over the tunnel, north', plan: [[114.4, -6.5], [114.6, -6.5], [114.6, -5.4], [114.4, -5.4]], h: [-2.0, 5.0], from: -2.0, walls: 'boardConcrete' },
+      { name: 'over the northern track', plan: [[114.4, -5.4], [114.6, -5.4], [114.6, -0.8], [114.4, -0.8]], h: [3.3, 5.0], from: 3.3, walls: 'boardConcrete' },
+      { name: 'over the tunnel, between the tracks', plan: [[114.4, -0.8], [114.6, -0.8], [114.6, 5.5], [114.4, 5.5]], h: [-2.0, 5.0], from: -2.0, walls: 'boardConcrete' },
+      { name: 'over the southern track', plan: [[114.4, 5.5], [114.6, 5.5], [114.6, 9.8], [114.4, 9.8]], h: [3.3, 5.0], from: 3.3, walls: 'boardConcrete' },
+      // and its sides down to the cutting (the southern one only as far as the trains keep clear of it)
+      { name: 'over the tunnel, north side', plan: [[114.6, -6.6], [129.1, -6.6], [129.1, -6.5], [114.6, -6.5]], h: [-2.0, 5.0], from: -2.0, walls: 'boardConcrete' },
+      { name: 'over the tunnel, south side', plan: [[114.6, 9.8], [121.5, 9.8], [121.5, 9.9], [114.6, 9.9]], h: [-2.0, 5.0], from: -2.0, walls: 'boardConcrete' },
+      { name: 'pavilion', plan: [[114.6, 9.8], [129.1, 9.8], [129.1, -6.5], [114.6, -6.5]], h: [5.0, 9.15], from: 5.8,
+        walls: 'brick', sides: [undefined, 'hgaFront', undefined, 'cladding'], band: { walls: 'greyPanels', from: 8.8 },
+        floor: 'quarryTiles', ceiling: 'whitePanels', roof: 0.25, roofColor: 0x3a3c3e, eaves: 0.3, ground: true,
+        nameSign: { side: 1, at: 0.54, length: 3.4, bottom: 7.95 } },
+    ],
+    art: [
+      // the round sign on its pole before the pavilion
+      { kind: 'roundel', s: 132, u: 7, h: 8.55, size: 0.6, foot: 5.75 },
+    ],
+    benches: { at: [-25, 5, 35, 62], double: true },
+    shelters: [{ s: [44, 48], u: [-3.5, -2.1] }],
+    // mesh railings beyond both tracks, on the bridge and along the bank; red by the east end
+    fences: [
+      { points: [[-140, 0.6], [-130, -1.5], [-120, -1.8], [-110, -2.5], [-100, -3.0], [-90, -3.8], [-80, -5.0], [-70, -4.7], [-60, -5.5], [-50, -6.0], [-40, -6.8],
+        [-30, -7.4], [-20, -7.2], [0, -8.5], [20, -9.5], [40, -9.9], [60, -9.4], [80, -8.4], [92, -7.7]], h: [-1.1, 0.15] },
+      { points: [[-140, 8.6], [-100, 8.6], [-70, 8.4], [-30, 8.2], [0, 8.0], [60, 8.0], [80, 8.4]], h: [-1.1, 0.15] },
+      { points: [[80, 8.4], [92, 8.9], [100, 9.3]], h: [-1.1, 0.15], color: 0x8a3a30 },
     ],
   },
 };
