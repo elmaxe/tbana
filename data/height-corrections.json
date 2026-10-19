@@ -110,6 +110,11 @@
       "station": "Vällingby",
       "height": 24.9,
       "why": "Wikidata has no height, and with its tracks taken for tunnels under the decks the station came out 1.3 m under the real one. Lantmäteriet's laser scan (2021) has both islands' surface at 24.85–25.0 m where it sees them past the roofs' edges, and the ballast of the three tracks beside and between them at 23.6–23.75 m; Kirunaplan's deck over the platforms' south-eastern end is at 29.2–30.2 m."
+    },
+    {
+      "station": "Fruängen",
+      "height": 47.4,
+      "why": "Wikidata's 46.8 m (from the book \"Stockholm under\", whose height system isn't stated) put the platform 0.6 m under the real one, and the ticket hall's doors above the passage outside them. Lantmäteriet's laser scan (2021) has the platform's surface at 47.36–47.40 m along its open northern part, 47.3 m at its north end, and the ballast beside it at 46.0–46.1 m."
     }
   ],
   "uncovered": [
@@ -287,6 +292,17 @@
       ],
       "reach": 15,
       "why": "Vällingby's middle track, the turnback track between the two island platforms, which no train stops at, and the outer tracks beyond the platforms' ends: the laser scan has the ballast of all three at 23.6–23.75 m, the rail about 0.2 m over it, level with the platforms' tracks (the islands' surface 24.85–25.0 m). Without this the middle track followed the elevation model's ground under the decks and stood 0.4 m over the tracks beside it."
+    },
+    {
+      "along": [
+        [-5352.0, 5074.6, 46.24],
+        [-5356.7, 5035.8, 46.24],
+        [-5362.1, 4997.1, 46.24],
+        [-5366.8, 4968.2, 46.24],
+        [-5372.5, 4939.5, 46.22]
+      ],
+      "reach": 2,
+      "why": "Fruängen, the siding east of the platform to its buffer stop beside the ticket hall: the laser scan has the ballast between it and the platform at 46.0–46.1 m, level with the platform's tracks. Left to the elevation model's ground, which humps up over the retaining wall beside it, it climbed to 1.5 m over them, higher than the platform, at its end."
     }
   ],
   "toBridge": [

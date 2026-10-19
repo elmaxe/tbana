@@ -1637,13 +1637,14 @@ export class OpenLook {
   // A picture on a wall, facing `turn` from looking along the platform.
   private mural(a: Mural, frame: Frame, on: On) {
     const lace = Math.abs(Math.round(a.s)) % 3;
-    const m = on(this.mat(`mural:${a.picture}${a.picture === 'sirat' ? lace : ''}`, () => {
+    const m = on(this.mat(`mural:${a.picture}${a.picture === 'sirat' ? lace : ''}${a.variant ?? ''}`, () => {
       const map = a.picture === 'forestFloor' ? T.forestFloor() : a.picture === 'angel' ? T.angel()
         : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
           : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate()
             : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves()
               : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief()
-                : a.picture === 'andreeBalloon' ? T.andreeBalloon() : a.picture === 'andreeEagle' ? T.andreeEagle() : T.tallkrogsdraken();
+                : a.picture === 'andreeBalloon' ? T.andreeBalloon() : a.picture === 'andreeEagle' ? T.andreeEagle()
+                  : a.picture === 'landergren' ? T.landergrenFace(a.variant ?? 0) : T.tallkrogsdraken();
       // (an angel, the lace and the iron, and the sgraffito on its wall, cut out round their outlines)
       const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell' || a.picture === 'andreeBalloon' || a.picture === 'andreeEagle';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';

@@ -296,6 +296,21 @@
       "node": 1969701189,
       "to": [157623.0, 6572215.8],
       "why": "Skarpnäck: as for the eastern track, OSM ends the western one 85 m short of the platform's south end."
+    },
+    {
+      "node": 12489478603,
+      "to": [147996.5, 6574527.0],
+      "why": "Fruängen: OSM runs the western platform track on 10 m past its buffer stop (node 871963303), which stands 3 m past the platform's south end beside the ticket hall's western wall (Commons photograph, 2016). The track now ends 2.5 m past it, where the game draws a buffer stop, rather than in the passage to Fruängstorget."
+    },
+    {
+      "node": 12489478604,
+      "to": [148010.4, 6574526.8],
+      "why": "Fruängen: as for the western track, OSM runs the eastern one on 9 m past its buffer stop (node 871963216), beside the hall's eastern wall."
+    },
+    {
+      "node": 12489478605,
+      "to": [148014.0, 6574527.4],
+      "why": "Fruängen: as for the platform tracks, OSM runs the siding east of the platform on 10 m past its buffer stop (node 871963104)."
     }
   ],
   "moves": [

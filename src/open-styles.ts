@@ -362,7 +362,13 @@ export type Finish =
   | 'hgaFront'      // Hägerstensåsen's pavilion to Sedelvägen: brown ribbed panels, the glass doors, brick with a newsagent's, clerestory windows over them
   | 'creamRender'   // smooth render, a pale warm cream (Västertorp's ramp)
   | 'slateFlags'    // irregular flags of dark grey-green slate in pale joints, a floor's
-  | 'darkPavers';   // dark grey concrete pavers in a running bond (Västertorp's ramp)
+  | 'darkPavers'    // dark grey concrete pavers in a running bond (Västertorp's ramp)
+  | 'gingham'       // tiles, 20 cm, in a gingham check of white, greyish mauve and mauve-brown (Fredrik Landergren's)
+  | 'orangeGingham' // tiles, 10 cm, in a gingham check of white and two oranges (Fredrik Landergren's)
+  | 'greyBooth'     // dark grey panels to 1.05 m, glass in white frames to 2.15 m, a white band and a dark grey one
+  | 'blueBooth'     // SL's blue in panels to 1.15 m, glass in brushed steel frames to 2.45 m, white panels above
+  | 'fraBuilding'   // shops set back between granite piers, then white-painted brick, a band of windows in dark brown frames, to 7.15 m
+  | 'fraEntrance';  // as fraBuilding, glass doors in brushed steel in place of the shop (Fruängen's way in from Fruängsplan)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -450,7 +456,9 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // And on the walls of Västertorp's ramp, Jörgen Fogelquist's sgraffito of Andrée's flight towards
 // the pole: the balloon, its drag ropes and the crack in the ice (`andreeBalloon`), and the eagle
 // on its field of night (`andreeEagle`), both cut out round the drawing.
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// And Fredrik Landergren's glass mosaics of heads at Fruängen (`landergren`), each in its frame, the
+// colours and the face by `variant` (src/textures.ts landergrenFace).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle' | 'landergren'; s: number; u: number; turn: number; bottom: number; top: number; width: number; variant?: number }
 
 // The midsummer wreath of carved and painted alder at Midsommarkransen (1978, inaugurated 1979; Hans
 // Flemström Nilsson, Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the
@@ -7301,6 +7309,166 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-72, 12.5], [-62, 11.7], [-53, 11.1], [-43, 10.7], [-34, 10.4], [-24, 10.3], [-15, 10.2], [-5, 10.3], [5, 10.6], [14, 10.9], [24, 11.3],
         [33, 11.8], [43, 12.4], [52, 13.2], [62, 14.0], [71, 15.0], [81, 16.1], [90, 17.4], [99, 18.8], [109, 20.3], [118, 21.8]], h: [-1.1, 0.2] },
       { points: [[70.5, 9.8], [96, 12.9], [121.4, 16.7]], h: [-0.1, 1.0], kind: 'rails' },
+    ],
+  },
+  // Fruängen (5 April 1964; a tram terminus from 1956), the end of T14 and the metro's highest
+  // station: an island platform on a bank over the bus terminal, about 145 m long, 9 m wide at its
+  // south end narrowing to 5 m at its north end, its two tracks ending at buffer stops beside the
+  // ticket hall at its south end, and a siding east of it to a third (Swedish Wikipedia;
+  // OpenStreetMap). Architect Magnus Ahlgren; the building is green-classified by Stadsmuseet
+  // (Swedish Wikipedia). Over the platform's southern 79 m a shallow butterfly roof, its underside
+  // 3.55 m over the platform at the valley and 3.7 m at the edges, 11.2 m wide narrowing to 10 m
+  // (Lantmäteriet's laser scan): light grey rafters over narrow boards, two rows of dark grey steel
+  // columns and beams, tube lights, round clocks and black name signs hung from it; the open north
+  // end lit by pale grey masts with two lamps on an arm, black name signs on some; grey pavers in a
+  // running bond, a dark ribbed strip inside a pale edge; a grey booth with glazed upper panels
+  // under the roof's north end (photographs, 2005, 2016 and 2024).
+  //
+  // The ticket hall across the platform's south end at its level: board-formed concrete under a
+  // band of clerestory windows, glazed towards the platform and along its east side, a flat roof on
+  // white rafters; inside, white tiles, a white slatted ceiling, a floor of dark slate, the gates
+  // under a blue sign band, and a ticket booth in SL's blue and glass (photographs, 2016 and 2026).
+  // From it a door west onto the passage to Fruängstorget, under a small glass canopy with SL's
+  // band, ochre tiles behind it (a photograph, 2016), and an escalator and stairs in a well lined
+  // with ochre tiles, a parapet round it, and a lift down to the lower hall under Fruängens
+  // centrum, its glass doors onto Fruängsplan in the centre's recessed ground floor: dark granite
+  // piers, steel doors with a blue stripe and white discs, SL's band over them, the old round T on
+  // a black bar; white-painted brick over it with a band of windows in dark brown frames and white
+  // boarding at the top (photographs, 1964, 2010, 2016 and 2026; OpenStreetMap's indoor mapping;
+  // Albert Guillaumes' drawing). The laser scan has the platform at 47.4 m and the street in front
+  // of the centre 4.5 m below it.
+  //
+  // Fredrik Landergren's glass mosaics of heads (2005): seven, each in a frame, in a row on the
+  // retaining wall along the bus terminal, which is tiled in a gingham check of white, grey and
+  // mauve, from the south yellow, green-brown, orange-brown, grey, green, red and blue, and blue
+  // with glasses; and an eighth over the stairwell in the hall, on a wall of orange and white
+  // gingham (Swedish Wikipedia; photographs, 2010 and 2016). Their faces here are drawn in his
+  // manner, not copied. Guesses: where along the wall the mosaics are (from one photograph), the
+  // halls' heights inside, the centre's height, the inside of the lower hall, the booth's use.
+  'Fruängen': {
+    roof: {
+      kind: 'butterfly',
+      from: -72.6, to: 6.5, width: 11.15,
+      shape: [[-72.6, 0.72, 11.15], [-28, 0.72, 11.15], [-20, 0.42, 10.55], [-10, 0.27, 10.25], [0, 0.17, 10.05], [6.5, 0.12, 9.95]],
+      middle: 3.55, edge: 3.7, thick: 0.25, fascia: 0.2,
+      rafters: 2.1, rafterSize: [0.2, 0.42], deck: 'boards',
+      beam: 0.35,
+      columns: { every: 10.4, at: 1.8, size: 0.18, plinth: { size: 0.3, height: 0.1 }, pair: 4.4, offset: -0.38, between: [-71.5, 4] },
+      lamps: { offset: 2.2, length: 1.2, every: 3.6, at: [-4.2, 3.3], tube: true },
+      colors: { underside: 0xd4d5d1, fascia: 0xe6e6e2, top: 0x4a4b4d, steel: 0x3b3e42 },
+      signs: { at: [-55.4, -34.6, -13.8], back: '', ahead: '', bottom: 2.45 },
+      clocks: [[-45, 3.3], [-24, -4.2], [-3, 3.3]],
+      boards: [
+        { s: -66, u: -3.0, toward: 'Mörby centrum', trains: ['14 Mörby centrum  2 min', '14 Mörby centrum  12 min'] },
+        { s: -66, u: 3.6, toward: 'Mörby centrum', trains: ['14 Mörby centrum  7 min', '14 Mörby centrum  17 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.2], slabs: 1.2, paverSize: [0.6, 0.4], mix: 0.15,
+      colors: { edge: 0xd2d0ca, tactile: 0x5c5d5f, slab: 0x9a9894, pavers: 0x9a9894, paler: 0x84858a, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w1183033751', 'w35312105'],
+    rooms: [
+      // (the halls' walls and ceilings are their blocks')
+      { name: 'platform before the hall', s: [-72.7, -69], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage to Fruängstorget', s: [-92, -87], u: [-16, -4.5], h: [-1.2, 0.3], walls: null, floor: 'pavers' },
+      // (its floor the blocks')
+      { name: 'ticket hall', s: [-101.6, -72.6], u: [-4.6, 5.5], h: [-0.3, 0.3], walls: null, floor: null, lamps: 3.45 },
+      { name: 'stairs and escalator', s: [-101.6, -89.6], u: [-2.5, 1.8], h: [-4.4, 0.4], walls: 'yellowTiles', floor: 'darkStone', parapet: 1.05 },
+      { name: 'foot of the escalator', s: [-101.6, -97], u: [-2.5, 1.8], h: [-4.9, -4.4], walls: null, floor: 'darkStone' },
+      { name: 'lower hall', s: [-108.5, -97], u: [-6, 7], h: [-4.9, -4.3], walls: 'yellowTiles', floor: 'darkStone', ceiling: 'slats' },
+    ],
+    blocks: [
+      // the ticket hall across the platform's end, glazed towards it; its walls (below) of
+      // board-formed concrete, clerestory windows on the west, glazed along the east, white tiles
+      // inside
+      { name: 'ticket hall', plan: [[-72.6, -4.55], [-72.6, 5.45], [-93.74, 5.45], [-92.17, -4.55]], h: [-1.1, 3.6], from: 0,
+        walls: 'boardConcrete', sides: ['glazed', null, null, null], floor: 'darkStone', ceiling: 'slats', roof: 0.35, roofColor: 0x4d4e50,
+        eaves: [0, 0.75, 0, 0.6], onPlatform: true },
+      { name: 'ticket hall, west wall', plan: [[-72.6, -4.6], [-72.6, -4.55], [-92.17, -4.55], [-92.17, -4.6]], h: [-1.1, 3.6], from: 0,
+        walls: 'boardConcrete', sides: [undefined, 'squareTiles', undefined, undefined], band: { walls: 'glazed', from: 2.2 }, onPlatform: true },
+      { name: 'ticket hall, east wall', plan: [[-72.6, 5.45], [-72.6, 5.5], [-93.74, 5.5], [-93.74, 5.45]], h: [-1.1, 3.6], from: 0,
+        walls: 'boardConcrete', band: { walls: 'glazed', from: 1.2 }, onPlatform: true },
+      // its part over the stairwell, between the centre's two wings
+      { name: 'ticket hall, south', plan: [[-92.17, -4.55], [-93.74, 5.45], [-101.6, 5.45], [-101.6, -4.55]], h: [-1.1, 3.6], from: 0,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, undefined], ceiling: 'slats', roof: 0.35, roofColor: 0x4d4e50,
+        eaves: [0, 0.75, 0, 0.6], onPlatform: true },
+      { name: 'tiles inside, west', plan: [[-92.17, -4.5], [-92.17, -4.47], [-101.5, -4.47], [-101.5, -4.5]], h: [0, 3.6], from: 0, walls: 'squareTiles' },
+      { name: 'tiles inside, east', plan: [[-85.05, 5.37], [-85.05, 5.4], [-101.5, 5.4], [-101.5, 5.37]], h: [0, 3.6], from: 0, walls: 'squareTiles' },
+      { name: 'tiles inside, south-west', plan: [[-101.47, -4.47], [-101.47, -2.45], [-101.5, -2.45], [-101.5, -4.47]], h: [0, 3.6], from: 0, walls: 'squareTiles' },
+      { name: 'tiles inside, south-east', plan: [[-101.47, 1.75], [-101.47, 5.37], [-101.5, 5.37], [-101.5, 1.75]], h: [0, 3.6], from: 0, walls: 'squareTiles' },
+      // the hall's floor beside the stairwell
+      { name: 'floor west of the stairwell', plan: [[-92.17, -4.55], [-92.5, -2.45], [-101.6, -2.45], [-101.6, -4.55]], h: [0, 0], from: 0,
+        walls: 'darkStone', sides: [null, null, null, null], floor: 'darkStone' },
+      { name: 'floor east of the stairwell', plan: [[-93.16, 1.75], [-93.74, 5.45], [-101.6, 5.45], [-101.6, 1.75]], h: [0, 0], from: 0,
+        walls: 'darkStone', sides: [null, null, null, null], floor: 'darkStone' },
+      // the well of the escalator and the stairs, lined with ochre tiles, a parapet round it, and
+      // over its far end the wall of orange gingham with the eighth head
+      { name: 'stairwell', plan: [[-89.8, -2.45], [-89.8, 1.75], [-101.6, 1.75], [-101.6, -2.45]], h: [-4.75, 0], from: -4.75,
+        walls: 'yellowTiles', sides: [undefined, undefined, null, undefined], ground: true },
+      { name: 'parapet, west', plan: [[-89.8, -2.45], [-89.8, -2.22], [-101.47, -2.22], [-101.47, -2.45]], h: [0, 1.05], from: 0,
+        walls: 'yellowTiles', roof: 0.03, roofColor: 0xd8a64a },
+      { name: 'parapet, east', plan: [[-89.8, 1.47], [-89.8, 1.75], [-101.47, 1.75], [-101.47, 1.47]], h: [0, 1.05], from: 0,
+        walls: 'yellowTiles', roof: 0.03, roofColor: 0xd8a64a },
+      { name: 'gingham wall', plan: [[-101.5, -2.45], [-101.5, 1.75], [-101.55, 1.75], [-101.55, -2.45]], h: [-1.65, 3.6], from: -1.65, walls: 'orangeGingham' },
+      // the ticket booth beside the gates, and the blue sign band across the hall over them
+      { name: 'ticket booth', plan: [[-78.4, 2.55], [-78.4, 5.4], [-85.0, 5.4], [-85.0, 2.55]], h: [0, 3.6], from: 0,
+        walls: 'blueBooth', sides: [undefined, null, undefined, undefined] },
+      { name: 'sign band over the gates', plan: [[-77.25, -4.45], [-77.25, 2.5], [-77.55, 2.5], [-77.55, -4.45]], h: [2.45, 2.85], from: 2.45,
+        walls: 'blueBooth', roof: 0.02, roofColor: 0x1f3f99 },
+      // the door west onto the passage to Fruängstorget, under a glass canopy with SL's band, and
+      // the low wall with black bars along the passage's north side
+      { name: 'canopy over the door', plan: [[-88.3, -7.3], [-88.3, -4.6], [-90.9, -4.6], [-90.9, -7.3]], h: [2.5, 2.6], from: 2.5,
+        walls: 'glazed', sides: [null, null, null, null], ceiling: 'glazed', nameSign: { side: 3, at: 0.5, length: 2.4, bottom: 2.3 } },
+      { name: 'wall along the passage', plan: [[-85.7, -13], [-85.7, -4.6], [-86.1, -4.6], [-86.1, -13]], h: [-1.3, 0.1], from: -1.3,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0xa9a7a1 },
+      // the booth on the platform under the roof's north end
+      { name: 'platform booth', plan: [[5.6, -0.7], [5.6, 1.5], [3.2, 1.5], [3.2, -0.7]], h: [0, 2.6], from: 0,
+        walls: 'greyBooth', roof: 0.12, roofColor: 0x3c3f42, eaves: 0.08 },
+      // Fruängens centrum's two storeys round the lower hall: its wings either side of the hall
+      // over the stairwell, and between them its front onto Fruängsplan with the station's doors
+      { name: 'centre, west wing', plan: [[-90.8, -13.3], [-92.17, -4.55], [-106.38, -4.55], [-104.7, -15.5]], h: [-4.75, 2.4], from: -4.75,
+        walls: 'fraBuilding', sides: [undefined, null, undefined, undefined], roof: 0.25, roofColor: 0x5a5b5c, eaves: [0.2, 0, 0.2, 0.2], ground: true },
+      { name: 'centre, east wing', plan: [[-93.74, 5.45], [-95.4, 16.0], [-109.2, 13.8], [-107.92, 5.45]], h: [-4.75, 2.4], from: -4.75,
+        walls: 'fraBuilding', sides: [undefined, undefined, undefined, null], roof: 0.25, roofColor: 0x5a5b5c, eaves: [0.2, 0.2, 0.2, 0], ground: true },
+      { name: 'centre over the lower hall', plan: [[-101.6, -4.55], [-101.6, 5.45], [-107.92, 5.45], [-106.38, -4.55]], h: [-4.75, 2.4], from: -4.75,
+        walls: 'fraEntrance', sides: [null, null, undefined, null], roof: 0.25, roofColor: 0x5a5b5c, eaves: [0, 0, 0.2, 0], ground: true,
+        nameSign: { side: 2, at: 0.5, length: 6.0, bottom: -2.1 } },
+      // the retaining wall along the bus terminal under the tracks, tiled in a gingham check on its
+      // face, the street falling southwards along it
+      { name: 'retaining wall', plan: [[-40, 13.5], [-40, 14.0], [-95.0, 14.0], [-95.0, 13.5]], h: [-3.7, -1.1], from: -3.7, fall: -4.45, lowBack: -0.25,
+        walls: 'boardConcrete', sides: [undefined, 'gingham', undefined, undefined], roof: 0.12, roofColor: 0xb5b2aa, ground: true },
+      // the pavement along its foot, where the ground's grid would slope up over it (and the
+      // siding's formation, which the network draws out past the wall's face)
+      { name: 'pavement along the wall', plan: [[-40, 14.0], [-40, 19.5], [-95, 19.5], [-95, 14.0]], h: [-4.4, -0.9], from: -3.82, fall: -4.0,
+        walls: 'pavers', sides: [null, null, null, null], floor: 'pavers', onPlatform: true, ground: true },
+    ],
+    art: [
+      // Landergren's seven heads on the retaining wall, from the south, and the eighth over the
+      // stairwell
+      { kind: 'mural', picture: 'landergren', variant: 0, s: -76.1, u: 14.0, turn: 1.5708, bottom: -3.45, top: -1.55, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 1, s: -72.6, u: 14.0, turn: 1.5708, bottom: -3.41, top: -1.51, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 2, s: -69.1, u: 14.0, turn: 1.5708, bottom: -3.37, top: -1.47, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 3, s: -65.6, u: 14.0, turn: 1.5708, bottom: -3.33, top: -1.43, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 4, s: -62.1, u: 14.0, turn: 1.5708, bottom: -3.29, top: -1.39, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 5, s: -58.6, u: 14.0, turn: 1.5708, bottom: -3.25, top: -1.35, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 6, s: -55.1, u: 14.0, turn: 1.5708, bottom: -3.2, top: -1.3, width: 1.9 },
+      { kind: 'mural', picture: 'landergren', variant: 7, s: -101.47, u: -0.35, turn: 0, bottom: 1.0, top: 3.2, width: 3.0 },
+      // the old round T over the doors onto Fruängsplan
+      { kind: 'roundel', s: -107.8, u: -2.6, h: -0.4, size: 0.8, foot: -1.1 },
+      // the masts on the open part of the platform, black name signs on two
+      { kind: 'masts', at: [[14.2, -0.7], [49.8, -1.7]], height: 5.4, color: 0xa3a8ab, top: false, sign: 2.6, arm: 0.7 },
+      { kind: 'masts', at: [[32.2, -1.1], [66.3, -2.3]], height: 5.4, color: 0xa3a8ab, top: false, arm: 0.7 },
+    ],
+    benches: { at: [-55, -45, -24, -4], double: true },
+    // chain-link beyond the western track, and a mesh fence on the retaining wall over the bus
+    // terminal, chain-link on along the bank to the siding's switch
+    fences: [
+      { points: [[-76, -8.6], [40, -8.6], [80, -9.0]], h: [-1.05, 0.6] },
+      { points: [[-95, 13.75], [-40, 13.75]], h: [-1.05, 0.6] },
+      { points: [[-40, 13.4], [0, 13.3], [60, 13.0], [72, 8.4], [84, 6.8], [100, 3.5]], h: [-1.05, 0.6] },
+      { points: [[-85.9, -13], [-85.9, -4.6]], h: [0.1, 1.4], kind: 'bars' },
     ],
   },
 };

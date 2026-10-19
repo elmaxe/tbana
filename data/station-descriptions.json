@@ -855,17 +855,36 @@
     },
     "Fruängen": {
       "drawing": "fruangen.png",
-      "note": "The end of T14: an island platform in the open. At its south end the ticket hall opens onto Fruängstorget, with stairs down to Fruängsplan.",
+      "note": "The end of T14, the metro's highest station: an island platform on a bank over the bus terminal, its tracks ending at buffer stops beside the ticket hall at its south end. From the hall a door opens onto the passage to Fruängstorget, and stairs, an escalator and a lift go down to the doors under Fruängens centrum on Fruängsplan.",
       "routes": [
-        { "from": [-70, 0], "width": 6, "go": [
-          {"walk": [-94, 0]},
+        { "from": [-70, 0.4], "width": 9.6, "go": [
+          {"walk": [-72.0, 0.4], "open": true},
+          {"walk": [-73.2, 0.4], "width": 3.0, "ceiling": 2.4},
+          {"walk": [-76.0, 0.4], "open": true},
+          {"walk": [-76.6, -1.0], "width": 6.8, "open": true},
+          {"walk": [-78.4, -1.0], "open": true},
           {"gates": true},
-          {"walk": 2},
+          {"walk": [-83.0, -1.0], "open": true},
+          {"walk": [-87.5, -1.0], "open": true},
           {"mark": "hall"},
-          {"exit": 10985180249, "by": "walk"}
+          {"walk": [-89.6, -1.0], "width": 2.4, "open": true},
+          {"walk": [-89.6, -4.0], "open": true},
+          {"walk": [-89.6, -5.1], "ceiling": 2.35, "dh": -0.07},
+          {"exit": {"at": [-89.6, -15.0], "name": "Fruängstorget"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 13758142144}
+        { "from": "hall", "width": 3.7, "go": [
+          {"walk": [-88.0, -0.35], "open": true},
+          {"walk": [-90.0, -0.35], "open": true},
+          {"escalators": -4.65, "toward": [-200, -0.35], "lanes": "SE", "open": true},
+          {"walk": [-101.6, -0.35], "open": true},
+          {"walk": [-104.0, -0.35], "width": 6.0},
+          {"exit": {"at": [-107.2, -0.35], "name": "Fruängsplan"}, "by": "walk", "sign": false}
+        ] },
+        { "from": "hall", "width": 1.6, "go": [
+          {"walk": [-88.5, 2.9], "open": true},
+          {"walk": [-98.9, 2.9], "open": true},
+          {"lift": -4.65, "above": 3.0, "through": true},
+          {"walk": [-102.5, 2.9]}
         ] }
       ]
     },

@@ -138,6 +138,12 @@
       "outline": [-4540.9, 3993.6, -4532.9, 3987.8, -4515.2, 4012.0, -4523.2, 4017.9],
       "heights": [52.45, 52.45, 52.45, 52.45],
       "why": "The tracks go into the tunnel to Telefonplan under Hägerstensåsen's pavilion, whose doors open east onto the end of Sedelvägen, 5.8 m over the platform (Lantmäteriet's laser scan: 52.4–52.8 m). The network has the tunnel's mouths under the pavilion's east end, and the open track's trench, rounding off past them, opened a pit in the street before its doors; on the deck it stops at the mouths, and the street (raised to its level, below) runs on to the pavilion."
+    },
+    {
+      "name": "Fruängen: the bus terminal below the retaining wall",
+      "outline": [-5346.3, 5095.2, -5312.6, 5091.1, -5319.9, 5030.5, -5353.6, 5034.6],
+      "heights": [42.74, 43.64, 43.14, 43.64],
+      "why": "The bus terminal east of Fruängen's station is level with the street, 3.6–4.5 m below the platform, right up to the foot of the retaining wall that carries the tracks (Lantmäteriet's laser scan). The elevation model's 5 m grid smoothed the wall into a grassy slope that buried the foot of the wall and Landergren's mosaics on it."
     }
   ],
   "open": [
@@ -304,6 +310,10 @@
     {
       "outline": [[-5170.7, 4393.7], [-5162.9, 4407.6], [-5147.6, 4404.3], [-5160.7, 4380.1]],
       "why": "The paving under the southern bridge between Västertorp's north-east ticket hall and Störtloppsvägen, where cars park (Google's 3D model)."
+    },
+    {
+      "outline": [[-5346.3, 5095.2], [-5312.6, 5091.1], [-5319.9, 5030.5], [-5353.6, 5034.6]],
+      "why": "Fruängen's bus terminal below the retaining wall east of the station, from the wall's foot out past its four stops and the service roads round them (OpenStreetMap; photographs, 2010 and 2016): pavement and asphalt. Away from the detail areas the city draws no streets, so it was grass up to Landergren's mosaics."
     }
   ],
   "shallow": [
