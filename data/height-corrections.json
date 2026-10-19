@@ -125,6 +125,11 @@
       "station": "Axelsberg",
       "height": 19.75,
       "why": "The station came out 0.6 m under the real one. Lantmäteriet's laser scan (2021) has the platform's surface at 19.56–19.70 m along its open western part, the ballast beside it at 18.0–18.4 m, and the footbridge and the square at the station building's doors, on the deck over the tracks' east end, at 22.8–23.1 m. Set at 19.75 m, which the line's smoothing through the cutting, held near the elevation model's ground, brings down to 19.58 m."
+    },
+    {
+      "station": "Bredäng",
+      "height": 46.75,
+      "why": "Wikidata's 46.1 m (from the book \"Stockholm under\", whose height system isn't stated) put the platform 0.5 m under the real one, and the deck over Bredängstorget too low over the square. Lantmäteriet's laser scan (2021) has the platform's surface at 46.59–46.67 m along its open western part, the ballast beside it at 45.2 m, the square at the ticket hall's doors at 40.3 m and the roof's top at 50.0 m. Set at 46.75 m, which the line's smoothing along the viaduct brings down to about 46.6 m."
     }
   ],
   "uncovered": [

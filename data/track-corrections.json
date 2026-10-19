@@ -394,6 +394,19 @@
       "length": 145
     },
     {
+      "station": "Bredäng",
+      "why": "OSM's platform area at Bredäng runs on east past the ticket gates to the end of the ticket hall, which is at the platform's level at its east end (its indoor mapping: the gates' wall 11 m east of the station's node, the hall and the stairs down to the square beyond it; Albert Guillaumes's drawing, 2024, the gates right across where the platform ends). The island between the tracks runs from its narrow west tip to the gates, 154.6 m. The tracks at the west end are pieces of their own; see the next entry.",
+      "replace": true,
+      "at": [146141.9, 6575502.0],
+      "length": 154.6
+    },
+    {
+      "station": "Bredäng",
+      "why": "Bredäng's island platform's western 46 m, to its tip, beside the tracks' pieces west of the bridge (see the previous entry).",
+      "at": [146087.8, 6575496.5],
+      "length": 46
+    },
+    {
       "station": "Gubbängen",
       "at": [
         154688.3,
