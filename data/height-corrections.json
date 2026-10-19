@@ -130,6 +130,11 @@
       "station": "Bredäng",
       "height": 46.75,
       "why": "Wikidata's 46.1 m (from the book \"Stockholm under\", whose height system isn't stated) put the platform 0.5 m under the real one, and the deck over Bredängstorget too low over the square. Lantmäteriet's laser scan (2021) has the platform's surface at 46.59–46.67 m along its open western part, the ballast beside it at 45.2 m, the square at the ticket hall's doors at 40.3 m and the roof's top at 50.0 m. Set at 46.75 m, which the line's smoothing along the viaduct brings down to about 46.6 m."
+    },
+    {
+      "station": "Sätra",
+      "height": 36.97,
+      "why": "Wikidata's 36.3 m (from the book \"Stockholm under\") put the platforms half a metre under the real ones. Lantmäteriet's laser scan (2021) has the islands' surface at 36.88–37.03 m, rising a little northwards, the ballast beside them at 35.6–35.7 m, and the ground at Sätra centrum's doors, whose floor the gates are on, at 40.6–40.8 m."
     }
   ],
   "uncovered": [
@@ -307,6 +312,11 @@
       ],
       "reach": 15,
       "why": "Vällingby's middle track, the turnback track between the two island platforms, which no train stops at, and the outer tracks beyond the platforms' ends: the laser scan has the ballast of all three at 23.6–23.75 m, the rail about 0.2 m over it, level with the platforms' tracks (the islands' surface 24.85–25.0 m). Without this the middle track followed the elevation model's ground under the decks and stood 0.4 m over the tracks beside it."
+    },
+    {
+      "along": [[-7849.54, 5155.23, 35.88], [-7787.79, 4963.94, 35.88]],
+      "reach": 4,
+      "why": "Sätra's middle track, the turnback track between the two island platforms, where no train stops: the laser scan has its ballast at 35.65–35.7 m, as the outer tracks' beside it, so the rail level with theirs (the islands' surface 36.9–37.0 m). Without this it followed the elevation model's ground, and stood 0.4 m over them."
     },
     {
       "along": [

@@ -24,9 +24,9 @@ export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20, 'Tekniska h�
 export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
 // stations whose two platforms each reach across to a middle track between them that no service
-// stops at (Högdalen's, to the depot; Vällingby's, where trains turn): each platform's far edge
-// follows that track, its width the gap between the two
-export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen', 'Vällingby']);
+// stops at (Högdalen's, to the depot; Vällingby's and Sätra's, where trains turn): each platform's
+// far edge follows that track, its width the gap between the two
+export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen', 'Vällingby', 'Sätra']);
 // stations whose platform track that no service runs on is drawn, with its platform: Liljeholmen's
 // third track, along the western edge of its middle island (on Albert Guillaumes's drawing, where
 // trains turning back at Liljeholmen stand)

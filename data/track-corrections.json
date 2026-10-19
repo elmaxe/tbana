@@ -626,10 +626,27 @@
       "at": [148090.7, 6575111.0],
       "length": 145,
       "why": "OSM draws the island platform (2026) 2.5 m off the tracks towards the south-east at its south-western end, so that only the southern track read as beside it there and the northern one's platform stopped 45 m short. Lantmäteriet's laser scan has the roof from 101 m south-west of the station's node to 40 m north-east of it, and OSM's platform runs from 99 m south-west, at the stair house over Västertorpsvägen, to 44 m north-east, where it narrows into the top of the ramp down to Störtloppsvägen. Both tracks are placed from this point between them, the middle of that, 145 m."
+    },
+    {
+      "station": "Sätra",
+      "replace": true,
+      "at": [145538.61, 6574535.26],
+      "reach": 8,
+      "length": 148,
+      "why": "OSM draws Sätra's two island platforms each beside one track, the outer ones, since the middle track between them, where trains turn back, is mapped as a siding; and it starts them at the face of Sätra centrum. Lantmäteriet's laser scan and Google's mesh have the islands' open floor only from 16 m north of that face, beside the two stair houses that stand on the south ends of the islands between the tracks, to their north ends past Kungssätravägen's bridge, 148 m. This point is the western island's middle, so that only its outer track gets it, and the island reaches across to the middle track."
+    },
+    {
+      "station": "Sätra",
+      "at": [145551.07, 6574531.22],
+      "reach": 8,
+      "length": 148,
+      "why": "The eastern island's middle, as for the western one."
     }
   ],
   "apart": [
-    {"at": [149819.2, 6575884.5], "reach": 45, "why": "Telefonplan: west of the platform the two tracks run on into their own tunnels under the station building, about 14 m apart, the siding to the buffer stop beyond between them (OpenStreetMap; Lantmäteriet's laser scan has the ballast either side of the platform's west end 15 m apart). Drawn together to the usual spacing over the siding, they pulled the platform's west end in to 7.4 m wide, where it is about 10.5 m."}
+    {"at": [149819.2, 6575884.5], "reach": 45, "why": "Telefonplan: west of the platform the two tracks run on into their own tunnels under the station building, about 14 m apart, the siding to the buffer stop beyond between them (OpenStreetMap; Lantmäteriet's laser scan has the ballast either side of the platform's west end 15 m apart). Drawn together to the usual spacing over the siding, they pulled the platform's west end in to 7.4 m wide, where it is about 10.5 m."},
+    {"at": [145482.75, 6574372.55], "reach": 100, "why": "Sätra: south of the platforms the three tracks run on in tunnels under Sätra centrum and beyond, the western one in a single-track tunnel of its own and the turnback track between it and the eastern one (OpenStreetMap; Lantmäteriet's laser scan has the outer tracks' ballast 24 m apart at the centre's face). Drawn together to the usual spacing over the turnback track, they pulled the islands' south ends in to under 5 m wide."},
+    {"at": [145587.89, 6574690.63], "reach": 70, "why": "Sätra: north of the platforms the western track runs into a single-track tunnel of its own and the eastern one, with the turnback track, into a double-track tunnel beside it, after a pillar of rock (OpenStreetMap; photographs, 2006 and 2018). Drawn together to the usual spacing over the turnback track, they pulled the islands' north ends in and the eastern track across the turnback track."}
   ],
   "straight": [
     {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."},
