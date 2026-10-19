@@ -29,6 +29,7 @@ const UNLOAD = 850;      // and drop them beyond this
 const BUILD_PER_UPDATE = 2;
 const SHELL_POINTS = 25; // points around a tunnel's outline
 const OVERLAP = 0.15;    // the halves of a shared tunnel or deck overlap by this at the middle
+const ISLAND_OVERLAP = 0.05; // and a paved island's halves by this either way
 const GROUND_STRIP = 14; // open track: a strip of ground this far out from the track (without a city)
 const SKIRT = 3;         // with a city: a bank's slope goes on this far below the ground
 const POINT_CELL = 20;
@@ -851,7 +852,10 @@ export class Network {
         const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
         // (one out to a middle track: to halfway, and the far half from that track's edge, below)
         if (p.reach) return { key: `h${p.side}`, pts: p.side > 0 ? [[e, H], [(e + o) / 2, H]] : [[(e + o) / 2, H], [e, H]] };
-        return { key: `p${p.side}`, pts: p.side > 0 ? [[e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H]] };
+        // (an island's halves overlap at its middle, one a hair over the other: where its tracks
+        // splay apart, as at Bredäng, their edges swept along each track don't quite meet)
+        const m = v ? o + p.side * ISLAND_OVERLAP : o, top = v && p.side > 0 ? H + 0.002 : H;
+        return { key: `p${p.side}`, pts: p.side > 0 ? [[e, top], [m, top], [m, S.FLOOR]] : [[m, S.FLOOR], [m, top], [e, top]] };
       }, { u: (u) => (Math.abs(u) - S.PLATFORM_EDGE) / T.PAVING_ACROSS, vScale: 1 / T.pavingRepeat(paving) });
       sweep(b[pave], run, (sm) => {
         if (!mine(sm) || !sm.plat!.reach) return null;
