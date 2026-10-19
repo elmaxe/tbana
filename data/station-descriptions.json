@@ -956,13 +956,32 @@
     },
     "Axelsberg": {
       "drawing": "axelsberg.png",
-      "note": "An island platform in the open. At its east end stairs climb to a ticket hall over the tracks, level with Hägerstensvägen.",
+      "note": "An island platform in a cutting through the rock, roofed over its eastern two thirds. From the middle of the roofed part a ramp climbs east along the island between walls of clinker, with stairs beside it on the north and a lift at its top on the south, into the ticket hall on the deck over the tracks' east end; the hall rises on to the gates and the doors in the station building's east front, onto the footbridge between Selmedalsvägen and Axelsbergs torg. Laid out from OpenStreetMap's indoor mapping (the ramp from 53 m to 77.7 m, the stairs beside it, the lift at 78 m, the gates at 94.7 m, the doors at 100.8 m), Lantmäteriet's laser scan (the deck 3.4 m over the platform) and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [50, 0], "width": 4, "go": [
-          {"stairs": 4.6, "toward": [120, 0]},
-          {"walk": 6, "width": 6},
+        { "from": [49.8, 1.15], "width": 2.4, "go": [
+          {"walk": [59.1, 1.467], "dh": 0.77, "open": true},
+          {"walk": [68.4, 1.783], "dh": 0.77, "open": true},
+          {"walk": [77.7, 2.1], "dh": 0.77, "open": true}
+        ] },
+        { "from": [69.45, -1.3], "width": 2.0, "go": [
+          {"walk": [72.6, -1.3], "open": true, "edges": false},
+          {"stairs": 2.31, "toward": [100, -1.3], "lanes": "S", "open": true},
+          {"walk": [77.7, -1.3], "ceiling": 3.0}
+        ] },
+        { "from": [77.7, 0.6], "h": 2.31, "width": 6.0, "go": [
+          {"walk": [81.5, 0.6], "ceiling": 3.0}
+        ] },
+        { "from": [81.5, 1.6], "h": 2.31, "width": 4.0, "go": [
+          {"walk": [94.7, 1.6], "dh": 1.06, "ceiling": 3.4},
           {"gates": true},
-          {"exit": 1555291846, "by": "walk"}
+          {"walk": [95.5, 1.6], "width": 6.0, "ceiling": 3.4},
+          {"exit": 1555291846, "by": "walk", "ceiling": 3.4, "sign": false}
+        ] },
+        { "from": [74.0, 4.8], "h": 0.01, "width": 1.8, "go": [
+          {"walk": [76.5, 4.8], "open": true},
+          {"lift": 2.31, "through": true},
+          {"walk": [80.2, 4.8], "ceiling": 3.0},
+          {"walk": [80.2, 3.4], "ceiling": 3.0}
         ] }
       ]
     },

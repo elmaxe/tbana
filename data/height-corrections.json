@@ -120,6 +120,11 @@
       "station": "Örnsberg",
       "height": 11.05,
       "why": "The station came out 1.2 m under the real one, its ticket hall's stairs climbing 5.4 m to a street 4 m over the platform. Lantmäteriet's laser scan (2021) has the platform's surface at 11.04–11.12 m along its open western part and under the roof's edges, the ballast beside it at 9.7–9.75 m, and the street over its east end, Örnsbergsvägen, and the square at the station building's doors at 15.0–15.1 m."
+    },
+    {
+      "station": "Axelsberg",
+      "height": 19.75,
+      "why": "The station came out 0.6 m under the real one. Lantmäteriet's laser scan (2021) has the platform's surface at 19.56–19.70 m along its open western part, the ballast beside it at 18.0–18.4 m, and the footbridge and the square at the station building's doors, on the deck over the tracks' east end, at 22.8–23.1 m. Set at 19.75 m, which the line's smoothing through the cutting, held near the elevation model's ground, brings down to 19.58 m."
     }
   ],
   "uncovered": [

@@ -375,7 +375,16 @@ export type Finish =
   | 'aspuddenPavilion' // glass in brushed steel frames, SL's dark blue band over a yellow line from 2.4 m, glass above to a steel fascia
   | 'ornsbergTimber' // dark brown board and batten over a brick plinth, a fascia of boards along the top (Örnsberg's building)
   | 'ornsbergWindows' // as ornsbergTimber, shop windows in dark brown frames over the plinth, a band of boards, windows over it
-  | 'ornsbergFront';  // Örnsberg's building's front onto the square, 18.53 m: the shop windows, the doors between brick piers, the kiosk
+  | 'ornsbergFront'  // Örnsberg's building's front onto the square, 18.53 m: the shop windows, the doors between brick piers, the kiosk
+  | 'wesselClinker' // glazed clinker tiles on end, about 7 by 24 cm, oranges, ochres, browns and plum at random (Gösta Wessel's, Axelsberg's ramp)
+  | 'wesselBricks'  // the same clinker in bricks 15 by 6.5 cm laid along, in a running bond (under the ramp's line)
+  | 'axelsbergTiles' // glazed tiles, 15 cm, mottled dark red-browns and aubergine (Axelsberg's building and hall)
+  | 'axelsbergFront' // Axelsberg's building's front, 18 m: the tiles, a bay of glass in steel frames across its middle, the doors in it
+  | 'glulam'        // glued laminated beams, orange-brown, 60 cm apart, pale grey panels between them, a ceiling's
+  | 'ribbedBoards'  // dark brown boards set on edge, a fin every 10 cm (the fence along Axelsberg's north wall)
+  | 'cobbles'       // rounded river cobbles in greys and browns
+  | 'axelsbergRamp' // a brown non-slip coating, flecked, a ramp's floor
+  | 'axelsbergFloor'; // floor tiles, 20 cm, beige, peach and ochre at random
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -424,7 +433,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -499,6 +508,36 @@ export interface Penguin { kind: 'penguin'; s: number; u: number; turn: number; 
 // about `frames` m apart; over the arch, up to `top`, where the opening through the wall behind the
 // platform is square, the wall's dark band (`spandrel`).
 export interface CrossVault { kind: 'crossVault'; s: [number, number]; u: [number, number]; spring: number; crown: number; doors: number; frames: number; top: number; spandrel: number }
+
+// Where Gösta Wessel's clinker (Axelsberg, 1999) meets the courses of brick under it on a wall
+// beside a ramp: along the line from `from` to `to` ([s, u, h], on the wall's face), dark
+// triangles `every` m long, each with its top on the line and its foot level, deepest at its
+// higher end, standing out from the face to the right of the line (`out`: 1) or to its left (-1);
+// and round white lamps on the face every `lamps.every` m, `lamps.h` over the line.
+export interface Sawtooth { kind: 'sawtooth'; from: [number, number, number]; to: [number, number, number]; every: number; out: 1 | -1; lamps?: { every: number; h: number } }
+
+// The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
+// over the bank, its front along `front` ([s, u] points, facing the platform), `depth` m deep
+// towards `side` (1: +u); its soffit `soffit` high, its top `top` (a car park on it, the city's),
+// its face up to a parapet `parapet` high, a tube light under its front in each bay; square
+// white pillars `size` across, `every` m (one at `at`), `inset` behind the front; under it a bank
+// of rounded stones, its profile across ([z, h] points, z behind the front, from its foot in
+// front of it to the back wall); apses dug into the bank, half-cylinders of board-marked concrete
+// open to the track, each at `s` with radius `r`, its middle on the front; and in the bays the station's name in
+// letters (1983: Leif Bolter, Veine Johansson, Inga Modén and Gösta Wessel), each at `s` and
+// `z` m behind the front: A, a niche in polished steel behind glass with a slab of granite
+// across; X, two lengths of track crossed; E, pale stone, leaning back; L, green marble, hung on
+// a chain; S, lying in a round bowl of sand; B, pale stone edged in blue; e, the second E, of
+// black polished boxes; R, a stone stem, a bowl of bent steel and a leg of a bent steel strip; G,
+// hollow, in a pale gold.
+export interface Gallery {
+  kind: 'gallery'; front: [number, number][]; depth: number; side: 1 | -1;
+  soffit: number; top: number; parapet: number;
+  pillars: { every: number; at: number; size: number; inset: number };
+  bank: [number, number][];
+  apses?: { s: number; r: number }[];
+  letters?: { letter: 'A' | 'X' | 'E' | 'L' | 'S' | 'B' | 'e' | 'R' | 'G'; s: number; z: number }[];
+}
 
 // Stacks of green glass sheets, each tapering on all sides to a narrow ridge, `count` of them side
 // by side along the platform with their middle at s, u, standing on the ground `foot` high, the
@@ -7694,6 +7733,217 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     // chain-link along the bank beyond the southern track
     fences: [
       { points: [[-68, 5.0], [-40, 6.6], [-20, 7.8], [0, 9.0], [40, 9.2], [69, 9.2]], h: [-1.25, 0.6] },
+    ],
+  },
+  'Axelsberg': {
+    // the flat roof over the platform's east part, on pairs of columns either side of the ramp,
+    // climbing with the ramp to the building on the deck (its middle and width from Google's 3D
+    // mesh)
+    roof: {
+      kind: 'butterfly',
+      from: -8.8, to: 85.2, width: 10.4,
+      shape: [[-8.8, -0.58, 10.4], [15, 0.1, 10.4], [45, -0.02, 10.4], [65, -0.32, 10.2], [85.2, -0.15, 9.8]],
+      climb: [[51, 0], [85.2, 3.65]],
+      middle: 2.8, edge: 3.0, thick: 0.3, fascia: 0.35,
+      rafters: 1.2, rafterSize: [0.14, 0.32], rafterColor: 0x2b211b, deck: 'boards',
+      beam: 0.35,
+      columns: { every: 6, at: 3, size: 0.2, plinth: { size: 0.3, height: 0.1 }, pair: 5.0, offset: 0.45, gaps: [[71, 86]] },
+      lamps: { offset: 4.6, length: 1.2, every: 1.25, tube: true },
+      colors: { underside: 0x3a2c24, fascia: 0x1c1c1c, top: 0x55585a, steel: 0x45484b },
+      signs: { at: [12, 30], back: '', ahead: 'Axelsbergs torg', bottom: 2.2 },
+      clocks: [[-7.6, 3.6], [-5.0, -4.6]],
+      // (trains keep left: those towards the city stop on the northern track)
+      boards: [
+        { s: 60, u: -2.8, toward: 'Ropsten', trains: ['13 Ropsten  3 min', '13 Ropsten  13 min'] },
+        { s: 60, u: 3.4, toward: 'Norsborg', trains: ['13 Norsborg  6 min', '13 Norsborg  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.55, tactile: [0.55, 0.85], slabs: 0.85,
+      colors: { edge: 0xc9c7c1, tactile: 0x6d6e70, slab: 0x5d5e60, pavers: 0x737476, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    buildings: ['w181159277', 'w181159279'],
+    rooms: [
+      // (the ramp's walls are the blocks')
+      { name: 'ramp', s: [49, 78], u: [-0.2, 3.5], h: [-0.3, 2.5], walls: null, floor: 'axelsbergRamp' },
+      { name: "north walkway's end", s: [69, 72.7], u: [-3, -0.2], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'stairs', s: [72, 78], u: [-3, -0.2], h: [-0.3, 2.5], walls: 'wesselClinker', floor: 'axelsbergFloor', stairs: 'axelsbergTiles', parapet: 1.1 },
+      { name: 'platform by the lift', s: [73, 77], u: [3.5, 6], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'vestibule', s: [77, 81.6], u: [-3, 6.2], h: [2, 2.6], walls: 'wesselClinker', floor: 'axelsbergFloor', ceiling: 'glulam' },
+      { name: 'ticket hall', s: [81.4, 101], u: [-8, 11], h: [2, 3.6], walls: 'axelsbergTiles', floor: 'axelsbergFloor', ceiling: 'glulam' },
+    ],
+    blocks: [
+      // the ramp's walls, 1.1 m over it: Gösta Wessel's clinker (1999) over the ramp's floor, and
+      // under it, on their outer faces, courses of brick; beside the stairs, the wall between them
+      { name: "ramp's north wall", plan: [[72.6, 0.426], [49.8, -0.35], [49.8, -0.05], [72.6, 0.726]], h: [0, 2.988], low: 1.1,
+        walls: 'wesselBricks', band: { walls: 'wesselClinker', from: 1.888, low: 0 }, sides: [undefined, undefined, undefined, null],
+        roof: 0.05, roofColor: 0x8e9294, onPlatform: true },
+      { name: "ramp's north wall, beside the stairs", plan: [[77.7, -0.34], [72.6, -0.34], [72.6, 0.726], [77.7, 0.9]], h: [0, 3.41], low: 2.988,
+        walls: 'wesselBricks', band: { walls: 'wesselClinker', from: 2.31, low: 1.888 }, sides: [undefined, undefined, undefined, null],
+        roof: 0.05, roofColor: 0x8e9294, onPlatform: true },
+      { name: "ramp's south wall", plan: [[77.7, 3.3], [49.8, 2.35], [49.8, 2.65], [77.7, 3.6]], h: [0, 3.41], low: 1.1,
+        walls: 'wesselBricks', band: { walls: 'wesselClinker', from: 2.31, low: 0 }, sides: [undefined, undefined, undefined, null],
+        roof: 0.05, roofColor: 0x8e9294, onPlatform: true },
+      // under the vestibule at the ramp's top, and beside it the lift's landing
+      { name: 'under the vestibule', plan: [[77.7, -2.41], [85.3, -2.41], [85.3, 3.6], [77.7, 3.6]], h: [-1.4, 2.25], from: -1.4,
+        walls: 'wesselBricks', roof: 0.05, roofColor: 0x8a8580 },
+      { name: "lift's landing", plan: [[79.2, 3.6], [85.3, 3.6], [85.3, 6.6], [79.2, 6.6]], h: [-1.4, 5.3], from: -1.4,
+        walls: 'wesselBricks', band: { walls: 'wesselClinker', from: 2.31 }, roof: 0.1, roofColor: 0x6c646c },
+      // the station's building on the deck (OpenStreetMap's outline; its roof 6.75–8.15 m over the
+      // platform in Lantmäteriet's laser scan, falling west): dark red-brown tiles, and on its
+      // east front the glazed bay over the doors
+      { name: 'station building', plan: [[100.99, -6.97], [85.52, -7.34], [85.1, 10.53], [100.57, 10.9]], h: [3.37, 8.15], from: 3.37, low: 6.75,
+        walls: 'axelsbergTiles', sides: [undefined, undefined, undefined, 'axelsbergFront'],
+        nameSign: { side: 3, at: 0.5, length: 6, bottom: 6.09, black: true }, roof: 0.3, roofColor: 0x6c646c, ground: true },
+      // the deck over the tracks: its underside (the street on it is the city's), its parapets
+      // with chain-link along the cutting, and the tunnels' tops cut off under the street
+      { name: 'deck', plan: [[84.8, -14], [104.2, -14], [104.2, 14], [84.8, 14]], h: [3.08, 3.08], from: 3.08,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.3, roofColor: 0x58595b },
+      { name: "tunnels' tops", plan: [[84.2, -14], [104.6, -14], [104.6, 14], [84.2, 14]], h: [4.25, 9], from: 4.25, fall: 4.55,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the wall between the tracks' tunnels under the deck, the pier between their mouths
+      { name: 'between the tunnels', plan: [[85.3, -1.1], [103.8, -1.1], [103.8, 5.45], [85.3, 5.45]], h: [-1.4, 3.08], from: -1.4,
+        walls: 'boardConcrete' },
+      { name: "deck's parapet, east", plan: [[103.8, -14], [103.5, -14], [103.5, 14], [103.8, 14]], h: [3.22, 4.3], from: 3.22, fall: 3.52,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9b9890 },
+      { name: "deck's parapet, north-west", plan: [[85.3, -14], [85.6, -14], [85.6, -7.3], [85.3, -7.3]], h: [3.22, 4.3], from: 3.22,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9b9890 },
+      { name: "deck's parapet, south-west", plan: [[85.3, 10.6], [85.6, 10.6], [85.6, 14], [85.3, 14]], h: [3.42, 4.5], from: 3.42,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9b9890 },
+      // the wall of dark brown ribs on a concrete base along the northern track under the roof
+      // (its top from the laser scan, the bank behind it level with it), and the ground before it
+      // down to the track's bed
+      { name: 'north wall, -16 to 28', plan: [[28, -10.6], [-16, -10.5], [-16, -14.5], [28, -14.6]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, -16 to 28', plan: [[28, -10.6], [-16, -10.5], [-16, -7.18], [28, -6.94]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 28 to 32', plan: [[32, -9.6], [28, -10.6], [28, -14.6], [32, -13.6]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 28 to 32', plan: [[32, -9.6], [28, -10.6], [28, -6.94], [32, -6.86]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 32 to 48', plan: [[48, -9.4], [32, -9.6], [32, -13.6], [48, -13.4]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 32 to 48', plan: [[48, -9.4], [32, -9.6], [32, -6.86], [48, -6.53]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 48 to 52', plan: [[52, -8.7], [48, -9.4], [48, -13.4], [52, -12.7]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 48 to 52', plan: [[52, -8.7], [48, -9.4], [48, -6.53], [52, -6.45]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 52 to 72', plan: [[72, -8.6], [52, -8.7], [52, -12.7], [72, -12.6]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 52 to 72', plan: [[72, -8.6], [52, -8.7], [52, -6.45], [72, -5.89]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 72 to 76', plan: [[76, -7.9], [72, -8.6], [72, -12.6], [76, -11.9]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 72 to 76', plan: [[76, -7.9], [72, -8.6], [72, -5.89], [76, -5.77]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      { name: 'north wall, 76 to 85.3', plan: [[85.3, -7.8], [76, -7.9], [76, -11.9], [85.3, -11.8]], h: [-1.4, 1.85], from: -1.4,
+        walls: 'boardConcrete', band: { walls: 'ribbedBoards', from: -0.6 }, sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'before the north wall, 76 to 85.3', plan: [[85.3, -7.8], [76, -7.9], [76, -5.77], [85.3, -5.4]], h: [-1.35, -1.35], from: -1.35,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.05, roofColor: 0x6f6a63, ground: 3.25 },
+      // (nothing drawn: the city's ground cut away under the gallery, where the elevation model
+      // runs it down from the car park on the gallery to the track)
+      { name: 'under the gallery, -36 to -20', plan: [[-36, 6.8], [-20, 7.25], [-20, 16.25], [-36, 15.8]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, -20 to 24', plan: [[-20, 7.25], [24, 8.5], [24, 17.5], [-20, 16.25]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, 24 to 48', plan: [[24, 8.5], [48, 8.5], [48, 17.5], [24, 17.5]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, 48 to 52', plan: [[48, 8.5], [52, 9], [52, 18], [48, 17.5]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, 52 to 68', plan: [[52, 9], [68, 9], [68, 18], [52, 18]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, 68 to 70', plan: [[68, 9], [70, 9.5], [70, 18.5], [68, 18]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      { name: 'under the gallery, 70 to 77', plan: [[70, 9.5], [77, 9.5], [77, 18.5], [70, 18.5]], h: [-1.4, 1.9], from: -1.4,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: true },
+      // the faces of blasted rock either side of the open west end, their tops from the laser
+      // scan, falling back to the city's ground
+      { name: 'rock face, north, -79 to -76', plan: [[-76, -7.0], [-79.0, -6.5], [-79.0, -11.5], [-76, -12.0]], h: [-1.4, 7.23], low: 8.13, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -76 to -72', plan: [[-72, -7.0], [-76, -7.0], [-76, -12.0], [-72, -12.0]], h: [-1.4, 5.18], low: 7.23, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -72 to -68', plan: [[-68, -7.25], [-72, -7.0], [-72, -12.0], [-68, -12.25]], h: [-1.4, 5.23], low: 5.18, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -68 to -64', plan: [[-64, -8.0], [-68, -7.25], [-68, -12.25], [-64, -13.0]], h: [-1.4, 6.02], low: 5.23, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -64 to -60', plan: [[-60, -8.0], [-64, -8.0], [-64, -13.0], [-60, -13.0]], h: [-1.4, 4.19], low: 6.02, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -60 to -56', plan: [[-56, -8.5], [-60, -8.0], [-60, -13.0], [-56, -13.5]], h: [-1.4, 3.14], low: 4.19, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -56 to -52', plan: [[-52, -8.75], [-56, -8.5], [-56, -13.5], [-52, -13.75]], h: [-1.4, 3.02], low: 3.14, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -52 to -48', plan: [[-48, -8.6], [-52, -8.75], [-52, -13.75], [-48, -13.6]], h: [-1.4, 2.83], low: 3.02, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -48 to -44', plan: [[-44, -8.8], [-48, -8.6], [-48, -13.6], [-44, -13.8]], h: [-1.4, 3.63], low: 2.83, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -44 to -40', plan: [[-40, -9.0], [-44, -8.8], [-44, -13.8], [-40, -14.0]], h: [-1.4, 3.02], low: 3.63, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -40 to -36', plan: [[-36, -9.6], [-40, -9.0], [-40, -14.0], [-36, -14.6]], h: [-1.4, 3.03], low: 3.02, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -36 to -32', plan: [[-32, -9.75], [-36, -9.6], [-36, -14.6], [-32, -14.75]], h: [-1.4, 2.43], low: 3.03, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -32 to -28', plan: [[-28, -9.75], [-32, -9.75], [-32, -14.75], [-28, -14.75]], h: [-1.4, 3.17], low: 2.43, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -28 to -24', plan: [[-24, -10.0], [-28, -9.75], [-28, -14.75], [-24, -15.0]], h: [-1.4, 3.03], low: 3.17, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -24 to -20', plan: [[-20, -10.25], [-24, -10.0], [-24, -15.0], [-20, -15.25]], h: [-1.4, 2.53], low: 3.03, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, north, -20 to -16', plan: [[-16, -10.5], [-20, -10.25], [-20, -15.25], [-16, -15.5]], h: [-1.4, 2.03], low: 2.53, lowBack: 0.03, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -78 to -74', plan: [[-78, 9.4], [-74, 9.2], [-74, 14.2], [-78, 14.4]], h: [-1.4, 8.43], low: 7.03, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -74 to -70', plan: [[-74, 9.2], [-70, 8.8], [-70, 13.8], [-74, 14.2]], h: [-1.4, 7.03], low: 5.63, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -70 to -66', plan: [[-70, 8.8], [-66, 8.4], [-66, 13.4], [-70, 13.8]], h: [-1.4, 5.63], low: 4.03, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -66 to -62', plan: [[-66, 8.4], [-62, 8.6], [-62, 13.6], [-66, 13.4]], h: [-1.4, 4.03], low: 3.73, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -62 to -58', plan: [[-62, 8.6], [-58, 8.6], [-58, 13.6], [-62, 13.6]], h: [-1.4, 3.73], low: 3.23, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -58 to -54', plan: [[-58, 8.6], [-54, 8.4], [-54, 13.4], [-58, 13.6]], h: [-1.4, 3.23], low: 3.03, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -54 to -50', plan: [[-54, 8.4], [-50, 8.8], [-50, 13.8], [-54, 13.4]], h: [-1.4, 3.03], low: 3.73, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -50 to -46', plan: [[-50, 8.8], [-46, 8.8], [-46, 13.8], [-50, 13.8]], h: [-1.4, 3.73], low: 3.43, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -46 to -42', plan: [[-46, 8.8], [-42, 8.8], [-42, 13.8], [-46, 13.8]], h: [-1.4, 3.43], low: 2.63, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, south, -42 to -38', plan: [[-42, 8.8], [-38, 9.4], [-38, 14.4], [-42, 13.8]], h: [-1.4, 2.63], low: 2.23, lowBack: 0.23, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, undefined, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+    ],
+    art: [
+      // the posts with three lamps out west of the roof, the name on two of them
+      { kind: 'masts', at: [[-50, 0.3], [-22, -0.1]], height: 4.8, color: 0x9a9fa2, shade: 0xb9bcbe, sign: 2.6 },
+      { kind: 'masts', at: [[-64, 0.5], [-36, 0.0], [-11, -0.1]], height: 4.8, color: 0x9a9fa2, shade: 0xb9bcbe },
+      // the T on a striped pole at the building's corner by the footbridge
+      { kind: 'roundel', s: 102.6, u: -8.6, h: 6.3, size: 0.9, foot: 3.25, striped: true },
+      // the walkway north of the ramp running on past the network's end of the platform to the stairs
+      { kind: 'edgePaving', points: [[69.45, -3.0], [72.6, -2.91]], width: 3.3 },
+      // where Wessel's clinker meets the bricks on the ramp walls' outer faces, and their lamps
+      { kind: 'sawtooth', from: [49.8, -0.35, 0], to: [72.6, 0.426, 1.888], every: 1.6, out: -1, lamps: { every: 3.2, h: 0.75 } },
+      { kind: 'sawtooth', from: [72.6, -0.34, 1.888], to: [77.7, -0.34, 2.31], every: 1.6, out: -1, lamps: { every: 3.2, h: 0.75 } },
+      { kind: 'sawtooth', from: [49.8, 2.65, 0], to: [77.7, 3.6, 2.31], every: 1.6, out: 1, lamps: { every: 3.2, h: 0.75 } },
+      // the gallery beyond the southern track, under the car park, and the name's letters in it
+      {
+        kind: 'gallery', front: [[-36, 9.8], [-20, 10.25], [24, 11.5], [48, 11.5], [52, 12.0], [68, 12.0], [70, 12.5], [77, 12.5]], depth: 4.0, side: 1,
+        soffit: 1.55, top: 1.98, parapet: 3.6,
+        pillars: { every: 6, at: 2, size: 0.4, inset: 0.3 },
+        bank: [[-3.0, -1.15], [-1.5, -1.1], [0.9, -0.85], [4.0, 1.0]],
+        apses: [{ s: 47, r: 2.3 }, { s: 35, r: 2.4 }],
+        letters: [
+          { letter: 'A', s: 71, z: 0.2 }, { letter: 'X', s: 59, z: 0.9 }, { letter: 'E', s: 47, z: 0.5 }, { letter: 'L', s: 35, z: 0.6 },
+          { letter: 'S', s: 23, z: 0.9 }, { letter: 'B', s: 11, z: 0.3 }, { letter: 'e', s: -1, z: 0.3 }, { letter: 'R', s: -13, z: 0.4 },
+          { letter: 'G', s: -25, z: 0.2 },
+        ],
+      },
+    ],
+    benches: { at: [12, 26, 40], double: true, wood: true },
+    shelters: [{ s: [-14, -10], u: [-1.0, 1.0], roof: true }],
+    // chain-link on the deck's parapet over the tracks' east mouths
+    fences: [
+      { points: [[103.65, -14], [103.65, 14]], h: [4.3, 5.8] },
     ],
   },
 };

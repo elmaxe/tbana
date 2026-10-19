@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -315,6 +315,8 @@ export class OpenLook {
       else if (a.kind === 'wreath') this.wreath(a, frame, on);
       else if (a.kind === 'penguin') this.penguin(a, frame, on);
       else if (a.kind === 'crossVault') this.crossVault(a, frame, on);
+      else if (a.kind === 'sawtooth') this.sawtooth(a, frame, on);
+      else if (a.kind === 'gallery') this.gallery(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1752,6 +1754,279 @@ export class OpenLook {
         const sm = s0 + ((s1 - s0) * m) / n, h = arc(Math.min(s1 - 0.05, Math.max(s0 + 0.05, sm)));
         box(steel, P(sm, h / 2), along[0], along[1], 0.08, h, 0.07);
       }
+    }
+  }
+
+  // Where Wessel's clinker meets the bricks under it, on the walls beside Axelsberg's ramp: the
+  // dark triangles along the line, and the round lamps over it.
+  private sawtooth(a: Sawtooth, frame: Frame, on: On) {
+    const [s0, u0, h0] = a.from, [s1, u1, h1] = a.to, l = Math.hypot(s1 - s0, u1 - u0);
+    // (out from the face: to the right of the line, or to its left)
+    const ns = -((u1 - u0) / l) * a.out, nu = ((s1 - s0) / l) * a.out;
+    const P = (t: number, h: number, o = 0.012): XYZ => frame.at(s0 + (s1 - s0) * t + ns * o, u0 + (u1 - u0) * t + nu * o, h);
+    const line = (t: number) => h0 + (h1 - h0) * t;
+    const dark = on(this.color(0x1c1b1d, 0.45, 0.1)), n = Math.max(1, Math.round(l / a.every));
+    for (let k = 0; k < n; k++) {
+      const ta = k / n, tb = (k + 1) / n, [lo, hi] = line(ta) < line(tb) ? [ta, tb] : [tb, ta];
+      dark.poly([[...P(lo, line(lo)), 0, 0], [...P(hi, line(lo)), 1, 0], [...P(hi, line(hi)), 1, 1]]);
+    }
+    if (!a.lamps) return;
+    // (white glass domes on a white base, lit)
+    const glass = on(this.mat('bulkhead', () => new THREE.MeshStandardMaterial({ color: 0xf6f4ee, emissive: 0xfff3dc, emissiveIntensity: 0.85, roughness: 0.35, side: THREE.DoubleSide })));
+    const rim = on(this.color(0xd9d9d6, 0.5, 0.2)), m = Math.max(1, Math.round(l / a.lamps.every)), N = 14, r = 0.15;
+    for (let k = 0; k < m; k++) {
+      const t = (k + 0.5) / m, hc = line(t) + a.lamps.h;
+      const ring = (o: number, rr: number) => Array.from({ length: N }, (_, i) => {
+        const q = (i / N) * Math.PI * 2;
+        return [...P(t + (Math.cos(q) * rr) / l, hc + Math.sin(q) * rr, o), 0.5 + Math.cos(q) / 2, 0.5 + Math.sin(q) / 2];
+      });
+      const base = ring(0.012, r), lip = ring(0.04, r), dome = ring(0.09, r * 0.82);
+      for (let i = 0; i < N; i++) {
+        const j = (i + 1) % N;
+        rim.poly([base[i], base[j], lip[j], lip[i]]);
+        glass.poly([lip[i], lip[j], dome[j], dome[i]]);
+      }
+      glass.poly(dome);
+    }
+  }
+
+  // The gallery along the bank beyond Axelsberg's southern track: its deck, pillars and lights,
+  // the bank of stones under it with the apses dug into it, and the name's letters in its bays.
+  private gallery(a: Gallery, frame: Frame, on: On) {
+    const F = a.front, k = a.side, sA = F[0][0], sB = F[F.length - 1][0];
+    // the front's u at s, straight between its points
+    const frontAt = (s: number) => {
+      if (s <= F[0][0]) return F[0][1];
+      for (let i = 0; i + 1 < F.length; i++) {
+        const [sa, ua] = F[i], [sb, ub] = F[i + 1];
+        if (s <= sb) return ua + ((ub - ua) * (s - sa)) / (sb - sa || 1);
+      }
+      return F[F.length - 1][1];
+    };
+    // a point `z` behind the front at s, `h` high; the bank's height `z` behind the front
+    const G = (s: number, z: number, h: number): XYZ => frame.at(s, frontAt(s) + k * z, h);
+    const bankAt = (z: number) => {
+      const B = a.bank;
+      if (z <= B[0][0]) return B[0][1];
+      for (let i = 0; i + 1 < B.length; i++) if (z <= B[i + 1][0]) return B[i][1] + ((B[i + 1][1] - B[i][1]) * (z - B[i][0])) / (B[i + 1][0] - B[i][0]);
+      return B[B.length - 1][1];
+    };
+    const out = a.bank[0][0], D = a.depth, foot = a.bank[0][1];
+    const concrete = on(this.finish('boardConcrete')), stones = on(this.finish('cobbles'));
+    // (the soffit lit by the tubes under it)
+    const soffit = on(this.mat('gallerySoffit', () => {
+      const map = T.finish('boardConcrete');
+      return new THREE.MeshStandardMaterial({ map, roughness: 0.9, emissive: 0x77756f, emissiveMap: map, side: THREE.DoubleSide });
+    }));
+    const deck = on(this.color(0x5d5e60, 0.85, 0.05)), white = on(this.color(0xe4e7e8, 0.6, 0.05));
+    const tube = on(this.mat('galleryTube', () => new THREE.MeshStandardMaterial({ color: 0xf4f6f8, emissive: 0xf2f4ff, emissiveIntensity: 0.9, roughness: 0.3, side: THREE.DoubleSide })));
+    const q = (s: number, z: number, h: number, w = 2.4, by: 'sz' | 'sh' | 'zh' = 'sz') =>
+      [...G(s, z, h), (by === 'zh' ? z : s) / w, (by === 'sz' ? z : h) / w];
+    // the holes in the bank: the apses, and the letters that sit down in it
+    const holes: Volume[] = [];
+    const hole = (pts: [number, number][]) => holes.push(prism(pts.map(([s, z]) => { const p = G(s, z, 0); return [p[0], p[2]]; }), pts.map(() => frame.st.platformY + foot - 3), pts.map(() => frame.st.platformY + a.top)));
+    const N = 16;
+    for (const A of a.apses ?? []) {
+      const arc = Array.from({ length: N + 1 }, (_, i): [number, number] => {
+        const t = (i / N) * Math.PI;
+        return [A.s + Math.cos(t) * A.r, Math.sin(t) * A.r];
+      });
+      hole(arc);
+      // its wall, up to the bank, and its floor
+      const fl = bankAt(0);
+      for (let i = 0; i < N; i++) {
+        const [sa, za] = arc[i], [sb, zb] = arc[i + 1], la = (A.r * Math.PI * i) / N, lb = (A.r * Math.PI * (i + 1)) / N;
+        concrete.poly([[...G(sa, za, fl), la / 2.4, 0], [...G(sb, zb, fl), lb / 2.4, 0], [...G(sb, zb, bankAt(zb)), lb / 2.4, (bankAt(zb) - fl) / 2.4], [...G(sa, za, bankAt(za)), la / 2.4, (bankAt(za) - fl) / 2.4]]);
+      }
+      stones.poly(arc.map(([s, z]) => q(s, z, fl + 0.01)));
+    }
+    const letters = a.letters ?? [];
+    for (const L of letters) this.letter(L, a, frame, on, G, bankAt, hole);
+    // in strips along it, broken at its points and its pillars
+    const pillars: number[] = [];
+    for (let s = a.pillars.at - Math.floor((a.pillars.at - sA) / a.pillars.every) * a.pillars.every; s < sB - 0.5; s += a.pillars.every) if (s > sA + 0.5) pillars.push(s);
+    const cuts = [...new Set([...F.map(([s]) => s), ...pillars])].sort((x, y) => x - y);
+    for (let i = 0; i + 1 < cuts.length; i++) {
+      const sa = cuts[i], sb = cuts[i + 1];
+      // the bank, in bands across between the profile's points
+      for (let j = 0; j + 1 < a.bank.length; j++) {
+        const [za, ha] = a.bank[j], [zb, hb] = a.bank[j + 1];
+        stones.poly([q(sa, za, ha), q(sb, za, ha), q(sb, zb, hb), q(sa, zb, hb)], holes);
+      }
+      // the back wall, the soffit, the deck's top (on out over the car park behind), and the face
+      // up to the parapet, its top and its back
+      const back = bankAt(D);
+      concrete.poly([q(sa, D, back - 0.3, 2.4, 'sh'), q(sb, D, back - 0.3, 2.4, 'sh'), q(sb, D, a.soffit, 2.4, 'sh'), q(sa, D, a.soffit, 2.4, 'sh')]);
+      soffit.poly([q(sa, 0, a.soffit), q(sb, 0, a.soffit), q(sb, D, a.soffit), q(sa, D, a.soffit)]);
+      deck.poly([q(sa, 0.25, a.top), q(sb, 0.25, a.top), q(sb, D + 2, a.top), q(sa, D + 2, a.top)]);
+      concrete.poly([q(sa, 0, a.soffit, 2.4, 'sh'), q(sb, 0, a.soffit, 2.4, 'sh'), q(sb, 0, a.parapet, 2.4, 'sh'), q(sa, 0, a.parapet, 2.4, 'sh')]);
+      concrete.poly([q(sa, 0, a.parapet), q(sb, 0, a.parapet), q(sb, 0.25, a.parapet), q(sa, 0.25, a.parapet)]);
+      concrete.poly([q(sa, 0.25, a.top, 2.4, 'sh'), q(sb, 0.25, a.top, 2.4, 'sh'), q(sb, 0.25, a.parapet, 2.4, 'sh'), q(sa, 0.25, a.parapet, 2.4, 'sh')]);
+      // (the joint between the deck's edge and the parapet over it)
+      const dark = on(this.color(0x6e6c68, 0.9, 0));
+      dark.poly([[...G(sa, -0.005, a.top + 0.32), 0, 0], [...G(sb, -0.005, a.top + 0.32), 1, 0], [...G(sb, -0.005, a.top + 0.35), 1, 1], [...G(sa, -0.005, a.top + 0.35), 0, 1]]);
+    }
+    // the ends, closed from the bank's foot to the parapet
+    for (const s of [sA, sB]) {
+      concrete.poly([q(s, 0, foot - 0.3, 2.4, 'zh'), q(s, D, foot - 0.3, 2.4, 'zh'), q(s, D, a.parapet, 2.4, 'zh'), q(s, 0, a.parapet, 2.4, 'zh')]);
+      concrete.poly([q(s, out, foot - 0.3, 2.4, 'zh'), q(s, 0, foot - 0.3, 2.4, 'zh'), q(s, 0, bankAt(0), 2.4, 'zh'), q(s, out, bankAt(out), 2.4, 'zh')]);
+    }
+    // the pillars, and a tube light under the front in each bay
+    const P = a.pillars, along = (s: number) => { const p = G(s - 0.5, 0, 0), r = G(s + 0.5, 0, 0); return [r[0] - p[0], r[2] - p[2]]; };
+    for (const s of pillars) {
+      const [fx, fz] = along(s), bot = bankAt(P.inset) - 0.4;
+      box(white, G(s, P.inset + P.size / 2, (bot + a.soffit) / 2), fx, fz, P.size, a.soffit - bot, P.size);
+    }
+    const bays = [sA, ...pillars, sB];
+    for (let i = 0; i + 1 < bays.length; i++) {
+      const mid = (bays[i] + bays[i + 1]) / 2, len = (bays[i + 1] - bays[i]) * 0.55, [fx, fz] = along(mid);
+      box(tube, G(mid, 0.3, a.soffit - 0.04), fx, fz, 0.1, 0.06, len);
+    }
+  }
+
+  // One of the name's letters in the gallery: drawn in a frame of its own, x to the right as seen
+  // from the platform, y up, z away; `lean` back and `turn` about the upright through its foot.
+  private letter(L: NonNullable<Gallery['letters']>[number], a: Gallery, frame: Frame, on: On,
+    G: (s: number, z: number, h: number) => XYZ, bankAt: (z: number) => number, hole: (pts: [number, number][]) => void) {
+    const k = a.side, s0 = L.s;
+    // the letter's foot: on the bank, a little down into it
+    const base = bankAt(L.z) - 0.08;
+    let lean = 0, turn = 0, lift = 0;
+    const tf = (x: number, y: number, z: number): XYZ => {
+      const y1 = y * Math.cos(lean) - z * Math.sin(lean), z1 = y * Math.sin(lean) + z * Math.cos(lean);
+      const x2 = x * Math.cos(turn) - z1 * Math.sin(turn), z2 = x * Math.sin(turn) + z1 * Math.cos(turn);
+      return G(s0 - k * x2, L.z + z2, base + lift + y1);
+    };
+    const V = (x: number, y: number, z: number, u = 0, v = 0) => [...tf(x, y, z), u, v];
+    // a convex outline (x, y), from z0 to z1 deep, its sides in `edge` if given
+    const piece = (m: Mesh, pts: [number, number][], z0: number, z1: number, edge = m) => {
+      m.poly(pts.map(([x, y]) => V(x, y, z0, x, y)));
+      m.poly(pts.map(([x, y]) => V(x, y, z1, x, y)));
+      for (let i = 0; i < pts.length; i++) {
+        const [xa, ya] = pts[i], [xb, yb] = pts[(i + 1) % pts.length];
+        edge.poly([V(xa, ya, z0, 0, 0), V(xb, yb, z0, 1, 0), V(xb, yb, z1, 1, 1), V(xa, ya, z1, 0, 1)]);
+      }
+    };
+    const rect = (x0: number, y0: number, x1: number, y1: number): [number, number][] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+    // a half-disc's outline, round (cx, cy), from angle t0 to t1
+    const arc = (cx: number, cy: number, r: number, t0: number, t1: number, n = 10): [number, number][] =>
+      Array.from({ length: n + 1 }, (_, i) => { const t = t0 + ((t1 - t0) * i) / n; return [cx + Math.cos(t) * r, cy + Math.sin(t) * r]; });
+    // (the hole in the bank under a footprint, x and z in the letter's frame)
+    const dig = (pts: [number, number][]) => hole(pts.map(([x, z]): [number, number] => [s0 - k * (x * Math.cos(turn) - z * Math.sin(turn)), L.z + x * Math.sin(turn) + z * Math.cos(turn)]));
+    // (lying back on the bank, as steeply as it slopes there)
+    const onBank = Math.PI / 2 - Math.atan2(bankAt(L.z + 1) - bankAt(L.z), 1);
+    if (L.letter === 'A') {
+      // a niche of polished steel behind glass, a slab of granite across it, dry leaves on its floor
+      const W = 2.2, H = 1.75, D = 1.0, steel = on(this.color(0xc4c8ca, 0.12, 0.95)), frameSteel = on(this.color(0x9da2a5, 0.3, 0.8));
+      lift = 0.08;
+      dig([[-W / 2, 0], [W / 2, 0], [W / 2, D], [-W / 2, D]]);
+      steel.poly([V(-W / 2, -0.3, D), V(W / 2, -0.3, D), V(W / 2, H, D), V(-W / 2, H, D)]);
+      for (const x of [-W / 2, W / 2]) steel.poly([V(x, -0.3, 0), V(x, -0.3, D), V(x, H, D), V(x, H, 0)]);
+      steel.poly([V(-W / 2, H, 0), V(W / 2, H, 0), V(W / 2, H, D), V(-W / 2, H, D)]);
+      for (const x of [-W / 2, W / 2 - 0.12]) piece(frameSteel, rect(x, -0.3, x + 0.12, H + 0.06), -0.06, 0.06);
+      piece(frameSteel, rect(-W / 2, H - 0.06, W / 2, H + 0.06), -0.06, 0.06);
+      on(this.pane).poly([V(-W / 2 + 0.12, 0, 0.01), V(W / 2 - 0.12, 0, 0.01), V(W / 2 - 0.12, H - 0.06, 0.01), V(-W / 2 + 0.12, H - 0.06, 0.01)]);
+      piece(on(this.color(0x8e8b87, 0.7, 0)), rect(-W / 2 + 0.08, 0.72, W / 2 - 0.08, 0.92), 0.3, 0.75);
+      on(this.color(0xb08a55, 0.95, 0)).poly([V(-W / 2, 0.02, 0.02), V(W / 2, 0.02, 0.02), V(W / 2, 0.02, D), V(-W / 2, 0.02, D)]);
+    } else if (L.letter === 'X') {
+      // two lengths of track crossed, lying back on the bank
+      lean = onBank; lift = 0.08;
+      const rail = on(this.color(0x5a4a40, 0.5, 0.6)), sleeper = on(this.color(0x3a3029, 0.9, 0));
+      for (const p of [-0.72, 0.72]) {
+        const dx = Math.sin(p), dy = Math.cos(p), ax = Math.cos(p), ay = -Math.sin(p), cy = 1.0;
+        const quad = (t0: number, t1: number, w0: number, w1: number): [number, number][] =>
+          [[dx * t0 + ax * w0, cy + dy * t0 + ay * w0], [dx * t1 + ax * w0, cy + dy * t1 + ay * w0], [dx * t1 + ax * w1, cy + dy * t1 + ay * w1], [dx * t0 + ax * w1, cy + dy * t0 + ay * w1]];
+        for (let t = -1.3; t <= 1.31; t += 0.36) piece(sleeper, quad(t - 0.06, t + 0.06, -0.38, 0.38), -0.07, 0);
+        for (const g of [-0.24, 0.24]) piece(rail, quad(-1.45, 1.45, g - 0.035, g + 0.035), -0.17, -0.07);
+      }
+    } else if (L.letter === 'E') {
+      // pale stone, leaning back and turned a little
+      lean = 0.5; turn = 0.25;
+      const stone = on(this.color(0xd3cdc0, 0.85, 0));
+      piece(stone, rect(-0.6, 0, -0.2, 1.6), 0, 0.42);
+      piece(stone, rect(-0.2, 1.26, 0.6, 1.6), 0, 0.42);
+      piece(stone, rect(-0.2, 0.64, 0.45, 0.96), 0, 0.42);
+      piece(stone, rect(-0.2, 0, 0.6, 0.34), 0, 0.42);
+    } else if (L.letter === 'L') {
+      // green marble, hung on a chain from the deck
+      lift = 0.4;
+      const green = on(this.color(0xa2b96e, 0.3, 0.05)), x0 = -0.62;
+      piece(green, rect(x0, 0, x0 + 0.5, 1.75), 0, 0.32);
+      piece(green, rect(x0 + 0.5, 0, x0 + 1.35, 0.42), 0, 0.32);
+      piece(green, rect(x0 - 0.12, 1.6, x0 + 0.64, 1.75), 0, 0.32);
+      piece(green, [[x0 + 1.2, 0.42], [x0 + 1.4, 0.42], [x0 + 1.4, 0.62]], 0, 0.32);
+      const chain = on(this.color(0x55575a, 0.5, 0.7)), top = a.soffit - base - lift;
+      limb(chain, tf(x0 + 0.25, 1.75, 0.16), tf(x0 + 0.25, top, 0.16), 0.03, 0.03);
+    } else if (L.letter === 'S') {
+      // a round bowl of sand dug into the bank, lying back with it, an S rising out of it
+      lean = onBank; lift = 0.08;
+      const sand = on(this.color(0xc9ac80, 0.95, 0)), R = 1.15, M = 20;
+      const deep = (r: number) => 0.38 * (1 - (r / R) ** 2);
+      dig(Array.from({ length: M }, (_, i): [number, number] => { const t = (i / M) * Math.PI * 2; return [Math.cos(t) * (R + 0.3), (0.9 + Math.sin(t) * (R + 0.3)) * Math.sin(lean)]; }));
+      for (let i = 0; i < M; i++) {
+        const t0 = (i / M) * Math.PI * 2, t1 = ((i + 1) / M) * Math.PI * 2;
+        for (let j = 0; j < 4; j++) {
+          const r0 = (R * j) / 4, r1 = (R * (j + 1)) / 4;
+          const p = (t: number, r: number) => V(Math.cos(t) * r, 0.9 + Math.sin(t) * r, deep(r));
+          sand.poly([p(t0, r0), p(t1, r0), p(t1, r1), p(t0, r1)]);
+        }
+        // its lip
+        const p = (t: number, r: number, z: number) => V(Math.cos(t) * r, 0.9 + Math.sin(t) * r, z);
+        sand.poly([p(t0, R, 0), p(t1, R, 0), p(t1, R + 0.14, -0.05), p(t0, R + 0.14, -0.05)]);
+        sand.poly([p(t0, R + 0.14, -0.05), p(t1, R + 0.14, -0.05), p(t1, R + 0.3, 0.05), p(t0, R + 0.3, 0.05)]);
+      }
+      // the S: a band along two half-turns, standing out of the bowl
+      const path: [number, number][] = [...arc(0, 1.2, 0.3, 0.3, 1.5 * Math.PI, 12), ...arc(0, 0.6, 0.3, 0.5 * Math.PI, -0.85 * Math.PI, 12).slice(1)];
+      const w = 0.09, hgt = 0.2;
+      for (let i = 0; i + 1 < path.length; i++) {
+        const [xa, ya] = path[i], [xb, yb] = path[i + 1], l = Math.hypot(xb - xa, yb - ya) || 1, nx = -(yb - ya) / l * w, ny = (xb - xa) / l * w;
+        const za = (x: number, y: number) => deep(Math.hypot(x, y - 0.9));
+        const corner = (x: number, y: number, d: number) => V(x, y, za(x, y) - d);
+        sand.poly([corner(xa - nx, ya - ny, hgt), corner(xb - nx, yb - ny, hgt), corner(xb + nx, yb + ny, hgt), corner(xa + nx, ya + ny, hgt)]);
+        for (const sgn of [-1, 1]) sand.poly([corner(xa + sgn * nx, ya + sgn * ny, 0), corner(xb + sgn * nx, yb + sgn * ny, 0), corner(xb + sgn * nx, yb + sgn * ny, hgt), corner(xa + sgn * nx, ya + sgn * ny, hgt)]);
+      }
+    } else if (L.letter === 'B') {
+      // pale rough stone, its edges banded in blue, lying back on the bank
+      lean = 0.75;
+      const stone = on(this.color(0xd8d6cf, 0.9, 0)), blue = on(this.color(0x2b4c9e, 0.5, 0.2)), x0 = -0.72;
+      piece(stone, rect(x0, 0, x0 + 0.62, 1.66), 0, 0.3, blue);
+      piece(stone, arc(x0 + 0.6, 0.46, 0.46, -Math.PI / 2, Math.PI / 2), 0, 0.3, blue);
+      piece(stone, arc(x0 + 0.6, 1.26, 0.4, -Math.PI / 2, Math.PI / 2), 0, 0.3, blue);
+    } else if (L.letter === 'e') {
+      // the second E: boxes of black polished stone
+      const black = on(this.color(0x0f1012, 0.15, 0.25));
+      piece(black, rect(-0.55, 0, -0.22, 1.5), 0, 0.45);
+      piece(black, rect(-0.22, 1.17, 0.55, 1.5), 0, 0.45);
+      piece(black, rect(-0.22, 0.6, 0.42, 0.9), 0, 0.45);
+      piece(black, rect(-0.22, 0, 0.55, 0.33), 0, 0.45);
+    } else if (L.letter === 'R') {
+      // a stem of dark stone, a bowl of bent steel tube, and a leg of a bent steel strip
+      lean = 0.12;
+      const stone = on(this.color(0x34322f, 0.6, 0.05)), rust = on(this.color(0x4a3327, 0.55, 0.45)), strip = on(this.color(0xc3c6c8, 0.3, 0.8));
+      piece(stone, rect(-0.6, 0, -0.22, 1.55), 0, 0.3);
+      const bowl = arc(-0.22, 1.18, 0.34, Math.PI / 2, -Math.PI / 2, 12);
+      for (let i = 0; i + 1 < bowl.length; i++) limb(rust, tf(bowl[i][0], bowl[i][1], 0.15), tf(bowl[i + 1][0], bowl[i + 1][1], 0.15), 0.17, 0.17);
+      // (the strip's broad side to the platform, bent down to the ground and up again at its end)
+      const leg: [number, number][] = [[-0.22, 0.84], [0.0, 0.64], [0.2, 0.44], [0.4, 0.25], [0.6, 0.12], [0.8, 0.07], [0.95, 0.1], [1.05, 0.2]];
+      for (let i = 0; i + 1 < leg.length; i++) {
+        const [xa, ya] = leg[i], [xb, yb] = leg[i + 1], l = Math.hypot(xb - xa, yb - ya), nx = -(yb - ya) / l * 0.07, ny = (xb - xa) / l * 0.07;
+        piece(strip, [[xa - nx, ya - ny], [xb - nx, yb - ny], [xb + nx, yb + ny], [xa + nx, ya + ny]], 0.08, 0.12);
+      }
+    } else if (L.letter === 'G') {
+      // hollow, in a pale gold: a thick ring open at its right, and the bar
+      const gold = on(this.color(0xc6ad7b, 0.35, 0.55)), cy = 0.86, Ro = 0.86, Ri = 0.6, d = 0.62, M = 22;
+      const t0 = 0.6, t1 = 2 * Math.PI - 0.45;
+      for (let i = 0; i < M; i++) {
+        const ta = t0 + ((t1 - t0) * i) / M, tb = t0 + ((t1 - t0) * (i + 1)) / M;
+        const p = (t: number, r: number, z: number) => V(Math.cos(t) * r, cy + Math.sin(t) * r, z);
+        gold.poly([p(ta, Ri, 0), p(tb, Ri, 0), p(tb, Ro, 0), p(ta, Ro, 0)]);
+        gold.poly([p(ta, Ri, d), p(tb, Ri, d), p(tb, Ro, d), p(ta, Ro, d)]);
+        gold.poly([p(ta, Ro, 0), p(tb, Ro, 0), p(tb, Ro, d), p(ta, Ro, d)]);
+        gold.poly([p(ta, Ri, 0), p(tb, Ri, 0), p(tb, Ri, d), p(ta, Ri, d)]);
+      }
+      for (const t of [t0, t1]) gold.poly([V(Math.cos(t) * Ri, cy + Math.sin(t) * Ri, 0), V(Math.cos(t) * Ro, cy + Math.sin(t) * Ro, 0), V(Math.cos(t) * Ro, cy + Math.sin(t) * Ro, d), V(Math.cos(t) * Ri, cy + Math.sin(t) * Ri, d)]);
+      piece(gold, rect(0.3, 0.72, 0.86, 0.94), 0, d);
+      piece(gold, rect(0.64, 0.4, 0.86, 0.94), 0, d);
     }
   }
 

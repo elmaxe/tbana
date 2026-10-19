@@ -5266,9 +5266,11 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   gingham: [1.2, 1.2], orangeGingham: [1.2, 1.2], greyBooth: [1.2, 2.6], blueBooth: [1.4, 3.6], fraBuilding: [6.0, 7.15], fraEntrance: [10.12, 7.15],
   aspuddenStrips: [1.2, 1.8], amberTiles: [1.2, 1.0], aspuddenHall: [1.2, 1.2], aspuddenPavilion: [1.15, 4.0],
   ornsbergTimber: [2.4, 3.75], ornsbergWindows: [3.0, 3.75], ornsbergFront: [18.53, 3.75],
+  wesselClinker: [1.2, 0.96], wesselBricks: [1.2, 0.91], axelsbergTiles: [1.2, 1.2], axelsbergFront: [18.0, 4.8],
+  glulam: [1.2, 1.2], ribbedBoards: [1.2, 1.2], cobbles: [2.4, 2.4], axelsbergRamp: [1.2, 1.2], axelsbergFloor: [1.2, 1.2],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -7777,6 +7779,156 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'wesselClinker':
+    case 'wesselBricks': {
+      // Gösta Wessel's clinker on the walls of Axelsberg's ramp (1999): glazed clinker in oranges,
+      // ochres, tans, browns and a dark plum, at random, in grey joints; `wesselClinker` tiles on
+      // end, about 7 by 24 cm, in rows whose upright joints wander; `wesselBricks`, under the
+      // ramp's line, bricks 15 by 6.5 cm laid along in a running bond (photographs, 2012 and 2019)
+      x.fillStyle = '#8f8a82'; x.fillRect(0, 0, W, H);
+      const cols = [[204, 116, 58], [214, 130, 64], [196, 104, 52], [184, 98, 50], [214, 160, 92], [226, 182, 110], [190, 140, 86],
+        [150, 84, 52], [128, 70, 46], [92, 54, 48], [80, 46, 44], [104, 62, 56], [226, 196, 128]];
+      const weights = [5, 5, 4, 3, 4, 2, 3, 4, 3, 3, 2, 2, 1], total = weights.reduce((a, b) => a + b, 0);
+      const pick = () => {
+        let k = r() * total, i = 0;
+        while (k > weights[i]) k -= weights[i++];
+        return cols[i];
+      };
+      const tile = (x0: number, y0: number, tw: number, th: number) => {
+        const [cr, cg, cb] = pick(), v = Math.floor(r() * 14) - 7;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`; x.fillRect(x0 + 1, y0 + 1, tw - 2, th - 2);
+        x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(x0 + 2, y0 + 2, Math.max(1, tw * 0.25), th - 4);
+      };
+      if (name === 'wesselClinker') {
+        // (each row's widths add up to the canvas's width, so that it tiles)
+        for (let j = 0; j * 0.24 * PX < H - 1; j++) {
+          let at = 0;
+          while (at < W - 1) {
+            let tw = (0.055 + r() * 0.04) * PX;
+            if (W - at - tw < 0.05 * PX) tw = W - at;
+            tile(at, j * 0.24 * PX, tw, 0.24 * PX); at += tw;
+          }
+        }
+      } else {
+        const bl = 0.15 * PX, bh = 0.065 * PX;
+        for (let j = 0; j * bh < H - 1; j++) for (let i = -1; i * bl < W; i++) tile(i * bl + (j % 2) * bl / 2, H - (j + 1) * bh, bl, bh);
+      }
+      break;
+    }
+    case 'axelsbergTiles':
+    case 'axelsbergFront': {
+      // Axelsberg's station building and its ticket hall: glazed tiles, 15 cm, mottled dark
+      // red-browns and aubergine, in grey joints. `axelsbergFront`, its front to the footbridge,
+      // from its south corner: the tiles; a bay of glass in brushed steel frames across its middle,
+      // the doors in two pairs in the middle of it with SL's blue band across them, the hall lit
+      // behind them, a dark band over them (the black band with the name is the block's), the
+      // glass over that showing the ceiling's timber beams, and a steel fascia (photographs, 2014
+      // and 2019)
+      const M = (m: number) => m * PX, t = 0.15 * PX;
+      const tiles = (a: number, b: number, h0: number, h1: number) => {
+        x.fillStyle = '#7d7570'; x.fillRect(M(a), Y(h1), M(b - a), (h1 - h0) * PX);
+        for (let i = Math.floor(M(a) / t); i * t < M(b); i++) for (let j = Math.floor((H - Y(h0)) / t); j * t < H - Y(h1); j++) {
+          const set = [[98, 44, 36], [86, 40, 40], [110, 52, 40], [74, 36, 38], [122, 62, 46], [92, 48, 50]], [cr, cg, cb] = set[Math.floor(r() * set.length)];
+          const v = Math.floor(r() * 12) - 6, x0 = Math.max(M(a), i * t + 1), x1 = Math.min(M(b), (i + 1) * t - 1), y1 = H - j * t - 1, y0 = Math.max(Y(h1), H - (j + 1) * t + 1);
+          if (x1 <= x0 || y1 <= y0) continue;
+          x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`; x.fillRect(x0, y0, x1 - x0, y1 - y0);
+          x.fillStyle = 'rgba(255,235,220,0.09)'; x.fillRect(x0 + 1, y0 + 1, (x1 - x0) * 0.35, y1 - y0 - 2);
+        }
+      };
+      if (name === 'axelsbergTiles') { tiles(0, w, 0, h); break; }
+      const steel = '#a9adb0';
+      tiles(0, 5.4, 0, h); tiles(12.6, w, 0, h);
+      // (glass in steel frames `every` m apart, the hall lit behind it, or its ceiling's beams)
+      const glass = (a: number, b: number, h0: number, h1: number, every: number, lit: boolean) => {
+        x.fillStyle = steel; x.fillRect(M(a), Y(h1), M(b - a), (h1 - h0) * PX);
+        const n = Math.max(1, Math.round((b - a) / every)), gw = (b - a) / n;
+        for (let k = 0; k < n; k++) {
+          const g0 = a + k * gw + 0.05, g1 = a + (k + 1) * gw - 0.05, tp = h1 - 0.06, f = h0 + 0.06;
+          const g = x.createLinearGradient(0, Y(tp), 0, Y(f));
+          if (lit) { g.addColorStop(0, '#d8c9ac'); g.addColorStop(0.55, '#b49c7c'); g.addColorStop(1, '#8a7a68'); }
+          else { g.addColorStop(0, '#c2c8cb'); g.addColorStop(1, '#9aa2a6'); }
+          x.fillStyle = g; x.fillRect(M(g0), Y(tp), M(g1 - g0), (tp - f) * PX);
+          if (!lit) for (let q = g0 + 0.2; q < g1; q += 0.5) { x.fillStyle = 'rgba(150,84,40,0.55)'; x.fillRect(M(q), Y(tp), M(0.16), (tp - f) * PX * 0.7); }
+          else for (let q = 0; q < 2; q++) {
+            x.fillStyle = `rgba(${r() < 0.5 ? '90,70,56' : '170,150,120'},0.4)`;
+            const qw = 0.2 + r() * 0.4, qh = 0.5 + r() * 0.9, qa = g0 + r() * Math.max(0.01, g1 - g0 - qw);
+            x.fillRect(M(qa), Y(f + qh), M(qw), qh * PX);
+          }
+          x.fillStyle = 'rgba(255,255,255,0.14)';
+          x.beginPath(); x.moveTo(M(g0 + (g1 - g0) * 0.1), Y(f)); x.lineTo(M(g0 + (g1 - g0) * 0.45), Y(tp)); x.lineTo(M(g0 + (g1 - g0) * 0.6), Y(tp)); x.lineTo(M(g0 + (g1 - g0) * 0.25), Y(f)); x.fill();
+        }
+      };
+      glass(5.4, 7.8, 0, 2.7, 1.2, true); glass(10.2, 12.6, 0, 2.7, 1.2, true);
+      // the doors: two pairs, kick plates, SL's blue band with white discs across them
+      glass(7.8, 10.2, 0, 2.5, 0.6, true);
+      x.fillStyle = steel; x.fillRect(M(7.8), Y(2.7), M(2.4), 0.2 * PX);
+      for (let a = 7.8; a < 10.2; a += 0.6) x.fillRect(M(a + 0.02), Y(0.3), M(0.56), 0.3 * PX);
+      x.fillStyle = '#25358a'; x.fillRect(M(7.85), Y(1.12), M(2.3), 0.16 * PX);
+      x.fillStyle = '#f2f2f0';
+      for (let a = 8.1; a < 10.2; a += 0.6) { x.beginPath(); x.arc(M(a), Y(1.04), 0.05 * PX, 0, Math.PI * 2); x.fill(); }
+      // the dark band, the glass over it, the fascia
+      x.fillStyle = '#26282a'; x.fillRect(M(5.4), Y(3.25), M(7.2), 0.55 * PX);
+      glass(5.4, 12.6, 3.25, 4.45, 1.2, false);
+      x.fillStyle = steel; x.fillRect(M(5.4), Y(h), M(7.2), (h - 4.45) * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(M(5.4), Y(4.45), M(7.2), 2);
+      break;
+    }
+    case 'glulam':
+      // the ticket hall's ceiling at Axelsberg: glued laminated beams of a warm orange-brown, 16 cm
+      // wide and 60 cm apart, pale grey panels between them (photographs, 2019)
+      x.fillStyle = '#c9c8c2'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.6 * PX < W; i++) {
+        const x0 = (i * 0.6 + 0.22) * PX, bw = 0.16 * PX;
+        x.fillStyle = 'rgba(40,30,20,0.35)'; x.fillRect(x0 - 4, 0, 4, H); x.fillRect(x0 + bw, 0, 6, H);
+        x.fillStyle = '#a8642e'; x.fillRect(x0, 0, bw, H);
+        for (let k = 1; k < 6; k++) { x.fillStyle = 'rgba(120,64,28,0.5)'; x.fillRect(x0 + k * bw / 6, 0, 1, H); }
+        for (let k = 0; k < 12; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '90,46,20' : '200,140,90'},0.3)`; x.fillRect(x0 + r() * (bw - 2), r() * H, 1.5, 20 + r() * 60); }
+      }
+      break;
+    case 'ribbedBoards':
+      // the dark brown fence of boards set on edge along the top of Axelsberg's north wall, a fin
+      // every 10 cm with its shadow beside it (photographs, 2019)
+      x.fillStyle = '#2c1f17'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.1 * PX < W; i++) {
+        const v = Math.floor(r() * 12) - 6, x0 = i * 0.1 * PX;
+        x.fillStyle = `rgb(${84 + v},${62 + v * 0.8},${46 + v * 0.6})`; x.fillRect(x0, 0, 0.055 * PX, H);
+        x.fillStyle = 'rgba(255,235,210,0.12)'; x.fillRect(x0, 0, 2, H);
+        x.fillStyle = 'rgba(10,6,4,0.45)'; x.fillRect(x0 + 0.055 * PX, 0, 0.02 * PX, H);
+      }
+      break;
+    case 'cobbles': {
+      // the bank of rounded stones under Axelsberg's gallery: river cobbles 8 to 25 cm across, greys,
+      // browns and a few rusty, packed close on a darker grit (photographs, 2012 and 2019)
+      x.fillStyle = '#4c4844'; x.fillRect(0, 0, W, H);
+      const cols = [[146, 142, 134], [124, 116, 108], [164, 154, 140], [112, 102, 94], [152, 132, 114], [98, 94, 92], [172, 166, 156], [134, 104, 84]];
+      for (let k = 0; k < 900; k++) {
+        const cx = r() * W, cy = r() * H, rx = (0.04 + r() * r() * 0.09) * PX, ry = rx * (0.6 + r() * 0.35), a = r() * Math.PI;
+        const [cr, cg, cb] = cols[Math.floor(r() * cols.length)];
+        for (const [dx, dy] of [[0, 0], [-W, 0], [W, 0], [0, -H], [0, H]]) {
+          if (dx === 0 && dy === 0 ? false : (dx && (cx + dx < -rx || cx + dx > W + rx)) || (dy && (cy + dy < -rx || cy + dy > H + rx))) continue;
+          const g = x.createRadialGradient(cx + dx - rx * 0.3, cy + dy - ry * 0.35, rx * 0.1, cx + dx, cy + dy, rx);
+          g.addColorStop(0, `rgb(${cr + 30},${cg + 30},${cb + 28})`); g.addColorStop(0.7, `rgb(${cr},${cg},${cb})`); g.addColorStop(1, `rgb(${cr - 40},${cg - 40},${cb - 38})`);
+          x.fillStyle = g; x.beginPath(); x.ellipse(cx + dx, cy + dy, rx, ry, a, 0, Math.PI * 2); x.fill();
+        }
+      }
+      break;
+    }
+    case 'axelsbergRamp':
+      // the ramp's floor: a brown non-slip coating, flecked (photographs, 2019)
+      x.fillStyle = '#7c5c44'; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 4000; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '60,42,30' : '160,128,98'},0.35)`; x.fillRect(r() * W, r() * H, 2, 2); }
+      break;
+    case 'axelsbergFloor': {
+      // the ticket hall's floor: tiles, 20 cm, beige, peach and ochre at random, in dark joints
+      // (photographs, 2019)
+      x.fillStyle = '#5e5248'; x.fillRect(0, 0, W, H);
+      const t = 0.2 * PX, set = [[201, 162, 122], [212, 176, 138], [191, 148, 108], [184, 138, 98], [168, 128, 106], [196, 170, 140]];
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const [cr, cg, cb] = set[Math.floor(r() * set.length)], v = Math.floor(r() * 10) - 5;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -7785,7 +7937,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
