@@ -115,6 +115,11 @@
       "station": "Fruängen",
       "height": 47.4,
       "why": "Wikidata's 46.8 m (from the book \"Stockholm under\", whose height system isn't stated) put the platform 0.6 m under the real one, and the ticket hall's doors above the passage outside them. Lantmäteriet's laser scan (2021) has the platform's surface at 47.36–47.40 m along its open northern part, 47.3 m at its north end, and the ballast beside it at 46.0–46.1 m."
+    },
+    {
+      "station": "Örnsberg",
+      "height": 11.05,
+      "why": "The station came out 1.2 m under the real one, its ticket hall's stairs climbing 5.4 m to a street 4 m over the platform. Lantmäteriet's laser scan (2021) has the platform's surface at 11.04–11.12 m along its open western part and under the roof's edges, the ballast beside it at 9.7–9.75 m, and the street over its east end, Örnsbergsvägen, and the square at the station building's doors at 15.0–15.1 m."
     }
   ],
   "uncovered": [

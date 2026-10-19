@@ -5265,9 +5265,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   creamRender: [2.4, 2.4], slateFlags: [2.4, 2.4], darkPavers: [2.4, 2.4],
   gingham: [1.2, 1.2], orangeGingham: [1.2, 1.2], greyBooth: [1.2, 2.6], blueBooth: [1.4, 3.6], fraBuilding: [6.0, 7.15], fraEntrance: [10.12, 7.15],
   aspuddenStrips: [1.2, 1.8], amberTiles: [1.2, 1.0], aspuddenHall: [1.2, 1.2], aspuddenPavilion: [1.15, 4.0],
+  ornsbergTimber: [2.4, 3.75], ornsbergWindows: [3.0, 3.75], ornsbergFront: [18.53, 3.75],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -7544,6 +7545,88 @@ export function finish(name: Finish) {
       pane(3.0, 3.75, st, 0.1); band(3.75, 4.0, '#b9bdbf');
       break;
     }
+    case 'ornsbergTimber':
+    case 'ornsbergWindows':
+    case 'ornsbergFront': {
+      // Örnsberg's station building on the square east of Örnsbergsvägen, from the street up: a
+      // plinth of red-brown brick to 0.7 m; dark brown board and batten, or shop windows in dark
+      // brown frames with a band of boards and a row of low windows over them; a fascia of boards
+      // along the top under a dark flashing. `ornsbergFront`, its front onto the square from its
+      // north corner: the restaurant's windows, the doors in a recess between brick piers under a
+      // strip of copper (the black band with the name over them is the block's), and the kiosk's
+      // boarded corner with a poster in its window (photographs, Wikimedia Commons)
+      const M = (m: number) => m * PX, frame = '#3b261b';
+      const plinth = (a: number, b: number) => {
+        brickArea(x, M(a), M(b), Y(0.7), Y(0), PX, r);
+        x.fillStyle = '#33241c'; x.fillRect(M(a), Y(0.74), M(b - a), 0.04 * PX);
+      };
+      // (boards 10 cm wide, a batten over every third joint, its shadow beside it)
+      const battens = (a: number, b: number, h0: number, h1: number) => {
+        for (let k = 0; a + k * 0.1 < b; k++) {
+          const v = Math.floor(r() * 14) - 7;
+          x.fillStyle = `rgb(${84 + v},${54 + v * 0.7},${38 + v * 0.5})`; x.fillRect(M(a + k * 0.1), Y(h1), M(0.1), (h1 - h0) * PX);
+          x.fillStyle = 'rgba(30,18,12,0.5)'; x.fillRect(M(a + k * 0.1), Y(h1), 1, (h1 - h0) * PX);
+        }
+        for (let at = a + 0.15; at < b - 0.05; at += 0.3) {
+          x.fillStyle = '#6b4733'; x.fillRect(M(at), Y(h1), M(0.045), (h1 - h0) * PX);
+          x.fillStyle = 'rgba(20,12,8,0.55)'; x.fillRect(M(at + 0.045), Y(h1), 3, (h1 - h0) * PX);
+        }
+      };
+      // (boards laid along, each lapping the one under it)
+      const boards = (a: number, b: number, h0: number, h1: number) => {
+        for (let y0 = h0; y0 < h1 - 0.01; y0 += 0.13) {
+          const v = Math.floor(r() * 12) - 6, y1 = Math.min(h1, y0 + 0.13);
+          x.fillStyle = `rgb(${88 + v},${57 + v * 0.7},${40 + v * 0.5})`; x.fillRect(M(a), Y(y1), M(b - a), (y1 - y0) * PX);
+          x.fillStyle = 'rgba(22,14,10,0.6)'; x.fillRect(M(a), Y(y0) - 3, M(b - a), 3);
+        }
+      };
+      // (glass in dark frames `every` m apart: the shop lit within, or the sky in low windows)
+      const windows = (a: number, b: number, h0: number, h1: number, every: number, lit: boolean) => {
+        x.fillStyle = frame; x.fillRect(M(a), Y(h1), M(b - a), (h1 - h0) * PX);
+        const n = Math.max(1, Math.round((b - a) / every)), w = (b - a) / n;
+        for (let k = 0; k < n; k++) {
+          const g0 = a + k * w + 0.06, g1 = a + (k + 1) * w - 0.06, t = h1 - 0.07, f = h0 + 0.07;
+          const g = x.createLinearGradient(0, Y(t), 0, Y(f));
+          if (lit) { g.addColorStop(0, '#cfc3ab'); g.addColorStop(0.5, '#a08e74'); g.addColorStop(1, '#6e6152'); }
+          else { g.addColorStop(0, '#b4bec4'); g.addColorStop(1, '#7c878d'); }
+          x.fillStyle = g; x.fillRect(M(g0), Y(t), M(g1 - g0), (t - f) * PX);
+          if (lit) {
+            // (tables and chairs, shelves, people, dim behind the glass)
+            for (let q = 0; q < 3; q++) {
+              x.fillStyle = `rgba(${r() < 0.5 ? '70,52,40' : '150,120,90'},0.45)`;
+              const qw = 0.2 + r() * 0.5, qh = 0.3 + r() * 0.6, qa = g0 + r() * Math.max(0.01, g1 - g0 - qw);
+              x.fillRect(M(qa), Y(f + qh), M(qw), qh * PX);
+            }
+          }
+          x.fillStyle = 'rgba(255,255,255,0.13)';
+          x.beginPath(); x.moveTo(M(g0 + (g1 - g0) * 0.1), Y(f)); x.lineTo(M(g0 + (g1 - g0) * 0.45), Y(t)); x.lineTo(M(g0 + (g1 - g0) * 0.6), Y(t)); x.lineTo(M(g0 + (g1 - g0) * 0.25), Y(f)); x.fill();
+        }
+      };
+      const top = () => { boards(0, w, 3.3, 3.7); band(3.7, 3.75, '#2a2826'); };
+      if (name === 'ornsbergTimber') {
+        plinth(0, w); battens(0, w, 0.74, 3.3); top();
+      } else if (name === 'ornsbergWindows') {
+        plinth(0, w); windows(0, w, 0.74, 2.55, 1.5, true); boards(0, w, 2.55, 2.95); windows(0, w, 2.95, 3.3, 1.5, false); top();
+      } else {
+        // the restaurant's windows from the north corner
+        plinth(0, 7.6); windows(0, 7.6, 0.74, 2.55, 1.25, true); boards(0, 7.6, 2.55, 2.95); windows(0, 7.6, 2.95, 3.3, 1.9, false);
+        // the recess with the doors: brick piers, steel doors (cut through by the way in), the
+        // band with the name (the block's), a strip of copper over it, boards, and two windows
+        brickArea(x, M(7.6), M(8.1), Y(2.95), Y(0), PX, r); brickArea(x, M(11.1), M(11.6), Y(2.95), Y(0), PX, r);
+        x.fillStyle = '#9fa4a7'; x.fillRect(M(8.1), Y(2.45), M(3.0), 2.45 * PX);
+        windows(8.15, 11.05, 0.05, 2.4, 0.75, true);
+        x.fillStyle = '#9fa4a7'; for (let a = 8.1; a <= 11.15; a += 0.75) x.fillRect(M(a) - 0.04 * PX, Y(2.4), 0.08 * PX, 2.35 * PX);
+        x.fillStyle = '#161617'; x.fillRect(M(8.1), Y(2.85), M(3.0), 0.4 * PX);
+        x.fillStyle = '#6e9883'; x.fillRect(M(7.9), Y(2.95), M(3.4), 0.1 * PX);
+        windows(8.1, 11.1, 2.95, 3.3, 1.5, false);
+        // the kiosk's boarded corner, a poster in its window
+        plinth(11.6, w); battens(11.6, w, 0.74, 3.3);
+        x.fillStyle = frame; x.fillRect(M(13.05), Y(2.4), M(1.9), 1.6 * PX);
+        shopWindow(x, M(13.15), M(14.85), Y(2.3), Y(0.9), PX, r, 'posters');
+        top();
+      }
+      break;
+    }
     case 'greyBooth': {
       // the booth on Fruängen's platform under the roof's end: dark grey panels to 1.05 m, a white
       // rail, glass in white frames to 2.15 m, a white band and a dark grey one over it
@@ -7702,7 +7785,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

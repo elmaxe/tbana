@@ -406,7 +406,7 @@ export class OpenLook {
       const [sa, ua, ha = 0] = a.points[i], [sb, ub, hb = 0] = a.points[i + 1], l = Math.hypot(sb - sa, ub - ua);
       const ns = (-(ub - ua) / l) * side, nu = ((sb - sa) / l) * side;
       const P = (t: number, w: number) => [...frame.at(sa + (sb - sa) * t + ns * w, ua + (ub - ua) * t + nu * w, ha + (hb - ha) * t + 0.008),
-        w / T.PAVING_ACROSS, (along + l * t) / T.pavingRepeat(paving)];
+        (w + (a.inset ?? 0)) / T.PAVING_ACROSS, (along + l * t) / T.pavingRepeat(paving)];
       m.poly([P(0, 0), P(1, 0), P(1, a.width), P(0, a.width)]);
       along += l;
     }

@@ -922,13 +922,35 @@
     },
     "Örnsberg": {
       "drawing": "ornsberg.png",
-      "note": "An island platform in the open. At its east end stairs climb to a ticket hall over the tracks, level with the street up the slope.",
+      "note": "An island platform in the open, in a cutting between a rock face on the north and a bank up to Hägerstensvägen on the south, roofed at its east end. At that end it runs on under Örnsbergsvägen into a passage between the two tracks' tunnels, and at the passage's end stairs, an escalator and a lift climb into the station building on the street's east side, its ticket hall at the street, its doors east onto the square by Örnsbergsvägen. Laid out from OpenStreetMap's indoor mapping (the passage from the platform's end to 91 m, the escalator and the stairs to 104 m, the gates at 107.6 m, the doors at 117 m), Lantmäteriet's laser scan (the street 4.1 m over the platform) and photographs of the station.",
       "routes": [
-        { "from": [55, 0], "width": 4, "go": [
-          {"stairs": 5.4, "toward": [120, 0]},
-          {"walk": 6, "width": 6},
+        { "from": [69.5, -0.2], "width": 3.4, "go": [
+          {"walk": [72.2, -0.2], "open": true, "edges": false},
+          {"walk": [88.6, -0.2], "ceiling": 2.7},
+          {"walk": [88.6, -1.45], "width": 1.0, "ceiling": 2.7},
+          {"walk": [93.8, -1.45], "width": 2.2, "ceiling": 2.7}
+        ] },
+        { "from": [93.75, -0.45], "width": 3.1, "go": [
+          {"walk": [94.8, -0.45], "ceiling": 2.7},
+          {"escalators": 4.2, "toward": [130, -0.45], "lanes": "sE"},
+          {"walk": [103.0, -0.45], "ceiling": 3.4},
+          {"walk": [104.6, 2.67], "width": 6.5},
+          {"walk": [107.6, 3.42]},
           {"gates": true},
-          {"exit": 5469259565, "by": "walk"}
+          {"walk": [116.0, 5.51]},
+          {"walk": [117.6, 5.91], "width": 3.0, "ceiling": 2.4},
+          {"exit": {"at": [118.8, 6.21], "name": "Örnsbergsvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [87.2, 0.85], "h": 0.01, "width": 2.0, "go": [
+          {"walk": [91.0, 0.85], "ceiling": 2.7},
+          {"lift": 4.2, "through": true},
+          {"walk": [95.6, 0.85], "width": 1.8},
+          {"walk": [95.6, 2.05], "width": 1.0},
+          {"walk": [100.5, 2.05], "width": 1.8},
+          {"walk": [104.0, 2.0]}
+        ] },
+        { "from": [90.98, 0.85], "h": 0.01, "width": 2.0, "go": [
+          {"walk": [91.32, 0.85], "ceiling": 2.7}
         ] }
       ]
     },

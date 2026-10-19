@@ -372,7 +372,10 @@ export type Finish =
   | 'aspuddenStrips' // glazed tiles on end in upright strips 15 cm wide, dark teal, blue-green, pale grey-green and celadon (Aspudden's)
   | 'amberTiles'    // narrow glazed tiles on end, 5 by 25 cm, honey, amber and brown (round Aspudden's escalators)
   | 'aspuddenHall'  // glossy tiles on end, 15 by 30 cm, a dark speckled green with runs of pale green and beige (Aspudden's ticket hall)
-  | 'aspuddenPavilion'; // glass in brushed steel frames, SL's dark blue band over a yellow line from 2.4 m, glass above to a steel fascia
+  | 'aspuddenPavilion' // glass in brushed steel frames, SL's dark blue band over a yellow line from 2.4 m, glass above to a steel fascia
+  | 'ornsbergTimber' // dark brown board and batten over a brick plinth, a fascia of boards along the top (Örnsberg's building)
+  | 'ornsbergWindows' // as ornsbergTimber, shop windows in dark brown frames over the plinth, a band of boards, windows over it
+  | 'ornsbergFront';  // Örnsberg's building's front onto the square, 18.53 m: the shop windows, the doors between brick piers, the kiosk
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -580,8 +583,10 @@ export interface Catenary { kind: 'catenary'; masts: [number, number, number][];
 // The platform's paving laid along an edge the network doesn't draw as one (Alvik's, beside the
 // Nockebybanan's tracks between its two islands): the edge along the line through the points
 // ([s, u], or [s, u, h] over the platform's top), and its stones, strip for the blind and slabs
-// `width` in from it, to the line's right (or `left`).
-export interface EdgePaving { kind: 'edgePaving'; points: ([number, number] | [number, number, number])[]; width: number; left?: boolean }
+// `width` in from it, to the line's right (or `left`). With `inset`, the paving from that far in
+// from an edge instead (plain paving, past the edge's stones and slabs, where a platform runs on
+// past the network's end of it).
+export interface EdgePaving { kind: 'edgePaving'; points: ([number, number] | [number, number, number])[]; width: number; left?: boolean; inset?: number }
 
 // Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`; and
 // (`crown`) on each a funnel `h` deep, spreading to `size` across at its top, its sides lit from
@@ -7547,6 +7552,148 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'penguin', s: -2.4, u: -4.4, turn: Math.PI / 2 + 0.4, plinth: 1.2, height: 0.5, size: 1.05 },
       { kind: 'columns', at: [[-65.6, 3.0]], from: 11.96, to: 14.86, size: 0.45, color: 0xefefeb },
       { kind: 'roundel', s: -80.6, u: -4.6, h: 20.1, size: 0.75, foot: 15.9, striped: true },
+    ],
+  },
+
+  // Örnsberg (5 April 1964, the end of the line until it went on to Sätra in May 1965): an island
+  // platform in a shallow cutting, a face of blasted rock along its north side and a bank of earth
+  // and birches behind a chain-link fence along its south side, roofed over its east half. At its
+  // east end it runs on under Örnsbergsvägen, which crosses on a deck of board-marked concrete,
+  // into a passage between the tracks' tunnels; at the passage's end a flight of stairs and an
+  // escalator side by side, a brick parapet between them, and a lift beside the escalator climb
+  // into the station's building on the square east of the street: the ticket hall, the gates, and
+  // the doors onto the square (OpenStreetMap's indoor mapping; the street 4.1 m over the platform,
+  // Lantmäteriet's laser scan). From photographs (Wikimedia Commons):
+  //
+  // The roof is flat, a black fascia round it, its underside boards stained dark brown on deep
+  // timber beams across it stained a redder brown, on two rows of dark grey steel columns; lines
+  // of tube lights along both its eaves. The platform is dark grey asphalt with a pale concrete
+  // edge and a ribbed strip inside it; out west of the roof galvanised posts carry three domed
+  // lamps each. A glass shelter and back-to-back benches of wooden slats stand under the roof. The
+  // stairwell and the ticket hall have walls of red-brown brick, floors of red-brown and grey
+  // pavers, the hall a ceiling of dark brown boards. The building is one storey: a plinth of the
+  // same brick, walls of dark brown board and batten, shop windows in dark brown frames under a
+  // row of low windows, and a fascia of boards; the doors are in a recess between brick piers
+  // under a black band with the name and a strip of green copper, and a T stands on a post over
+  // each of the corners onto the square. The station has no art of its own. Not drawn: the shops'
+  // signs, the ticket booth and the departure boards in the hall, the bins and planters.
+  'Örnsberg': {
+    roof: {
+      kind: 'butterfly',
+      from: 13, to: 69.3, width: 9.5, offset: -0.45,
+      middle: 2.75, edge: 2.75, thick: 0.3, fascia: 0.35,
+      rafters: 1.2, rafterSize: [0.14, 0.3], rafterColor: 0x5a2e1f, deck: 'boards',
+      beam: 0.3,
+      columns: { every: 7, at: 20, size: 0.2, plinth: { size: 0.3, height: 0.1 }, pair: 5.0, offset: 0.45 },
+      lamps: { offset: 4.1, length: 1.2, every: 1.3, tube: true },
+      colors: { underside: 0x4a2e22, fascia: 0x1c1c1c, top: 0x55585a, steel: 0x4a4d50 },
+      signs: { at: [24, 48], back: '', ahead: 'Örnsbergsvägen', bottom: 2.2 },
+      // (trains keep left: those towards the city stop on the northern track)
+      boards: [
+        { s: 16, u: -2.6, toward: 'Ropsten', trains: ['13 Ropsten  4 min', '13 Ropsten  14 min'] },
+        { s: 16, u: 2.8, toward: 'Norsborg', trains: ['13 Norsborg  2 min', '13 Norsborg  12 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.55, tactile: [0.55, 0.85], slabs: 0.85,
+      colors: { edge: 0xc9c7c1, tactile: 0x6d6e70, slab: 0x5d5e60, pavers: 0x5d5e60, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    buildings: ['w136587229'],
+    rooms: [
+      { name: "platform's end under the street", s: [69, 72.6], u: [-3, 3], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage', s: [72.0, 94.6], u: [-4, 3.6], h: [-0.3, 0.3], walls: 'brick', floor: 'quarryTiles', ceiling: 'whiteRender' },
+      { name: 'stairs and escalator', s: [92.5, 100.5], u: [-3.5, 3.5], h: [-0.3, 3.0], walls: 'brick', stairs: 'brick', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [91, 117.4], u: [-4, 10], h: [3.9, 4.5], walls: 'brick', floor: 'quarryTiles', ceiling: 'darkBoards' },
+      { name: 'doorstep', s: [117.4, 121], u: [3, 9], h: [3.9, 4.5], walls: null, floor: null },
+    ],
+    blocks: [
+      // the station's building (OpenStreetMap's outline, which Google's 3D mesh and the laser scan
+      // agree with: its roof 7.9–8 m over the platform), its floor at the square before its doors
+      { name: 'station building', plan: [[93.6, -9.9], [119.4, -3.5], [115.0, 14.5], [89.2, 8.1]], h: [3.6, 7.95], from: 4.2,
+        walls: 'ornsbergWindows', sides: [undefined, 'ornsbergFront', 'ornsbergTimber', undefined], floor: 'quarryTiles',
+        roof: 0.05, roofColor: 0x3e3f40, nameSign: { side: 1, at: 0.517, length: 3.6, bottom: 6.65, black: true }, ground: true },
+      // Örnsbergsvägen's deck over the platform's end (the laser scan): its face of board-marked
+      // concrete, from the soffit up to a parapet over the street, and the soffit behind it
+      { name: "deck's face, north", plan: [[73.2, -11.0], [70.2, -4.0], [70.5, -4.0], [73.5, -11.0]], h: [3.25, 5.1], from: 3.25,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9b9890 },
+      { name: "deck's face, south", plan: [[70.2, -4.0], [69.5, 11.0], [69.8, 11.0], [70.5, -4.0]], h: [3.25, 5.1], from: 3.25,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9b9890 },
+      { name: 'deck, north', plan: [[73.5, -11.0], [70.5, -4.0], [73.5, -4.0], [76.5, -11.0]], h: [3.25, 3.25], from: 3.25,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.8, roofColor: 0x58595b, ground: 1.0 },
+      { name: 'deck, south', plan: [[70.5, -4.0], [69.8, 11.0], [72.8, 11.0], [73.5, -4.0]], h: [3.25, 3.25], from: 3.25,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.8, roofColor: 0x58595b, ground: 1.0 },
+      // the wall over the passage's mouth, up to the soffit, and beside it the wall out to the
+      // southern track's tunnel
+      { name: "beside the passage's mouth, south", plan: [[71.3, 1.5], [71.3, 2.8], [78, 2.75], [78, 1.5]], h: [-1.5, 3.25], from: -1.5,
+        walls: 'boardConcrete', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x9b9890, ground: 2 },
+      { name: "beside the passage's mouth, north", plan: [[71.2, -2.5], [71.2, -1.9], [78, -1.9], [78, -2.4]], h: [-1.5, 3.25], from: -1.5,
+        walls: 'boardConcrete', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x9b9890, ground: 2 },
+      { name: "over the passage's mouth", plan: [[72.1, -2.5], [72.1, 2.8], [72.3, 2.8], [72.3, -2.5]], h: [2.7, 3.25], from: 2.7,
+        walls: 'boardConcrete' },
+      // (nothing drawn: the tunnels' headwalls cut off at the street, where they stood out of the
+      // deck's roadway)
+      { name: "tunnels' headwalls", plan: [[70.8, -12], [72.2, -12], [72.2, 12], [70.8, 12]], h: [5.07, 7], from: 5.07,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      // the end of the wall between the passage and the lift's lobby
+      { name: 'between the passage and the lift', plan: [[89.1, -0.15], [89.1, -0.35], [91.3, -0.35], [91.3, -0.15]], h: [0, 2.7], from: 0,
+        walls: 'brick', sides: [undefined, null, null, null] },
+      // (nothing drawn: the city's ground cut away under the deck's edge, between the platform's
+      // end and the tunnels' mouths, where it rose from the platform to the street)
+      { name: "under the deck's edge", plan: [[69.3, -3.2], [71.6, -3.2], [71.6, 4.4], [69.3, 4.4]], h: [-0.3, -0.3], from: -0.3,
+        walls: 'boardConcrete', sides: [null, null, null, null], ground: 4 },
+      // the face of blasted rock along the northern track, its top from the laser scan, falling or
+      // rising back to the city's ground
+      { name: 'rock face, -52 to -44', plan: [[-44, -11], [-52, -11], [-52, -16], [-44, -16]], h: [-1.4, 2.8], low: 0.5, lowBack: 1, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, undefined, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -44 to -36', plan: [[-36, -11], [-44, -11], [-44, -16], [-36, -16]], h: [-1.4, 3.3], low: 2.8, lowBack: 1.7, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -36 to -28', plan: [[-28, -11], [-36, -11], [-36, -16], [-28, -16]], h: [-1.4, 3.6], low: 3.3, lowBack: 2.8, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -28 to -20', plan: [[-20, -11], [-28, -11], [-28, -16], [-20, -16]], h: [-1.4, 4.6], low: 3.6, lowBack: 3.9, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -20 to -12', plan: [[-12, -11], [-20, -11], [-20, -16], [-12, -16]], h: [-1.4, 3.9], low: 4.6, lowBack: 4, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -12 to -4', plan: [[-4, -11], [-12, -11], [-12, -16], [-4, -16]], h: [-1.4, 4], low: 3.9, lowBack: 3.9, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, -4 to 4', plan: [[4, -11], [-4, -11], [-4, -16], [4, -16]], h: [-1.4, 3.5], low: 4, lowBack: 4.3, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 4 to 12', plan: [[12, -11], [4, -11], [4, -16], [12, -16]], h: [-1.4, 4.2], low: 3.5, lowBack: 5.2, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 12 to 20', plan: [[20, -11], [12, -11], [12, -16], [20, -16]], h: [-1.4, 5.8], low: 4.2, lowBack: 6.5, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 20 to 28', plan: [[28, -11], [20, -11], [20, -16], [28, -16]], h: [-1.4, 5.2], low: 5.8, lowBack: 7.4, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 28 to 36', plan: [[36, -11], [28, -11], [28, -16], [36, -16]], h: [-1.4, 5.8], low: 5.2, lowBack: 7.5, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 36 to 44', plan: [[44, -11], [36, -11], [36, -16], [44, -16]], h: [-1.4, 5.5], low: 5.8, lowBack: 7.3, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 44 to 52', plan: [[52, -11], [44, -11], [44, -16], [52, -16]], h: [-1.4, 5.4], low: 5.5, lowBack: 7.05, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 52 to 60', plan: [[60, -11], [52, -11], [52, -16], [60, -16]], h: [-1.4, 5.5], low: 5.4, lowBack: 6.95, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 60 to 68', plan: [[68, -11], [60, -11], [60, -16], [68, -16]], h: [-1.4, 5.8], low: 5.5, lowBack: 6.8, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+      { name: 'rock face, 68 to 73.2', plan: [[73.2, -11], [68, -11], [68, -16], [73.2, -16]], h: [-1.4, 4.2], low: 5.8, lowBack: 6.65, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, null, null], roof: 0.05, roofColor: 0x55623c, ground: true },
+    ],
+    art: [
+      // the posts with three lamps out west of the roof, the name on two of them
+      { kind: 'masts', at: [[-44, -1.4], [-16, -0.5]], height: 4.8, color: 0x9a9fa2, shade: 0xb9bcbe, sign: 2.6 },
+      { kind: 'masts', at: [[-58, -1.85], [-30, -0.95], [-2, -0.05], [8, 0.25]], height: 4.8, color: 0x9a9fa2, shade: 0xb9bcbe },
+      // the T on a post over each of the building's corners onto the square
+      { kind: 'roundel', s: 118.7, u: -2.9, h: 9.5, size: 0.9, foot: 7.95, along: true },
+      { kind: 'roundel', s: 114.6, u: 13.8, h: 9.5, size: 0.9, foot: 7.95, along: true },
+      // the platform running on past the network's end of it, under the deck to the passage's
+      // mouth and to the southern track's tunnel
+      { kind: 'edgePaving', points: [[69.8, -3.0], [72.2, -3.0]], width: 5.64, inset: 1.0 },
+      { kind: 'edgePaving', points: [[69.8, 4.14], [71.4, 4.14]], width: 1.5, left: true },
+    ],
+    benches: { at: [22, 40, 52, 62], double: true, wood: true },
+    shelters: [{ s: [29, 34], u: [-1.0, 1.0] }],
+    // chain-link along the bank beyond the southern track
+    fences: [
+      { points: [[-68, 5.0], [-40, 6.6], [-20, 7.8], [0, 9.0], [40, 9.2], [69, 9.2]], h: [-1.25, 0.6] },
     ],
   },
 };

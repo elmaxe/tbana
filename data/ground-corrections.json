@@ -144,6 +144,12 @@
       "outline": [-5346.3, 5095.2, -5312.6, 5091.1, -5319.9, 5030.5, -5353.6, 5034.6],
       "heights": [42.74, 43.64, 43.14, 43.64],
       "why": "The bus terminal east of Fruängen's station is level with the street, 3.6–4.5 m below the platform, right up to the foot of the retaining wall that carries the tracks (Lantmäteriet's laser scan). The elevation model's 5 m grid smoothed the wall into a grassy slope that buried the foot of the wall and Landergren's mosaics on it."
+    },
+    {
+      "name": "Örnsberg: Örnsbergsvägen over the platform's east end",
+      "outline": [-4036.3, 2893.8, -4035.3, 2903.0, -4035.7, 2907.4, -4031.1, 2921.7, -4026.4, 2934.9, -4005.2, 2927.3, -4019.3, 2887.8],
+      "heights": [14.65, 15.05, 15.0, 15.15, 15.35, 15.55, 14.65],
+      "why": "Örnsbergsvägen crosses the cutting on a deck over the platform's east end, which runs on under it into the passage to the station's building, and over the tracks' tunnels. Lantmäteriet's laser scan has the street at 14.6–15.5 m, rising eastwards; the elevation model leaves the deck out and sags under it to 11.2–14.2 m, a hollow in the street over the passage."
     }
   ],
   "open": [
@@ -314,6 +320,10 @@
     {
       "outline": [[-5346.3, 5095.2], [-5312.6, 5091.1], [-5319.9, 5030.5], [-5353.6, 5034.6]],
       "why": "Fruängen's bus terminal below the retaining wall east of the station, from the wall's foot out past its four stops and the service roads round them (OpenStreetMap; photographs, 2010 and 2016): pavement and asphalt. Away from the detail areas the city draws no streets, so it was grass up to Landergren's mosaics."
+    },
+    {
+      "outline": [[-4037.4, 2887.8], [-4035.4, 2897.7], [-4035.7, 2907.4], [-4031.1, 2921.7], [-4027.0, 2933.0], [-3965.4, 2910.9], [-3980.9, 2867.6]],
+      "why": "Örnsberg: Örnsbergsvägen over the platform's east end, the station's building east of it and the square before its doors, with the street's spur along its south side and the pavements to the north, asphalt and paving slabs (Google's 3D mesh; photographs, 2019). With no buildings right beside the street over the cutting, the game had it grass."
     }
   ],
   "shallow": [

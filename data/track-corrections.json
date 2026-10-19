@@ -348,6 +348,11 @@
       "node": 3160187323,
       "to": [152364.8, 6586374.4],
       "why": "Danderyds sjukhus, the eastern track 155 m north of the station's node: moved onto the platform's line, as the western track's nodes."
+    },
+    {
+      "node": 2774972009,
+      "to": [149335.7, 6576686.7],
+      "why": "Örnsberg, the southern track's tunnel mouth: OSM starts the tunnel 3 m short of the platform's east end, so that its walls stood on the platform, which in photographs runs on under Örnsbergsvägen's deck with no wall beside it. Moved along the track to the platform's end, level with the northern track's mouth."
     }
   ],
   "platforms": [
