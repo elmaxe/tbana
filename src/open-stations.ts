@@ -1642,9 +1642,10 @@ export class OpenLook {
         : a.picture === 'strindberg' ? T.strindbergWall() : a.picture === 'blueTower' ? T.blueTower()
           : a.picture === 'sirat' ? T.siratLace(lace) : a.picture === 'sundell' ? T.sundellGate()
             : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves()
-              : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief() : T.tallkrogsdraken();
-      // (an angel, the lace and the iron, cut out round their outlines)
-      const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell';
+              : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief()
+                : a.picture === 'andreeBalloon' ? T.andreeBalloon() : a.picture === 'andreeEagle' ? T.andreeEagle() : T.tallkrogsdraken();
+      // (an angel, the lace and the iron, and the sgraffito on its wall, cut out round their outlines)
+      const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell' || a.picture === 'andreeBalloon' || a.picture === 'andreeEagle';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';
       return new THREE.MeshStandardMaterial({
         map, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: steel ? 0.1 : 0.25, roughness: 0.4, metalness: steel ? 0.4 : 0,

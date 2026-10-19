@@ -209,6 +209,24 @@
       ],
       "structure": "surface",
       "why": "Vällingby: OSM tags the three tracks along the platforms' covered south-eastern part, under Kirunaplan's bus terminal on its deck and the car park's deck north-west of it, and on under the edge of Vällingby centrum to the switches beyond the platforms, tunnel=yes; they run in the open under the decks, beside and between the two island platforms (photographs, 2006 to 2026; the laser scan's decks), not in boxes."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        186124521,
+        12489476276
+      ],
+      "structure": "surface",
+      "why": "Västertorp: OSM tags the two tracks bridges for 13 m where they cross a footpath's tunnel through the embankment 65 m south-west of the station's node, which cuts them into short pieces under the island platform's south-western third; they run on the embankment there, as on either side (Lantmäteriet's laser scan), and the platform, which OSM draws on over them, stopped short where the pieces start."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        12489476272,
+        12489476273
+      ],
+      "structure": "surface",
+      "why": "Västertorp: OSM tags the two tracks bridges for 13 m where they cross a footpath's tunnel through the embankment 65 m south-west of the station's node, which cuts them into short pieces under the island platform's south-western third; they run on the embankment there, as on either side (Lantmäteriet's laser scan), and the platform, which OSM draws on over them, stopped short where the pieces start."
     }
   ],
   "crossovers": [
@@ -548,6 +566,13 @@
       "at": [151338.8, 6577284.5],
       "length": 147,
       "why": "OSM's eastern platform (2026), the one the buses dock along at its back, is drawn turned about 2° from the eastern track, so that only its southern 94 m read as beside it and the platform stopped 55 m short of the others' north end. It runs the length of the station beside the track, as the others do (Albert Guillaumes' drawing, 2024; photographs): from the middle of the island platforms, 147 m."
+    },
+    {
+      "station": "Västertorp",
+      "replace": true,
+      "at": [148090.7, 6575111.0],
+      "length": 145,
+      "why": "OSM draws the island platform (2026) 2.5 m off the tracks towards the south-east at its south-western end, so that only the southern track read as beside it there and the northern one's platform stopped 45 m short. Lantmäteriet's laser scan has the roof from 101 m south-west of the station's node to 40 m north-east of it, and OSM's platform runs from 99 m south-west, at the stair house over Västertorpsvägen, to 44 m north-east, where it narrows into the top of the ramp down to Störtloppsvägen. Both tracks are placed from this point between them, the middle of that, 145 m."
     }
   ],
   "apart": [

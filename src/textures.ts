@@ -4551,6 +4551,140 @@ export function summerNightRelief() {
   return toTexture(c, { repeat: false });
 }
 
+// Jörgen Fogelquist's sgraffito of S. A. Andrée's balloon flight towards the pole (Med Örnen mot
+// polen, 1981, inaugurated 1982) on the cream wall of Västertorp's ramp, 13 by 3.7 m: high up, the
+// balloon Örnen, a tall dark pear scratched over with hatching, its rigging gathered into a
+// small knot under it and one line hanging on down, from which the drag ropes sweep away along
+// the wall to the left; clusters of short dark strokes under them and a column of them beside
+// the line; and further along, a long jagged crack in the ice falling to the right (photograph,
+// 2016). Drawn on a clear ground, to be cut out; the ramp's floor rises along it from 0 at the
+// right to 1.05 m at the left, and nothing is drawn under that.
+export function andreeBalloon() {
+  const PX = 200, W = 13 * PX, H = Math.round(3.7 * PX), [c, x] = canvas(W, H), r = rng(1897);
+  const M = (xm: number, ym: number): [number, number] => [xm * PX, H - ym * PX];
+  const floor = (xm: number) => 1.05 * (1 - xm / 13);
+  const ink = '#3a3c41';
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  // a short curved stroke, like those the drawing is made of, at (xm, ym), `l` m long
+  const stroke = (xm: number, ym: number, l: number, turn: number, w = 0.035) => {
+    const [px, py] = M(xm, ym), dx = Math.cos(turn) * l * PX / 2, dy = -Math.sin(turn) * l * PX / 2;
+    x.strokeStyle = ink; x.lineWidth = w * PX; x.beginPath(); x.moveTo(px - dx, py - dy);
+    x.quadraticCurveTo(px + dy * 0.3, py - dx * 0.3, px + dx, py + dy); x.stroke();
+  };
+  // the balloon: a pear, widest 0.96 m across at 2.95 m, its top at 3.55 m, pointed at 1.65 m
+  const bx = 5.6, outline: [number, number][] = [];
+  for (let k = 0; k <= 48; k++) {
+    const t = (k / 48) * Math.PI * 2, s = Math.sin(t), cth = Math.cos(t);
+    const ym = cth > 0 ? 2.95 + cth * 0.6 : 2.95 + cth * 1.3, w = cth > 0 ? 0.48 : 0.48 * Math.pow(1 + cth * 0.999, 0.75);
+    outline.push([bx + s * w, ym]);
+  }
+  x.fillStyle = '#45474c'; x.beginPath();
+  outline.forEach(([a, b], k) => { const [px, py] = M(a, b); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+  x.closePath(); x.fill();
+  x.save(); x.clip();
+  // (scratched over: fine hatching, paler to the left where the light falls, a few pale streaks)
+  for (let k = 0; k < 900; k++) {
+    const a = bx - 0.5 + r(), b = 1.6 + r() * 2.0, [px, py] = M(a, b), pale = a < bx - 0.1 ? 0.22 : 0.08;
+    x.strokeStyle = `rgba(220,214,196,${pale * r()})`; x.lineWidth = 1.5; x.beginPath(); x.moveTo(px, py); x.lineTo(px + 6 + r() * 10, py - 10 - r() * 14); x.stroke();
+  }
+  x.fillStyle = 'rgba(214,208,190,0.35)';
+  x.fillRect(...M(bx - 0.18, 3.25), 0.07 * PX, 0.5 * PX); x.fillRect(...M(bx + 0.12, 2.85), 0.05 * PX, 0.7 * PX);
+  x.fillStyle = 'rgba(20,20,24,0.35)'; x.fillRect(...M(bx + 0.28, 3.3), 0.2 * PX, 1.4 * PX);
+  x.restore();
+  // the rigging down to a knot, and the line on down from it
+  x.strokeStyle = ink; x.lineWidth = 0.012 * PX;
+  for (const d of [-0.32, -0.15, 0, 0.15, 0.32]) { x.beginPath(); x.moveTo(...M(bx + d, 2.0 + Math.abs(d) * 0.8)); x.lineTo(...M(bx - 0.02, 1.48)); x.stroke(); }
+  x.fillStyle = ink; x.beginPath(); x.ellipse(...M(bx - 0.03, 1.42), 0.07 * PX, 0.09 * PX, 0, 0, Math.PI * 2); x.fill();
+  stroke(bx - 0.12, 1.36, 0.16, 0.6, 0.02); stroke(bx + 0.06, 1.36, 0.16, 2.5, 0.02);
+  x.lineWidth = 0.016 * PX; x.beginPath(); x.moveTo(...M(bx - 0.03, 1.36)); x.lineTo(...M(bx - 0.08, 0.95)); x.stroke();
+  // the drag ropes, sweeping away to the left, each a little higher at its end
+  const ropes: [number, number, number][] = [[0.0, 1.95, 0.016], [0.3, 1.62, 0.02], [0.9, 1.4, 0.014], [0.2, 1.2, 0.018], [1.6, 1.75, 0.012]];
+  for (const [ex, ey, w] of ropes) {
+    x.lineWidth = w * PX; x.beginPath(); x.moveTo(...M(bx - 0.08, 0.95));
+    x.bezierCurveTo(...M(bx - 1.6, 1.05 + (ey - 1.2) * 0.3), ...M((bx + ex) / 2, ey - 0.05), ...M(ex, ey)); x.stroke();
+    // (frayed into short strokes along the way)
+    for (let k = 0; k < 14; k++) { const t = r(), xm = bx - 0.1 + (ex - bx) * t, ym = 0.95 + (ey - 0.95) * Math.pow(t, 0.7); stroke(xm, ym + (r() - 0.5) * 0.08, 0.12 + r() * 0.12, Math.PI + 0.25 + r() * 0.3, 0.02); }
+  }
+  // the clusters of short strokes under the ropes, above the floor, and the column beside the line
+  for (let k = 0; k < 160; k++) {
+    const xm = 0.15 + Math.pow(r(), 1.3) * 4.2, lo = floor(xm) + 0.18, hi = Math.min(1.75, 0.95 + (bx - xm) * 0.08);
+    if (hi <= lo) continue;
+    stroke(xm, lo + r() * (hi - lo), 0.1 + r() * 0.12, Math.PI + 0.2 + (r() - 0.5) * 0.9, 0.03 + r() * 0.025);
+  }
+  for (let k = 0; k < 55; k++) stroke(6.0 + r() * 0.5 + (r() - 0.5) * 0.15, 0.55 + r() * 1.05, 0.08 + r() * 0.1, 0.2 + (r() - 0.5) * 1.2, 0.03 + r() * 0.02);
+  // the crack in the ice, a thin line in short jagged steps, falling to the right, here and there a
+  // finer line along under it
+  const crack: [number, number][] = [[8.25, 3.05]];
+  for (let cx = 8.25, cy = 3.05; cx < 12.6;) {
+    cx += 0.04 + r() * 0.13;
+    cy = Math.max(floor(cx) + 0.2, cy + (r() < 0.4 ? r() * 0.2 : -0.05 - r() * 0.25));
+    crack.push([cx, cy]);
+  }
+  x.strokeStyle = '#41444d'; x.lineWidth = 0.035 * PX; x.beginPath();
+  crack.forEach(([a, b], k) => { const [px, py] = M(a, b); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+  x.stroke();
+  x.lineWidth = 0.012 * PX;
+  for (let k = 0; k + 1 < crack.length; k++) {
+    if (r() < 0.55) continue;
+    x.beginPath(); x.moveTo(...M(crack[k][0], crack[k][1] - 0.045)); x.lineTo(...M(crack[k + 1][0], crack[k + 1][1] - 0.045)); x.stroke();
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// The same artist's eagle, on the ramp's other wall, 3.6 by 2.6 m: a white bird with its wings
+// spread and drooping, its head turned to the right, its feathers drawn in fine scratched lines and
+// rows of dark chevrons, on a rough field of charcoal black scattered with white dots, its edge
+// irregular against the wall (photograph, 2007). Cut out round the field.
+export function andreeEagle() {
+  const W = 1080, H = 780, [c, x] = canvas(W, H), r = rng(1982);
+  const P = (u: number, v: number): [number, number] => [u * W, (1 - v) * H];
+  const poly = (fill: string, pts: [number, number][]) => {
+    x.fillStyle = fill; x.beginPath();
+    pts.forEach(([u, v], k) => { const [px, py] = P(u, v); if (k) x.lineTo(px, py); else x.moveTo(px, py); });
+    x.closePath(); x.fill();
+  };
+  // the field, its edge wandering
+  const edge: [number, number][] = [];
+  const corners: [number, number][] = [[0.06, 0.92], [0.5, 0.97], [0.93, 0.9], [0.98, 0.5], [0.95, 0.06], [0.5, 0.03], [0.02, 0.08], [0.01, 0.5]];
+  corners.forEach((p, k) => {
+    const q = corners[(k + 1) % corners.length];
+    for (let j = 0; j < 6; j++) { const t = j / 6; edge.push([p[0] + (q[0] - p[0]) * t + (r() - 0.5) * 0.02, p[1] + (q[1] - p[1]) * t + (r() - 0.5) * 0.025]); }
+  });
+  poly('#2b2c2e', edge);
+  x.save(); x.beginPath(); edge.forEach(([u, v], k) => { const [px, py] = P(u, v); if (k) x.lineTo(px, py); else x.moveTo(px, py); }); x.closePath(); x.clip();
+  for (let k = 0; k < 6000; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '90,90,92' : '15,15,16'},0.35)`; x.fillRect(r() * W, r() * H, 2, 2); }
+  x.fillStyle = '#e4e0d6';
+  for (let k = 0; k < 110; k++) { x.beginPath(); x.arc(r() * W, r() * H, 4 + r() * 2.5, 0, Math.PI * 2); x.fill(); }
+  x.restore();
+  // the bird: its left wing raised and hanging out to the left, its body and fanned tail, its head
+  // turned to the right, and its right wing hanging out to the right
+  const white = '#e6e2d8';
+  poly(white, [[0.22, 0.62], [0.2, 0.8], [0.25, 0.86], [0.2, 0.84], [0.1, 0.7], [0.04, 0.48], [0.03, 0.28], [0.07, 0.22], [0.15, 0.3], [0.22, 0.42], [0.27, 0.5]]);
+  poly(white, [[0.25, 0.7], [0.36, 0.82], [0.44, 0.92], [0.5, 0.94], [0.56, 0.88], [0.55, 0.76], [0.52, 0.55], [0.46, 0.38], [0.42, 0.22], [0.4, 0.1], [0.33, 0.07], [0.27, 0.1], [0.28, 0.26], [0.24, 0.45]]);
+  poly(white, [[0.25, 0.04], [0.42, 0.04], [0.44, 0.14], [0.38, 0.2], [0.3, 0.2], [0.24, 0.13]]);
+  poly(white, [[0.52, 0.72], [0.57, 0.86], [0.66, 0.84], [0.76, 0.76], [0.86, 0.6], [0.94, 0.4], [0.97, 0.2], [0.93, 0.14], [0.84, 0.2], [0.78, 0.3], [0.72, 0.32], [0.62, 0.3], [0.55, 0.4]]);
+  // (the beak and the eye, the dark of its crown)
+  poly('#2b2c2e', [[0.5, 0.9], [0.55, 0.87], [0.57, 0.84], [0.53, 0.85]]);
+  x.fillStyle = '#2b2c2e'; x.beginPath(); x.arc(...P(0.3, 0.64), 9, 0, Math.PI * 2); x.fill();
+  x.fillStyle = white; x.beginPath(); x.arc(...P(0.3, 0.64), 4, 0, Math.PI * 2); x.fill();
+  // feathers: fine scratched lines over the white, and rows of dark chevrons
+  for (let k = 0; k < 1400; k++) {
+    const [px, py] = P(0.05 + r() * 0.9, 0.06 + r() * 0.86);
+    const d = x.getImageData(Math.floor(px), Math.floor(py), 1, 1).data;
+    if (d[0] < 200) continue;
+    x.strokeStyle = 'rgba(70,68,64,0.45)'; x.lineWidth = 1.4; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r() - 0.5) * 6, py + 8 + r() * 10); x.stroke();
+  }
+  const chevron = (u: number, v: number, s: number) => {
+    const [px, py] = P(u, v);
+    x.fillStyle = '#2f3032'; x.beginPath(); x.moveTo(px - s, py - s * 0.6); x.quadraticCurveTo(px, py + s * 0.4, px + s, py - s * 0.6); x.quadraticCurveTo(px, py + s * 1.1, px - s, py - s * 0.6); x.fill();
+  };
+  for (const [u0, v0, u1, v1, n] of [[0.08, 0.32, 0.16, 0.72, 9], [0.12, 0.3, 0.2, 0.6, 7], [0.3, 0.2, 0.42, 0.5, 8], [0.32, 0.12, 0.4, 0.14, 4], [0.6, 0.36, 0.7, 0.66, 6],
+    [0.74, 0.32, 0.9, 0.52, 7], [0.78, 0.26, 0.93, 0.36, 6], [0.62, 0.7, 0.84, 0.6, 7]] as const) {
+    for (let k = 0; k < n; k++) { const t = (k + 0.5) / n; chevron(u0 + (u1 - u0) * t + (r() - 0.5) * 0.01, v0 + (v1 - v0) * t + (r() - 0.5) * 0.01, 7 + r() * 5); }
+  }
+  return toTexture(c, { repeat: false });
+}
+
 // The leaves of Midsommarkransen's wooden wreath (1978): carved leaves overlapping like scales,
 // painted greens, their veins darker, round the ring (a repeat 0.5 m along it and once round its
 // thickness).
@@ -4893,6 +5027,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   ochreClinker: [1.2, 1.2], morseClinker: [14.47, 6.0], blastedRock: [4.8, 4.8],
   kioskFront: [12.0, 4.5], tfpWestFront: [21.24, 4.5], tfpSouthFront: [24.4, 4.5],
   tricolourWindows: [1.35, 3.6], tricolourTiles: [1.35, 1.35], quarryTiles: [2.4, 2.4], darkBoards: [1.2, 1.2], hgaFront: [16.3, 3.0],
+  creamRender: [2.4, 2.4], slateFlags: [2.4, 2.4], darkPavers: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront'];
@@ -4966,6 +5101,17 @@ export function finish(name: Finish) {
         const v = 128 + Math.floor(r() * 20);
         x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(i * b + 1.5, j * a + (i % 2) * a / 2 + 1.5, b - 3, a - 3);
       }
+      break;
+    }
+    case 'darkPavers': {
+      // as the pavers, darker, 20 × 30 cm, in a running bond across the way
+      x.fillStyle = '#34332f'; x.fillRect(0, 0, W, H);
+      const a = 0.3 * PX, b = 0.2 * PX;
+      for (let i = 0; i * b < W; i++) for (let j = -1; j * a < H; j++) {
+        const v = 78 + Math.floor(r() * 16);
+        x.fillStyle = `rgb(${v},${v - 1},${v - 4})`; x.fillRect(i * b + 1.5, j * a + (i % 2) * a / 2 + 1.5, b - 3, a - 3);
+      }
+      speckle(x, W, H, 6000, 0.12, 63);
       break;
     }
     case 'triangles': {
@@ -7082,6 +7228,44 @@ export function finish(name: Finish) {
       x.fillStyle = '#6e4428';
       x.fillRect(0, Y(2.66), W, 0.06 * PX); x.fillRect(0, Y(3.0), W, 0.05 * PX);
       for (let k = 0; k * 1.63 <= 16.3 + 0.01; k++) x.fillRect(M(k * 1.63) - 0.04 * PX, Y(3.0), 0.08 * PX, 0.4 * PX);
+      break;
+    }
+    case 'creamRender':
+      // smooth render, a pale warm cream, here and there a little darker (Västertorp's ramp, the
+      // ground of Fogelquist's sgraffito; photograph, 2016)
+      x.fillStyle = '#e2dcc3'; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 14; k++) {
+        const cx = r() * W, cy = r() * H, rr = (0.3 + r() * 0.5) * PX;
+        // (wrapped round the repeat's edges)
+        for (const dx of [-W, 0, W]) for (const dy of [-H, 0, H]) {
+          const g = x.createRadialGradient(cx + dx, cy + dy, 0, cx + dx, cy + dy, rr);
+          g.addColorStop(0, 'rgba(150,140,110,0.08)'); g.addColorStop(1, 'rgba(150,140,110,0)');
+          x.fillStyle = g; x.fillRect(0, 0, W, H);
+        }
+      }
+      speckle(x, W, H, 9000, 0.1, 78); speckle(x, W, H, 6000, 0.12, 79, true);
+      break;
+    case 'slateFlags': {
+      // flags of dark grey-green slate, irregular four-sided stones about half a metre across, in
+      // pale grey joints (Västertorp's ticket hall; photograph, 2016): a jittered grid, the same at
+      // every repeat's edge
+      x.fillStyle = '#8c8e89'; x.fillRect(0, 0, W, H);
+      const n = 5, cell = W / n, jit: [number, number][][] = [];
+      for (let i = 0; i < n; i++) { jit.push([]); for (let j = 0; j < n; j++) jit[i].push([(r() - 0.5) * cell * 0.5, (r() - 0.5) * cell * 0.5]); }
+      const at = (i: number, j: number): [number, number] => { const [dx, dy] = jit[((i % n) + n) % n][((j % n) + n) % n]; return [i * cell + dx, j * cell + dy]; };
+      const greys = [[78, 86, 80], [90, 96, 90], [70, 77, 73], [98, 106, 98], [84, 88, 86]];
+      for (let i = -1; i <= n; i++) for (let j = -1; j <= n; j++) {
+        const [cr, cg, cb] = greys[Math.floor(r() * greys.length)], v = Math.floor(r() * 10) - 5;
+        x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`;
+        const q = [at(i, j), at(i + 1, j), at(i + 1, j + 1), at(i, j + 1)];
+        const cx = q.reduce((a, p) => a + p[0], 0) / 4, cy = q.reduce((a, p) => a + p[1], 0) / 4;
+        x.beginPath();
+        q.forEach(([px, py], k) => { const sx = cx + (px - cx) * 0.95, sy = cy + (py - cy) * 0.95; if (k) x.lineTo(sx, sy); else x.moveTo(sx, sy); });
+        x.closePath(); x.fill();
+        // (the cleft face's sheen and streaks)
+        x.fillStyle = 'rgba(200,210,200,0.06)'; x.fill();
+        for (let k = 0; k < 6; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '40,46,42' : '130,138,128'},0.25)`; x.fillRect(cx + (r() - 0.5) * cell * 0.6, cy + (r() - 0.5) * cell * 0.6, 10 + r() * 30, 1.5); }
+      }
       break;
     }
     case 'brassTerrazzo': {

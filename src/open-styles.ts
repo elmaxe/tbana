@@ -359,7 +359,10 @@ export type Finish =
   | 'tricolourTiles' // the same tiles all the way up
   | 'quarryTiles'   // unglazed floor tiles, 20 cm, red-brown and dark grey at random, in dark joints
   | 'darkBoards'    // narrow boards of dark-stained timber, a ceiling's
-  | 'hgaFront';     // Hägerstensåsen's pavilion to Sedelvägen: brown ribbed panels, the glass doors, brick with a newsagent's, clerestory windows over them
+  | 'hgaFront'      // Hägerstensåsen's pavilion to Sedelvägen: brown ribbed panels, the glass doors, brick with a newsagent's, clerestory windows over them
+  | 'creamRender'   // smooth render, a pale warm cream (Västertorp's ramp)
+  | 'slateFlags'    // irregular flags of dark grey-green slate in pale joints, a floor's
+  | 'darkPavers';   // dark grey concrete pavers in a running bond (Västertorp's ramp)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -444,7 +447,10 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // And at Midsommarkransen, the panel at the end of its middle hall, FÖRSTADEN · MIDSOMMARKRANSEN
 // over a panorama of the suburb (`forstaden`), and the painted wooden relief of a summer night on a
 // platform's wall (`summerNight`).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
+// And on the walls of Västertorp's ramp, Jörgen Fogelquist's sgraffito of Andrée's flight towards
+// the pole: the balloon, its drag ropes and the crack in the ice (`andreeBalloon`), and the eagle
+// on its field of night (`andreeEagle`), both cut out round the drawing.
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle'; s: number; u: number; turn: number; bottom: number; top: number; width: number }
 
 // The midsummer wreath of carved and painted alder at Midsommarkransen (1978, inaugurated 1979; Hans
 // Flemström Nilsson, Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the
@@ -7149,6 +7155,152 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         [-30, -7.4], [-20, -7.2], [0, -8.5], [20, -9.5], [40, -9.9], [60, -9.4], [80, -8.4], [92, -7.7]], h: [-1.1, 0.15] },
       { points: [[-140, 8.6], [-100, 8.6], [-70, 8.4], [-30, 8.2], [0, 8.0], [60, 8.0], [80, 8.4]], h: [-1.1, 0.15] },
       { points: [[80, 8.4], [92, 8.9], [100, 9.3]], h: [-1.1, 0.15], color: 0x8a3a30 },
+    ],
+  },
+  // Västertorp (5 April 1964; a tram stop from 1952): an island platform in the open on the bank,
+  // 42.8 m above the sea, between the bridges over Västertorpsvägen at its south-west end and
+  // Störtloppsvägen at its north-east end (Swedish Wikipedia; OpenStreetMap). Over most of it a
+  // butterfly roof, its underside 3.8 m over the platform at the valley and 3.9 m at the edges,
+  // 10 m wide at its south-west end widening to 12.4 m (Lantmäteriet's laser scan): closely spaced
+  // cream glulam rafters cantilevered either way from two dark navy steel beams along it, on two
+  // rows of navy columns on concrete plinths, narrow cream boards between them, a thin pale grey
+  // fascia; strip lights along the beams, a round clock, a black name sign with the exits'
+  // streets; grey slabs in a running bond in two greys, a ribbed strip and a pale edge; chain-link
+  // fences beyond both tracks (photographs, 2005 and 2016).
+  //
+  // At the south-west end a stair house clad in pale grey panels stands between the tracks, its
+  // glass doors under the canopy's end (a photograph, 2016), stairs and a lift in it down to the
+  // ticket hall under the northern track, at the street 4.8 m below; the hall's doors are
+  // south-west onto the path to Västertorpsvägen (OpenStreetMap's indoor mapping: the stairs from
+  // 76 m to 87 m south-west of the middle, the lift at 85.7 m; the laser scan, the stair house's
+  // roof 4.9 m over the platform). At the north-east end a ramp goes down between the tracks for
+  // 56 m to the ticket hall under the bridge, its doors north-east onto Störtloppsvägen, and a path
+  // beside it to a lift (OpenStreetMap; Albert Guillaumes' drawing): its walls cream render, its
+  // floor dark grey pavers, and over it board-formed concrete beams with glazing between them
+  // (a photograph, 2016), the laser scan's sawtooth of five roofs stepping down with the ramp,
+  // each rising 1.1 to 1.7 m towards the north-east over a clerestory at its end. On its walls
+  // Jörgen Fogelquist's sgraffito Med Örnen mot polen (1981, inaugurated 1982), of S. A. Andrée's
+  // balloon flight towards the pole in 1897: the balloon, its drag ropes and the cracking ice on the
+  // northern wall, the eagle on the southern (Swedish Wikipedia; photographs, 2007 and 2016). The
+  // ticket hall: white tiles, a floor of dark grey-green slate flags, a glass wall (a photograph,
+  // 2016). Guesses: which wall the eagle is on and where along the ramp the two pictures are, the
+  // south-west hall's finishes (copied from the north-east one's), both halls' fronts, the glazing
+  // of the ramp's head and of the lift's tower, the shelter's place.
+  'Västertorp': {
+    roof: {
+      kind: 'butterfly',
+      from: -76.4, to: 66, width: 11.6,
+      shape: [[-76.4, -2.7, 8.4], [-68, -1.8, 10.1], [-60, -1.55, 10.3], [-52, -1.2, 10.5], [-44, -0.92, 10.7], [-36, -0.6, 11.0], [-28, -0.3, 11.2],
+        [-16, 0, 11.5], [0, 0, 11.7], [16, 0.1, 12.1], [32, 0.2, 12.4], [44, 0.35, 12.4], [52, 0.35, 12.8], [60, 0.05, 12.9], [66, -0.2, 12.3]],
+      climb: [[-68, -0.18], [0, 0], [60, 0.1]],
+      middle: 3.8, edge: 3.9, thick: 0.3, fascia: 0.18,
+      rafters: 1.5, rafterSize: [0.14, 0.34], deck: 'boards',
+      beam: 0.4,
+      columns: { every: 7.2, at: 0, size: 0.2, plinth: { size: 0.45, height: 0.22 }, pair: 5.0, between: [-70, 62] },
+      lamps: { offset: 1.9, length: 1.5, every: 3.0, at: [-1.9, 1.9], tube: true },
+      colors: { underside: 0xeadfae, fascia: 0xc9cbcc, top: 0xc8c8c4, steel: 0x1f2f5a },
+      signs: { at: [-55, -20, 15, 50], back: 'Västertorpsvägen', ahead: 'Störtloppsvägen' },
+      clocks: [[-12, 0]],
+      // (trains keep left: those towards T-Centralen stop on the northern track)
+      boards: [
+        { s: 56, u: -2.6, toward: 'T-Centralen', trains: ['14 Mörby centrum  3 min', '14 Mörby centrum  13 min'] },
+        { s: 56, u: 3.2, toward: 'Fruängen', trains: ['14 Fruängen  5 min', '14 Fruängen  15 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.7, tactile: [0.7, 1.05], slabs: 1.05, paverSize: [0.6, 0.4], mix: 0.18,
+      colors: { edge: 0xdcdad3, tactile: 0xc6c4be, slab: 0x9d9b96, pavers: 0x9d9b96, paler: 0x7f8184, face: 0x8e8b85 },
+      pattern: 'bond',
+    },
+    buildings: ['w301418543', 'w301510671'],
+    rooms: [
+      // (the halls' and the stair house's walls and ceilings are their blocks')
+      { name: 'south-west landing', s: [-77, -70.9], u: [-1, 9], h: [-0.3, 0.3], walls: null, floor: 'pavers' },
+      { name: 'stair house', s: [-91, -76], u: [0.5, 10], h: [-0.3, 0.3], walls: null, floor: 'slateFlags', lamps: 3.0 },
+      { name: 'stairs down to the ticket hall', s: [-90.5, -76], u: [0.5, 10], h: [-5.2, 0.5], walls: 'squareTiles', stairs: 'squareTiles', floor: 'slateFlags', parapet: 1.0, lamps: 3.0 },
+      { name: 'south-west ticket hall', s: [-101, -86], u: [-9, 12], h: [-5.2, -4.5], walls: null, floor: 'slateFlags', lamps: 2.6 },
+      { name: 'Västertorpsvägen', s: [-106, -99.4], u: [-9, 4], h: [-5.2, -4.4], walls: null, floor: 'pavers' },
+      { name: 'path to the lift', s: [70, 122], u: [8.0, 17], h: [-0.3, 0.3], walls: null, floor: 'pavers' },
+      { name: 'ramp', s: [65.9, 124.6], u: [2, 16], h: [-4.8, 0.3], walls: null, floor: 'darkPavers', lamps: 2.6 },
+      { name: 'north-east ticket hall', s: [121, 142], u: [5, 28], h: [-5.7, -4.4], walls: null, floor: 'slateFlags', lamps: 2.7 },
+      { name: 'Störtloppsvägen', s: [139, 150], u: [10, 30], h: [-6, -5], walls: null, floor: 'asphalt' },
+    ],
+    blocks: [
+      // the landing past the platform's end between the bridges' decks, before the stair house
+      { name: 'landing', plan: [[-71.0, 0.42], [-71.0, 7.25], [-76.5, 7.81], [-76.5, 1.43]], h: [0, 0.5], from: 0,
+        walls: 'pavers', sides: [null, null, null, null], floor: 'pavers', onPlatform: true },
+      // the stair house between the decks: clad in pale grey panels over the platform's level, its
+      // glass doors facing the platform, white tiles down to the hall, the deck's edge girders cut
+      // away inside it
+      { name: 'stair house', plan: [[-76.5, 1.43], [-76.5, 7.81], [-90.5, 9.51], [-90.5, 4.26]], h: [0, 4.6], from: 0,
+        walls: 'gridPanels', sides: ['glazed', undefined, undefined, undefined], ceiling: 'whitePanels', roof: 0.3, roofColor: 0x9a9c9c,
+        ground: true, onPlatform: true },
+      { name: 'stair well', plan: [[-76.5, 1.43], [-76.5, 7.81], [-90.5, 9.51], [-90.5, 4.26]], h: [-4.85, 0], from: -4.85,
+        walls: 'squareTiles', ground: true, onPlatform: true },
+      // the ticket hall under the northern track's deck and beside it, its doors south-west, and its
+      // part between the decks beyond the stair house; their roofs under the track bed
+      { name: 'ticket hall', plan: [[-78.5, -8.0], [-78.5, 1.79], [-99.5, 6.28], [-99.5, -3.5]], h: [-4.85, -2.0], from: -4.85,
+        walls: 'squareTiles', sides: [undefined, null, 'glassFront', 'boardConcrete'], floor: 'slateFlags', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x77756f,
+        ground: 0.4, onPlatform: true, nameSign: { side: 2, at: 0.8, length: 3.0, bottom: -2.5 } },
+      { name: 'ticket hall, between the tracks', plan: [[-90.5, 4.26], [-90.5, 9.51], [-99.5, 10.9], [-99.5, 6.28]], h: [-4.85, -2.0], from: -4.85,
+        walls: 'squareTiles', sides: [null, undefined, 'glazed', null], floor: 'slateFlags', ceiling: 'whitePanels', roof: 0.3, roofColor: 0x77756f,
+        ground: 0.4, onPlatform: true },
+      // the ramp: its head under a roof on the platform's end, glazed over a cream parapet, then
+      // five bays stepping down with it, each roof rising towards the north-east, a board-formed
+      // beam across under each step with a clerestory over it, and its last stretch under the deck
+      { name: 'ramp head', plan: [[66.0, 2.8], [66.0, 5.9], [74.5, 6.94], [74.5, 3.84]], h: [0.0, 3.15], from: 0.0, fall: -0.53, lowBack: 4.48,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], band: { walls: 'glazed', from: 1.0 }, ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true, onPlatform: true },
+      { name: 'ramp, bay 1', plan: [[74.5, 3.84], [74.5, 6.94], [83.7, 8.19], [83.7, 5.09]], h: [-0.53, 2.35], from: -0.53, fall: -1.27, lowBack: 4.2,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'ramp, bay 2', plan: [[83.7, 5.09], [83.7, 8.19], [91.3, 9.23], [91.3, 6.13]], h: [-1.27, 1.75], from: -1.27, fall: -1.89, lowBack: 3.47,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'ramp, bay 3', plan: [[91.3, 6.13], [91.3, 9.23], [99.8, 10.61], [99.8, 7.51]], h: [-1.89, 1.15], from: -1.89, fall: -2.59, lowBack: 3.05,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'ramp, bay 4', plan: [[99.8, 7.51], [99.8, 10.61], [107.8, 12.08], [107.8, 8.98]], h: [-2.59, 0.55], from: -2.59, fall: -3.26, lowBack: 2.82,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'ramp, bay 5', plan: [[107.8, 8.98], [107.8, 12.08], [116.2, 13.63], [116.2, 10.53]], h: [-3.26, 0.45], from: -3.26, fall: -3.96, lowBack: 2.85,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'ramp, under the deck', plan: [[116.2, 10.53], [116.2, 13.63], [124.4, 15.13], [124.4, 12.03]], h: [-3.96, -0.85], from: -3.96, fall: -4.64, lowBack: -0.17,
+        walls: 'creamRender', sides: [null, undefined, null, undefined], ceiling: 'boardConcrete', roof: 0.25, roofColor: 0x6f6e6a, ground: true },
+      { name: 'beam at 74.5', plan: [[74.15, 3.79], [74.15, 6.89], [74.85, 6.99], [74.85, 3.89]], h: [1.8, 1.8], from: 1.8, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 74.5', plan: [[74.47, 3.84], [74.47, 6.94], [74.53, 6.94], [74.53, 3.84]], h: [2.6, 3.95], from: 2.6, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: 'beam at 83.7', plan: [[83.35, 5.05], [83.35, 8.15], [84.05, 8.24], [84.05, 5.14]], h: [1.2, 1.2], from: 1.2, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 83.7', plan: [[83.67, 5.09], [83.67, 8.19], [83.73, 8.19], [83.73, 5.09]], h: [2.0, 3.45], from: 2.0, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: 'beam at 91.3', plan: [[90.95, 6.08], [90.95, 9.18], [91.65, 9.28], [91.65, 6.18]], h: [0.6, 0.6], from: 0.6, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 91.3', plan: [[91.27, 6.13], [91.27, 9.23], [91.33, 9.23], [91.33, 6.13]], h: [1.4, 2.85], from: 1.4, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: 'beam at 99.8', plan: [[99.45, 7.45], [99.45, 10.55], [100.15, 10.68], [100.15, 7.58]], h: [0.0, 0.0], from: 0.0, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 99.8', plan: [[99.77, 7.51], [99.77, 10.61], [99.83, 10.61], [99.83, 7.51]], h: [0.8, 2.35], from: 0.8, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: 'beam at 107.8', plan: [[107.45, 8.92], [107.45, 12.02], [108.15, 12.15], [108.15, 9.05]], h: [-0.1, -0.1], from: -0.1, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 107.8', plan: [[107.77, 8.98], [107.77, 12.08], [107.83, 12.08], [107.83, 8.98]], h: [0.7, 2.15], from: 0.7, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      { name: 'beam at 116.2', plan: [[115.85, 10.46], [115.85, 13.56], [116.55, 13.69], [116.55, 10.59]], h: [-1.4, -1.4], from: -1.4, walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete', roof: 0.55, roofColor: 0x8d8b86 },
+      { name: 'clerestory at 116.2', plan: [[116.17, 10.53], [116.17, 13.63], [116.23, 13.63], [116.23, 10.53]], h: [-0.6, 2.15], from: -0.6, walls: 'glazed', sides: [undefined, null, undefined, null] },
+      // the lift's glazed tower at the path's end
+      { name: "lift's tower", plan: [[121.5, 14.6], [124.45, 14.6], [124.45, 17.45], [121.5, 17.45]], h: [0, 3.6],
+        walls: 'glazed', roof: 0.2, roofColor: 0xc9cac6, onPlatform: true },
+      // the ticket hall under the bridge, its floor falling with the street towards its doors onto
+      // Störtloppsvägen, its roof under the track bed, which rises the other way; a glass wall south
+      { name: 'north-east ticket hall', plan: [[122.5, 23.9], [125.5, 7.4], [141.3, 11.8], [136.2, 26.9]], h: [-4.65, -1.6], from: -4.65, fall: -5.45, lowBack: -0.6,
+        walls: 'squareTiles', sides: [undefined, undefined, 'glassFront', 'glazed'], floor: 'slateFlags', ceiling: 'whitePanels', roof: 0.15, roofColor: 0x77756f,
+        ground: true, onPlatform: true, nameSign: { side: 2, at: 0.45, length: 3.2, bottom: -3.08 } },
+      // the deck between the bridges over it, at the platform's level
+      { name: 'deck between the bridges', plan: [[124.4, 10.96], [147.0, 17.3], [147.0, 21.6], [124.4, 17.08]], h: [-1.45, -0.05], from: -1.45,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8f8d86 },
+    ],
+    art: [
+      // Fogelquist's balloon and the crack in the ice on the ramp's northern wall, and the eagle on
+      // its southern one
+      { kind: 'mural', picture: 'andreeBalloon', s: 83.0, u: 5.0, turn: 1.7065, bottom: -1.75, top: 1.95, width: 13 },
+      { kind: 'mural', picture: 'andreeEagle', s: 104.0, u: 11.39, turn: -1.3891, bottom: -2.05, top: 0.55, width: 3.6 },
+    ],
+    benches: { at: [-46, -24, -1, 20, 42], double: true },
+    shelters: [{ s: [-10, -6], u: [-1.0, 1.0] }],
+    // chain-link fences beyond both tracks along the bank, and a railing along the path to the lift
+    fences: [
+      { points: [[-71, -4.9], [-61, -6.4], [-52, -7.6], [-42, -8.6], [-33, -9.4], [-23, -9.9], [-14, -10.3], [-4, -10.4], [6, -10.4], [15, -10.2], [25, -9.9],
+        [34, -9.4], [44, -8.7], [53, -7.8], [63, -6.7], [72, -5.4], [82, -3.9], [91, -2.3], [100, -0.5], [110, 1.5], [119, 3.7]], h: [-1.1, 0.2] },
+      { points: [[-72, 12.5], [-62, 11.7], [-53, 11.1], [-43, 10.7], [-34, 10.4], [-24, 10.3], [-15, 10.2], [-5, 10.3], [5, 10.6], [14, 10.9], [24, 11.3],
+        [33, 11.8], [43, 12.4], [52, 13.2], [62, 14.0], [71, 15.0], [81, 16.1], [90, 17.4], [99, 18.8], [109, 20.3], [118, 21.8]], h: [-1.1, 0.2] },
+      { points: [[70.5, 9.8], [96, 12.9], [121.4, 16.7]], h: [-0.1, 1.0], kind: 'rails' },
     ],
   },
 };

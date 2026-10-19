@@ -288,6 +288,22 @@
     {
       "outline": [[-4540.9, 3993.6], [-4532.9, 3987.8], [-4515.2, 4012.0], [-4523.2, 4017.9]],
       "why": "Hägerstensåsen: the end of Sedelvägen in front of the station's pavilion, asphalt (a photograph, 2016; Google's 3D model)."
+    },
+    {
+      "outline": [[-5403.9, 4572.8], [-5358.9, 4576.3], [-5313.8, 4579.9], [-5314.9, 4593.9], [-5360.0, 4590.3], [-5405.0, 4586.7]],
+      "why": "Västertorpsvägen under the track's bridge at Västertorp's south-west end, with its pavements, asphalt (Google's 3D model; OpenStreetMap). Away from the detail areas the city draws no streets, so it was grass up to the ticket hall's doors."
+    },
+    {
+      "outline": [[-5347.0, 4558.5], [-5337.0, 4567.6], [-5342.6, 4571.6], [-5346.3, 4583.1], [-5352.8, 4581.2], [-5350.3, 4567.3], [-5350.1, 4562.0]],
+      "why": "The paving in front of Västertorp's south-west ticket hall and the path from its doors to Västertorpsvägen (Google's 3D model; OpenStreetMap's footways)."
+    },
+    {
+      "outline": [[-5198.3, 4303.2], [-5190.7, 4318.1], [-5159.3, 4369.6], [-5153.7, 4379.0], [-5142.7, 4401.3], [-5133.3, 4420.7], [-5145.9, 4426.8], [-5155.3, 4407.4], [-5166.1, 4385.5], [-5171.3, 4376.9], [-5202.8, 4325.2], [-5210.7, 4309.6]],
+      "why": "Störtloppsvägen under the track's bridges at Västertorp's north-east end, with its pavements, asphalt (Google's 3D model; OpenStreetMap). Away from the detail areas the city draws no streets, so it was grass in front of the ticket hall's doors."
+    },
+    {
+      "outline": [[-5170.7, 4393.7], [-5162.9, 4407.6], [-5147.6, 4404.3], [-5160.7, 4380.1]],
+      "why": "The paving under the southern bridge between Västertorp's north-east ticket hall and Störtloppsvägen, where cars park (Google's 3D model)."
     }
   ],
   "shallow": [

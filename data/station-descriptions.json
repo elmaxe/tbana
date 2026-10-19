@@ -818,19 +818,38 @@
     },
     "Västertorp": {
       "drawing": "vastertorp.png",
-      "note": "A wide island platform in the open. Stairs go down from each end to a ticket hall under the tracks.",
+      "note": "An island platform in the open on the bank between two bridges, over Västertorpsvägen at its south-west end and Störtloppsvägen at its north-east end. From the south-west end stairs and a lift go down in a stair house between the tracks to the ticket hall under the northern track, at the street, its doors south-west to the path to Västertorpsvägen. From the north-east end a ramp goes down between the tracks under a sawtooth of glazed roofs to the ticket hall under the bridge, its doors north-east onto Störtloppsvägen; a path beside the ramp leads to a lift down to the hall. Laid out from OpenStreetMap's indoor mapping (the stairs from 76 m to 87 m south-west, the lift at 85.7 m; the ramp from 70 m to 126 m north-east, the hall at 129 m, the doors at 139 m), Lantmäteriet's laser scan (the streets 4.8 m and 5.5 m under the platform, the ramp's roofs) and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [40, 0], "width": 4, "go": [
-          {"stairs": -6.2, "toward": [100, 0]},
-          {"walk": 25, "width": 6},
+        { "from": [-71.0, 3.2], "width": 2.2, "go": [
+          {"walk": [-76.0, 3.3], "open": true},
+          {"stairs": -4.85, "to": [-86.3, 4.9]},
+          {"walk": [-91.5, 5.6], "open": true},
+          {"walk": [-94.5, 2.8], "width": 5.0, "open": true},
           {"gates": true},
-          {"exit": 3615459074, "by": "walk"}
+          {"walk": [-97.5, 0.0], "width": 3.4, "open": true},
+          {"exit": {"at": [-100.8, -2.6], "name": "Västertorpsvägen"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [-40, 0], "width": 4, "go": [
-          {"stairs": -6.2, "toward": [-100, 0]},
-          {"walk": 25, "width": 6},
+        { "from": [-71.0, 6.3], "width": 1.4, "go": [
+          {"walk": [-76.0, 6.3], "open": true},
+          {"walk": [-84.2, 7.4], "open": true},
+          {"lift": -4.85, "above": 3.0, "through": true},
+          {"walk": [-91.5, 7.6], "open": true}
+        ] },
+        { "from": [64.0, 4.2], "width": 3.0, "go": [
+          {"walk": [68.0, 4.5], "open": true},
+          {"walk": [95.1, 8.2], "dh": -2.2, "open": true},
+          {"walk": [124.5, 13.6], "dh": -2.45, "open": true},
+          {"walk": [129.4, 15.8], "dh": -0.3, "width": 5.0, "open": true},
           {"gates": true},
-          {"exit": {"at": [-124, -4], "name": "Västertorp"}, "by": "walk"}
+          {"walk": [135.5, 17.6], "dh": -0.45, "open": true},
+          {"exit": {"at": [139.6, 18.8], "name": "Störtloppsvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [64.0, 8.4], "width": 1.6, "go": [
+          {"walk": [72.0, 9.2], "open": true},
+          {"walk": [96.0, 12.0], "open": true},
+          {"walk": [121.5, 15.8], "open": true},
+          {"lift": -4.75, "above": 3.0, "through": true},
+          {"walk": [126.0, 16.4], "open": true}
         ] }
       ]
     },
