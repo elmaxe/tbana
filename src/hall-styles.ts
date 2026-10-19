@@ -496,7 +496,9 @@ export interface VaultStyle {
 //   small square tiles of that size and colour in place of the panels, over a strip of steel;
 //   with `kransen`, narrow cream tiles on end and no pictures, a dark blue band along them from
 //   `band[0]` to `band[1]` with the name on it in white again and again, a thin red stripe at
-//   `red` and a dark one at `low` (Midsommarkransen's);
+//   `red` and a dark one at `low` (Midsommarkransen's); with `thelander`, the `tiles` over a black
+//   plinth under a white ledge, and P G Thelander's enamelled reliefs in place of the pictures,
+//   from `art[0]` to `art[1]` high, about `art[3]` m apart (Aspudden's);
 // - `backWall`: panels of dark concrete, `panel` wide, cast with fine diagonal grooves, on a pale
 //   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
 //   the name signs (the name in white on the band's colour) and the ways out (white plates, an
@@ -505,7 +507,8 @@ export interface VaultStyle {
 //   panels, on a dark plinth; with `band.sign`, the name in white on a plate of that colour on the
 //   band; with `wine`, Zinkensdamm's narrow wine-red tiles in place of the panels, on a dark plinth;
 //   with `kransen`, Midsommarkransen's narrow cream tiles on end in place of the panels, down to a
-//   dark skirting, and the band of brown tiles;
+//   dark skirting, and the band of brown tiles; with `aspudden`, Aspudden's upright strips of teal
+//   and pale green tiles down to a dark skirting;
 // - `vault`: the vault's colour;
 // - `paving`: the platform, paved as an open station's;
 // - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
@@ -514,8 +517,8 @@ export interface VaultStyle {
 //   platform, each `length` long, about every `every` m; with `backs`, a pair of benches with
 //   backs, of wooden boards on steel legs, in their place.
 export interface VaultFinish {
-  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number } };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; wall?: string };
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number }; thelander?: boolean };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; aspudden?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
@@ -589,6 +592,18 @@ export interface VaultFinish {
 // the wall behind the platform a band of brown glazed tiles, the name signs black, hung from it;
 // benches with backs, of wooden boards on steel brackets; the platform polished dark grey stone in
 // squares, a band of cream tiles along the edge and a dark ribbed strip inside it.
+//
+// Aspudden (1964), 15–20 m under Schlytersvägen, on the same plan: the platforms either side of a
+// core of rock about 16.5 m wide, joined through it by a hall a little west of the middle, where
+// the escalators come down (Albert Guillaumes's drawing; OpenStreetMap's indoor mapping).
+// Photographs (2005–2024, Wikimedia Commons): over each hall a smooth white vault with a row of
+// lamps along it over the platform; the track walls in small square white tiles over a black
+// plinth, a white ledge along their top, and on them P G Thelander's reliefs of enamelled sheet
+// (1987): yellow arcs, ultramarine blocks, red hooks and green slivers; the wall behind the
+// platform in glazed tiles on end in upright strips, a dark speckled teal, blue-green, pale
+// grey-green and celadon, over a dark skirting, under a dark band carrying the name on a black
+// plate; benches with backs; the platform pale grey terrazzo, a band of cream tiles along the edge
+// and a dark strip with yellow studs inside it.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -667,6 +682,21 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
         pattern: 'grid',
       },
       benches: { length: 2.4, every: 20, backs: true },
+    },
+  },
+  'Aspudden': {
+    spring: 4.35, risePerWidth: 0.22, signAt: 4.15, signEvery: 36,
+    finish: {
+      trackWall: { panelsFrom: 1.25, row: 0.6, strip: 2.25, art: [1.7, 3.8, 3.4, 5.2], tiles: { size: 0.11, color: '#e7e7e2' }, thelander: true },
+      backWall: { panel: 1.2, plinth: 1.12, band: { from: 3.95, to: 4.35, color: '#393b3c', sign: '#151515' }, aspudden: true, wall: '#393b3c' },
+      exits: [{ name: 'Schlytersvägen · Erik Segersälls väg', x: -3305.4, z: 2796.9 }],
+      vault: 0xecebe6,
+      paving: {
+        edge: 1.2, edgeTile: [0.3, 0.3], tactile: [1.22, 1.5], studs: true, studColor: 0xd8b02a, slabs: 0, paverSize: [1.2, 1.2], mix: 0.12,
+        colors: { edge: 0xe6e1d2, tactile: 0x4a4b4c, slab: 0xa9a7a1, pavers: 0xa6a49e, paler: 0xb1afa9, face: 0x3e3c3a },
+        pattern: 'grid',
+      },
+      benches: { length: 2.4, every: 18, backs: true },
     },
   },
 };

@@ -61,12 +61,14 @@ interface Corrections {
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
   // north), the platform is placed from that point instead of the station's node, and with
-  // `length` it is that long rather than 145 m. With `extend`,
+  // `length` it is that long rather than 145 m. With `sides`, each track gets a platform of its own
+  // on the side facing the node (side platforms, in halls of their own) rather than sharing one.
+  // With `extend`,
   // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead
   // (or to `length` about their nearest point to `at`).
   // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
   // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; extend?: boolean; shortRuns?: number }[];
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; sides?: boolean; extend?: boolean; shortRuns?: number }[];
   // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
   widths?: { station: string; width: number; why: string }[];
   // points to add to a track (SWEREF 99 18 00 east, north, snapped onto the nearest within 5 m)
@@ -455,6 +457,7 @@ for (const e of osm.elements) {
   }
 }
 
+let madeSide = 0;
 for (const c of corrections.platforms ?? []) {
   const st = stations.get(c.station);
   if (!st) throw new Error(`correction: no station called ${c.station}`);
@@ -515,7 +518,9 @@ for (const c of corrections.platforms ?? []) {
   // (a second `at` for the same platform, on the tracks of a bridge at its end, which OSM maps as
   // pieces of their own, adds them to the platform the first made)
   const made = st.platforms.find((p) => p.osm === 0);
-  if (made) made.tracks.push(...tracks);
+  // (side platforms get ids of their own below zero, since a shared id makes an island)
+  if (c.sides) for (const t of tracks) st.platforms.push({ osm: --madeSide, tracks: [t] });
+  else if (made) made.tracks.push(...tracks);
   else st.platforms.push({ osm: 0, tracks });
 }
 

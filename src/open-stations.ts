@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -313,6 +313,8 @@ export class OpenLook {
       else if (a.kind === 'catenary') this.catenary(a, frame, on);
       else if (a.kind === 'edgePaving') this.edgePaving(a, style, st.name, frame, on);
       else if (a.kind === 'wreath') this.wreath(a, frame, on);
+      else if (a.kind === 'penguin') this.penguin(a, frame, on);
+      else if (a.kind === 'crossVault') this.crossVault(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1539,7 +1541,14 @@ export class OpenLook {
   // The round T on its post, a face to each side.
   private roundel(a: Roundel, frame: Frame, on: On, group: THREE.Group) {
     const steel = on(this.color(0x9aa0a4, 0.45, 0.6)), r = a.size / 2;
-    box(steel, frame.at(a.s, a.u, (a.foot + a.h - r) / 2), frame.fx, frame.fz, 0.08, a.h - r - a.foot, 0.08);
+    if (a.striped) {
+      // (a pole in bands of blue and white, about 0.3 m each, a white cap at the foot of the sign)
+      const blue = on(this.color(0x1d3f8a, 0.5, 0.1)), white = on(this.color(0xeef0ee, 0.5, 0.1)), top = a.h - r, n = Math.round((top - a.foot) / 0.3);
+      for (let k = 0; k < n; k++) {
+        const h0 = a.foot + ((top - a.foot) * k) / n, h1 = a.foot + ((top - a.foot) * (k + 1)) / n;
+        box(k % 2 ? blue : white, frame.at(a.s, a.u, (h0 + h1) / 2), frame.fx, frame.fz, 0.14, h1 - h0, 0.14);
+      }
+    } else box(steel, frame.at(a.s, a.u, (a.foot + a.h - r) / 2), frame.fx, frame.fz, 0.08, a.h - r - a.foot, 0.08);
     const c = frame.at(a.s, a.u, a.h), rx = a.along ? frame.fx : -frame.fz, rz = a.along ? frame.fz : frame.fx;
     const rim = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.08, 32).rotateZ(Math.PI / 2), this.color(0xdfe1df, 0.4, 0.4));
     rim.position.set(...c);
@@ -1644,7 +1653,7 @@ export class OpenLook {
             : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves()
               : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief()
                 : a.picture === 'andreeBalloon' ? T.andreeBalloon() : a.picture === 'andreeEagle' ? T.andreeEagle()
-                  : a.picture === 'landergren' ? T.landergrenFace(a.variant ?? 0) : T.tallkrogsdraken();
+                  : a.picture === 'landergren' ? T.landergrenFace(a.variant ?? 0) : a.picture === 'penguinWall' ? T.penguinWall() : T.tallkrogsdraken();
       // (an angel, the lace and the iron, and the sgraffito on its wall, cut out round their outlines)
       const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell' || a.picture === 'andreeBalloon' || a.picture === 'andreeEagle';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';
@@ -1657,6 +1666,93 @@ export class OpenLook {
     const ds = Math.cos(a.turn), du = Math.sin(a.turn), rs = du, ru = -ds, w = a.width / 2;
     const P = (k: number, h: number, x: number, y: number) => [...frame.at(a.s + ds * 0.03 + rs * k, a.u + du * 0.03 + ru * k, h), x, y];
     m.poly([P(-w, a.bottom, 0, 0), P(w, a.bottom, 1, 0), P(w, a.top, 1, 1), P(-w, a.top, 0, 1)]);
+  }
+
+  // The penguin on its plinth: the plinth a box of small white tiles; the penguin a body turned on
+  // a lathe, a little deeper than wide, its head turned up with its beak, its flippers hanging at
+  // its sides, its feet on the plinth, and the cube held to its chest; all in a dark bronze.
+  private penguin(a: Penguin, frame: Frame, on: On) {
+    const ds = Math.cos(a.turn), du = Math.sin(a.turn), rs = du, ru = -ds, k = a.size;
+    // a point `f` forward, `r` to its right and `h` up from the middle of its feet
+    const at = (f: number, r: number, h: number): XYZ => frame.at(a.s + ds * f + rs * r, a.u + du * f + ru * r, a.height + h);
+    const tiles = on(this.finish('squareTiles')), p = a.plinth / 2, H = a.height;
+    // (the tiles' uvs in metres over 0.8: 10 cm tiles)
+    const side = (f0: number, r0: number, f1: number, r1: number) => {
+      const l = Math.hypot(f1 - f0, r1 - r0);
+      tiles.poly([[...at(f0, r0, -H), 0, 0], [...at(f1, r1, -H), l / 0.8, 0], [...at(f1, r1, 0), l / 0.8, H / 0.8], [...at(f0, r0, 0), 0, H / 0.8]]);
+    };
+    side(p, -p, p, p); side(p, p, -p, p); side(-p, p, -p, -p); side(-p, -p, p, -p);
+    tiles.poly([[...at(-p, -p, 0), 0, 0], [...at(p, -p, 0), a.plinth / 0.8, 0], [...at(p, p, 0), a.plinth / 0.8, a.plinth / 0.8], [...at(-p, p, 0), 0, a.plinth / 0.8]]);
+    const bronze = on(this.color(0x6a5238, 0.45, 0.3));
+    // a solid turned about an upright axis at (f, r), its radius at each height from `profile`
+    // (h, radius), `deep` times as deep (forward) as wide, leaning `lean` forward per metre up
+    const lathe = (f: number, r: number, profile: [number, number][], deep: number, lean = 0) => {
+      const N = 18;
+      for (let j = 0; j + 1 < profile.length; j++) {
+        const [h0, r0] = profile[j], [h1, r1] = profile[j + 1];
+        for (let i = 0; i < N; i++) {
+          const t0 = (i / N) * Math.PI * 2, t1 = ((i + 1) / N) * Math.PI * 2;
+          const P = (t: number, h: number, rr: number) => [...at(f + lean * h + Math.cos(t) * rr * deep * k, r + Math.sin(t) * rr * k, h * k), 0, 0];
+          bronze.poly([P(t0, h0, r0), P(t1, h0, r0), P(t1, h1, r1), P(t0, h1, r1)]);
+        }
+      }
+    };
+    lathe(0, 0, [[0.06, 0.02], [0.1, 0.13], [0.2, 0.2], [0.4, 0.235], [0.62, 0.22], [0.82, 0.16], [0.95, 0.105], [1.02, 0.1], [1.1, 0.11], [1.18, 0.1], [1.25, 0.06], [1.29, 0.0]], 1.1, -0.04);
+    // the beak, pointing forward and up
+    const tip = at(0.22 * k, 0, 1.3 * k), base = [at(0.05 * k, -0.035 * k, 1.18 * k), at(0.05 * k, 0.035 * k, 1.18 * k), at(0.02 * k, 0, 1.24 * k)];
+    for (let i = 0; i < 3; i++) bronze.poly([[...base[i], 0, 0], [...base[(i + 1) % 3], 1, 0], [...tip, 0.5, 1]]);
+    // the flippers, hanging a little out from its sides
+    for (const r of [-1, 1]) {
+      const q = (f: number, d: number, h: number) => [...at(f * k, r * d * k, h * k), 0, 0];
+      bronze.poly([q(0.02, 0.22, 0.82), q(-0.08, 0.23, 0.8), q(-0.06, 0.29, 0.32), q(0.0, 0.27, 0.36)]);
+      bronze.poly([q(0.02, 0.24, 0.82), q(-0.08, 0.25, 0.8), q(-0.06, 0.31, 0.32), q(0.0, 0.29, 0.36)]);
+    }
+    // its feet, and the cube held to its chest (facing (wx, wz) in the scene)
+    const wx = frame.fx * ds - frame.fz * du, wz = frame.fz * ds + frame.fx * du, c = 0.25 * k;
+    for (const r of [-1, 1]) box(bronze, at(0.07 * k, r * 0.08 * k, 0.03 * k), wx, wz, 0.09 * k, 0.06 * k, 0.16 * k);
+    box(bronze, at(0.32 * k, -0.04 * k, 0.78 * k), wx, wz, c, c, c);
+  }
+
+  // Aspudden's middle hall: its barrel vault, and the arched screens at its ends.
+  private crossVault(a: CrossVault, frame: Frame, on: On) {
+    // (the vault lit by the tubes on it, brighter than a flat ceiling)
+    const white = on(this.mat('crossVault', () => {
+      const map = T.finish('whiteRender');
+      return new THREE.MeshStandardMaterial({ map, roughness: 0.85, emissive: 0x6a6964, emissiveMap: map, side: THREE.DoubleSide });
+    }));
+    const steel = on(this.color(0xa4a9ac, 0.35, 0.6)), pane = on(this.pane);
+    const band = on(this.color(0x1f3b8a, 0.5, 0.1)), dark = on(this.color(a.spandrel, 0.6, 0.1));
+    const [s0, s1] = a.s, [u0, u1] = a.u, half = (s1 - s0) / 2, mid = (s0 + s1) / 2, rise = a.crown - a.spring;
+    const R = (half * half + rise * rise) / (2 * rise);
+    const arc = (s: number) => a.crown - R + Math.sqrt(Math.max(0, R * R - (s - mid) ** 2));
+    const N = 24, S = (i: number) => s0 + ((s1 - s0) * i) / N;
+    for (let i = 0; i < N; i++) {
+      const sa = S(i), sb = S(i + 1);
+      white.poly([[...frame.at(sa, u0, arc(sa)), u0 / 2.4, sa / 2.4], [...frame.at(sb, u0, arc(sb)), u0 / 2.4, sb / 2.4], [...frame.at(sb, u1, arc(sb)), u1 / 2.4, sb / 2.4], [...frame.at(sa, u1, arc(sa)), u1 / 2.4, sa / 2.4]]);
+    }
+    // the screens, a little inside the hall's ends
+    const along = [frame.fx, frame.fz];
+    for (const u of [u0 + Math.sign(u1 - u0) * 0.02, u1 - Math.sign(u1 - u0) * 0.02]) {
+      const P = (s: number, h: number): XYZ => frame.at(s, u, h);
+      // the glass: under the transom, and in the lunette over it
+      pane.poly([[...P(s0, 0.1), 0, 0], [...P(s1, 0.1), 1, 0], [...P(s1, a.doors), 1, 1], [...P(s0, a.doors), 0, 1]]);
+      for (let i = 0; i < N; i++) {
+        const sa = S(i), sb = S(i + 1);
+        pane.poly([[...P(sa, a.doors + 0.12), 0, 0], [...P(sb, a.doors + 0.12), 1, 0], [...P(sb, arc(sb)), 1, 1], [...P(sa, arc(sa)), 0, 1]]);
+        // the spandrels over the arch, and the frame along it
+        dark.poly([[...P(sa, arc(sa)), 0, 0], [...P(sb, arc(sb)), 1, 0], [...P(sb, a.top), 1, 1], [...P(sa, a.top), 0, 1]]);
+        bar(steel, P(sa, arc(sa)), P(sb, arc(sb)), 0.1, 0.1);
+      }
+      // the kick strip, the band across the doors, the transom, and the mullions
+      box(steel, P(mid, 0.05), along[0], along[1], 0.08, 0.1, s1 - s0);
+      box(band, P(mid, 1.12), along[0], along[1], 0.05, 0.14, s1 - s0);
+      box(steel, P(mid, a.doors + 0.06), along[0], along[1], 0.1, 0.12, s1 - s0);
+      const n = Math.max(1, Math.round((s1 - s0) / a.frames));
+      for (let m = 0; m <= n; m++) {
+        const sm = s0 + ((s1 - s0) * m) / n, h = arc(Math.min(s1 - 0.05, Math.max(s0 + 0.05, sm)));
+        box(steel, P(sm, h / 2), along[0], along[1], 0.08, h, 0.07);
+      }
+    }
   }
 
   private block(b: Block, frame: Frame, on: On, cut: Volume[], name: string, roofCut: Volume[]) {

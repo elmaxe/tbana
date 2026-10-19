@@ -115,8 +115,13 @@ const corrections = existsSync('data/height-corrections.json') ? JSON.parse(read
 const trackCorrections = JSON.parse(readFileSync('data/track-corrections.json', 'utf8'));
 const sideWidths = new Map<string, number>((trackCorrections.widths ?? []).map((w: { station: string; width: number }) => [w.station, w.width]));
 // stations whose two platform tracks run straight and parallel, this far apart (data/track-corrections.json
-// `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too
+// `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too;
+// with `middle` (SWEREF 99 18 00 east, north), either side of a line through that point rather than of the
+// middle of OpenStreetMap's tracks, where its sketch has them off to one side of the halls
 const straightStations = new Map<string, number>((trackCorrections.straight ?? []).map((w: { station: string; apart: number }) => [w.station, w.apart]));
+const straightMiddles = new Map<string, { x: number; z: number }>((trackCorrections.straight ?? [])
+  .filter((w: { middle?: [number, number] }) => w.middle)
+  .map((w: { station: string; middle: [number, number] }) => [w.station, { x: w.middle[0] - ORIGIN.e, z: ORIGIN.n - w.middle[1] }]));
 // places where a line's two tracks in tunnels keep OpenStreetMap's spacing, within `reach` m of `at`
 // (SWEREF 99 18 00 east, north; data/track-corrections.json `apart`), rather than being drawn
 // together over a siding between them
@@ -447,7 +452,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     const th = Math.atan2(2 * sxz, sxx - szz) / 2, dx = Math.cos(th), dz = Math.sin(th), nx = -dz, nz = dx;
     const off = on.map((o) => (o.x - cx) * nx + (o.z - cz) * nz);
     const side = (sg: number) => { const q = off.filter((u) => Math.sign(u) === sg); return q.reduce((a, u) => a + u, 0) / q.length; };
-    const mid = (side(-1) + side(1)) / 2;
+    const m = straightMiddles.get(station), mid = m ? (m.x - cx) * nx + (m.z - cz) * nz : (side(-1) + side(1)) / 2;
     on.forEach((o, j) => {
       const t = (o.x - cx) * dx + (o.z - cz) * dz, u = mid + Math.sign(off[j] - mid) * apart / 2;
       straightAt.set(o.vi, [cx + dx * t + nx * u, cz + dz * t + nz * u]);

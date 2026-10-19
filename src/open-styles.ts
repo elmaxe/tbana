@@ -368,7 +368,11 @@ export type Finish =
   | 'greyBooth'     // dark grey panels to 1.05 m, glass in white frames to 2.15 m, a white band and a dark grey one
   | 'blueBooth'     // SL's blue in panels to 1.15 m, glass in brushed steel frames to 2.45 m, white panels above
   | 'fraBuilding'   // shops set back between granite piers, then white-painted brick, a band of windows in dark brown frames, to 7.15 m
-  | 'fraEntrance';  // as fraBuilding, glass doors in brushed steel in place of the shop (Fruängen's way in from Fruängsplan)
+  | 'fraEntrance'   // as fraBuilding, glass doors in brushed steel in place of the shop (Fruängen's way in from Fruängsplan)
+  | 'aspuddenStrips' // glazed tiles on end in upright strips 15 cm wide, dark teal, blue-green, pale grey-green and celadon (Aspudden's)
+  | 'amberTiles'    // narrow glazed tiles on end, 5 by 25 cm, honey, amber and brown (round Aspudden's escalators)
+  | 'aspuddenHall'  // glossy tiles on end, 15 by 30 cm, a dark speckled green with runs of pale green and beige (Aspudden's ticket hall)
+  | 'aspuddenPavilion'; // glass in brushed steel frames, SL's dark blue band over a yellow line from 2.4 m, glass above to a steel fascia
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -417,7 +421,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -458,7 +462,9 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // on its field of night (`andreeEagle`), both cut out round the drawing.
 // And Fredrik Landergren's glass mosaics of heads at Fruängen (`landergren`), each in its frame, the
 // colours and the face by `variant` (src/textures.ts landergrenFace).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle' | 'landergren'; s: number; u: number; turn: number; bottom: number; top: number; width: number; variant?: number }
+// And the wall behind the penguin in Aspudden's middle hall (`penguinWall`), royal blue tiles folded
+// out of saffron yellow ones (src/textures.ts penguinWall).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle' | 'landergren' | 'penguinWall'; s: number; u: number; turn: number; bottom: number; top: number; width: number; variant?: number }
 
 // The midsummer wreath of carved and painted alder at Midsommarkransen (1978, inaugurated 1979; Hans
 // Flemström Nilsson, Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the
@@ -474,8 +480,22 @@ export interface Wreath { kind: 'wreath'; s: number; u: number; h: number; size:
 export interface Chairs { kind: 'chairs'; s: number; u: number; turn: number }
 
 // The metro's round sign on a post on a roof at s, u, its middle `h` high and `size` across, its
-// faces across the platform (or, `along`, along it); the post from `foot` up.
-export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number; along?: boolean }
+// faces across the platform (or, `along`, along it); the post from `foot` up (`striped`, a thicker
+// pole in bands of SL's blue and white, standing in the street).
+export interface Roundel { kind: 'roundel'; s: number; u: number; h: number; size: number; foot: number; along?: boolean; striped?: boolean }
+
+// P G Thelander's penguin in Aspudden's middle hall (1987): a penguin cast in bronze, standing
+// upright and looking up, a cube of bronze held to its chest under one flipper; on a plinth of
+// white tiles `plinth` square and `height` high at s, u; facing `turn` as a guardian does.
+export interface Penguin { kind: 'penguin'; s: number; u: number; turn: number; plinth: number; height: number; size: number }
+
+// The middle hall at Aspudden: a barrel vault over it from s[0] to s[1], running from u[0] to
+// u[1], springing `spring` high at its sides and rising to `crown`, in white render; and at each
+// end an arched screen of glass in brushed steel, under the vault's arch: sliding doors to `doors`
+// high with SL's dark blue band across them, a transom, and glass in the lunette above, mullions
+// about `frames` m apart; over the arch, up to `top`, where the opening through the wall behind the
+// platform is square, the wall's dark band (`spandrel`).
+export interface CrossVault { kind: 'crossVault'; s: [number, number]; u: [number, number]; spring: number; crown: number; doors: number; frames: number; top: number; spandrel: number }
 
 // Stacks of green glass sheets, each tapering on all sides to a narrow ridge, `count` of them side
 // by side along the platform with their middle at s, u, standing on the ground `foot` high, the
@@ -7469,6 +7489,64 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { points: [[-95, 13.75], [-40, 13.75]], h: [-1.05, 0.6] },
       { points: [[-40, 13.4], [0, 13.3], [60, 13.0], [72, 8.4], [84, 6.8], [100, 3.5]], h: [-1.05, 0.6] },
       { points: [[-85.9, -13], [-85.9, -4.6]], h: [0.1, 1.4], kind: 'bars' },
+    ],
+  },
+
+  // Aspudden (5 April 1964), in rock 15–20 m under Schlytersvägen: two platform halls, one for each
+  // track, the platforms within either side of a core of rock, joined through it by a hall a little
+  // west of the middle (the halls are src/hall-styles.ts's VAULT_STYLES; OpenStreetMap's indoor
+  // mapping, 2025; Albert Guillaumes's drawing, 2024). From photographs (2005–2024, Wikimedia
+  // Commons):
+  //
+  // The middle hall is 12 m wide under a shallow white barrel vault, two rows of tube lights along
+  // it, its floor polished grey terrazzo; at each end an arched screen of glass in brushed steel
+  // opens onto a platform, sliding doors along its foot under SL's dark blue band. Its walls are the
+  // platforms' teal and pale green strips, but behind the penguin, where the wall is saffron
+  // yellow tiles and a wedge of royal blue ones folds out of it. P G Thelander's penguin (1987)
+  // stands on a plinth of white tiles, a cast bronze looking up with a bronze cube held to its chest.
+  //
+  // From the hall's west side four escalators climb west in a shaft lined with narrow amber and
+  // honey tiles, under a white soffit at their foot, to the ticket hall (OpenStreetMap has their
+  // ends, and the gates; their rise is from the street's height, Lantmäteriet's laser scan): its
+  // walls glossy tiles on end in a dark speckled green with runs of pale green and beige, its
+  // ceiling white panels with round lights, a white round column, the gates across it. From its
+  // west end stairs climb into the pavilion at the corner of Schlytersvägen and Erik Segersälls
+  // väg (Google's 3D mesh and the laser scan: 4.5 by 7.8 m and 4 m high), glass in brushed steel
+  // under SL's dark blue band with the name and a yellow line, a flat steel roof; and a corridor
+  // beside them goes to the lift in its tower of glass in black steel just west of it. A second lift goes down
+  // from the ticket hall to the southern platform. In the street the T on its pole of blue and white
+  // bands. Not drawn: the folded wall's wedge (drawn flat), the kiosk, the departure boards, the
+  // ramp down to Schlytersvägen.
+  'Aspudden': {
+    buildings: ['w565801484'],
+    rooms: [
+      { name: 'middle hall, opening north', s: [-13.5, -1.5], u: [-8.84, -8.52], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'middle hall, opening south', s: [-13.5, -1.5], u: [8.52, 8.84], h: [-1, 0.5], walls: null, floor: null },
+      { name: 'middle hall', s: [-13.5, -1.5], u: [-8.52, 8.52], h: [-1, 0.5], walls: 'aspuddenStrips', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: "escalators' foot", s: [-23.6, -13.4], u: [-3.5, 4.7], h: [-1, 0.5], walls: 'amberTiles', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'escalators', s: [-45, -23], u: [-3.5, 4.7], h: [-1, 13], walls: 'amberTiles', stairs: 'amberTiles', ceiling: 'whiteRender' },
+      { name: 'lift lobby', s: [-62.5, -59.7], u: [7.6, 8.6], h: [-1, 0.5], walls: 'aspuddenStrips', floor: 'terrazzo', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [-69, -44], u: [-4.3, 5.5], h: [11.5, 12.5], walls: 'aspuddenHall', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'corridor to the street lift', s: [-79, -68.3], u: [-3.6, -1.3], h: [11.5, 12.5], walls: 'aspuddenHall', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'stairs into the pavilion', s: [-76, -68.3], u: [-1.3, 2.5], h: [11.5, 15.2], walls: 'aspuddenHall', stairs: 'aspuddenHall', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: "pavilion's door", s: [-77, -75.1], u: [-1.3, 2.5], h: [15.2, 16.5], walls: null, floor: 'terrazzo', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      // the pavilion (Google's 3D mesh and the laser scan), its floor at the street before its door
+      { name: 'pavilion', plan: [[-75.5, -1.6], [-67.7, -1.6], [-67.7, 2.9], [-75.5, 2.9]], h: [14.9, 19.6], from: 15.62,
+        walls: 'aspuddenPavilion', floor: 'terrazzo', roof: 0.25, roofColor: 0xa7acaf, nameSign: { side: 3, at: 0.5, length: 3.2, bottom: 18.0 }, ground: true },
+      // the lift's tower (the laser scan: 4.5 m high), and the flat canopy over its door
+      { name: 'lift tower', plan: [[-78.75, -3.55], [-76.05, -3.55], [-76.05, -1.25], [-78.75, -1.25]], h: [15.0, 19.75], from: 15.9,
+        walls: 'darkGlazed', roof: 0.2, roofColor: 0x2e3134 },
+      { name: "lift tower's canopy", plan: [[-79.6, -3.75], [-78.75, -3.75], [-78.75, -1.05], [-79.6, -1.05]], h: [18.4, 18.4], from: 18.4,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'perforated', roof: 0.1, roofColor: 0x2e3134 },
+    ],
+    art: [
+      { kind: 'crossVault', s: [-13.5, -1.5], u: [-8.53, 8.53], spring: 2.9, crown: 3.85, doors: 2.35, frames: 1.35, top: 3.9, spandrel: 0x393b3c },
+      { kind: 'mural', picture: 'penguinWall', s: -1.5, u: -2.0, turn: Math.PI, bottom: 0, top: 3.0, width: 12.4 },
+      { kind: 'penguin', s: -2.4, u: -4.4, turn: Math.PI / 2 + 0.4, plinth: 1.2, height: 0.5, size: 1.05 },
+      { kind: 'columns', at: [[-65.6, 3.0]], from: 11.96, to: 14.86, size: 0.45, color: 0xefefeb },
+      { kind: 'roundel', s: -80.6, u: -4.6, h: 20.1, size: 0.75, foot: 15.9, striped: true },
     ],
   },
 };

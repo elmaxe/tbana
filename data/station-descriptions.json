@@ -890,13 +890,33 @@
     },
     "Aspudden": {
       "drawing": "aspudden.png",
-      "note": "An island platform in the rock. Escalators climb from its west end to the ticket hall at Hägerstensvägen.",
+      "note": "Two straight platform halls, one for each track, the tracks on the outside and the side platforms within, either side of a core of rock about 16.5 m wide, joined through it by a hall 12 m wide a little west of the middle (Albert Guillaumes's drawing; OpenStreetMap's indoor mapping, 2025, which has the platforms' inner edges, the escalators and the passages). From the hall's west side four escalators climb west inside the core to the ticket hall 12 m up, the gates across it; from its west end stairs climb into the glass pavilion on Schlytersvägen, at the corner of Erik Segersälls väg, and a corridor beside them leads to the lift up to the street beside it. A second lift goes down from the ticket hall to the southern platform (OpenStreetMap's lifts and gates; the halls' heights from the street's, Lantmäteriet's laser scan, and the escalators' length).",
       "routes": [
-        { "from": [-45, 0], "width": 5, "go": [
-          {"escalators": 10, "toward": [-150, 0], "lanes": "EES"},
-          {"walk": 6, "width": 7},
+        { "from": [-7.5, -8.83], "width": 12, "go": [
+          {"walk": [-7.5, -8.53], "open": true, "edges": false},
+          {"walk": [-7.5, 8.53], "ceiling": 3.9},
+          {"walk": [-7.5, 8.83], "open": true, "edges": false}
+        ] },
+        { "from": [-13.5, 0.6], "h": 0.01, "width": 8, "go": [
+          {"walk": [-23.5, 0.6], "ceiling": 2.9},
+          {"escalators": 11.95, "toward": [-100, 0.6], "lanes": "EEEE"},
+          {"walk": [-61.6, 0.6], "width": 9.4, "ceiling": 2.9},
           {"gates": true},
-          {"exit": 1879690659}
+          {"walk": [-68.4, 0.6], "width": 9.4, "ceiling": 2.9},
+          {"stairs": 3.65, "toward": [-100, 0.6], "lanes": "Ss", "open": true},
+          {"walk": [-75.8, 0.6], "ceiling": 2.35},
+          {"exit": {"at": [-76.6, 0.6], "name": "Schlytersvägen · Erik Segersälls väg"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-68.4, -2.4], "h": 11.96, "width": 2.0, "go": [
+          {"walk": [-75.9, -2.4], "ceiling": 2.6},
+          {"lift": 3.9, "above": 3.4, "through": true},
+          {"exit": {"at": [-80.0, -2.4], "name": "Schlytersvägen"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-61.1, 8.83], "h": 0.01, "width": 2.4, "go": [
+          {"walk": [-61.1, 8.53], "open": true, "edges": false},
+          {"walk": [-61.1, 8.03], "ceiling": 2.35, "edges": false},
+          {"lift": 11.95, "through": true},
+          {"walk": [-61.1, 4.6], "ceiling": 2.9}
         ] }
       ]
     },

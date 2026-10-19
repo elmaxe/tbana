@@ -365,8 +365,9 @@
     {
       "station": "Aspudden",
       "reach": 30,
-      "why": "OSM draws the island platform south of the southern track, and the northern track about 25 m away from it. Both tracks are placed from the station's node, which lies between them.",
-      "replace": true
+      "why": "OSM's platforms at Aspudden don't match its tracks: its indoor mapping (2025) has two side platforms either side of the rock core, and its tracks, sketched 35 m apart, run 9 m north of them. Each track gets a side platform of its own, facing the station's node, which lies between them (see `straight`, which sets them in their halls).",
+      "replace": true,
+      "sides": true
     },
     {
       "station": "Gubbängen",
@@ -602,7 +603,8 @@
     {"station": "Mariatorget", "apart": 22.95, "why": "Mariatorget's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 9 m wide (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 4.8 m wide, their edges by the tracks 20 m apart). OpenStreetMap's sketch of the tracks bows them 2 m apart in the middle, and the fit followed it."},
     {"station": "Zinkensdamm", "apart": 22.9, "why": "Zinkensdamm, built with Mariatorget (1964), has the same plan: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a rock core about 9 m wide (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.5 m wide, their edges by the tracks 19.7 m apart). OpenStreetMap's sketch of the tracks bows them 3 m apart in the middle, and the fit followed it."},
     {"station": "Hornstull", "apart": 25.8, "why": "Hornstull (1964) has the plan of Mariatorget and Zinkensdamm: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock, here 11.5 m wide and in two lengths with a passage between them (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.45 m wide, their edges by the tracks 22.6 m apart). OpenStreetMap's tracks are 1 m nearer each other than its platform edges allow, and the fit bowed them, 25.6 m apart in the middle but 21 m at the platforms' ends."},
-    {"station": "Midsommarkransen", "apart": 32.4, "why": "Midsommarkransen (1964) is in rock on the plan of Mariatorget: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock about 17 m wide joined by a hall north-east of the middle (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.5 m wide, their edges by the tracks 29.4 m apart, and its tracks straight and 32.3 m apart). The fit bowed the tracks, 33.2 m apart in the middle but 28 m at the platforms' ends."}
+    {"station": "Midsommarkransen", "apart": 32.4, "why": "Midsommarkransen (1964) is in rock on the plan of Mariatorget: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock about 17 m wide joined by a hall north-east of the middle (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.5 m wide, their edges by the tracks 29.4 m apart, and its tracks straight and 32.3 m apart). The fit bowed the tracks, 33.2 m apart in the middle but 28 m at the platforms' ends."},
+    {"station": "Aspudden", "apart": 32.2, "middle": [150137.2, 6576808.9], "why": "Aspudden (1964) is in rock on the plan of Mariatorget: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock about 16.5 m wide, joined through it by a hall where the escalators come down (Albert Guillaumes's drawing, 2024; photographs, 2005–2024, each hall's vault over one platform and one track). OpenStreetMap's indoor mapping (2025) has the platforms' inner edges 16.5 m apart, the escalators, the corridor to the hall and the passage between the platforms down the middle between them, in line with the entrance; its tracks, sketched 35 m apart, run 9 m north of that middle, the southern one along the southern platform's inner edge. The pair is held either side of the indoor mapping's middle."}
   ],
   "widths": [
     {
@@ -624,6 +626,11 @@
       "station": "Midsommarkransen",
       "width": 5.5,
       "why": "Midsommarkransen's side platforms are 5.5 m wide, from the edge to the wall of the rock core between the halls (OpenStreetMap's platform outlines, mapped indoors with the escalators, the lift and the passage through the core)."
+    },
+    {
+      "station": "Aspudden",
+      "width": 5.7,
+      "why": "Aspudden's side platforms are about 5.7 m wide from the edge to the wall of the rock core between the halls (photographs, 2005–2024, against the trains and the cream tiles along the edge; OpenStreetMap's outlines take in more of each hall)."
     },
     {
       "station": "Liljeholmen",
