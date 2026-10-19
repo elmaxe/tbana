@@ -384,7 +384,11 @@ export type Finish =
   | 'ribbedBoards'  // dark brown boards set on edge, a fin every 10 cm (the fence along Axelsberg's north wall)
   | 'cobbles'       // rounded river cobbles in greys and browns
   | 'axelsbergRamp' // a brown non-slip coating, flecked, a ramp's floor
-  | 'axelsbergFloor'; // floor tiles, 20 cm, beige, peach and ochre at random
+  | 'axelsbergFloor' // floor tiles, 20 cm, beige, peach and ochre at random
+  | 'malarhojdenBrick' // brick, 25 cm, dark browns and red-browns with orange-reds and ochres, a running bond (Mälarhöjden's)
+  | 'uprightBoards'  // concrete cast against upright boards, 10 cm, weathered darker down from the top
+  | 'malarhojdenHall' // glazed tiles on end, 5 by 20 cm, browns and tan, to 1.8 m; uprightBoards above (Mälarhöjden's ticket hall)
+  | 'malarhojdenFront'; // the middle of Mälarhöjden's front: uprightBoards, a shop window, the doors under the blue name band, a newsagent's window
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -7944,6 +7948,77 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     // chain-link on the deck's parapet over the tracks' east mouths
     fences: [
       { points: [[103.65, -14], [103.65, 14]], h: [4.3, 5.8] },
+    ],
+  },
+  // Mälarhöjden (16 May 1965), in rock 10–34 m under the hill Mälarhöjdens kyrka stands on: two
+  // platform halls, one for each track, the platforms within either side of a core of rock, joined
+  // through it by a passage about 62 m from their south-west end and round its north-east end (the
+  // halls are src/hall-styles.ts's VAULT_STYLES; Albert Guillaumes's drawing, 2024; OpenStreetMap's
+  // indoor mapping). From the platforms' north-east ends corridors lead to a passage across, and
+  // from its middle a passage runs on north-east to three escalators and an inclined lift, which
+  // climb 10 m to the ticket hall (OpenStreetMap has the escalators' tops and the validator; their
+  // rise is from the street's height, Lantmäteriet's laser scan, and the platforms', 24.6 m). From
+  // photographs (2006–2020, Wikimedia Commons):
+  //
+  // The passages and the escalators' shaft are lined with the platforms' red-brown brick under
+  // white ceilings, their floors clinker in reds, browns and greys. The ticket hall's walls are
+  // glazed tiles on end in browns to 1.8 m and concrete cast against upright boards above, its
+  // ceiling the same concrete, the gates across it. Its doors are in a long, low front at the foot
+  // of the church's hill (OpenStreetMap's outline; the laser scan has its planted roof 5.1 m over
+  // the square, ending about 17 m south of the doors): concrete cast against upright boards; from
+  // the south two service doors of white perforated sheet, louvred vents, a fin, a shop window in
+  // bronze frames, the doors in three bays between narrow piers under SL's dark blue box with the
+  // name and the departure display, and the newsagent's window; over it all a heavy parapet of
+  // board-marked concrete, its underside curving out from the wall. On the square in front, the T on
+  // its pole of blue and white bands. Not drawn: the sculpture "Fot" on the square (OpenStreetMap
+  // names Hertha Hillfon; no photograph found), the newsagent's signs, the post boxes and the
+  // bicycle racks; the parapet's rounded south end is square here, its curve in steps.
+  'Mälarhöjden': {
+    buildings: ['w570277349'],
+    rooms: [
+      { name: 'passage across the core, northern opening', s: [-12.1, -8.9], u: [-4.94, -4.32], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage across the core, southern opening', s: [-12.1, -8.9], u: [4.32, 4.94], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage across the core', s: [-12.1, -8.9], u: [-4.32, 4.32], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: "northern platform's end", s: [70.9, 74.32], u: [-9.5, -6.4], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: "southern platform's end", s: [70.9, 74.32], u: [6.4, 9.5], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passages round the end', s: [74.3, 112.7], u: [-9.5, 9.5], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'escalators', s: [112, 131], u: [-3.2, 3.8], h: [-1, 11], walls: 'malarhojdenBrick', stairs: 'malarhojdenBrick', ceiling: 'whiteRender' },
+      { name: 'ticket hall', s: [129.5, 161.2], u: [-5, 8], h: [9.8, 10.5], walls: 'malarhojdenHall', floor: 'redClinker', ceiling: 'boardConcrete' },
+      { name: 'doorstep', s: [161.2, 164], u: [0, 4], h: [9.8, 10.5], walls: null, floor: null },
+    ],
+    blocks: [
+      // the front (OpenStreetMap's outline, ending where the laser scan's roof does), its floor at
+      // the square; the doors' side in the middle, from its south end
+      { name: 'front, middle', plan: [[158.84, 12.95], [160.56, -1.35], [151.93, -1.35], [150.58, 12.95]], h: [9.5, 15.0], from: 10.12, lowBack: 15.6,
+        walls: 'uprightBoards', sides: ['malarhojdenFront', null, undefined, null], band: { walls: 'uprightBoards', from: 13.52 },
+        roof: 0.3, roofColor: 0x4b5434, ground: true },
+      { name: 'front, north', plan: [[160.56, -1.35], [160.41, -13.65], [153.1, -13.65], [151.93, -1.35]], h: [9.5, 15.0], from: 10.12, lowBack: 15.6,
+        walls: 'uprightBoards', sides: [undefined, undefined, undefined, null], roof: 0.3, roofColor: 0x4b5434, ground: true },
+      { name: 'front, south', plan: [[157.6, 17.0], [158.84, 12.95], [150.58, 12.95], [150.2, 17.0]], h: [9.5, 15.0], from: 10.12, lowBack: 15.6,
+        walls: 'uprightBoards', sides: [undefined, null, undefined, undefined], roof: 0.3, roofColor: 0x4b5434, ground: true },
+      // the cove under the parapet, in two steps out from the wall, and the parapet, 1.5 m deep
+      // and 1 m out from the wall
+      { name: "cove, first step, middle", plan: [[159.18, 13.02], [160.91, -1.33], [160.26, -1.37], [158.55, 12.89]], h: [13.35, 13.65], from: 13.35,
+        walls: 'boardConcrete', sides: [undefined, null, null, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "cove, first step, north", plan: [[160.91, -1.33], [160.76, -13.65], [160.11, -13.65], [160.26, -1.37]], h: [13.35, 13.65], from: 13.35,
+        walls: 'boardConcrete', sides: [undefined, undefined, null, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "cove, first step, south", plan: [[157.93, 17.1], [159.18, 13.02], [158.55, 12.89], [157.31, 16.91]], h: [13.35, 13.65], from: 13.35,
+        walls: 'boardConcrete', sides: [undefined, null, null, undefined], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "cove, second step, middle", plan: [[159.53, 13.1], [161.26, -1.31], [160.26, -1.37], [158.55, 12.89]], h: [13.55, 13.85], from: 13.55,
+        walls: 'boardConcrete', sides: [undefined, null, null, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "cove, second step, north", plan: [[161.26, -1.31], [161.11, -13.66], [160.11, -13.65], [160.26, -1.37]], h: [13.55, 13.85], from: 13.55,
+        walls: 'boardConcrete', sides: [undefined, undefined, null, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "cove, second step, south", plan: [[158.27, 17.2], [159.53, 13.1], [158.55, 12.89], [157.31, 16.91]], h: [13.55, 13.85], from: 13.55,
+        walls: 'boardConcrete', sides: [undefined, null, null, undefined], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "parapet, middle", plan: [[159.82, 13.16], [161.56, -1.3], [159.96, -1.38], [158.25, 12.83]], h: [13.75, 15.25], from: 13.75,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "parapet, north", plan: [[161.56, -1.3], [161.41, -13.66], [159.81, -13.64], [159.96, -1.38]], h: [13.75, 15.25], from: 13.75,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+      { name: "parapet, south", plan: [[158.56, 17.29], [159.82, 13.16], [158.25, 12.83], [157.03, 16.82]], h: [13.75, 15.25], from: 13.75,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], floor: 'boardConcrete', roof: 0.05, roofColor: 0x8b8984 },
+    ],
+    art: [
+      { kind: 'roundel', s: 164.0, u: 9.5, h: 13.6, size: 0.75, foot: 10.15, striped: true },
     ],
   },
 };

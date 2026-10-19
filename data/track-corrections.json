@@ -387,9 +387,11 @@
     {
       "station": "Mälarhöjden",
       "reach": 30,
-      "why": "OSM maps Mälarhöjden's platforms as one area 182 m by 20 m between its tracks, as if it were an island, but the station has two halls, one for each track, the tracks on the outside and a side platform within each, either side of a core of rock (Albert Guillaumes's drawing, 2024; photographs, 2006–2020, each hall's vault over one platform and one track, a brick wall behind the platform and the enamelled art across the track). Each track gets a side platform of its own, facing the station's node (see `straight`, which sets them in their halls).",
+      "why": "OSM maps Mälarhöjden's platforms as one area 182 m by 20 m between its tracks, as if it were an island, but the station has two halls, one for each track, the tracks on the outside and a side platform within each, either side of a core of rock (Albert Guillaumes's drawing, 2024; photographs, 2006–2020, each hall's vault over one platform and one track, a brick wall behind the platform and the enamelled art across the track). Each track gets a side platform of its own, facing the middle between them (see `straight`, which sets them in their halls), 145 m long (the length of Margareta Carlstedt's enamel paintings along the track walls, sv.wikipedia), its north-east end at the area's, where the escalators come down.",
       "replace": true,
-      "sides": true
+      "sides": true,
+      "at": [147416.5, 6576096.2],
+      "length": 145
     },
     {
       "station": "Gubbängen",

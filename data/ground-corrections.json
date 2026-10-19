@@ -203,6 +203,11 @@
       "outline": [[-11436.9, -4075.5], [-11424.9, -4074.3], [-11423.3, -4080.9], [-11422.5, -4083.4], [-11434.4, -4084.6], [-11434.4, -4080.0], [-11436.6, -4078.3]],
       "ground": 25.2,
       "why": "The forecourt in front of Johannelund's ticket hall, a notch in the railway's bank north of the platforms' east end, from the hall's doors 9 m out. Lantmäteriet's laser scan (2021) has it level at 25.0–25.3 m from the doors out to where it falls away northwards, the bank either side at 27 m; the elevation model's 5 m grid smooths the bank into it, up to 25.7–26.2 m at the doors, so the hall (its floor at 25.0 m) stood in a pit."
+    },
+    {
+      "outline": [[-5832.4, 3396.0], [-5826.7, 3391.6], [-5806.5, 3417.7], [-5814.4, 3423.8]],
+      "ground": 34.75,
+      "why": "The square in front of Mälarhöjden's station, from its front at the foot of the church's hill 7 m out, along the whole front. Lantmäteriet's laser scan (2021) has it level at 34.6–34.8 m right up to the front; the elevation model's 5 m grid smooths the hill behind into it, up to 36.0–36.6 m at the doors, which would bury their foot (the hall's floor, behind them, is at 34.7 m)."
     }
   ],
   "fill": [

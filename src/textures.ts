@@ -1879,7 +1879,9 @@ export function karlaplanWall(height: number, panelsFrom: number, nameAt: number
 export const GARDET_REPEAT = 20.8;
 // With `thelander`, the tiles over a black plinth and under a white ledge at the top, and in place
 // of the pictures, P G Thelander's enamelled reliefs (1987), `art[3]` apart (`thelanderRelief`).
-export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number }; thelander?: boolean }
+// With `ebb`, Margareta Carlstedt's painted enamel plates in rows `row` high (`ebbOchFlod`), and no
+// pictures.
+export interface GardetTrackWall { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number }; thelander?: boolean; ebb?: boolean }
 function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   const PX = 96, W = Math.round(GARDET_REPEAT * PX), H = Math.round((top - floor) * PX);
   const [c, x] = canvas(W, H);
@@ -1894,6 +1896,14 @@ function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   if (f.bricks) {
     hellebergWall(x, W, H, y, f.panelsFrom, top, f.bricks.name, PX, r);
     x.fillStyle = dust; x.fillRect(0, y(f.panelsFrom), W, H - y(f.panelsFrom));
+    return c;
+  }
+  if (f.ebb) {
+    ebbOchFlod(x, 0, W, 0, y(f.panelsFrom), f.row, PX, r);
+    // (the grime of the trains on the lowest row)
+    const grime = x.createLinearGradient(0, y(f.panelsFrom + 0.5), 0, y(f.panelsFrom));
+    grime.addColorStop(0, 'rgba(60,56,50,0)'); grime.addColorStop(1, 'rgba(60,56,50,0.3)');
+    x.fillStyle = grime; x.fillRect(0, y(f.panelsFrom + 0.5), W, 0.5 * PX);
     return c;
   }
   if (f.kransen) {
@@ -1973,6 +1983,120 @@ function gardetWallCanvas(floor: number, top: number, f: GardetTrackWall) {
   }
   return c;
 }
+// Margareta Carlstedt's Ebb och flod on Mälarhöjden's track walls (1965): white enamelled steel
+// plates, tall and narrow, in three rows over the dark plinth, painted freely across them like
+// watercolour in drifting, mostly level bands; in places soft bands of ochre yellow, warm grey,
+// grey-green, pale blue, turquoise and cobalt like a beach, the sea and the sky, elsewhere brush
+// strokes and blots of green, yellow-green, cobalt and navy on the white, a thin wavering ochre line
+// and touches of orange (sv.wikipedia; photographs, 2006–2020). Painted here in her manner, not
+// copied: the first half of a repeat in the bands, the second in the strokes. Across the rectangle
+// from `x0` (`w` wide) between `top` and `bottom` (canvas px, `PX` to the metre).
+function ebbOchFlod(x: CanvasRenderingContext2D, x0: number, w: number, top: number, bottom: number, row: number, PX: number, r: () => number) {
+  const h = bottom - top, rows = Math.max(1, Math.round(h / (row * PX))), rh = h / rows;
+  const pw = 0.6 * PX, cols = Math.max(1, Math.round(w / pw)), cw = w / cols;
+  // the plates, each a shade off its neighbours
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const v = 238 + Math.floor(r() * 9);
+    x.fillStyle = `rgb(${v},${v},${v - 3})`; x.fillRect(x0 + i * cw, top + j * rh, cw, rh);
+  }
+  x.save(); x.beginPath(); x.rect(x0, top, w, h); x.clip();
+  // a smooth wavering of t (0 to 1 along a mark): a few slow sines at random phases
+  const wobble = (n: number) => {
+    const ph = Array.from({ length: n }, () => r() * 6.3), fr = Array.from({ length: n }, (_, k) => (k + 1) * (0.8 + r() * 0.8));
+    return (t: number) => ph.reduce((s, p, k) => s + Math.sin(p + fr[k] * t * 6.3) / (k + 1), 0) / 1.6;
+  };
+  // a wash: a soft band from a to b along the wall (px), its middle at y (0 the top, 1 the foot),
+  // `thick` high (as a share of the height), its edges uneven and darker where the paint pooled
+  const band = (a: number, b: number, y: number, thick: number, col: [number, number, number], alpha: number, wave = 0.025) => {
+    const mid = wobble(3), up = wobble(4), down = wobble(4), L = b - a;
+    const edge = (sign: number, t: number) => {
+      const taper = Math.min(1, Math.min(t, 1 - t) * 7);
+      return top + (y + wave * mid(t * L / (4 * PX)) + sign * (thick / 2) * taper * (1 + 0.35 * (sign < 0 ? up : down)(t * L / (2.5 * PX)))) * h;
+    };
+    const path = () => {
+      x.beginPath();
+      for (let px = a; px <= b; px += 8) x.lineTo(px, edge(-1, (px - a) / L));
+      for (let px = b; px >= a; px -= 8) x.lineTo(px, edge(1, (px - a) / L));
+      x.closePath();
+    };
+    path(); x.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha * 0.7})`; x.fill();
+    x.save(); path(); x.clip();
+    // (a second, patchier wash over the first)
+    for (let k = 0; k < L / (0.5 * PX); k++) {
+      x.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha * 0.25 * r()})`;
+      x.beginPath(); x.ellipse(a + r() * L, top + (y + (r() - 0.5) * thick) * h, (0.4 + r() * 0.8) * PX, thick * h * (0.2 + 0.3 * r()), 0, 0, Math.PI * 2); x.fill();
+    }
+    x.restore();
+    path(); x.strokeStyle = `rgba(${col[0] * 0.8},${col[1] * 0.8},${col[2] * 0.8},${alpha * 0.35})`; x.lineWidth = 2; x.stroke();
+  };
+  // a blot: a soft, ragged round of paint
+  const blot = (cx: number, y: number, size: number, col: [number, number, number], alpha: number) => {
+    const rad = wobble(5), sx = 1 + r() * 0.8;
+    x.beginPath();
+    for (let k = 0; k <= 40; k++) { const a = (k / 40) * Math.PI * 2, rr = size * (0.8 + 0.3 * rad(k / 40)); x.lineTo(cx + Math.cos(a) * rr * sx, top + y * h + Math.sin(a) * rr * 0.6); }
+    x.closePath();
+    x.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha})`; x.fill();
+    x.strokeStyle = `rgba(${col[0] * 0.75},${col[1] * 0.75},${col[2] * 0.75},${alpha * 0.5})`; x.lineWidth = 1.5; x.stroke();
+  };
+  // a stroke of the brush, level or a little tilted: its bristles drawn side by side
+  const stroke = (cx: number, y: number, len: number, col: [number, number, number], alpha: number) => {
+    const wide = len * (0.16 + 0.16 * r()), tilt = (r() - 0.5) * 0.25, bend = (r() - 0.5) * len * 0.15, cy = top + y * h;
+    x.lineCap = 'round';
+    for (let k = 0; k < 6; k++) {
+      const o = (k / 5 - 0.5) * wide, l0 = len * (0.35 + 0.15 * r()), l1 = len * (0.35 + 0.15 * r());
+      x.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${alpha * (0.35 + 0.3 * r())})`; x.lineWidth = wide / 2.5;
+      x.beginPath(); x.moveTo(cx - l0, cy + o - l0 * tilt); x.quadraticCurveTo(cx, cy + o + bend, cx + l1, cy + o + l1 * tilt); x.stroke();
+    }
+  };
+  const ochre: [number, number, number] = [226, 182, 58], grey: [number, number, number] = [150, 156, 150], greyGreen: [number, number, number] = [138, 164, 156];
+  const pale: [number, number, number] = [160, 196, 220], teal: [number, number, number] = [84, 166, 190], cobalt: [number, number, number] = [44, 92, 178];
+  const green: [number, number, number] = [122, 172, 70], yellowGreen: [number, number, number] = [170, 194, 86], navy: [number, number, number] = [28, 40, 108], orange: [number, number, number] = [214, 118, 52];
+  const half = x0 + w / 2;
+  // the first half: the shore, the sea and the sky in bands
+  band(x0 - 40, half + 60, 0.1, 0.16, ochre, 0.75);
+  band(x0 + w * 0.05, half - 30, 0.24, 0.14, grey, 0.55);
+  band(x0 - 20, half + 20, 0.36, 0.18, greyGreen, 0.5);
+  band(x0 + w * 0.12, half - w * 0.08, 0.47, 0.08, ochre, 0.7, 0.06);
+  band(x0 - 30, half + 40, 0.6, 0.18, pale, 0.6);
+  band(x0 + w * 0.08, half - 10, 0.71, 0.1, teal, 0.6);
+  band(x0 - 40, half + 30, 0.83, 0.16, cobalt, 0.6, 0.03);
+  band(x0 + w * 0.2, half - w * 0.05, 0.93, 0.08, pale, 0.5);
+  for (let k = 0; k < 7; k++) blot(x0 + w * (0.04 + 0.42 * r()), 0.25 + 0.6 * r(), 0.35 * PX * (0.6 + r()), [cobalt, teal, ochre][k % 3], 0.35);
+  // (a thin wavering line of ochre along the foot of the bands)
+  x.strokeStyle = 'rgba(206,150,40,0.8)'; x.lineWidth = 0.03 * PX;
+  x.beginPath();
+  for (let px = x0 + w * 0.1; px < half - w * 0.05; px += 5) x.lineTo(px, top + (0.42 + 0.03 * Math.sin(px / (0.7 * PX)) + 0.015 * Math.sin(px / (0.23 * PX))) * h);
+  x.stroke();
+  // the second half: strokes and blots of greens and blues on the white
+  band(half + 20, x0 + w + 40, 0.2, 0.16, yellowGreen, 0.55, 0.05);
+  band(half + w * 0.06, x0 + w * 0.95, 0.52, 0.16, green, 0.5, 0.05);
+  band(half + w * 0.15, x0 + w * 0.8, 0.84, 0.1, teal, 0.35, 0.03);
+  for (let k = 0; k < 46; k++) {
+    const cx = half + w * 0.5 * r(), y = 0.08 + 0.84 * r(), pick = r();
+    const col = pick < 0.3 ? cobalt : pick < 0.45 ? navy : pick < 0.7 ? green : pick < 0.88 ? yellowGreen : teal;
+    if (r() < 0.65) stroke(cx, y, 0.8 * PX * (0.6 + r()), col, 0.9);
+    else blot(cx, y, 0.22 * PX * (0.6 + r()), col, 0.55);
+  }
+  for (let k = 0; k < 6; k++) stroke(half + w * 0.5 * r(), 0.75 + 0.2 * r(), 0.3 * PX, orange, 0.8);
+  x.strokeStyle = 'rgba(206,150,40,0.75)'; x.lineWidth = 0.025 * PX;
+  x.beginPath();
+  for (let px = half + w * 0.05; px < x0 + w * 0.97; px += 5) x.lineTo(px, top + (0.68 + 0.05 * Math.sin(px / (0.9 * PX)) + 0.02 * Math.sin(px / (0.31 * PX))) * h);
+  x.stroke();
+  x.restore();
+  // the joints between the plates, and the gloss of the enamel on each
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const px = x0 + i * cw, py = top + j * rh;
+    const g = x.createLinearGradient(0, py, 0, py + rh);
+    g.addColorStop(0, 'rgba(255,255,255,0.32)'); g.addColorStop(0.35, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(110,110,105,0.06)');
+    x.fillStyle = g; x.fillRect(px, py, cw, rh);
+  }
+  x.fillStyle = 'rgba(60,62,64,0.45)';
+  for (let i = 0; i <= cols; i++) x.fillRect(x0 + i * cw - 0.75, top, 1.5, h);
+  for (let j = 0; j <= rows; j++) x.fillRect(x0, top + j * rh - 0.75, w, 1.5);
+  // (the white trim along the top)
+  x.fillStyle = '#ecece8'; x.fillRect(x0, top, w, 0.05 * PX);
+}
+
 // P G Thelander's reliefs on Aspudden's track walls (1987): flat shapes of enamelled sheet in
 // glossy yellow, ultramarine, red and green, cut out and fixed a little proud of the tiles, a few
 // metres apart along both walls (sv.wikipedia; photographs, 2014–2024). Shapes of our own in his
@@ -2117,8 +2241,9 @@ export function gardetTrackWall(floor: number, top: number, f: GardetTrackWall, 
 // on end (`whiteBricks`), above the band as well as below it; with `kransen`, Midsommarkransen's
 // narrow cream tiles on end (`kransenTiles`) down to a dark skirting, and the band in glazed tiles
 // 0.4 m wide; with `aspudden`, Aspudden's upright strips of teal and pale green tiles
-// (`aspuddenStrips`) down to a dark skirting.
-export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; aspudden?: boolean; wall?: string }) {
+// (`aspuddenStrips`) down to a dark skirting; with `brick`, Mälarhöjden's brick (`malarBricks`) all
+// the way down to the platform.
+export function gardetBackWall(floor: number, top: number, platform: number, f: { panel: number; plinth: number; band: { from: number; to: number; color: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; aspudden?: boolean; brick?: boolean; wall?: string }) {
   const PX = 160, W = Math.round(2 * f.panel * PX), H = Math.round((top - floor) * PX);
   const [src, x] = canvas(W, H);
   const y = (h: number) => H - (h - floor) * PX;
@@ -2129,6 +2254,7 @@ export function gardetBackWall(floor: number, top: number, platform: number, f: 
   if (f.rods) ceramicRods(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.kransen) kransenTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.aspudden) aspuddenStrips(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
+  else if (f.brick) malarBricks(x, 0, y(f.band.from), W, y(platform) - y(f.band.from), PX, r);
   else if (f.wine) wineTiles(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else if (f.upright) whiteBricks(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), PX, r);
   else stripedPanels(x, 0, y(f.band.from), W, y(f.plinth) - y(f.band.from), f.panel * PX, r);
@@ -2252,6 +2378,31 @@ function kransenTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: nu
       x.fillStyle = `rgb(${214 + v},${206 + v + o * 0.3},${170 + v - o})`; x.fillRect(x0 + i * a + 0.6, yy - b + 0.6, a - 1.2, b - 1.2);
       // (the glaze catching the light down each tile)
       x.fillStyle = 'rgba(255,255,248,0.3)'; x.fillRect(x0 + i * a + a * 0.25, yy - b + 1.5, a * 0.22, b - 3);
+    }
+  }
+  x.restore();
+}
+
+// The brick of the walls behind Mälarhöjden's platforms (1965), across the rectangle (`PX` to the
+// metre, its courses from the foot up): bricks 25 by 6.5 cm in a running bond, in grey-brown
+// joints, mostly dark browns and red-browns, with orange-reds, ochres and now and then a buff one,
+// each a little uneven, its face rough (photographs, 2006–2020)
+function malarBricks(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, PX: number, r: () => number) {
+  x.fillStyle = '#5e554d'; x.fillRect(x0, y0, w, h);
+  const n = Math.max(1, Math.round(w / (0.26 * PX))), bw = w / n, course = 0.075 * PX, j = 0.01 * PX;
+  const cols = [[92, 56, 40], [104, 60, 42], [78, 48, 36], [118, 66, 44], [140, 78, 48], [96, 64, 46], [66, 44, 36], [150, 98, 56], [124, 84, 52], [176, 134, 84]];
+  const weights = [16, 14, 12, 10, 6, 10, 8, 5, 6, 2], total = weights.reduce((a, b) => a + b, 0);
+  const pick = () => { let t = r() * total; for (let k = 0; k < cols.length; k++) if ((t -= weights[k]) < 0) return cols[k]; return cols[0]; };
+  x.save(); x.beginPath(); x.rect(x0, y0, w, h); x.clip();
+  for (let k = 0, yy = y0 + h; yy > y0 - course; k++, yy -= course) {
+    const shift = (k % 2) * bw / 2;
+    for (let i = -1; i <= n; i++) {
+      const [cr, cg, cb] = pick(), v = Math.floor(r() * 18) - 9, px = x0 + i * bw + shift;
+      x.fillStyle = `rgb(${cr + v},${cg + v * 0.8},${cb + v * 0.6})`;
+      x.fillRect(px + j / 2, yy - course + j / 2, bw - j, course - j);
+      // (the face's roughness: a darker fleck or two and a lighter upper edge)
+      x.fillStyle = 'rgba(255,225,190,0.08)'; x.fillRect(px + j / 2, yy - course + j / 2, bw - j, (course - j) * 0.3);
+      for (let f = 0; f < 3; f++) { x.fillStyle = `rgba(30,18,12,${0.15 + 0.15 * r()})`; x.fillRect(px + j / 2 + r() * (bw - j - 3), yy - course + j / 2 + r() * (course - j - 2), 2 + r() * 4, 1.5); }
     }
   }
   x.restore();
@@ -5268,9 +5419,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   ornsbergTimber: [2.4, 3.75], ornsbergWindows: [3.0, 3.75], ornsbergFront: [18.53, 3.75],
   wesselClinker: [1.2, 0.96], wesselBricks: [1.2, 0.91], axelsbergTiles: [1.2, 1.2], axelsbergFront: [18.0, 4.8],
   glulam: [1.2, 1.2], ribbedBoards: [1.2, 1.2], cobbles: [2.4, 2.4], axelsbergRamp: [1.2, 1.2], axelsbergFloor: [1.2, 1.2],
+  malarhojdenBrick: [2.6, 2.4], uprightBoards: [1.2, 2.4], malarhojdenHall: [1.2, 4.8], malarhojdenFront: [14.4, 3.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -7918,6 +8070,110 @@ export function finish(name: Finish) {
       x.fillStyle = '#7c5c44'; x.fillRect(0, 0, W, H);
       for (let k = 0; k < 4000; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '60,42,30' : '160,128,98'},0.35)`; x.fillRect(r() * W, r() * H, 2, 2); }
       break;
+    case 'malarhojdenBrick':
+      // the brick of the walls behind Mälarhöjden's platforms, round its passages and up its
+      // escalators' shaft (malarBricks)
+      malarBricks(x, 0, 0, W, H, PX, r);
+      break;
+    case 'uprightBoards':
+    case 'malarhojdenHall':
+    case 'malarhojdenFront': {
+      // concrete cast against upright boards, 10 cm wide, each a shade off the next, weathered
+      // darker in streaks down from the top (Mälarhöjden's front and its ticket hall, 1965:
+      // photographs, 2013–2017). `malarhojdenHall`, the ticket hall's walls: glazed tiles on end,
+      // 5 by 20 cm, in browns, tan, dark brown and an orange now and then, staggered, to 1.8 m, and
+      // the concrete above. `malarhojdenFront`, the front's middle from the south, to the cove
+      // under its parapet: two service doors of white perforated sheet and two louvred vents; a
+      // concrete fin; a shop window in bronze frames, its upper panes frosted; then the doors, three
+      // bays between narrow piers, glass in steel frames with SL's blue band across them and glazed
+      // transoms over them, the hall lit behind them; over them the dark blue box with yellow edges,
+      // a T and the name, and the orange departure display under it; then the window of the
+      // newsagent's
+      const boards = (a: number, b: number, h0: number, h1: number) => {
+        for (let i = Math.floor((a * PX) / (0.1 * PX)); i * 0.1 < b; i++) {
+          const v = 150 + Math.floor(r() * 12), x0 = Math.max(a, i * 0.1), x1 = Math.min(b, (i + 1) * 0.1);
+          x.fillStyle = `rgb(${v},${v - 1},${v - 4})`; x.fillRect(x0 * PX, Y(h1), (x1 - x0) * PX, (h1 - h0) * PX);
+          x.fillStyle = 'rgba(70,68,64,0.2)'; x.fillRect(x0 * PX, Y(h1), 1, (h1 - h0) * PX);
+        }
+        for (let k = 0; k < ((b - a) * (h1 - h0)) / 0.4; k++) { x.fillStyle = `rgba(70,66,60,${0.03 + r() * 0.05})`; x.fillRect((a + r() * (b - a)) * PX, Y(h0 + r() * (h1 - h0)), 3 + r() * 10, 20 + r() * 120); }
+        // (the weathering, darker streaks running down from the top)
+        for (let k = 0; k < (b - a) * 1.5; k++) {
+          const sx = a + r() * (b - a), len = (0.3 + r() * 1.2) * PX, g = x.createLinearGradient(0, Y(h1), 0, Y(h1) + len);
+          g.addColorStop(0, 'rgba(60,58,52,0.22)'); g.addColorStop(1, 'rgba(60,58,52,0)');
+          x.fillStyle = g; x.fillRect(sx * PX, Y(h1), (0.05 + r() * 0.2) * PX, len);
+        }
+      };
+      if (name === 'uprightBoards') { boards(0, w, 0, h); break; }
+      if (name === 'malarhojdenHall') {
+        boards(0, w, 1.8, h);
+        x.fillStyle = '#6a5a4c'; x.fillRect(0, Y(1.8), W, 1.8 * PX);
+        const tw = 0.05 * PX, th = 0.2 * PX, n = Math.round(W / tw);
+        const set = [[116, 74, 48], [132, 88, 56], [92, 60, 42], [150, 108, 70], [74, 50, 38], [168, 96, 48], [124, 82, 60]];
+        for (let i = 0; i < n; i++) for (let yy = H + ((i % 2) * th) / 2; yy > Y(1.8); yy -= th) {
+          const [cr, cg, cb] = set[Math.floor(r() * (r() < 0.9 ? 5 : set.length))], v = Math.floor(r() * 12) - 6, y0 = Math.max(Y(1.8), yy - th);
+          x.fillStyle = `rgb(${cr + v},${cg + v},${cb + v})`; x.fillRect(i * tw + 0.8, y0 + 0.8, tw - 1.6, yy - y0 - 1.6);
+          x.fillStyle = 'rgba(255,235,210,0.14)'; x.fillRect(i * tw + tw * 0.2, y0 + 2, tw * 0.25, yy - y0 - 4);
+        }
+        x.fillStyle = '#4a4440'; x.fillRect(0, Y(1.82), W, 0.04 * PX);
+        break;
+      }
+      boards(0, w, 0, h);
+      const M = (m: number) => m * PX, steel = '#a7abae', bronze = '#5e4a36';
+      // (a pane: glass, the hall lit behind it, or frosted)
+      const pane = (a: number, b: number, h0: number, h1: number, kind: 'lit' | 'frosted' | 'shop') => {
+        const g = x.createLinearGradient(0, Y(h1), 0, Y(h0));
+        if (kind === 'lit') { g.addColorStop(0, '#d6cbb4'); g.addColorStop(0.6, '#a69478'); g.addColorStop(1, '#7c6e5e'); }
+        else if (kind === 'frosted') { g.addColorStop(0, '#e2e3df'); g.addColorStop(1, '#c9cbc7'); }
+        else { g.addColorStop(0, '#b9b2a2'); g.addColorStop(0.5, '#8d8576'); g.addColorStop(1, '#5a554c'); }
+        x.fillStyle = g; x.fillRect(M(a), Y(h1), M(b - a), (h1 - h0) * PX);
+        if (kind !== 'frosted') { x.fillStyle = 'rgba(255,255,255,0.14)'; x.beginPath(); x.moveTo(M(a + (b - a) * 0.1), Y(h0)); x.lineTo(M(a + (b - a) * 0.45), Y(h1)); x.lineTo(M(a + (b - a) * 0.6), Y(h1)); x.lineTo(M(a + (b - a) * 0.25), Y(h0)); x.fill(); }
+      };
+      // two service doors of white perforated sheet, 0.25 to 2.6 m, and two louvred vents high up
+      for (const [a, b] of [[0.25, 1.35], [1.5, 2.6]]) {
+        x.fillStyle = '#8d8e8a'; x.fillRect(M(a - 0.04), Y(2.24), M(b - a + 0.08), 2.24 * PX);
+        x.fillStyle = '#e6e7e3'; x.fillRect(M(a), Y(2.2), M(b - a), 2.2 * PX);
+        x.fillStyle = 'rgba(120,122,120,0.35)';
+        for (let px = M(a) + 4; px < M(b) - 2; px += 6) for (let py = Y(2.2) + 4; py < Y(0) - 2; py += 6) x.fillRect(px, py, 2, 2);
+        x.fillStyle = '#e8c21e'; x.beginPath(); x.moveTo(M(a + 0.45), Y(1.55)); x.lineTo(M(a + 0.65), Y(1.55)); x.lineTo(M(a + 0.55), Y(1.72)); x.fill();
+      }
+      for (const a of [3.3, 3.85]) {
+        x.fillStyle = '#5e605f'; x.fillRect(M(a), Y(2.45), M(0.36), 0.7 * PX);
+        x.fillStyle = '#2e302f';
+        for (let k = 0; k < 9; k++) x.fillRect(M(a + 0.02), Y(2.42 - k * 0.075), M(0.32), 0.035 * PX);
+      }
+      // (the edges of the concrete fin standing out of the wall between them and the shop window)
+      x.fillStyle = 'rgba(40,38,34,0.35)'; x.fillRect(M(4.8), 0, M(0.05), H); x.fillRect(M(5.55), 0, M(0.05), H);
+      x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(M(4.85), 0, M(0.7), H);
+      // the shop window, 5.8 to 7.8 m: two panes in bronze frames, their upper panes frosted
+      x.fillStyle = bronze; x.fillRect(M(5.8), Y(2.75), M(2.0), 2.75 * PX);
+      for (let k = 0; k < 2; k++) { const a = 5.86 + k * 0.97, b = a + 0.91; pane(a, b, 0.45, 2.0, 'shop'); pane(a, b, 2.06, 2.69, 'frosted'); }
+      // the doors, three bays from 8.2 to 11.8 m between four piers 0.3 m wide: glass in steel
+      // frames, SL's blue band across them with its disc, glazed transoms over them
+      for (let k = 0; k < 4; k++) boards(8.2 + k * 1.2 - 0.15, 8.2 + k * 1.2 + 0.15, 0, 2.45);
+      for (let k = 0; k < 3; k++) {
+        const a = 8.35 + k * 1.2, b = a + 0.9;
+        x.fillStyle = steel; x.fillRect(M(a), Y(2.45), M(0.9), 2.45 * PX);
+        pane(a + 0.06, b - 0.06, 0.25, 1.98, 'lit'); pane(a + 0.06, b - 0.06, 2.06, 2.4, 'lit');
+        x.fillStyle = '#7d8286'; x.fillRect(M(a), Y(0.25), M(0.9), 0.25 * PX);
+        x.fillStyle = '#25358a'; x.fillRect(M(a + 0.06), Y(1.12), M(0.78), 0.16 * PX);
+        x.fillStyle = '#f2f2f0'; x.beginPath(); x.arc(M((a + b) / 2), Y(1.04), 0.05 * PX, 0, Math.PI * 2); x.fill();
+      }
+      // over them, standing out of the wall, the dark blue box with yellow edges: the T and the
+      // name, and under it the departure display, orange in black windows
+      x.fillStyle = '#1f3376'; x.fillRect(M(7.9), Y(3.35), M(4.2), 0.9 * PX);
+      x.fillStyle = '#e8c21e'; for (const y0 of [3.35, 2.9, 2.48]) x.fillRect(M(7.9), Y(y0), M(4.2), 0.03 * PX);
+      x.fillStyle = '#f4f4f2'; x.beginPath(); x.arc(M(8.7), Y(3.12), 0.14 * PX, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#1f3376'; x.font = `bold ${Math.round(0.2 * PX)}px Arial, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('T', M(8.7), Y(3.11));
+      x.fillStyle = '#f4f4f2'; x.font = `600 ${Math.round(0.24 * PX)}px "Helvetica Neue", Arial, sans-serif`; x.textAlign = 'left'; x.fillText('MÄLARHÖJDEN', M(9.0), Y(3.12));
+      x.fillStyle = '#141414'; x.fillRect(M(8.1), Y(2.82), M(1.85), 0.28 * PX); x.fillRect(M(10.05), Y(2.82), M(1.85), 0.28 * PX);
+      x.fillStyle = '#f08a1c'; x.font = `${Math.round(0.1 * PX)}px monospace`; x.textAlign = 'left';
+      x.fillText('13 Norsborg  5 min', M(8.18), Y(2.74)); x.fillText('13 Ropsten  3 min', M(10.13), Y(2.74));
+      x.fillText('13 Norsborg  15 min', M(8.18), Y(2.6)); x.fillText('13 Ropsten  13 min', M(10.13), Y(2.6));
+      // the newsagent's window, 12.4 to 14.4 m
+      x.fillStyle = steel; x.fillRect(M(12.4), Y(2.7), M(2.0), 2.7 * PX);
+      pane(12.46, 14.34, 0.7, 2.64, 'shop');
+      break;
+    }
     case 'axelsbergFloor': {
       // the ticket hall's floor: tiles, 20 cm, beige, peach and ochre at random, in dark joints
       // (photographs, 2019)
@@ -7937,7 +8193,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

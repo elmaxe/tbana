@@ -498,7 +498,8 @@ export interface VaultStyle {
 //   `band[0]` to `band[1]` with the name on it in white again and again, a thin red stripe at
 //   `red` and a dark one at `low` (Midsommarkransen's); with `thelander`, the `tiles` over a black
 //   plinth under a white ledge, and P G Thelander's enamelled reliefs in place of the pictures,
-//   from `art[0]` to `art[1]` high, about `art[3]` m apart (Aspudden's);
+//   from `art[0]` to `art[1]` high, about `art[3]` m apart (Aspudden's); with `ebb`, Margareta
+//   Carlstedt's painted enamel plates in rows `row` high, and no pictures (Mälarhöjden's);
 // - `backWall`: panels of dark concrete, `panel` wide, cast with fine diagonal grooves, on a pale
 //   plinth up to `plinth`; over them a band in `band.color` from `band.from` to `band.to`, which
 //   the name signs (the name in white on the band's colour) and the ways out (white plates, an
@@ -508,7 +509,8 @@ export interface VaultStyle {
 //   band; with `wine`, Zinkensdamm's narrow wine-red tiles in place of the panels, on a dark plinth;
 //   with `kransen`, Midsommarkransen's narrow cream tiles on end in place of the panels, down to a
 //   dark skirting, and the band of brown tiles; with `aspudden`, Aspudden's upright strips of teal
-//   and pale green tiles down to a dark skirting;
+//   and pale green tiles down to a dark skirting; with `brick`, Mälarhöjden's red-brown brick down
+//   to the platform;
 // - `vault`: the vault's colour;
 // - `paving`: the platform, paved as an open station's;
 // - `cases`: glass-fronted cases set into the wall behind the platform, in pairs `gap` apart, each
@@ -517,8 +519,8 @@ export interface VaultStyle {
 //   platform, each `length` long, about every `every` m; with `backs`, a pair of benches with
 //   backs, of wooden boards on steel legs, in their place.
 export interface VaultFinish {
-  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number }; thelander?: boolean };
-  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; aspudden?: boolean; wall?: string };
+  trackWall: { panelsFrom: number; row: number; strip: number; art: [number, number, number, number]; tiles?: { size: number; color: string }; bricks?: { name: string }; kransen?: { name: string; band: [number, number]; red: number; low: number }; thelander?: boolean; ebb?: boolean };
+  backWall: { panel: number; plinth: number; band: { from: number; to: number; color: string; sign?: string }; rods?: boolean; wine?: boolean; upright?: boolean; kransen?: boolean; aspudden?: boolean; brick?: boolean; wall?: string };
   exits: { name: string; x: number; z: number }[];
   vault: number;
   paving: Paving;
@@ -604,6 +606,19 @@ export interface VaultFinish {
 // grey-green and celadon, over a dark skirting, under a dark band carrying the name on a black
 // plate; benches with backs; the platform pale grey terrazzo, a band of cream tiles along the edge
 // and a dark strip with yellow studs inside it.
+//
+// Mälarhöjden (1965), in rock 10–34 m under the hill that Mälarhöjdens kyrka stands on
+// (sv.wikipedia), on the same plan: the platforms either side of a core of rock, joined round
+// its north-east end, where the escalators come down, and by a passage about 60 m from the
+// south-west end (Albert Guillaumes's drawing; OpenStreetMap's platforms).
+// Photographs (2006–2020, Wikimedia Commons): over each hall a smooth, shallow white vault with a
+// row of lamps along it over the platform's edge; the track walls Margareta Carlstedt's Ebb och
+// flod (1965), white enamelled plates in three rows over a dark plinth, painted freely across
+// them in bands and strokes of ochre, greys, greens and blues; the wall behind the platform red-
+// brown brick in mixed tones, under a band of dark grey sheet with lights in it, the name on a
+// dark grey plate; benches with backs, of wooden slats on steel frames; the platform red-brown
+// and grey-brown pavers in a running bond, a band of white tiles along the edge and a double
+// strip of steel inside it.
 // Heights against the trains (C20, 3.68 m) and people, so approximate.
 export const VAULT_STYLES: Record<string, VaultStyle> = {
   'Östermalmstorg': { spring: 4.3, risePerWidth: 0.16, signAt: 3.75, signEvery: 40 },
@@ -697,6 +712,21 @@ export const VAULT_STYLES: Record<string, VaultStyle> = {
         pattern: 'grid',
       },
       benches: { length: 2.4, every: 18, backs: true },
+    },
+  },
+  'Mälarhöjden': {
+    spring: 4.4, risePerWidth: 0.17, signAt: 4.15, signEvery: 36,
+    finish: {
+      trackWall: { panelsFrom: 1.25, row: 1.05, strip: 2.25, art: [0, 0, 0, 20.8], ebb: true },
+      backWall: { panel: 1.3, plinth: 1.0, band: { from: 3.85, to: 4.4, color: '#4a4c4e', sign: '#2f3133' }, brick: true, wall: '#4a4c4e' },
+      exits: [{ name: 'Slättgårdsvägen · Hägerstensvägen', x: -5821.1, z: 3410.1 }],
+      vault: 0xe8e8e4,
+      paving: {
+        edge: 1.2, edgeTile: [0.3, 0.3], tactile: [1.22, 1.5], studs: false, slabs: 0, paverSize: [0.2, 0.1], mix: 0.4,
+        colors: { edge: 0xe6e4dc, tactile: 0x8a8c8e, slab: 0x6e4a3c, pavers: 0x744636, paler: 0x5e4a42, face: 0x3e3c3a },
+        pattern: 'bond',
+      },
+      benches: { length: 2.4, every: 22, backs: true },
     },
   },
 };

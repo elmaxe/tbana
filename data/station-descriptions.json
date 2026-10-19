@@ -987,13 +987,32 @@
     },
     "Mälarhöjden": {
       "drawing": "malarhojden.png",
-      "note": "An island platform deep in the hill. Escalators climb from its north-east end, and a long passage runs out through the hillside to the exit at its foot.",
+      "note": "Two straight platform halls, one for each track, the tracks on the outside and the side platforms within, either side of a core of rock 8.7 m wide, joined round its north-east end and by a passage about 62 m from its south-west end (Albert Guillaumes's drawing). From each platform's north-east end a corridor leads on to a passage across, and from its middle a passage runs on north-east to three escalators and an inclined lift, which climb 10 m inside the hill under Mälarhöjdens kyrka to the ticket hall, the gates across it, and the doors in the low front at the hill's foot, onto the square at Slättgårdsvägen and Hägerstensvägen. Laid out from OpenStreetMap's indoor mapping (the corridors, the passage across at 85 m, the escalators' tops at 130 m, the validator at 138 m, the doors at 160 m), Lantmäteriet's laser scan (the street 10 m over the platform) and photographs of the station. OpenStreetMap's escalators are 38 m long, more than a climb of 10 m needs, so here they start from a level passage.",
       "routes": [
-        { "from": [50, 3], "width": 5, "go": [
-          {"escalators": 10, "toward": [150, 3], "lanes": "EES"},
-          {"walk": 6, "width": 7},
+        { "from": [-10.5, -4.93], "width": 3.0, "go": [
+          {"walk": [-10.5, -4.33], "open": true, "edges": false},
+          {"walk": [-10.5, 4.33], "ceiling": 2.6},
+          {"walk": [-10.5, 4.93], "open": true, "edges": false}
+        ] },
+        { "from": [71.0, -7.93], "width": 3.0, "go": [
+          {"walk": [74.3, -7.93], "open": true, "edges": false},
+          {"walk": [85.0, -7.93], "ceiling": 2.8}
+        ] },
+        { "from": [71.0, 7.93], "width": 3.0, "go": [
+          {"walk": [74.3, 7.93], "open": true, "edges": false},
+          {"walk": [85.0, 7.93], "ceiling": 2.8}
+        ] },
+        { "from": [85.0, -9.43], "h": 0.01, "width": 5.0, "go": [
+          {"walk": [85.0, 9.43], "ceiling": 2.8}
+        ] },
+        { "from": [85.0, 0.3], "h": 0.01, "width": 6.6, "go": [
+          {"walk": [112.6, 0.3], "ceiling": 3.0},
+          {"escalators": 10.12, "toward": [200, 0.3], "lanes": "EEEL"},
+          {"walk": [137.9, 0.8], "width": 9.0, "ceiling": 3.0},
           {"gates": true},
-          {"exit": 810298724, "by": "walk"}
+          {"walk": [158.0, 1.85], "width": 9.0, "ceiling": 3.0},
+          {"walk": [161.1, 1.9], "width": 1.0, "ceiling": 2.45},
+          {"exit": {"at": [163.2, 1.95], "name": "Slättgårdsvägen · Hägerstensvägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },
