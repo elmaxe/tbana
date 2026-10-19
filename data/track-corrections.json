@@ -725,6 +725,14 @@
     {
       "at": [151277.7, 6577240.4],
       "why": "Liljeholmen, the eastern track (track 4) at the south end of the platforms: OSM has no point on it between 6 m north of the platforms' middle and 117 m south of it, so its height sloped straight between them, as the western track's did."
+    },
+    {
+      "at": [146220.8, 6575499.6],
+      "why": "Bredäng, the southern track at the platform's east end, by the ticket gates: OSM has no point on it between the platform's middle and 55 m beyond the gates, so its height sloped straight between them along the platform's eastern half, and the island's southern half stood 0.3 m under its northern half at the gates. Lantmäteriet's laser scan has the platform level from end to end."
+    },
+    {
+      "at": [146218.1, 6575516.8],
+      "why": "Bredäng, the northern track at the platform's east end, by the ticket gates (as the southern track, above): its last point on the platform is 10 m short of them."
     }
   ]
 }
