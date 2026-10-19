@@ -23,8 +23,8 @@ export interface OpenStyle {
   rooms: Room[];
   // the shells of buildings the station's parts run through: a hall, a stair house
   blocks?: Block[];
-  // OpenStreetMap's outlines of the buildings it draws itself, which the city leaves out
-  // (tools/build-city.ts)
+  // OpenStreetMap's outlines of the buildings it draws itself, or that aren't there, which the city
+  // leaves out (tools/build-city.ts)
   buildings?: string[];
   // the name on its blocks' signs, where it is written otherwise than in the map (S:t Eriksplan)
   signName?: string;
@@ -8087,7 +8087,10 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       colors: { edge: 0xd6d5cf, tactile: 0x85878a, slab: 0x58595b, pavers: 0x58595b, face: 0x8e8b85 },
       pattern: 'asphalt',
     },
-    buildings: ['w97467649'],
+    // the base building under the viaduct, and Bredängsgrillen, which OpenStreetMap has between the
+    // walkway and the south track where Lantmäteriet's laser scan (2021) and Google's mesh find
+    // only the square's paving
+    buildings: ['w97467649', 'w97467637'],
     rooms: [
       { name: 'platform before the hall', s: [86, 93.85], u: [5, 11], h: [-0.3, 0.3], walls: null, floor: null },
       { name: 'walk south of the well', s: [106.3, 117.2], u: [14.25, 17], h: [-0.3, 0.3], walls: null, floor: 'asphalt', slab: 1.0 },
@@ -8141,8 +8144,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'shopWindows', sides: ['boardConcrete', undefined, undefined, undefined], roof: 0.1, roofColor: 0x55585a },
     ],
     art: [
-      // the lift's tower, in small teal tiles
-      { kind: 'columns', at: [[116.8, 12.0]], from: -6.0, to: 4.45, size: 2.6, color: 0x5aa59f },
+      // the lift's tower, in small teal tiles over the deck, and its shaft in steel down in the lobby
+      { kind: 'columns', at: [[116.8, 12.0]], from: -1.0, to: 4.45, size: 2.6, color: 0x5aa59f },
+      { kind: 'columns', at: [[116.8, 12.0]], from: -6.0, to: -1.0, size: 2.6, color: 0x9a9fa3 },
       // the decks' piers, round, under the tracks (and the walkway's)
       { kind: 'columns', at: [[4, -6.89], [18, -6.18], [32, -5.38], [46, -4.46], [60, -3.45], [79, -1.96], [139, 3.58], [151, 4.86], [4, 6.74], [18, 8.2], [32, 9.7], [46, 11.26], [58, 12.62], [74, 14.43], [139, 21.92], [151, 23.5]], from: -12.5, to: -2.6, size: 0.9, color: 0x9d9a93 },
       { kind: 'columns', at: [[139, 11.95]], from: -12.5, to: -1.36, size: 0.8, color: 0x9d9a93 },

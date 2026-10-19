@@ -1797,12 +1797,12 @@ export class OpenLook {
     const globe = on(this.mat('globe', () => new THREE.MeshStandardMaterial({ color: 0xf2f0e8, emissive: 0xfff3dc, emissiveIntensity: 0.55, roughness: 0.35 })));
     for (const [s, u, foot] of a.at) {
       const top = foot + a.height, n = a.cluster ?? 0;
-      bar(post, frame.at(s, u, foot), frame.at(s, u, top - 0.2), 0.11, 0.11);
+      box(post, frame.at(s, u, (foot + top - 0.2) / 2), 1, 0, 0.11, top - 0.2 - foot, 0.11);
       ball(globe, frame.at(s, u, top), 0.22);
       for (let k = 0; k < n; k++) {
         const t = (k / n) * Math.PI * 2, ds = Math.cos(t) * 0.5, du = Math.sin(t) * 0.5;
         bar(post, frame.at(s, u, top - 0.62), frame.at(s + ds, u + du, top - 0.62), 0.04, 0.04);
-        bar(post, frame.at(s + ds, u + du, top - 0.62), frame.at(s + ds, u + du, top - 0.5), 0.04, 0.04);
+        box(post, frame.at(s + ds, u + du, top - 0.58), 1, 0, 0.04, 0.12, 0.04);
         ball(globe, frame.at(s + ds, u + du, top - 0.3), 0.2);
       }
     }
