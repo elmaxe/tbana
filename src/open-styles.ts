@@ -7984,7 +7984,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'passages round the end', s: [74.3, 112.7], u: [-9.5, 9.5], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
       { name: 'escalators', s: [112, 131], u: [-3.2, 3.8], h: [-1, 11], walls: 'malarhojdenBrick', stairs: 'malarhojdenBrick', ceiling: 'whiteRender' },
       { name: 'ticket hall', s: [129.5, 161.2], u: [-5, 8], h: [9.8, 10.5], walls: 'malarhojdenHall', floor: 'redClinker', ceiling: 'boardConcrete' },
-      { name: 'doorstep', s: [161.2, 164], u: [0, 4], h: [9.8, 10.5], walls: null, floor: null },
+      { name: 'doorstep', s: [161.2, 164], u: [0, 4], h: [9.8, 10.5], walls: null, floor: 'pavers' },
     ],
     blocks: [
       // the front (OpenStreetMap's outline, ending where the laser scan's roof does), its floor at
