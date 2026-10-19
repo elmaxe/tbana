@@ -7976,9 +7976,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
   'Mälarhöjden': {
     buildings: ['w570277349'],
     rooms: [
-      { name: 'passage across the core, northern opening', s: [-12.1, -8.9], u: [-4.94, -4.32], h: [-0.3, 0.3], walls: null, floor: null },
-      { name: 'passage across the core, southern opening', s: [-12.1, -8.9], u: [4.32, 4.94], h: [-0.3, 0.3], walls: null, floor: null },
-      { name: 'passage across the core', s: [-12.1, -8.9], u: [-4.32, 4.32], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
+      { name: 'passage across the core, northern opening', s: [-12.1, -8.9], u: [-4.94, -4.27], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage across the core, southern opening', s: [-12.1, -8.9], u: [4.27, 4.94], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'passage across the core', s: [-12.1, -8.9], u: [-4.27, 4.27], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
       { name: "northern platform's end", s: [70.9, 74.32], u: [-9.5, -6.4], h: [-0.3, 0.3], walls: null, floor: null },
       { name: "southern platform's end", s: [70.9, 74.32], u: [6.4, 9.5], h: [-0.3, 0.3], walls: null, floor: null },
       { name: 'passages round the end', s: [74.3, 112.7], u: [-9.5, 9.5], h: [-0.3, 0.3], walls: 'malarhojdenBrick', floor: 'redClinker', ceiling: 'whiteRender' },
