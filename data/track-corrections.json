@@ -550,6 +550,9 @@
       "why": "OSM's eastern platform (2026), the one the buses dock along at its back, is drawn turned about 2° from the eastern track, so that only its southern 94 m read as beside it and the platform stopped 55 m short of the others' north end. It runs the length of the station beside the track, as the others do (Albert Guillaumes' drawing, 2024; photographs): from the middle of the island platforms, 147 m."
     }
   ],
+  "apart": [
+    {"at": [149819.2, 6575884.5], "reach": 45, "why": "Telefonplan: west of the platform the two tracks run on into their own tunnels under the station building, about 14 m apart, the siding to the buffer stop beyond between them (OpenStreetMap; Lantmäteriet's laser scan has the ballast either side of the platform's west end 15 m apart). Drawn together to the usual spacing over the siding, they pulled the platform's west end in to 7.4 m wide, where it is about 10.5 m."}
+  ],
   "straight": [
     {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."},
     {"station": "Tekniska högskolan", "apart": 30.54, "why": "Tekniska högskolan's island platform is 27.4 m wide (Albert Guillaumes' drawing, 2024), straight, with straight walls round its two cores of rock; OpenStreetMap has its tracks straight and parallel along it. Held only by the platform's width, the fit bowed the tracks 2 m inward at each end."},

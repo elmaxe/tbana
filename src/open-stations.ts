@@ -1074,9 +1074,17 @@ export class OpenLook {
     const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
     // half the roof's width at s, and the underside's height across it there
     const half = (s: number) => line.width(s, R.width) / 2;
-    const hb = (u: number, s = 0) => R.lean
+    // (how far the whole roof is raised at s, climbing over a ramp)
+    const lift = (s: number) => {
+      const c = R.climb;
+      if (!c) return 0;
+      if (s <= c[0][0]) return c[0][1];
+      for (let i = 1; i < c.length; i++) if (s <= c[i][0]) return c[i - 1][1] + (c[i][1] - c[i - 1][1]) * (s - c[i - 1][0]) / (c[i][0] - c[i - 1][0]);
+      return c[c.length - 1][1];
+    };
+    const hb = (u: number, s = 0) => lift(s) + (R.lean
       ? R.middle + (R.edge - R.middle) * Math.min(1, Math.max(0, (1 - R.lean * u / half(s)) / 2))
-      : R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s));
+      : R.middle + (R.edge - R.middle) * Math.min(1, Math.abs(u) / half(s)));
     // (a vaulted bay's arch: a segment of a circle through its ends and the crown over its middle)
     const B = R.barrels;
     const arch = (s: number) => {
@@ -1104,7 +1112,7 @@ export class OpenLook {
         under.poly([q(s0, 0, 0), q(s0, e0, 0), q(s1, e1, 0), q(s1, 0, 0)], cut);
         if (!covered) top.poly([q(s0, 0, R.thick), q(s0, e0, R.thick), q(s1, e1, R.thick), q(s1, 0, R.thick)], cut);
         // the fascia along its edge, down past the underside and back in under it
-        const p = (s: number, u: number, dh: number) => [...line.at(s, u, (R.lean ? h(side * half(s), s) : R.edge) + dh), 0, 0];
+        const p = (s: number, u: number, dh: number) => [...line.at(s, u, (R.lean ? h(side * half(s), s) : R.edge + lift(s)) + dh), 0, 0];
         const i0 = e0 - side * 0.05, i1 = e1 - side * 0.05;
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, e1, crest), p(s0, e0, crest)], cut);
         fascia.poly([p(s0, e0, lip), p(s1, e1, lip), p(s1, i1, lip), p(s0, i0, lip)], cut);
@@ -1116,7 +1124,7 @@ export class OpenLook {
       const r0 = rows(s0), r1 = rows(s1);
       r0.forEach((u, k) => bar(steel, line.at(s0, u, hb(u, s0)), line.at(s1, r1[k], hb(r1[k], s1)), 0.2, R.beam, cut));
       for (const u of R.purlins?.at ?? []) bar(purlin, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
-      if (R.gutter) bar(gutter, line.at(s0, 0, R.middle), line.at(s1, 0, R.middle), R.gutter[0], R.gutter[1], cut);
+      if (R.gutter) bar(gutter, line.at(s0, 0, R.middle + lift(s0)), line.at(s1, 0, R.middle + lift(s1)), R.gutter[0], R.gutter[1], cut);
     }
     // and across its ends
     for (const s of [R.from, R.to]) for (const side of [-1, 1]) {
@@ -1167,7 +1175,7 @@ export class OpenLook {
     // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
     // and those the roof cases; a beam across over each pair, the columns on up through it to the
     // rafters
-    const foot = (R.lean ? h(mid) : R.middle) - R.beam;
+    const foot = (s: number) => (R.lean ? h(mid, s) : R.middle + lift(s)) - R.beam;
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
@@ -1179,7 +1187,7 @@ export class OpenLook {
         // knee braces up to the beam, either way along it
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
       }
-      if (C.cross) bar(steel, line.at(s, -half(s) + 0.1, C.cross[0] + C.cross[1]), line.at(s, half(s) - 0.1, C.cross[0] + C.cross[1]), 0.25, C.cross[1], cut);
+      if (C.cross) bar(steel, line.at(s, -half(s) + 0.1, C.cross[0] + C.cross[1] + lift(s)), line.at(s, half(s) - 0.1, C.cross[0] + C.cross[1] + lift(s)), 0.25, C.cross[1], cut);
       // bars across between a pair, and one slanting from the lowest to the highest
       const ties = C.ties ?? [], [ua, ub] = rows(s);
       if (ties.length && ub !== undefined) {
@@ -1209,7 +1217,7 @@ export class OpenLook {
         }
         continue;
       }
-      const top = R.signs.bottom !== undefined ? R.signs.bottom + H : foot - 0.12, from = R.signs.bottom !== undefined ? h(mid, s) - rd : foot;
+      const top = R.signs.bottom !== undefined ? R.signs.bottom + H : foot(s) - 0.12, from = R.signs.bottom !== undefined ? h(mid, s) - rd : foot(s);
       const c = line.at(s, mid, top - H / 2), hang = line.at(s, mid, from)[1] - (c[1] + H / 2);
       box(fascia, c, fx, fz, 0.05, H + 0.02, W + 0.02, cut);
       if (hang > 0.01) for (const k of [-W / 2 + 0.2, W / 2 - 0.2]) box(steel, line.at(s + k, mid, from - hang / 2), fx, fz, 0.03, hang, 0.03);

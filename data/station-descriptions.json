@@ -739,14 +739,42 @@
     },
     "Telefonplan": {
       "drawing": "telefonplan.png",
-      "note": "An island platform in the open, narrowing to the east. At its west end stairs climb along it and over the northern track to the ticket hall.",
+      "note": "An island platform in a cutting through the rock, narrowing to the east, under a low roof over its western half. From the middle of its western half a ramp climbs along the island to a deck at its west end, where an escalator, stairs and a lift come up beside it from the platform's end; from the deck a ramp goes up into the station's building over the tracks' tunnels, its hall at the street, with doors to the square to the west and to Mikrofonvägen to the south. Laid out from OpenStreetMap's indoor mapping, Lantmäteriet's laser scan and photographs of the station; Albert Guillaumes' drawing agrees.",
       "routes": [
-        { "from": [-60, 0], "width": 4, "go": [
-          {"stairs": 5.4, "toward": [-150, 0]},
-          {"walk": [-80, 0]},
-          {"walk": [-88, 16], "width": 5},
+        { "from": [-22.81, -0.76], "width": 2.6, "go": [
+          {"walk": [-30, -0.8], "dh": 0.5991, "open": true},
+          {"walk": [-40, -0.95], "dh": 0.8334, "open": true},
+          {"walk": [-50, -1.2], "dh": 0.8335, "open": true},
+          {"walk": [-60, -1.405], "dh": 0.8335, "open": true},
+          {"walk": [-70, -1.598], "dh": 0.8334, "open": true},
+          {"walk": [-78, -1.766], "dh": 0.6668, "open": true},
+          {"walk": [-82, -1.825], "open": true}
+        ] },
+        { "from": [-71.5, 2.95], "width": 2, "go": [
+          {"escalators": 4.6, "toward": [-200, 2.95], "lanes": "E"},
+          {"walk": [-82, 2.95], "open": true}
+        ] },
+        { "from": [-72.4, -4.75], "width": 2, "go": [
+          {"stairs": 4.6, "toward": [-200, -4.75], "lanes": "S"},
+          {"walk": [-82.5, -4.75], "open": true}
+        ] },
+        { "from": [-76.6, 1.05], "width": 1.8, "go": [
+          {"walk": [-77.0, 1.05], "open": true},
+          {"lift": 4.6, "through": true},
+          {"walk": [-81.5, 1.05], "open": true}
+        ] },
+        { "from": [-80.5, -0.95], "h": 4.6, "width": 9.9, "go": [
+          {"walk": [-88, -0.95], "open": true},
+          {"walk": [-100.6, -2.4], "width": 6, "dh": 1.05, "ceiling": 3.2},
           {"gates": true},
-          {"exit": 1534817547}
+          {"walk": [-105, -2.4], "width": 6, "ceiling": 3.2},
+          {"mark": "hall"},
+          {"walk": [-108.0, -2.53], "ceiling": 3.2},
+          {"exit": 1534817549, "by": "walk", "sign": false}
+        ] },
+        { "from": "hall", "width": 4, "go": [
+          {"walk": [-106.35, 4.0], "ceiling": 3.2},
+          {"exit": 1534817547, "by": "walk", "sign": false}
         ] }
       ]
     },

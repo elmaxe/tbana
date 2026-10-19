@@ -49,6 +49,7 @@ import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { ISLAND_WIDTH, ISLAND_WIDTHS, MIDDLE_TRACK_STATIONS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
+import { ORIGIN } from '../src/geo.ts';
 import { deckAt } from './lib/decks.ts';
 import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
@@ -116,6 +117,11 @@ const sideWidths = new Map<string, number>((trackCorrections.widths ?? []).map((
 // stations whose two platform tracks run straight and parallel, this far apart (data/track-corrections.json
 // `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too
 const straightStations = new Map<string, number>((trackCorrections.straight ?? []).map((w: { station: string; apart: number }) => [w.station, w.apart]));
+// places where a line's two tracks in tunnels keep OpenStreetMap's spacing, within `reach` m of `at`
+// (SWEREF 99 18 00 east, north; data/track-corrections.json `apart`), rather than being drawn
+// together over a siding between them
+const keepApart: { x: number; z: number; reach: number }[] = (trackCorrections.apart ?? [])
+  .map((c: { at: [number, number]; reach: number }) => ({ x: c.at[0] - ORIGIN.e, z: ORIGIN.n - c.at[1], reach: c.reach }));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -538,7 +544,12 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       const here = platformAt(p.id, s[k]), there = platformAt(b.piece.id, b.s);
       let target: number, f: number;
       if (between(runningSegments, a.x0, a.z0, b.x, b.z, [p.id, b.piece.id])) return;
-      if (between(sidings, a.x0, a.z0, b.x, b.z)) {
+      if (keepApart.some((c) => Math.hypot(a.x0 - c.x, a.z0 - c.z) < c.reach)) {
+        // as far apart as OpenStreetMap has them
+        target = b.d;
+        f = 1;
+        pairRows++;
+      } else if (between(sidings, a.x0, a.z0, b.x, b.z)) {
         // a siding between them, at the standard spacing from each
         target = 2 * TRACK_CENTRES;
         f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);

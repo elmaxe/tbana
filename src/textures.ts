@@ -2189,6 +2189,82 @@ function kransenTiles(x: CanvasRenderingContext2D, x0: number, y0: number, w: nu
   x.restore();
 }
 
+// Telefonplan's yellow clinker, from x0 to x1 and y0 to y1 on the canvas: glossy mustard tiles 20 cm
+// square, stack bonded, in pale grey joints, from the bottom up.
+function ochreClinker(x: CanvasRenderingContext2D, x0: number, x1: number, y0: number, y1: number, PX: number, r: () => number) {
+  const t = 0.2 * PX;
+  x.fillStyle = '#a3a19a'; x.fillRect(x0, y0, x1 - x0, y1 - y0);
+  for (let xx = x0; xx < x1 - 0.5; xx += t) for (let yy = y1; yy > y0 + 0.5; yy -= t) {
+    const w = Math.min(t, x1 - xx), h = Math.min(t, yy - y0), v = Math.floor(r() * 14) - 7, o = Math.floor(r() * 8);
+    x.fillStyle = `rgb(${226 + v},${178 + v + o * 0.4},${86 + v - o})`; x.fillRect(xx + 1, yy - h + 1, w - 2, h - 2);
+    // (the glaze catching the light)
+    x.fillStyle = 'rgba(255,250,232,0.2)'; x.fillRect(xx + w * 0.15, yy - h + 2, w * 0.2, h - 4);
+  }
+}
+
+// Telefonplan's station building, from x0 to x1 and y0 to y1 on the canvas: red-brown brick as
+// `brick`'s, about 23 by 7.5 cm with 1 cm joints, in a running bond, from the bottom up.
+function brickArea(x: CanvasRenderingContext2D, x0: number, x1: number, y0: number, y1: number, PX: number, r: () => number) {
+  const bl = 0.24 * PX, bh = 1.2 * PX / 14;
+  x.save(); x.beginPath(); x.rect(x0, y0, x1 - x0, y1 - y0); x.clip();
+  x.fillStyle = '#9a9188'; x.fillRect(x0, y0, x1 - x0, y1 - y0);
+  for (let j = 0; y1 - j * bh > y0; j++) for (let i = -1; x0 + i * bl < x1; i++) {
+    const v = Math.floor(r() * 26) - 13, ox = (j % 2) * bl / 2;
+    x.fillStyle = `rgb(${142 + v},${66 + v * 0.7},${48 + v * 0.5})`;
+    x.fillRect(x0 + i * bl + ox + 1, y1 - (j + 1) * bh + 1, bl - 2, bh - 1.6);
+  }
+  x.restore();
+}
+
+// A shop's window from x0 to x1, its glass from y0 (top) to y1 on the canvas, lit from within:
+// big posters behind it (a newsagent's), or a florist's buckets of flowers under a picture of
+// them; the glass catching the light across it.
+function shopWindow(x: CanvasRenderingContext2D, x0: number, x1: number, y0: number, y1: number, PX: number, r: () => number, kind: 'posters' | 'flowers') {
+  const w = x1 - x0, h = y1 - y0;
+  const lit = x.createLinearGradient(0, y0, 0, y1);
+  lit.addColorStop(0, '#ddd8ca'); lit.addColorStop(1, '#b3ab9a');
+  x.fillStyle = lit; x.fillRect(x0, y0, w, h);
+  if (kind === 'posters') {
+    // (a poster filling most of the window: a ground, a big shape on it, and lines of type)
+    const grounds = ['#f2efe6', '#3b86c6', '#e9a7bb', '#f1c42e', '#d9533f', '#f2efe6'], g = grounds[Math.floor(r() * grounds.length)];
+    const px = x0 + w * 0.08, py = y0 + h * 0.06, pw = w * 0.84, ph = h * 0.8;
+    x.fillStyle = g; x.fillRect(px, py, pw, ph);
+    const shapes = ['#c0392b', '#7a4a2a', '#f5f3ee', '#2f5f9a', '#e8b84a'];
+    x.fillStyle = shapes[Math.floor(r() * shapes.length)];
+    if (r() < 0.5) { x.beginPath(); x.arc(px + pw * (0.3 + r() * 0.4), py + ph * 0.42, Math.min(pw, ph) * (0.22 + r() * 0.1), 0, 2 * Math.PI); x.fill(); }
+    else x.fillRect(px + pw * 0.12, py + ph * (0.25 + r() * 0.1), pw * 0.76, ph * 0.28);
+    x.fillStyle = g === '#f2efe6' || g === '#f1c42e' ? '#26282b' : '#f7f5f0';
+    x.fillRect(px + pw * 0.12, py + ph * 0.78, pw * (0.4 + r() * 0.4), ph * 0.06);
+    x.fillRect(px + pw * 0.12, py + ph * 0.88, pw * (0.25 + r() * 0.3), ph * 0.04);
+  } else {
+    // (a picture of flowers over the top half, buckets of them on steps below)
+    x.fillStyle = '#efe9e4'; x.fillRect(x0 + w * 0.1, y0 + h * 0.06, w * 0.8, h * 0.4);
+    for (let k = 0; k < 40; k++) {
+      x.fillStyle = ['#d8577e', '#f2f0ea', '#e7a1b3', '#5d8a47', '#f0c64a'][Math.floor(r() * 5)];
+      x.beginPath(); x.arc(x0 + w * (0.14 + r() * 0.72), y0 + h * (0.1 + r() * 0.32), 0.03 * PX + r() * 0.05 * PX, 0, 2 * Math.PI); x.fill();
+    }
+    for (let k = 0; k < 3; k++) { x.fillStyle = 'rgba(70,64,58,0.55)'; x.fillRect(x0 + 2, y0 + h * (0.6 + k * 0.14), w - 4, 3); }
+    for (let k = 0; k < 120; k++) {
+      x.fillStyle = ['#4f7f3c', '#6a9a4a', '#3d6630', '#d8577e', '#f4f2ec', '#e9b13c', '#b84a7a', '#e7a1b3'][Math.floor(r() * 8)];
+      x.beginPath(); x.arc(x0 + w * (0.04 + r() * 0.92), y0 + h * (0.5 + r() * 0.48), 0.025 * PX + r() * 0.05 * PX, 0, 2 * Math.PI); x.fill();
+    }
+  }
+  x.fillStyle = 'rgba(255,255,255,0.16)';
+  x.beginPath(); x.moveTo(x0 + w * 0.1, y1); x.lineTo(x0 + w * 0.42, y0); x.lineTo(x0 + w * 0.58, y0); x.lineTo(x0 + w * 0.26, y1); x.fill();
+}
+
+// A sign board from x0 to x1 and y0 (top) to y1, black, a line of gold lettering along it.
+function signBoard(x: CanvasRenderingContext2D, x0: number, x1: number, y0: number, y1: number, r: () => number) {
+  x.fillStyle = '#121214'; x.fillRect(x0, y0, x1 - x0, y1 - y0);
+  const h = y1 - y0, top = y0 + h * 0.3, bottom = y0 + h * 0.7;
+  x.fillStyle = '#c8a24a';
+  for (let at = x0 + h * 0.4; at < x1 - h * 0.6;) {
+    const lw = h * (0.14 + r() * 0.12);
+    x.fillRect(at, top, lw, bottom - top);
+    at += lw + h * (r() < 0.2 ? 0.35 : 0.07);
+  }
+}
+
 // Berndt Helleberg's track walls at Hornstull (1964), across a repeat `W` wide: a grey concrete
 // plinth up to `from`, and over it, up to `top`, handmade bricks of red glaze from the Netherlands
 // laid on end, about 6 by 24 cm, in a running bond up the wall, oranges to deep reds, in pale grey
@@ -4814,9 +4890,11 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   striated: [2.5, 3.0], triangleTiles: [4.8, 3.0], redClinker: [2.4, 2.4], rods: [1.2, 4.2],
   wineTiles: [2.2, 0.99], uprightTiles: [1.2, 1.2], bandGlazed: [1.3, 3.2], shards: [3.6, 3.0], narrowTiles: [0.84, 0.96],
   brassTerrazzo: [4.8, 9.6], kransenTiles: [0.6, 0.96], kransenHall: [1.2, 3.4],
+  ochreClinker: [1.2, 1.2], morseClinker: [14.47, 6.0], blastedRock: [4.8, 4.8],
+  kioskFront: [12.0, 4.5], tfpWestFront: [21.24, 4.5], tfpSouthFront: [24.4, 4.5],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -6742,6 +6820,184 @@ export function finish(name: Finish) {
       }
       break;
     }
+    case 'ochreClinker':
+      // Telefonplan's yellow clinker (Bo Samuelsson's, 1997): glossy mustard tiles, 20 cm, in
+      // pale grey joints (photographs, 2016 and 2021)
+      ochreClinker(x, 0, W, 0, H, PX, r);
+      break;
+    case 'morseClinker': {
+      // and the wall along the ramp: the yellow clinker, and up it to 2.2 m the station's name in
+      // Morse code (the artist's plaque: "Morsesignal i fält av grön klinker"), each dot a column
+      // of narrow teal-green tiles a third of a yellow tile wide and each dash three of them, a
+      // yellow tile between the signs of a letter and three between letters (as laid on the wall
+      // in the photographs; the spacing is read from them, not documented)
+      const yellowW = 0.2 * PX, greenW = yellowW / 3, top = Y(2.2);
+      const code = ['-', '.', '.-..', '.', '..-.', '---', '-.', '.--.', '.-..', '.-', '-.'];
+      let at = 0;
+      const yellow = (n: number) => { ochreClinker(x, at, at + n * yellowW, 0, H, PX, r); at += n * yellowW; };
+      const green = (n: number) => {
+        ochreClinker(x, at, at + n * greenW, 0, top, PX, r);
+        for (let k = 0; k < n; k++) for (let yy = H; yy > top; yy -= 0.2 * PX) {
+          const v = Math.floor(r() * 12) - 6;
+          x.fillStyle = '#9b9c97'; x.fillRect(at + k * greenW, Math.max(top, yy - 0.2 * PX), greenW, Math.min(0.2 * PX, yy - top));
+          x.fillStyle = `rgb(${52 + v},${118 + v},${112 + v})`; x.fillRect(at + k * greenW + 1, Math.max(top, yy - 0.2 * PX) + 1, greenW - 2, Math.min(0.2 * PX, yy - top) - 2);
+          x.fillStyle = 'rgba(255,255,250,0.22)'; x.fillRect(at + k * greenW + greenW * 0.3, Math.max(top, yy - 0.2 * PX) + 2, greenW * 0.18, Math.min(0.2 * PX, yy - top) - 4);
+        }
+        at += n * greenW;
+      };
+      code.forEach((letter, i) => {
+        [...letter].forEach((sign, j) => { if (j) yellow(1); green(sign === '.' ? 1 : 3); });
+        if (i < code.length - 1) yellow(3);
+      });
+      // (and on to the repeat, 14.47 m: eight tiles between the end of the name and its start again)
+      ochreClinker(x, at, W, 0, H, PX, r);
+      break;
+    }
+    case 'blastedRock': {
+      // the walls of a cutting blasted through the rock (Telefonplan's): grey granite in broad flat
+      // faces, some lit and some in shadow, rough with smaller chips, the half-pipes of the drill
+      // holes running down them, split by dark seams and stained rust brown down from them
+      // (photographs, 2005–2016)
+      x.fillStyle = '#76726c'; x.fillRect(0, 0, W, H);
+      const wrap = (f: () => void, cx: number, cy: number, rr: number) => {
+        for (const [ox, oy] of [[0, 0], [W, 0], [-W, 0], [0, H], [0, -H], [W, H], [-W, -H], [W, -H], [-W, H]]) {
+          if (cx + ox + rr < 0 || cx + ox - rr > W || cy + oy + rr < 0 || cy + oy - rr > H) continue;
+          x.save(); x.translate(ox, oy); f(); x.restore();
+        }
+      };
+      const facets = (count: number, r0: number, r1: number, alpha: number, edge: number) => {
+        for (let i = 0; i < count; i++) {
+          // a face: an irregular polygon, wider than high, lit from above or in shadow
+          const cx = r() * W, cy = r() * H, rr = (r0 + r() * (r1 - r0)) * PX, n = 5 + Math.floor(r() * 3), lit = r();
+          const pts: [number, number][] = [];
+          for (let k = 0; k < n; k++) { const t = (k / n) * Math.PI * 2 + r() * 0.5; pts.push([cx + Math.cos(t) * rr * (0.7 + r() * 0.4), cy + Math.sin(t) * rr * (0.45 + r() * 0.3)]); }
+          const v = lit < 0.3 ? 92 + Math.floor(r() * 16) : lit < 0.75 ? 112 + Math.floor(r() * 16) : 132 + Math.floor(r() * 18);
+          wrap(() => {
+            x.beginPath(); pts.forEach(([px, py], k) => k ? x.lineTo(px, py) : x.moveTo(px, py)); x.closePath();
+            x.fillStyle = `rgba(${v + 3},${v},${v - 5},${alpha})`; x.fill();
+            x.strokeStyle = `rgba(36,34,31,${edge})`; x.lineWidth = 1.2; x.stroke();
+          }, cx, cy, rr * 1.2);
+        }
+      };
+      facets(36, 0.6, 1.5, 0.8, 0.4);
+      facets(110, 0.1, 0.35, 0.35, 0.2);
+      // the drill holes' half-pipes, upright, about 0.7 m apart, each a dark line and a light one
+      for (let i = 0; i < 7; i++) {
+        const cx = (i + 0.3 + r() * 0.4) / 7 * W, cy = r() * H, h = (1.2 + r() * 2.2) * PX, lean = (r() - 0.5) * 0.12 * PX;
+        wrap(() => {
+          for (const [d, c] of [[0, 'rgba(40,38,35,0.55)'], [0.035 * PX, 'rgba(190,186,178,0.35)']] as const) {
+            x.strokeStyle = c; x.lineWidth = 0.025 * PX;
+            x.beginPath(); x.moveTo(cx + d, cy); x.lineTo(cx + d + lean, cy + h); x.stroke();
+          }
+        }, cx, cy + h / 2, h);
+      }
+      // the rust, running down from the seams
+      for (let i = 0; i < 26; i++) {
+        const cx = r() * W, cy = r() * H, w = (0.08 + r() * 0.3) * PX, h = (0.6 + r() * 1.8) * PX;
+        wrap(() => {
+          const g = x.createLinearGradient(0, cy, 0, cy + h);
+          g.addColorStop(0, 'rgba(146,86,44,0.5)'); g.addColorStop(1, 'rgba(146,86,44,0)');
+          x.fillStyle = g; x.fillRect(cx - w / 2, cy, w, h);
+        }, cx, cy + h / 2, Math.max(w, h));
+      }
+      // and the seams
+      x.strokeStyle = 'rgba(28,27,25,0.7)';
+      for (let i = 0; i < 14; i++) {
+        let px = r() * W, py = r() * H;
+        const a = (r() < 0.5 ? 1.3 : 0.2) + r() * 0.5, steps = 5 + Math.floor(r() * 6);
+        x.lineWidth = 1 + r() * 2;
+        x.beginPath(); x.moveTo(px, py);
+        for (let k = 0; k < steps; k++) { px += Math.cos(a + (r() - 0.5) * 0.8) * 0.2 * PX; py += Math.sin(a + (r() - 0.5) * 0.8) * 0.2 * PX; x.lineTo(px, py); }
+        x.stroke();
+      }
+      speckle(x, W, H, 16000, 0.14, 81); speckle(x, W, H, 8000, 0.1, 82, true);
+      break;
+    }
+    case 'kioskFront': {
+      // Telefonplan's station building to the street north of it, a newsagent's: black-painted
+      // panels across the top, and shop windows between yellow posts on a dark plinth, posters
+      // behind the glass (photographs, 2019 and 2020; Google's 3D model)
+      x.fillStyle = '#18191b'; x.fillRect(0, 0, W, H);
+      const bay = 2.4 * PX;
+      for (let k = 0; k * bay < W; k++) shopWindow(x, k * bay + 0.1 * PX, (k + 1) * bay - 0.1 * PX, Y(2.95), Y(0.45), PX, r, 'posters');
+      x.fillStyle = '#e3bd1f';
+      for (let k = 0; k * bay <= W; k++) x.fillRect(k * bay - 0.1 * PX, Y(3.05), 0.2 * PX, 2.7 * PX);
+      x.fillRect(0, Y(3.05), W, 0.1 * PX); x.fillRect(0, Y(0.45), W, 0.1 * PX);
+      band(0, 0.35, '#2a2b2d');
+      x.fillStyle = 'rgba(255,255,255,0.06)';
+      for (let k = 0; k * 1.2 * PX < W; k++) x.fillRect(k * 1.2 * PX, Y(4.5), 2, 1.45 * PX);
+      break;
+    }
+    case 'tfpWestFront': {
+      // its front to the crossing west of it, from its north end: the newsagent's windows and door
+      // between yellow posts, the station's doors (SL's blue sign over them is the block's), the
+      // florist's windows under a black sign board, all under black-painted panels; then brick to
+      // its south corner (photographs, 2019 and 2020; Google's 3D model)
+      const M = (m: number) => m * PX;
+      x.fillStyle = '#18191b'; x.fillRect(0, 0, W, H);
+      band(0, 0.35, '#2a2b2d');
+      for (const [a, b] of [[1.0, 3.2], [3.2, 5.4]]) shopWindow(x, M(a) + 0.1 * PX, M(b) - 0.1 * PX, Y(2.95), Y(0.45), PX, r, 'posters');
+      x.fillStyle = '#e3bd1f';
+      for (const a of [1.0, 3.2, 5.4, 6.6]) x.fillRect(M(a) - 0.1 * PX, Y(3.05), 0.2 * PX, 3.05 * PX);
+      x.fillRect(M(0.9), Y(3.05), M(5.8), 0.1 * PX); x.fillRect(M(0.9), Y(0.45), M(4.6), 0.1 * PX);
+      // (the newsagent's door, its yellow board over it)
+      const lit = x.createLinearGradient(0, Y(2.3), 0, Y(0));
+      lit.addColorStop(0, '#d7d1c2'); lit.addColorStop(1, '#a9a191');
+      x.fillStyle = lit; x.fillRect(M(5.5), Y(2.3), M(1.0), 2.3 * PX);
+      x.fillStyle = '#e3bd1f'; x.fillRect(M(5.5), Y(2.4), M(1.0), 0.1 * PX); x.fillRect(M(5.98), Y(2.3), 0.04 * PX, 2.3 * PX);
+      x.fillRect(M(5.2), Y(3.5), M(1.6), 0.42 * PX);
+      x.fillStyle = '#1f3f8a'; x.fillRect(M(5.35), Y(3.33), M(1.3), 0.08 * PX);
+      // (the station's doors: two pairs in brushed steel, glass over a transom)
+      const st = '#a9aeb1', hall = x.createLinearGradient(0, Y(2.6), 0, Y(0.05));
+      hall.addColorStop(0, '#c9c4b6'); hall.addColorStop(0.7, '#a27a64'); hall.addColorStop(1, '#bdb9b0');
+      x.fillStyle = hall; x.fillRect(M(7.0), Y(2.6), M(3.0), 2.55 * PX);
+      x.fillStyle = st;
+      for (const a of [7.0, 7.75, 8.5, 9.25, 10.0]) x.fillRect(M(a) - 0.05 * PX, Y(2.6), 0.1 * PX, 2.6 * PX);
+      x.fillRect(M(7.0), Y(2.6), M(3.0), 0.08 * PX); x.fillRect(M(7.0), Y(2.25), M(3.0), 0.08 * PX); x.fillRect(M(7.0), Y(0.1), M(3.0), 0.1 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.16)'; x.fillRect(M(7.2), Y(2.2), M(0.4), 2.0 * PX); x.fillRect(M(8.7), Y(2.2), M(0.4), 2.0 * PX);
+      // (the florist's windows and board)
+      for (const [a, b] of [[10.5, 12.8], [12.9, 15.2], [15.3, 17.5]]) shopWindow(x, M(a), M(b), Y(2.9), Y(0.45), PX, r, 'flowers');
+      signBoard(x, M(11.0), M(17.0), Y(3.65), Y(3.15), r);
+      brickArea(x, M(17.6), W, 0, H, PX, r);
+      x.fillStyle = '#26282a'; x.fillRect(M(17.6), Y(4.5), W - M(17.6), 0.12 * PX);
+      break;
+    }
+    case 'tfpSouthFront': {
+      // and its front to the square south of it, brick, from its west end: the florist's board
+      // over a poster case; the station's way in, under a fascia (the block's) in the shade, its
+      // glass doors in brushed steel and beside them an orange door in the brick; and three
+      // windows in dark frames, white curtains behind them (photographs, 2016 and 2019)
+      const M = (m: number) => m * PX;
+      brickArea(x, 0, W, 0, H, PX, r);
+      x.fillStyle = '#26282a'; x.fillRect(0, Y(4.5), W, 0.12 * PX);
+      signBoard(x, M(0.4), M(4.6), Y(3.75), Y(3.0), r);
+      x.fillStyle = '#1a1b1d'; x.fillRect(M(1.0), Y(2.35), M(1.45), 1.9 * PX);
+      x.fillStyle = '#eef0ec'; x.fillRect(M(1.07), Y(2.28), M(1.31), 1.76 * PX);
+      x.fillStyle = 'rgba(80,120,90,0.35)'; x.fillRect(M(1.25), Y(1.8), M(0.6), 0.9 * PX);
+      // (the way in: the shade of the soffit over it, the doors, and the orange door)
+      const st = '#a9aeb1', hall = x.createLinearGradient(0, Y(2.95), 0, Y(0.05));
+      hall.addColorStop(0, '#bcb6a8'); hall.addColorStop(0.6, '#8f6f5d'); hall.addColorStop(1, '#a9a59c');
+      x.fillStyle = hall; x.fillRect(M(5.4), Y(2.95), M(4.0), 2.9 * PX);
+      x.fillStyle = st;
+      for (const a of [5.4, 6.4, 7.4, 8.4, 9.4]) x.fillRect(M(a) - 0.05 * PX, Y(2.95), 0.1 * PX, 2.95 * PX);
+      x.fillRect(M(5.4), Y(2.95), M(4.0), 0.08 * PX); x.fillRect(M(5.4), Y(2.4), M(4.0), 0.1 * PX); x.fillRect(M(5.4), Y(0.1), M(4.0), 0.1 * PX);
+      x.fillStyle = 'rgba(255,255,255,0.15)'; x.fillRect(M(5.6), Y(2.3), M(0.35), 2.1 * PX); x.fillRect(M(7.6), Y(2.3), M(0.35), 2.1 * PX);
+      x.fillStyle = '#c8532c'; x.fillRect(M(10.0), Y(2.15), M(0.95), 2.15 * PX);
+      x.fillStyle = '#3a3c3e'; x.fillRect(M(9.97), Y(2.18), M(1.01), 0.04 * PX); x.fillRect(M(10.82), Y(1.1), M(0.06), 0.03 * PX);
+      x.fillStyle = 'rgba(20,18,16,0.3)'; x.fillRect(M(5.2), Y(3.0), M(6.2), 3.0 * PX);
+      x.fillStyle = 'rgba(20,18,16,0.25)'; x.fillRect(M(5.2), Y(3.0), M(6.2), 0.25 * PX);
+      // (the windows)
+      for (const a of [12.8, 15.9, 19.0]) {
+        const g = x.createLinearGradient(0, Y(2.35), 0, Y(1.15));
+        g.addColorStop(0, '#e9e6de'); g.addColorStop(1, '#cfcac0');
+        x.fillStyle = '#2a2c2e'; x.fillRect(M(a), Y(2.35), M(2.0), 1.2 * PX);
+        x.fillStyle = g; x.fillRect(M(a + 0.07), Y(2.28), M(0.88), 1.06 * PX); x.fillRect(M(a + 1.05), Y(2.28), M(0.88), 1.06 * PX);
+        x.fillStyle = 'rgba(120,112,100,0.25)';
+        for (let k = 0; k < 8; k++) x.fillRect(M(a + 0.1 + k * 0.23), Y(2.28), 2, 1.06 * PX);
+        x.fillStyle = '#8f8c86'; x.fillRect(M(a - 0.05), Y(1.15), M(2.1), 0.05 * PX);
+      }
+      break;
+    }
     case 'brassTerrazzo': {
       // Liljeholmen's halls: green terrazzo, speckled pale and dark, and thin lines of brass across
       // it at two slants and along it, crossing in long triangles (each wrapping round the repeat)
@@ -6813,7 +7069,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

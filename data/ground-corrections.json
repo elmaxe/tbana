@@ -2,6 +2,12 @@
   "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
+      "name": "Telefonplan: the station's building and the streets round it",
+      "outline": [-3528.5, 3700.7, -3524.8, 3699.7, -3529.8, 3681.9, -3545.2, 3686.2, -3541.4, 3699.7, -3575.1, 3709.2, -3566.5, 3740.0, -3532.8, 3730.5, -3529.0, 3744.0, -3513.6, 3739.7, -3518.9, 3720.9, -3522.5, 3721.9],
+      "heights": [40.09, 40.08, 40.06, 40.12, 40.13, 40.24, 40.27, 40.15, 40.16, 40.11, 40.1, 40.11],
+      "why": "West of Telefonplan's platform the tracks run on for 48 m in tunnels under the station's building and the square and streets beside it, Mikrofonvägen and Telefonvägen, into a cutting again. The elevation model has no ground under the building and joins the two cuttings under it, a trench 5.5 m deep from the platform's end to the far cutting, which put the square in front of the building's doors at the platform's level and its ways out at the bottom of it. Lantmäteriet's laser scan has the street at 40.0–40.4 m all round the building, and over the tunnels west of it (its points there classed as a bridge's). Beside the cutting's west end the outline reaches 4 m east of the building, to the street north of the cutting and the square south of it, where the model's 5 m grid had smoothed them down into the cutting."
+    },
+    {
       "name": "Högdalen: Högdalsgången",
       "outline": [-958.5, 7575.5, -978.8, 7618.7, -931.1, 7641.2, -910.9, 7598.0],
       "heights": [39.46, 39.06, 38.4, 38.8],
@@ -177,12 +183,25 @@
   ],
   "fill": [
     {
+      "outline": [[-3528.5, 3700.7], [-3524.8, 3699.7], [-3529.8, 3681.9], [-3545.2, 3686.2], [-3541.4, 3699.7], [-3575.1, 3709.2], [-3566.5, 3740.0], [-3532.8, 3730.5], [-3529.0, 3744.0], [-3513.6, 3739.7], [-3518.9, 3720.9], [-3522.5, 3721.9]],
+      "ground": 40.0,
+      "why": "Telefonplan's building and the square and streets round it, over the tracks' tunnels: the same outline as its deck (above), which sets the ground's height there. The tunnels' ground, by the elevation model, is the trench it draws under the building, below half their height, so they stood in the open with the trench round them; raised to the street, they are buried under it."
+    },
+    {
       "outline": [[669, 1184.5], [707, 1202], [707, 1241], [733, 1241], [733, 1218], [752, 1227], [753, 1229], [758, 1241], [761, 1252], [767, 1250], [808, 1269], [800, 1283], [790, 1288], [740, 1290], [700, 1292], [655, 1290], [655, 1200]],
       "ground": 12.5,
       "why": "Södermalmstorg, from the pavilions over the water square to Slussbrogatan and Guldbron's Söder end. The elevation model is from the rebuilding of Slussen, when the square was a pit 2–11 m deep with ramps and spoil in it; the finished square is paved and level with Guldbron's Söder end at 12.5 m (Lantmäteriet's laser scan of the bridge, 2021), rising to the south-west towards Hornsgatan, where the model's ground still stands above this and is kept. The outline reaches to Guldbron's end (the deck covers the ground beyond it) and keeps a grid cell (5 m) back from the pavilions' walls over the water square and from the stairs' flights, so that the ground's slope down from it lies under the pavilions' roofs and the stairs' landing (src/detail/slussen.ts)."
     }
   ],
   "paved": [
+    {
+      "outline": [[-3586.4, 3687.4], [-3408.3, 3637.4], [-3401.6, 3661.5], [-3552.7, 3703.9], [-3537.9, 3756.9], [-3564.8, 3764.4]],
+      "why": "Telefonplan: the street along the north side of the cutting, from west of the station's building to past the platform's east end, with its pavement and parking, and the street across the tracks' tunnels west of the building, asphalt (Google's 3D model). Few buildings stand beside them, so they were grass."
+    },
+    {
+      "outline": [[-3545.4, 3729.9], [-3472.3, 3709.4], [-3462.0, 3746.0], [-3535.1, 3766.5]],
+      "why": "Telefonplan: the square south of the station's building and the cutting's western half, with the buses' loop round a small island of grass, asphalt and concrete pavers (Google's 3D model)."
+    },
     {
       "outline": [[100, 520], [480, 520], [480, 600], [1010, 600], [1010, 1060], [560, 1040], [505, 1055], [440, 1055], [380, 1000], [100, 880]],
       "why": "Gamla stan and Riddarholmen are stone and asphalt to the water's edge: Munkbroleden, Kornhamnstorg, Munkbrohamnen, Skeppsbron, Riddarholmskajen and Evert Taubes terrass are quays (Google's 3D model). Their rims, and the street under Centralbron, were grass for want of buildings beside them."
