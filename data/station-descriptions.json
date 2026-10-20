@@ -1052,15 +1052,54 @@
     },
     "Sätra": {
       "drawing": "satra.png",
-      "note": "Two platforms in a cutting, facing each other across a wide paved space. At the south end the ticket hall opens onto Sätra torg.",
+      "note": "Two island platforms in a cutting, the turnback track between them, where no train stops. Sätra centrum stands across the tracks at their south ends, and each island runs into a stair house of its own under the centre's north front: a ramp climbs to it from the island's middle in a long tiled house on the platform, beside a passage to the lift, and stairs climb beside them, to a landing over the platforms' ends at the centre's floor. A crossing over the turnback track joins the two landings, and from the gates in the centre's north wall the way out is through its indoor square, west to its doors onto Sätratorget or east to those towards Torvsätravägen. From the laser scan (the platforms 148 m long, the ramp houses from 49 m to 74 m south of their middle, their roofs climbing from 4 m to 6.4 m over the platforms, the stair houses on to 88 m, the centre's floor 3.85 m over the platforms), OpenStreetMap's indoor mapping (the stairs, lifts and ramps, the gates at 97 m, the doors) and photographs (2005 to 2024).",
       "routes": [
-        { "from": [-60, 0], "width": 13, "go": [
-          {"walk": [50, 0], "open": true}
+        { "from": [-46.7, -7.95], "width": 2.2, "go": [
+          {"walk": [-93.0, -7.95], "dh": 3.85, "open": true},
+          {"walk": [-95.5, -7.95], "open": true}
         ] },
-        { "from": [-60, 0], "width": 6, "go": [
-          {"walk": [-75, 0]},
+        { "from": [-48.0, -5.75], "width": 2.1, "go": [
+          {"walk": [-74.8, -5.75], "open": true},
+          {"lift": 3.85, "above": 3.0, "through": true},
+          {"walk": [-95.5, -5.75], "open": true}
+        ] },
+        { "from": [-73.6, -3.55], "width": 2.0, "go": [
+          {"walk": [-75.0, -3.55], "open": true},
+          {"stairs": 3.85, "to": [-82.25, -3.55], "lanes": "S"},
+          {"walk": [-95.5, -3.55], "open": true}
+        ] },
+        { "from": [-73.6, 2.6], "width": 2.0, "go": [
+          {"walk": [-75.0, 2.6], "open": true},
+          {"stairs": 3.85, "to": [-82.25, 2.6], "lanes": "S"},
+          {"walk": [-95.5, 2.6], "open": true}
+        ] },
+        { "from": [-48.0, 4.75], "width": 2.1, "go": [
+          {"walk": [-74.8, 4.75], "open": true},
+          {"lift": 3.85, "above": 3.0, "through": true},
+          {"walk": [-95.5, 4.75], "open": true}
+        ] },
+        { "from": [-46.7, 6.85], "width": 2.0, "go": [
+          {"walk": [-93.0, 6.85], "dh": 3.85, "open": true},
+          {"walk": [-95.5, 6.85], "open": true}
+        ] },
+        { "from": [-94.2, -9.05], "h": 3.85, "width": 2.5, "go": [
+          {"walk": [-94.2, 7.85], "open": true}
+        ] },
+        { "from": [-95.4, 0.0], "h": 3.85, "width": 7.0, "go": [
+          {"walk": [-97.0, 0.0], "open": true},
           {"gates": true},
-          {"exit": 4949760149}
+          {"walk": [-107.0, 0.0], "open": true},
+          {"mark": "square"}
+        ] },
+        { "from": "square", "width": 4.0, "go": [
+          {"walk": [-107.0, -10.5], "open": true},
+          {"walk": [-120.5, -10.5], "open": true},
+          {"exit": {"at": [-120.3, -38.5], "name": "Sätratorget"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": "square", "width": 4.0, "go": [
+          {"walk": [-107.0, 10.5], "open": true},
+          {"walk": [-113.8, 10.5], "open": true},
+          {"exit": {"at": [-114.2, 39.0], "name": "Torvsätravägen"}, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },

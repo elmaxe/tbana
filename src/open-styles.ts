@@ -391,7 +391,13 @@ export type Finish =
   | 'malarhojdenHall' // glazed tiles on end, 5 by 20 cm, browns and tan, to 1.8 m; uprightBoards above (Mälarhöjden's ticket hall)
   | 'malarhojdenFront' // the middle of Mälarhöjden's front: uprightBoards, a shop window, the doors under the blue name band, a newsagent's window
   | 'bredangHall'   // dark brown boards on end to 2 m, a ribbon of windows in dark brown frames above, a dark fascia (Bredäng's ticket hall)
-  | 'bredangFront'; // glass in slim dark frames, the doors to 2.4 m, a yellow line, SL's dark blue band, glass above to 5 m (Bredäng's doors)
+  | 'bredangFront'  // glass in slim dark frames, the doors to 2.4 m, a yellow line, SL's dark blue band, glass above to 5 m (Bredäng's doors)
+  | 'ernkvistTiles' // glazed tiles, 10 cm, in many blues and pale aqua, upright lines of narrow orange-red ones (Päivi Ernkvist's, Sätra's)
+  | 'satraHall'     // cream tiles, 10 cm, short dark red dashes on end scattered over them, over a dark red plinth (Sätra's ticket hall)
+  | 'satraBoards'   // weathered grey-brown boards on end, 12 cm, in board and batten
+  | 'satraHouse'    // satraBoards, a ribbon of windows in white frames from 1 m to 2.4 m (Sätra's stair houses)
+  | 'satraCentre'   // white render over a dark plinth, a thin yellow coping at 4.35 m (Sätra centrum)
+  | 'satraEntrance'; // glass in brushed steel frames, sliding doors to 2.4 m, a glazed transom, white render above to the coping
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -8174,6 +8180,223 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'bars', color: 0x8f9498, h: [0, 1.1], points: [[123.6, 12.6, -0.05], [131.7, 13.31, -0.24], [139.9, 14.03, -0.43], [148.0, 14.75, -0.61], [156.1, 15.48, -0.8]] },
       // and along the ground, chain-link over the northern track's cutting
       { h: [0, 1.4], points: [[156.1, 11.88, -0.79], [166, 12.85, -0.99], [176, 13.84, -1.19], [186, 14.82, -1.39], [196, 15.81, -1.6], [201, 16.3, -1.7]] },
+    ],
+  },
+
+  // Sätra (16 May 1965, the line's end until 1967; VBB): two island platforms in a cutting, the
+  // turnback track between them, where no train stops, and Sätra centrum (1965, VBB, Stockholm's
+  // first indoor shopping centre) across the tracks at their south ends, the tracks running on
+  // in tunnels under it. Lantmäteriet's laser scan has each island under a butterfly roof from
+  // 74 m south of the platforms' middle to 28 m north, its top 3.15 m over the platform at the
+  // valley and 3.65 m at the edges, the western 10 m wide and the eastern, a wedge between its
+  // tracks, 10 to 12 m; north of them the platforms are open, under the bridge of Kungssätravägen.
+  // Down the middle of each island's south end a long house rises through the roof, its top
+  // climbing from 4 m over the platform at 49 m south to 6.3 m at 74 m, and on from there a stair
+  // house, 7 m wide, stands between the tracks to the centre's north front at 90 m, its roof
+  // climbing to 7.6 m. Photographs (2005 to 2024) show the houses' walls under the roof clad in
+  // Päivi Ernkvist's Tusen och en natt (1993, inaugurated 1994): 400 square metres of glazed tiles
+  // in many blues, upright lines of narrow orange-red ones running up them; above the roof, and
+  // round the stair houses' upper floor, weathered grey-brown boarding with a ribbon of windows in
+  // white frames. The roof's underside is boarded in pale grey on pale grey steel I-beams across
+  // it, over pairs of columns down its middle, a bolted steel plate between each pair; rows of
+  // strip lights, black name signs, clocks, departure boards, glass shelters and wooden benches;
+  // the paving asphalt, with a pale edge band and a dark ribbed strip; the rooflights in the
+  // houses' roofs are Google's mesh's. OpenStreetMap's indoor mapping puts in each house a ramp up
+  // its western part, a lift and stairs, up to a landing at the centre's floor, where a crossing
+  // over the turnback track joins the two; the gates at 97 m in the centre's north wall, the ticket
+  // hall beyond them (a photograph, 2016: cream tiles with red dashes, the gates under a dark blue
+  // band) and the centre's indoor square, whose raised roof the laser scan has at 12 m, with
+  // passages west to its doors onto Sätratorget and east. The centre is white render with a thin
+  // yellow coping; its doors onto the square under a glazed canopy on yellow posts.
+  //
+  // Not drawn: the clocks' and the boards' places, the shops' signs, the centre's round sign over
+  // its west doors, the ticket booth, Gunnel Frieberg's Barnvagnen and Ann Rosén's Vatt on the
+  // square. Guesses: the houses' insides (the ramps' width, the lift's passage, the landing), the
+  // tiles' size, the centre's insides beyond the station's ways, the bridge's piers but the one on
+  // the western island, and the retaining wall along the western track.
+  'Sätra': {
+    // the western island's roof (the line it follows is that island's)
+    roof: {
+      kind: 'butterfly',
+      from: -49, to: 28, width: 10,
+      shape: [[-49, 0.11, 10], [28, 0.08, 10]],
+      middle: 2.95, edge: 3.45, thick: 0.2, fascia: 0.35,
+      rafters: 3.3, rafterSize: [0.15, 0.35], rafterColor: 0xa9aeb1, rafterAt: -45.5, deck: 'boards',
+      beam: 0.45,
+      columns: { every: 6.6, at: -45.5, size: 0.22, plinth: { size: 0.3, height: 0.05 }, pair: 1.3, portal: { spring: 0.8, crown: 0.8, top: 2.4 }, between: [-40, 28] },
+      lamps: { offset: 2.4, length: 1.5, every: 3.3 },
+      colors: { underside: 0xc4c6c4, fascia: 0x4b4f53, top: 0x4a5058, steel: 0xa9aeb1 },
+      signs: { at: [-42.2, -2.6, 23.8], back: 'Utgång', ahead: '', bottom: 2.55 },
+      clocks: [[-15.8, 0], [23.8, 0]],
+      // (trains keep left: those towards the city stop on both its tracks)
+      boards: [
+        { s: -28.9, u: -1.6, toward: 'T-Centralen', trains: ['13 Ropsten  3 min', '13 Ropsten  13 min'] },
+        { s: -28.9, u: 1.6, toward: 'T-Centralen', trains: ['13 Ropsten  8 min', '13 Ropsten  18 min'] },
+      ],
+    },
+    roofs: [
+      // the eastern island's, widening and narrowing with it
+      {
+        kind: 'butterfly',
+        from: -49, to: 28, width: 11,
+        shape: [[-49, 13.04, 10.85], [-34, 13.35, 11.5], [-16, 13.59, 12.0], [2, 13.59, 12.0], [8, 13.34, 11.5], [20, 12.84, 10.5], [28, 12.7, 10.25]],
+        middle: 2.95, edge: 3.45, thick: 0.2, fascia: 0.35,
+        rafters: 3.3, rafterSize: [0.15, 0.35], rafterColor: 0xa9aeb1, rafterAt: -45.5, deck: 'boards',
+        beam: 0.45,
+        columns: { every: 6.6, at: -45.5, size: 0.22, plinth: { size: 0.3, height: 0.05 }, pair: 1.3, portal: { spring: 0.8, crown: 0.8, top: 2.4 }, between: [-40, 28] },
+        lamps: { offset: 2.4, length: 1.5, every: 3.3 },
+        colors: { underside: 0xc4c6c4, fascia: 0x4b4f53, top: 0x4a5058, steel: 0xa9aeb1 },
+        signs: { at: [-35.6, 4.0, 23.8], back: 'Utgång', ahead: '', bottom: 2.55 },
+        clocks: [[-9.2, 0], [23.8, 0]],
+        boards: [{ s: -22.4, u: 1.6, toward: 'Norsborg', trains: ['13 Norsborg  5 min', '13 Norsborg  15 min'] }],
+      },
+      // beside the ramps' houses, lean-tos from the houses' walls out to the roofs' edges, carried
+      // on the houses (each roof's beam along the house's wall)
+      ...([
+        { shape: [[-74, -3.5, 2.5], [-49, -3.64, 2.5]], lean: 1, middle: 3.2, at: 1.15 },
+        { shape: [[-74, 3.75, 3.0], [-49, 3.61, 3.0]], lean: -1, middle: 3.15, at: -1.4 },
+        { shape: [[-74, 9.13, 2.75], [-49, 8.99, 2.75]], lean: 1, middle: 3.18, at: 1.27 },
+        { shape: [[-74, 16.38, 2.75], [-49, 16.66, 3.6]], lean: -1, middle: 3.18, at: -1.3 },
+      ] as const).map((w): ButterflyRoof => ({
+        kind: 'butterfly', lean: w.lean,
+        from: -74, to: -49, width: 3,
+        shape: w.shape.map((p) => [...p] as [number, number, number]),
+        middle: w.middle, edge: 3.45, thick: 0.2, fascia: 0.35,
+        rafters: 3.3, rafterSize: [0.15, 0.35], rafterColor: 0xa9aeb1, rafterAt: -45.5, deck: 'boards',
+        beam: 0.25,
+        columns: { every: 6.6, at: -45.5, size: 0.22, plinth: { size: 0.3, height: 0.05 }, offset: w.at, between: [900, 901] },
+        lamps: { offset: 0, length: 1.5, every: 3.3, at: [0] },
+        colors: { underside: 0xc4c6c4, fascia: 0x4b4f53, top: 0x4a5058, steel: 0xa9aeb1 },
+        signs: { at: [], back: '', ahead: '' },
+      })),
+    ],
+    paving: {
+      edge: 0.55, tactile: [0.55, 0.95], slabs: 0.95,
+      colors: { edge: 0xcfccc4, tactile: 0x4d5052, slab: 0x5d6062, pavers: 0x5d6062, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    buildings: ['w98479997'],
+    rooms: [
+      // (the houses' and the centre's walls and ceilings are their blocks')
+      { name: 'ramps, lifts and stairs', s: [-96, -46], u: [-10, 9], h: [-0.5, 3.0], walls: null, floor: 'greyTiles', stairs: 'ernkvistTiles' },
+      { name: 'landing and ticket hall', s: [-104, -74], u: [-11, 10], h: [3.0, 4.5], walls: null, floor: 'brownTiles' },
+      { name: "the centre's square and passages", s: [-146, -104], h: [3.0, 4.5], walls: null, floor: 'darkTiles' },
+    ],
+    blocks: [
+      // the ramps' houses on the islands, tiled under the roof and boarded over it, rising to the
+      // stair houses; their rooflights below
+      ...([['western', -9.25, -4.75], ['eastern', 3.5, 8.0]] as const).map(([w, a, b]): Block => ({
+        name: `${w} ramp's house`, plan: [[-74, a], [-49, a], [-49, b], [-74, b]], h: [-0.3, 6.3], low: 4.05, onPlatform: true,
+        walls: 'ernkvistTiles', sides: [undefined, undefined, undefined, null], band: { walls: 'satraBoards', from: 3.45 },
+        ceiling: 'whitePanels', roof: 0.15, roofColor: 0xb4b6b2,
+      })),
+      // the stair houses between the tracks, from the islands' ends to the centre: tiled to the
+      // landing's floor, boarded over it with a ribbon of windows, open to the islands
+      ...([['western', -9.25, -2.25], ['eastern', 1.5, 8.25]] as const).flatMap(([w, a, b]): Block[] => [
+        { name: `${w} stair house`, plan: [[-90, a], [-74, a], [-74, b], [-90, b]], h: [-1.3, 3.85],
+          walls: 'ernkvistTiles', sides: [undefined, null, undefined, null], floor: 'greyTiles' },
+        { name: `${w} stair house, upper floor`, plan: [[-90, a], [-74, a], [-74, b], [-90, b]], h: [3.85, 7.6], from: 3.85, low: 6.4,
+          walls: 'satraHouse', sides: [undefined, undefined, undefined, null], ceiling: 'whitePanels', roof: 0.15, roofColor: 0xb4b6b2 },
+      ]),
+      // the lifts' housings on the stair houses' roofs
+      { name: "western lift's housing", plan: [[-74.6, -6.85], [-77.6, -6.85], [-77.6, -4.65], [-74.6, -4.65]], h: [6.4, 7.9], from: 6.4, walls: 'satraBoards', roof: 0.1, roofColor: 0xb4b6b2 },
+      { name: "eastern lift's housing", plan: [[-74.6, 3.65], [-77.6, 3.65], [-77.6, 5.85], [-74.6, 5.85]], h: [6.4, 7.9], from: 6.4, walls: 'satraBoards', roof: 0.1, roofColor: 0xb4b6b2 },
+      // Sätra centrum (OpenStreetMap's outline, which the city leaves out, and the laser scan's
+      // roofs): over the platforms' ends the paid hall and the ticket hall, the indoor square
+      // behind them under its raised roof, and round them the shops, white render outside
+      { name: 'centre over the tracks', plan: [[-90, -17.2], [-90, 13.8], [-104, 13.8], [-104, -17.2]], h: [3.85, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [undefined, null, null, undefined], floor: 'brownTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      { name: 'indoor square', plan: [[-104, -17.2], [-104, 13.8], [-126, 13.8], [-126, -17.2]], h: [3.85, 12.0], from: 3.85, ground: true,
+        walls: 'shopWindows', band: { walls: 'glazed', from: 8.2 }, floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x8f918e },
+      { name: 'centre south of the square', plan: [[-126, -17.2], [-126, 13.8], [-137, 13.8], [-137, -17.2]], h: [2.6, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [null, null, undefined, null], floor: 'darkTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      { name: "centre's south end", plan: [[-137, -17.2], [-137, 3.4], [-144.9, 2.9], [-143.5, -17.2]], h: [2.6, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [null, undefined, undefined, null], floor: 'darkTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      { name: "centre's west part", plan: [[-104, -17.2], [-105.4, -36.1], [-141.7, -37.9], [-143.5, -17.2]], h: [3.6, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [undefined, undefined, undefined, null], floor: 'darkTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      { name: "centre's east part", plan: [[-90, 13.8], [-92, 38.6], [-138.3, 36.2], [-137, 13.8]], h: [2.6, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [null, undefined, undefined, null], floor: 'darkTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      // its wing to the north-east, two storeys over the car park beside the tracks
+      { name: "centre's wing", plan: [[-76.3, 13.0], [-77.5, 39.2], [-92, 38.6], [-90, 13.0]], h: [-1.2, 3.85], from: 0.3, ground: true,
+        walls: 'whiteRender', sides: [undefined, 'shopWindows', null, undefined] },
+      { name: "centre's wing, upper floor", plan: [[-76.3, 13.0], [-77.5, 39.2], [-92, 38.6], [-90, 13.0]], h: [3.85, 8.2], from: 3.85, ground: true,
+        walls: 'satraCentre', sides: [undefined, undefined, null, undefined], roof: 0.2, roofColor: 0x8f918e },
+      { name: 'plant room on the wing', plan: [[-78, 22], [-78, 30], [-82, 30], [-82, 22]], h: [8.2, 10.5], from: 8.2, walls: 'greyPanels', roof: 0.1 },
+      // the glazed box on the roof over the ticket hall
+      { name: 'glazed box', plan: [[-97, -9], [-97, -3], [-103, -3], [-103, -9]], h: [8.2, 11.2], from: 8.2, walls: 'glazed', roof: 0.15, roofColor: 0x8f918e },
+      // the paid hall over the stair houses' heads and the ticket hall beyond the gates: walls of
+      // cream tiles with red dashes, the gates in a glass screen under a dark blue band, a white
+      // ceiling of panels
+      { name: "paid hall's west wall", plan: [[-90.1, -10.1], [-97, -10.1], [-97, -9.95], [-90.1, -9.95]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: "paid hall's east wall", plan: [[-90.1, 8.95], [-97, 8.95], [-97, 9.1], [-90.1, 9.1]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: 'beside the gates, west', plan: [[-96.95, -10.1], [-96.95, -7.0], [-97.05, -7.0], [-97.05, -10.1]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: 'beside the gates, east', plan: [[-96.95, 7.0], [-96.95, 9.1], [-97.05, 9.1], [-97.05, 7.0]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: 'glass screen, west', plan: [[-96.95, -7.0], [-96.95, -3.5], [-97.05, -3.5], [-97.05, -7.0]], h: [3.85, 6.25], from: 3.85, walls: 'glazed' },
+      { name: 'glass screen, east', plan: [[-96.95, 3.5], [-96.95, 7.0], [-97.05, 7.0], [-97.05, 3.5]], h: [3.85, 6.25], from: 3.85, walls: 'glazed' },
+      { name: 'band over the gates', plan: [[-96.9, -7.0], [-96.9, 7.0], [-97.1, 7.0], [-97.1, -7.0]], h: [6.25, 6.9], from: 6.25, walls: 'navyTiles' },
+      { name: "ticket hall's west wall", plan: [[-97, -7.1], [-104, -7.1], [-104, -6.95], [-97, -6.95]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: "ticket hall's east wall", plan: [[-97, 6.95], [-104, 6.95], [-104, 7.1], [-97, 7.1]], h: [3.85, 6.9], from: 3.85, walls: 'satraHall' },
+      { name: "halls' ceiling", plan: [[-90.05, -10.1], [-90.05, 9.1], [-104, 9.1], [-104, -10.1]], h: [6.9, 6.9], from: 6.9,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels' },
+      // in the square, the two storeys of shops built into it in 2006
+      { name: 'shops in the square', plan: [[-110, -6.5], [-110, 7.5], [-124, 7.5], [-124, -6.5]], h: [3.85, 9.8], from: 3.85,
+        walls: 'shopWindows', band: { walls: 'whitePanels', from: 7.45 }, roof: 0.15, roofColor: 0x8f918e },
+      // the passages from the square to the doors, white tiles on one side and shops on the other
+      { name: 'west passage, north side', plan: [[-118.35, -17.2], [-118.35, -36.6], [-118.45, -36.6], [-118.45, -17.2]], h: [3.85, 7.0], from: 3.85, walls: 'glossTiles' },
+      { name: 'west passage, south side', plan: [[-122.55, -17.2], [-122.55, -36.85], [-122.65, -36.85], [-122.65, -17.2]], h: [3.85, 7.0], from: 3.85, walls: 'shopWindows' },
+      { name: "west passage's ceiling", plan: [[-118.4, -17.2], [-118.4, -36.7], [-122.6, -36.9], [-122.6, -17.2]], h: [7.0, 7.0], from: 7.0,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels' },
+      { name: 'east passage, north side', plan: [[-111.65, 13.8], [-111.65, 37.6], [-111.75, 37.6], [-111.75, 13.8]], h: [3.85, 7.0], from: 3.85, walls: 'glossTiles' },
+      { name: 'east passage, south side', plan: [[-115.85, 13.8], [-115.85, 37.4], [-115.95, 37.4], [-115.95, 13.8]], h: [3.85, 7.0], from: 3.85, walls: 'shopWindows' },
+      { name: "east passage's ceiling", plan: [[-111.7, 13.8], [-111.7, 37.6], [-115.9, 37.4], [-115.9, 13.8]], h: [7.0, 7.0], from: 7.0,
+        walls: 'whitePanels', sides: [null, null, null, null], ceiling: 'whitePanels' },
+      // the doors: onto Sätratorget under a glazed canopy, and to the east
+      { name: 'doors onto Sätratorget', plan: [[-117.3, -36.74], [-123.3, -37.04], [-123.3, -37.12], [-117.3, -36.82]], h: [3.85, 8.2], from: 3.85, walls: 'satraEntrance' },
+      { name: 'canopy over the doors', plan: [[-117.0, -36.9], [-117.0, -40.2], [-123.6, -40.2], [-123.6, -37.2]], h: [6.7, 6.7], from: 6.7,
+        walls: 'glazed', sides: [null, null, null, null], ceiling: 'glazed' },
+      { name: 'east doors', plan: [[-111, 37.67], [-117, 37.35], [-117, 37.43], [-111, 37.75]], h: [3.85, 8.2], from: 3.85, walls: 'satraEntrance' },
+      // Kungssätravägen's bridge over the platforms
+      { name: "Kungssätravägen's bridge", plan: [[36, -26], [50, -26], [50, 26], [36, 26]], h: [4.05, 4.95], from: 4.05,
+        walls: 'boardConcrete', floor: 'boardConcrete', roof: 0.08, roofColor: 0x46484a },
+      // the retaining wall beyond the western track, its upper part smooth, falling northwards
+      { name: 'retaining wall', plan: [[-90, -15.95], [30, -15.95], [30, -15.65], [-90, -15.65]], h: [-1.3, 3.9], low: 0.6,
+        walls: 'uprightBoards', roof: 0.02, roofColor: 0x9a978f },
+    ],
+    art: [
+      // the rooflights down the middle of the houses' roofs
+      ...[-51.5, -54.2, -56.9, -59.6, -62.3, -65.0, -67.7, -70.4].map((s): Art => {
+        const h = 4.05 + (6.3 - 4.05) * (-49 - s) / 25;
+        return { kind: 'rooflights', at: [[s, -7.0], [s, 5.75]], size: 0.6, ceiling: h - 0.01, top: h + 0.3 };
+      }),
+      ...[-81.5, -85.5].map((s): Art => {
+        const h = 6.4 + (7.6 - 6.4) * (-74 - s) / 16;
+        return { kind: 'rooflights', at: [[s, -5.75], [s, 4.88]], size: 0.6, ceiling: h - 0.01, top: h + 0.3 };
+      }),
+      // the canopy's yellow posts before the doors onto the square
+      { kind: 'columns', at: [[-117.3, -39.9], [-123.3, -39.9]], from: 3.83, to: 6.7, size: 0.16, color: 0xe0b13a },
+      // the bridge's piers on the islands
+      { kind: 'columns', at: [[43, -6.85], [43, 4.7]], from: 0, to: 4.05, size: 0.8, color: 0xb2afa8 },
+      // lamp posts on the open north ends, one with the name
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.5, at: [[33.5, -6.85], [56, -6.85], [68, -6.85], [33.5, 5.0], [56, 4.1], [68, 3.6]] },
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.5, sign: 2.6, at: [[62, -6.85], [62, 3.85]] },
+    ],
+    shelters: [
+      { s: [-5.3, -0.6], u: [-1.6, 1.6] }, { s: [14.5, 19.3], u: [-1.6, 1.6] },
+      { s: [-18.5, -13.7], u: [-1.6, 1.6], under: 0 }, { s: [7.9, 12.7], u: [-1.6, 1.6], under: 0 },
+    ],
+    benches: [
+      { at: [-35.6, -22.4, -9.2, 10.6], double: true, wood: true },
+      { at: [-29.0, -2.6, 17.2], double: true, wood: true, roof: 0 },
+    ],
+    fences: [
+      // white railings across the islands' north ends
+      { kind: 'rails', color: 0xeeeeec, h: [0, 1.1], points: [[73.9, -11.4], [73.9, -2.3]] },
+      { kind: 'rails', color: 0xeeeeec, h: [0, 1.1], points: [[73.9, 1.3], [73.9, 4.9]] },
+      // the bridge's railings
+      { kind: 'rails', color: 0x8f9498, h: [4.95, 6.05], points: [[36.1, -26], [36.1, 26]] },
+      { kind: 'rails', color: 0x8f9498, h: [4.95, 6.05], points: [[49.9, -26], [49.9, 26]] },
+      // chain-link on the retaining wall
+      { h: [3.9, 5.6], points: [[-90, -15.8], [-30, -15.8, -1.65], [30, -15.8, -3.3]] },
     ],
   },
 };

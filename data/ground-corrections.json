@@ -162,6 +162,12 @@
       "outline": [-5836.6, 3399.3, -5827.1, 3391.9, -5816.7, 3405.4, -5806.9, 3418.0, -5817.9, 3426.6, -5825.4, 3412.1],
       "heights": [35.0, 34.1, 34.46, 34.64, 34.82, 34.71],
       "why": "The square in front of Mälarhöjden's station, along its whole front at the foot of the church's hill, from 6–9 m out to 5–6 m in under the front (whose walls stand on it). Lantmäteriet's laser scan (2021) has it at 34.6–34.8 m right up to the front, falling to 34.1–34.5 m towards Slättgårdsvägen and the corner of Hägerstensvägen; the elevation model's 5 m grid smooths the hill behind into it, up to 36.0–36.6 m at the doors, which would bury their foot (the hall's floor, behind them, is at 34.7 m). The plane is fitted to the laser scan's square and carried in under the front, so that the 5 m grid's slope down from the hill stays inside the building."
+    },
+    {
+      "name": "Sätra: Sätra centrum, over the tracks' tunnels",
+      "outline": [-7865.0, 5150.1, -7835.5, 5159.6, -7835.8, 5160.6, -7808.0, 5169.5, -7816.2, 5190.0, -7824.2, 5211.0, -7853.0, 5201.8, -7856.5, 5209.6, -7881.4, 5201.6, -7904.0, 5190.9, -7896.3, 5170.6, -7891.1, 5156.7, -7870.4, 5164.5],
+      "heights": [40.7, 40.66, 40.66, 40.62, 40.62, 40.62, 40.66, 40.66, 40.7, 40.7, 40.7, 40.7, 40.7],
+      "why": "South of Sätra's platforms the three tracks run on in tunnels under Sätra centrum, which stands across them, its floor 3.85 m over the platforms. The elevation model has the cutting's floor under the building, 0–2.6 m over the platforms, which put the ground round its doors in a pit and its floor under the street. Lantmäteriet's laser scan has the square before its west doors (Sätratorget) at 40.6–40.8 m, the street by its north-west corner at 40.7 m and the ground before its east side at 40.5–40.7 m. The outline is the building's (its roof in the laser scan) and 4 m round its west and east sides, leaving out its wing to the north-east, where the ground falls to the car park beside the tracks, and the yards on its south side, a metre and more lower."
     }
   ],
   "open": [
@@ -231,6 +237,11 @@
       "outline": [[-4814.9, 3015.1], [-4796.5, 3012.8], [-4793.1, 3040.6], [-4811.5, 3042.9]],
       "ground": 23.0,
       "why": "Axelsberg's deck over the tracks' east end: the same outline as its deck (above), which sets the ground's height there. By the elevation model the tunnels under it stood in a trench; raised to the deck, they are buried under it."
+    },
+    {
+      "outline": [[-7865.0, 5150.1], [-7835.5, 5159.6], [-7835.8, 5160.6], [-7808.0, 5169.5], [-7816.2, 5190.0], [-7824.2, 5211.0], [-7853.0, 5201.8], [-7856.5, 5209.6], [-7881.4, 5201.6], [-7904.0, 5190.9], [-7896.3, 5170.6], [-7891.1, 5156.7], [-7870.4, 5164.5]],
+      "ground": 40.6,
+      "why": "Sätra centrum over the tracks' tunnels: the same outline as its deck (above), which sets the ground's height there. By the elevation model the tunnels' ground was the cutting's floor under the building, so they stood in the open; raised to the street, they are buried under it."
     }
   ],
   "paved": [
@@ -345,6 +356,10 @@
     {
       "outline": [[-4815.9, 3013.2], [-4794.6, 3010.6], [-4790.7, 3042.3], [-4812.0, 3044.9]],
       "why": "Axelsberg: the deck over the tracks' east end, the station's building on it and the footbridge along its front, asphalt and paving slabs (photographs, 2014 and 2019). With no buildings right beside it over the cutting, the game had it grass."
+    },
+    {
+      "outline": [[-7913.4, 5145.2], [-7890.0, 5156.5], [-7887.4, 5158.1], [-7892.5, 5171.8], [-7900.2, 5192.1], [-7907.4, 5189.3], [-7914.0, 5186.6], [-7920.9, 5195.2], [-7922.2, 5194.2], [-7940.5, 5181.3], [-7926.0, 5162.0], [-7923.0, 5158.1]],
+      "why": "Sätra: Sätratorget, the square west of Sätra centrum, granite setts and concrete slabs (OpenStreetMap's outline; photographs, 2012 to 2016). With few buildings beside it, the game had it grass."
     }
   ],
   "shallow": [
