@@ -150,6 +150,11 @@
       "station": "Fittja",
       "height": 19.9,
       "why": "Wikidata's 18.1 m put the platform 1.7 m under the real one. Lantmäteriet's laser scan (2020) has the platform's surface at 19.72–19.83 m along its open south-western end, falling a little north-eastwards, the ballast beside it at 18.4–18.6 m, the roof's top at 23.1–23.3 m, and the floor of the walkway past the ticket hall's doors, over the tracks, at 23.8 m. Set at 19.9 m, which the line's smoothing brings down to 19.73 m."
+    },
+    {
+      "station": "Hallunda",
+      "height": 32.45,
+      "why": "Wikidata's 31.8 m (from the book \"Stockholm under\") put the platform 0.7 m under the real one. Lantmäteriet's laser scan (2020) has the platform's surface at 32.7 m on its open western end, the rails beside it falling from 31.5 m there to 31.1 m at the eastern end, the roof's top at 36.0–36.4 m, the ticket hall's roof between the tracks at 33.0 m and the footbridge's at 30.6–30.9 m. The platform is held level: set at its middle's height, 32.45 m."
     }
   ],
   "uncovered": [

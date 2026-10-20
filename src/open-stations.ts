@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -43,6 +43,8 @@ class Line {
     for (let i = 1; i < p.length; i++) if (s <= p[i][0]) return p[i - 1][k] + (p[i][k] - p[i - 1][k]) * (s - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
     return p[p.length - 1][k];
   }
+  // the roof's middle at s, by its shape, from the platform's line
+  middle(s: number) { return this.shape ? this.shaped(s, 1) : 0; }
   // how wide the roof is at s, by its shape
   width(s: number, otherwise: number) { return this.shape ? this.shaped(s, 2) : otherwise; }
   private mid(s: number): XYZ {
@@ -319,6 +321,7 @@ export class OpenLook {
       else if (a.kind === 'gallery') this.gallery(a, frame, on);
       else if (a.kind === 'globes') this.globes(a, frame, on);
       else if (a.kind === 'discs') this.discs(a, frame, on);
+      else if (a.kind === 'prismRods') this.prismRods(a, frame, group);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1111,7 +1114,14 @@ export class OpenLook {
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
     // the rows of columns across the roof at s, and the beams along them
     const C = R.columns, mid = C.offset ?? 0, bw = R.beamWidth ?? 0.2;
-    const rows = (s: number) => C.edges !== undefined ? [-(half(s) - C.edges), half(s) - C.edges] : (C.pair ? [-C.pair / 2, C.pair / 2] : [0]).map((u) => u + mid);
+    const knot = (s: number, k: 1 | 2) => {
+      const p = C.rows!;
+      if (s <= p[0][0]) return p[0][k];
+      for (let i = 1; i < p.length; i++) if (s <= p[i][0]) return p[i - 1][k] + (p[i][k] - p[i - 1][k]) * (s - p[i - 1][0]) / (p[i][0] - p[i - 1][0]);
+      return p[p.length - 1][k];
+    };
+    const rows = (s: number) => C.rows ? [knot(s, 1), knot(s, 2)].map((u) => u - line.middle(s))
+      : C.edges !== undefined ? [-(half(s) - C.edges), half(s) - C.edges] : (C.pair ? [-C.pair / 2, C.pair / 2] : [0]).map((u) => u + mid);
     // (a raised bay's covering stands on the roof's own)
     const lanterns = (R.lanterns?.at ?? []).map((a) => [a - R.lanterns!.length / 2, a + R.lanterns!.length / 2]);
     for (let i = 0; i < n; i++) {
@@ -1860,6 +1870,19 @@ export class OpenLook {
       for (const d of [-ls / 3, ls / 3]) box(rod, frame.at(s + d, u, (top + a.ceiling) / 2), 1, 0, 0.02, a.ceiling - top, 0.02);
       slab.poly(Array.from({ length: n }, (_, i) => [...p(i, a.floor + 0.012, lu / 2, lu / 2), 0, 0]));
     });
+  }
+
+  // Tamura's rods: thin cylinders of coloured plexiglas, lit by the skylight over them, the
+  // rainbow running along each from end to end.
+  private prismRods(a: PrismRods, frame: Frame, group: THREE.Group) {
+    const glow = this.mat('prismRod', () => new THREE.MeshBasicMaterial({ map: T.rainbowRod(), transparent: true, opacity: 0.9 }));
+    for (const [p, q] of a.rods) {
+      const A = new THREE.Vector3(...frame.at(...p)), B = new THREE.Vector3(...frame.at(...q)), d = B.clone().sub(A);
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(a.thick / 2, a.thick / 2, d.length(), 8), glow);
+      mesh.position.copy(A.clone().add(B).multiplyScalar(0.5));
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+      group.add(mesh);
+    }
   }
 
   // The gallery along the bank beyond Axelsberg's southern track: its deck, pillars and lights,

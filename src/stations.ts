@@ -468,9 +468,12 @@ export class Stations {
     const sill = room?.sill === undefined ? undefined : this.open!.frame.st.platformY + room.sill;
     const parapet = p.kind === 'incline' ? room?.parapet : undefined;
     // (the walls facing left, to −u, in the room's `left` finish if it has one; those facing
-    // back, to −s, in its `back` finish)
-    const facing = (ox: number, oz: number) => (room?.left && ox * -this.open!.frame.fz + oz * this.open!.frame.fx < -0.5 ? room.left
-      : room?.back && ox * this.open!.frame.fx + oz * this.open!.frame.fz < -0.5 ? room.back : finish);
+    // back, to −s, in its `back` finish; and those facing front, to +s, at its front end, within
+    // a metre of it, in its `front` finish)
+    const F = this.open?.frame;
+    const facing = (ox: number, oz: number, x: number, z: number) => (room?.left && ox * -F!.fz + oz * F!.fx < -0.5 ? room.left
+      : room?.back && ox * F!.fx + oz * F!.fz < -0.5 ? room.back
+      : room?.front && ox * F!.fx + oz * F!.fz > 0.5 && F!.s(x, z) > room.s[1] - 1 ? room.front : finish);
     if (room?.walls === null && p.kind === 'floor') return;
     for (let e = 0; e < n; e++) {
       const a = corners[e], b = corners[(e + 1) % n];
@@ -484,7 +487,8 @@ export class Stations {
       let run: { t0: number; t1: number; bottom: 'floor' | number } | null = null;
       const flush = () => {
         if (!run) return;
-        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz), sill, parapet);
+        const t = (run.t0 + run.t1) / 2;
+        this.wallQuad(p, m, a, b, run.t0, run.t1, run.bottom, ceiling, cut, len, facing(ox, oz, a[0] + (b[0] - a[0]) * t, a[2] + (b[2] - a[2]) * t), sill, parapet);
         run = null;
       };
       for (let i = 0; i < pieces; i++) {

@@ -4757,6 +4757,15 @@ export function tRoundel() {
 
 // A station clock's face: white, black bars for the hours and strokes for the minutes, black
 // hands (at ten past ten).
+// A rod of clear plexiglas coloured along its length through the rainbow, red at one end and
+// violet at the other (Kazuko Tamura's at Hallunda).
+export function rainbowRod() {
+  const [c, x] = canvas(8, 256), g = x.createLinearGradient(0, 0, 0, 256);
+  ['#e8312e', '#f07c23', '#f4d83a', '#5dbb46', '#3cc0d8', '#2f62c9', '#8a3fbf'].forEach((k, i, a) => g.addColorStop(i / (a.length - 1), k));
+  x.fillStyle = g; x.fillRect(0, 0, 8, 256);
+  return toTexture(c, { repeat: false });
+}
+
 export function clockFace() {
   const N = 256, [c, x] = canvas(N);
   x.fillStyle = '#f4f4f0'; x.fillRect(0, 0, N, N);
@@ -6010,9 +6019,11 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   fittjaHall: [2.4, 3.6], fittjaCeiling: [3.6, 3.6], fittjaShops: [6.0, 4.2], fittjaWall: [2.4, 6.6],
   albyPanels: [4.8, 3.0], albyDoors: [2.4, 2.2], albyMaroon: [1.2, 3.0], albyRock: [CAVE_REPEAT, 4.4], albyGreen: [4.8, 4.4], albyCopper: [1.5, 1.2],
   albyFront: [2.2, 5.6],
+  hallundaFloor: [2.4, 2.4], hallundaCeiling: [2.4, 2.4], hallundaSoffit: [2.4, 2.4], hallundaGlazed: [1.2, 3.0], hallundaMesh: [2.4, 3.0], hallundaFront: [3.0, 5.0],
+  hallundaFascia: [2.4, 1.2],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -9269,6 +9280,82 @@ export function finish(name: Finish) {
       band(3.2, 3.3, mar); pane(3.3, 5.5, mar, 0.1);
       x.fillStyle = mar; x.fillRect(W / 2 - 0.05 * PX, Y(5.5), 0.1 * PX, 2.2 * PX);
       band(5.5, 5.6, mar);
+      break;
+    }
+    case 'hallundaFloor': {
+      // Hallunda's ticket hall: polished dark granite, 1.2 m squares in fine pale joints
+      // (photographs, 2018)
+      x.fillStyle = '#8c8c8a'; x.fillRect(0, 0, W, H);
+      const t = 1.2 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 52 + Math.floor(r() * 8);
+        x.fillStyle = `rgb(${v},${v + 1},${v + 5})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      speckle(x, W, H, 9000, 0.1, 160, true);
+      speckle(x, W, H, 6000, 0.12, 20);
+      break;
+    }
+    case 'hallundaCeiling':
+    case 'hallundaSoffit': {
+      // olive-green panels, 0.6 by 1.2 m, in fine dark joints, a round downlight in every other one
+      // (the soffit round the skylight dark grey)
+      const soffit = name === 'hallundaSoffit';
+      x.fillStyle = soffit ? '#5a5c5f' : '#4d5427'; x.fillRect(0, 0, W, H);
+      const a = 0.6 * PX, b = 1.2 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = Math.floor(r() * 8);
+        x.fillStyle = soffit ? `rgb(${150 + v},${153 + v},${156 + v})` : `rgb(${118 + v},${126 + v},${66 + v})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+      }
+      for (let i = 0; i * a < W; i += 2) for (let j = 0; j * b < H; j++) {
+        const cx = i * a + a / 2, cy = j * b + b / 2;
+        x.fillStyle = '#c9cbc4'; x.beginPath(); x.arc(cx, cy, 0.1 * PX, 0, Math.PI * 2); x.fill();
+        x.fillStyle = '#fffdf2'; x.beginPath(); x.arc(cx, cy, 0.075 * PX, 0, Math.PI * 2); x.fill();
+      }
+      break;
+    }
+    case 'hallundaGlazed': {
+      // glass in lime-green steel frames 1.2 m apart, a transom every 3 m (Hallunda's vestibule,
+      // lift tower, skylight and entrance on the hill)
+      const g = '#86a83a';
+      pane(0, 3, g, 0.1); band(2.92, 3, g); band(0, 0.04, g);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(2.92), 2, 2.88 * PX);
+      break;
+    }
+    case 'hallundaMesh': {
+      // Hallunda's footbridge: a concrete upstand to 0.8 m with a steel handrail along it, then
+      // panels of lime-green perforated sheet to 2.9 m, between lime-green portal frames 2.4 m
+      // apart (photograph, 2018)
+      const g = '#86a83a';
+      band(0, 0.8, '#a7a49d');
+      x.fillStyle = 'rgba(70,68,64,0.3)'; x.fillRect(0, Y(0.8), W, 2);
+      x.clearRect(0, Y(2.9), W, 2.1 * PX);
+      x.fillStyle = '#9dbd5c';
+      const p = 0.045 * PX;
+      for (let i = 0; i * p < W; i++) for (let j = 0; j * p < 2.1 * PX; j++) {
+        const cx = i * p + ((j % 2) * p) / 2, cy = Y(2.9) + j * p;
+        x.fillRect(cx, cy, p * 0.55, p * 0.55);
+      }
+      band(2.9, 3.0, g);
+      x.fillStyle = g; x.fillRect(0, Y(3), 0.09 * PX, 3 * PX); x.fillRect(W - 0.09 * PX, Y(3), 0.09 * PX, 3 * PX);
+      x.fillStyle = '#c9ccce'; x.fillRect(0, Y(0.98), W, 0.05 * PX);
+      break;
+    }
+    case 'hallundaFront': {
+      // the fronts of Hallunda's ticket hall onto its high passage: glass walls and sliding doors
+      // in stainless frames to 2.7 m, a dark grey band for the signs to 3.4 m, a steel ledge, and
+      // glass in steel frames above (photographs, 2018)
+      const st = '#a9aeb1';
+      band(0, 0.12, st); pane(0.12, 2.6, st, 0.12);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.04 * PX, Y(2.6), 0.08 * PX, 2.48 * PX); x.fillRect(0, Y(1.0), W, 0.05 * PX);
+      band(2.6, 2.7, st); band(2.7, 3.4, '#2c2e31');
+      band(3.4, 3.5, st); pane(3.5, 4.9, st, 0.08); band(4.9, 5.0, st);
+      break;
+    }
+    case 'hallundaFascia': {
+      // lime-green sheet metal in panels 1.2 m wide, a dark edge along its top
+      x.fillStyle = '#86a83a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 1.2 * PX < W; i++) { x.fillStyle = 'rgba(40,52,16,0.35)'; x.fillRect(i * 1.2 * PX, 0, 2, H); }
+      band(1.12, 1.2, '#2e3030');
       break;
     }
     case 'skhEndWall': {

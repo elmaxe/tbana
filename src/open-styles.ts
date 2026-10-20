@@ -127,9 +127,12 @@ export interface ButterflyRoof {
   // a round hole through it, its middle `hole.at` high, `hole.r` across; `gaps`, none between
   // these pairs of `s` (where a building on the platform carries the roof); `twin`, each column two,
   // this far apart along the platform (Vårby gård's); `across`, each column two posts this far
-  // apart across the platform, under its beam (Fittja's)
+  // apart across the platform, under its beam (Fittja's); `rows`, the two rows of columns at
+  // points along the platform ([s, the left row's u, the right row's u], from the platform's line,
+  // not the roof's middle), straight between them and level past them: rows that part as the
+  // platform widens, more slowly than its edges (Hallunda's)
   columns: {
-    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number; twin?: number; across?: number;
+    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number; twin?: number; across?: number; rows?: [number, number, number][];
     between?: [number, number]; gaps?: [number, number][]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
     portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
@@ -207,11 +210,11 @@ export interface Paving {
 // is higher (stairs climbing out of a trench into a glass house over it). `lamps`: its
 // open floors, under a block's roof, lit by a row of lamps hung this high over them.
 // `left`: the walls on the left (facing −u, looking along the platform) in this finish instead;
-// `back`, those at the back (facing −s).
+// `back`, those at the back (facing −s); `front`, those at the front (facing +s).
 export interface Room {
   name: string;
   s: [number, number]; u?: [number, number]; h: [number, number];
-  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish; left?: Finish; back?: Finish;
+  walls?: Finish | null; floor?: Finish | null; ceiling?: Finish; stairs?: Finish; left?: Finish; back?: Finish; front?: Finish;
   roof?: number; slab?: number; sill?: number; parapet?: number; lamps?: number;
 }
 
@@ -438,7 +441,14 @@ export type Finish =
   | 'albyGreen'     // the rock painted green over a concrete ledge (beside Alby's escalators)
   | 'albyCeiling'   // dark expanded metal, a tube lamp along the station's s every 1.5 m (Alby's corridor, across it)
   | 'albyCopper'    // copper-brown expanded metal in panels 1.5 by 1.2 m, a ceiling's
-  | 'albyFront';    // glass doors in brushed steel to 2.4 m, a band of crinkled steel, glass in maroon frames above (Alby's way in from Alby centrum)
+  | 'albyFront'    // glass doors in brushed steel to 2.4 m, a band of crinkled steel, glass in maroon frames above (Alby's way in from Alby centrum)
+  | 'hallundaFloor'   // polished dark granite in 1.2 m squares (Hallunda's ticket hall)
+  | 'hallundaCeiling' // olive-green panels 0.6 by 1.2 m, round downlights in every other one
+  | 'hallundaSoffit' // the same in dark grey
+  | 'hallundaGlazed'  // glass in lime-green steel frames 1.2 m apart, a transom every 3 m
+  | 'hallundaMesh'    // a concrete upstand to 0.8 m and a handrail, lime-green perforated sheet to 2.9 m between lime-green frames 2.4 m apart (Hallunda's footbridge)
+  | 'hallundaFront'   // glass walls and sliding doors in stainless frames to 2.7 m, a dark grey band to 3.4 m, glass in steel frames above to 5 m
+  | 'hallundaFascia'; // lime-green sheet metal, a dark edge along its top
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -488,7 +498,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -584,6 +594,11 @@ export interface Globes { kind: 'globes'; at: [number, number, number][]; height
 // (a slowly pulsing coloured light, caught here in one of `colors` each); and under each, its
 // round shape again in a slab of pale concrete let into the paving `floor` high.
 export interface Discs { kind: 'discs'; at: [number, number][]; size: [number, number]; thick: number; bottom: number; ceiling: number; floor: number; colors: number[] }
+
+// Kazuko Tamura's rods of plexiglas (1993) in the high passage by Hallunda's ticket hall: long thin
+// rods, `thick` across, each coloured along its length through the rainbow, criss-crossing under
+// the skylight from one end ([s, u, h], in the station's frame) to the other.
+export interface PrismRods { kind: 'prismRods'; rods: [[number, number, number], [number, number, number]][]; thick: number }
 
 // The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
 // over the bank, its front along `front` ([s, u] points, facing the platform), `depth` m deep
@@ -8945,6 +8960,138 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'bars', h: [4.1, 5.2], points: [[74.6, -26], [74.6, 13.3]] },
       { kind: 'bars', h: [4.1, 5.2], points: [[78.1, -26], [78.1, -3.5]] },
       { kind: 'bars', h: [4.05, 5.15], points: [[107.9, -25.5], [107.9, -3.75]] },
+    ],
+  },
+  // Hallunda (1975): an island platform in the open on a shelf at the northern foot of the hill of
+  // Eriksberg, widening eastwards as its tracks part, under one long flat roof. From photographs
+  // (2006, 2018): lime-green steel, two rows of columns under beams along the platform and beams
+  // across them every 2.2 m out to the edges, the underside of ribbed grey sheet, a lime fascia;
+  // grey pavers in a running bond, a pale edge and a dark strip for the blind; glazed shelters
+  // between the rows; chain-link beyond the tracks, the rock beyond the southern one, and over the
+  // drop north of the northern one a parapet of brown slats. At the eastern end a vestibule glazed
+  // in stainless steel over the heads of the escalator and the stair down to the ticket hall
+  // between the tracks, a lift in a lime-framed glass tower at its north-eastern corner. The hall:
+  // board-marked concrete, a floor of polished dark granite, an olive-green ceiling with round
+  // downlights; past the gates its glazed fronts with the name over them face a high passage under
+  // a skylight framed in lime green, where Kazuko Tamura's rods of rainbow-coloured plexiglas
+  // (1993) criss-cross. North from it a footbridge with lime-green frames and perforated sides
+  // runs to a glass house over the escalator and stairs down to the bus station; south a passage
+  // under the southern track to the escalators and the inclined lift up to the glazed entrance on
+  // the hill, under its deep lime fascia. The laser scan has the roof (its top 3.5–3.9 m over the
+  // platform, its southern edge following the platform's), the hall's roof (0.5 m over the
+  // platform), the skylight's (3.3 m) and the footbridge's (30.6–30.9 m); OpenStreetMap the
+  // vestibule's doors, the hall's and the entrance's outlines. Guesses: the columns' places along
+  // the platform and how the rows part (from the photographs' proportions), the hall's floor and
+  // inside heights, the north end's glass house, the passage south, and the rods' number and
+  // places.
+  'Hallunda': {
+    roof: {
+      kind: 'butterfly',
+      from: -72, to: 76, width: 11,
+      shape: [[-72, -2.29, 7.7], [-56, -2.04, 8.2], [-45, -1.79, 8.7], [-32, -1.42, 9.45], [-12, -0.93, 10.45], [8, -0.58, 11.2],
+        [24, -0.09, 12.2], [42, 0.17, 12.95], [58, 0.44, 13.7], [68, 0.56, 14.2], [76, 0.7, 14.7]],
+      middle: 3.3, edge: 3.3, thick: 0.35, fascia: 0.35,
+      rafters: 2.2, rafterSize: [0.15, 0.3], rafterColor: 0x86a83a, rafterAt: -66.9, deck: 'ribbed',
+      beam: 0.65, beamWidth: 0.2,
+      columns: { every: 9.5, at: -67, size: 0.22, plinth: { size: 0.32, height: 0.05 }, rows: [[-75, -3.0, -0.8], [35, -2.8, 1.2], [76, -2.7, 2.0]], gaps: [[59.5, 77]] },
+      lamps: { offset: 0, edges: 1.4, length: 1.5, every: 4.4 },
+      colors: { underside: 0xb9bbb8, fascia: 0x86a83a, top: 0xb8b8bf, steel: 0x86a83a },
+      signs: { at: [-42.5, -4.5, 33.0], back: '', ahead: 'Utgång' },
+      clocks: [[58.5, -2.6]],
+      // (trains keep left: those towards the city stop at the northern edge)
+      boards: [
+        { s: 40.5, u: -4.4, toward: 'T-Centralen', trains: ['13 Ropsten  4 min', '13 Ropsten  14 min'] },
+        { s: 40.5, u: 3.2, toward: 'Norsborg', trains: ['13 Norsborg  1 min', '13 Norsborg  11 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.2], slabs: 1.2, paverSize: [0.3, 0.6], mix: 0,
+      colors: { edge: 0xb3b2ae, tactile: 0x48474b, slab: 0x8d8c90, pavers: 0x8d8c90, face: 0x8a8884 },
+      pattern: 'bond',
+    },
+    rooms: [
+      // (the platform's paving on into the vestibule)
+      { name: 'the vestibule', s: [60, 75.4], u: [-5, 8], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: 'escalator and stair down to the ticket hall', s: [64, 76.2], u: [-3, 6], h: [-5.6, 0.1], walls: 'boardConcrete', floor: 'hallundaFloor', ceiling: 'hallundaCeiling', stairs: 'boardConcrete' },
+      // (its front to the high passage glazed, under the name)
+      { name: 'ticket hall', s: [76, 96.3], u: [-4, 8.5], h: [-5.6, -4], walls: 'boardConcrete', front: 'hallundaFront', floor: 'hallundaFloor', ceiling: 'hallundaCeiling' },
+      // (its walls and ceiling are its block's)
+      { name: 'high passage', s: [96.3, 108], u: [-3.5, 8.5], h: [-5.6, -4], walls: null, floor: 'hallundaFloor' },
+      { name: 'footbridge', s: [95, 112], u: [-103.2, -3.3], h: [-5.6, -4], walls: null, floor: 'asphalt', ceiling: 'ribbedMetal' },
+      { name: 'glass house over the stairs down to the bus station', s: [75, 112], u: [-112, -100], h: [-13, -4], walls: null, floor: 'asphalt', ceiling: 'ribbedMetal', stairs: 'boardConcrete', parapet: 1.0 },
+      { name: 'at the street, by the lift', s: [108, 114], u: [-103, -98], h: [-13, -10], walls: null, floor: 'asphalt' },
+      { name: 'passage south', s: [97, 106], u: [7.5, 31], h: [-5.6, -4], walls: 'boardConcrete', floor: 'hallundaFloor', ceiling: 'hallundaCeiling' },
+      { name: 'escalators up the hill', s: [95, 108], u: [30, 64.6], h: [-5.6, 14.5], walls: 'boardConcrete', ceiling: 'hallundaCeiling', stairs: 'boardConcrete' },
+      // (its walls are its block's)
+      { name: 'entrance on the hill', s: [94, 108], u: [64.6, 70], h: [13.5, 14.5], walls: null, floor: 'hallundaFloor' },
+    ],
+    blocks: [
+      // the vestibule at the platform's eastern end, glazed in stainless steel, its doors to the
+      // west; its eastern end over the flights in lime-green frames
+      { name: 'vestibule', plan: [[60.6, -3.2], [75.3, -3.2], [75.3, 7.6], [60.6, 7.6]], h: [0, 3.2],
+        walls: 'glazed', sides: [undefined, 'hallundaGlazed', undefined, 'hallundaFront'], roof: 0.12, roofColor: 0x8c8f90 },
+      // the lift's glass tower at its north-eastern corner
+      { name: 'lift tower', plan: [[75.3, -5.4], [78.3, -5.4], [78.3, -2.6], [75.3, -2.6]], h: [-5.47, 3.6], from: -5.47,
+        walls: 'hallundaGlazed', roof: 0.15, roofColor: 0x55585b, onPlatform: true },
+      // the ticket hall's flat roof between the tracks, just over the platform
+      { name: "ticket hall's roof", plan: [[75.3, -3.5], [96.3, -3.5], [96.3, 4.5], [75.3, 4.5]], h: [-1.7, 0.53], from: -1.7,
+        walls: 'boardConcrete', roof: 0.25, roofColor: 0xc6c5c2, onPlatform: true },
+      // the slab of gravel over the hall's southern part, level with the southern track
+      { name: 'slab over the hall', plan: [[75.3, 4.5], [96.3, 4.5], [96.3, 8.0], [75.3, 8.0]], h: [-1.95, -1.9], from: -1.95,
+        walls: 'boardConcrete', sides: [null, null, null, null], roof: 0.35, roofColor: 0x8a8986 },
+      // the high passage past the hall's fronts, its walls board-marked concrete; the fronts glazed
+      // under the name
+      { name: 'high passage', plan: [[96.3, -3.5], [107.6, -3.5], [107.6, 8.0], [96.3, 8.0]], h: [-5.47, 0.53], from: -5.47,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, 'hallundaFront'], onPlatform: true, ground: true,
+        nameSign: { side: 3, at: 0.5, length: 3.4, bottom: -2.72, inside: true, black: true } },
+      // its soffit round the skylight, dark, with round downlights
+      { name: 'soffit (west)', plan: [[96.3, -3.5], [99.0, -3.5], [99.0, 8.0], [96.3, 8.0]], h: [-0.1, 0.53], from: -0.1,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'hallundaSoffit', roof: 0.25, roofColor: 0xc6c5c2 },
+      { name: 'soffit (east)', plan: [[105.0, -3.5], [107.6, -3.5], [107.6, 8.0], [105.0, 8.0]], h: [-0.1, 0.53], from: -0.1,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'hallundaSoffit', roof: 0.25, roofColor: 0xc6c5c2 },
+      { name: 'soffit (south)', plan: [[99.0, 4.2], [105.0, 4.2], [105.0, 8.0], [99.0, 8.0]], h: [-0.1, 0.53], from: -0.1,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'hallundaSoffit', roof: 0.25, roofColor: 0xc6c5c2 },
+      // the skylight over the passage, glazed in lime-green frames
+      { name: 'skylight', plan: [[99.0, -3.5], [105.0, -3.5], [105.0, 4.2], [99.0, 4.2]], h: [0.53, 3.33], from: 0.53,
+        walls: 'hallundaGlazed', ceiling: 'hallundaGlazed' },
+      // SL's booth beside the gates
+      { name: "SL's booth", plan: [[85.6, 5.9], [89.4, 5.9], [89.4, 7.7], [85.6, 7.7]], h: [-5.47, -3.0], from: -5.47,
+        walls: 'greyBooth', roof: 0.06, roofColor: 0xd0d2d1, inRoom: true },
+      // the footbridge north over Hallundavägen, under the northern track at its root
+      { name: 'footbridge', plan: [[100.0, -3.5], [104.6, -3.5], [107.9, -101.0], [103.3, -101.0]], h: [-6.3, -1.72], from: -5.47,
+        walls: 'hallundaMesh', sides: [null, undefined, null, undefined], roof: 0.3, roofColor: 0x8f9192, onPlatform: true },
+      // the glass house at its northern end, over the escalator and the stairs down west to the
+      // bus station, its roof falling with them; the lift's tower beside it
+      { name: 'glass house', plan: [[92.0, -101.0], [107.9, -101.0], [107.9, -107.7], [92.0, -107.7]], h: [-6.3, -1.72], from: -5.47,
+        walls: 'hallundaGlazed', sides: [null, undefined, undefined, null], roof: 0.25, roofColor: 0x8f9192 },
+      { name: 'glass house (over the flights)', plan: [[92.0, -103.3], [92.0, -107.7], [80.0, -107.7], [80.0, -103.3]], h: [-12.3, -2.1], from: -5.47, fall: -11.86,
+        walls: 'hallundaGlazed', sides: [null, undefined, null, undefined], roof: 0.25, roofColor: 0x8f9192 },
+      { name: "lift's tower", plan: [[107.9, -102.0], [110.4, -102.0], [110.4, -99.4], [107.9, -99.4]], h: [-11.9, -1.72], from: -11.86,
+        walls: 'hallundaGlazed', roof: 0.2, roofColor: 0x8f9192 },
+      // the entrance on the hill, glazed under a deep lime-green fascia that reaches out over its
+      // doors
+      { name: 'entrance on the hill', plan: [[95.0, 52.5], [107.0, 52.4], [107.2, 68.6], [95.1, 68.7]], h: [11.9, 18.13], from: 14.0,
+        walls: 'hallundaGlazed', band: { walls: 'hallundaFascia', from: 16.9 }, floor: 'hallundaFloor', roof: 0.3, roofColor: 0x3a3c3e, eaves: [0, 0, 2.2, 0], ground: true,
+        nameSign: { side: 2, at: 0.5, length: 3.4, bottom: 17.0, black: true } },
+    ],
+    art: [
+      // Kazuko Tamura's rods under the skylight, one resting on a ledge on the eastern wall
+      { kind: 'prismRods', thick: 0.06, rods: [
+        [[97.2, -2.8, -1.2], [106.8, 6.5, 1.8]], [[98.0, 7.6, -0.8], [105.5, -3.0, 2.2]], [[99.2, -3.0, 2.4], [104.8, 4.0, 2.6]],
+        [[104.6, -3.1, 0.9], [99.5, 7.7, 2.3]], [[107.4, 1.0, -2.0], [99.6, 0.5, 2.6]], [[107.4, 4.5, -1.2], [100.5, -2.5, 2.4]],
+        [[96.6, 2.0, -0.2], [104.0, 2.5, 2.9]], [[102.0, -3.3, 2.0], [102.5, 7.8, 0.4]], [[107.4, -2.0, -2.6], [103.0, 3.5, 2.8]],
+        [[99.0, 3.8, 2.8], [105.0, -2.5, 2.8]], [[106.0, 7.8, 1.0], [97.0, -1.0, 0.6]], [[107.4, 6.0, -2.9], [107.4, 2.6, -2.5]],
+      ] },
+    ],
+    // (a guess: their places along the platform)
+    // (the hall and the entrance on the hill are its blocks)
+    buildings: ['w1061683568', 'w1061683570'],
+    shelters: [{ s: [-49, -45], u: [-1.2, 0.4] }, { s: [12.5, 16.5], u: [-1.6, 0.4] }, { s: [42, 46], u: [-1.7, 0.6] }],
+    fences: [
+      // chain-link beyond the tracks; over the drop north of the northern track, brown slats
+      { h: [-1.0, 0.8], points: [[-76, -10.3], [40, -10.2]] },
+      { kind: 'louvres', color: 0x6b4a34, h: [-1.4, 0.45], points: [[40, -10.0], [74, -10.0]] },
+      { h: [-1.0, 0.8], points: [[-76, 6.4], [-40, 8.4], [0, 10.3], [40, 12.4], [80, 14.2], [125, 14.4]] },
     ],
   },
 };

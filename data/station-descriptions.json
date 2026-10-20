@@ -1301,13 +1301,47 @@
     },
     "Hallunda": {
       "drawing": "hallunda.png",
-      "note": "A wide island platform in the open. At its east end stairs climb to a ticket hall over the tracks, and stairs on up the hill to Hallunda centrum.",
+      "note": "An island platform in the open, on a shelf at the northern foot of the hill of Eriksberg, under one long flat roof; the tracks part eastwards, so the platform widens from 8 m at its western end to 16 m at its eastern. At its eastern end a glazed vestibule over the heads of an escalator and a stair down east, 5.5 m, to the ticket hall between the tracks, and a lift beside it. Past the hall's gates its doors open onto a high passage under a skylight: north from it a covered footbridge runs under the northern track and over Hallundavägen to the bus station at Hallunda centrum, where an escalator and stairs go down west to the street and a lift beside them; south a passage runs under the southern track to three escalators and an inclined lift up the hill to the entrance on Skarpbrunnavägen. From OpenStreetMap's indoor mapping (the escalator, the stair, the lifts, the gates, the passages, the footbridge, the escalators and the entrances), Lantmäteriet's laser scan (the platform, the roof, the hall's roof at 33.0 m, the footbridge's at 30.6–30.9 m, the ground beside the line) and photographs (2006, 2018). The hall's floor, at the ground north of the line, is a guess, and the escalators up the hill are drawn at their usual slope, which puts their feet 10 m south of OpenStreetMap's.",
       "routes": [
-        { "from": [65, 1], "width": 4, "go": [
-          {"stairs": 5, "toward": [150, 1]},
-          {"walk": [90, 2], "width": 6},
+        { "from": [61.0, -0.9], "width": 1.6, "go": [
+          {"walk": [67.4, -0.9], "open": true, "edges": false},
+          {"escalators": -5.45, "toward": [200, -0.9], "lanes": "E"}
+        ] },
+        { "from": [61.0, 2.9], "width": 3.5, "go": [
+          {"walk": [66.8, 2.9], "open": true, "edges": false},
+          {"stairs": -5.45, "toward": [200, 2.9], "lanes": "Ss"}
+        ] },
+        { "from": [69.0, -4.0], "width": 1.4, "go": [
+          {"walk": [75.2, -4.0], "open": true, "edges": false},
+          {"lift": -5.45, "through": true}
+        ] },
+        { "from": [76.5, 2.3], "h": -5.45, "width": 11.0, "go": [
+          {"walk": [86.6, 2.3], "ceiling": 3.5},
+          {"walk": [87.6, 2.3], "width": 7.0, "ceiling": 3.5},
           {"gates": true},
-          {"exit": 9754208560}
+          {"walk": [88.6, 2.3], "ceiling": 3.5},
+          {"walk": [95.9, 2.3], "width": 11.0, "ceiling": 3.5},
+          {"walk": [96.7, 2.3], "width": 2.4, "ceiling": 2.4},
+          {"walk": [106.9, 2.3], "width": 11.0, "open": true, "daylight": true}
+        ] },
+        { "from": [102.3, -2.0], "h": -5.45, "width": 4.4, "go": [
+          {"walk": [102.3, -3.3], "open": true, "daylight": true},
+          {"walk": [105.6, -101.0], "ceiling": 3.0, "daylight": true},
+          {"walk": [105.6, -105.5], "ceiling": 3.0, "daylight": true},
+          {"walk": [98.0, -105.5], "width": 3.4, "ceiling": 3.0, "daylight": true},
+          {"exit": 1427831076, "by": "escalators", "lanes": "Es", "open": true}
+        ] },
+        { "from": [105.0, -100.7], "h": -5.45, "width": 1.6, "go": [
+          {"walk": [107.6, -100.7], "ceiling": 3.0, "daylight": true},
+          {"lift": -6.34, "through": true},
+          {"exit": {"at": [111.6, -100.7], "name": "Hallunda centrum"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [101.2, 7.8], "h": -5.45, "width": 6.6, "go": [
+          {"walk": [101.2, 30.8], "ceiling": 3.0},
+          {"escalators": 19.47, "to": [101.2, 64.5], "lanes": "LEEE", "open": true},
+          {"walk": [101.2, 67.6], "width": 6.0, "open": true},
+          {"walk": [101.25, 68.2], "width": 3.0, "open": true},
+          {"exit": 9754208560, "by": "walk", "open": true, "sign": false}
         ] }
       ]
     },
