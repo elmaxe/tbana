@@ -152,6 +152,8 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   // ... Bergshamra's fittings: the lifts' block, steel, glass, the benches' pine and the stones
   // inlaid in its floor
   | `bh${'Lift' | 'Steel' | 'Glass' | 'Pine' | 'Inlay' | 'Photo' | 'Render'}:${string}`
+  // ... Masmo's: the railing, the benches' pine, steel and blue posts
+  | `ms${'White' | 'Pine' | 'Steel' | 'Blue'}:${string}`
   // a cave's panels of glass along its walls, the eastern's and the western's, and their backing
   | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
@@ -337,6 +339,7 @@ export class Network {
       this.group.add(neon(samples.filter((sm) => sm.plat === first.plat), hallStyle(first) as FlatHall, this.holes));
     }
     this.islands = islands(this.samples);
+    for (const isl of this.islands) ISLANDS.set(isl.station, isl);
   }
 
   // Where a tunnel of track no service runs on meets a service's tunnel (each has the other within
@@ -838,13 +841,13 @@ export class Network {
     // an island cave's (Stadion's): dark stone, with a band of pale stone along the edge
     sweep(b.stFloor, run, (sm) => {
       const p = sm.plat;
-      if (!p || !islandStyle(sm)) return null;
+      if (!p || !islandStyle(sm) || pavingOf(sm)) return null;
       const e = p.side * S.PLATFORM_EDGE, o = platformOuter(sm);
       return { key: `p${p.side}`, pts: p.side > 0 ? [[e, S.FLOOR], [e, H], [o, H], [o, S.FLOOR]] : [[o, S.FLOOR], [o, H], [e, H], [e, S.FLOOR]] };
     }, { uScale: 0.5, vScale: 0.5 });
     sweep(b.stEdge, run, (sm) => {
       const p = sm.plat;
-      if (!p || !islandStyle(sm)) return null;
+      if (!p || !islandStyle(sm) || pavingOf(sm)) return null;
       const u0 = p.side * S.PLATFORM_EDGE, u1 = p.side * (S.PLATFORM_EDGE + ISLAND_EDGE);
       return { key: `e${p.side}`, pts: p.side > 0 ? [[u0, H + 0.002], [u1, H + 0.002]] : [[u1, H + 0.002], [u0, H + 0.002]] };
     }, { uScale: 0.5, vScale: 0.5 });
@@ -983,7 +986,7 @@ export class Network {
         const st = hallStyle(sm);
         if (st?.kind === 'flat') box(b.lamp, light = at(sm, p.side * (S.PLATFORM_EDGE + 0.8), st.soffit - 0.02), sm, 0.3, 0.04, 2.2);
         // (a styled open station's hang under its roof: src/stations.ts)
-        else if (!vs && !caveStyle(sm) && !openStyle(sm) && !viaductInDetail(sm.x, sm.z)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
+        else if (!vs && !caveStyle(sm) && !islandStyle(sm) && !openStyle(sm) && !viaductInDetail(sm.x, sm.z)) box(b.lamp, at(sm, p.side * (S.PLATFORM_EDGE + 1.2), H + 2.6), sm, 0.12, 0.06, 2.2);
       }
       const glass = caveStyle(sm)?.glass;
       if (glass && sm.kind === 'rock') {
@@ -1332,7 +1335,7 @@ export class Network {
     for (let i = 0; i + 1 < run.length; i++) {
       const sa = run[i], sb = run[i + 1], st = islandStyle(sa), isl = st && this.islandOf(sa);
       if (!st || !isl || islandStyle(sb) !== st || sb.along - sa.along < 0.01) continue;
-      const hw = st.pillars.width / 2, gap = st.pillars.gap / 2, reach = st.ceilingReach;
+      const { hw, gap, margin } = islandOpening(st), reach = st.ceilingReach;
       const ta = isl.s(sa), tb = isl.s(sb);
       // beyond the pillars, at the platform's ends
       const beyond = (s: number) => s > isl.outer(1) || s < isl.outer(-1);
@@ -1341,7 +1344,7 @@ export class Network {
       const uw = wall + Math.sign(wall) * 0.5;
       // (the passage's part reaching a little into the pillars, past their rounded and rough
       // corners, so the part over the middle stays hidden inside them)
-      const cuts = [0, 1], pass = gap + 1.2;
+      const cuts = [0, 1], pass = gap + margin;
       for (const c of [isl.mid - pass, isl.mid + pass, isl.outer(-1), isl.outer(1)]) { const f = (c - ta) / (tb - ta); if (f > 0 && f < 1) cuts.push(f); }
       cuts.sort((x, y) => x - y);
       for (let k = 0; k + 1 < cuts.length; k++) {
@@ -1353,7 +1356,7 @@ export class Network {
         const open = passage || (st.vault !== undefined && beyond(tm));
         const w = open ? side * hw : -side * OVERLAP;
         const far = (C: Sample) => (reach === undefined ? isl.uAt(C, w) : C.plat!.side * (S.PLATFORM_EDGE + reach));
-        const y = st.ceiling + A.pairDy / 2;
+        const y = islandCeilingAt(st, A) + A.pairDy / 2;
         const pts = [at(A, uw, y), at(B, uw, y), at(B, far(B), y), at(A, far(A), y)];
         this.islandCeiling(isl.station, st, b).quad(pts[0], pts[1], pts[2], pts[3], ...pts.map((q) => [isl.w(q) / 1.5, isl.s(q) / 1.5] as UV) as [UV, UV, UV, UV]);
         if (st.vault) this.islandVault(isl, st, st.vault, A, B, uw, passage || beyond(tm) ? -side * OVERLAP : side * (hw - 0.6), b);
@@ -1366,10 +1369,12 @@ export class Network {
         }
       } else {
         // tubes across it, one over the track and one over the platform, out to the pillars or
-        // where there are none, on to the middle
+        // where there are none, on to the middle (with none at all, out to the opening over the
+        // stairs)
         for (let t = Math.ceil(Math.min(ta, tb) / TUBES) * TUBES; t < Math.max(ta, tb); t += TUBES) {
-          const C = lerpSample(sa, sb, (t - ta) / (tb - ta)), y = st.ceiling + C.pairDy / 2 - 0.04;
-          const p = C.plat!, e = p.side * S.PLATFORM_EDGE, f = isl.uAt(C, beyond(t) && !st.vault ? 0 : side * hw);
+          const C = lerpSample(sa, sb, (t - ta) / (tb - ta)), y = islandCeilingAt(st, C) + C.pairDy / 2 - 0.04;
+          const middle = (beyond(t) && !st.vault) || (!st.pillars && Math.abs(t - isl.mid) >= pass);
+          const p = C.plat!, e = p.side * S.PLATFORM_EDGE, f = isl.uAt(C, middle ? 0 : side * hw);
           box(b.lamp, at(C, 0, y), C, 2.2, 0.05, 0.12);
           box(b.lamp, at(C, (e + f) / 2, y), C, Math.abs(f - e) - 0.5, 0.05, 0.12);
         }
@@ -1431,8 +1436,8 @@ export class Network {
   // over the middle, to `wEnd` across the island's frame; lumpy, as the pillars are.
   private islandVault(isl: Island, st: CaveIsland, v: { wall: number; crown: number; middle: number }, A: Sample, B: Sample, uw: number, wEnd: number, b: Record<MaterialName, MeshBuilder>) {
     const key: MaterialName = `pillar:${isl.station}`;
-    this.mats[key] ??= islandRock(st.pillars.paint);
-    const rock = b[key] ??= new MeshBuilder(), hw = st.pillars.width / 2;
+    this.mats[key] ??= islandRock(st.pillars?.paint ?? CAVE_STYLES[isl.station].paint);
+    const rock = b[key] ??= new MeshBuilder(), hw = islandOpening(st).hw;
     const n = Math.max(1, Math.ceil(Math.abs(isl.s(B) - isl.s(A)) / 0.8));
     const first = rock.pos.length / 3;
     const cols = Math.max(2, Math.ceil(Math.abs(Math.abs(isl.w(at(A, uw, 0))) - Math.abs(wEnd)) / 0.6) + 1);
@@ -1487,13 +1492,18 @@ export class Network {
   // An island cave's middle (Stadion's): the two pillars of rock, the walls over the passage's
   // openings with the rainbow round them, the fences along the pillars' outer ends, and the art.
   private buildIsland(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
-    const st = isl.st, { width, fenced, plinth } = st.pillars, hw = width / 2, gap = st.pillars.gap / 2;
+    // (an island cave with no pillars: only its own fittings)
+    if (!isl.st.pillars) {
+      if (isl.station === 'Masmo') this.masmo(isl, b, group);
+      return;
+    }
+    const st = isl.st, pillars = isl.st.pillars, { width, fenced, plinth } = pillars, hw = width / 2, gap = pillars.gap / 2;
     // (Stadion's and Tekniska högskolan's pillars are alike, either side of the middle)
     const end = isl.outer(1), len = end - gap, fence = end - len * fenced, blue = fence - gap;
     if (Math.min(isl.outer(1) - isl.inner(1), isl.inner(-1) - isl.outer(-1)) < 6) return;
     const station = isl.station;
     const mat = (key: MaterialName, make: () => THREE.Material) => { this.mats[key] ??= make(); return b[key] ??= new MeshBuilder(); };
-    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint)), fencedRock = mat(`fenced:${station}`, () => islandRock(st.pillars.fencedPaint));
+    const rock = mat(`pillar:${station}`, () => islandRock(pillars.paint)), fencedRock = mat(`fenced:${station}`, () => islandRock(pillars.fencedPaint));
     const fit = this.islandFittings(station, st, b);
     // the art on the pillars' long faces (`ps`, the pillar: -1 or 1; `side`, its face: -1 or 1),
     // which the rock is smoothed for; on a pillar's outer end instead (`side` 0), centred on the
@@ -1651,7 +1661,7 @@ export class Network {
       for (const side of [-1, 1] as const) {
         const key: MaterialName = `portal${side > 0 ? 1 : 0}:${station}`;
         const face = mat(key, () => {
-          const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, portal.paint ?? st.pillars.paint, portal.frame ?? !portal.paint, spring);
+          const map = T.stadionPortal(e1 - e0, H, (e1 - e0) / 2 - half, crown, 0.3, side > 0, portal.paint ?? pillars.paint, portal.frame ?? !portal.paint, spring);
           return new THREE.MeshStandardMaterial({ map, emissive: 0x5a5a5a, emissiveMap: map, roughness: 0.95, side: THREE.DoubleSide });
         });
         // the inner face: up from the floor or the arch to the crown's height, then curving over the
@@ -1732,13 +1742,103 @@ export class Network {
     if (station === 'Bergshamra') this.bergshamra(isl, b, group, lamps);
   }
 
+  // Masmo's island cave (src/hall-styles.ts), besides its ceiling and track walls: Staffan
+  // Hallström's and Lasse Andréasson's "Ta ner solen i tunnelbanan" (1971–72), painted panels
+  // standing off the rock along both walls over the white band, with bare rock between them;
+  // benches of pine back to back round dark blue posts carrying the name, down the middle; and
+  // the white railing across the platform's north-eastern end (photographs, 2002–2018). Where each
+  // panel is, beyond the large one with the sun east of the stairs and the playing cards on the
+  // northern wall west of the ticket hall, is a guess. Points are in the station's frame (s
+  // east-north-east, u south-south-east), as in data/station-descriptions.json.
+  private masmo(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+    const station = isl.station, n = isl.t.z < 0 ? 1 : -1;
+    const P = (s: number, u: number, y: number) => isl.P(n * s, n * u, y);
+    const builder = (key: MaterialName, make: () => THREE.Material) => { this.mats[key] ??= make(); return b[key] ??= new MeshBuilder(); };
+    // the wall's face over the band at s on the side u (its w in the island's frame), from the
+    // track's own sample there
+    const wallAt = (s: number, side: number) => {
+      let best: Sample | null = null, d = Infinity;
+      for (const run of this.samples) for (const sm of run) {
+        if (sm.plat?.station !== station || !sm.pair || !islandStyle(sm)) continue;
+        const q = at(sm, 0, 0);
+        if (Math.sign(n * isl.w(q)) !== side) continue;
+        const dd = Math.abs(n * isl.s(q) - s);
+        if (dd < d) { d = dd; best = sm; }
+      }
+      if (!best) return null;
+      const u = sm0Wall(best, structureSpan(best));
+      return { w: isl.w(at(best, u - Math.sign(u) * 0.62, 0)), box: best.kind === 'box' };
+    };
+    // the panels: [s, side (u), kind, variant, bottom over the platform]
+    const panels: [number, number, 'sun' | 'crescent' | 'yellow' | 'card' | 'drawing', number, number][] = [
+      [-64, 1, 'drawing', 1, 1.25], [-54, 1, 'drawing', 0, 1.25], [-41, 1, 'yellow', 0, 0.95], [-14, 1, 'crescent', 0, 0.95],
+      [-2, 1, 'yellow', 0, 0.95], [16, 1, 'sun', 0, 0.95], [33, 1, 'yellow', 0, 0.95], [47, 1, 'crescent', 1, 0.95], [62, 1, 'yellow', 0, 0.95],
+      [-62, -1, 'drawing', 0, 1.25], [-50, -1, 'card', 3, 0.95], [-46.6, -1, 'card', 2, 0.95], [-43.6, -1, 'card', 1, 0.95], [-40.6, -1, 'card', 0, 0.95],
+      [-12, -1, 'drawing', 0, 1.25], [2, -1, 'yellow', 0, 0.95], [14, -1, 'crescent', 0, 0.95], [30, -1, 'yellow', 0, 0.95], [44, -1, 'drawing', 1, 1.25],
+      [58, -1, 'crescent', 1, 0.95],
+    ];
+    const steel = builder(`msSteel:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xa9aeb1, emissive: 0x303234, roughness: 0.35, metalness: 0.5 }));
+    for (const [s, side, kind, variant, bottom] of panels) {
+      const wall = wallAt(s, side);
+      if (!wall) continue;
+      const [width, height] = T.MASMO_ART_SIZE[kind], y0 = bottom, y1 = bottom + height;
+      // (under the box's lower ceiling, only what fits)
+      if (y1 > (wall.box ? islandCeilingAt(isl.st, { kind: 'box' } as Sample) : isl.st.ceiling) - S.PLATFORM_HEIGHT - 0.1) continue;
+      const key = `masmo:${kind}${variant}`;
+      let m = this.islandArt.get(key);
+      if (!m) {
+        const map = T.masmoArt(kind, variant);
+        m = new THREE.MeshStandardMaterial({ map, emissive: 0x2a2a2a, emissiveMap: map, roughness: 0.5, side: THREE.DoubleSide });
+        this.islandArt.set(key, m);
+      }
+      // (read from the platform: its left end towards +s on the wall towards +w, and so on)
+      const sw = Math.sign(wall.w), c = n * s, h = width / 2;
+      const corners = [isl.P(c + sw * h, wall.w, y0), isl.P(c - sw * h, wall.w, y0), isl.P(c - sw * h, wall.w, y1), isl.P(c + sw * h, wall.w, y1)];
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(corners.flatMap((q) => [q.x, q.y, q.z]), 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+      g.setIndex([0, 1, 2, 0, 2, 3]);
+      g.computeVertexNormals();
+      group.add(new THREE.Mesh(g, m));
+      // its brackets back to the rock
+      for (const e of [-1, 1]) for (const y of [y0 + 0.3, y1 - 0.3]) box(steel, isl.P(c + e * (h - 0.3), wall.w + sw * 0.3, y), isl.sm, 0.6, 0.05, 0.05);
+    }
+    // benches of pine back to back, either side of a dark blue post with the name over them
+    const pine = builder(`msPine:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xc99a5c, emissive: 0x241a0e, roughness: 0.7 }));
+    const blue = builder(`msBlue:${station}`, () => new THREE.MeshStandardMaterial({ color: 0x1f3550, emissive: 0x0a1018, roughness: 0.5, metalness: 0.3 }));
+    for (const s of [-58, -45, -8, 6, 26, 44, 60]) {
+      const wall = wallAt(s, 1), top = (wall?.box ? islandCeilingAt(isl.st, { kind: 'box' } as Sample) : isl.st.ceiling) - S.PLATFORM_HEIGHT;
+      box(blue, P(s, 0, top / 2), isl.sm, 0.14, top, 0.14);
+      for (const d of [1, -1]) {
+        const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.34), this.signMaterial(station, 'dark'));
+        const o = P(s, 0, Math.min(2.75, top - 0.35)), along = isl.t.clone().multiplyScalar(n * d);
+        sign.position.copy(o).addScaledVector(along, 0.08);
+        sign.lookAt(o.clone().addScaledVector(along, 1));
+        group.add(sign);
+        box(blue, P(s, 0, Math.min(2.75, top - 0.35)), isl.sm, 0.1, 0.4, 0.14);
+      }
+      for (const e of [-1, 1]) {
+        const m = s + e * 1.15;
+        for (const side of [-1, 1]) box(pine, P(m, side * 0.27, 0.45), isl.sm, 0.4, 0.06, 1.9);
+        box(pine, P(m, 0, 0.78), isl.sm, 0.08, 0.5, 1.9);
+        for (const f of [-0.8, 0.8]) box(steel, P(m + f, 0, 0.22), isl.sm, 0.9, 0.44, 0.05);
+      }
+    }
+    // the railing across the north-eastern end: white bars under a white rail
+    const white = builder(`msWhite:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xeceae4, emissive: 0x2c2c2a, roughness: 0.45 }));
+    const end = isl.half - 0.2, edge = S.islandWidth(station) / 2;
+    box(white, P(end, 0, 1.1), isl.sm, 2 * edge, 0.06, 0.06);
+    box(white, P(end, 0, 0.12), isl.sm, 2 * edge, 0.05, 0.05);
+    for (let u = -edge + 0.06; u <= edge; u += 0.13) box(white, P(end, u, 0.61), isl.sm, 0.025, 0.98, 0.025);
+  }
+
   // Universitetet's island cave (src/hall-styles.ts), besides its pillars: the emergency exit's
   // block of red tiles at the north end, the end walls (small lilac grey tiles behind the block,
   // yellow at each edge of the platform; at the south end teal tiles to the east of the lobby and
   // deep blue to the west), stainless steel cylinders hung from the rock, and white benches
   // along the cores. The lobby itself is the station's (src/open-styles.ts).
   private universitetet(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
-    const station = isl.station, st = isl.st, hw = st.pillars.width / 2, edge = S.islandWidth(station) / 2;
+    const station = isl.station, st = isl.st, hw = st.pillars!.width / 2, edge = S.islandWidth(station) / 2;
     // +1 where s runs north; w then runs east (the station's frame's u, roughly)
     const n = isl.t.z < 0 ? 1 : -1;
     const plane = (m: THREE.Material, p: THREE.Vector3[], uv = [0, 0, 1, 0, 1, 1, 0, 1]) => {
@@ -1760,7 +1860,7 @@ export class Network {
       const u = Math.abs(to - from) / size[0];
       plane(m, [isl.P(s, from, y0), isl.P(s, to, y0), isl.P(s, to, y1), isl.P(s, from, y1)], [0, y0 / size[1], u, y0 / size[1], u, y1 / size[1], 0, y1 / size[1]]);
     };
-    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint));
+    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars!.paint));
     // the same in the rock, its paint (as on the pillars) up the wall in u and along it in v
     const rockAcross = (s: number, from: number, to: number, y0: number, y1: number) => {
       const v = Math.abs(to - from) / T.CAVE_REPEAT, a = y0 / T.CAVE_ACROSS, b = y1 / T.CAVE_ACROSS;
@@ -1852,7 +1952,7 @@ export class Network {
   // stones inlaid in the floor (photographs, 2009–2026). Points are in the station's frame (s
   // north, u east), as in data/station-descriptions.json.
   private bergshamra(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group, lamps: Lamp[]) {
-    const station = isl.station, st = isl.st, hw = st.pillars.width / 2, n = isl.t.z < 0 ? 1 : -1;
+    const station = isl.station, st = isl.st, hw = st.pillars!.width / 2, n = isl.t.z < 0 ? 1 : -1;
     const P = (s: number, u: number, y: number) => isl.P(n * s, n * u, y);
     const mat = (key: MaterialName, make: () => THREE.Material) => (this.mats[key] ??= make());
     const builder = (key: MaterialName, make: () => THREE.Material) => { mat(key, make); return b[key] ??= new MeshBuilder(); };
@@ -1875,7 +1975,7 @@ export class Network {
     // sharing it (as at Universitetet), up into the rock over the platform and over each track
     // above its trains; the same rock, its paint up the wall in u and along it in v, across at s
     // from u0 to u1
-    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars.paint));
+    const rock = mat(`pillar:${station}`, () => islandRock(st.pillars!.paint));
     const rockAcross = (s: number, a: number, c: number, y0: number, y1: number) => {
       const v = Math.abs(c - a) / T.CAVE_REPEAT, ya = y0 / T.CAVE_ACROSS, yb = y1 / T.CAVE_ACROSS;
       plane(rock, [P(s, a, y0), P(s, c, y0), P(s, c, y1), P(s, a, y1)], [ya, 0, ya, v, yb, v, yb, 0]);
@@ -2546,7 +2646,9 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
   } else {
     let spring: number, rise: number;
     const vs = sm.plat ? vaultStyle(sm) : null;
-    if (sm.plat) {
+    const cv = caveStyle(sm)?.vault;
+    if (cv) { spring = cv.spring; rise = cv.crown - cv.spring; }
+    else if (sm.plat) {
       spring = vs?.spring ?? S.HALL.spring; rise = width * (vs?.risePerWidth ?? S.HALL.risePerWidth);
     }
     else if (sm.pair) {
@@ -2584,6 +2686,10 @@ function shellOutline(sm: Sample): { key: string; pts: [number, number][] } | nu
     };
     if (sm.pair > 0 || sm.beside > 0) t1 = over(o1);
     if (sm.pair < 0 || sm.beside < 0) t0 = over(o0);
+    // (over an island cave's opening in its ceiling, the roof stops at its edge)
+    const slot = openingAt(sm);
+    if (slot && sm.pair > 0) t1 = Math.min(t1, over(sm.pair / 2 - slot));
+    if (slot && sm.pair < 0) t0 = Math.max(t0, over(sm.pair / 2 + slot));
   }
   const pts: [number, number][] = [];
   // the roof is shared, between the two tracks' levels at the middle; with a track on either side,
@@ -2623,7 +2729,21 @@ function caveStyle(sm: Sample): CaveStyle | null {
 // of its island platform, Stadion's; where two tracks share its hall.
 function islandStyle(sm: Sample): CaveIsland | null {
   const p = sm.plat;
-  return p && p.island && sm.pair ? caveStyle(sm)?.island ?? null : null;
+  if (!p || !p.island || !sm.pair) return null;
+  // (or where it carries on into a concrete box: Masmo's)
+  const box = CAVE_STYLES[p.station]?.island;
+  return caveStyle(sm)?.island ?? (box?.box && sm.kind === 'box' ? box : null);
+}
+// What of an island cave's ceiling is left open: over the passage between its pillars (their
+// half-width, the passage's half-length, and how far the opening reaches past their rough
+// corners), or over its stairs.
+function islandOpening(st: CaveIsland) {
+  if (st.pillars) return { hw: st.pillars.width / 2, gap: st.pillars.gap / 2, margin: 1.2 };
+  return { hw: (st.opening?.width ?? 0) / 2, gap: (st.opening?.length ?? 0) / 2, margin: 0 };
+}
+// An island cave's ceiling's height over the rail: under the roof, where it is in a box.
+function islandCeilingAt(st: CaveIsland, sm: Sample) {
+  return sm.kind === 'box' ? Math.min(st.ceiling, S.BOX.height - 0.15) : st.ceiling;
 }
 
 // A styled open station (src/open-styles.ts): a platform out in the open, under its own roof.
@@ -2652,7 +2772,7 @@ function beamedHall(sm: Sample): FlatHall | null {
 // A platform paved in its own style (src/open-styles.ts): a styled open station's, a flat hall's
 // in concrete or on beams, or a cave's.
 function pavingOf(sm: Sample): Paving | null {
-  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | BeamedHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? vaultStyle(sm)?.finish?.paving ?? null);
+  return openStyle(sm)?.paving ?? ((concreteHall(sm)?.finish as ConcreteHall | BeamedHall | undefined)?.paving ?? caveStyle(sm)?.paving ?? (islandStyle(sm) ? CAVE_STYLES[sm.plat!.station].paving : undefined) ?? vaultStyle(sm)?.finish?.paving ?? null);
 }
 
 // An island cave's frame: s along the platform from its middle, w across it from the line down
@@ -2678,6 +2798,16 @@ interface Island {
   uAt(sm: Sample, w: number): number;
 }
 
+// the island caves, by station, once the network has found them
+const ISLANDS = new Map<string, Island>();
+// Over an island cave's opening in its ceiling with no pillars (Masmo's, over its stairs), the
+// opening's half-width; elsewhere 0.
+function openingAt(sm: Sample) {
+  const isl = sm.plat ? ISLANDS.get(sm.plat.station) : undefined, o = isl?.st.opening;
+  if (!isl || !o || isl.st.pillars) return 0;
+  return Math.abs(isl.s(sm) - isl.mid) < o.length / 2 ? o.width / 2 : 0;
+}
+
 function islands(all: Sample[][]): Island[] {
   const out: Island[] = [];
   // (a track may pass more than one: Stadion's and Tekniska högskolan's are on the same pieces)
@@ -2693,9 +2823,10 @@ function islands(all: Sample[][]): Island[] {
     const s = (p: { x: number; z: number }) => (p.x - o.x) * t.x + (p.z - o.z) * t.z;
     const w = (p: { x: number; z: number }) => (p.x - o.x) * n.x + (p.z - o.z) * n.z;
     // (the passage north of the middle, and the ends north and south, by which way s runs)
-    const st = islandStyle(first)!, north = t.z < 0 ? 1 : -1, half = (a1 - a0) / 2, gap = st.pillars.gap / 2;
-    const [south, nth] = typeof st.pillars.ends === 'number' ? [st.pillars.ends, st.pillars.ends] : st.pillars.ends;
-    const passage = (st.pillars.at ?? 0) * north, ends = north > 0 ? [south, nth] : [nth, south];
+    // (with no pillars, the opening over the stairs, and the platform open to its ends)
+    const st = islandStyle(first)!, north = t.z < 0 ? 1 : -1, half = (a1 - a0) / 2, gap = islandOpening(st).gap;
+    const e = st.pillars?.ends ?? 0, [south, nth] = typeof e === 'number' ? [e, e] : e;
+    const passage = (st.pillars?.at ?? st.opening?.at ?? 0) * north, ends = north > 0 ? [south, nth] : [nth, south];
     const shared = on.filter((q) => islandStyle(q)).map(s);
     out.push({
       station: first.plat!.station, st, sm, o, t, n, half, hall: [Math.min(...shared), Math.max(...shared)], top: crown - S.PLATFORM_HEIGHT + 1.2,
@@ -2761,7 +2892,9 @@ const CAVE_ROUGH = 0.45;
 function caveInward(sm: Sample, u: number, v: number) {
   const p = at(sm, u, v);
   const n = lumps(p.x / 4.5, p.y / 3, p.z / 4.5) * 0.7 + lumps(p.x / 1.6 + 17, p.y / 1.4, p.z / 1.6) * 0.3;
-  return n * CAVE_ROUGH * Math.min(1, Math.max(0, (v - S.FLOOR) / 1.4));
+  // (smooth over a ceiling that hides it)
+  const vault = caveStyle(sm)?.vault, smooth = vault ? Math.max(0, Math.min(1, (vault.spring - v) / 0.6)) : 1;
+  return n * CAVE_ROUGH * Math.min(1, Math.max(0, (v - S.FLOOR) / 1.4)) * smooth;
 }
 function roughen(sm: Sample, pts: [number, number][]): [number, number][] {
   return pts.map(([u, v], j) => {

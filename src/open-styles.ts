@@ -411,7 +411,12 @@ export type Finish =
   | 'vbgFront'      // glass in stainless steel frames, a kick plate, a black rail at 1 m, to 2.1 m; a black band over it (Vårby gård's ticket hall)
   | 'vbgFascia'     // dark bronze sheet metal, standing seams upright every 0.9 m
   | 'vbgRender'     // white render thrown on rough
-  | 'vbgParapet';   // dark red-brown speckled stone to 1.45 m, a pale concrete coping over it (Vårby gård's parapet)
+  | 'vbgParapet'    // dark red-brown speckled stone to 1.45 m, a pale concrete coping over it (Vårby gård's parapet)
+  | 'masmoRender'   // render thrown on rough, a dusty maroon (Masmo's ticket hall)
+  | 'masmoRock'     // dark rock painted in large patches of red, ochre, beige, grey and green over a concrete ledge, a blue rail (Masmo's passage)
+  | 'masmoMesh'     // dark blue expanded metal on blue steel posts 1.2 m apart
+  | 'masmoCeiling'  // dark expanded metal, a tube lamp across it every 1.5 m
+  | 'masmoFascia';  // SL's blue with a yellow line along its foot, two orange departure displays and a clock (Masmo's gates)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -426,7 +431,8 @@ export type Finish =
 // its `low` is at, as a band of windows under a sloping roof does); `lights`, lit yellow signs on a side, `at` the way along
 // it (0 to 1) and `length` long. `onPlatform`: it stands on the platform, which isn't there to
 // be walked on inside it (only the station's own floors are); `inHall`, in the platform's hall
-// the network draws, which otherwise hides what the station draws in it. `nameSign`: the station's name in
+// the network draws, which otherwise hides what the station draws in it; `inRoom`, in one of the
+// station's own rooms, whose space otherwise cuts it away (a beam hung under a hall's ceiling). `nameSign`: the station's name in
 // white on a blue band over a side's doors, `at` the way along it, `length` long, from `bottom`
 // up (on the side's inner face, `inside`; black, as SL's older signs are, `black`). `eaves`: its roof reaches out this far past its walls,
 // along each side (or all round). `ground`: it is dug into the city's ground, which isn't there
@@ -452,7 +458,7 @@ export interface Block {
   name: string; plan: [number, number][]; h: [number, number]; from?: number; fall?: number; low?: number; lowBack?: number; eaves?: number | number[]; ground?: boolean | number;
   walls: Finish; sides?: (Finish | null | undefined)[]; band?: { walls: Finish; from: number; low?: number };
   floor?: Finish; ceiling?: Finish; roof?: number; lights?: { side: number; at: number; length: number }[];
-  onPlatform?: boolean; inHall?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
+  onPlatform?: boolean; inHall?: boolean; inRoom?: boolean; nameSign?: { side: number; at: number; length: number; bottom: number; inside?: boolean; black?: boolean };
   roofColor?: number; brackets?: { every: number; color: number };
   gables?: { count: number; rise: number; color: number; trim: number; round?: boolean; glass?: { ribs: number; color: number } };
   arch?: { side: number; span: [number, number]; spring: number; crown: number };
@@ -8704,6 +8710,61 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // chain-link on the wall beyond the eastern track, and on the forecourt's edge
       { h: [-0.07, 1.13], points: [[-86, 9.78], [-62.52, 10.11, 0.03], [-33.75, 10.27, 0.05], [-4.99, 10.43, 0.07], [14.2, 10.58, 0.07]] },
       { h: [0.35, 1.35], points: [[-108.75, -5.9], [-128.2, -5.9]] },
+    ],
+  },
+  // Masmo (1972): its island platform in a cave (src/hall-styles.ts); here, its stairs and hall,
+  // the passage to the entrance and the entrance on the square. From photographs (2002–2018): the
+  // stairs between walls of rough render, a dusty maroon, the ticket hall's walls the same; the
+  // passage's floor dark tiles, its wall to the north the rock painted in large patches of colour
+  // over a concrete ledge, the other wall blue expanded metal on blue posts, a mesh ceiling with
+  // tubes across it. The entrance: an opening in a frame of board-marked concrete in the rock face,
+  // a deep lintel over it on a square pier to the north and a sloping buttress to the south, a
+  // grille of mesh in its top, and under that a canopy with SL's blue band and the name on its
+  // front, black slats under it; Lantmäteriet's laser scan has the canopy's roof 3.4 m over the
+  // square and the lintel's top 7.3 m, and the beam carrying on north-north-west along the rock's
+  // foot at the lintel's height, on pilasters, the rock rendered behind them. On the square, Land
+  // arkitektur's forty-odd orange-red poles (2015), a low timber deck and a ventilation tower.
+  // Where the poles, the deck and the tower stand is read from Google's 3D model; the poles'
+  // heights and the tower's place are guesses.
+  'Masmo': {
+    rooms: [
+      { name: 'stairs up to the ticket hall', s: [-34, -25.6], u: [-2.6, 2.6], h: [-0.5, 7.8], walls: 'masmoRender', stairs: 'masmoRender', floor: 'darkTerrazzo', ceiling: 'boardConcrete' },
+      { name: 'ticket hall', s: [-25.6, -12.5], u: [-3.6, 3.6], h: [3.5, 8], walls: 'masmoRender', floor: 'darkTiles', ceiling: 'masmoCeiling' },
+      { name: 'passage', s: [-54, -12.5], u: [-10.5, -3.65], h: [3.5, 9.5], walls: 'masmoMesh', left: 'masmoRock', floor: 'darkTiles', ceiling: 'masmoCeiling' },
+    ],
+    blocks: [
+      // the stair's side walls on the platform, in the hall's maroon roughcast, up to the opening
+      // in the ceiling
+      ...[-1, 1].map((k): Block => ({ name: "stair's side wall", plan: [[-34, k * 2.0], [-34, k * 2.3], [-25.6, k * 2.3], [-25.6, k * 2.0]], h: [0, 3.55], from: 0,
+        walls: 'masmoRender', inHall: true, onPlatform: true })),
+      // the blue beam over the gates in the ticket hall
+      { name: 'beam over the gates', plan: [[-19.15, -3.5], [-18.85, -3.5], [-18.85, 3.5], [-19.15, 3.5]], h: [6.5, 7.6], from: 6.5, walls: 'masmoFascia', inRoom: true },
+      // the lintel over the entrance, and the beam it carries on into along the rock's foot
+      { name: 'lintel and beam', plan: [[-50.8, -37], [-47.4, -37], [-47.4, -2.6], [-50.8, -2.6]], h: [10.4, 12.3], from: 10.4,
+        walls: 'boardConcrete', floor: 'boardConcrete', roof: 0.05, roofColor: 0x8e8a82 },
+      { name: "entrance's pier", plan: [[-50.8, -11.1], [-49.6, -11.1], [-49.6, -9.8], [-50.8, -9.8]], h: [4.9, 10.4], from: 4.9, walls: 'boardConcrete' },
+      // (sloping down to the south, away from the opening)
+      { name: "entrance's buttress", plan: [[-52.2, -4.25], [-52.2, -1.6], [-47.4, -1.6], [-47.4, -4.25]], h: [4.9, 10.4], from: 4.9, low: 5.9, walls: 'boardConcrete' },
+      { name: "entrance's grille", plan: [[-50.3, -9.8], [-50.1, -9.8], [-50.1, -4.25], [-50.3, -4.25]], h: [8.4, 10.4], from: 8.4, walls: 'masmoMesh' },
+      { name: "entrance's canopy", plan: [[-53.6, -2.4], [-53.6, -10.9], [-50.8, -10.9], [-50.8, -2.4]], h: [7.7, 8.45], from: 7.7,
+        walls: 'navyTiles', floor: 'darkBoards', roof: 0.05, roofColor: 0x2a2c30, nameSign: { side: 0, at: 0.5, length: 8.5, bottom: 7.85 } },
+      // the passage's painted rock where it runs in under the lintel, its back in roughcast to the
+      // colonnade (the square's paving at the passage's level would otherwise leave it open)
+      { name: "passage's wall under the lintel", plan: [[-50.6, -10.0], [-47.0, -10.0], [-47.0, -9.78], [-50.6, -9.78]], h: [5.05, 8.15], from: 5.05,
+        walls: 'masmoRock', sides: ['roughcast', null, undefined, null] },
+      // the pilasters under the beam, and the rendered rock behind them
+      ...[-36.2, -29.4, -22.6, -15.8].map((u): Block => ({ name: 'pilaster', plan: [[-50.8, u - 0.45], [-49.9, u - 0.45], [-49.9, u + 0.45], [-50.8, u + 0.45]], h: [4.9, 10.4], from: 4.9, walls: 'boardConcrete' })),
+      { name: 'rendered rock', plan: [[-47.6, -37], [-47.0, -37], [-47.0, -11.1], [-47.6, -11.1]], h: [4.9, 10.4], from: 4.9, walls: 'roughcast' },
+      // on the square: the timber deck, and the ventilation tower's plinth
+      { name: 'timber deck', plan: [[-68, -35], [-62, -35], [-62, -17], [-68, -17]], h: [4.8, 5.35], from: 4.8, walls: 'satraBoards', roof: 0.05, roofColor: 0x8c7b66 },
+      { name: "ventilation tower's plinth", plan: [[-81.2, -9.2], [-78.8, -9.2], [-78.8, -6.8], [-81.2, -6.8]], h: [4.8, 5.6], from: 4.8, walls: 'boardConcrete', roof: 0.05, roofColor: 0x8e8a82 },
+    ],
+    art: [
+      { kind: 'columns', at: [[-80, -8]], from: 5.6, to: 11.8, size: 1.5, color: 0x9a9b98 },
+      // the poles, in three heights
+      { kind: 'columns', from: 4.9, to: 10.4, size: 0.14, color: 0xe8501e, at: [[-68.7, -41.2], [-98.6, -36.2], [-98.1, -33.0], [-90.1, -41.2], [-92.8, -32.5], [-61.5, -11.6], [-83.8, -45.0], [-80.4, -18.2], [-58.7, -42.5], [-71.5, -7.7], [-64.8, -43.3], [-85.3, -9.3], [-70.3, -3.2], [-57.0, -24.3]] },
+      { kind: 'columns', from: 4.9, to: 11.6, size: 0.14, color: 0xe8501e, at: [[-71.2, -35.9], [-69.9, -44.3], [-73.7, -29.2], [-73.5, -40.3], [-61.1, -38.8], [-55.2, -19.5], [-78.6, -28.6], [-66.2, -10.6], [-94.3, -38.3], [-98.8, -24.5], [-90.0, -4.4], [-88.8, -37.3], [-56.1, -28.9], [-89.8, -10.9], [-84.8, -37.7]] },
+      { kind: 'columns', from: 4.9, to: 12.8, size: 0.14, color: 0xe8501e, at: [[-81.2, -40.0], [-65.8, -38.4], [-62.6, -7.2], [-58.7, -19.3], [-55.5, -42.5], [-88.8, -30.1], [-98.7, -11.5], [-75.4, -10.1], [-90.5, -26.0], [-73.8, -3.5], [-78.2, -36.7]] },
     ],
   },
 };

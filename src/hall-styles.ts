@@ -814,6 +814,10 @@ export interface CaveStyle {
   // the station's name on dark grey signs hung across the platform under its fittings, about
   // `every` m apart, rather than SL's blue ones on the walls
   signs?: { every: number };
+  // the cave's own outline where a ceiling hides its roof (Masmo's): its walls up to `spring` and
+  // a flat arch over them to `crown` (above the rail), the rock smooth from a little under the
+  // spring up; left open over an island's opening in that ceiling (CaveIsland)
+  vault?: { spring: number; crown: number };
 }
 
 // Heights here are above the top of the rail, as for the styled halls above.
@@ -824,7 +828,14 @@ export interface CaveIsland {
   // rock painted as `paint` says, and towards their outer ends, over `fenced` of their length
   // (none if 0), as `fencedPaint` says, behind fences of steel mesh with benches; a tiled plinth
   // round their foot, `plinth` high
-  pillars: { width: number; gap: number; ends: number | [number, number]; at?: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
+  // (none, where the platform is open from end to end: Masmo's)
+  pillars?: { width: number; gap: number; ends: number | [number, number]; at?: number; fenced: number; plinth: number; paint: CavePaint; fencedPaint: CavePaint };
+  // with no pillars, an opening in the ceiling over the stairs up from the platform, `length` m
+  // along and `width` across, its middle `at` m north of the platform's
+  opening?: { at: number; length: number; width: number };
+  // the platform's look carried on where its tracks are in a concrete box rather than rock (its
+  // walls and roof the box's, the ceiling under the roof)
+  box?: boolean;
   // the passage's openings to the platform each side: arches `inset` in from the pillars' ends
   // with their crowns `crown` high, in walls `thickness` thick, a rainbow painted round them; or,
   // with `paint`, the walls and the vault over the passage painted so instead; the vault `rise`
@@ -1028,6 +1039,34 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
       walls: 'stripe',
       stripe: { from: 2.2, to: 2.45, colors: [['#d6d1c3'], ['#d6d1c3']], rock: ['#424240', '#b9b8b2'] },
       fittings: { mesh: ['#3f3f3d', '#55534f', '#4a4846'], plinth: 'grey', ceiling: ['#2b2b2a', '#6d6b67', '#a4a29d'] },
+    },
+  },
+  // Masmo (1 October 1972), on the red line's Norsborg branch: an island platform 145 m long in a
+  // cave under Masmoberget, its south-western end in a concrete box under the square in front of
+  // the entrance (Swedish Wikipedia; photographs, 2002–2018). The rock sprayed a very dark grey,
+  // white streaks running down it where water seeps; a flat ceiling of dark expanded metal over
+  // the tracks and the platform, tubes across it on silver rails, open over the stairs up to the
+  // ticket hall; the track walls with panels of dark blue-grey mesh on blue-grey posts up to a
+  // white band with small black name plates; the floor dark grey tiles in a grid with a cream edge
+  // and a dark strip of brass studs inside it. Staffan Hallström's and Lasse Andréasson's painted
+  // panels along the walls, and the railing across the north-eastern end, are in src/network.ts.
+  'Masmo': {
+    paint: { seed: 1972, bands: [{ from: 0, color: '#2b2b2b' }],
+      motifs: [{ kind: 'dabs', colors: ['#3b3937', '#222222', '#47423f'], from: 0, to: 18, size: 0.7, count: 240 },
+        { kind: 'drips', colors: ['#d8d4cc', '#b9b4aa', '#8d8983'], from: 1.8, to: 14, count: 90, width: 0.035 },
+        { kind: 'cracks', colors: ['#c9c4ba'], from: 2, to: 18, count: 18 }] },
+    vault: { spring: 4.6, crown: 4.8 },
+    island: {
+      opening: { at: -29.5, length: 9, width: 4.6 },
+      box: true,
+      ceiling: 4.5,
+      panels: 1.5,
+      fittings: { mesh: ['#22262c', '#3e4753', '#4d5d70'], ceiling: ['#2a2c2f', '#5d6065', '#a9acb0'] },
+    },
+    paving: {
+      edge: 1.0, edgeTile: [0.5, 0.5], tactile: [1.0, 1.3], studs: true, studColor: 0xb08d4a, slabs: 0, paverSize: [0.4, 0.4], mix: 0.15,
+      colors: { edge: 0xd8d2c4, tactile: 0x3c3c3c, slab: 0x5c5b59, pavers: 0x5a5957, paler: 0x64635f, face: 0x3e3c3a },
+      pattern: 'grid',
     },
   },
   // Bagarmossen (15 August 1994, when the line went on to Skarpnäck and the station of 1958 out in

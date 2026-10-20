@@ -641,6 +641,13 @@
       "reach": 8,
       "length": 148,
       "why": "The eastern island's middle, as for the western one."
+    },
+    {
+      "station": "Masmo",
+      "replace": true,
+      "at": [143290.2, 6570522.6],
+      "length": 145,
+      "why": "OSM's platform at Masmo (2026) is a sketch 44 m long drawn round the ticket hall. Photographs (2018) see the island run on a long way either side of the stair up to the hall, and Albert Guillaumes's drawing (2024) has the hall over the platform 35–45 % of its length from its south-western end, and the passage from the entrance in the rock face coming in at about 17 %. The island is placed 145 m long, about its neighbours' length (Fittja's 140–143 m, Vårberg's 151 m), from 19 m south-west of the entrance (placed by Lantmäteriet's laser scan, data/ground-corrections.json), under the paved square in front of it, to 126 m north-east of it."
     }
   ],
   "apart": [
@@ -659,7 +666,8 @@
     {"station": "Hornstull", "apart": 25.8, "why": "Hornstull (1964) has the plan of Mariatorget and Zinkensdamm: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock, here 11.5 m wide and in two lengths with a passage between them (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.45 m wide, their edges by the tracks 22.6 m apart). OpenStreetMap's tracks are 1 m nearer each other than its platform edges allow, and the fit bowed them, 25.6 m apart in the middle but 21 m at the platforms' ends."},
     {"station": "Midsommarkransen", "apart": 32.4, "why": "Midsommarkransen (1964) is in rock on the plan of Mariatorget: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock about 17 m wide joined by a hall north-east of the middle (Albert Guillaumes' drawing, 2024; OpenStreetMap's platform outlines are straight, 5.5 m wide, their edges by the tracks 29.4 m apart, and its tracks straight and 32.3 m apart). The fit bowed the tracks, 33.2 m apart in the middle but 28 m at the platforms' ends."},
     {"station": "Aspudden", "apart": 32.2, "middle": [150137.2, 6576808.9], "why": "Aspudden (1964) is in rock on the plan of Mariatorget: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock about 16.5 m wide, joined through it by a hall where the escalators come down (Albert Guillaumes's drawing, 2024; photographs, 2005–2024, each hall's vault over one platform and one track). OpenStreetMap's indoor mapping (2025) has the platforms' inner edges 16.5 m apart, the escalators, the corridor to the hall and the passage between the platforms down the middle between them, in line with the entrance; its tracks, sketched 35 m apart, run 9 m north of that middle, the southern one along the southern platform's inner edge. The pair is held either side of the indoor mapping's middle."},
-    {"station": "Mälarhöjden", "apart": 25.0, "middle": [147401.8, 6576084.8], "why": "Mälarhöjden (1965) is in rock on the plan of Aspudden: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock, joined through it at the north-east end, where the escalators come down, and by a passage about 60 m from the south-west end (Albert Guillaumes's drawing, 2024; photographs, 2006–2020). OpenStreetMap's platform area is 20.3 m wide and its tracks, one of them sketched, 25.1 m apart, either side of the area's middle. The pair is held 25 m apart either side of that middle."}
+    {"station": "Mälarhöjden", "apart": 25.0, "middle": [147401.8, 6576084.8], "why": "Mälarhöjden (1965) is in rock on the plan of Aspudden: two straight, parallel platform halls, each with its track on the outside and its side platform on the inside, either side of a core of rock, joined through it at the north-east end, where the escalators come down, and by a passage about 60 m from the south-west end (Albert Guillaumes's drawing, 2024; photographs, 2006–2020). OpenStreetMap's platform area is 20.3 m wide and its tracks, one of them sketched, 25.1 m apart, either side of the area's middle. The pair is held 25 m apart either side of that middle."},
+    {"station": "Masmo", "apart": 12.14, "why": "Masmo's island platform is straight: photographs looking along it (2018) see both track walls run straight to a vanishing point in the middle. OpenStreetMap sketches the tracks curving through the cave, which bowed the 145 m island 4 m to one side in the middle. The tracks are placed for the network's usual island, 9 m wide."}
   ],
   "widths": [
     {

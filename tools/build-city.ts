@@ -79,6 +79,7 @@ import type { Building, CityIndex, Door, RoofShape, Square, Street, StreetKind, 
 import { ROOF_SHAPES, STREET_CROSSING, STREET_KINDS, STREET_ONEWAY, STREET_SIDEWALK, STREET_ZEBRA } from '../src/city-tile.ts';
 import { STRUCTURE_KINDS } from '../src/track-geometry.ts';
 import { OPEN_STYLES } from '../src/open-styles.ts';
+import { CAVE_STYLES } from '../src/hall-styles.ts';
 import type { StructureKind, TrackGeometry } from '../src/track-geometry.ts';
 import { LIFT, floorHeights, inclineCorners, liftCorners } from '../src/station-layout.ts';
 import type { StationLayouts } from '../src/station-layout.ts';
@@ -444,7 +445,7 @@ interface Seg {
   kind: StructureKind;
   pair: number;          // the other track's offset to the right (negative: left), 0 if none
   beside: number;        // another line's track's offset in the same box, on the other side, 0 if none
-  plat: { side: number; width: number } | null;
+  plat: { side: number; width: number; crown?: number } | null;
   clampA: boolean; clampB: boolean; // whether the ends round off (false at a mouth)
   yard: boolean;         // track no service runs on (a depot's, a siding): its ground is walked on
 }
@@ -480,7 +481,7 @@ function halfWidth(kind: StructureKind, pair: number, plat: Seg['plat'], side: n
 }
 function crownOf(kind: StructureKind, pair: number, plat: Seg['plat']) {
   if (kind === 'box') return S.BOX.height + S.BOX.roof;
-  if (plat) return S.HALL.spring + S.HALL.risePerWidth * (2 * (S.PLATFORM_EDGE + plat.width) + Math.abs(pair));
+  if (plat) return plat.crown ?? S.HALL.spring + S.HALL.risePerWidth * (2 * (S.PLATFORM_EDGE + plat.width) + Math.abs(pair));
   return pair ? S.ROCK.doubleCrown : S.ROCK.singleCrown;
 }
 
@@ -490,7 +491,9 @@ for (const [id, p] of Object.entries(geometry.pieces)) {
   const n = p.x.length;
   const platAt = (k: number) => {
     const pl = p.platforms.find((q) => p.s[k] >= q.s0 - 1 && p.s[k] <= q.s1 + 1);
-    return pl ? { side: pl.side, width: pl.width } : null;
+    // (a cave whose style has a low vault of its own under its ceiling, Masmo's, is covered over
+    // that vault, not over the usual hall's crown)
+    return pl ? { side: pl.side, width: pl.width, crown: CAVE_STYLES[pl.station]?.vault?.crown } : null;
   };
   const kindAt = (k: number) => STRUCTURE_KINDS[p.kind[k]];
   // whether the piece's end at point k meets track of the same class, or nothing (rounds off)

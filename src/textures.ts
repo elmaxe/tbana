@@ -3161,6 +3161,176 @@ export function stadionMesh(back = '#1d3a36', strand = '#5fb3a3', post = '#4fa59
   return toTexture(c);
 }
 
+// Staffan Hallström's and Lasse Andréasson's Ta ner solen i tunnelbanan (Masmo, 1971–72): figures
+// cut out of sheet and painted, on panels of expanded metal standing off the rock along the track
+// walls (photographs, 2002 and 2018). `masmoArt`'s picture is the whole panel:
+// - `sun`, the largest, two panels side by side, 6 by 2.3 m: silver mesh, a yellow sun brushed
+//   with black at the left, a crowd in grey and black cloaks under a white beam on a post, green
+//   strokes on it, a rider in yellow on a white horse, and people with flags of red, yellow and
+//   blue round a rearing white horse at the right;
+// - `crescent`, 2.2 by 2.4 m: dark mesh, a yellow half sun, a row of white figures under it;
+// - `yellow`, 1.6 by 2.4 m: mesh painted yellow all over;
+// - `card` (`variant` 0–3), 1.2 by 2.2 m: a white playing card on a dark mesh backing: a jester,
+//   the queen of spades, a black disc over a small figure on a scaffold, the two of diamonds;
+// - `drawing` (`variant` 0–1), 1.6 by 1.2 m: a white panel in a thin dark frame, with a line
+//   drawing in grey: a disc over a temple's front, or hills with a sun.
+export const MASMO_ART_SIZE = { sun: [6, 2.3], crescent: [2.2, 2.4], yellow: [1.6, 2.4], card: [1.2, 2.2], drawing: [1.6, 1.2] } as const;
+export function masmoArt(kind: keyof typeof MASMO_ART_SIZE, variant = 0) {
+  const size = MASMO_ART_SIZE[kind];
+  const PX = 200, W = Math.round(size[0] * PX), H = Math.round(size[1] * PX), [c, x] = canvas(W, H), r = rng(1971 + variant * 13);
+  // expanded metal: strands in rows of diamonds over the dark rock showing through
+  const mesh = (x0: number, y0: number, w: number, h: number, back: string, strand: string) => {
+    x.fillStyle = back; x.fillRect(x0, y0, w, h);
+    x.save(); x.beginPath(); x.rect(x0, y0, w, h); x.clip();
+    x.strokeStyle = strand; x.lineWidth = 3;
+    const dw = 22, dh = 9;
+    for (let row = 0; row * dh < h + dh; row++) {
+      const yy = y0 + row * dh, off = row % 2 ? dw / 2 : 0;
+      x.beginPath();
+      for (let k = -1; k * dw < w + dw; k++) {
+        const xx = x0 + k * dw + off;
+        x.moveTo(xx, yy); x.lineTo(xx + dw / 2, yy + dh); x.lineTo(xx + dw, yy);
+      }
+      x.stroke();
+    }
+    x.restore();
+  };
+  const shape = (fill: string, pts: [number, number][], line?: string) => {
+    x.fillStyle = fill; x.beginPath();
+    pts.forEach(([u, v], k) => (k ? x.lineTo(u * W, (1 - v) * H) : x.moveTo(u * W, (1 - v) * H)));
+    x.closePath(); x.fill();
+    if (line) { x.strokeStyle = line; x.lineWidth = 2; x.stroke(); }
+  };
+  const disc = (fill: string, u: number, v: number, rad: number) => { x.fillStyle = fill; x.beginPath(); x.arc(u * W, (1 - v) * H, rad * H, 0, Math.PI * 2); x.fill(); };
+  const brush = (color: string, u: number, v: number, len: number, width: number, n: number) => {
+    x.strokeStyle = color; x.lineCap = 'round';
+    for (let k = 0; k < n; k++) {
+      x.lineWidth = width * (0.4 + r());
+      const a = -0.6 + (r() - 0.5) * 0.8, l = len * (0.5 + r() * 0.5) * W, px = (u + (r() - 0.5) * 0.04) * W, py = (1 - v + (r() - 0.5) * 0.15) * H;
+      x.beginPath(); x.moveTo(px, py); x.lineTo(px + Math.cos(a) * l, py + Math.sin(a) * l); x.stroke();
+    }
+  };
+  // a cloaked figure standing, its foot at u, v, h high, in a cloak of `cloak` with a pale face
+  const person = (u: number, v: number, h: number, cloak: string, face = '#e8e2d4') => {
+    const w = h * 0.3 * (H / W);
+    shape(cloak, [[u - w, v], [u + w, v], [u + w * 0.75, v + h * 0.7], [u + w * 0.45, v + h * 0.82], [u - w * 0.45, v + h * 0.82], [u - w * 0.8, v + h * 0.6]]);
+    x.fillStyle = face; x.beginPath(); x.ellipse(u * W, (1 - v - h * 0.9) * H, w * 0.42 * W, h * 0.09 * H, 0, 0, Math.PI * 2); x.fill();
+    x.strokeStyle = 'rgba(20,20,20,0.6)'; x.lineWidth = 1.5;
+    x.beginPath(); x.moveTo(u * W, (1 - v - h * 0.75) * H); x.lineTo((u + (r() - 0.5) * w) * W, (1 - v) * H); x.stroke();
+  };
+  // a white horse walking (or rearing, `rear`), facing right, its hooves on v, `h` high to its back
+  const horse = (u: number, v: number, h: number, rear = false) => {
+    const k = H / W, l = h * 1.25 * k, white = '#ecebe6', line = '#4a4a48';
+    const body: [number, number][] = rear
+      ? [[u - l * 0.4, v + h * 0.25], [u - l * 0.1, v + h * 0.45], [u + l * 0.35, v + h * 0.95], [u + l * 0.55, v + h * 1.25], [u + l * 0.68, v + h * 1.2], [u + l * 0.5, v + h * 0.85], [u + l * 0.3, v + h * 0.55], [u - l * 0.05, v + h * 0.2], [u - l * 0.35, v + h * 0.05]]
+      : [[u - l * 0.5, v + h * 0.55], [u - l * 0.45, v + h * 0.95], [u + l * 0.3, v + h], [u + l * 0.5, v + h * 1.3], [u + l * 0.65, v + h * 1.25], [u + l * 0.48, v + h * 0.85], [u + l * 0.42, v + h * 0.55]];
+    shape(white, body, line);
+    x.strokeStyle = white; x.lineWidth = Math.max(3, h * H * 0.07);
+    const legs = rear ? [[-0.3, 0.2, -0.36, 0], [-0.15, 0.25, -0.1, 0], [0.35, 0.8, 0.6, 0.6], [0.25, 0.7, 0.45, 0.45]]
+      : [[-0.42, 0.6, -0.48, 0], [-0.3, 0.6, -0.25, 0], [0.3, 0.6, 0.25, 0], [0.4, 0.6, 0.48, 0]];
+    for (const [a, b, cc, d] of legs) { x.beginPath(); x.moveTo((u + l * a) * W, (1 - v - h * b) * H); x.lineTo((u + l * cc) * W, (1 - v - h * d) * H); x.stroke(); }
+    x.strokeStyle = line; x.lineWidth = 1.5;
+    for (const [a, b, cc, d] of legs) { x.beginPath(); x.moveTo((u + l * a) * W + 3, (1 - v - h * b) * H); x.lineTo((u + l * cc) * W + 3, (1 - v - h * d) * H); x.stroke(); }
+  };
+  const flag = (color: string, u: number, v: number, w: number, h: number) => {
+    shape(color, [[u, v], [u + w, v + h * 0.15], [u + w * 0.85, v + h * 0.6], [u + w, v + h], [u, v + h * 0.85]]);
+    x.strokeStyle = '#3a3a38'; x.lineWidth = 2; x.beginPath(); x.moveTo(u * W, (1 - v) * H); x.lineTo(u * W, (1 - v + h * 0.9) * H); x.stroke();
+  };
+
+  if (kind === 'sun') {
+    // the two panels, a narrow gap between them, the left one stepping lower towards its left
+    mesh(0, 0, W, H, '#2c2c2e', '#a9aaa8');
+    x.fillStyle = '#2b2b2b'; x.fillRect(W * 0.535, 0, 6, H);
+    shape('#2b2b2b', [[0, 1], [0.53, 1], [0.53, 0.97], [0, 0.9]]);
+    // the sun, brushed with black
+    disc('#e2cc2e', 0.09, 0.72, 0.17);
+    x.save(); x.beginPath(); x.arc(0.09 * W, 0.28 * H, 0.17 * H, 0, Math.PI * 2); x.clip();
+    brush('rgba(20,20,20,0.8)', 0.11, 0.72, 0.05, 4, 22);
+    x.restore();
+    // the beam on its post, and the struts at its end, green strokes on them
+    shape('#dcdcd6', [[0.33, 0.83], [0.65, 0.86], [0.65, 0.81], [0.33, 0.78]], '#6a6a66');
+    shape('#dcdcd6', [[0.36, 0.72], [0.42, 0.86], [0.44, 0.84], [0.38, 0.7]], '#6a6a66');
+    shape('#dcdcd6', [[0.37, 0.84], [0.43, 0.7], [0.45, 0.72], [0.39, 0.86]], '#6a6a66');
+    shape('#dcdcd6', [[0.418, 0.86], [0.428, 0.86], [0.428, 0.2], [0.418, 0.2]], '#6a6a66');
+    shape('#e2cc2e', [[0.42, 0.42], [0.428, 0.42], [0.428, 0.2], [0.42, 0.2]]);
+    shape('#d4d4ce', [[0.46, 0.77], [0.66, 0.79], [0.66, 0.76], [0.46, 0.74]], '#6a6a66');
+    brush('#2f8a4a', 0.4, 0.84, 0.03, 4, 10);
+    // the crowd under it, in grey and black cloaks
+    const cloaks = ['#3a3a3c', '#58585a', '#202022', '#7a7a78', '#48484a', '#2a2a2c', '#66666a'];
+    for (let k = 0; k < 11; k++) person(0.26 + k * 0.014 + (r() - 0.5) * 0.006, 0.2 + (k % 2) * 0.012, 0.28 + r() * 0.07, cloaks[k % cloaks.length]);
+    person(0.27, 0.2, 0.3, '#d8d4c8');
+    // the rider in yellow on the white horse
+    horse(0.5, 0.2, 0.3);
+    shape('#d8b62a', [[0.515, 0.5], [0.53, 0.5], [0.535, 0.62], [0.52, 0.65], [0.51, 0.6]], '#5a4a20');
+    disc('#e8e2d4', 0.523, 0.68, 0.03);
+    // flags of red, yellow and blue, people under them and a rearing white horse
+    flag('#c8302a', 0.63, 0.62, 0.035, 0.25);
+    flag('#e2c42e', 0.65, 0.55, 0.03, 0.22);
+    flag('#2a5aa8', 0.665, 0.65, 0.022, 0.16);
+    person(0.61, 0.2, 0.32, '#d8d4c8');
+    person(0.635, 0.2, 0.3, '#bdbab2');
+    horse(0.68, 0.2, 0.3, true);
+    person(0.66, 0.2, 0.3, '#e0dcd2');
+  } else if (kind === 'crescent') {
+    mesh(0, 0, W, H, '#1e1e20', '#4a4b4e');
+    disc('#e0c42c', 0.5, 0.74, 0.16);
+    x.fillStyle = '#1e1e20'; x.beginPath(); x.arc(0.58 * W, 0.22 * H, 0.15 * H, 0, Math.PI * 2); x.fill();
+    for (let k = 0; k < 6; k++) person(0.18 + k * 0.13, 0.12 + (k % 2) * 0.02, 0.3 + r() * 0.08, '#e4e0d6', '#f0ece2');
+  } else if (kind === 'yellow') {
+    mesh(0, 0, W, H, '#5a4a10', '#e2c43a');
+  } else if (kind === 'card') {
+    mesh(0, 0, W, H, '#1c1c1e', '#3e3f42');
+    const m = 0.07, card: [number, number][] = [[m, 0.04], [1 - m, 0.04], [1 - m, 0.96], [m, 0.96]];
+    shape('#f2f0ea', card, '#9a9894');
+    if (variant === 0) {
+      // a jester: a figure in a pointed cap with bells, his tunic in halves of black and grey
+      person(0.5, 0.15, 0.62, '#2a2a2c');
+      shape('#8a8a86', [[0.5, 0.15], [0.62, 0.15], [0.6, 0.58], [0.5, 0.66]]);
+      shape('#2a2a2c', [[0.36, 0.72], [0.5, 0.86], [0.64, 0.72], [0.56, 0.74], [0.5, 0.8], [0.44, 0.74]]);
+      for (const u of [0.36, 0.5, 0.64]) disc('#c8a22a', u, u === 0.5 ? 0.87 : 0.72, 0.012);
+    } else if (variant === 1) {
+      // the queen of spades: a crowned head and shoulders, mirrored, a spade in the corners
+      const spade = (u: number, v: number, s: number) => {
+        shape('#141414', [[u, v + s], [u + s * 0.75, v], [u + s * 0.3, v - s * 0.2], [u, v - s * 0.05], [u - s * 0.3, v - s * 0.2], [u - s * 0.75, v]]);
+        shape('#141414', [[u - s * 0.12, v - s * 0.1], [u + s * 0.12, v - s * 0.1], [u + s * 0.25, v - s * 0.5], [u - s * 0.25, v - s * 0.5]]);
+      };
+      spade(0.2, 0.86, 0.06); spade(0.8, 0.14, 0.06);
+      for (const [v, k] of [[0.5, 1], [0.5, -1]] as const) {
+        shape('#2a2a2a', [[0.3, v], [0.7, v], [0.62, v + k * 0.16], [0.38, v + k * 0.16]]);
+        disc('#e8dcc4', 0.5, v + k * 0.22, 0.05);
+        shape('#c8a22a', [[0.42, v + k * 0.27], [0.58, v + k * 0.27], [0.6, v + k * 0.32], [0.55, v + k * 0.29], [0.5, v + k * 0.33], [0.45, v + k * 0.29], [0.4, v + k * 0.32]]);
+      }
+      x.strokeStyle = '#6a6a66'; x.lineWidth = 2; x.beginPath(); x.moveTo(0.15 * W, 0.5 * H); x.lineTo(0.85 * W, 0.5 * H); x.stroke();
+    } else if (variant === 2) {
+      // a black disc over a small figure on a scaffold
+      disc('#141414', 0.5, 0.62, 0.11);
+      x.strokeStyle = '#3a3a38'; x.lineWidth = 3;
+      for (const [a, b, cc, d] of [[0.3, 0.1, 0.42, 0.42], [0.7, 0.1, 0.58, 0.42], [0.36, 0.26, 0.64, 0.26], [0.4, 0.42, 0.6, 0.42]]) { x.beginPath(); x.moveTo(a * W, (1 - b) * H); x.lineTo(cc * W, (1 - d) * H); x.stroke(); }
+      person(0.5, 0.42, 0.1, '#3a3a3c');
+    } else {
+      // the two of diamonds: two red diamonds down the middle, a small grey pip at the top
+      const diamond = (v: number, s: number, color: string) => shape(color, [[0.5, v + s], [0.5 + s * 0.4, v], [0.5, v - s], [0.5 - s * 0.4, v]]);
+      diamond(0.68, 0.06, '#c42a26'); diamond(0.32, 0.06, '#c42a26'); diamond(0.9, 0.025, '#8a8a86');
+    }
+  } else {
+    x.fillStyle = '#2a2a2a'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#efede6'; x.fillRect(8, 8, W - 16, H - 16);
+    x.strokeStyle = '#6e6e6a'; x.lineWidth = 2.5; x.lineJoin = 'round';
+    const line = (pts: [number, number][]) => { x.beginPath(); pts.forEach(([u, v], k) => (k ? x.lineTo(u * W, (1 - v) * H) : x.moveTo(u * W, (1 - v) * H))); x.stroke(); };
+    if (variant === 0) {
+      x.beginPath(); x.arc(0.5 * W, 0.28 * H, 0.12 * H, 0, Math.PI * 2); x.stroke();
+      line([[0.3, 0.55], [0.5, 0.65], [0.7, 0.55], [0.3, 0.55]]);
+      for (let k = 0; k < 6; k++) line([[0.33 + k * 0.068, 0.55], [0.33 + k * 0.068, 0.2]]);
+      line([[0.28, 0.2], [0.72, 0.2]]); line([[0.25, 0.14], [0.75, 0.14]]);
+    } else {
+      line([[0.08, 0.2], [0.25, 0.42], [0.4, 0.3], [0.58, 0.55], [0.75, 0.35], [0.92, 0.45]]);
+      x.beginPath(); x.arc(0.3 * W, 0.3 * H, 0.1 * H, 0, Math.PI * 2); x.stroke();
+      for (let k = 0; k < 8; k++) line([[0.12 + k * 0.1, 0.15], [0.14 + k * 0.1, 0.24]]);
+    }
+  }
+  return toTexture(c, { repeat: false });
+}
+
 // How far round from the foot of a cave's paint (caveRock) the pillars' paint starts at the
 // platform.
 export const STADION_FOOT = 1.6;
@@ -5640,9 +5810,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   skhBasket: [1.2, 1.2], skhMosaic: [8.0, 3.0], skhEndWall: [9.0, 3.6],
   vabTiles: [1.2, 3.6],
   vbgFront: [2.2, 2.6], vbgFascia: [1.8, 1.2], vbgRender: [2.4, 2.4], vbgParapet: [1.2, 1.6],
+  masmoRender: [2.4, 2.4], masmoRock: [4.8, 3.2], masmoMesh: [2.4, 2.4], masmoCeiling: [1.5, 1.5], masmoFascia: [7, 1.1],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8632,6 +8803,84 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(30,20,16,0.6)'; x.fillRect(0, Y(1.45), 2, 1.45 * PX);
       band(1.45, 1.6, '#b9b7b1');
       x.fillStyle = 'rgba(40,30,25,0.5)'; x.fillRect(0, Y(1.45), W, 2);
+      break;
+    }
+    case 'masmoRender':
+      // render thrown on rough, a dusty maroon (Masmo's ticket hall and the walls beside its stairs)
+      x.fillStyle = '#84534f'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.2, 77); speckle(x, W, H, 16000, 0.25, 78, true);
+      break;
+    case 'masmoRock': {
+      // the rock along Masmo's passage, sprayed dark and painted in large patches of red, ochre,
+      // beige, grey and green over a concrete ledge 0.7 m high, a blue steel rail to lean on over
+      // the ledge (photographs, 2016 and undated)
+      x.fillStyle = '#3e3b38'; x.fillRect(0, 0, W, H);
+      const colours = ['#7f2a20', '#8a7010', '#ab9f7b', '#1f4a35', '#6d6a64', '#7f2a20', '#ab9f7b'];
+      for (let k = 0; k < 16; k++) {
+        const cx = r() * W, cy = Y(0.9 + r() * 2.3), rx = (0.4 + r() * 0.9) * PX, ry = (0.3 + r() * 0.6) * PX;
+        x.fillStyle = colours[k % colours.length];
+        for (const dx of [-W, 0, W]) {
+          x.beginPath();
+          for (let i = 0; i <= 24; i++) {
+            const a = (i / 24) * Math.PI * 2, f = 0.75 + 0.25 * Math.sin(a * 3 + k) + (r() - 0.5) * 0.12;
+            const px = cx + dx + Math.cos(a) * rx * f, py = cy + Math.sin(a) * ry * f;
+            if (i) x.lineTo(px, py); else x.moveTo(px, py);
+          }
+          x.fill();
+        }
+      }
+      speckle(x, W, H, 26000, 0.3, 79); speckle(x, W, H, 12000, 0.2, 80, true);
+      band(0, 0.7, '#9a9892');
+      x.save(); x.translate(0, Y(0.7)); speckle(x, W, Math.round(0.7 * PX), 3000, 0.12, 81); x.restore();
+      x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(0, Y(0.7), W, 3);
+      band(0.92, 0.98, '#2d4f93');
+      x.fillStyle = 'rgba(255,255,255,0.25)'; x.fillRect(0, Y(0.98), W, 1);
+      for (let i = 0; i * 1.6 * PX < W; i++) { x.fillStyle = '#2d4f93'; x.fillRect(i * 1.6 * PX + 0.8 * PX, Y(0.92), 0.04 * PX, 0.22 * PX); }
+      break;
+    }
+    case 'masmoMesh': {
+      // panels of dark blue expanded metal on blue steel posts 1.2 m apart (the inner wall of
+      // Masmo's passage, and the grille over its entrance)
+      x.fillStyle = '#1b1f2c'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = '#3f4a74'; x.lineWidth = 2.4;
+      const p = 0.1 * PX;
+      for (let k = -Math.ceil(H / p); k * p < W + H; k++) {
+        x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + H * 0.5, H); x.stroke();
+        x.beginPath(); x.moveTo(k * p, H); x.lineTo(k * p + H * 0.5, 0); x.stroke();
+      }
+      for (let i = 0; i * 1.2 * PX < W; i++) {
+        x.fillStyle = '#34457a'; x.fillRect(i * 1.2 * PX, 0, 0.06 * PX, H);
+        x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(i * 1.2 * PX + 0.06 * PX, 0, 0.02 * PX, H);
+      }
+      break;
+    }
+    case 'masmoCeiling': {
+      // dark expanded metal, a tube lamp across it on a silver rail every 1.5 m
+      x.fillStyle = '#26282b'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = '#55585d'; x.lineWidth = 2;
+      const p = 0.08 * PX;
+      for (let k = -Math.ceil(W / p); k * p < W + H; k++) {
+        x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + W, H); x.stroke();
+        x.beginPath(); x.moveTo(k * p, H); x.lineTo(k * p + W, 0); x.stroke();
+      }
+      x.fillStyle = '#a7aaae'; x.fillRect(0, H / 2 - 0.07 * PX, W, 0.14 * PX);
+      x.fillStyle = '#f6f5ee'; x.fillRect(0, H / 2 - 0.03 * PX, W, 0.06 * PX);
+      break;
+    }
+    case 'masmoFascia': {
+      // the deep beam over Masmo's gates: SL's blue, a yellow line along its foot, two orange
+      // departure displays and a round clock between them (photographs, 2016 and 2018)
+      const M = (m: number) => m * PX;
+      x.fillStyle = '#213b8e'; x.fillRect(0, 0, W, H);
+      band(0, 0.05, yellow);
+      for (const a of [1.1, 4.7]) {
+        x.fillStyle = '#151515'; x.fillRect(M(a), Y(0.9), M(1.2), 0.5 * PX);
+        x.fillStyle = '#ff8a1f';
+        for (let k = 0; k < 2; k++) for (let i = 0; i < 26; i++) if (r() < 0.55) x.fillRect(M(a + 0.08 + i * 0.04), Y(0.8 - k * 0.22), 0.025 * PX, 0.08 * PX);
+      }
+      x.fillStyle = '#f2f2ee'; x.beginPath(); x.arc(M(3.5), Y(0.62), 0.22 * PX, 0, Math.PI * 2); x.fill();
+      x.strokeStyle = '#1a1a1a'; x.lineWidth = 3;
+      x.beginPath(); x.moveTo(M(3.5), Y(0.62)); x.lineTo(M(3.5), Y(0.78)); x.moveTo(M(3.5), Y(0.62)); x.lineTo(M(3.61), Y(0.57)); x.stroke();
       break;
     }
     case 'skhEndWall': {

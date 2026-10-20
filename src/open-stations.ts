@@ -282,7 +282,7 @@ export class OpenLook {
   build(st: StationLayout, style: OpenStyle, on: On, cut: Volume[], group: THREE.Group, roofCut = cut, voids: Volume[] = []) {
     const frame = new Frame(st);
     const outside = (c: Volume[]) => c.filter((v) => !voids.includes(v));
-    for (const b of style.blocks ?? []) this.block(b, frame, on, b.inHall ? outside(cut) : cut, style.signName ?? st.name, b.inHall ? outside(roofCut) : roofCut);
+    for (const b of style.blocks ?? []) this.block(b, frame, on, b.inRoom ? [] : b.inHall ? outside(cut) : cut, style.signName ?? st.name, b.inRoom ? [] : b.inHall ? outside(roofCut) : roofCut);
     for (const f of style.fences ?? []) this.fence(f, frame, on);
     for (const a of style.art ?? []) {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);

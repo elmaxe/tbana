@@ -204,6 +204,12 @@
       "outline": [-9950.5, 7476.7, -9959.2, 7483.4, -10047.0, 7368.0, -10038.3, 7361.3],
       "heights": [22.72, 22.6, 21.25, 21.3],
       "why": "South-west of Vårby gård the southern track runs along the top of a concrete retaining wall 5.5–6.8 m high, from the mouth of the passage under the tracks to the bridge north-west of the platform, over a square and a cycleway. Lantmäteriet's laser scan has the square at 22.5–22.7 m by the ticket hall, falling to 21.2–21.3 m at the bridge, and the wall's top at 27.6–28.2 m; the elevation model's 5 m grid smooths the wall into a grassy bank. The outline runs from the track's edge, over the wall's foot (the wall in src/open-styles.ts stands there), to 9 m out."
+    },
+    {
+      "name": "Masmo: the entrance in the rock face and the colonnade along its foot",
+      "outline": [-10129.7, 9101.0, -10118.0, 9095.5, -10121.4, 9088.2, -10123.4, 9089.1, -10134.8, 9064.7, -10139.3, 9066.8, -10128.1, 9090.8, -10133.4, 9093.3],
+      "heights": [16.15, 16.25, 16.25, 16.2, 16.15, 16.1, 16.1, 16.1],
+      "why": "Masmo's only entrance is a portal in the rock face at the foot of Masmoberget, opening west-south-west onto the square at 16.1 m, under a canopy whose roof Lantmäteriet's laser scan has at 19.5 m, 6 m wide; a beam on pilasters runs on along the rock's foot to the north-north-west from the lintel over it, at the same height, 23.4 m. The elevation model's 5 m grid smooths the rock face into a slope that rises through the portal's mouth and under the beam. The deck lays the square's paving 5 m into the rock face there."
     }
   ],
   "open": [
@@ -413,6 +419,10 @@
     {
       "outline": [[-9950.5, 7476.7], [-10002.6, 7408.3], [-10019.3, 7421.0], [-9967.2, 7489.4]],
       "why": "Vårby gård: the square under the retaining wall south-west of the ticket hall, pale concrete pavers with a row of trees (Google's 3D model). The lawn north-west of it stays grass."
+    },
+    {
+      "outline": [[-10182.6, 9075.6], [-10163.5, 9119.7], [-10129.7, 9107.2], [-10129.7, 9101.0], [-10118.0, 9095.5], [-10121.4, 9088.2], [-10123.4, 9089.1], [-10134.8, 9064.7], [-10142.2, 9058.1]],
+      "why": "Masmo: the square in front of the entrance in the rock face, pale concrete pavers with Land arkitektur's orange-red poles, young trees in beds and a low timber deck (Google's 3D model; photographs, 2016–2018). Few buildings stand beside it, so it was grass."
     }
   ],
   "shallow": [

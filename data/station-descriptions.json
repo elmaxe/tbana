@@ -1229,13 +1229,20 @@
     },
     "Masmo": {
       "drawing": "masmo.png",
-      "note": "A short island platform deep under the hill, at the foot of its slope. Escalators climb from it straight to the ticket hall.",
+      "note": "An island platform in a cave under Masmoberget, near the foot of its rock face. A stair climbs from the middle of the platform to the ticket hall over it, a lift beside it. From the hall's gates a passage runs back west-south-west, over the cave's northern side, to the entrance in the rock face on the square, under a canopy that Lantmäteriet's laser scan places.",
       "routes": [
-        { "from": [10, 0], "width": 5, "go": [
-          {"escalators": 7.4, "toward": [-80, 0], "lanes": "EES"},
-          {"walk": 4, "width": 7},
+        { "from": [-33.5, 0], "width": 4, "go": [
+          {"stairs": 4.0, "toward": [100, 0], "lanes": "SS"},
+          {"walk": [-19, 0], "width": 7},
           {"gates": true},
-          {"exit": 13744930026}
+          {"walk": [-15.5, 0]},
+          {"walk": [-15.5, -7], "width": 5.5},
+          {"walk": [-50.5, -7], "dh": 1.1},
+          {"exit": {"at": [-53.6, -7], "name": "Masmo"}, "by": "walk", "sign": false}
+        ] },
+        { "from": [-24, -2.2], "width": 2, "go": [
+          {"walk": [-23.6, -2.2], "open": true, "edges": false},
+          {"lift": 4.0}
         ] }
       ]
     },
