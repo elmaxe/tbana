@@ -69,6 +69,9 @@ interface Corrections {
   // surface track on a viaduct that OpenStreetMap doesn't map as a bridge: drawn as one (read by
   // tools/build-track-geometry.ts; its height here is as the other fixes have it)
   viaducts?: Segment[];
+  // surface track along a retaining wall (or between walls) that the elevation model smooths into
+  // a bank: drawn in a cutting (read by tools/build-track-geometry.ts only)
+  walled?: Segment[];
   // bridges with a road or a valley under them: the rail at least `clearance` above the ground
   raised?: (Segment & { clearance: number })[];
   // the rail's height where the elevation model can't see it (on a bridge, under water), such as

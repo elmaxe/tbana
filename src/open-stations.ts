@@ -1184,11 +1184,11 @@ export class OpenLook {
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
-      for (const u of rows(s)) {
-        const top = C.cross ? h(u, s) - rd : h(u, s) - R.beam;
-        box(concrete, line.at(s, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
-        if (cased) box(casing, line.at(s, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
-        else box(steel, line.at(s, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
+      for (const u of rows(s)) for (const t of C.twin ? [s - C.twin / 2, s + C.twin / 2] : [s]) {
+        const top = C.cross ? h(u, t) - rd : h(u, t) - R.beam;
+        box(concrete, line.at(t, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
+        if (cased) box(casing, line.at(t, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
+        else box(steel, line.at(t, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
         // knee braces up to the beam, either way along it
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
       }

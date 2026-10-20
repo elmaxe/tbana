@@ -1183,15 +1183,47 @@
     },
     "Vårby gård": {
       "drawing": "varby_gard.png",
-      "note": "A wide island platform on a bank, its north end on a bridge. At its south end the ticket hall opens onto the street.",
+      "note": "An island platform on a bank over the square to the south-west, its north-western end on the abutment of the line's viaducts, under a flat roof from the ticket hall at its south-eastern end 101 m north-west. The hall stands on the platform between the tracks; past its gates its doors open onto the platform's end beyond it, out in the open in the cutting, where a ramp climbs south-east beside the southern track to Vårby allé, stairs climb to the deck over the northern track, stairs and an escalator under the deck lead down to a passage under the southern track out to the square, and a lift joins the three levels. From the laser scan (the platform 144 m long, the roof 3.2 to 3.5 m over it, the hall 3.4 m, the deck 3.6 m over the end and the square 5.4 to 6.7 m under the retaining wall), OpenStreetMap's indoor mapping (the gates, the doors, the stairs, the escalator, the lift, the passage under the tracks, the ramp) and photographs (2006 to 2024).",
       "routes": [
-        { "from": [8, 0], "width": 11, "go": [
-          {"walk": [22, 0], "open": true}
-        ] },
-        { "from": [-70, 0], "width": 6, "go": [
-          {"walk": [-95, 0]},
+        { "from": [-85.9, -0.6], "width": 9.6, "go": [
+          {"walk": [-97.4, -0.6], "ceiling": 3.3},
           {"gates": true},
-          {"exit": 13745109303, "by": "walk"}
+          {"walk": [-103.6, -0.6], "ceiling": 3.3},
+          {"walk": [-106.6, -2.9], "width": 2.0},
+          {"walk": [-108.9, -2.9], "open": true},
+          {"walk": [-118.6, -3.0], "width": 4.8, "dh": -0.15, "open": true},
+          {"walk": [-128.2, -4.3], "width": 3.2, "open": true},
+          {"walk": [-166.2, -4.5], "width": 2.0, "dh": 3.14, "open": true},
+          {"walk": [-168.0, -4.5], "open": true},
+          {"exit": {"at": [-171.0, -4.5], "name": "Vårby allé"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-118.7, -1.4], "h": -0.15, "width": 1.6, "go": [
+          {"walk": [-119.3, -1.4], "open": true},
+          {"stairs": 3.54, "toward": [-126.6, -1.4], "lanes": "s"},
+          {"walk": [-131.0, -1.4], "open": true},
+          {"exit": {"at": [-131.0, 3.8], "name": "Vårby allé"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-114.0, -1.6], "h": -0.15, "width": 3.1, "go": [
+          {"walk": [-114.0, 1.62]},
+          {"walk": [-116.7, 1.62]},
+          {"escalators": -5.2, "toward": [-130.0, 1.62], "lanes": "sE"},
+          {"walk": [-130.0, 1.62]},
+          {"mark": "lower"},
+          {"walk": [-130.0, -8.6], "width": 3.0, "ceiling": 2.8},
+          {"walk": [-130.0, -11.5], "width": 6.5, "ceiling": 2.8},
+          {"walk": [-130.0, -14.0], "width": 3.0, "open": true},
+          {"exit": {"at": [-130.0, -16.5], "name": "Krongårdsvägen"}, "by": "walk", "open": true}
+        ] },
+        { "from": "lower", "width": 2.0, "go": [
+          {"walk": [-135.7, 1.6]},
+          {"lift": 8.74, "stops": [5.2]},
+          {"walk": [-133.4, 1.6], "open": true},
+          {"exit": {"at": [-132.0, 4.6], "name": "Vårby allé"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [-127.6, -1.9], "h": -0.15, "width": 1.6, "go": [
+          {"walk": [-132.6, -1.9]},
+          {"walk": [-132.6, 1.6]},
+          {"walk": [-135.7, 1.6]}
         ] }
       ]
     },

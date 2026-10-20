@@ -15,6 +15,7 @@
 // on a post beside it (`sign: false`, none: the station's name is over its doors; `signName`, the
 // name as the station's signs write it, where that isn't the map's). Stairs or
 // escalators `open` come up through a hall's floor at their top, with no ceiling over the opening.
+// A lift `stops` also at these heights over where it starts, its doors there facing the same way.
 // A walk, stairs or escalators `daylight`, under a ceiling, are out in the daylight all the same:
 // an underpass open to the street at its ends, or a glazed hall, from which the street is seen in
 // daylight, not in the stations' dark.
@@ -46,7 +47,7 @@ type Segment =
   | { walk: SU | number; width?: number; dh?: number; ceiling?: number; open?: boolean; edges?: boolean; daylight?: boolean }
   | { stairs: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean; daylight?: boolean }
   | { escalators: number; toward?: SU; to?: SU; lanes?: string; ceiling?: number; open?: boolean; daylight?: boolean }
-  | { lift: number; above?: number; through?: boolean }
+  | { lift: number; above?: number; through?: boolean; stops?: number[] }
   | { gates: true }
   | { mark: string }
   | { exit: number | string | { at: SU; name?: string }; by?: 'stairs' | 'escalators' | 'walk' | 'lift'; lanes?: string; ceiling?: number; open?: boolean; sign?: boolean };
@@ -322,7 +323,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         const yaw = Math.atan2(hx, hz);
         const dist = 0.3 + 2.4 / 2;
         parts.push({
-          kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), r2(y + sg.lift)],
+          kind: 'lift', x: r2(x + hx * dist), z: r2(z + hz * dist), yaw: r2(yaw), levels: [r2(y), ...(sg.stops ?? []).map((d) => r2(y + d)), r2(y + sg.lift)],
           ...(sg.above === undefined ? {} : { above: sg.above }), ...(sg.through ? { through: true } : {}),
         });
         y += sg.lift;

@@ -5639,9 +5639,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   ernkvistTiles: [2.82, 2.0], satraHall: [1.2, 4.4], satraBoards: [1.2, 2.4], satraHouse: [1.2, 3.9], satraCentre: [2.4, 4.35], satraEntrance: [1.5, 4.35],
   skhBasket: [1.2, 1.2], skhMosaic: [8.0, 3.0], skhEndWall: [9.0, 3.6],
   vabTiles: [1.2, 3.6],
+  vbgFront: [2.2, 2.6], vbgFascia: [1.8, 1.2], vbgRender: [2.4, 2.4], vbgParapet: [1.2, 1.6],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8592,6 +8593,45 @@ export function finish(name: Finish) {
         }
       }
       x.fillStyle = 'rgba(60,58,52,0.5)'; x.fillRect(0, band - 2, W, 2); x.fillRect(0, H - plinth, W, 2);
+      break;
+    }
+    case 'vbgFront': {
+      // Vårby gård's ticket hall's front (photograph, 2006): glass in stainless steel frames over a
+      // steel kick plate, a black rail across at 1 m and a mullion every 1.1 m, to 2.1 m; over it
+      // a black band (the name's, over the doors) up to the fascia
+      const st = '#b4b8bb';
+      band(0, 0.3, st);
+      x.fillStyle = 'rgba(255,255,255,0.3)'; x.fillRect(0, Y(0.3), W, 2);
+      pane(0.3, 2.1, st, 0.06);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.03 * PX, Y(2.1), 0.06 * PX, 1.8 * PX);
+      band(0.98, 1.05, '#18191b');
+      band(2.04, 2.1, st);
+      band(2.1, 2.6, '#151618');
+      break;
+    }
+    case 'vbgFascia': {
+      // dark bronze sheet metal, its standing seams upright every 0.9 m
+      x.fillStyle = '#2e2924'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.9 * PX < W; i++) {
+        x.fillStyle = 'rgba(255,240,220,0.16)'; x.fillRect(i * 0.9 * PX, 0, 0.02 * PX, H);
+        x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(i * 0.9 * PX + 0.02 * PX, 0, 0.015 * PX, H);
+      }
+      speckle(x, W, H, 1500, 0.1, 81, true);
+      break;
+    }
+    case 'vbgRender':
+      // white render thrown on rough
+      x.fillStyle = '#e4e2dc'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.18, 73); speckle(x, W, H, 16000, 0.3, 74, true);
+      break;
+    case 'vbgParapet': {
+      // the parapet beyond Vårby gård's western track: dark red-brown speckled stone under a pale
+      // concrete coping
+      band(0, 1.45, '#5e3a30');
+      speckle(x, W, H, 14000, 0.35, 75); speckle(x, W, H, 6000, 0.22, 76, true);
+      x.fillStyle = 'rgba(30,20,16,0.6)'; x.fillRect(0, Y(1.45), 2, 1.45 * PX);
+      band(1.45, 1.6, '#b9b7b1');
+      x.fillStyle = 'rgba(40,30,25,0.5)'; x.fillRect(0, Y(1.45), W, 2);
       break;
     }
     case 'skhEndWall': {

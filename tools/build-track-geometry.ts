@@ -36,7 +36,9 @@
 //   ground, near the mouths, and in the troughs that data/height-corrections.json says need no
 //   cover), in rock elsewhere
 // - in the open: in a cutting more than 1.5 m below the ground, on an embankment more than 1 m
-//   above it, otherwise on the ground
+//   above it, otherwise on the ground; along a retaining wall the elevation model smooths into a
+//   bank (the `walled` of data/height-corrections.json), in a cutting, whose wall is the
+//   retaining wall's top
 // - bridge: a bridge, and surface track on a viaduct OpenStreetMap doesn't map as one (the
 //   `viaducts` of data/height-corrections.json)
 // Where the two tracks of a line run side by side at one level, they share the structure; where
@@ -776,7 +778,7 @@ const within = (fixes: { along: [number, number][]; reach: number }[] | undefine
     const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
     return Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach;
   }));
-const uncovered = within(corrections.uncovered), viaduct = within(corrections.viaducts);
+const uncovered = within(corrections.uncovered), viaduct = within(corrections.viaducts), walled = within(corrections.walled);
 
 const kindOf = (p: TrackPiece, s: number, x: number, z: number, y: number): StructureKind => {
   if (p.structure === 'bridge' || (p.structure === 'surface' && viaduct(x, z))) return 'bridge';
@@ -785,6 +787,7 @@ const kindOf = (p: TrackPiece, s: number, x: number, z: number, y: number): Stru
     const g = groundAt(x, z, 25, true);
     return g !== null && g - y < BOX_DEPTH ? 'box' : 'rock';
   }
+  if (walled(x, z)) return 'cutting';
   const g = groundAt(x, z, 12);
   if (g === null) return 'grade';
   return y < g - CUTTING ? 'cutting' : y > g + EMBANKMENT ? 'embankment' : 'grade';

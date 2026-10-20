@@ -186,6 +186,24 @@
       "outline": [-8567.7, 6083.5, -8565.7, 6083.3, -8566.6, 6074.3, -8522.8, 6070.2, -8521.0, 6089.2, -8566.8, 6093.5],
       "heights": [35.56, 35.56, 35.6, 35.6, 35.1, 35.4],
       "why": "The same street east of the steps up to Skärholmsterrassen beside the station's bus terminal entrance, along the terrace's block by the bus terminal: the laser scan has it at 35.1–35.6 m, and the block's front a wall 40 m long to the terrace at 41.2 m, which the elevation model smoothed into a slope out over the street. The outline runs from 13 m out to 5.5 m in under the block's front."
+    },
+    {
+      "name": "Vårby gård: the deck over the northern track south-east of the ticket hall",
+      "outline": [-9946.0, 7447.9, -9952.4, 7452.8, -9953.0, 7456.6, -9952.7, 7459.5, -9922.4, 7499.3, -9912.6, 7491.9],
+      "heights": [31.32, 31.64, 31.64, 31.62, 31.05, 31.12],
+      "why": "South-east of Vårby gård's ticket hall the northern track runs on in a box under a deck, the pavement of Vårby allé, which the stairs and the lift from the station come up onto. Lantmäteriet's laser scan has the deck at 31.6–31.7 m by the hall, falling to 31.0–31.1 m 55 m on, and its south-western edge a wall straight down to the way in at the platform's level (27.9 m); the elevation model's 5 m grid smooths it into a slope down to the tracks, 1–3 m under the deck."
+    },
+    {
+      "name": "Vårby gård: Vårby allé over the tracks' mouths",
+      "outline": [-9931.7, 7506.4, -9912.6, 7491.9, -9902.9, 7504.6, -9922.0, 7519.1],
+      "heights": [30.97, 31.12, 31.05, 30.92],
+      "why": "Vårby allé crosses both tracks south-east of Vårby gård, the southern track's mouth under its edge. The laser scan has the street at 30.9–31.1 m; the elevation model smooths it down towards the southern track's cutting, a metre too low where the ramp from the station comes up onto it."
+    },
+    {
+      "name": "Vårby gård: the square under the retaining wall",
+      "outline": [-9950.5, 7476.7, -9959.2, 7483.4, -10047.0, 7368.0, -10038.3, 7361.3],
+      "heights": [22.72, 22.6, 21.25, 21.3],
+      "why": "South-west of Vårby gård the southern track runs along the top of a concrete retaining wall 5.5–6.8 m high, from the mouth of the passage under the tracks to the bridge north-west of the platform, over a square and a cycleway. Lantmäteriet's laser scan has the square at 22.5–22.7 m by the ticket hall, falling to 21.2–21.3 m at the bridge, and the wall's top at 27.6–28.2 m; the elevation model's 5 m grid smooths the wall into a grassy bank. The outline runs from the track's edge, over the wall's foot (the wall in src/open-styles.ts stands there), to 9 m out."
     }
   ],
   "open": [
@@ -260,6 +278,11 @@
       "outline": [[-7865.0, 5150.1], [-7835.5, 5159.6], [-7835.8, 5160.6], [-7808.0, 5169.5], [-7816.2, 5190.0], [-7824.2, 5211.0], [-7853.0, 5201.8], [-7856.5, 5209.6], [-7881.4, 5201.6], [-7904.0, 5190.9], [-7896.3, 5170.6], [-7891.1, 5156.7], [-7870.4, 5164.5]],
       "ground": 40.6,
       "why": "Sätra centrum over the tracks' tunnels: the same outline as its deck (above), which sets the ground's height there. By the elevation model the tunnels' ground was the cutting's floor under the building, so they stood in the open; raised to the street, they are buried under it."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9912.6, 7491.9]],
+      "ground": 31.0,
+      "why": "Vårby gård's deck over the northern track: the same outline as its deck (above), which sets the ground's height there. The elevation model has the box's ground in a trench under the deck, below half its height, so it would stand in the open."
     }
   ],
   "paved": [
@@ -382,6 +405,14 @@
     {
       "outline": [[-8775.7, 6104.5], [-8718.9, 6099.1], [-8633.5, 6092.2], [-8632.1, 6092.0], [-8567.7, 6083.5], [-8522.2, 6076.2], [-8521.2, 6087.2], [-8631.6, 6097.5], [-8628.0, 6142.7], [-8711.3, 6149.5], [-8714.7, 6149.8], [-8718.3, 6105.6], [-8775.1, 6110.9]],
       "why": "Skärholmen: Skärholmsgången along the front of Skärholmsterrassen, from its west end to the bus terminal, and Skärholmstorget south of it, brick-red pavers and granite (OpenStreetMap's outlines of the square and the street; photographs, 2008 to 2017; Google's 3D mesh). The game had them partly grass."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9931.7, 7506.4], [-9922.0, 7519.1], [-9902.9, 7504.6]],
+      "why": "Vårby gård: the deck over the northern track and Vårby allé over the tracks' mouths, paved (Google's 3D model). Few buildings stand beside them, so they were grass."
+    },
+    {
+      "outline": [[-9950.5, 7476.7], [-10002.6, 7408.3], [-10019.3, 7421.0], [-9967.2, 7489.4]],
+      "why": "Vårby gård: the square under the retaining wall south-west of the ticket hall, pale concrete pavers with a row of trees (Google's 3D model). The lawn north-west of it stays grass."
     }
   ],
   "shallow": [
@@ -392,6 +423,10 @@
     {
       "outline": [[-4814.9, 3015.1], [-4796.5, 3012.8], [-4793.1, 3040.6], [-4811.5, 3042.9]],
       "why": "Axelsberg's deck over the tracks' east end, the station's building on it. The deck is 3.4 m over the platform (the laser scan), only about 4.4 m over the rails, where the network's boxes have their tops 4.8 m over them: kept over their tops, the ground would stand as a mound in front of the building's doors."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9931.7, 7506.4], [-9922.0, 7519.1], [-9902.9, 7504.6]],
+      "why": "Vårby gård: the deck over the northern track and Vårby allé over both tracks' mouths. The deck is 3.0–3.7 m over the platform (the laser scan), only 4.5–5 m over the rails, where the network's boxes have their tops 4.8 m over them: kept over their tops, the ground would stand as a mound on the street."
     }
   ]
 }

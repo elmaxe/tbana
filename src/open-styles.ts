@@ -125,9 +125,10 @@ export interface ButterflyRoof {
   // `crown` high, with flat bars across lower down at `bars`, and (`pipe`) a black downpipe from
   // the valley to the platform between them; or (`hole`) the plate's foot flat at `spring`, and
   // a round hole through it, its middle `hole.at` high, `hole.r` across; `gaps`, none between
-  // these pairs of `s` (where a building on the platform carries the roof)
+  // these pairs of `s` (where a building on the platform carries the roof); `twin`, each column two,
+  // this far apart along the platform (Vårby gård's)
   columns: {
-    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number;
+    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number; twin?: number;
     between?: [number, number]; gaps?: [number, number][]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
     portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
@@ -406,7 +407,11 @@ export type Finish =
   | 'skhBasket'     // red-brown clay tiles, 10 by 20 cm, in pairs, each pair turned from its neighbours, in wide speckled grey joints (Skärholmen's)
   | 'skhMosaic'     // white glazed tiles, 15 cm; every 8 m an abstract mosaic of cut tiles framed in black (Skärholmen's east passage)
   | 'skhEndWall'    // brown clay tiles, 10 by 20 cm, darker ones in a great V across them, a red door in the middle (the end of Skärholmen's platform, 9 m across)
-  | 'vabTiles';     // glossy lemon-yellow tiles, 15 cm, over a board-marked concrete plinth 0.5 m high, a concrete band from 3.18 m (Vårberg's ramp house)
+  | 'vabTiles'      // glossy lemon-yellow tiles, 15 cm, over a board-marked concrete plinth 0.5 m high, a concrete band from 3.18 m (Vårberg's ramp house)
+  | 'vbgFront'      // glass in stainless steel frames, a kick plate, a black rail at 1 m, to 2.1 m; a black band over it (Vårby gård's ticket hall)
+  | 'vbgFascia'     // dark bronze sheet metal, standing seams upright every 0.9 m
+  | 'vbgRender'     // white render thrown on rough
+  | 'vbgParapet';   // dark red-brown speckled stone to 1.45 m, a pale concrete coping over it (Vårby gård's parapet)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -8592,6 +8597,113 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the footbridge's railings
       { kind: 'rails', color: 0x8f9498, h: [3.95, 5.05], points: [[-122.74, 33.9, 0.04], [-125.58, 49.25, 0.25]] },
       { kind: 'rails', color: 0x8f9498, h: [3.95, 5.05], points: [[-127.06, 33.1, 0.04], [-129.9, 48.45, 0.25]] },
+    ],
+  },
+  // Vårby gård (1972): an island platform in the open on a shelf along the foot of a rocky hill,
+  // under a flat roof over all but its north-west end, the ticket hall on the platform's level at
+  // its south-east end, between the tracks. From Lantmäteriet's laser scan: the roof flat, 3.2 to
+  // 3.5 m over the platform, from the hall 102 m north-west; the hall 22 m long, its roof 3.4 m up
+  // and its edges 3.56 m; the western track on the top of a concrete retaining wall over the square
+  // 5.4 to 6.7 m below; the deck over the eastern track's mouth south-east of the hall, 3.6 m over
+  // the platform, with the ramp, the stairs and the lift's tower up to it. Photographs (2006, 2024,
+  // Wikimedia Commons): steel columns in twos, in two rows, black beams across under a silver ribbed
+  // underside, strip lights across; a glazed shelter between the rows; the black name signs; a dark
+  // red-brown parapet with a pale coping beyond the western track; on the open north-west part,
+  // lamp posts with three globes and a white railing across its end; the hall's front glass in
+  // steel frames under a black band and a dark bronze fascia, white roughcast beside it (2006); the
+  // lower entrance a wide low opening in the board-marked retaining wall (2012).
+  'Vårby gård': {
+    roof: {
+      kind: 'butterfly',
+      from: -86.3, to: 15.5, width: 13.6,
+      shape: [[-86.3, -0.05, 13.6], [15.5, -0.4, 13.6]],
+      middle: 3.1, edge: 3.1, thick: 0.22, fascia: 0.37,
+      rafters: 2.83, rafterSize: [0.15, 0.25], rafterColor: 0x1c1e20, rafterAt: -82.05, deck: 'ribbed',
+      beam: 0.35,
+      columns: { every: 8.5, at: -82.05, size: 0.16, plinth: { size: 0.3, height: 0.1 }, pair: 4.4, twin: 0.7 },
+      lamps: { offset: 0, length: 1.4, every: 4.25, at: [-4.5, -1.1, 1.1, 4.5], across: true },
+      colors: { underside: 0xc8cbcc, fascia: 0x2a2c2e, top: 0x8a929a, steel: 0x1c1e20 },
+      signs: { at: [-73.55, -48.05, -14.05, 11.45], back: 'Utgång', ahead: '', bottom: 2.2 },
+      clocks: [[-60.8, 0], [-5.55, 0]],
+      // (trains keep left: those towards the city stop on the western track)
+      boards: [
+        { s: -65.05, u: -1.4, toward: 'T-Centralen', trains: ['13 Ropsten  4 min', '13 Ropsten  14 min'] },
+        { s: -65.05, u: 1.4, toward: 'Norsborg', trains: ['13 Norsborg  2 min', '13 Norsborg  12 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.8, tactile: [0.8, 1.2], slabs: 1.2, paverSize: [0.4, 0.4], mix: 0,
+      colors: { edge: 0xcac9c4, tactile: 0x55585a, slab: 0x9d9b96, pavers: 0x9d9b96, face: 0x8e8b85 },
+      pattern: 'grid',
+    },
+    rooms: [
+      // (the hall's walls are its block's)
+      { name: 'ticket hall', s: [-108.7, -85], u: [-6, 5], h: [-0.5, 0.5], walls: null, floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'the way to the lift under the stairs', s: [-140, -127], u: [-2.7, 3.5], h: [-0.5, 0.5], walls: 'uprightTiles', floor: 'darkStone', ceiling: 'whitePanels' },
+      { name: 'escalators, the passage under the track and the lift', s: [-140, -114], u: [-15, 4], h: [-5.6, -0.6], walls: 'uprightTiles', floor: 'darkStone', ceiling: 'whitePanels', stairs: 'uprightTiles' },
+      { name: 'forecourt, stairs and ramp', s: [-172, -108.6], u: [-7, 5], h: [-0.5, 4.0], walls: null, floor: 'pavers', stairs: 'boardConcrete' },
+    ],
+    blocks: [
+      // the ticket hall between the tracks, open to the platform under the roof's end; white
+      // roughcast under a dark bronze fascia
+      { name: 'ticket hall', plan: [[-86.3, -5.6], [-86.3, 4.4], [-108.6, 4.4], [-108.6, -5.6]], h: [-0.5, 3.36],
+        walls: 'vbgRender', sides: [null, undefined, null, undefined], band: { walls: 'vbgFascia', from: 2.6 }, floor: 'darkStone', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x5a5e62, onPlatform: true },
+      // its front: glass, its doors on the left, under the black band with the name; white
+      // roughcast on the right
+      { name: "ticket hall's front", plan: [[-108.6, -5.6], [-108.6, 1.0], [-108.75, 1.0], [-108.75, -5.6]], h: [-0.5, 3.56],
+        walls: 'vbgFront', sides: [undefined, null, undefined, null], band: { walls: 'vbgFascia', from: 2.6 }, nameSign: { side: 2, at: 0.59, length: 4.0, bottom: 2.1, black: true } },
+      { name: "ticket hall's front, its wall", plan: [[-108.6, 1.0], [-108.6, 4.4], [-108.75, 4.4], [-108.75, 1.0]], h: [-0.5, 3.56],
+        walls: 'vbgRender', band: { walls: 'vbgFascia', from: 2.6 } },
+      // the parapet beyond the western track, skins on the network's wall 3 cm proud of it, from
+      // the track's bed to its coping, following the track ([s, u, rail] at points along it)
+      ...((pts: [number, number, number][]) => pts.slice(1).map(([s1, u1, y1], k): Block => {
+        const [s0, u0, y0] = pts[k];
+        return { name: `parapet ${k + 1}`, plan: [[s0, u0 - 2.67], [s0, u0 - 2.77], [s1, u1 - 2.77], [s1, u1 - 2.67]], h: [y0 - 0.6, y0 + 0.99], from: y0 - 0.6, fall: y1 - 0.6,
+          walls: 'vbgParapet', sides: [null, null, null, undefined] };
+      }))([[-112.57, -7.99, -1.21], [-102.8, -7.984, -1.19], [-93.02, -7.972, -1.17], [-83.25, -7.951, -1.15], [-73.48, -7.937, -1.13], [-63.7, -7.925, -1.1],
+        [-53.93, -7.918, -1.08], [-44.16, -7.912, -1.06], [-34.39, -7.914, -1.04], [-24.62, -7.907, -1.02], [-14.85, -7.901, -1.0], [-5.07, -7.881, -1.0], [4.7, -7.832, -1.0], [14.47, -7.776, -1.0]]),
+      // the forecourt's edge over the western track: a concrete wall up from the track's bed, a
+      // fence on it
+      { name: "forecourt's edge", plan: [[-108.75, -6.3], [-108.75, -5.42], [-128.2, -5.42], [-128.2, -6.27]], h: [-2.0, 0.35], from: -2.0,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a9893 },
+      // the ramp up to Vårby allé between concrete parapets, the western one over the track's bed
+      { name: "ramp's western parapet", plan: [[-128.2, -6.27], [-128.2, -5.52], [-166.2, -5.52], [-166.2, -5.73]], h: [-2.0, 0.85], from: -0.15, fall: 2.99,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a9893 },
+      { name: "ramp's eastern parapet", plan: [[-128.2, -3.0], [-128.2, -2.8], [-166.2, -2.8], [-166.2, -3.0]], h: [-3.0, 0.85], from: -0.15, fall: 2.99,
+        walls: 'boardConcrete' },
+      // the deck's edge along the stairs, tiled under a concrete parapet, and on along the lane
+      // down beside the ramp; its north-west edge, a concrete lintel and parapet over the way in to
+      // the escalators
+      { name: "deck's edge by the stairs", plan: [[-116, -0.55], [-116, -0.25], [-134, -0.25], [-134, -0.55]], h: [-0.5, 4.5], from: -0.15,
+        walls: 'uprightTiles', sides: ['boardConcrete', 'boardConcrete', 'boardConcrete', undefined], band: { walls: 'boardConcrete', from: 2.9 } },
+      { name: "deck's edge by the ramp", plan: [[-134, -0.55], [-134, -0.25], [-166, -0.25], [-166, -0.55]], h: [-3.0, 4.5], from: -3.0, lowBack: 4.0,
+        walls: 'boardConcrete' },
+      { name: "deck's north-west edge", plan: [[-110.8, 4.0], [-113.5, 1.2], [-113.72, 1.41], [-111.02, 4.21]], h: [2.6, 4.5], from: 2.6, walls: 'boardConcrete' },
+      { name: "deck's north-west edge (south)", plan: [[-113.5, 1.2], [-116, -0.3], [-116.15, -0.04], [-113.65, 1.46]], h: [2.6, 4.5], from: 2.6, walls: 'boardConcrete' },
+      // the lift's tower on the deck
+      { name: "lift's tower", plan: [[-134.6, 0.2], [-134.6, 3.0], [-139.4, 3.0], [-139.4, 0.2]], h: [3.3, 7.2], from: 3.3,
+        walls: 'boardConcrete', roof: 0.15, roofColor: 0x6d7174 },
+      // the retaining wall's face over the square, and the black sign over the lower entrance's
+      // opening in it
+      { name: 'retaining wall', plan: [[-134, -11.0], [14, -11.0], [14, -11.2], [-134, -11.2]], h: [-7.5, -0.3], from: -7.5,
+        walls: 'boardConcrete', sides: [null, undefined, undefined, undefined] },
+      { name: "lower entrance's sign", plan: [[-132.6, -11.2], [-127.4, -11.2], [-127.4, -11.3], [-132.6, -11.3]], h: [-2.15, -1.6], from: -2.15,
+        walls: 'vbgFascia', nameSign: { side: 2, at: 0.5, length: 4.0, bottom: -2.12, black: true } },
+    ],
+    art: [
+      // lamp posts with three globes down the open part's middle, two with the name
+      { kind: 'masts', height: 4.2, color: 0x8f9498, arm: 0.6, at: [[36, 0.23]] },
+      { kind: 'masts', height: 4.2, color: 0x8f9498, arm: 0.6, sign: 2.6, at: [[24, 0.08], [48, 0.42]] },
+    ],
+    benches: { at: [-77.8, -52.3, -10, 7.2], double: true, wood: true },
+    // (a guess: its length and place)
+    shelters: [{ s: [-39.2, -22.9], u: [-1.9, 1.9] }],
+    fences: [
+      // a white railing across the platform's north-west end, and a little way along its edges
+      { kind: 'bars', color: 0xe2e4e1, h: [0, 1.1], points: [[55.4, -5.3], [57.4, -5.3], [57.4, 6.4], [55.4, 6.4]] },
+      // chain-link on the wall beyond the eastern track, and on the forecourt's edge
+      { h: [-0.07, 1.13], points: [[-86, 9.78], [-62.52, 10.11, 0.03], [-33.75, 10.27, 0.05], [-4.99, 10.43, 0.07], [14.2, 10.58, 0.07]] },
+      { h: [0.35, 1.35], points: [[-108.75, -5.9], [-128.2, -5.9]] },
     ],
   },
 };

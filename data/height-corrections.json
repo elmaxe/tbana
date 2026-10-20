@@ -140,6 +140,11 @@
       "station": "Vårberg",
       "height": 38.48,
       "why": "Wikidata's 37.6 m (from the book \"Stockholm under\") put the platform half a metre under the real one. Lantmäteriet's laser scan (2021) has the platform's surface at 38.41–38.51 m, rising a little eastwards, the ballast beside it at 36.9–37.1 m, the roof's edges at 42.1–42.3 m, and Vårberg centrum's floor, which the ticket hall is on, and the ground north of the station's building at 42.3–42.4 m."
+    },
+    {
+      "station": "Vårby gård",
+      "height": 28.1,
+      "why": "Wikidata's 27.3 m (from the book \"Stockholm under\") put the platform 0.8 m under the real one. Lantmäteriet's laser scan (2020) has the platform's surface at 28.06–28.21 m along its open north-western part, falling to 27.8–27.9 m south-east of the ticket hall, the ballast beside it at 26.6–26.8 m, the roof's top at 31.2–31.5 m, the square below the bank to the south-west at 22.3 m, and the deck over the northern track at the hall's end at 31.0–31.3 m."
     }
   ],
   "uncovered": [
@@ -198,6 +203,11 @@
       ],
       "reach": 10,
       "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, under the bus terminal's deck to the same portal as the northbound one beside it."
+    },
+    {
+      "along": [[-9960.5, 7445.4], [-9943.1, 7469.9], [-9927.4, 7495.6], [-9910.8, 7520.6], [-9893.4, 7545.1], [-9876.1, 7569.6]],
+      "reach": 15,
+      "why": "Vårby gård, south-east of the platform: the northern track runs on from the ticket hall's end under a deck at the street's level, and both tracks then under Vårby allé, in concrete boxes just under the street, not bored tunnels. Lantmäteriet's laser scan (2020) has the deck and the street 4.5–5 m over the ballast beside them, and the southern track in the open to 75 m past the platform's end."
     }
   ],
   "offGround": [
@@ -267,6 +277,17 @@
       ],
       "reach": 15,
       "why": "Vällingby, the platforms' covered south-eastern part and the tracks on under the edge of Vällingby centrum: the elevation model leaves out Kirunaplan's deck and the car park's over them and smooths the ground between their edges, 24.1–24.4 m over the tracks, half a metre over the ballast the laser scan sees where they come out (23.6–23.75 m); held to it, the platforms came out a quarter of a metre over their real height."
+    },
+    {
+      "along": [
+        [-10038.5, 7359.0],
+        [-10010.8, 7395.7],
+        [-9986.5, 7427.5],
+        [-9962.4, 7459.4],
+        [-9944.1, 7483.2]
+      ],
+      "reach": 3,
+      "why": "Vårby gård, the southern track: it runs along the top of the retaining wall over the square to the south-west, and the elevation model has the square under it, 22.2–23.6 m, where the laser scan (2020) has its ballast at 26.6–26.8 m. Held to it, the platform came out half a metre under its real height."
     }
   ],
   "rail": [
@@ -449,6 +470,20 @@
       "reach": 20,
       "clearance": 5.0,
       "why": "Gullmarsplan, south of the platforms: the southbound track to Skärmarbrink passes under the two tracks to Globen (OpenStreetMap: layer -3 under -2) about 70 m from the platforms' south ends, which the laser scan puts at 38.3 m. Held level that far, the tracks can part by only about 5.2 m at the line's gradient, so with the usual 6.5 m the junction dragged the whole station 2.5 m down. Concrete boxes with a thin slab between them need about 5 m: a C20 is 3.7 m tall over the rail."
+    }
+  ],
+  "walled": [
+    {
+      "along": [
+        [-9931.1, 7499.6],
+        [-9942.9, 7484.7],
+        [-9960.6, 7461.8],
+        [-9978.8, 7437.9],
+        [-10008.3, 7398.8],
+        [-10036.1, 7362.2]
+      ],
+      "reach": 3,
+      "why": "Vårby gård: the southern track runs along the top of a concrete retaining wall 5.5–6.8 m high, over the square and the cycleway south-west of the station, from its mouth under Vårby allé to the bridge north-west of the platform (Lantmäteriet's laser scan: the ballast at 26.2–26.8 m, the wall's top at 27.6–28.2 m, its foot at 21.2–22.7 m; south-east of the ticket hall the ground behind it rises to the street, 31 m). The elevation model smooths the wall into a slope, which made the track an embankment whose bank spread out over the square."
     }
   ]
 }
