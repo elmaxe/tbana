@@ -170,7 +170,7 @@ export interface Paving {
   edgeTile?: [number, number];
   tactile: [number, number];
   studs?: boolean;
-  // studs of another colour (brass), rather than the strip's own, lighter
+  // studs (or ribs) of another colour (brass), rather than the strip's own, lighter
   studColor?: number;
   slabs: number;
   slabSize?: [number, number];
@@ -430,7 +430,15 @@ export type Finish =
   | 'fittjaHall'    // white tiles, 15 cm, to 1.45 m, windows in dark frames to 2.75 m, the tiles again above (Fittja's ticket hall)
   | 'fittjaCeiling' // pale ribbed sheet metal, a dark lattice girder across it every 3.6 m, strip lights between them
   | 'fittjaShops'   // maroon sheet metal, two shop windows in dark red-brown frames to 2.6 m
-  | 'fittjaWall';   // concrete fins slanting up a wall to 4.2 m, a ledge, a ribbed parapet over it (beside Fittja's southern track)
+  | 'fittjaWall'    // concrete fins slanting up a wall to 4.2 m, a ledge, a ribbed parapet over it (beside Fittja's southern track)
+  | 'albyPanels'    // concrete panels 1.2 by 1.5 m, a flecked grey green, white line drawings cut into them (Alby's ticket hall)
+  | 'albyDoors'     // as albyPanels, two blue steel doors side by side, 2.4 m in all
+  | 'albyMaroon'    // maroon panels between thin stainless strips 0.6 m apart
+  | 'albyRock'      // the rock painted green, signs and blots in white, lilac, blue, red and orange on it, over a grey plinth (Olle Ängkvist's, Alby's corridor)
+  | 'albyGreen'     // the rock painted green over a concrete ledge (beside Alby's escalators)
+  | 'albyCeiling'   // dark expanded metal, a tube lamp along the station's s every 1.5 m (Alby's corridor, across it)
+  | 'albyCopper'    // copper-brown expanded metal in panels 1.5 by 1.2 m, a ceiling's
+  | 'albyFront';    // glass doors in brushed steel to 2.4 m, a band of crinkled steel, glass in maroon frames above (Alby's way in from Alby centrum)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -8787,6 +8795,50 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'columns', from: 4.9, to: 10.4, size: 0.14, color: 0xe8501e, at: [[-68.7, -41.2], [-98.6, -36.2], [-98.1, -33.0], [-90.1, -41.2], [-92.8, -32.5], [-61.5, -11.6], [-83.8, -45.0], [-80.4, -18.2], [-58.7, -42.5], [-71.5, -7.7], [-64.8, -43.3], [-85.3, -9.3], [-70.3, -3.2], [-57.0, -24.3]] },
       { kind: 'columns', from: 4.9, to: 11.6, size: 0.14, color: 0xe8501e, at: [[-71.2, -35.9], [-69.9, -44.3], [-73.7, -29.2], [-73.5, -40.3], [-61.1, -38.8], [-55.2, -19.5], [-78.6, -28.6], [-66.2, -10.6], [-94.3, -38.3], [-98.8, -24.5], [-90.0, -4.4], [-88.8, -37.3], [-56.1, -28.9], [-89.8, -10.9], [-84.8, -37.7]] },
       { kind: 'columns', from: 4.9, to: 12.8, size: 0.14, color: 0xe8501e, at: [[-81.2, -40.0], [-65.8, -38.4], [-62.6, -7.2], [-58.7, -19.3], [-55.5, -42.5], [-88.8, -30.1], [-98.7, -11.5], [-75.4, -10.1], [-90.5, -26.0], [-73.8, -3.5], [-78.2, -36.7]] },
+    ],
+  },
+  // Alby (1975): its platforms' cave is the network's (src/hall-styles.ts). From photographs (2018):
+  // from the platforms' eastern ends a stair each, and a lift beside it, up to the ticket hall
+  // over the tracks; its walls precast concrete panels, a flecked grey green with white line
+  // drawings cut into them, two blue steel doors in the wall between the stairs, maroon panels
+  // between stainless strips on its north side by the gates, a ceiling of dark expanded metal
+  // with tubes, dark grey granite underfoot; the gates behind a glazed screen in stainless frames,
+  // a black band with the name over it; past them the corridor to the two ways in, its rock
+  // painted green with Ängkvist's signs over a grey plinth. To the north three long escalators
+  // up to Albyberget, copper-brown expanded metal over them, the rock green on their right and the
+  // inclined lift's glazed shaft on their left, and at the top a glazed building on Tingstorget:
+  // glass doors in brushed steel under a black band with the name, a band of glass in dark frames
+  // above. To the south the way in from Alby centrum's square: glass doors in brushed steel to
+  // 2.4 m, a band of crinkled stainless steel with the name, glass in maroon frames above, a dark
+  // canopy over it. The building on Albyberget is OpenStreetMap's outline, its roof the laser
+  // scan's; where the screen stands, the doors' place in the wall and the canopy's reach are
+  // guesses.
+  'Alby': {
+    rooms: [
+      { name: 'the stairs and lifts up from the platforms', s: [64, 86.7], u: [-10.5, 9], h: [-0.5, 5.2], walls: 'albyPanels', stairs: 'albyPanels', floor: 'darkTiles', ceiling: 'masmoCeiling' },
+      { name: 'ticket hall', s: [84.9, 100.6], u: [-10.5, 9], h: [4, 6], walls: 'albyPanels', left: 'albyMaroon', floor: 'darkTiles', ceiling: 'masmoCeiling' },
+      { name: 'by the gates', s: [100.6, 107.3], u: [-6, 4.5], h: [4, 6], walls: 'albyRock', left: 'albyMaroon', floor: 'darkTiles', ceiling: 'masmoCeiling' },
+      { name: 'corridor', s: [107, 117], u: [-45, 30], h: [4, 6], walls: 'albyRock', floor: 'darkTiles', ceiling: 'albyCeiling' },
+      // (its walls and ceiling are its block's)
+      { name: 'the top of the escalators', s: [160, 180], u: [-90, -60], h: [32, 36], walls: null, floor: 'darkTiles' },
+      { name: 'escalators', s: [117, 180], u: [-90, -40], h: [3, 36], walls: 'albyGreen', left: 'darkGlazed', stairs: 'albyGreen', floor: 'darkTiles', ceiling: 'albyCopper' },
+    ],
+    buildings: ['w1566785547'],
+    blocks: [
+      { name: 'doors between the stairs', plan: [[85.0, -1.75], [85.05, -1.75], [85.05, 0.65], [85.0, 0.65]], h: [4.7, 6.9], from: 4.7,
+        walls: 'albyDoors', sides: [null, undefined, null, null], inRoom: true },
+      { name: 'glazed screen past the gates', plan: [[103.0, -5.3], [103.2, -5.3], [103.2, 3.7], [103.0, 3.7]], h: [4.7, 8.3], from: 4.7,
+        walls: 'blackFront', sides: [null, undefined, null, undefined], inRoom: true, nameSign: { side: 1, at: 0.3, length: 2.6, bottom: 7.03, black: true } },
+      // the way in from Alby centrum's square, in the building's southern wall, and the canopy
+      // along it
+      { name: 'way in from Alby centrum', plan: [[107.2, 27.6], [116.9, 27.35], [116.9, 27.65], [107.2, 27.9]], h: [4.7, 10.3], from: 4.7,
+        walls: 'albyFront', sides: [undefined, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 6.0, bottom: 7.2, black: true } },
+      { name: 'canopy', plan: [[96.0, 28.4], [120.4, 27.5], [120.4, 30.0], [96.0, 30.9]], h: [10.3, 10.55], from: 10.3,
+        walls: 'greyPanels', roof: 0.05, roofColor: 0x3e4042 },
+      // the glazed building on Albyberget at the escalators' top
+      { name: 'building on Albyberget', plan: [[160.2, -80.0], [169.9, -64.5], [178.1, -69.6], [168.3, -85.1]], h: [33.3, 39.5], from: 33.3,
+        walls: 'darkGlazed', sides: [null, undefined, 'blackFront', undefined], band: { walls: 'darkGlazed', from: 37.2 }, roof: 0.3, roofColor: 0x3a3c3e,
+        nameSign: { side: 2, at: 0.47, length: 3.0, bottom: 35.63, black: true } },
     ],
   },
   // Fittja (1972): an island platform on grade in a cutting, under a flat roof on pairs of posts.

@@ -308,8 +308,9 @@ only a reference, because its licence doesn't allow reuse.
 of the red, green and blue lines' track: what their services run on, and the crossovers, sidings,
 turnback tracks and depots joined to that, and the tracks joining the lines (`lineTrack` in
 `tools/lib/graph.ts`). Track no service runs on is left out where it passes a
-platform (the middle tracks at Alby and Sätra, Liljeholmen's third track), because the stations are
-described without it.
+platform (Sätra's middle track), because the station is described without it; Liljeholmen's third
+track and Alby's middle one are drawn, with their platforms (`PLATFORM_SIDING_STATIONS` in
+`src/sections.ts`).
 
 ```sh
 npm run fetch-station-heights    # Wikidata station heights -> data/station-heights.json

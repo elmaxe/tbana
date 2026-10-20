@@ -818,6 +818,14 @@ export interface CaveStyle {
   // a flat arch over them to `crown` (above the rail), the rock smooth from a little under the
   // spring up; left open over an island's opening in that ceiling (CaveIsland)
   vault?: { spring: number; crown: number };
+  // a flat ceiling of steel mesh `ceiling` high (above the rail) over a side platform and its track,
+  // tubes across it, in place of the fittings hung from the rock; the name on small plates along
+  // the track wall (Alby's, in the island cave's colours)
+  ceiling?: number;
+  // beside an island cave, a wall of rock between its track and another platform's (Alby's): an
+  // arch through it `width` wide at its foot, `crown` high (above the rail), its middle `at` m east
+  // of the island's middle; its vault painted as `paint` says
+  arch?: { at: number; width: number; crown: number; paint: CavePaint };
 }
 
 // Heights here are above the top of the rail, as for the styled halls above.
@@ -857,9 +865,10 @@ export interface CaveIsland {
   // 'stripe'`) the rock black up to it with `stripe` along it, from `from` to `to` high, in
   // lengths of colour from the platform's one end to its other (`colors`, one list for each wall:
   // the first for the track whose frame runs the island's way), and the rock under it, if not
-  // black, `rock`'s colour mottled with its lighter one
+  // black, `rock`'s colour mottled with its lighter one; or (`walls: 'bare'`) the painted rock
+  // down to the floor, the name plates on it `panels` high
   panels: number;
-  walls?: 'rights' | 'stripe';
+  walls?: 'rights' | 'stripe' | 'bare';
   stripe?: { from: number; to: number; colors: [string[], string[]]; rock?: [string, string] };
   // its fittings' colours, where they aren't Stadion's green steel and cream tiles: the mesh
   // panels' rock, strands and posts (CSS colours), and pale grey tiles or dark granite on the
@@ -1066,6 +1075,44 @@ export const CAVE_STYLES: Record<string, CaveStyle> = {
     paving: {
       edge: 1.0, edgeTile: [0.5, 0.5], tactile: [1.0, 1.3], studs: true, studColor: 0xb08d4a, slabs: 0, paverSize: [0.4, 0.4], mix: 0.15,
       colors: { edge: 0xd8d2c4, tactile: 0x3c3c3c, slab: 0x5c5b59, pavers: 0x5a5957, paler: 0x64635f, face: 0x3e3c3a },
+      pattern: 'grid',
+    },
+  },
+  // Alby (12 January 1975), on the red line's Norsborg branch: three tracks in a cave 24 m under
+  // Albyberget, an island platform between the northern track and the middle one, where trains
+  // ending at Alby stand, and beyond a wall of rock a side platform for the southern track (the
+  // Wikipedias). Olle Ängkvist painted the cave from 1972 to 1974: the rock sprayed moss green,
+  // and on it big flowers, labyrinths, signs and symbols in red, yellow, blue and pink, some like
+  // cave paintings (the Wikipedias; Stockholm's metro guide). Photographs (2002 to 2018): flat
+  // ceilings of dark expanded metal over the platforms and the tracks, tubes across them; the
+  // track walls the painted rock down to the platforms, small black name plates on them; the
+  // floor dark grey granite in squares of 1.2 m, a cream edge and a strip of brass ribs inside it;
+  // the shapes on the rock mostly white, lilac and pale blue, here and there red, orange and pink.
+  // Where the arch is (`arch`), the wall of rock between the middle track and the side platform is
+  // cut through; the arch's vault and floor, the labyrinth across from it, the plinth along the
+  // side platform's wall and the fittings are in src/network.ts; where the flowers and the signs
+  // are on the walls is a guess.
+  'Alby': {
+    paint: { seed: 1975, bands: [{ from: 0, color: '#2b6533' }, { from: 1.4, color: '#35793c', edge: 'soft' }],
+      motifs: [{ kind: 'dabs', colors: ['#31703a', '#43894a', '#2a6232'], from: 0, to: 18, size: 0.8, count: 220 },
+        { kind: 'blooms', colors: ['#d83a30', '#e889b0', '#ee8a2a', '#f0c43a'], stem: '#86b04a', from: 2.3, to: 5.4, count: 3, size: 2.0 },
+        { kind: 'signs', colors: ['#dcded8', '#dcded8', '#c4bce6', '#b0a6dc', '#9fc0ea', '#5b86da', '#3f63c4', '#e889b0', '#ee8a2a', '#d23a2e', '#f0c43a'],
+          from: 1.2, to: 5.6, count: 170, size: 0.9 },
+        { kind: 'dabs', colors: ['#5b86da', '#9fc0ea', '#dcded8', '#f0c43a', '#e8705a'], from: 1.2, to: 5.6, size: 0.07, count: 220, hard: true }] },
+    ceiling: 4.75,
+    arch: { at: 22, width: 6.5, crown: 4.1,
+      paint: { seed: 1976, bands: [{ from: 0, color: '#2b6533' }],
+        motifs: [{ kind: 'signs', colors: ['#c4bce6', '#b0a6dc', '#8f86d0', '#5b86da', '#9fc0ea', '#dcded8', '#3f63c4'], from: 0, to: 18, count: 3200, size: 0.55 },
+          { kind: 'dabs', colors: ['#b0a6dc', '#5b86da', '#dcded8'], from: 0, to: 18, size: 0.08, count: 600, hard: true }] } },
+    island: {
+      ceiling: 4.75,
+      panels: 2.6,
+      walls: 'bare',
+      fittings: { mesh: ['#2f4f30', '#3a3c3e', '#1f2f4a'], ceiling: ['#5e6062', '#8e9092', '#46484a'] },
+    },
+    paving: {
+      edge: 0.8, edgeTile: [0.8, 1.2], tactile: [0.85, 1.15], studColor: 0xb89a52, slabs: 0, paverSize: [1.2, 1.2], mix: 0.08,
+      colors: { edge: 0xd9d2c2, tactile: 0x3e3d3e, slab: 0x46464a, pavers: 0x46464a, paler: 0x505055, face: 0x3e3c3a },
       pattern: 'grid',
     },
   },

@@ -29,8 +29,9 @@ export const SIDE_PLATFORM_WIDTH = 5;
 export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen', 'Vällingby', 'Sätra']);
 // stations whose platform track that no service runs on is drawn, with its platform: Liljeholmen's
 // third track, along the western edge of its middle island (on Albert Guillaumes's drawing, where
-// trains turning back at Liljeholmen stand)
-export const PLATFORM_SIDING_STATIONS = new Set(['Liljeholmen']);
+// trains turning back at Liljeholmen stand), and Alby's middle track, along its island, where trains
+// ending at Alby stand
+export const PLATFORM_SIDING_STATIONS = new Set(['Liljeholmen', 'Alby']);
 
 export const GAUGE = 1.435;
 export const RAIL = { head: 0.07, height: 0.15 };

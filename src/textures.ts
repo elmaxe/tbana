@@ -984,7 +984,14 @@ export type CaveMotif =
   // flowing bands, as of water or of folds in stone: wavering strokes up to `width` m wide,
   // thinning to their ends, `length` m long, running about `angle` degrees round from along the
   // cave (90: up the wall)
-  | { kind: 'swirls'; colors: string[]; from: number; to: number; count: number; width: number; length: number; angle?: number };
+  | { kind: 'swirls'; colors: string[]; from: number; to: number; count: number; width: number; length: number; angle?: number }
+  // signs and symbols in flat paint, about `size` m across: spirals, rings round a blot, running
+  // figures, branching signs, worms, commas, sprinkles of dashes, crosses, lumps with holes in
+  // them, beans and crescents (Olle Ängkvist's, Alby's)
+  | { kind: 'signs'; colors: string[]; from: number; to: number; count: number; size: number }
+  // big flowers as a child paints them, about `size` m high: a stem of `stem`'s colour with two
+  // leaves, a round head of petals round a middle of another colour
+  | { kind: 'blooms'; colors: string[]; stem: string; from: number; to: number; count: number; size: number };
 
 export function caveRock(paint: CavePaint) {
   const PX = CAVE_PX, W = CAVE_ACROSS * PX, H = CAVE_REPEAT * PX;
@@ -1403,6 +1410,104 @@ function caveMotif(x: CanvasRenderingContext2D, m: CaveMotif, r: () => number) {
             x.lineWidth = w * Math.sin((Math.PI * k) / pts.length) + 0.01;
             x.beginPath(); x.moveTo(pts[k - 1][0], yy + pts[k - 1][1]); x.lineTo(pts[k][0], yy + pts[k][1]); x.stroke();
           }
+        });
+      }
+      break;
+    }
+    case 'signs': {
+      // (drawn upright: +x up the wall, y along it)
+      x.lineCap = x.lineJoin = 'round';
+      for (let i = 0; i < m.count; i++) {
+        const col = m.colors[Math.floor(r() * m.colors.length)], s = m.size * (0.45 + r() * 0.9);
+        const u = across(m.from + s / 2, Math.max(m.from + s / 2, m.to - s / 2)), y = r() * L, a = (r() - 0.5) * 0.9;
+        const kind = Math.floor(r() * 11), flip = r() < 0.5 ? -1 : 1, q = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(() => r());
+        wrap(y, s, (yy) => {
+          x.save(); x.translate(u, yy); x.rotate(a); x.scale(1, flip);
+          x.fillStyle = x.strokeStyle = col; x.lineWidth = s * 0.1;
+          x.beginPath();
+          if (kind === 0) {
+            // a spiral, two turns and a half out from its middle
+            for (let k = 0; k <= 60; k++) { const t = (k / 60) * Math.PI * 5, R = s * 0.45 * (k / 60); x.lineTo(Math.cos(t) * R, Math.sin(t) * R); }
+            x.stroke();
+          } else if (kind === 1) {
+            // a ring round a blot
+            x.arc(0, 0, s * 0.4, 0, Math.PI * 2); x.stroke();
+            x.beginPath(); x.ellipse(s * 0.03 * (q[0] - 0.5), 0, s * (0.12 + q[1] * 0.08), s * (0.16 + q[2] * 0.08), q[3] * 3, 0, Math.PI * 2); x.fill();
+          } else if (kind === 2) {
+            // a figure running, its arms flung up
+            x.lineWidth = s * 0.09;
+            x.moveTo(s * 0.28, 0); x.lineTo(-s * 0.02, s * 0.06);
+            x.moveTo(s * 0.22, 0); x.lineTo(s * 0.34, s * 0.22); x.lineTo(s * 0.48, s * 0.26);
+            x.moveTo(s * 0.22, 0); x.lineTo(s * 0.12, -s * 0.24); x.lineTo(s * 0.26, -s * 0.36);
+            x.moveTo(-s * 0.02, s * 0.06); x.lineTo(-s * 0.22, s * 0.26); x.lineTo(-s * 0.44, s * 0.2);
+            x.moveTo(-s * 0.02, s * 0.06); x.lineTo(-s * 0.26, -s * 0.08); x.lineTo(-s * 0.46, -s * 0.24);
+            x.stroke();
+            x.beginPath(); x.arc(s * 0.4, s * 0.02, s * 0.09, 0, Math.PI * 2); x.fill();
+          } else if (kind === 3) {
+            // a branching sign: a stem, its arms curling out and in again
+            x.moveTo(-s * 0.45, 0); x.lineTo(s * 0.3, 0);
+            for (const d of [-1, 1]) { x.moveTo(-s * 0.05, 0); x.quadraticCurveTo(s * 0.1, d * s * 0.4, s * 0.32, d * s * 0.3); x.quadraticCurveTo(s * 0.4, d * s * 0.16, s * 0.24, d * s * 0.16); }
+            x.moveTo(-s * 0.3, 0); x.quadraticCurveTo(-s * 0.35, s * 0.3 * (q[4] < 0.5 ? 1 : -1), -s * 0.48, s * 0.3 * (q[4] < 0.5 ? 1 : -1));
+            x.stroke();
+            x.beginPath(); x.arc(s * 0.38, 0, s * 0.08, 0, Math.PI * 2); x.fill();
+          } else if (kind === 4) {
+            // a worm, wriggling
+            for (let k = 0; k <= 30; k++) { const t = k / 30; x.lineTo(Math.sin(t * Math.PI * (2 + q[5] * 2)) * s * 0.15, (t - 0.5) * s); }
+            x.lineWidth = s * 0.13; x.stroke();
+          } else if (kind === 5) {
+            // a comma: a round head and a tail curling away from it
+            x.arc(0, 0, s * 0.2, 0, Math.PI * 2); x.fill();
+            x.beginPath(); x.moveTo(s * 0.18, 0); x.quadraticCurveTo(s * 0.1, s * 0.5, -s * 0.3, s * 0.42); x.quadraticCurveTo(-s * 0.05, s * 0.3, -s * 0.18, 0); x.fill();
+          } else if (kind === 6) {
+            // a sprinkle of short dashes
+            x.lineWidth = s * 0.07;
+            for (let k = 0; k < 6; k++) {
+              const cu = (q[k] - 0.5) * s, cv = (q[k + 6] - 0.5) * s, d = q[(k + 3) % 12] * 3;
+              x.moveTo(cu, cv); x.lineTo(cu + Math.cos(d) * s * 0.14, cv + Math.sin(d) * s * 0.14);
+            }
+            x.stroke();
+          } else if (kind === 8 || kind === 9) {
+            // a lump with a hole in it (its outline, thick), or a bean, filled
+            for (let k = 0; k <= 24; k++) {
+              const t = (k / 24) * Math.PI * 2, R = s * (0.32 + 0.1 * Math.sin(t * 2 + q[6] * 6) + 0.06 * Math.sin(t * 3 + q[7] * 6));
+              x.lineTo(Math.cos(t) * R * (0.8 + q[8] * 0.4), Math.sin(t) * R);
+            }
+            x.closePath();
+            if (kind === 8) { x.lineWidth = s * 0.15; x.stroke(); } else x.fill();
+          } else if (kind === 10) {
+            // a crescent: a thick bow, round at its ends
+            x.lineWidth = s * 0.17;
+            x.arc(0, 0, s * 0.32, q[9] * 6, q[9] * 6 + Math.PI * (1.0 + q[10] * 0.5));
+            x.stroke();
+          } else {
+            // a cross with a blob at the end of each arm
+            x.moveTo(-s * 0.35, -s * 0.3); x.lineTo(s * 0.35, s * 0.3); x.moveTo(-s * 0.35, s * 0.3); x.lineTo(s * 0.35, -s * 0.3); x.stroke();
+            for (const [cu, cv] of [[-0.35, -0.3], [0.35, 0.3], [-0.35, 0.3], [0.35, -0.3]]) { x.beginPath(); x.arc(cu * s, cv * s, s * 0.09, 0, Math.PI * 2); x.fill(); }
+          }
+          x.restore();
+        });
+      }
+      break;
+    }
+    case 'blooms': {
+      x.lineCap = 'round';
+      for (let i = 0; i < m.count; i++) {
+        const h = m.size * (0.7 + r() * 0.6), u = across(m.from, Math.max(m.from, m.to - h)), y = r() * L;
+        const col = m.colors[Math.floor(r() * m.colors.length)], mid = m.colors[Math.floor(r() * m.colors.length)];
+        const bend = (r() - 0.5) * h * 0.4, petals = 5 + Math.floor(r() * 4), turn = r() * 2;
+        wrap(y, h, (yy) => {
+          x.save(); x.translate(u, yy);
+          x.strokeStyle = x.fillStyle = m.stem; x.lineWidth = h * 0.045;
+          x.beginPath(); x.moveTo(0, 0); x.quadraticCurveTo(h * 0.35, bend * 0.2, h * 0.68, bend); x.stroke();
+          for (const d of [-1, 1]) { x.beginPath(); x.ellipse(h * (0.25 + 0.1 * (d + 1)), d * h * 0.13 + bend * 0.2, h * 0.14, h * 0.05, d * 0.7, 0, Math.PI * 2); x.fill(); }
+          x.fillStyle = col;
+          for (let k = 0; k < petals; k++) {
+            const t = turn + (k / petals) * Math.PI * 2;
+            x.beginPath(); x.arc(h * 0.8 + Math.cos(t) * h * 0.13, bend + Math.sin(t) * h * 0.13, h * 0.1, 0, Math.PI * 2); x.fill();
+          }
+          x.fillStyle = mid === col ? m.stem : mid;
+          x.beginPath(); x.arc(h * 0.8, bend, h * 0.08, 0, Math.PI * 2); x.fill();
+          x.restore();
         });
       }
       break;
@@ -3331,6 +3436,81 @@ export function masmoArt(kind: keyof typeof MASMO_ART_SIZE, variant = 0) {
   return toTexture(c, { repeat: false });
 }
 
+// Olle Ängkvist's labyrinth on Alby's northern track wall (1972–74): rings of red, orange and
+// yellow round a green middle, each broken where the way through it turns and joined to the next
+// across, a little uneven as painted by hand; the rock round it left clear. ALBY_LABYRINTH m
+// across.
+export const ALBY_LABYRINTH = 3.2;
+export function albyLabyrinth() {
+  const S = 512, [c, x] = canvas(S), r = rng(1974), m = S / 2, rings = 7, step = (m - 20) / (rings + 0.6);
+  const colors = ['#d23a2e', '#ee8a2a', '#f0c43a', '#e8705a', '#d23a2e', '#ee8a2a', '#f0c43a'];
+  x.lineCap = 'round';
+  x.fillStyle = '#62a84e';
+  x.beginPath(); x.arc(m, m, step * 0.75, 0, Math.PI * 2); x.fill();
+  for (let k = 1; k <= rings; k++) {
+    const R = step * (k + 0.25), gap = r() * Math.PI * 2, gw = 0.3 / k + 0.08, ph = r() * 6;
+    const at = (t: number, rr: number): [number, number] => {
+      const q = rr * (1 + 0.035 * Math.sin(t * 3 + ph) + 0.02 * Math.sin(t * 7 + 2 * ph));
+      return [m + Math.cos(t) * q, m + Math.sin(t) * q];
+    };
+    x.strokeStyle = colors[k - 1]; x.lineWidth = step * 0.6;
+    x.beginPath();
+    for (let i = 0; i <= 120; i++) x.lineTo(...at(gap + gw + (i / 120) * (Math.PI * 2 - 2 * gw), R));
+    x.stroke();
+    if (k > 1) {
+      // across to the ring inside it, beside the gap
+      x.beginPath(); x.moveTo(...at(gap - 0.12, R)); x.lineTo(...at(gap - 0.12, R - step)); x.stroke();
+    }
+  }
+  return toTexture(c, { repeat: false });
+}
+
+// The face of Alby's side platform in the arch through the wall of rock, under the fence:
+// green, Ängkvist's red snake winding along it and a red cross beside it. 8 m along by 1.4 m (the
+// face's foot to the platform's top).
+export function albySnake() {
+  const PX = 128, [c, x] = canvas(8 * PX, Math.round(1.4 * PX));
+  x.fillStyle = '#2f6e37'; x.fillRect(0, 0, c.width, c.height);
+  speckle(x, c.width, c.height, 4000, 0.25, 1975);
+  x.setTransform(PX, 0, 0, -PX, 0, c.height);
+  x.strokeStyle = x.fillStyle = '#c8362c'; x.lineCap = x.lineJoin = 'round'; x.lineWidth = 0.08;
+  x.beginPath();
+  for (let k = 0; k <= 60; k++) { const t = k / 60; x.lineTo(2.7 + 2.3 * t, 0.78 + 0.13 * Math.sin(t * Math.PI * 4.5) * (0.4 + t)); }
+  x.stroke();
+  x.beginPath(); x.ellipse(5.06, 0.78 + 0.13 * Math.sin(Math.PI * 4.5) * 1.4, 0.11, 0.07, 0.3, 0, Math.PI * 2); x.fill();
+  x.lineWidth = 0.07;
+  x.beginPath(); x.moveTo(5.75, 0.62); x.lineTo(6.15, 0.98); x.moveTo(5.75, 0.98); x.lineTo(6.15, 0.62); x.stroke();
+  return toTexture(c, { repeat: false });
+}
+
+// Steel mesh in diamonds, its strands dark and the spaces between them clear: a fence's panels,
+// 1.2 m square.
+export function diamondMesh(strand = '#1c1d1f') {
+  const [c, x] = canvas(256);
+  x.strokeStyle = strand; x.lineWidth = 2.4;
+  const p = 256 / 16;
+  for (let k = -16; k <= 32; k++) {
+    x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + 128, 256); x.stroke();
+    x.beginPath(); x.moveTo(k * p, 256); x.lineTo(k * p + 128, 0); x.stroke();
+  }
+  return toTexture(c);
+}
+
+// Precast concrete, a pale grey green flecked dark and white, polished, in lengths of 1.2 m (the
+// plinth along Alby's side platform): 1.2 m square.
+export function albyPlinth() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#8e968d'; x.fillRect(0, 0, 256, 256);
+  const r = rng(1974);
+  for (let i = 0; i < 2600; i++) {
+    const v = r() < 0.55 ? 200 + r() * 50 : 40 + r() * 40, sz = 0.5 + r() * r() * 2;
+    x.fillStyle = `rgba(${v},${v + 4},${v},${0.25 + r() * 0.4})`;
+    x.beginPath(); x.arc(r() * 256, r() * 256, sz, 0, Math.PI * 2); x.fill();
+  }
+  x.fillStyle = 'rgba(40,44,40,0.5)'; x.fillRect(0, 0, 2, 256);
+  return toTexture(c);
+}
+
 // How far round from the foot of a cave's paint (caveRock) the pillars' paint starts at the
 // platform.
 export const STADION_FOOT = 1.6;
@@ -4406,7 +4586,7 @@ export function openPaving(p: Paving) {
     }
   } else {
     for (let k = 0.04; k < t1 - t0 - 0.02; k += 0.06) {
-      x.fillStyle = css(C.tactile, 26); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
+      x.fillStyle = p.studColor === undefined ? css(C.tactile, 26) : css(p.studColor); x.fillRect((t0 + k) * PX, 0, 0.025 * PX, H);
       x.fillStyle = css(C.tactile, -22); x.fillRect((t0 + k + 0.025) * PX, 0, 0.008 * PX, H);
     }
   }
@@ -5826,11 +6006,13 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   skhBasket: [1.2, 1.2], skhMosaic: [8.0, 3.0], skhEndWall: [9.0, 3.6],
   vabTiles: [1.2, 3.6],
   vbgFront: [2.2, 2.6], vbgFascia: [1.8, 1.2], vbgRender: [2.4, 2.4], vbgParapet: [1.2, 1.6],
-  masmoRender: [2.4, 2.4], masmoRock: [4.8, 3.2], masmoMesh: [2.4, 2.4], masmoCeiling: [1.5, 1.5], masmoFascia: [7, 1.1],
+  masmoRender: [2.4, 2.4], masmoRock: [4.8, 3.2], masmoMesh: [2.4, 2.4], masmoCeiling: [1.5, 1.5], albyCeiling: [1.5, 1.5], masmoFascia: [7, 1.1],
   fittjaHall: [2.4, 3.6], fittjaCeiling: [3.6, 3.6], fittjaShops: [6.0, 4.2], fittjaWall: [2.4, 6.6],
+  albyPanels: [4.8, 3.0], albyDoors: [2.4, 2.2], albyMaroon: [1.2, 3.0], albyRock: [CAVE_REPEAT, 4.4], albyGreen: [4.8, 4.4], albyCopper: [1.5, 1.2],
+  albyFront: [2.2, 5.6],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8871,8 +9053,9 @@ export function finish(name: Finish) {
       }
       break;
     }
-    case 'masmoCeiling': {
-      // dark expanded metal, a tube lamp across it on a silver rail every 1.5 m
+    case 'masmoCeiling': case 'albyCeiling': {
+      // dark expanded metal, a tube lamp across it on a silver rail every 1.5 m (along the
+      // station's u; Alby's, along its s)
       x.fillStyle = '#26282b'; x.fillRect(0, 0, W, H);
       x.strokeStyle = '#55585d'; x.lineWidth = 2;
       const p = 0.08 * PX;
@@ -8880,8 +9063,12 @@ export function finish(name: Finish) {
         x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + W, H); x.stroke();
         x.beginPath(); x.moveTo(k * p, H); x.lineTo(k * p + W, 0); x.stroke();
       }
-      x.fillStyle = '#a7aaae'; x.fillRect(0, H / 2 - 0.07 * PX, W, 0.14 * PX);
-      x.fillStyle = '#f6f5ee'; x.fillRect(0, H / 2 - 0.03 * PX, W, 0.06 * PX);
+      const tube = (c: string, w: number) => {
+        x.fillStyle = c;
+        if (name === 'albyCeiling') x.fillRect(W / 2 - w / 2, 0, w, H);
+        else x.fillRect(0, H / 2 - w / 2, W, w);
+      };
+      tube('#a7aaae', 0.14 * PX); tube('#f6f5ee', 0.06 * PX);
       break;
     }
     case 'masmoFascia': {
@@ -8972,6 +9159,116 @@ export function finish(name: Finish) {
         x.fillStyle = `rgb(${150 + v},${148 + v},${141 + v})`; x.fillRect(i * 0.08 * PX, Y(H / PX), 0.08 * PX - 2, (H / PX - 4.45) * PX);
         x.fillStyle = 'rgba(40,40,38,0.35)'; x.fillRect(i * 0.08 * PX + 0.08 * PX - 2, Y(H / PX), 2, (H / PX - 4.45) * PX);
       }
+      break;
+    }
+    case 'albyPanels':
+    case 'albyDoors': {
+      // Alby's ticket hall: panels of precast concrete, 1.2 m wide and 1.5 m high, a grey green
+      // flecked dark and white, and cut into them white line drawings of rings, beans, crescents,
+      // spirals and commas, a cluster here and there (photographs, 2018); on the wall between the
+      // stairs two blue steel doors (`albyDoors`)
+      x.fillStyle = '#4c5b51'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 1.2 * PX < W; i++) for (let j = 0; j * 1.5 * PX < H; j++) {
+        const v = Math.floor(r() * 10) - 5;
+        x.fillStyle = `rgb(${96 + v},${118 + v},${104 + v})`; x.fillRect(i * 1.2 * PX + 1.5, H - (j + 1) * 1.5 * PX + 1.5, 1.2 * PX - 3, 1.5 * PX - 3);
+      }
+      speckle(x, W, H, 9000, 0.3, 1972); speckle(x, W, H, 5000, 0.25, 1973, true);
+      x.strokeStyle = '#dfe4dc'; x.lineWidth = 0.022 * PX; x.lineCap = 'round';
+      const clusters = name === 'albyDoors' ? [] : [[0.9, 1.5], [3.3, 1.9]];
+      for (const [cx, cy] of clusters) for (let k = 0; k < 5; k++) {
+        const px = (cx + (r() - 0.5) * 1.1) * PX, py = Y(cy + (r() - 0.5) * 0.9), sz = (0.14 + r() * 0.16) * PX, a = r() * 6, kind = Math.floor(r() * 5);
+        x.save(); x.translate(px, py); x.rotate(a); x.beginPath();
+        if (kind === 0) x.arc(0, 0, sz, 0, Math.PI * 2);
+        else if (kind === 1) x.arc(0, 0, sz, 0, Math.PI * 1.3);
+        else if (kind === 2) for (let t = 0; t <= 40; t++) { const th = (t / 40) * Math.PI * 4, R = sz * (t / 40); x.lineTo(Math.cos(th) * R, Math.sin(th) * R); }
+        else if (kind === 3) { x.ellipse(0, 0, sz * 1.2, sz * 0.6, 0, 0, Math.PI * 2); x.moveTo(sz * 0.5, 0); x.arc(0, 0, sz * 0.5, 0, Math.PI * 2); }
+        else { x.arc(0, 0, sz * 0.4, 0, Math.PI * 2); x.moveTo(sz * 0.4, 0); x.quadraticCurveTo(sz * 0.6, sz * 1.2, -sz * 0.6, sz * 1.1); }
+        x.stroke(); x.restore();
+      }
+      if (name === 'albyDoors') {
+        for (const d0 of [0.1, 1.25]) {
+          x.fillStyle = '#23426f'; x.fillRect(d0 * PX - 0.04 * PX, Y(2.14), 1.13 * PX, 2.14 * PX);
+          x.fillStyle = '#2f5ea6'; x.fillRect(d0 * PX, Y(2.1), 1.05 * PX, 2.1 * PX);
+          x.fillStyle = 'rgba(255,255,255,0.08)'; x.fillRect(d0 * PX + 4, Y(2.06), 0.3 * PX, 2.0 * PX);
+          x.fillStyle = '#c9ccce'; x.fillRect((d0 + 0.08) * PX, Y(1.07), 0.14 * PX, 0.03 * PX);
+          x.fillStyle = '#d9d9d4'; x.fillRect((d0 + 0.08) * PX, Y(1.75), 0.18 * PX, 0.12 * PX);
+        }
+      }
+      break;
+    }
+    case 'albyMaroon':
+      // maroon panels 0.6 m wide between thin strips of stainless steel (the north wall of Alby's
+      // ticket hall, by the gates)
+      for (let i = 0; i * 0.6 * PX < W; i++) {
+        const v = Math.floor(r() * 8) - 4;
+        x.fillStyle = `rgb(${122 + v},${40 + v},${54 + v})`; x.fillRect(i * 0.6 * PX, 0, 0.6 * PX, H);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * 0.6 * PX + 0.06 * PX, 0, 0.18 * PX, H);
+        x.fillStyle = '#c4c8ca'; x.fillRect(i * 0.6 * PX, 0, 0.035 * PX, H);
+        x.fillStyle = 'rgba(0,0,0,0.3)'; x.fillRect(i * 0.6 * PX + 0.035 * PX, 0, 0.012 * PX, H);
+      }
+      break;
+    case 'albyRock':
+    case 'albyGreen': {
+      // the rock sprayed and painted green, glossy, lumps of it catching the light, over a plinth
+      // of grey precast concrete 0.6 m high along Alby's corridor (or a concrete ledge 0.3 m high
+      // beside its escalators); in the corridor Ängkvist's signs and blots on it, as on the
+      // platforms
+      x.fillStyle = '#2f7038'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < (W / PX) * (H / PX) * 1.2; i++) {
+        const cx = r() * W, cy = r() * H, rad = (0.25 + r() * 0.8) * PX;
+        for (const [dy, tone, a] of [[-0.3, '220,255,220', 0.12], [0.3, '0,20,0', 0.16]] as const) {
+          const g = x.createRadialGradient(cx, cy + dy * rad, 0, cx, cy + dy * rad, rad);
+          g.addColorStop(0, `rgba(${tone},${a * (0.5 + r())})`); g.addColorStop(1, `rgba(${tone},0)`);
+          x.fillStyle = g;
+          for (const ox of [-W, 0, W]) x.fillRect(cx + ox - rad, cy + dy * rad - rad, 2 * rad, 2 * rad);
+        }
+      }
+      if (name === 'albyRock') {
+        x.save(); x.setTransform(0, -PX, PX, 0, 0, H);
+        caveMotif(x, { kind: 'signs', colors: ['#dcded8', '#dcded8', '#c4bce6', '#9fc0ea', '#5b86da', '#3f63c4', '#e889b0', '#ee8a2a', '#d23a2e', '#f0c43a'], from: 1.0, to: 3.9, count: 90, size: 0.8 }, r);
+        x.restore();
+      }
+      speckle(x, W, H, (W * H) / 80, 0.2, 1977);
+      const foot = name === 'albyRock' ? 0.6 : 0.3;
+      band(0, foot, '#8e968d');
+      x.save(); x.translate(0, Y(foot)); speckle(x, W, Math.round(foot * PX), 1500, 0.25, 1978, true); x.restore();
+      x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, Y(foot), W, 3);
+      break;
+    }
+    case 'albyCopper': {
+      // expanded metal, copper brown, in panels 1.5 by 1.2 m in dark frames (the ceiling over
+      // Alby's escalators)
+      x.fillStyle = '#4a2a1a'; x.fillRect(0, 0, W, H);
+      x.strokeStyle = '#b5724a'; x.lineWidth = 3;
+      const p = 0.06 * PX;
+      for (let k = -Math.ceil(H / p); k * p < W + H; k++) {
+        x.beginPath(); x.moveTo(k * p, 0); x.lineTo(k * p + H * 0.6, H); x.stroke();
+        x.beginPath(); x.moveTo(k * p, H); x.lineTo(k * p + H * 0.6, 0); x.stroke();
+      }
+      x.strokeStyle = '#2a1a12'; x.lineWidth = 0.05 * PX; x.strokeRect(0, 0, W, H);
+      x.strokeStyle = 'rgba(230,170,120,0.35)'; x.lineWidth = 2; x.strokeRect(0.03 * PX, 0.03 * PX, W - 0.06 * PX, H - 0.06 * PX);
+      break;
+    }
+    case 'albyFront': {
+      // Alby's way in from Alby centrum: a pair of glass doors in brushed steel to 2.4 m, a blue
+      // band across them with a white dot, a band of crinkled stainless steel to 3.2 m for the
+      // signs, and glass in maroon steel frames above (photograph, 2018)
+      const st = '#a9aeb1', mar = '#6e2b2c';
+      band(0, 0.35, st); pane(0.35, 2.3, st, 0.12);
+      x.fillStyle = st; x.fillRect(W / 2 - 0.05 * PX, Y(2.3), 0.1 * PX, 1.95 * PX);
+      x.fillStyle = '#2a3f8e'; x.fillRect(0.06 * PX, Y(1.2), W - 0.12 * PX, 0.13 * PX);
+      x.fillStyle = '#f2f2ee';
+      for (const cx of [W / 4, (3 * W) / 4]) { x.beginPath(); x.arc(cx, Y(1.135), 0.05 * PX, 0, Math.PI * 2); x.fill(); }
+      band(2.3, 2.4, st);
+      band(2.4, 3.2, '#c3c7c3');
+      for (let i = 0; i < 14; i++) {
+        const cx = r() * W, cy = Y(2.45 + r() * 0.7), g = x.createRadialGradient(cx, cy, 0, cx, cy, 0.25 * PX);
+        g.addColorStop(0, r() < 0.5 ? 'rgba(255,255,255,0.45)' : 'rgba(60,64,66,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = g; x.fillRect(cx - 0.25 * PX, cy - 0.25 * PX, 0.5 * PX, 0.5 * PX);
+      }
+      band(3.2, 3.3, mar); pane(3.3, 5.5, mar, 0.1);
+      x.fillStyle = mar; x.fillRect(W / 2 - 0.05 * PX, Y(5.5), 0.1 * PX, 2.2 * PX);
+      band(5.5, 5.6, mar);
       break;
     }
     case 'skhEndWall': {

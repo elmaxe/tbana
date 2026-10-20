@@ -119,11 +119,15 @@ const sideWidths = new Map<string, number>((trackCorrections.widths ?? []).map((
 // stations whose two platform tracks run straight and parallel, this far apart (data/track-corrections.json
 // `straight`): where OpenStreetMap's sketch bows them, and the platforms and halls laid along them would bow too;
 // with `middle` (SWEREF 99 18 00 east, north), either side of a line through that point rather than of the
-// middle of OpenStreetMap's tracks, where its sketch has them off to one side of the halls
+// middle of OpenStreetMap's tracks, where its sketch has them off to one side of the halls; with `inner`
+// (a point, likewise), a third track between them that no service runs on (Alby's) along a line through it
 const straightStations = new Map<string, number>((trackCorrections.straight ?? []).map((w: { station: string; apart: number }) => [w.station, w.apart]));
 const straightMiddles = new Map<string, { x: number; z: number }>((trackCorrections.straight ?? [])
   .filter((w: { middle?: [number, number] }) => w.middle)
   .map((w: { station: string; middle: [number, number] }) => [w.station, { x: w.middle[0] - ORIGIN.e, z: ORIGIN.n - w.middle[1] }]));
+const straightInners = new Map<string, { x: number; z: number }>((trackCorrections.straight ?? [])
+  .filter((w: { inner?: [number, number] }) => w.inner)
+  .map((w: { station: string; inner: [number, number] }) => [w.station, { x: w.inner[0] - ORIGIN.e, z: ORIGIN.n - w.inner[1] }]));
 // places where a line's two tracks in tunnels keep OpenStreetMap's spacing, within `reach` m of `at`
 // (SWEREF 99 18 00 east, north; data/track-corrections.json `apart`), rather than being drawn
 // together over a siding between them
@@ -260,11 +264,12 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
     if (used.has(t.piece)) (linesAt.get(pl.osm) ?? linesAt.set(pl.osm, new Set()).get(pl.osm)!).add(lineOf(graph.pieces[t.piece]));
   }
   const sharedByLines = (r: PlatformRange | null) => !!r && (linesAt.get(r.osm)?.size ?? 0) > 1;
-  // how far s is from the nearest platform on the piece, or on the pieces next to it
-  const platformDistance = (p: TrackPiece, s: number) => {
+  // how far s is from the nearest platform on the piece, or on the pieces next to it (of the
+  // stations `only` passes)
+  const platformDistance = (p: TrackPiece, s: number, only = (_: PlatformRange) => true) => {
     let best = Infinity;
     const consider = (piece: number, at: (r: PlatformRange) => number) => {
-      for (const r of platformsOn.get(piece) ?? []) best = Math.min(best, at(r));
+      for (const r of platformsOn.get(piece) ?? []) if (only(r)) best = Math.min(best, at(r));
     };
     consider(p.id, (r) => (s < r.s0 ? r.s0 - s : s > r.s1 ? s - r.s1 : 0));
     // one piece on from each end is enough: platforms are well over 100 m long
@@ -439,24 +444,28 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
   }
 
   // the stations whose platform tracks are held straight and parallel: on a line fitted through
-  // OpenStreetMap's tracks along the platforms, each track half the spacing from it
+  // OpenStreetMap's tracks along the platforms, each track half the spacing from it (and a third
+  // track between them, no service running on it, on its own line)
   const straightAt = new Map<number, [number, number]>();
   for (const [station, apart] of straightStations) {
-    const on: { vi: number; x: number; z: number }[] = [];
+    const on: { vi: number; x: number; z: number; inner: boolean }[] = [];
     for (const p of pieces) {
       const { s, v } = disc.get(p.id)!;
-      v.forEach((vi, k) => { if (platformAt(p.id, s[k])?.station === station && !on.some((o) => o.vi === vi)) on.push({ vi, x: vars[vi].x0, z: vars[vi].z0 }); });
+      v.forEach((vi, k) => { if (platformAt(p.id, s[k])?.station === station && !on.some((o) => o.vi === vi)) on.push({ vi, x: vars[vi].x0, z: vars[vi].z0, inner: !services.has(p.id) }); });
     }
     if (on.length < 4) throw new Error(`track-corrections.json straight: no platform track at ${station}`);
-    const cx = on.reduce((a, o) => a + o.x, 0) / on.length, cz = on.reduce((a, o) => a + o.z, 0) / on.length;
+    const inner = straightInners.get(station);
+    const outer = on.filter((o) => !inner || !o.inner);
+    const cx = outer.reduce((a, o) => a + o.x, 0) / outer.length, cz = outer.reduce((a, o) => a + o.z, 0) / outer.length;
     let sxx = 0, sxz = 0, szz = 0;
-    for (const o of on) { sxx += (o.x - cx) ** 2; sxz += (o.x - cx) * (o.z - cz); szz += (o.z - cz) ** 2; }
+    for (const o of outer) { sxx += (o.x - cx) ** 2; sxz += (o.x - cx) * (o.z - cz); szz += (o.z - cz) ** 2; }
     const th = Math.atan2(2 * sxz, sxx - szz) / 2, dx = Math.cos(th), dz = Math.sin(th), nx = -dz, nz = dx;
     const off = on.map((o) => (o.x - cx) * nx + (o.z - cz) * nz);
-    const side = (sg: number) => { const q = off.filter((u) => Math.sign(u) === sg); return q.reduce((a, u) => a + u, 0) / q.length; };
+    const side = (sg: number) => { const q = off.filter((u, j) => Math.sign(u) === sg && outer.includes(on[j])); return q.reduce((a, u) => a + u, 0) / q.length; };
     const m = straightMiddles.get(station), mid = m ? (m.x - cx) * nx + (m.z - cz) * nz : (side(-1) + side(1)) / 2;
     on.forEach((o, j) => {
-      const t = (o.x - cx) * dx + (o.z - cz) * dz, u = mid + Math.sign(off[j] - mid) * apart / 2;
+      const t = (o.x - cx) * dx + (o.z - cz) * dz;
+      const u = inner && o.inner ? (inner.x - cx) * nx + (inner.z - cz) * nz : mid + Math.sign(off[j] - mid) * apart / 2;
       straightAt.set(o.vi, [cx + dx * t + nx * u, cz + dz * t + nz * u]);
     });
   }
@@ -556,16 +565,20 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
         target = b.d;
         f = 1;
         pairRows++;
-      } else if (between(sidings, a.x0, a.z0, b.x, b.z)) {
-        // a siding between them, at the standard spacing from each
-        target = 2 * TRACK_CENTRES;
-        f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]]);
-        if (f < 0.05) return;
-        pairRows++;
       } else if (here && there && here.station === there.station && straightStations.has(here.station)) {
-        // platforms held straight and parallel (data/track-corrections.json): their spacing
+        // platforms held straight and parallel (data/track-corrections.json): their spacing, even
+        // over a third track between them (Alby's)
         target = straightStations.get(here.station)!;
         f = 1;
+        pairRows++;
+      } else if (between(sidings, a.x0, a.z0, b.x, b.z)) {
+        // a siding between them, at the standard spacing from each; drawn in only gradually from
+        // a station whose third track is held between them, its tracks wide apart (Alby's)
+        target = 2 * TRACK_CENTRES;
+        const third = (r: PlatformRange) => straightInners.has(r.station);
+        f = ramp(-Math.abs(b.dy), [-PAIR_DY[0], -PAIR_DY[1]])
+          * ramp(Math.min(platformDistance(p, s[k], third), platformDistance(b.piece, b.s, third)), PAIR_FROM_PLATFORM);
+        if (f < 0.05) return;
         pairRows++;
       } else if (here && there && here.osm === there.osm) {
         // an island platform between them
@@ -996,6 +1009,46 @@ for (const [id, list] of besideAt) {
   }
 }
 console.log(`${besideShared} points share a box or deck with another line's track beside them`);
+
+// A station's third track between its two, no service running on it (Alby's middle track: the
+// `inner` of data/track-corrections.json `straight`): along the platforms it shares the hall of
+// the island across it (`pair`), too far apart to be found as each other's; a wall of rock stands
+// between it and the side platform beyond (src/network.ts).
+for (const station of straightInners.keys()) {
+  const here = (p: TrackPiece, k: number) => {
+    const g = out[p.id];
+    const r = platformNear(p.id, g.s[k], k ? (g.s[k] - g.s[k - 1]) / 2 : 0, k + 1 < g.s.length ? (g.s[k + 1] - g.s[k]) / 2 : 0);
+    return r?.station === station ? r : null;
+  };
+  const tracks = pieces.filter((p) => out[p.id].s.some((_, k) => here(p, k)));
+  const inner = tracks.filter((p) => !run.has(p.id)), outer = tracks.filter((p) => run.has(p.id));
+  // how far track q is to the right of p's point k, square to p, and how much higher
+  const square = (p: TrackPiece, k: number, q: TrackPiece) => {
+    const g = out[p.id], o = out[q.id];
+    const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
+    const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1, tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
+    for (let m = 0; m + 1 < o.s.length; m++) {
+      const ax = o.x[m] - g.x[k], az = o.z[m] - g.z[k], bx = o.x[m + 1] - g.x[k], bz = o.z[m + 1] - g.z[k];
+      const da = ax * tx + az * tz, db = bx * tx + bz * tz;
+      if (da * db > 0 || da === db) continue;
+      const t = da / (da - db);
+      return { lat: -tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t), dy: o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k] };
+    }
+    return null;
+  };
+  const share = (p: TrackPiece, q: TrackPiece) => {
+    const g = out[p.id];
+    g.s.forEach((_, k) => {
+      const at = here(p, k), w = at && square(p, k, q);
+      if (w) { g.pair[k] = w.lat; g.pairDy[k] = w.dy; }
+    });
+  };
+  for (const m of inner) {
+    const isl = outer.find((p) => out[p.id].s.some((_, k) => here(p, k)?.osm === out[m.id].s.map((__, j) => here(m, j)).find((r) => r)!.osm));
+    if (!isl) throw new Error(`track-corrections.json straight: ${station}'s third track has no island beside it`);
+    share(m, isl); share(isl, m);
+  }
+}
 
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH (or its width in data/track-corrections.json),

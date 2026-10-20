@@ -154,6 +154,9 @@ type MaterialName = 'rock' | 'concrete' | 'floor' | 'bed' | 'rail' | 'conductor'
   | `bh${'Lift' | 'Steel' | 'Glass' | 'Pine' | 'Inlay' | 'Photo' | 'Render'}:${string}`
   // ... Masmo's: the railing, the benches' pine, steel and blue posts
   | `ms${'White' | 'Pine' | 'Steel' | 'Blue'}:${string}`
+  // ... Alby's: the plinth along the side platform's wall, the benches' red, the posts' dark blue,
+  // the steel of the bins and the black of the fence and the signs
+  | `ab${'Plinth' | 'Red' | 'Blue' | 'Steel' | 'Black'}:${string}`
   // a cave's panels of glass along its walls, the eastern's and the western's, and their backing
   | `glass${'E' | 'W'}:${string}` | 'glassBack'
   // a styled open station's paving and the face of its platform's edge (src/open-styles.ts)
@@ -320,6 +323,7 @@ export class Network {
       this.samples.push(samples);
     }
     alignChanges(this.samples);
+    caveAxes(this.samples);
     for (const [k, piece] of Object.values(geometry.pieces).entries()) {
       this.addRuns(this.samples[k]);
       this.addFloors(this.samples[k]);
@@ -340,6 +344,11 @@ export class Network {
     }
     this.islands = islands(this.samples);
     for (const isl of this.islands) ISLANDS.set(isl.station, isl);
+    // the arch through the wall of rock beside an island cave (Alby's), out of both caves' walls
+    for (const isl of this.islands) {
+      const arch = this.albyArch(isl);
+      if (arch) this.holes = [...this.holes, arch.volume];
+    }
   }
 
   // Where a tunnel of track no service runs on meets a service's tunnel (each has the other within
@@ -932,6 +941,14 @@ export class Network {
           }
           for (const d of [-0.7, 0.7]) box(b.fitting, at(sm, u + d, v - 0.085), sm, 0.012, 0.17, 0.012);
         }
+        else if (caveStyle(sm)?.ceiling && sm.kind === 'rock' && !islandStyle(sm)) {
+          // (under a cave's ceiling, a small dark plate on the track wall, as an island cave's)
+          const u = wall - Math.sign(wall) * 0.48, v = (CAVE_STYLES[p.station].island?.panels ?? 2.6) + 0.15;
+          const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.3), this.signMaterial(p.station, 'dark'));
+          plate.position.copy(at(sm, u, v));
+          plate.lookAt(at(sm, u - Math.sign(wall), v));
+          group.add(plate);
+        }
         // (a styled hall has its own name plates)
         else if ((sm.kind === 'rock' || sm.kind === 'box') && !hallStyle(sm) && !islandStyle(sm) && !openStyle(sm)) {
           // (on a painted cave's rock, where it is)
@@ -1003,7 +1020,19 @@ export class Network {
         box(b.glassBack, at(sm, wall + p.side * 0.24, (glass.from + glass.to) / 2), sm, 0.48, glass.to - glass.from + 0.08, STEP - 0.005);
         box(b.fitting, at(sm, wall + p.side * 0.32, glass.from - 0.07), sm, 0.64, 0.06, STEP - 0.005);
       }
-      if (caveStyle(sm) && !islandStyle(sm)) {
+      const ceiling = caveStyle(sm)?.ceiling;
+      if (ceiling && !islandStyle(sm) && sm.kind === 'rock') {
+        // under a cave's flat ceiling of steel mesh, from wall to wall (a little into the rough
+        // rock), a sample's length of it, and a tube across it
+        const [a, c] = structureSpan(sm), t = new THREE.Vector3(sm.rz, 0, -sm.rx), y = ceiling - 0.04, l = STEP / 2 + 0.01;
+        const P = (u: number, d: number) => at(sm, u, ceiling).addScaledVector(t, d);
+        const pts = [P(a - 0.5, -l), P(c + 0.5, -l), P(c + 0.5, l), P(a - 0.5, l)];
+        const ceilingOf = this.islandCeiling(p.station, CAVE_STYLES[p.station].island ?? ({ ceiling } as CaveIsland), b);
+        ceilingOf.quad(pts[0], pts[1], pts[2], pts[3], ...pts.map((q) => [(q.x * sm.rx + q.z * sm.rz) / 1.5, (q.x * t.x + q.z * t.z) / 1.5] as UV) as [UV, UV, UV, UV]);
+        box(b.lamp, at(sm, (a + c) / 2, y), sm, c - a - 0.8, 0.05, 0.12);
+        // (its light well under the steel, which would shine)
+        light = at(sm, p.side * (S.PLATFORM_EDGE + 1.2), y - 0.8);
+      } else if (caveStyle(sm) && !islandStyle(sm)) {
         // in a painted cave, a row of fittings hung on rods well under the rock, over the
         // platform's edge
         const [a, c] = structureSpan(sm), u = p.side * (S.PLATFORM_EDGE + 0.7);
@@ -1381,10 +1410,12 @@ export class Network {
       }
       // on the wall: a white plate with the name every 25 m (none on black rock with a stripe)
       const u = wall - Math.sign(wall) * 0.45;
-      if (st.walls !== 'stripe' && sa.along - lastPlate >= 25 && Math.abs(ta) < isl.half - 5) {
+      // (none in an opening through the wall: Alby's arch)
+      const pp = at(sa, u - Math.sign(wall) * 0.03, st.panels + 0.15);
+      if (st.walls !== 'stripe' && sa.along - lastPlate >= 25 && Math.abs(ta) < isl.half - 5 && !this.holes.some((o) => insideVolume(o, pp.x, pp.y, pp.z))) {
         lastPlate = sa.along;
         const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.3), this.signMaterial(sa.plat!.station, 'dark'));
-        plate.position.copy(at(sa, u - Math.sign(wall) * 0.03, st.panels + 0.15));
+        plate.position.copy(pp);
         plate.lookAt(at(sa, u - Math.sign(wall), st.panels + 0.15));
         group.add(plate);
       }
@@ -1416,6 +1447,7 @@ export class Network {
           }, { u: (_, __, ___, sm) => (isl.s(sm) + isl.half) / (2 * isl.half), v: (_, v) => (v - stripe.from) / (stripe.to - stripe.from) });
         }
       }
+      if (st.walls === 'bare') continue;
       sweep(mesh, run, (sm) => {
         const s = islandStyle(sm);
         if (!s || sm.plat!.station !== station) return null;
@@ -1495,6 +1527,7 @@ export class Network {
     // (an island cave with no pillars: only its own fittings)
     if (!isl.st.pillars) {
       if (isl.station === 'Masmo') this.masmo(isl, b, group);
+      else if (CAVE_STYLES[isl.station].arch) this.alby(isl, b, group);
       return;
     }
     const st = isl.st, pillars = isl.st.pillars, { width, fenced, plinth } = pillars, hw = width / 2, gap = pillars.gap / 2;
@@ -1830,6 +1863,288 @@ export class Network {
     box(white, P(end, 0, 1.1), isl.sm, 2 * edge, 0.06, 0.06);
     box(white, P(end, 0, 0.12), isl.sm, 2 * edge, 0.05, 0.05);
     for (let u = -edge + 0.06; u <= edge; u += 0.13) box(white, P(end, u, 0.61), isl.sm, 0.025, 0.98, 0.025);
+  }
+
+  // An arch through the wall of rock between an island cave's track and the side platform beyond
+  // it (Alby's, CaveStyle.arch): the samples of the track beside the wall (`mid`), of the island's
+  // other track (`far`) and of the side platform's (`side`), on their platforms; the side the
+  // side platform is on, across the island's frame (`g`); where the middle track's wall and the
+  // side platform's edge are (`w2`, `w3`), and the rail's level; the arch's outline round from the
+  // foot of one side (s along the island's frame, y over the rail, and its outward normal), and the
+  // volume it cuts out of both caves' walls. `wallW`: where a cave's rough wall is across the
+  // frame, at s along it and y over the rail (the middle track's away from the island, the side
+  // platform's behind it), between the samples as the rock is swept.
+  private albyArch(isl: Island) {
+    const a = CAVE_STYLES[isl.station]?.arch;
+    if (!a) return null;
+    const on = this.samples.map((run) => run.filter((sm) => sm.plat?.station === isl.station)).filter((r) => r.length >= 2);
+    const side = on.find((r) => !r[0].plat!.island);
+    if (!side) return null;
+    const g = Math.sign(isl.w(side[0]));
+    const mid = on.find((r) => r[0].plat!.island && Math.sign(isl.w(r[0])) === g), far = on.find((r) => r[0].plat!.island && Math.sign(isl.w(r[0])) === -g);
+    if (!mid || !far) return null;
+    const bracket = (list: Sample[], s: number) => {
+      for (let k = 0; k + 1 < list.length; k++) {
+        const sa = isl.s(list[k]), sb = isl.s(list[k + 1]);
+        if ((sa - s) * (sb - s) <= 0 && sa !== sb) return { k, f: (s - sa) / (sb - sa) };
+      }
+      return null;
+    };
+    const sampleAt = (list: Sample[], s: number) => { const q = bracket(list, s); return q ? lerpSample(list[q.k], list[q.k + 1], q.f) : null; };
+    const wallW = (list: Sample[], s: number, y: number) => {
+      const one = (sm: Sample) => {
+        const pts = shellOutline(sm)!.pts, seq = (sm.pair ? sm.pair < 0 : sm.plat!.side > 0) ? [...pts].reverse() : pts;
+        for (let j = 1; j < seq.length; j++) {
+          const [u0, v0] = seq[j - 1], [u1, v1] = seq[j];
+          if ((v0 - y) * (v1 - y) <= 0 && v1 !== v0) return isl.w(at(sm, u0 + ((u1 - u0) * (y - v0)) / (v1 - v0), y));
+        }
+        return isl.w(at(sm, seq[0][0], y));
+      };
+      const q = bracket(list, s);
+      return q ? one(list[q.k]) + (one(list[q.k + 1]) - one(list[q.k])) * q.f : null;
+    };
+    const c = (isl.t.x > 0 ? 1 : -1) * a.at, C2 = sampleAt(mid, c), C3 = sampleAt(side, c);
+    if (!C2 || !C3) return null;
+    const w2 = isl.w(at(C2, sm0Wall(C2, structureSpan(C2)), 0)), w3 = isl.w(at(C3, platformOuter(C3), 0)), rail = C2.y;
+    const P = (s: number, w: number, y: number) => { const p = isl.P(s, w, 0); p.y = rail + y; return p; };
+    // the outline: up each side from the floor to a little over it, and a half ellipse over them
+    const hw = a.width / 2, foot = -0.35, spring = 0.8, rise = a.crown - spring;
+    const outline: { s: number; y: number; ns: number; ny: number }[] = [{ s: c - hw, y: foot, ns: -1, ny: 0 }, { s: c - hw, y: spring / 2, ns: -1, ny: 0 }];
+    for (let k = 0; k <= 16; k++) {
+      const th = Math.PI - (Math.PI * k) / 16, ns = Math.cos(th) / hw, ny = Math.sin(th) / rise, l = Math.hypot(ns, ny);
+      outline.push({ s: c + hw * Math.cos(th), y: spring + rise * Math.sin(th), ns: ns / l, ny: ny / l });
+    }
+    outline.push({ s: c + hw, y: spring / 2, ns: 1, ny: 0 }, { s: c + hw, y: foot, ns: 1, ny: 0 });
+    // its volume: the outline (from a little under the floor) between the middle track's cave, a
+    // little into it past its rough wall, and the side platform's edge
+    const poly = [[c - hw, foot - 0.05], ...outline.slice(1, -1).map((q) => [q.s, q.y]), [c + hw, foot - 0.05]];
+    const cs = poly.reduce((t, q) => t + q[0], 0) / poly.length, cy = poly.reduce((t, q) => t + q[1], 0) / poly.length;
+    const lo = Math.min(w2 - g * 0.5, w3 - g * 0.03), hi = Math.max(w2 - g * 0.5, w3 - g * 0.03);
+    const planes: { nx: number; ny: number; nz: number; d: number }[] = [];
+    const plane = (nx: number, ny: number, nz: number, p: THREE.Vector3) => planes.push({ nx, ny, nz, d: nx * p.x + ny * p.y + nz * p.z });
+    for (let k = 0; k < poly.length; k++) {
+      const [s0, y0] = poly[k], [s1, y1] = poly[(k + 1) % poly.length];
+      let ns = y1 - y0, ny = -(s1 - s0);
+      const l = Math.hypot(ns, ny);
+      if (l < 1e-6) continue;
+      ns /= l; ny /= l;
+      if (ns * (s0 - cs) + ny * (y0 - cy) < 0) { ns = -ns; ny = -ny; }
+      plane(isl.t.x * ns, ny, isl.t.z * ns, P(s0, lo, y0));
+    }
+    plane(isl.n.x, 0, isl.n.z, P(c, hi, 0));
+    plane(-isl.n.x, 0, -isl.n.z, P(c, lo, 0));
+    const corners = poly.flatMap(([s, y]) => [P(s, lo, y), P(s, hi, y)]);
+    const volume: Volume = {
+      planes,
+      min: [Math.min(...corners.map((p) => p.x)), Math.min(...corners.map((p) => p.y)), Math.min(...corners.map((p) => p.z))],
+      max: [Math.max(...corners.map((p) => p.x)), Math.max(...corners.map((p) => p.y)), Math.max(...corners.map((p) => p.z))],
+    };
+    return { a, c, g, mid, far, side, w2, w3, rail, P, wallW, outline, volume };
+  }
+
+  // Alby's caves (src/hall-styles.ts), besides their paint and ceilings: the arch through the wall
+  // of rock between the middle track and the side platform, its vault painted in blots of lilac,
+  // blue and white, dark ballast and three boulders on its floor, and across its far end the side
+  // platform's edge, Ängkvist's red snake on its face and a fence along its top of black posts and
+  // mesh over a red band; across from the arch on the northern track's wall, Ängkvist's labyrinth;
+  // along the side platform's wall a plinth of grey precast concrete, red benches on it; on the
+  // island, red benches back to back on dark blue posts, and pairs of posts with the name between
+  // them (photographs, 2002–2018). Where the arch is along the platforms (across from the
+  // labyrinth, as the photographs see it from the island), and where the benches and the posts
+  // stand, are guesses.
+  private alby(isl: Island, b: Record<MaterialName, MeshBuilder>, group: THREE.Group) {
+    const arch = this.albyArch(isl);
+    if (!arch) return;
+    const station = isl.station, { a, c, g, P } = arch, hw = a.width / 2, H = S.PLATFORM_HEIGHT;
+    const material = (key: string, make: () => THREE.Material) => {
+      let m = this.islandArt.get(key);
+      if (!m) { m = make(); this.islandArt.set(key, m); }
+      return m;
+    };
+    const builder = (key: MaterialName, make: () => THREE.Material) => { this.mats[key] ??= make(); return b[key] ??= new MeshBuilder(); };
+    const mesh = (mb: MeshBuilder, m: THREE.Material) => { if (!mb.empty) group.add(new THREE.Mesh(mb.build(), m)); };
+    // a box in the island's frame, `ls` along it, `lw` across and `ly` high, its middle at (s, w, y)
+    const block = (mb: MeshBuilder, s: number, w: number, y: number, ls: number, lw: number, ly: number) => {
+      const q = (i: number, j: number, k: number) => P(s + (k * ls) / 2, w + (i * lw) / 2, y + (j * ly) / 2);
+      const faces: [number, number, number][][] = [
+        [[1, -1, -1], [1, -1, 1], [1, 1, 1], [1, 1, -1]], [[-1, -1, 1], [-1, -1, -1], [-1, 1, -1], [-1, 1, 1]],
+        [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1]], [[-1, -1, 1], [1, -1, 1], [1, -1, -1], [-1, -1, -1]],
+        [[-1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, 1]], [[1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, -1]],
+      ];
+      for (const f of faces) mb.quad(...(f.map(([i, j, k]) => q(i, j, k)) as [THREE.Vector3, THREE.Vector3, THREE.Vector3, THREE.Vector3]));
+    };
+
+    // the arch's vault, from the middle track's wall to the side platform's, lumpy between them
+    // (its own meshes: the arch's volume would cut them)
+    const vault = new MeshBuilder();
+    let round = 0;
+    arch.outline.forEach((q, k) => {
+      if (k) round += Math.hypot(q.s - arch.outline[k - 1].s, q.y - arch.outline[k - 1].y);
+      const wa = arch.wallW(arch.mid, q.s, q.y) ?? arch.w2, wb = arch.wallW(arch.side, q.s, q.y) ?? arch.w3;
+      for (let j = 0; j <= 8; j++) {
+        const f = j / 8, w = wa + (wb - wa) * f, p0 = P(q.s, w, q.y);
+        const rough = 0.3 * Math.sin(Math.PI * f) * (0.6 + 0.4 * lumps(p0.x / 1.2, p0.y / 1.2, p0.z / 1.2));
+        const p = P(q.s + q.ns * rough, w, q.y + q.ny * rough);
+        vault.vertex(p.x, p.y, p.z, round / T.CAVE_ACROSS, Math.abs(w - wa) / T.CAVE_REPEAT);
+      }
+    });
+    vault.grid(arch.outline.length, 9, 0);
+    mesh(vault, material(`alby:vault:${station}`, () => islandRock(a.paint)));
+    // its floor, dark ballast, from the middle track's to the side platform's face
+    const floor = new MeshBuilder(), w0 = arch.w2 - g * 0.6, w1 = arch.w3;
+    for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) {
+      const s = c - hw + (a.width * i) / 8, w = w0 + ((w1 - w0) * j) / 4, p = P(s, w, -0.36);
+      p.y += 0.06 * lumps(p.x / 0.7, 0, p.z / 0.7);
+      floor.vertex(p.x, p.y, p.z, s / 2, w / 2);
+    }
+    floor.grid(9, 5, 0);
+    mesh(floor, material('alby:ballast', () => new THREE.MeshStandardMaterial({ map: T.gravel(), color: 0x4a4440, roughness: 1 })));
+    // three boulders on it, a large one and two small
+    const stone = material('alby:stone', () => new THREE.MeshStandardMaterial({ color: 0x77777a, roughness: 0.95 }));
+    for (const [ds, f, sx, sy, sz, seed] of [[0.4, 0.62, 0.9, 1.25, 0.8, 1], [-1.3, 0.35, 0.75, 0.55, 0.6, 2], [1.4, 0.4, 0.7, 0.5, 0.65, 3]]) {
+      const geo = new THREE.IcosahedronGeometry(0.5, 2), pos = geo.attributes.position;
+      for (let k = 0; k < pos.count; k++) {
+        const v = new THREE.Vector3().fromBufferAttribute(pos, k), d = 1 + 0.14 * lumps(v.x * 3 + seed * 7, v.y * 3, v.z * 3);
+        pos.setXYZ(k, v.x * sx * d, Math.max(-0.1, v.y) * sy * d + (sy * 0.05), v.z * sz * d);
+      }
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, stone);
+      m.position.copy(P(c + ds, w0 + (w1 - w0) * f, -0.36 + sy * 0.5));
+      m.rotation.y = seed * 1.3;
+      group.add(m);
+    }
+    // the side platform's face across the arch's far end, Ängkvist's snake on it (a little off the
+    // platform's own face)
+    const face = new MeshBuilder(), fs0 = c - 4, fs1 = c + 4;
+    const fw = arch.w3 - g * 0.02;
+    face.quad(P(fs0, fw, -0.4), P(fs1, fw, -0.4), P(fs1, fw, H), P(fs0, fw, H), ...((g * (isl.t.x > 0 ? 1 : -1) > 0 ? [[1, 0], [0, 0], [0, 1], [1, 1]] : [[0, 0], [1, 0], [1, 1], [0, 1]]) as [UV, UV, UV, UV]));
+    mesh(face, material('alby:snake', () => new THREE.MeshStandardMaterial({ map: T.albySnake(), emissive: 0x303030, roughness: 0.9, side: THREE.DoubleSide })));
+    // the fence along the edge's top: black posts, mesh between them over a red band, a rail
+    const black = builder(`abBlack:${station}`, () => new THREE.MeshStandardMaterial({ color: 0x1a1b1c, roughness: 0.5, metalness: 0.3 }));
+    const red = builder(`abRed:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xc8363c, emissive: 0x2a0a0b, roughness: 0.55 }));
+    const fenceW = arch.w3 + g * 0.05, n = Math.round(a.width / 1.1);
+    for (let k = 0; k <= n; k++) block(black, c - hw + (a.width * k) / n, fenceW, H + 0.75, 0.06, 0.06, 1.5);
+    block(black, c, fenceW, H + 1.5, a.width + 0.06, 0.07, 0.05);
+    block(red, c, fenceW, H + 0.09, a.width, 0.04, 0.18);
+    const net = new MeshBuilder();
+    net.quad(P(c - hw, fenceW, H + 0.18), P(c + hw, fenceW, H + 0.18), P(c + hw, fenceW, H + 1.48), P(c - hw, fenceW, H + 1.48), [0, 0], [a.width / 1.2, 0], [a.width / 1.2, 1.3 / 1.2], [0, 1.3 / 1.2]);
+    mesh(net, material('alby:net', () => new THREE.MeshStandardMaterial({ map: T.diamondMesh(), alphaTest: 0.4, roughness: 0.5, metalness: 0.3, side: THREE.DoubleSide })));
+
+    // the labyrinth on the island's other track's wall, across from the arch: on the rock as it
+    // is swept, a little off it
+    const L = T.ALBY_LABYRINTH, ly = 3.0, rightOf = new THREE.Vector3(g * isl.n.z, 0, -g * isl.n.x);
+    const near = arch.far.filter((sm) => Math.abs(isl.s(sm) - c) < L / 2 + STEP + 0.1);
+    if (near.length >= 2) {
+      const first = shellOutline(near[0])!.pts, wallRight = near[0].pair < 0;
+      const order = first.map((_, j) => j), seq = wallRight ? order.reverse() : order;
+      const pick = seq.filter((j) => first[j][1] > ly - L / 2 - 0.7 && first[j][1] < ly + L / 2 + 0.7).slice(0, 14);
+      const o = at(near[0], 0, 0), centre = P(c, isl.w(o), ly);
+      const decal = new MeshBuilder();
+      sweep(decal, near, (sm) => {
+        const pts = shellOutline(sm)!.pts, inward = sm.pair > 0 ? 0.05 : -0.05;
+        return { key: 'labyrinth', pts: pick.map((j) => [pts[j][0] + inward, pts[j][1]] as [number, number]) };
+      }, {
+        u: (u, v, _, sm) => { const p = at(sm, u, v); return ((p.x - centre.x) * rightOf.x + (p.z - centre.z) * rightOf.z) / L + 0.5; },
+        v: (u, v) => (v - (ly - L / 2)) / L,
+      });
+      mesh(decal, material('alby:labyrinth', () => {
+        const map = T.albyLabyrinth();
+        return new THREE.MeshStandardMaterial({ map, emissive: 0x404040, emissiveMap: map, alphaTest: 0.5, roughness: 0.9, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      }));
+    }
+
+    // the plinth along the side platform's wall: a face 0.5 m high, a slope back from it to the
+    // top, and the top on into the rock; on it now and then red benches, and between them dark blue
+    // posts with stainless bins (none across the arch)
+    const blue = builder(`abBlue:${station}`, () => new THREE.MeshStandardMaterial({ color: 0x1f2f4a, emissive: 0x070b12, roughness: 0.5, metalness: 0.3 }));
+    const steel = builder(`abSteel:${station}`, () => new THREE.MeshStandardMaterial({ color: 0xb4b8ba, emissive: 0x2a2c2e, roughness: 0.35, metalness: 0.6 }));
+    const inHole = (s: number, w: number) => { const q = P(s, w, H + 1.5); return this.holes.some((o) => insideVolume(o, q.x, q.y, q.z)); };
+    const bin = (s: number, w: number) => {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.13, 0.42, 16), this.mats[`abSteel:${station}`]);
+      m.position.copy(P(s, w, H + 0.75));
+      group.add(m);
+    };
+    const plinth = builder(`abPlinth:${station}`, () => new THREE.MeshStandardMaterial({ map: T.albyPlinth(), roughness: 0.45, side: THREE.DoubleSide }));
+    const side = arch.side, wBack = arch.w3, wWall = (sm: Sample) => {
+      const span = structureSpan(sm);
+      return isl.w(at(sm, sm.plat!.side > 0 ? span[1] : span[0], 0));
+    };
+    const skip = (k: number) => {
+      const s0 = isl.s(side[k]), s1 = isl.s(side[k + 1]);
+      return Math.abs((s0 + s1) / 2 - c) < hw + Math.abs(s1 - s0) / 2 + 0.1;
+    };
+    let lastBench = -Infinity, lastPost = -Infinity;
+    for (let k = 0; k + 1 < side.length; k++) {
+      if (skip(k)) continue;
+      const s0 = isl.s(side[k]), s1 = isl.s(side[k + 1]), sm = (s0 + s1) / 2;
+      const wf = wBack + g * 0.3, wt = wf - g * 0.32;
+      const ww = [wWall(side[k]) - g * 0.1, wWall(side[k + 1]) - g * 0.1];
+      const prof = (i: number): [number, number][] => [[wf, -0.02], [wf, 0.5], [wt, 0.84], [ww[i], 0.84]];
+      const a0 = prof(0), a1 = prof(1);
+      let v = 0;
+      for (let j = 0; j + 1 < a0.length; j++) {
+        const l = Math.hypot(a0[j + 1][0] - a0[j][0], a0[j + 1][1] - a0[j][1]);
+        plinth.quad(P(s0, a0[j][0], H + a0[j][1]), P(s1, a1[j][0], H + a1[j][1]), P(s1, a1[j + 1][0], H + a1[j + 1][1]), P(s0, a0[j + 1][0], H + a0[j + 1][1]),
+          [s0 / 1.2, v / 1.2], [s1 / 1.2, v / 1.2], [s1 / 1.2, (v + l) / 1.2], [s0 / 1.2, (v + l) / 1.2]);
+        v += l;
+      }
+      // its end, beside the arch
+      for (const [kk, end, pr] of [[k - 1, s0, a0], [k + 1, s1, a1]] as const) {
+        if (kk < 0 || kk + 1 >= side.length || !skip(kk)) continue;
+        const q = pr.map(([w, y]) => P(end, w, H + y)), back = P(end, pr[3][0], H - 0.02);
+        plinth.quad(q[0], q[1], q[2], q[3], ...pr.map(([w, y]) => [w / 1.2, y / 1.2] as UV) as [UV, UV, UV, UV]);
+        plinth.quad(q[0], q[3], back, back);
+      }
+      const along = side[k].along;
+      if (Math.abs(sm) > isl.half - 4) continue;
+      if (along - lastBench >= 14 && Math.abs(sm) < isl.half - 6) {
+        // a red bench hung on the plinth's face: two slats for a seat, one for a back, on stainless
+        // brackets with loops for arms
+        lastBench = along;
+        for (const d of [0.1, 0.27]) block(red, sm, wf + g * d, H + 0.45, 2.4, 0.15, 0.08);
+        block(red, sm, wf + g * 0.04, H + 0.76, 2.4, 0.06, 0.16);
+        for (const f of [-1.05, 1.05]) {
+          block(steel, sm + f, wf + g * 0.2, H + 0.4, 0.05, 0.38, 0.05);
+          block(steel, sm + f, wf + g * 0.02, H + 0.6, 0.05, 0.04, 0.45);
+          block(steel, sm + f * 0.95, wf + g * 0.22, H + 0.62, 0.03, 0.34, 0.03);
+        }
+      }
+      if (along - lastPost >= 7) {
+        lastPost = along;
+        const ps = sm + 2.2;
+        block(blue, ps, wf + g * 0.04, H + 0.58, 0.1, 0.06, 1.16);
+        bin(ps, wf + g * 0.22);
+      }
+    }
+
+    // on the island: red benches back to back either side of a dark blue post, and pairs of posts
+    // with the name between them, a black box with the name on both its faces
+    const top = isl.st.ceiling - H, e = isl.t.x > 0 ? 1 : -1, wm = isl.w(at(arch.mid[0], 0, 0)) / 2 + isl.w(at(arch.far[0], 0, 0)) / 2;
+    for (const s of [-50, -26, -2, 30, 48].map((v) => v * e)) {
+      if (inHole(s, wm)) continue;
+      block(blue, s, wm, H + top / 2, 0.14, 0.14, top);
+      for (const d of [-1, 1]) {
+        block(red, s, wm + d * 0.3, H + 0.45, 2.4, 0.44, 0.06);
+        block(red, s, wm + d * 0.1, H + 0.7, 2.4, 0.05, 0.4);
+        for (const f of [-0.9, 0.9]) block(steel, s + f, wm + d * 0.3, H + 0.22, 0.05, 0.4, 0.44);
+      }
+    }
+    for (const s of [-38, 12, 40].map((v) => v * e)) {
+      if (inHole(s, wm)) continue;
+      for (const d of [-1.3, 1.3]) {
+        block(blue, s + d, wm, H + top / 2, 0.12, 0.2, top);
+        // a stainless bin on the post
+        bin(s + d, wm + 0.25);
+      }
+      block(black, s, wm, H + 2.75, 2.5, 0.14, 0.5);
+      for (const d of [-1, 1]) {
+        const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.42), this.signMaterial(station, 'dark'));
+        const q = P(s, wm + d * 0.075, H + 2.75);
+        sign.position.copy(q);
+        sign.lookAt(q.clone().addScaledVector(isl.n, d));
+        group.add(sign);
+      }
+    }
   }
 
   // Universitetet's island cave (src/hall-styles.ts), besides its pillars: the emergency exit's
@@ -2397,8 +2712,9 @@ export class Network {
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {
           const [ra, rc] = rays(a, c, middles(p), middles(q));
           // in rock, of rock; at a painted cave's end, its rock painted as the cave's is (round from
-          // the floor as on its walls, across the end as along them)
-          const cave = caveStyle(p) ? p : caveStyle(q) ? q : null;
+          // the floor as on its walls, across the end as along them), also where its hall goes on a
+          // little past the platform's end (Alby's, round its stairs)
+          const cave = caveStyle(p) ? p : caveStyle(q) ? q : caveNear(samples, i, i0, i1);
           const beamed = p.vault !== q.vault ? beamedHall(p) : null, vault = beamed && (beamed.finish as BeamedHall).vault;
           if (beamed && vault?.window) {
             // where Blackeberg's vault meets its flat part: under the vault, concrete over the flat
@@ -2725,6 +3041,17 @@ function caveStyle(sm: Sample): CaveStyle | null {
   const p = sm.plat;
   return p && sm.kind === 'rock' ? CAVE_STYLES[p.station] ?? null : null;
 }
+// A painted cave's sample within CAVE_END of sample i of a run, nearest first, if any.
+const CAVE_END = 5;
+function caveNear(samples: Sample[], i: number, i0: number, i1: number): Sample | null {
+  for (let d = 1; ; d++) {
+    const a = i - d >= i0 && samples[i].along - samples[i - d].along <= CAVE_END ? samples[i - d] : null;
+    const b = i + d <= i1 && samples[i + d].along - samples[i].along <= CAVE_END ? samples[i + d] : null;
+    if (!a && !b) return null;
+    if (a && caveStyle(a)) return a;
+    if (b && caveStyle(b)) return b;
+  }
+}
 // An island cave (src/hall-styles.ts): a painted cave with the rock left standing down the middle
 // of its island platform, Stadion's; where two tracks share its hall.
 function islandStyle(sm: Sample): CaveIsland | null {
@@ -2911,12 +3238,32 @@ function caveAcross(sm: Sample, u: number, v: number) {
   const [a, c] = structureSpan(sm);
   return Math.max(0, v - S.FLOOR) + Math.min(Math.abs(u - a), Math.abs(u - c));
 }
-// And how far along the station: along its track, the same way for both tracks.
+// And how far along the station: along its cave's axis, the same way for all its tracks.
 function caveAlong(sm: Sample, u: number, v: number) {
-  const p = at(sm, u, v);
-  let tx = sm.rz, tz = -sm.rx;
-  if (tx < 0 || (tx === 0 && tz < 0)) { tx = -tx; tz = -tz; }
-  return p.x * tx + p.z * tz;
+  const p = at(sm, u, v), a = CAVE_AXES.get(sm.plat!.station)!;
+  return (p.x - a.x) * a.tx + (p.z - a.z) * a.tz;
+}
+// Each painted cave's axis, which its paint runs along: a point in the middle of it and the mean
+// direction of its tracks beside its platforms (taken as the network is built; along each
+// sample's own direction the paint would slip back and forth where a track wavers, so far out
+// are the world's coordinates).
+const CAVE_AXES = new Map<string, { x: number; z: number; tx: number; tz: number }>();
+function caveAxes(runs: Sample[][]) {
+  const sum = new Map<string, { x: number; z: number; tx: number; tz: number; n: number }>();
+  for (const run of runs) for (const sm of run) {
+    if (!caveStyle(sm)) continue;
+    const station = sm.plat!.station, a = sum.get(station) ?? sum.set(station, { x: 0, z: 0, tx: 0, tz: 0, n: 0 }).get(station)!;
+    // (each track's way along turned to agree with the first's)
+    const k = a.n && sm.rz * a.tx - sm.rx * a.tz < 0 ? -1 : 1;
+    a.x += sm.x; a.z += sm.z; a.tx += k * sm.rz; a.tz -= k * sm.rx; a.n++;
+  }
+  for (const [station, a] of sum) {
+    let tx = a.tx, tz = a.tz;
+    const l = Math.hypot(tx, tz);
+    tx /= l; tz /= l;
+    if (tx < 0 || (tx === 0 && tz < 0)) { tx = -tx; tz = -tz; }
+    CAVE_AXES.set(station, { x: a.x / a.n, z: a.z / a.n, tx, tz });
+  }
 }
 // Smooth value noise in [-1, 1].
 function lumps(x: number, y: number, z: number) {

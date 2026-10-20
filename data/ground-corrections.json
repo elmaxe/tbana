@@ -234,6 +234,12 @@
       "outline": [-11288.0, 9366.6, -11258.3, 9326.0, -11252.0, 9330.6, -11281.7, 9371.2],
       "heights": [23.73, 23.18, 22.83, 23.93],
       "why": "Along the south-eastern side of Fittja's ticket hall a paved square runs from the footbridge to the bus loop, over the southern track's box. The laser scan has it at 23.7–23.9 m by the hall, falling to 23.2 m at the bus loop; the elevation model's 5 m grid smooths the hall's side into a slope down to the cutting, 2 to 4 m too low."
+    },
+    {
+      "name": "Alby: the square in front of the station's entrance from Alby centrum",
+      "outline": [-12228.0, 10288.7, -12202.4, 10289.4, -12203.0, 10312.9, -12228.6, 10312.2],
+      "heights": [22.4, 22.48, 22.5, 22.65],
+      "why": "The square south of the station's entrance building, out 17 m from its doors, is flat at 22.4–22.7 m (Lantmäteriet's laser scan), and the corridor inside the doors is at its level; the elevation model's 5 m grid smooths the building into it, 23.3 m at the doors, which left the station's exit 0.8 m over its hall. The outline reaches 6 m into the building, under the corridor."
     }
   ],
   "open": [
@@ -460,6 +466,10 @@
     {
       "outline": [[-11288.0, 9366.6], [-11258.3, 9326.0], [-11252.0, 9330.6], [-11281.7, 9371.2]],
       "why": "Fittja: the square along the south-eastern side of the ticket hall, paved (Google's 3D model)."
+    },
+    {
+      "outline": [[-12228.0, 10288.7], [-12202.4, 10289.4], [-12203.0, 10312.9], [-12228.6, 10312.2]],
+      "why": "Alby: the square in front of the station's entrance from Alby centrum, paved in red and grey concrete (photographs, 2012 and 2018)."
     }
   ],
   "shallow": [

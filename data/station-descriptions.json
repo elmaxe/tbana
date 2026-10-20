@@ -1257,17 +1257,45 @@
     },
     "Alby": {
       "drawing": "alby.png",
-      "note": "Two platform halls in the rock, one for each track, joined at the east end. From there escalators climb over the southern hall to the ticket hall by the bus terminal.",
+      "note": "Three tracks in a cave under Albyberget: an island platform between the northern track and the middle one, where trains ending at Alby stand, and a side platform for the southern track beyond a wall of rock. From the platforms' eastern ends a stair each climbs east to the ticket hall over the tracks, a lift beside each on its north side. Past the gates a corridor runs north and south: south to the entrance from Alby centrum's square, north to the foot of three long escalators and an inclined lift up to the entrance on Albyberget, at Tingstorget. From OpenStreetMap's indoor mapping (the stairs, the lifts, the gates, the corridor, the escalators and the entrances), Albert Guillaumes's drawing (2024) and photographs (2002 to 2018); the hall's height (one level up, at the square's) is a guess, and the escalators are drawn at their usual slope, 12 m further along than OpenStreetMap's feet.",
       "routes": [
-        { "from": [40, -4], "width": 6, "go": [
-          {"walk": [40, 4]}
+        { "from": [70.5, -5.0], "width": 3.0, "go": [
+          {"walk": [74.5, -5.0], "open": true, "edges": false},
+          {"stairs": 4.7, "toward": [200, -5.0], "lanes": "ss"},
+          {"walk": [86.0, -5.0]}
         ] },
-        { "from": [40, 0], "width": 5, "go": [
-          {"walk": [56, -1]},
-          {"escalators": 5, "toward": [98.4, 28.3], "lanes": "EE"},
-          {"walk": 6, "width": 6},
+        { "from": [70.5, 6.8], "width": 3.0, "go": [
+          {"walk": [74.5, 6.8], "open": true, "edges": false},
+          {"stairs": 4.7, "toward": [200, 6.8], "lanes": "ss"},
+          {"walk": [86.0, 6.8]}
+        ] },
+        { "from": [70.5, -8.4], "width": 2.2, "go": [
+          {"walk": [82.6, -8.4]},
+          {"lift": 4.7, "through": true},
+          {"walk": [86.5, -8.4]}
+        ] },
+        { "from": [64.0, 3.6], "width": 2.4, "go": [
+          {"walk": [82.6, 3.6]},
+          {"lift": 4.7, "through": true},
+          {"walk": [86.5, 3.6]}
+        ] },
+        { "from": [85.0, -0.8], "h": 4.7, "width": 18.6, "go": [
+          {"walk": [99.6, -0.8]},
+          {"walk": [100.6, -0.8], "width": 9.0},
           {"gates": true},
+          {"walk": [104.0, -0.8]},
+          {"walk": [107.6, -0.8], "width": 9.0}
+        ] },
+        { "from": [111.8, -1.5], "h": 4.7, "width": 9.0, "go": [
+          {"walk": [111.8, 23.6]},
           {"exit": 179024880, "by": "walk"}
+        ] },
+        { "from": [111.8, -1.5], "h": 4.7, "width": 9.0, "go": [
+          {"walk": [111.8, -38.5]},
+          {"walk": [124.6, -48.4], "width": 7.0},
+          {"escalators": 28.6, "toward": [171.0, -73.9], "lanes": "LEEE"},
+          {"walk": [170.2, -74.6], "width": 6.6},
+          {"exit": 179025535, "by": "walk"}
         ] }
       ]
     },

@@ -98,8 +98,8 @@ export const drawnLines = (graph: TrackGraph) => [...new Set(graph.routes.map((r
 // joining one of the lines to another), as far as the running lines of other lines. Left out:
 // - a piece that touches the track of a line not drawn, so a connecting track to it ends short
 //   of it
-// - track no service runs on beside a platform (the middle tracks at Alby and Sätra): the stations
-//   are described without them (but not Liljeholmen's third track: PLATFORM_SIDING_STATIONS)
+// - track no service runs on beside a platform (Sätra's middle track): the stations are described
+//   without it (but not Liljeholmen's third track or Alby's middle one: PLATFORM_SIDING_STATIONS)
 // - and then what is left of such a track that leads nowhere
 export function lineTrack(graph: TrackGraph, lines: string | string[] = drawnLines(graph)) {
   const own = typeof lines === 'string' ? [lines] : lines;

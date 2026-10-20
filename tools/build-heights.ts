@@ -152,8 +152,9 @@ if (!ground.length) console.warn(`data/ground/<line>-line.json missing: no groun
 // depots are fitted to the line and don't move it.
 const run = new Set(runningWays(graph).flatMap((r) => r.path.map((st) => st.piece)));
 // the sidings and turnback tracks (tools/lib/graph.ts), and the track at a platform that no
-// service runs on, where it is drawn (Liljeholmen's third track: PLATFORM_SIDING_STATIONS), which
-// is laid at the height of the running line beside it rather than held level on its own
+// service runs on, where it is drawn (Liljeholmen's third track, Alby's middle one:
+// PLATFORM_SIDING_STATIONS), which is laid at the height of the running line beside it rather than
+// held level on its own
 const sidings = sidingPieces(graph, lineTrack(graph));
 const platformSidings = new Set(graph.stations.filter((st) => PLATFORM_SIDING_STATIONS.has(st.name))
   .flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))).filter((id) => !run.has(id)));
