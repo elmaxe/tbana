@@ -126,9 +126,10 @@ export interface ButterflyRoof {
   // the valley to the platform between them; or (`hole`) the plate's foot flat at `spring`, and
   // a round hole through it, its middle `hole.at` high, `hole.r` across; `gaps`, none between
   // these pairs of `s` (where a building on the platform carries the roof); `twin`, each column two,
-  // this far apart along the platform (Vårby gård's)
+  // this far apart along the platform (Vårby gård's); `across`, each column two posts this far
+  // apart across the platform, under its beam (Fittja's)
   columns: {
-    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number; twin?: number;
+    every: number; at: number; size: number; plinth: { size: number; height: number }; pair?: number; twin?: number; across?: number;
     between?: [number, number]; gaps?: [number, number][]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
     portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
@@ -139,11 +140,20 @@ export interface ButterflyRoof {
   // `across`, the fittings lying across the platform
   lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean };
   colors: { underside: number; fascia: number; top: number; steel: number };
+  // the beams along the rows of columns this wide (0.2 m by default)
+  beamWidth?: number;
+  // lit panels let into the inner faces of the beams along the rows of columns, from `h[0]` to
+  // `h[1]` over the platform, each `length` long, their middles `every` m apart, the first half
+  // that from a column (Fittja's)
+  panels?: { h: [number, number]; length: number; every: number; color: number };
   // name signs hung under the beam at these `s`, with the way out at each end of the platform
   // (none if empty); or, between a pair of beams, from the rafters, `bottom` over the platform;
   // black, or (`blue`) SL's dark blue over a yellow stripe; `across`, hung across the platform
-  // from the underside with their middle at this `u`, facing along it (with no way out)
-  signs: { at: number[]; back: string; ahead: string; bottom?: number; blue?: boolean; across?: number };
+  // from the underside with their middle at this `u`, facing along it (with no way out); or
+  // (`beam`) on the outer faces of the beams along the rows of columns, from `bottom` up: the name
+  // in white on black, and beside it, 1.9 m towards each way out, a white panel with the way and
+  // its arrow
+  signs: { at: number[]; back: string; ahead: string; bottom?: number; blue?: boolean; across?: number; beam?: boolean };
   // round clocks with a face each way along the platform, and departure boards, hung from the
   // roof at s, u
   clocks?: [number, number][];
@@ -416,7 +426,11 @@ export type Finish =
   | 'masmoRock'     // dark rock painted in large patches of red, ochre, beige, grey and green over a concrete ledge, a blue rail (Masmo's passage)
   | 'masmoMesh'     // dark blue expanded metal on blue steel posts 1.2 m apart
   | 'masmoCeiling'  // dark expanded metal, a tube lamp across it every 1.5 m
-  | 'masmoFascia';  // SL's blue with a yellow line along its foot, two orange departure displays and a clock (Masmo's gates)
+  | 'masmoFascia'   // SL's blue with a yellow line along its foot, two orange departure displays and a clock (Masmo's gates)
+  | 'fittjaHall'    // white tiles, 15 cm, to 1.45 m, windows in dark frames to 2.75 m, the tiles again above (Fittja's ticket hall)
+  | 'fittjaCeiling' // pale ribbed sheet metal, a dark lattice girder across it every 3.6 m, strip lights between them
+  | 'fittjaShops'   // maroon sheet metal, two shop windows in dark red-brown frames to 2.6 m
+  | 'fittjaWall';   // concrete fins slanting up a wall to 4.2 m, a ledge, a ribbed parapet over it (beside Fittja's southern track)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -466,7 +480,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -555,6 +569,13 @@ export interface Sawtooth { kind: 'sawtooth'; from: [number, number, number]; to
 // platform): a dark post `height` high with a white globe on its top, and (`cluster`) that many
 // more round it on short arms a little lower (Bredäng's walkway).
 export interface Globes { kind: 'globes'; at: [number, number, number][]; height: number; cluster?: number; color?: number }
+
+// Eva Rosengren's light sculptures under Fittja's entrance canopy (2002): flat oval discs of opal
+// plastic at the points ([s, u], in the station's frame), `size` along and across, `thick` thick,
+// their undersides `bottom` high, hung on rods from a ceiling `ceiling` high and lit from within
+// (a slowly pulsing coloured light, caught here in one of `colors` each); and under each, its
+// round shape again in a slab of pale concrete let into the paving `floor` high.
+export interface Discs { kind: 'discs'; at: [number, number][]; size: [number, number]; thick: number; bottom: number; ceiling: number; floor: number; colors: number[] }
 
 // The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
 // over the bank, its front along `front` ([s, u] points, facing the platform), `depth` m deep
@@ -645,8 +666,9 @@ export interface Traveller { kind: 'traveller'; s: number; u: number; turn: numb
 // Carl Fredrik Reuterswärd's Non-Violence (Åkeshov, 1998): a revolver of dark bronze, `size` long,
 // standing on its grip at s, u (in the station's frame) on a plinth `h` high, its barrel tied in a
 // knot and its muzzle turned up out of the knot, the barrel pointing `turn` (radians, as a
-// guardian faces).
-export interface Revolver { kind: 'revolver'; s: number; u: number; h: number; turn: number; size: number }
+// guardian faces). `drum`: the plinth a drum of brushed steel this wide across, from the platform
+// up to `h` (Fittja's).
+export interface Revolver { kind: 'revolver'; s: number; u: number; h: number; turn: number; size: number; drum?: number }
 
 // A tram's track through the points ([s, u, h], in the station's frame, `h` the sleepers' top over
 // the platform), on ballast drawn by a block's floor: its sleepers and two rails, and (`buffer`) a
@@ -8765,6 +8787,112 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'columns', from: 4.9, to: 10.4, size: 0.14, color: 0xe8501e, at: [[-68.7, -41.2], [-98.6, -36.2], [-98.1, -33.0], [-90.1, -41.2], [-92.8, -32.5], [-61.5, -11.6], [-83.8, -45.0], [-80.4, -18.2], [-58.7, -42.5], [-71.5, -7.7], [-64.8, -43.3], [-85.3, -9.3], [-70.3, -3.2], [-57.0, -24.3]] },
       { kind: 'columns', from: 4.9, to: 11.6, size: 0.14, color: 0xe8501e, at: [[-71.2, -35.9], [-69.9, -44.3], [-73.7, -29.2], [-73.5, -40.3], [-61.1, -38.8], [-55.2, -19.5], [-78.6, -28.6], [-66.2, -10.6], [-94.3, -38.3], [-98.8, -24.5], [-90.0, -4.4], [-88.8, -37.3], [-56.1, -28.9], [-89.8, -10.9], [-84.8, -37.7]] },
       { kind: 'columns', from: 4.9, to: 12.8, size: 0.14, color: 0xe8501e, at: [[-81.2, -40.0], [-65.8, -38.4], [-62.6, -7.2], [-58.7, -19.3], [-55.5, -42.5], [-88.8, -30.1], [-98.7, -11.5], [-75.4, -10.1], [-90.5, -26.0], [-73.8, -3.5], [-78.2, -36.7]] },
+    ],
+  },
+  // Fittja (1972): an island platform on grade in a cutting, under a flat roof on pairs of posts.
+  // From photographs (2018): the posts dark teal, two side by side across the platform under each
+  // of the two beams along it, the beams deep and teal, glowing cream panels let into their inner
+  // faces and on their outer faces the name, black, and a white panel with the way out; light grey
+  // concrete beams across under the ribbed underside, out to the edges, strip lights across beside
+  // them; grey pavers in a running bond. At the platform's north-eastern end a glazed screen with
+  // SL's blue band, and in front of it Carl Fredrik Reuterswärd's Non-Violence on a drum of
+  // brushed steel (1998 on SL's page, 2002 in the Wikipedias); behind the screen, terrazzo under a perforated ceiling, dark stone round
+  // the stair, the inclined lift and the escalator up to the ticket hall over the southern track:
+  // white tiles and windows in dark frames, a ribbed ceiling on black lattice girders, terrazzo,
+  // SL's blue beam over the gates and its booth beside them; the hall's front glazed under SL's
+  // blue band with the name, a canopy with a bronze fascia over the walkway on the deck. The
+  // laser scan has the roof's top 3.47 m over the platform and the hall's roof 8.35 m (its floor
+  // 4.05 m); OpenStreetMap the hall's outline. Where the posts stand along the platform (7.6 m
+  // apart, as the photographs' bays measure) is a guess, as are the shop fronts along the hall's
+  // south-eastern side (maroon in Google's 3D model), the benches and the canopy's posts.
+  'Fittja': {
+    roof: {
+      kind: 'butterfly',
+      from: -44, to: 68.6, width: 13.9,
+      shape: [[-44, 0.05, 13.9], [0, 0.35, 13.9], [40, 0.8, 13.7], [64, 0.8, 13.7], [66, 1.0, 10.4], [68.6, 1.0, 10.4]],
+      middle: 3.15, edge: 3.15, thick: 0.32, fascia: 0.3,
+      rafters: 2.533, rafterSize: [0.35, 0.4], rafterColor: 0xbdbeba, rafterAt: -41.47, deck: 'ribbed',
+      beam: 1.0, beamWidth: 0.9,
+      columns: { every: 7.6, at: -41.47, size: 0.18, plinth: { size: 0.28, height: 0.05 }, pair: 4.7, across: 0.7, between: [-44, 66] },
+      lamps: { offset: 0, length: 1.4, every: 2.533, at: [-4.85, 4.85], across: true },
+      panels: { h: [2.55, 3.0], length: 1.7, every: 1.9, color: 0xf1e4c6 },
+      colors: { underside: 0xc9cbc9, fascia: 0x1e2022, top: 0x4b4c4e, steel: 0x2f5a64 },
+      signs: { at: [-31.02, -0.62, 29.78, 52.58], back: '', ahead: 'Utgång', bottom: 2.57, beam: true },
+      clocks: [[-1.57, -4.6], [28.82, 4.6]],
+      // (trains keep left: those towards the city stop on the north-western track)
+      boards: [
+        { s: 8.56, u: -4.7, toward: 'T-Centralen', trains: ['13 Ropsten  3 min', '13 Ropsten  13 min'] },
+        { s: 8.56, u: 4.7, toward: 'Norsborg', trains: ['13 Norsborg  6 min', '13 Norsborg  16 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.65, tactile: [0.65, 0.95], slabs: 0.95, paverSize: [0.2, 0.4], mix: 0,
+      colors: { edge: 0xcfcdc6, tactile: 0x5c5e60, slab: 0x8f8f8d, pavers: 0x8f8f8d, face: 0x8a8884 },
+      pattern: 'bond',
+    },
+    rooms: [
+      // (the platform's paving on under the roof's end)
+      { name: "the platform's end", s: [60, 68.6], u: [-4, 5], h: [-0.5, 0.5], walls: null, floor: null },
+      { name: "the glazed end of the platform", s: [68.6, 74.5], u: [-3.5, 4.6], h: [-0.5, 3.3], walls: null, floor: 'terrazzo', ceiling: 'silverPerforated' },
+      { name: 'the foot of the stairs, under the footbridge and the hall', s: [74.5, 92.6], u: [-3, 4], h: [-0.5, 3.8], walls: 'darkStone', floor: 'terrazzo', ceiling: 'silverPerforated', stairs: 'darkStone' },
+      // (its walls and ceiling are its block's)
+      { name: 'ticket hall', s: [91, 108], u: [-4, 11], h: [3.5, 4.6], walls: null, floor: 'terrazzo' },
+    ],
+    buildings: ['w1061527194'],
+    blocks: [
+      // the glazed end of the platform, under the roof's end: the screen across the platform, glazed
+      // along its sides, the roof reaching out over them
+      { name: 'glazed end', plan: [[68.6, -3.2], [74.5, -3.2], [74.5, 4.4], [68.6, 4.4]], h: [0, 3.15],
+        walls: 'glazed', sides: [undefined, null, undefined, 'circleFront'], roof: 0.32, roofColor: 0x4b4c4e, eaves: [1.0, 0, 1.8, 0], onPlatform: true },
+      // the footbridge across the cutting along the hall's south-western face
+      { name: 'footbridge', plan: [[74.5, -26], [78.2, -26], [78.2, 13.3], [74.5, 13.3]], h: [3.4, 4.1], from: 3.4,
+        walls: 'boardConcrete', floor: 'boardConcrete', roof: 0.04, roofColor: 0x9a9893 },
+      // the ticket hall over the southern track, its front glazed under SL's blue band with the name;
+      // the shops beside it to the south-east, under the same roof
+      { name: 'ticket hall', plan: [[78.2, -3.5], [107.8, -3.5], [107.8, 10.5], [78.2, 10.5]], h: [3.9, 7.75], from: 4.05,
+        walls: 'fittjaHall', sides: [undefined, 'circleFront', undefined, undefined], floor: 'terrazzo', ceiling: 'fittjaCeiling', roof: 0.6, roofColor: 0x55585b,
+        nameSign: { side: 1, at: 0.34, length: 3.0, bottom: 6.41 } },
+      { name: 'shops (south-west)', plan: [[78.2, 10.5], [86.5, 10.5], [86.5, 22.2], [78.2, 16.2]], h: [3.9, 7.75], from: 4.05,
+        walls: 'fittjaShops', sides: [null, null, undefined, undefined], roof: 0.6, roofColor: 0x55585b },
+      { name: 'shops', plan: [[86.5, 10.5], [107.8, 10.5], [107.8, 22.2], [86.5, 22.2]], h: [3.9, 7.75], from: 4.05,
+        walls: 'fittjaShops', sides: [null, undefined, undefined, null], roof: 0.6, roofColor: 0x55585b },
+      // the hall's wall down to the cutting's floor, over the northern track and Krögarvägen
+      { name: "ticket hall's wall over the cutting", plan: [[78.2, -3.75], [107.8, -3.75], [107.8, -3.5], [78.2, -3.5]], h: [-1.4, 4.05], from: -1.4,
+        walls: 'boardConcrete' },
+      // SL's booth beside the gates, and the blue beam over them, with the departures and a clock
+      { name: "SL's booth", plan: [[94.8, 5.0], [99.0, 5.0], [99.0, 8.6], [94.8, 8.6]], h: [4.05, 6.6], from: 4.05,
+        walls: 'blueBooth', roof: 0.06, roofColor: 0xd0d2d1, inRoom: true },
+      { name: 'beam over the gates', plan: [[94.6, -3.45], [94.95, -3.45], [94.95, 5.0], [94.6, 5.0]], h: [6.6, 7.55], from: 6.6,
+        walls: 'masmoFascia', inRoom: true },
+      // the canopy over the walkway in front of the hall, its fascia dark bronze, on black posts
+      { name: 'canopy', plan: [[107.8, -25.5], [112.6, -25.5], [112.6, 22.2], [107.8, 22.2]], h: [7.3, 7.75], from: 7.3,
+        walls: 'vbgFascia', ceiling: 'darkBoards', roof: 0.05, roofColor: 0x4a4b4c },
+      // the retaining wall beyond the southern track, its top rising north-eastwards with the bank
+      // behind it
+      { name: 'retaining wall', plan: [[73.5, 12.4], [73.5, 13.0], [52, 13.0], [52, 12.4]], h: [-1.7, 4.85], from: -1.7, lowBack: 3.85,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, 'fittjaWall'], roof: 0.05, roofColor: 0x9a9893 },
+    ],
+    art: [
+      // Non-Violence in front of the glazed screen, its barrel towards the platform
+      { kind: 'revolver', s: 65.6, u: -0.6, h: 1.05, turn: Math.PI, size: 0.45, drum: 0.34 },
+      { kind: 'roundel', s: 112.4, u: 7.6, h: 8.45, size: 0.9, foot: 4.05, along: true },
+      // the canopy's round posts along its front
+      { kind: 'columns', at: [[112.2, -22], [112.2, -14], [112.2, -6], [112.2, 6], [112.2, 14], [112.2, 20]], from: 4.05, to: 7.3, size: 0.3, color: 0x3a3c3e },
+      // Eva Rosengren's light sculptures under the canopy in front of the doors, either side of the
+      // street signs, and the round slabs in the paving under them
+      { kind: 'discs', at: [[110.2, -3.6], [110.2, 6.2]], size: [1.4, 1.9], thick: 0.22, bottom: 6.95, ceiling: 7.74, floor: 4.0, colors: [0xf6cdd2, 0xcfe0f6] },
+    ],
+    benches: { at: [-22.47, 38.33], wood: true },
+    // (a guess: its length and place)
+    shelters: [{ s: [5.5, 11.5], u: [-1.3, 1.3] }],
+    fences: [
+      // chain-link beyond the tracks
+      { h: [-1.0, 0.8], points: [[-71, -11.6], [70, -11.6]] },
+      { h: [-1.0, 0.8], points: [[-71, 12.6], [52, 12.6]] },
+      // railings along the footbridge, and along the deck's edge over the cutting
+      { kind: 'bars', h: [4.1, 5.2], points: [[74.6, -26], [74.6, 13.3]] },
+      { kind: 'bars', h: [4.1, 5.2], points: [[78.1, -26], [78.1, -3.5]] },
+      { kind: 'bars', h: [4.05, 5.15], points: [[107.9, -25.5], [107.9, -3.75]] },
     ],
   },
 };

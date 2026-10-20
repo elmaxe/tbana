@@ -1248,13 +1248,11 @@
     },
     "Fittja": {
       "drawing": "fittja.png",
-      "note": "A wide island platform on a bank. At its north-east end the ticket hall opens onto Fittja centrum.",
+      "note": "An island platform on grade, under a flat roof on pairs of posts. At its north-eastern end a glazed screen closes it off from the way on under the footbridge to the foot of a stair, an inclined lift and an escalator side by side, which climb north-east to the ticket hall over the southern track. Past the hall's gates its doors open north-east onto the walkway in front of it, on the deck over the tracks, where the buses stop, and Fittja centrum. From the laser scan (the platform's surface 19.72-19.83 m, the roof 3.4 m over it, the hall's floor and the deck 4.05 m), OpenStreetMap's indoor mapping (the passage, the stair, the escalator, the lift, the gates, the doors and the hall's outline) and photographs (2018), which show the lift's doors at the stair's foot and at its head.",
       "routes": [
-        { "from": [65, 0], "width": 6, "go": [
-          {"walk": [85, 0]},
-          {"gates": true},
-          {"exit": 2392735106, "by": "walk"}
-        ] }
+        { "from": [62, 0.6], "width": 7.4, "go": [ {"walk": [68.6, 0.6], "open": true}, {"walk": [74.5, 0.65], "ceiling": 3.0}, {"walk": [79.4, 0.7], "ceiling": 3.0} ] },
+        { "from": [79.4, 0.7], "width": 5.4, "go": [ {"escalators": 4.05, "to": [91.3, 0.7], "lanes": "SLE"}, {"walk": [92.5, 0.7], "open": true} ] },
+        { "from": [92.5, 0.8], "h": 4.05, "width": 7.4, "go": [ {"walk": [94.8, 0.8], "open": true}, {"gates": true}, {"walk": [97.5, 0.8], "open": true}, {"walk": [106.6, 0.8], "width": 8, "open": true}, {"walk": [108.6, 1.3], "width": 3.6, "open": true}, {"exit": 2392735106, "by": "walk", "open": true, "sign": false} ] }
       ]
     },
     "Alby": {

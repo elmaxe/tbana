@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -318,6 +318,7 @@ export class OpenLook {
       else if (a.kind === 'sawtooth') this.sawtooth(a, frame, on);
       else if (a.kind === 'gallery') this.gallery(a, frame, on);
       else if (a.kind === 'globes') this.globes(a, frame, on);
+      else if (a.kind === 'discs') this.discs(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -539,6 +540,13 @@ export class OpenLook {
     const at = (x: number, y: number, z: number): XYZ => frame.at(a.s + (cd * (x - 0.5) - sd * y) * L, a.u + (sd * (x - 0.5) + cd * y) * L, a.h + z * L);
     const o = at(0, 0, 0), e = at(1, 0, 0), fx = (e[0] - o[0]) / L, fz = (e[2] - o[2]) / L;
     const bronze = on(this.color(0x3a2f27, 0.45, 0.6)), brass = on(this.color(0x7a5c38, 0.35, 0.75));
+    // (its plinth a drum of brushed steel)
+    if (a.drum) {
+      const steel = on(this.color(0xb6b9bb, 0.3, 0.75)), r = a.drum / 2, n = 32;
+      const p = (k: number, y: number) => frame.at(a.s + r * Math.cos((k / n) * Math.PI * 2), a.u + r * Math.sin((k / n) * Math.PI * 2), y);
+      for (let k = 0; k < n; k++) steel.poly([[...p(k, 0), 0, 0], [...p(k + 1, 0), 1, 0], [...p(k + 1, a.h), 1, 1], [...p(k, a.h), 0, 1]]);
+      steel.poly(Array.from({ length: n }, (_, k) => [...p(k, a.h), 0, 0]));
+    }
     const tube = (pts: [number, number, number][], w: number) => {
       for (let k = 0; k + 1 < pts.length; k++) limb(bronze, at(...pts[k]), at(...pts[k + 1]), w * L, w * L);
       for (const p of pts) ball(bronze, at(...p), (w / 2) * L);
@@ -1102,7 +1110,7 @@ export class OpenLook {
     const S = (i: number) => R.from + ((R.to - R.from) * i) / n;
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
     // the rows of columns across the roof at s, and the beams along them
-    const C = R.columns, mid = C.offset ?? 0;
+    const C = R.columns, mid = C.offset ?? 0, bw = R.beamWidth ?? 0.2;
     const rows = (s: number) => C.edges !== undefined ? [-(half(s) - C.edges), half(s) - C.edges] : (C.pair ? [-C.pair / 2, C.pair / 2] : [0]).map((u) => u + mid);
     // (a raised bay's covering stands on the roof's own)
     const lanterns = (R.lanterns?.at ?? []).map((a) => [a - R.lanterns!.length / 2, a + R.lanterns!.length / 2]);
@@ -1127,9 +1135,21 @@ export class OpenLook {
       }
       // the beam along the valley, or one over each row of columns; the purlins; the gutter
       const r0 = rows(s0), r1 = rows(s1);
-      r0.forEach((u, k) => bar(steel, line.at(s0, u, hb(u, s0)), line.at(s1, r1[k], hb(r1[k], s1)), 0.2, R.beam, cut));
+      r0.forEach((u, k) => bar(steel, line.at(s0, u, hb(u, s0)), line.at(s1, r1[k], hb(r1[k], s1)), bw, R.beam, cut));
       for (const u of R.purlins?.at ?? []) bar(purlin, line.at(s0, u, h(u, s0)), line.at(s1, u, h(u, s1)), R.purlins!.size[0], R.purlins!.size[1], cut);
       if (R.gutter) bar(gutter, line.at(s0, 0, R.middle + lift(s0)), line.at(s1, 0, R.middle + lift(s1)), R.gutter[0], R.gutter[1], cut);
+    }
+    // lit panels in the beams' inner faces, between the columns (in both faces of a beam down the
+    // middle)
+    if (R.panels) {
+      const P = R.panels, glow = on(this.mat(`panel:${P.color}`, () => new THREE.MeshBasicMaterial({ color: P.color, side: THREE.DoubleSide })));
+      for (let s = C.at + P.every / 2 - Math.floor((C.at - R.from) / P.every) * P.every; s < R.to; s += P.every) {
+        if (s - P.length / 2 < R.from + 0.2 || s + P.length / 2 > R.to - 0.2) continue;
+        const [fx, fz] = line.dir(s);
+        for (const u of rows(s)) for (const k of u === mid ? [-1, 1] : [-Math.sign(u - mid)]) {
+          box(glow, line.at(s, u + k * (bw / 2 + 0.005), lift(s) + (P.h[0] + P.h[1]) / 2), fx, fz, 0.01, P.h[1] - P.h[0], P.length, cut);
+        }
+      }
     }
     // and across its ends
     for (const s of [R.from, R.to]) for (const side of [-1, 1]) {
@@ -1184,8 +1204,8 @@ export class OpenLook {
     for (const s of this.columns(R)) {
       const [fx, fz] = line.dir(s), art = style.art?.find((a): a is Guardian => a.kind === 'guardian' && Math.abs(a.s - s) < 0.5);
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
-      for (const u of rows(s)) for (const t of C.twin ? [s - C.twin / 2, s + C.twin / 2] : [s]) {
-        const top = C.cross ? h(u, t) - rd : h(u, t) - R.beam;
+      for (const w of rows(s)) for (const t of C.twin ? [s - C.twin / 2, s + C.twin / 2] : [s]) for (const u of C.across ? [w - C.across / 2, w + C.across / 2] : [w]) {
+        const top = C.cross ? h(w, t) - rd : h(w, t) - R.beam;
         box(concrete, line.at(t, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
         if (cased) box(casing, line.at(t, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
         else box(steel, line.at(t, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
@@ -1205,6 +1225,25 @@ export class OpenLook {
     const W = 2.4, H = 0.6;
     for (const s of R.signs.at) {
       const [fx, fz] = line.dir(s), rx = -fz, rz = fx;
+      if (R.signs.beam) {
+        // on the beams' outer faces: the name, and the ways out beside it (their arrows as seen
+        // from that side, along which +s is to the right on the right-hand beam)
+        const panel = (t: number, u: number, side: number, text: string, white: boolean, dir: number) => {
+          const [gx, gz] = line.dir(t), c = line.at(t, u + side * (bw / 2 + 0.012), lift(t) + (R.signs.bottom ?? 2.5) + 0.21);
+          const m = this.mat(`beamSign:${text}:${white}:${dir}`, () => new THREE.MeshBasicMaterial({ map: T.beamSign(text, white, dir) }));
+          const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.42), m);
+          mesh.position.set(...c);
+          mesh.rotation.y = Math.atan2(-gz * side, gx * side);
+          group.add(mesh);
+        };
+        for (const u of rows(s)) {
+          const side = Math.sign(u - mid) || 1;
+          panel(s, u, side, name, false, 0);
+          if (R.signs.ahead) panel(s + 1.9, u, side, R.signs.ahead, true, side);
+          if (R.signs.back) panel(s - 1.9, u, side, R.signs.back, true, -side);
+        }
+        continue;
+      }
       if (R.signs.across !== undefined) {
         // across the platform, hung from the underside on two rods, a face each way along it
         const u = R.signs.across, top = (R.signs.bottom ?? h(u, s) - rd - 0.35 - H) + H, c = line.at(s, u, top - H / 2);
@@ -1807,6 +1846,20 @@ export class OpenLook {
         ball(globe, frame.at(s + ds, u + du, top - 0.3), 0.2);
       }
     }
+  }
+
+  // Rosengren's discs of opal plastic, hung on rods, and the round slabs in the paving under them.
+  private discs(a: Discs, frame: Frame, on: On) {
+    const rod = on(this.color(0x8d9195, 0.4, 0.6)), slab = on(this.color(0xbdbab3, 0.85, 0));
+    const n = 40, [ls, lu] = a.size, top = a.bottom + a.thick;
+    a.at.forEach(([s, u], k) => {
+      const glow = on(this.mat(`disc:${a.colors[k % a.colors.length]}`, () => new THREE.MeshBasicMaterial({ color: a.colors[k % a.colors.length], side: THREE.DoubleSide })));
+      const p = (i: number, y: number, rs = ls / 2, ru = lu / 2) => frame.at(s + rs * Math.cos((i / n) * Math.PI * 2), u + ru * Math.sin((i / n) * Math.PI * 2), y);
+      for (let i = 0; i < n; i++) glow.poly([[...p(i, a.bottom), 0, 0], [...p(i + 1, a.bottom), 1, 0], [...p(i + 1, top), 1, 1], [...p(i, top), 0, 1]]);
+      for (const y of [a.bottom, top]) glow.poly(Array.from({ length: n }, (_, i) => [...p(i, y), 0, 0]));
+      for (const d of [-ls / 3, ls / 3]) box(rod, frame.at(s + d, u, (top + a.ceiling) / 2), 1, 0, 0.02, a.ceiling - top, 0.02);
+      slab.poly(Array.from({ length: n }, (_, i) => [...p(i, a.floor + 0.012, lu / 2, lu / 2), 0, 0]));
+    });
   }
 
   // The gallery along the bank beyond Axelsberg's southern track: its deck, pillars and lights,

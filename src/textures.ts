@@ -4537,6 +4537,22 @@ export function hangingSign(name: string, left: string, right: string, blue = fa
   return toTexture(c, { repeat: false });
 }
 
+// A sign on the face of a beam over a platform, 1.5 × 0.42 m: the text in white on black, or
+// (`white`) in black on white with an arrow after it pointing `dir` as seen (1 right, −1 left).
+export function beamSign(text: string, white: boolean, dir: number) {
+  const W = 600, H = 168, [c, x] = canvas(W, H);
+  x.fillStyle = white ? '#f2f2ee' : '#161718'; x.fillRect(0, 0, W, H);
+  x.fillStyle = white ? '#161718' : '#f2f2ee'; x.textBaseline = 'middle';
+  x.font = '500 76px "Helvetica Neue", Arial, sans-serif';
+  if (!white) { x.textAlign = 'center'; x.fillText(text, W / 2, H / 2 + 4, W - 60); return toTexture(c, { repeat: false }); }
+  // (the text, and the arrow at the end it points to)
+  const ax = dir > 0 ? W - 56 : 56, y = H / 2;
+  x.beginPath(); x.moveTo(ax + dir * 30, y); x.lineTo(ax - dir * 2, y - 30); x.lineTo(ax - dir * 2, y + 30); x.fill();
+  x.fillRect(Math.min(ax - dir * 36, ax - dir * 2), y - 8, 34, 16);
+  x.textAlign = dir > 0 ? 'right' : 'left'; x.fillText(text, dir > 0 ? ax - 56 : ax + 56, y + 4, W - 150);
+  return toTexture(c, { repeat: false });
+}
+
 // Birch bark round a trunk (across) and 0.4 m along it (up): chalk white, dark lenticels across the
 // trunk, and here and there a black patch.
 export function birchBark() {
@@ -5811,9 +5827,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   vabTiles: [1.2, 3.6],
   vbgFront: [2.2, 2.6], vbgFascia: [1.8, 1.2], vbgRender: [2.4, 2.4], vbgParapet: [1.2, 1.6],
   masmoRender: [2.4, 2.4], masmoRock: [4.8, 3.2], masmoMesh: [2.4, 2.4], masmoCeiling: [1.5, 1.5], masmoFascia: [7, 1.1],
+  fittjaHall: [2.4, 3.6], fittjaCeiling: [3.6, 3.6], fittjaShops: [6.0, 4.2], fittjaWall: [2.4, 6.6],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8881,6 +8898,80 @@ export function finish(name: Finish) {
       x.fillStyle = '#f2f2ee'; x.beginPath(); x.arc(M(3.5), Y(0.62), 0.22 * PX, 0, Math.PI * 2); x.fill();
       x.strokeStyle = '#1a1a1a'; x.lineWidth = 3;
       x.beginPath(); x.moveTo(M(3.5), Y(0.62)); x.lineTo(M(3.5), Y(0.78)); x.moveTo(M(3.5), Y(0.62)); x.lineTo(M(3.61), Y(0.57)); x.stroke();
+      break;
+    }
+    case 'fittjaHall': {
+      // white tiles, 15 cm, in pale grey joints, every other row a little greyer, to 1.45 m; a
+      // dark steel sill, windows in dark frames 1.2 m apart to 2.75 m, a transom at 2.35; the tiles
+      // again above (Fittja's ticket hall, photographs 2018)
+      const t = 0.15 * PX, frame = '#27302f';
+      x.fillStyle = '#bcb9b2'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 8) - (j % 2 ? 0 : 9);
+        x.fillStyle = `rgb(${232 + v},${229 + v},${220 + v})`; x.fillRect(i * t + 1.5, j * t + 1.5, t - 3, t - 3);
+      }
+      band(1.4, 1.47, frame); pane(1.47, 2.75, frame, 0.1); band(2.33, 2.39, frame); band(2.75, 2.82, frame);
+      x.fillStyle = frame; x.fillRect(W / 2 - 0.04 * PX, Y(2.75), 0.08 * PX, (2.75 - 1.47) * PX);
+      break;
+    }
+    case 'fittjaCeiling': {
+      // pale ribbed sheet metal, the ribs 20 cm apart one way (along the canvas's height), and
+      // across them a dark lattice girder every 3.6 m; between the girders two strip lights along
+      // the ribs (Fittja's ticket hall)
+      x.fillStyle = '#d4d3cd'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 0.2 * PX < W; i++) {
+        x.fillStyle = 'rgba(90,88,82,0.35)'; x.fillRect(i * 0.2 * PX, 0, 0.04 * PX, H);
+        x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(i * 0.2 * PX + 0.07 * PX, 0, 0.03 * PX, H);
+      }
+      for (const a of [0.9, 2.7]) {
+        x.fillStyle = '#b8bab8'; x.fillRect(a * PX - 0.09 * PX, 1.0 * PX, 0.18 * PX, 1.6 * PX);
+        x.fillStyle = '#fbf8ee'; x.fillRect(a * PX - 0.05 * PX, 1.03 * PX, 0.1 * PX, 1.54 * PX);
+      }
+      const g0 = H - 0.4 * PX;
+      x.fillStyle = '#1f2a30'; x.fillRect(0, g0, W, 0.06 * PX); x.fillRect(0, H - 0.06 * PX, W, 0.06 * PX);
+      x.strokeStyle = '#1f2a30'; x.lineWidth = 0.035 * PX;
+      for (let k = 0; k * 0.4 * PX < W; k++) {
+        x.beginPath(); x.moveTo(k * 0.4 * PX, g0); x.lineTo(k * 0.4 * PX + 0.2 * PX, H); x.lineTo(k * 0.4 * PX + 0.4 * PX, g0); x.stroke();
+      }
+      break;
+    }
+    case 'fittjaShops': {
+      // shop fronts along the side of Fittja's ticket hall: a dark red-brown steel plinth, two shop
+      // windows in dark red-brown frames, each with a door at its end, to 2.6 m; a band of maroon
+      // sheet metal over them to the roof (Google's 3D model; a guess at its windows)
+      const maroon = '#6e2f2c', frame = '#4a2321', M = (m: number) => m * PX;
+      band(0, H / PX, maroon);
+      for (let i = 0; i * 0.6 * PX < W; i++) { x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(i * 0.6 * PX, 0, 2, H); }
+      band(0, 0.45, frame);
+      for (const [a, b] of [[0.2, 2.9], [3.1, 5.8]]) {
+        x.fillStyle = frame; x.fillRect(M(a), Y(2.6), M(b - a), M(2.15));
+        x.fillStyle = '#c9c2a8'; x.fillRect(M(a) + 4, Y(2.55), M(b - a) - 8, M(2.05));
+        x.fillStyle = 'rgba(70,64,52,0.55)';
+        for (let k = 0; k < 7; k++) x.fillRect(M(a) + 10 + r() * M(b - a - 0.5), Y(1.2 + r() * 1.0), M(0.25 + r() * 0.3), M(0.3 + r() * 0.6));
+        x.fillStyle = frame; x.fillRect(M(b - 0.95), Y(2.55), 4, M(2.1)); x.fillRect(M(a + (b - a) / 2), Y(2.55), 3, M(2.05));
+      }
+      band(2.6, 2.7, frame);
+      break;
+    }
+    case 'fittjaWall': {
+      // the retaining wall beside Fittja's southern track: deep fins of concrete slanting up its
+      // face 0.4 m apart to 4.2 m, a ledge, and over it a parapet cast against narrow upright
+      // boards, ribbed (photograph from the footbridge, 2018)
+      band(0, H / PX, '#8e8c86');
+      for (let k = -4; k * 0.4 * PX < W + PX; k++) {
+        const x0 = k * 0.4 * PX, lean = 1.1 * PX;
+        x.fillStyle = '#3a3a37';
+        x.beginPath(); x.moveTo(x0, Y(0)); x.lineTo(x0 + 0.16 * PX, Y(0)); x.lineTo(x0 + 0.16 * PX + lean, Y(4.2)); x.lineTo(x0 + lean, Y(4.2)); x.fill();
+        x.fillStyle = '#a3a19a';
+        x.beginPath(); x.moveTo(x0 + 0.16 * PX, Y(0)); x.lineTo(x0 + 0.22 * PX, Y(0)); x.lineTo(x0 + 0.22 * PX + lean, Y(4.2)); x.lineTo(x0 + 0.16 * PX + lean, Y(4.2)); x.fill();
+      }
+      band(4.2, 4.45, '#b2afa7');
+      x.fillStyle = 'rgba(0,0,0,0.35)'; x.fillRect(0, Y(4.2), W, 3);
+      for (let i = 0; i * 0.08 * PX < W; i++) {
+        const v = Math.floor(r() * 26) - 13;
+        x.fillStyle = `rgb(${150 + v},${148 + v},${141 + v})`; x.fillRect(i * 0.08 * PX, Y(H / PX), 0.08 * PX - 2, (H / PX - 4.45) * PX);
+        x.fillStyle = 'rgba(40,40,38,0.35)'; x.fillRect(i * 0.08 * PX + 0.08 * PX - 2, Y(H / PX), 2, (H / PX - 4.45) * PX);
+      }
       break;
     }
     case 'skhEndWall': {

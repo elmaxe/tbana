@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Telefonplan: the station's building and the streets round it",
@@ -210,6 +210,30 @@
       "outline": [-10129.7, 9101.0, -10118.0, 9095.5, -10121.4, 9088.2, -10123.4, 9089.1, -10134.8, 9064.7, -10139.3, 9066.8, -10128.1, 9090.8, -10133.4, 9093.3],
       "heights": [16.15, 16.25, 16.25, 16.2, 16.15, 16.1, 16.1, 16.1],
       "why": "Masmo's only entrance is a portal in the rock face at the foot of Masmoberget, opening west-south-west onto the square at 16.1 m, under a canopy whose roof Lantmäteriet's laser scan has at 19.5 m, 6 m wide; a beam on pilasters runs on along the rock's foot to the north-north-west from the lintel over it, at the same height, 23.4 m. The elevation model's 5 m grid smooths the rock face into a slope that rises through the portal's mouth and under the beam. The deck lays the square's paving 5 m into the rock face there."
+    },
+    {
+      "name": "Fittja: the deck over the tracks and Fittjavägen, where the buses stop",
+      "outline": [-11270.5, 9342.7, -11291.2, 9327.5, -11290.4, 9326.4, -11309.4, 9312.5, -11298.0, 9296.9, -11258.3, 9326.0],
+      "heights": [23.73, 23.78, 23.78, 23.78, 23.38, 23.18],
+      "why": "North-east of Fittja's ticket hall a deck carries the walkway past the hall's doors, the bus stops and the bus loop over both tracks and Fittjavägen, which run under it in the cutting. Lantmäteriet's laser scan has the deck at 23.7–23.8 m in front of the hall, falling to 23.2–23.4 m at its north-eastern edge 20 m on, and the cutting under its edges at 17.6–17.9 m; the elevation model leaves the deck out as a bridge, so the ground fell into the cutting. The outline runs from the hall's front and the edge of the open slot over the northern track north-west of the hall to the deck's far edge."
+    },
+    {
+      "name": "Fittja: under the ticket hall's front",
+      "outline": [-11273.0, 9346.2, -11293.8, 9331.0, -11291.2, 9327.5, -11270.5, 9342.7],
+      "heights": [23.78, 23.78, 23.78, 23.78],
+      "why": "Fittja's ticket hall stands over the southern track's box, its front on the deck's edge, and the elevation model has the cutting's floor under it, so the ground in front of its doors fell away to it. Under the hall's last 4.3 m (inside its outline in OpenStreetMap) the ground is at the hall's floor, the deck's height, 23.78 m."
+    },
+    {
+      "name": "Fittja: the bank behind the wall along the southern track",
+      "outline": [-11309.7, 9380.7, -11295.4, 9361.2, -11281.7, 9371.2, -11296.0, 9390.7],
+      "heights": [21.73, 23.68, 23.9, 21.5],
+      "why": "South-east of Fittja's platform's north-eastern half a concrete wall rises from beside the southern track to 1 m over the ground behind it, which climbs north-eastwards to the square at the ticket hall. The laser scan has that ground at 21.7 m 15 m behind the wall's south-western end, rising to 23.7 m at the footbridge; the elevation model's 5 m grid smooths the wall into a slope down to the track, 3 to 4 m too low behind it."
+    },
+    {
+      "name": "Fittja: the square south-east of the ticket hall",
+      "outline": [-11288.0, 9366.6, -11258.3, 9326.0, -11252.0, 9330.6, -11281.7, 9371.2],
+      "heights": [23.73, 23.18, 22.83, 23.93],
+      "why": "Along the south-eastern side of Fittja's ticket hall a paved square runs from the footbridge to the bus loop, over the southern track's box. The laser scan has it at 23.7–23.9 m by the hall, falling to 23.2 m at the bus loop; the elevation model's 5 m grid smooths the hall's side into a slope down to the cutting, 2 to 4 m too low."
     }
   ],
   "open": [
@@ -289,6 +313,11 @@
       "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9912.6, 7491.9]],
       "ground": 31.0,
       "why": "Vårby gård's deck over the northern track: the same outline as its deck (above), which sets the ground's height there. The elevation model has the box's ground in a trench under the deck, below half its height, so it would stand in the open."
+    },
+    {
+      "outline": [[-11270.5, 9342.7], [-11291.2, 9327.5], [-11290.4, 9326.4], [-11309.4, 9312.5], [-11298.0, 9296.9], [-11258.3, 9326.0]],
+      "ground": 23.2,
+      "why": "Fittja's deck over the tracks and Fittjavägen: the same outline as its deck (above), which sets the ground's height there. The elevation model has the boxes' ground in the cutting under the deck, so they would stand in the open."
     }
   ],
   "paved": [
@@ -423,6 +452,14 @@
     {
       "outline": [[-10182.6, 9075.6], [-10163.5, 9119.7], [-10129.7, 9107.2], [-10129.7, 9101.0], [-10118.0, 9095.5], [-10121.4, 9088.2], [-10123.4, 9089.1], [-10134.8, 9064.7], [-10142.2, 9058.1]],
       "why": "Masmo: the square in front of the entrance in the rock face, pale concrete pavers with Land arkitektur's orange-red poles, young trees in beds and a low timber deck (Google's 3D model; photographs, 2016–2018). Few buildings stand beside it, so it was grass."
+    },
+    {
+      "outline": [[-11270.5, 9342.7], [-11291.2, 9327.5], [-11290.4, 9326.4], [-11309.4, 9312.5], [-11298.0, 9296.9], [-11258.3, 9326.0]],
+      "why": "Fittja: the deck over the tracks, with the walkway in front of the ticket hall, the bus stops and the bus loop, paved and asphalted (Google's 3D model; photographs, 2018). Few buildings stand beside it, so it was grass."
+    },
+    {
+      "outline": [[-11288.0, 9366.6], [-11258.3, 9326.0], [-11252.0, 9330.6], [-11281.7, 9371.2]],
+      "why": "Fittja: the square along the south-eastern side of the ticket hall, paved (Google's 3D model)."
     }
   ],
   "shallow": [
@@ -437,6 +474,12 @@
     {
       "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9931.7, 7506.4], [-9922.0, 7519.1], [-9902.9, 7504.6]],
       "why": "Vårby gård: the deck over the northern track and Vårby allé over both tracks' mouths. The deck is 3.0–3.7 m over the platform (the laser scan), only 4.5–5 m over the rails, where the network's boxes have their tops 4.8 m over them: kept over their tops, the ground would stand as a mound on the street."
+    }
+  ],
+  "walled": [
+    {
+      "outline": [[-11309.7, 9380.7], [-11295.4, 9361.2], [-11281.7, 9371.2], [-11296.0, 9390.7]],
+      "why": "Fittja: the bank behind the concrete wall along the southern track, south-east of the platform's north-eastern half (its deck, above, sets its height). The wall rises from beside the track to a metre over the ground behind it (the laser scan, 21.7–23.7 m); the southern track's cutting lowered that ground to 18–21.5 m, leaving the wall's back standing bare."
     }
   ]
 }

@@ -145,6 +145,11 @@
       "station": "Vårby gård",
       "height": 28.1,
       "why": "Wikidata's 27.3 m (from the book \"Stockholm under\") put the platform 0.8 m under the real one. Lantmäteriet's laser scan (2020) has the platform's surface at 28.06–28.21 m along its open north-western part, falling to 27.8–27.9 m south-east of the ticket hall, the ballast beside it at 26.6–26.8 m, the roof's top at 31.2–31.5 m, the square below the bank to the south-west at 22.3 m, and the deck over the northern track at the hall's end at 31.0–31.3 m."
+    },
+    {
+      "station": "Fittja",
+      "height": 19.9,
+      "why": "Wikidata's 18.1 m put the platform 1.7 m under the real one. Lantmäteriet's laser scan (2020) has the platform's surface at 19.72–19.83 m along its open south-western end, falling a little north-eastwards, the ballast beside it at 18.4–18.6 m, the roof's top at 23.1–23.3 m, and the floor of the walkway past the ticket hall's doors, over the tracks, at 23.8 m. Set at 19.9 m, which the line's smoothing brings down to 19.73 m."
     }
   ],
   "uncovered": [
