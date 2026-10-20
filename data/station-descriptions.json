@@ -1105,19 +1105,42 @@
     },
     "Skärholmen": {
       "drawing": "skarholmen.png",
-      "note": "An island platform in a concrete box under the centre. Escalators climb from it to two ticket halls: to Skärholmen centrum in the middle, and to the bus terminal at the east end.",
+      "note": "An island platform in a concrete box just under Skärholmsterrassen (OpenStreetMap's indoor ways; Lantmäteriet's laser scan for the street and the terrace). In its middle two flights, each an escalator and stairs, climb towards each other from the platform to the ticket hall at the street's level, 4.3 m over it, a lift between their heads; past the gates the hall opens south onto Skärholmsgången, under the terrace's front. From the platform's east end a passage runs on 46 m between the tracks to an escalator, stairs and an inclined lift up to the eastern ticket hall, which opens south onto Skärholmsgången at the bus terminal. (OpenStreetMap draws the passage across the southern track, as mapped; it is laid between the tracks here.)",
       "routes": [
-        { "from": [-40, 0], "width": 5, "go": [
-          {"escalators": 6, "toward": [0, 0], "lanes": "EES"},
-          {"walk": [-20, 0], "width": 7},
+        { "from": [-12.9, 0.9], "width": 3.1, "go": [
+          {"walk": [-10.85, 0.9], "open": true, "edges": false},
+          {"escalators": 4.3, "toward": [0, 0.9], "lanes": "sE"},
+          {"walk": [-2.15, 0.9]},
+          {"walk": [-2.15, 3.2]},
+          {"walk": [-2.15, 4.6], "width": 7.6},
           {"gates": true},
-          {"exit": 1311058363, "by": "walk"}
+          {"walk": [-2.15, 11.0], "width": 7.6},
+          {"exit": {"at": [-2.2, 15.4], "name": "Skärholmen centrum"}, "by": "walk"}
         ] },
-        { "from": [45, -1.5], "width": 5, "go": [
-          {"escalators": 6, "toward": [150, -1.5], "lanes": "EES"},
-          {"walk": 6, "width": 7},
+        { "from": [8.6, 0.9], "width": 3.1, "go": [
+          {"walk": [6.55, 0.9], "open": true, "edges": false},
+          {"escalators": 4.3, "toward": [-20, 0.9], "lanes": "Es"},
+          {"walk": [-2.15, 0.9]}
+        ] },
+        { "from": [-2.15, -4.2], "width": 2.4, "go": [
+          {"walk": [-2.15, -3.4], "open": true, "edges": false},
+          {"lift": 4.3, "through": true},
+          {"walk": [-2.15, 1.5]}
+        ] },
+        { "from": [66.0, -3.6], "width": 5, "go": [
+          {"walk": [72.0, -3.6], "open": true, "edges": false},
+          {"walk": [80, -4.75]},
+          {"walk": [90, -6.2]},
+          {"walk": [100, -7.75]},
+          {"walk": [108, -9.25]},
+          {"walk": [114.5, -10.55], "width": 4.9},
+          {"escalators": 4.3, "toward": [140, -15.6], "lanes": "LEs"},
+          {"walk": [124.0, -12.4], "width": 6},
+          {"walk": [125.6, -8.0], "width": 7},
+          {"walk": [125.6, 2.4]},
           {"gates": true},
-          {"exit": 1445735216, "by": "walk"}
+          {"walk": [125.6, 8.6]},
+          {"exit": {"at": [125.6, 11.6], "name": "Bussterminal"}, "by": "walk"}
         ] }
       ]
     },

@@ -168,6 +168,24 @@
       "outline": [-7865.0, 5150.1, -7835.5, 5159.6, -7835.8, 5160.6, -7808.0, 5169.5, -7816.2, 5190.0, -7824.2, 5211.0, -7853.0, 5201.8, -7856.5, 5209.6, -7881.4, 5201.6, -7904.0, 5190.9, -7896.3, 5170.6, -7891.1, 5156.7, -7870.4, 5164.5],
       "heights": [40.7, 40.66, 40.66, 40.62, 40.62, 40.62, 40.66, 40.66, 40.7, 40.7, 40.7, 40.7, 40.7],
       "why": "South of Sätra's platforms the three tracks run on in tunnels under Sätra centrum, which stands across them, its floor 3.85 m over the platforms. The elevation model has the cutting's floor under the building, 0–2.6 m over the platforms, which put the ground round its doors in a pit and its floor under the street. Lantmäteriet's laser scan has the square before its west doors (Sätratorget) at 40.6–40.8 m, the street by its north-west corner at 40.7 m and the ground before its east side at 40.5–40.7 m. The outline is the building's (its roof in the laser scan) and 4 m round its west and east sides, leaving out its wing to the north-east, where the ground falls to the car park beside the tracks, and the yards on its south side, a metre and more lower."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången, along the front of Skärholmsterrassen",
+      "outline": [-8718.9, 6099.6, -8710.9, 6098.9, -8711.5, 6092.1, -8635.9, 6085.1, -8635.2, 6091.8, -8630.7, 6091.4, -8631.7, 6080.8, -8570.5, 6075.1, -8569.7, 6083.7, -8567.7, 6083.5, -8566.8, 6093.5, -8718.1, 6107.6],
+      "heights": [35.5, 35.5, 35.52, 35.52, 35.5, 35.5, 35.55, 35.58, 35.56, 35.56, 35.45, 35.15],
+      "why": "Skärholmsgången runs along the foot of Skärholmsterrassen, the deck about 5.7 m high over Skärholmen's station, whose two entrances are in its front. Lantmäteriet's laser scan has the street at 35.5–35.6 m and the terrace at 41.2 m, its front a wall; the elevation model's 5 m grid smooths the wall into a slope, which put both entrances 2–2.6 m up it. The outline runs from the street, 8–10 m out, to 5.5 m in under the terrace's front (the station's blocks in src/open-styles.ts stand there, cutting the ground away), leaving out the steps up to the terrace between its blocks."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången west of the middle entrance's steps",
+      "outline": [-8789.2, 6099.2, -8720.9, 6092.8, -8720.3, 6099.8, -8718.9, 6099.6, -8718.1, 6107.6, -8787.8, 6114.1],
+      "heights": [34.6, 35.48, 35.48, 35.5, 35.4, 34.6],
+      "why": "The same street west of the steps up to Skärholmsterrassen west of the station's middle entrance, falling westwards along the terrace's western block: Lantmäteriet's laser scan has it at 35.5 m by the steps and 34.6 m 70 m west, and the block's front a wall to the terrace at 41.2 m, which the elevation model smoothed into a slope out over the street. The outline runs from 9 m out to 6 m in under the block's front (whose block in src/open-styles.ts cuts the ground away)."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången east of the bus terminal entrance's steps",
+      "outline": [-8567.7, 6083.5, -8565.7, 6083.3, -8566.6, 6074.3, -8522.8, 6070.2, -8521.0, 6089.2, -8566.8, 6093.5],
+      "heights": [35.56, 35.56, 35.6, 35.6, 35.1, 35.4],
+      "why": "The same street east of the steps up to Skärholmsterrassen beside the station's bus terminal entrance, along the terrace's block by the bus terminal: the laser scan has it at 35.1–35.6 m, and the block's front a wall 40 m long to the terrace at 41.2 m, which the elevation model smoothed into a slope out over the street. The outline runs from 13 m out to 5.5 m in under the block's front."
     }
   ],
   "open": [
@@ -360,6 +378,10 @@
     {
       "outline": [[-7913.4, 5145.2], [-7890.0, 5156.5], [-7887.4, 5158.1], [-7892.5, 5171.8], [-7900.2, 5192.1], [-7907.4, 5189.3], [-7914.0, 5186.6], [-7920.9, 5195.2], [-7922.2, 5194.2], [-7940.5, 5181.3], [-7926.0, 5162.0], [-7923.0, 5158.1]],
       "why": "Sätra: Sätratorget, the square west of Sätra centrum, granite setts and concrete slabs (OpenStreetMap's outline; photographs, 2012 to 2016). With few buildings beside it, the game had it grass."
+    },
+    {
+      "outline": [[-8775.7, 6104.5], [-8718.9, 6099.1], [-8633.5, 6092.2], [-8632.1, 6092.0], [-8567.7, 6083.5], [-8522.2, 6076.2], [-8521.2, 6087.2], [-8631.6, 6097.5], [-8628.0, 6142.7], [-8711.3, 6149.5], [-8714.7, 6149.8], [-8718.3, 6105.6], [-8775.1, 6110.9]],
+      "why": "Skärholmen: Skärholmsgången along the front of Skärholmsterrassen, from its west end to the bus terminal, and Skärholmstorget south of it, brick-red pavers and granite (OpenStreetMap's outlines of the square and the street; photographs, 2008 to 2017; Google's 3D mesh). The game had them partly grass."
     }
   ],
   "shallow": [

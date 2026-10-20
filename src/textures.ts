@@ -3647,9 +3647,128 @@ export function mosaicColumn() {
 // pairs of black stripes, and people in greens, standing, walking or on the phone; above them
 // the box's concrete, board-marked aslant, up to the ceiling.
 type Posters = { width: number; height: number; bottom: number; every: number; run: number; gap: number };
+
+// Ulf Wahlberg's New Mexico (1990) on Skärholmen's southern wall, in his manner: one flat desert
+// place painted at the times of a day, panels of different widths between white ones, from
+// `bottom` to `top` high (in the wall's metres, `Y` giving the canvas's y), across `repeat` m: a
+// sky from dawn's dark blue and orange through the day's pale blues, a grey-green and a yellow
+// to sunset's orange-red and dusk; the land ochre in the day, dark at its ends; on it small white
+// wooden houses, poles with their wires, a water tower, and wrecked American cars and pick-ups,
+// standing about, dark against the low sun.
+function wahlbergPaintings(x: CanvasRenderingContext2D, W: number, PX: number, Y: (h: number) => number, repeat: number,
+  { bottom, top }: { bottom: number; top: number }, r: () => number) {
+  // the panels along the wall: a painting 2.4–4.4 m, then a white panel 0.9–1.5 m
+  const runs: [number, number][] = [];
+  for (let a = 0.6; a < repeat - 3.2;) {
+    const w = Math.min(2.4 + r() * 2, repeat - 0.6 - a - 0.9);
+    if (w < 2) break;
+    runs.push([a, w]); a += w + 0.9 + r() * 0.6;
+  }
+  const y0 = Y(top), y1 = Y(bottom), h = y1 - y0;
+  // white panels the whole length, the paintings over them
+  x.fillStyle = '#f1f0eb'; x.fillRect(0, y0, W, h);
+  for (let a = 0; a < repeat; a += 1.2) { x.fillStyle = 'rgba(0,0,0,0.08)'; x.fillRect(a * PX, y0, 1, h); }
+  const skies: [string, string, string, string][] = [
+    // top, horizon, land, land's far edge
+    ['#1d2752', '#e2774a', '#2a2622', '#3d2f28'],
+    ['#4c6a9c', '#f0c98e', '#8a6a3c', '#a88850'],
+    ['#7ea6d0', '#ece2c0', '#c09a4a', '#cfb070'],
+    ['#9cc0e0', '#e4e8e0', '#c8a650', '#d8c090'],
+    ['#a9b89a', '#dcdcb4', '#b89640', '#c8b070'],
+    ['#c9b05a', '#efd47a', '#b08a36', '#c4a256'],
+    ['#d9822e', '#f5c050', '#7a5a2c', '#9a7038'],
+    ['#b8442a', '#f19a3a', '#3a2a22', '#5a3a2a'],
+    ['#2c2a4c', '#c9603e', '#1e1c1e', '#2c2426'],
+  ];
+  runs.forEach(([a, w], k) => {
+    const sky = skies[Math.min(skies.length - 1, Math.floor((k / Math.max(1, runs.length - 1)) * (skies.length - 0.01)))];
+    const px = a * PX, pw = w * PX, horizon = y0 + h * (0.55 + r() * 0.15), dark = sky === skies[0] || sky === skies[skies.length - 1] || sky === skies[skies.length - 2];
+    x.save(); x.beginPath(); x.rect(px, y0, pw, h); x.clip();
+    const g = x.createLinearGradient(0, y0, 0, horizon);
+    g.addColorStop(0, sky[0]); g.addColorStop(1, sky[1]);
+    x.fillStyle = g; x.fillRect(px, y0, pw, horizon - y0);
+    // a few long clouds, or none
+    if (r() < 0.6) for (let c = 0; c < 3; c++) {
+      x.fillStyle = `rgba(255,250,240,${0.08 + r() * 0.12})`;
+      x.beginPath(); x.ellipse(px + r() * pw, y0 + (horizon - y0) * (0.2 + r() * 0.5), pw * (0.15 + r() * 0.2), 3 + r() * 5, 0, 0, Math.PI * 2); x.fill();
+    }
+    const land = x.createLinearGradient(0, horizon, 0, y1);
+    land.addColorStop(0, sky[3]); land.addColorStop(1, sky[2]);
+    x.fillStyle = land; x.fillRect(px, horizon, pw, y1 - horizon);
+    // the land's streaks, the brush going across
+    for (let s = 0; s < 40; s++) {
+      x.fillStyle = `rgba(${r() < 0.5 ? '40,30,20' : '240,220,170'},${0.05 + r() * 0.08})`;
+      x.fillRect(px + r() * pw, horizon + r() * (y1 - horizon), 10 + r() * 50, 1 + r() * 2);
+    }
+    const ink = dark ? '#121014' : '#2a2420';
+    // poles with wires along the horizon
+    const poles = 2 + Math.floor(r() * 4), ph = h * (0.12 + r() * 0.1);
+    x.strokeStyle = ink; x.lineWidth = 1.2;
+    let last: [number, number] | null = null;
+    for (let i = 0; i < poles; i++) {
+      const qx = px + pw * ((i + 0.3 + r() * 0.4) / poles), qy = horizon + 2 + r() * 3;
+      x.beginPath(); x.moveTo(qx, qy); x.lineTo(qx, qy - ph); x.moveTo(qx - 4, qy - ph + 3); x.lineTo(qx + 4, qy - ph + 3); x.stroke();
+      if (last) { x.beginPath(); x.moveTo(last[0], last[1]); x.quadraticCurveTo((last[0] + qx) / 2, (last[1] + qy - ph + 3) / 2 + 5, qx, qy - ph + 3); x.stroke(); }
+      last = [qx, qy - ph + 3];
+    }
+    // small wooden houses, white in the day, dark against the low sun
+    for (let i = 0, n = 1 + Math.floor(r() * 3); i < n; i++) {
+      const hw = 14 + r() * 18, hh = 8 + r() * 7, hx = px + r() * (pw - hw), hy = horizon + 1 + r() * 4;
+      x.fillStyle = dark ? ink : '#ecebe4'; x.fillRect(hx, hy - hh, hw, hh);
+      x.fillStyle = dark ? ink : '#6a5a4a';
+      x.beginPath(); x.moveTo(hx - 2, hy - hh); x.lineTo(hx + hw / 2, hy - hh - 5 - r() * 4); x.lineTo(hx + hw + 2, hy - hh); x.fill();
+      if (!dark) { x.fillStyle = '#3a3a3c'; x.fillRect(hx + hw * 0.2, hy - hh * 0.65, 3, 4); x.fillRect(hx + hw * 0.65, hy - hh * 0.65, 3, 4); }
+    }
+    if (r() < 0.35) {
+      // a water tower on legs
+      const tx = px + pw * (0.1 + r() * 0.8), ty = horizon + 2, th = h * 0.3;
+      x.strokeStyle = ink; x.lineWidth = 1.5;
+      x.beginPath(); x.moveTo(tx - 6, ty); x.lineTo(tx - 3, ty - th); x.moveTo(tx + 6, ty); x.lineTo(tx + 3, ty - th); x.stroke();
+      x.fillStyle = dark ? ink : '#8a8076'; x.fillRect(tx - 8, ty - th - 9, 16, 10);
+    }
+    // the wrecks in the foreground: long bodies, a cab or none, dark wheels; rusty or faded
+    const paints = ['#2a2a2c', '#e8e4dc', '#7a2e24', '#3c4a5a', '#8a6a3a', '#5a5a52', '#a03a2a'];
+    for (let i = 0, n = Math.floor(r() * 4); i < n; i++) {
+      const cw = 40 + r() * 40, ch = 10 + r() * 6, cx = px + r() * (pw - cw), cy = horizon + (y1 - horizon) * (0.35 + r() * 0.5);
+      x.fillStyle = dark ? ink : paints[Math.floor(r() * paints.length)];
+      x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + 2, cy - ch * 0.55); x.lineTo(cx + cw - 2, cy - ch * 0.55); x.lineTo(cx + cw, cy); x.closePath(); x.fill();
+      if (r() < 0.6) { x.fillRect(cx + cw * (0.25 + r() * 0.3), cy - ch, cw * 0.3, ch * 0.5); }
+      if (!dark) { x.fillStyle = 'rgba(160,200,220,0.6)'; x.fillRect(cx + cw * 0.3, cy - ch * 0.95, cw * 0.18, ch * 0.3); }
+      x.fillStyle = '#141212';
+      for (const k of [0.2, 0.8]) { x.beginPath(); x.arc(cx + cw * k, cy, ch * 0.28, 0, Math.PI * 2); x.fill(); }
+      // its shadow
+      x.fillStyle = 'rgba(30,20,10,0.25)'; x.fillRect(cx - 4, cy + 1, cw + 10, 3);
+    }
+    // the reproductions' seams
+    for (let s = 1; s < w / 1.25; s++) { x.fillStyle = 'rgba(0,0,0,0.12)'; x.fillRect(px + (s * pw) / Math.ceil(w / 1.25), y0, 1, h); }
+    x.restore();
+    x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(px - 1, y0, 1, h); x.fillRect(px + pw, y0, 1, h);
+  });
+}
+
+// Skärholmen's columns: clay tiles about 25 by 10 cm, stacked, in red-browns, browns and tan
+// (`colors`) at random, in pale grey joints. As pillar lays it on: HOTORGET_REPEAT m to a repeat.
+export function clayColumn(colors: number[]) {
+  const PX = 128, N = Math.round(HOTORGET_REPEAT * PX), r = rng(1967), [c, x] = canvas(N, N);
+  x.fillStyle = '#8c857a'; x.fillRect(0, 0, N, N);
+  const n = Math.round(HOTORGET_REPEAT / 0.25), m = Math.round(HOTORGET_REPEAT / 0.1), tw = N / n, th = N / m;
+  for (let i = 0; i < n; i++) for (let j = 0; j < m; j++) {
+    x.fillStyle = css(colors[Math.floor(r() * colors.length)], Math.floor(r() * 16) - 8);
+    x.fillRect(i * tw + 1.2, j * th + 1.2, tw - 2.4, th - 2.4);
+    x.fillStyle = `rgba(255,255,255,${0.03 + r() * 0.05})`; x.fillRect(i * tw + 2, j * th + 2, tw - 4, (th - 4) * 0.4);
+  }
+  return toTexture(c);
+}
 export const beamedWallRepeat = (p: Posters) => 3 * (p.run * p.every + p.gap);
+// Skärholmen's: the tiles up to `tilesTop` only, plain painted concrete above them; a black band
+// along the wall (`band`, its foot `at` high, `height` deep), a small navy plate with the name on
+// it every `band.every` m, the posters over it; or (`paintings`) Ulf Wahlberg's paintings from
+// `bottom` to `top` high between white panels, in place of the posters (wahlbergPaintings).
 export function beamedHallWall(height: number, color: number, tile: number, from: number, posters: Posters,
-  { top = 0, plate, mirror = false, trees = false, enamel }: { top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean; enamel?: { top: number; rows: number; width: number } } = {}) {
+  { top = 0, plate, mirror = false, trees = false, enamel, tilesTop, band, paintings, name = '' }: {
+    top?: number; plate?: { name: string; at: number }; mirror?: boolean; trees?: boolean; enamel?: { top: number; rows: number; width: number };
+    tilesTop?: number; band?: { at: number; height: number; every: number }; paintings?: { bottom: number; top: number }; name?: string;
+  } = {}) {
   const repeat = beamedWallRepeat(posters);
   const PX = 64, W = Math.round(repeat * PX), H = Math.round(height * PX), [src, x] = canvas(W, H);
   const r = rng(1933), Y = (h: number) => H - h * PX;
@@ -3710,6 +3829,25 @@ export function beamedHallWall(height: number, color: number, tile: number, from
     speckle(x, W, from * PX, 900, 0.12, 1934, true);
   }
   if (enamel) kallstromEnamel(x, W, H, PX, from, enamel, rng(2008));
+  if (tilesTop !== undefined) {
+    // plain painted concrete over the tiles, the boards' marks faint in it
+    x.fillStyle = '#e7e5df'; x.fillRect(0, 0, W, Y(tilesTop));
+    for (let k = 0; k * 0.12 < height - tilesTop; k++) { x.fillStyle = `rgba(90,85,75,${0.03 + r() * 0.04})`; x.fillRect(0, Y(tilesTop + k * 0.12), W, 1); }
+    x.fillStyle = 'rgba(60,55,45,0.18)'; x.fillRect(0, Y(tilesTop), W, 1.5);
+  }
+  if (band) {
+    // the black band, and the plates with the name on it
+    x.fillStyle = '#1b1b1c'; x.fillRect(0, Y(band.at + band.height), W, band.height * PX);
+    for (let a = band.every / 2; a < repeat; a += band.every) {
+      const w = 1.1 * PX, h = band.height * PX * 0.7, x0 = a * PX - w / 2, y0 = Y(band.at + band.height * 0.85);
+      x.fillStyle = '#1f3a78'; x.fillRect(x0, y0, w, h);
+      x.save(); x.translate(a * PX, y0 + h / 2); if (mirror) x.scale(-1, 1);
+      x.fillStyle = '#f2f2ee'; x.font = `600 ${Math.round(h * 0.7)}px "Helvetica Neue", Arial, sans-serif`;
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(name.toUpperCase(), 0, 1, w * 0.9);
+      x.restore();
+    }
+  }
+  if (paintings) wahlbergPaintings(x, W, PX, Y, repeat, paintings, rng(1990));
   if (top) {
     // the plain band under the ceiling, a little shadow along its foot
     x.fillStyle = '#e4dfd2'; x.fillRect(0, 0, W, top * PX);
@@ -3985,7 +4123,7 @@ const css = (n: number, k = 0) => {
 // v along it, PAVING_REPEAT m a repeat (or its lines' repeat: pavingRepeat): the edge stones, the
 // ribbed strip for the blind, pale slabs, then pavers.
 export const PAVING_ACROSS = 8, PAVING_REPEAT = 2.4;
-export const pavingRepeat = (p: Paving) => p.lines?.every ?? PAVING_REPEAT;
+export const pavingRepeat = (p: Paving) => p.lines?.every ?? p.fields?.every ?? PAVING_REPEAT;
 export function openPaving(p: Paving) {
   const PX = 100, W = PAVING_ACROSS * PX, H = pavingRepeat(p) * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
@@ -4001,6 +4139,29 @@ export function openPaving(p: Paving) {
     for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
       x.fillStyle = tone();
       x.fillRect(i * pw + 0.6, j * pl + (i % 2) * off + 0.6, pw - 1.2, pl - 1.2);
+    }
+  } else if (p.pattern === 'diagonal' && p.fields) {
+    // small square tiles laid at 45°, in fields `every` m along and across, each framed by a band
+    // of tiles laid straight (Skärholmen's clay floor)
+    const f = p.fields, F = f.every * PX, B = f.border * PX, d = pw * Math.SQRT1_2;
+    x.fillStyle = css(f.color, -30); x.fillRect(0, 0, W, H);
+    for (let fu = 0; fu < W; fu += F) {
+      x.save(); x.beginPath(); x.rect(fu + B / 2, B / 2, F - B, H - B); x.clip();
+      for (let row = -2; row * d < H + d; row++) for (let a = -2 * d; a < F + 2 * d; a += 2 * d) {
+        const cx = fu + a + (row % 2 ? d : 0), cy = row * d;
+        x.fillStyle = css(f.palette[Math.floor(r() * f.palette.length)], Math.floor(r() * 14) - 7);
+        x.beginPath(); x.moveTo(cx, cy - d + 0.8); x.lineTo(cx + d - 0.8, cy); x.lineTo(cx, cy + d - 0.8); x.lineTo(cx - d + 0.8, cy); x.closePath(); x.fill();
+      }
+      x.restore();
+      // the band round it: the same tiles laid straight, half of it on each side of the field's
+      // edges (the texture repeating along the platform), a shade darker
+      const t = B / 2, band = () => css(f.palette[Math.floor(r() * f.palette.length)], Math.floor(r() * 12) - 14);
+      for (let k = 0; k * t < F; k++) for (const v0 of [0, H - t]) {
+        x.fillStyle = band(); x.fillRect(fu + k * t + 0.6, v0 + 0.6, t - 1.2, t - 1.2);
+      }
+      for (let k = 0; k * t < H; k++) for (const u0 of [fu, fu + F - t]) {
+        x.fillStyle = band(); x.fillRect(u0 + 0.6, k * t + 0.6, t - 1.2, t - 1.2);
+      }
     }
   } else if (p.pattern === 'asphalt') {
     // asphalt, laid without joints: its stone showing dark and pale
@@ -5422,9 +5583,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   malarhojdenBrick: [2.6, 2.4], uprightBoards: [1.2, 2.4], malarhojdenHall: [1.2, 4.8], malarhojdenFront: [14.4, 3.4],
   bredangHall: [1.2, 3.1], bredangFront: [1.3, 5.0],
   ernkvistTiles: [2.82, 2.0], satraHall: [1.2, 4.4], satraBoards: [1.2, 2.4], satraHouse: [1.2, 3.9], satraCentre: [2.4, 4.35], satraEntrance: [1.5, 4.35],
+  skhBasket: [1.2, 1.2], skhMosaic: [8.0, 3.0], skhEndWall: [9.0, 3.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8309,6 +8471,72 @@ export function finish(name: Finish) {
         pane(2.48, 3.1, frame, 0.08);
         x.fillStyle = '#5d6266'; x.fillRect(0, Y(0.06), W, 0.06 * PX);
       }
+      break;
+    }
+    case 'skhBasket': {
+      // Skärholmen's ticket hall: red-brown clay tiles 10 by 20 cm, in pairs, each pair turned the
+      // other way from its neighbours, in wide grey joints speckled darker (photographs, 2017)
+      x.fillStyle = '#8f8a82'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 3000, 0.25, 1967, true);
+      const t = 0.2 * PX, q = t / 2;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) for (let k = 0; k < 2; k++) {
+        const v = Math.floor(r() * 26) - 13, red = r() < 0.5;
+        x.fillStyle = red ? `rgb(${110 + v},${58 + v * 0.5},${44 + v * 0.4})` : `rgb(${94 + v},${56 + v * 0.5},${45 + v * 0.4})`;
+        if ((i + j) % 2) x.fillRect(i * t + k * q + 2, j * t + 2, q - 4, t - 4);
+        else x.fillRect(i * t + 2, j * t + k * q + 2, t - 4, q - 4);
+      }
+      break;
+    }
+    case 'skhMosaic': {
+      // Skärholmen's passage to the bus terminal: white glazed tiles, 15 cm, in pale grey joints;
+      // and in the middle of every 8 m an abstract mosaic, about 1.6 by 1.8 m from 0.6 m up, of cut
+      // tiles in black, navy, cream, grey-blue, lavender, tan and ochre, a red or yellow one here
+      // and there, framed in black (photographs, 2016 and 2017)
+      x.fillStyle = '#bdbdb8'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = 236 + Math.floor(r() * 10);
+        x.fillStyle = `rgb(${v},${v},${v - 2})`; x.fillRect(i * t + 1, j * t + 1, t - 2, t - 2);
+      }
+      const x0 = W / 2 - 0.8 * PX, y0 = Y(2.4), mw = 1.6 * PX, mh = 1.8 * PX;
+      x.fillStyle = '#151517'; x.fillRect(x0 - 4, y0 - 4, mw + 8, mh + 8);
+      const cols = ['#151517', '#1f2a55', '#f1ede2', '#e6dcc4', '#8494a8', '#9c8fb2', '#c49a72', '#c89a3a', '#5a2430', '#f4f2ec', '#6a7488'];
+      x.save(); x.beginPath(); x.rect(x0, y0, mw, mh); x.clip();
+      x.fillStyle = '#ece8de'; x.fillRect(x0, y0, mw, mh);
+      for (let k = 0; k < 140; k++) {
+        // a shard: a polygon of three to five corners
+        const cx = x0 + r() * mw, cy = y0 + r() * mh, s = (0.04 + r() * 0.16) * PX, n = 3 + Math.floor(r() * 3);
+        x.fillStyle = r() < 0.05 ? (r() < 0.5 ? '#c8302a' : '#e8c22a') : cols[Math.floor(r() * cols.length)];
+        x.beginPath();
+        for (let c = 0; c < n; c++) { const a = (c / n) * Math.PI * 2 + r() * 0.8; x.lineTo(cx + Math.cos(a) * s * (0.6 + r() * 0.6), cy + Math.sin(a) * s * (0.6 + r() * 0.6)); }
+        x.closePath(); x.fill();
+        x.strokeStyle = 'rgba(150,146,138,0.8)'; x.lineWidth = 1; x.stroke();
+      }
+      // a black arc and a dashed line across it
+      x.strokeStyle = '#151517'; x.lineWidth = 6; x.beginPath(); x.arc(x0 + mw * 0.3, y0 + mh * 0.8, mw * 0.55, -1.4, 0.2); x.stroke();
+      x.strokeStyle = '#f4f2ec'; x.lineWidth = 3; x.setLineDash([10, 8]); x.beginPath(); x.moveTo(x0, y0 + mh * 0.3); x.lineTo(x0 + mw, y0 + mh * 0.55); x.stroke(); x.setLineDash([]);
+      x.restore();
+      break;
+    }
+    case 'skhEndWall': {
+      // the west end of Skärholmen's platform: brown clay tiles, 10 by 20 cm, laid on their sides
+      // in grey joints, and darker ones in bands a tile wide running down from the top corners to
+      // meet in a V over the middle; a red steel door there, 1.4 by 2.2 m (photograph, 2017)
+      x.fillStyle = '#7d766c'; x.fillRect(0, 0, W, H);
+      const tw = 0.2 * PX, th = 0.1 * PX, mid = W / 2;
+      for (let j = 0; j * th < H; j++) for (let i = 0; i * tw < W; i++) {
+        const cx = i * tw + tw / 2, cy = j * th + th / 2, h = (H - cy) / PX;
+        // (how far over the V's line, falling 1 m in 1.6 m across from each top corner, and the
+        // lines 0.9 m and 1.8 m under it)
+        const d = h - (3.6 - (W / 2 - Math.abs(cx - mid)) / PX / 1.6);
+        const inBand = [0, 0.9, 1.8].some((o) => Math.abs(d + o) < 0.12) && h > 0.1;
+        const v = Math.floor(r() * 24) - 12;
+        x.fillStyle = inBand ? `rgb(${70 + v},${42 + v * 0.5},${34 + v * 0.4})` : `rgb(${112 + v},${70 + v * 0.6},${54 + v * 0.5})`;
+        x.fillRect(i * tw + 1.5, j * th + 1.5, tw - 3, th - 3);
+      }
+      x.fillStyle = '#3a3634'; x.fillRect(mid - 0.74 * PX, Y(2.24), 1.48 * PX, 2.24 * PX);
+      x.fillStyle = '#c8352f'; x.fillRect(mid - 0.7 * PX, Y(2.2), 1.4 * PX, 2.2 * PX);
+      x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(mid + 0.5 * PX, Y(1.1), 0.12 * PX, 0.03 * PX);
       break;
     }
     case 'slats':

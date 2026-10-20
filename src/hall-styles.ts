@@ -9,8 +9,9 @@ import type { CavePaint } from './textures';
 // on its beams; Medborgarplatsen, the other of 1933, with its enamelled columns and the
 // vault of its lengthening in 1950; Rådmansgatan, Hötorget's neighbour of 1952, in yellow
 // tiles; S:t Eriksplan, of the same year, on two rows of columns in exposed-aggregate
-// concrete; and Blackeberg's covered south-eastern end, of the same year, under its ticket hall,
-// with Ruben Heleander's walls (1987).
+// concrete; Blackeberg's covered south-eastern end, of the same year, under its ticket hall,
+// with Ruben Heleander's walls (1987); Danderyds sjukhus's box of 1978, with Klara Källström's
+// enamel; and Skärholmen's box of 1967, with Ulf Wahlberg's New Mexico (1990).
 // Heights are above the top of the rail (the platform is 1.0 m above it).
 
 export type HallStyle = FlatHall | VaultHall;
@@ -26,6 +27,8 @@ export interface FlatHall {
   ceiling: number;
   step: number;          // across the slope from the soffit up to the ceiling
   stepOutside?: boolean;
+  // the walls running into the soffit in a quarter-round cove this wide (Skärholmen's)
+  cove?: number;
   // columns along the platform, `fromEdge` from the edge to their middle: square; or round
   // (`round`), in one row down the middle of the platform (`middle`); only those within `near.reach`
   // m of the point `near.at` (in the scene's metres), where the hall has them along part of its
@@ -102,13 +105,19 @@ export interface ConcreteHall { kind: 'concrete'; paving: Paving; signs: { every
 // expanded metal hung `mesh.below` under it between a beam along each edge, with a tube lamp
 // across in a channel at every cross-section; round columns tiled in grey down the middle along
 // part of the platform (the hall's `columns.near`).
+// Skärholmen's, of 1967, a box just under the ground: a flat ceiling of board-marked concrete
+// painted white, running into the walls in a cove (the hall's `cove`); one row of square columns
+// down the middle in red-brown clay tiles (`columnClay`, their colours), each spreading into the
+// ceiling in a white cone (`capitals`: from `from` high, `head` across under the ceiling); the
+// walls tiled white up to `walls.tilesTop` over the black band, plain above, the western one
+// (with the other track to its east: the northern one, of a hall running east–west) with
+// posters in pairs and a black band along it (`band`: its foot `at` high, `height` deep, a small
+// plate with the station's name on it every `every` m), the eastern one (`east`: what differs on
+// it) with Ulf Wahlberg's paintings (`paintings`, from `bottom` to `top` high) between white
+// panels.
 export interface BeamedHall {
   kind: 'beams';
-  walls: {
-    color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number }; trees?: boolean;
-    enamel?: { top: number; rows: number; width: number };
-    posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number };
-  };
+  walls: HallWalls & { east?: Partial<HallWalls> };
   beams?: { depth: number; width: number; between: number | null; along: number; color?: number };
   ceiling: number;
   column: number;
@@ -125,6 +134,16 @@ export interface BeamedHall {
   vault?: { from: [number, number]; toward: [number, number]; crown: number; color: number; lamps: number; boarded?: boolean; window?: { from: number; frames: number } };
   boarded?: boolean;
   mesh?: { below: number };
+  columnClay?: number[];
+  capitals?: { from: number; head: number };
+}
+export interface HallWalls {
+  color: number; tile: number; from: number; top?: number; plate?: { name: string; at: number }; trees?: boolean;
+  enamel?: { top: number; rows: number; width: number };
+  tilesTop?: number;
+  band?: { at: number; height: number; every: number };
+  paintings?: { bottom: number; top: number };
+  posters: { width: number; height: number; bottom: number; every: number; run: number; gap: number };
 }
 export interface Board { toward: string; trains: [string, string] }
 
@@ -467,6 +486,52 @@ export const HALL_STYLES: Record<string, HallStyle> = {
         from: 3, off: 1.7,
         east: { toward: 'Fruängen', trains: ['14 Fruängen  3 min', '14 Liljeholmen  9 min'] },
         west: { toward: 'Mörby centrum', trains: ['14 Mörby centrum  2 min', '14 Mörby centrum  8 min'] },
+      },
+    },
+  },  // Skärholmen (1 March 1967), the colours Margareta Carlstedt's: a box about 5 m under
+  // Skärholmsterrassen (Swedish Wikipedia), on one row of columns down the middle of its island
+  // (Wikimedia Commons' photographs, 2010–2024). The ceiling white-painted board-marked concrete,
+  // coved into the walls; the columns in red-brown clay tiles, under white cones spreading into
+  // the ceiling; the northern wall white tiles over the black band, a black band along it with the
+  // name on small plates, posters in pairs; the southern one Ulf Wahlberg's 23 paintings of one
+  // place in New Mexico from sunrise to sunset (1990; reproductions since 2005) between white
+  // panels, white tiles under and over them. Underfoot small clay tiles in browns laid
+  // diagonally in fields framed by bands, white slabs along the edge and a dark strip with brass
+  // studs; long navy signs along the edges, with the ways out. Heights are read against the
+  // photographs' people (the ceiling about 3.55 m over the platform, under the ticket hall's floor
+  // at the street, 4.2 m over it), the columns' spacing too, so they're approximate.
+  'Skärholmen': {
+    kind: 'flat',
+    soffit: 4.55,
+    ceiling: 4.55,
+    step: 0,
+    cove: 0.8,
+    columns: { fromEdge: 4.5, size: 0.8, spacing: 10.5, middle: true },
+    finish: {
+      kind: 'beams',
+      walls: {
+        color: 0xeceae4, tile: 0.15, from: 1.1, tilesTop: 3.65, band: { at: 2.85, height: 0.2, every: 10.5 },
+        posters: { width: 1.25, height: 1.8, bottom: 1.5, every: 1.32, run: 2, gap: 9 },
+        east: { band: undefined, paintings: { bottom: 1.6, top: 3.4 }, posters: { width: 0, height: 0, bottom: 0, every: 1, run: 0, gap: 16.6 } },
+      },
+      ceiling: 0xe6e4de,
+      boarded: true,
+      column: 0x6e4434,
+      columnClay: [0x4a3026, 0x56382c, 0x5f4032, 0x684a3a, 0x3e2a22, 0x6e5040, 0x52342a, 0x5c4436],
+      capitals: { from: 3.6, head: 2.6 },
+      paving: {
+        edge: 1.0, edgeTile: [0.25, 0.25], tactile: [1.0, 1.25], studs: true, studColor: 0xc9a443, slabs: 1.25, paverSize: [0.14, 0.14],
+        colors: { edge: 0xe4e1da, tactile: 0x3b3a39, slab: 0x6e5444, pavers: 0x7a5a46, paler: 0x9a7c60, face: 0x2e2c2a },
+        pattern: 'diagonal',
+        fields: { every: 3.6, border: 0.28, color: 0x4b3a31, palette: [0x76594a, 0x80624c, 0x8e715a, 0x9c8266, 0x6a5040, 0x7c6a5a, 0x625c56, 0x96765c, 0x5a4a40, 0x84583f] },
+      },
+      signs: { every: 40, at: 3.35, ways: 'Skärholmstorget · Skärholmens centrum · Bussterminal', blue: true },
+      clocks: 2.6,
+      // (trains keep left: those to Norsborg on the southern track)
+      boards: {
+        from: 2, off: 2.7,
+        east: { toward: 'Norsborg', trains: ['13 Norsborg  4 min', '13 Norsborg  14 min'] },
+        west: { toward: 'Ropsten via T-Centralen', trains: ['13 Ropsten  2 min', '13 Ropsten  12 min'] },
       },
     },
   },

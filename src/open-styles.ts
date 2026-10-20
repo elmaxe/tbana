@@ -169,8 +169,13 @@ export interface Paving {
   // pale veins wandering across it, as in polished stone
   veins?: boolean;
   // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, small setts
-  // laid in fans, or asphalt, laid without joints (in the pavers' colour)
-  pattern: 'herringbone' | 'bond' | 'grid' | 'fans' | 'asphalt';
+  // laid in fans, asphalt, laid without joints (in the pavers' colour), or small tiles laid
+  // diagonally in fields (`fields`)
+  pattern: 'herringbone' | 'bond' | 'grid' | 'fans' | 'asphalt' | 'diagonal';
+  // the diagonal tiles' fields: `every` m along the platform (a repeat) and across it, framed by
+  // bands of tiles laid straight, `border` wide, in `color`; the tiles of `palette`'s colours at
+  // random (Skärholmen's clay tiles)
+  fields?: { every: number; border: number; color: number; palette: number[] };
   // thin lines of brass let into it, crossing it in long triangles that repeat `every` m along
   // the platform (Liljeholmen's terrazzo)
   lines?: { color: number; every: number };
@@ -397,7 +402,10 @@ export type Finish =
   | 'satraBoards'   // weathered grey-brown boards on end, 12 cm, in board and batten
   | 'satraHouse'    // satraBoards, a ribbon of windows in white frames from 1 m to 2.4 m (Sätra's stair houses)
   | 'satraCentre'   // white render over a dark plinth, a thin yellow coping at 4.35 m (Sätra centrum)
-  | 'satraEntrance'; // glass in brushed steel frames, sliding doors to 2.4 m, a glazed transom, white render above to the coping
+  | 'satraEntrance' // glass in brushed steel frames, sliding doors to 2.4 m, a glazed transom, white render above to the coping
+  | 'skhBasket'     // red-brown clay tiles, 10 by 20 cm, in pairs, each pair turned from its neighbours, in wide speckled grey joints (Skärholmen's)
+  | 'skhMosaic'     // white glazed tiles, 15 cm; every 8 m an abstract mosaic of cut tiles framed in black (Skärholmen's east passage)
+  | 'skhEndWall';   // brown clay tiles, 10 by 20 cm, darker ones in a great V across them, a red door in the middle (the end of Skärholmen's platform, 9 m across)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -8404,5 +8412,60 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // chain-link on the retaining wall
       { h: [3.9, 5.6], points: [[-90, -15.8], [-30, -15.8, -1.65], [30, -15.8, -3.3]] },
     ],
+  },
+  // Skärholmen (1967): the platform's hall is the network's (src/hall-styles.ts). Here are the
+  // rooms the station's ways run through, the glass round the middle flights' feet on the
+  // platform, and Skärholmsterrassen's front onto Skärholmsgången with the two entrances in it
+  // (OpenStreetMap's indoor ways; Lantmäteriet's laser scan: the street 4.3 m over the platform,
+  // the terrace 10 m; Wikimedia Commons' photographs, 2008–2017).
+  'Skärholmen': {
+    rooms: [
+      // the middle flights, between walls of red-brown tiles, up to the ticket hall at the street's
+      // level (and the lift's way to it from the platform's north side)
+      { name: 'middle flights', s: [-13, 9], u: [-1, 3], h: [-0.5, 4.2], walls: 'skhBasket', floor: null, stairs: 'skhBasket' },
+      { name: "the lift's way", s: [-3.5, -0.8], u: [-5, -1], h: [-0.5, 2], walls: 'skhBasket', floor: null },
+      // the middle ticket hall: the paid side round the flights' heads, brown tiles underfoot; past
+      // the gates polished red-brown stone, to the doors
+      { name: 'middle ticket hall, paid side', s: [-7, 3], u: [-2, 4.6], h: [4.2, 7.5], walls: 'skhBasket', floor: 'brownTiles', ceiling: 'whitePanels' },
+      { name: 'middle ticket hall', s: [-7, 3], u: [4.6, 15], h: [4.2, 7.5], walls: 'skhBasket', floor: 'redGranite', ceiling: 'whitePanels' },
+      // the passage to the bus terminal, white tiles and mosaics, a perforated ceiling, terrazzo
+      { name: 'passage to the bus terminal', s: [69, 114.6], u: [-16, 0], h: [-0.5, 3.5], walls: 'skhMosaic', floor: 'terrazzo', ceiling: 'whitePerforated' },
+      { name: 'east flights', s: [114.4, 122], u: [-16, -6], h: [-0.5, 4.2], walls: 'squareTiles', floor: 'terrazzo', stairs: 'squareTiles' },
+      { name: 'east ticket hall, paid side', s: [119, 132], u: [-17, 2.4], h: [4.2, 7.5], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'east ticket hall', s: [119, 132], u: [2.4, 12], h: [4.2, 7.5], walls: 'squareTiles', floor: 'redGranite', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      // round the middle flights' feet on the platform, glass in brushed steel frames with SL's
+      // blue band over a yellow line, to the ceiling, open where the flights climb into it
+      { name: 'the west end wall', plan: [[-72.0, 2.75], [-72.0, -6.25], [-72.4, -6.25], [-72.4, 2.75]], h: [0, 3.55],
+        walls: 'skhEndWall', sides: [undefined, null, null, null], onPlatform: true, inHall: true },
+      // the east end, round the passage's mouth
+      { name: 'the east end wall', plan: [[72.0, -8.3], [72.0, 0.5], [72.4, 0.5], [72.4, -8.3]], h: [0, 3.55],
+        walls: 'skhEndWall', sides: [undefined, null, null, null], onPlatform: true, inHall: true },
+      { name: "west flight's glass", plan: [[-12.4, -1.05], [-12.4, 2.85], [-5.6, 2.85], [-5.6, -1.05]], h: [0, 3.5],
+        walls: 'bandGlazed', sides: [undefined, undefined, null, undefined], floor: 'brownTiles', onPlatform: true, inHall: true },
+      { name: "east flight's glass", plan: [[8.1, 2.85], [8.1, -1.05], [1.3, -1.05], [1.3, 2.85]], h: [0, 3.5],
+        walls: 'bandGlazed', sides: [undefined, undefined, null, undefined], floor: 'brownTiles', onPlatform: true, inHall: true },
+      // Skärholmsterrassen's two blocks over the station, their fronts onto Skärholmsgången: shops
+      // along the street under board-marked concrete, the entrances in them under SL's blue band;
+      // the terrace on top (dug into the ground, which the elevation model slopes down to the
+      // street over 5 m)
+      { name: "the terrace's middle block", plan: [[-10.2, 3.7], [-10.2, 14.3], [65.7, 14.3], [65.7, 3.7]], h: [4.3, 10.0], from: 4.3,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, 'boardConcrete', null], band: { walls: 'boardConcrete', from: 7.6 },
+        nameSign: { side: 1, at: 0.106, length: 5.5, bottom: 7.15 }, roof: 0.3, roofColor: 0x7b8266, ground: true },
+      { name: "the terrace's eastern block", plan: [[70.6, -0.5], [70.6, 10.5], [131, 10.5], [131, -0.5]], h: [4.3, 10.0], from: 4.3,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, 'boardConcrete', null], band: { walls: 'boardConcrete', from: 7.6 },
+        nameSign: { side: 1, at: 0.911, length: 5.5, bottom: 7.15 }, roof: 0.3, roofColor: 0x7b8266, ground: true },
+      // the terrace's blocks west of the middle entrance's steps (in two, as Skärholmsgången falls
+      // westwards) and east of the steps by the bus terminal, shops under them (the laser scan)
+      { name: "the terrace's western block", plan: [[-84.5, 6], [-84.5, 15], [-52, 15], [-52, 6]], h: [3.6, 10.0], from: 3.6,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, null, null], band: { walls: 'boardConcrete', from: 7.4 }, roof: 0.3, roofColor: 0x7b8266, ground: true },
+      { name: "the terrace's western block (east)", plan: [[-52, 6], [-52, 15], [-19.4, 15], [-19.4, 6]], h: [4.0, 10.0], from: 4.0,
+        walls: 'shopWindows', sides: [null, undefined, 'boardConcrete', null], band: { walls: 'boardConcrete', from: 7.5 }, roof: 0.3, roofColor: 0x7b8266, ground: true },
+      { name: "the terrace's block by the bus terminal", plan: [[136, -14], [136, 10.5], [177, 10.5], [177, -14]], h: [4.3, 10.0], from: 4.3,
+        walls: 'shopWindows', sides: ['boardConcrete', undefined, 'boardConcrete', null], band: { walls: 'boardConcrete', from: 7.6 }, roof: 0.3, roofColor: 0x7b8266, ground: true },
+    ],
+    // wooden benches in pairs beside the columns
+    benches: { at: [-51.5, -41, -30.5, 19.5, 30, 40.5, 51], double: true, wood: true },
   },
 };
