@@ -120,6 +120,11 @@
       "osm": "w67549300",
       "overStation": true,
       "why": "The long building on Svandammsvägen (Coop Midsommarkransen and the shops beside it), whose ground floor Midsommarkransen's stairs climb into from the passage under it, coming out between its shops (OpenStreetMap's indoor ways and entrance): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w129319703",
+      "overStation": true,
+      "why": "Vårberg centrum, the shopping centre built over the tracks at Vårberg's platform's west end, whose ground floor holds the station's ticket hall, level with its indoor square, and the shopping street from the hall's doors south to the footbridge over Vårbergsplan (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, not cut through its full height, its walls open where the station passes through them."
     }
   ]
 }

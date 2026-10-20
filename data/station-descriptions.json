@@ -1146,13 +1146,38 @@
     },
     "Vårberg": {
       "drawing": "varberg.png",
-      "note": "An island platform in the open. At its west end stairs climb to a ticket hall over the tracks, level with the street. OpenStreetMap has no entrance mapped here.",
+      "note": "An island platform in the open, in a shallow cutting, narrowing eastwards, under a butterfly roof over its western part. The tracks run on into Vårberg centrum, the shopping centre built over them at the platform's west end, and the station's building stands between them against its east wall. From the platform's middle a ramp climbs in a long tiled house to the ticket hall in the centre's ground floor, level with its indoor square; beside the ramp's head stairs climb from the platform's end, and a lift beside the northern stairs. Past the gates the hall's doors open onto the centre's shopping street, which runs south to a footbridge over Vårbergsplan. From the laser scan (the platform 145 m long, the roof from its west end 97 m east, 3.3 m over the platform in its middle and 3.7 m at its edges, the ramp's house 5.3 m high, 6.6 m nearer the centre, the hall 3.95 m over the platform), OpenStreetMap's indoor mapping (the ramp, the stairs, the lift, the gates, the hall's doors, the shopping street and the footbridge) and photographs (2006 to 2020).",
       "routes": [
-        { "from": [-55, 3], "width": 4, "go": [
-          {"stairs": 5, "toward": [-150, 4]},
-          {"walk": [-90, 4], "width": 6},
+        { "from": [-40.0, 2.1], "width": 4.0, "go": [
+          {"walk": [-88.0, 4.6], "dh": 3.95, "open": true},
+          {"walk": [-89.4, 4.67], "open": true}
+        ] },
+        { "from": [-72.9, -1.0], "width": 1.6, "go": [
+          {"walk": [-78.4, -1.0], "open": true},
+          {"lift": 3.95, "above": 3.0, "through": true},
+          {"walk": [-89.4, -1.0], "open": true}
+        ] },
+        { "from": [-72.9, 0.75], "width": 1.3, "go": [
+          {"walk": [-73.6, 0.75], "open": true},
+          {"stairs": 3.95, "to": [-84.5, 0.75], "lanes": "S"},
+          {"walk": [-89.4, 0.75], "open": true}
+        ] },
+        { "from": [-72.9, 8.1], "width": 2.6, "go": [
+          {"walk": [-73.6, 8.1], "open": true},
+          {"stairs": 3.95, "to": [-84.5, 8.1], "lanes": "S"},
+          {"walk": [-89.4, 8.1], "open": true}
+        ] },
+        { "from": [-89.3, 3.6], "h": 3.95, "width": 12.6, "go": [
+          {"walk": [-94.5, 3.6]},
+          {"walk": [-97.0, 3.0], "width": 7.6},
           {"gates": true},
-          {"exit": {"at": [-105, 4], "name": "Vårberg"}, "by": "walk"}
+          {"walk": [-105.4, 2.3]},
+          {"walk": [-106.8, 2.3], "width": 3.0},
+          {"walk": [-112.0, 2.3], "width": 8.4},
+          {"walk": [-118.34, 0.33], "width": 6.0},
+          {"walk": [-124.35, 30.5]},
+          {"walk": [-127.74, 48.85], "width": 4.4, "dh": 0.25, "open": true},
+          {"exit": {"at": [-128.6, 55.2], "name": "Vårbergsplan"}, "by": "walk", "open": true}
         ] }
       ]
     },

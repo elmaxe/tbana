@@ -1656,7 +1656,8 @@ export class OpenLook {
             : a.picture === 'karlsson' ? T.karlssonPainting() : a.picture === 'stenborg' ? T.stenborgLeaves()
               : a.picture === 'forstaden' ? T.forstadenPanel() : a.picture === 'summerNight' ? T.summerNightRelief()
                 : a.picture === 'andreeBalloon' ? T.andreeBalloon() : a.picture === 'andreeEagle' ? T.andreeEagle()
-                  : a.picture === 'landergren' ? T.landergrenFace(a.variant ?? 0) : a.picture === 'penguinWall' ? T.penguinWall() : T.tallkrogsdraken();
+                  : a.picture === 'landergren' ? T.landergrenFace(a.variant ?? 0) : a.picture === 'penguinWall' ? T.penguinWall()
+                    : a.picture === 'handMosaic' ? T.handMosaic(a.variant ?? 0) : T.tallkrogsdraken();
       // (an angel, the lace and the iron, and the sgraffito on its wall, cut out round their outlines)
       const cut = a.picture === 'angel' || a.picture === 'sirat' || a.picture === 'sundell' || a.picture === 'andreeBalloon' || a.picture === 'andreeEagle';
       const steel = a.picture === 'sirat' || a.picture === 'sundell';

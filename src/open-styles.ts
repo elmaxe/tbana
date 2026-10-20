@@ -405,7 +405,8 @@ export type Finish =
   | 'satraEntrance' // glass in brushed steel frames, sliding doors to 2.4 m, a glazed transom, white render above to the coping
   | 'skhBasket'     // red-brown clay tiles, 10 by 20 cm, in pairs, each pair turned from its neighbours, in wide speckled grey joints (Skärholmen's)
   | 'skhMosaic'     // white glazed tiles, 15 cm; every 8 m an abstract mosaic of cut tiles framed in black (Skärholmen's east passage)
-  | 'skhEndWall';   // brown clay tiles, 10 by 20 cm, darker ones in a great V across them, a red door in the middle (the end of Skärholmen's platform, 9 m across)
+  | 'skhEndWall'    // brown clay tiles, 10 by 20 cm, darker ones in a great V across them, a red door in the middle (the end of Skärholmen's platform, 9 m across)
+  | 'vabTiles';     // glossy lemon-yellow tiles, 15 cm, over a board-marked concrete plinth 0.5 m high, a concrete band from 3.18 m (Vårberg's ramp house)
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -497,7 +498,9 @@ export interface Masts { kind: 'masts'; at: [number, number][]; height: number; 
 // colours and the face by `variant` (src/textures.ts landergrenFace).
 // And the wall behind the penguin in Aspudden's middle hall (`penguinWall`), royal blue tiles folded
 // out of saffron yellow ones (src/textures.ts penguinWall).
-export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle' | 'landergren' | 'penguinWall'; s: number; u: number; turn: number; bottom: number; top: number; width: number; variant?: number }
+// And Maria Ängquist Klyvare's hands in grey mosaic at Vårberg (`handMosaic`, the hand by
+// `variant`, src/textures.ts handMosaic).
+export interface Mural { kind: 'mural'; picture: 'tallkrogsdraken' | 'forestFloor' | 'angel' | 'strindberg' | 'blueTower' | 'sirat' | 'sundell' | 'karlsson' | 'stenborg' | 'forstaden' | 'summerNight' | 'andreeBalloon' | 'andreeEagle' | 'landergren' | 'penguinWall' | 'handMosaic'; s: number; u: number; turn: number; bottom: number; top: number; width: number; variant?: number }
 
 // The midsummer wreath of carved and painted alder at Midsommarkransen (1978, inaugurated 1979; Hans
 // Flemström Nilsson, Anna Flemström Nilsson and Stina Zetterman, students at Konstfack, with the
@@ -8435,13 +8438,14 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'east ticket hall', s: [119, 132], u: [2.4, 12], h: [4.2, 7.5], walls: 'squareTiles', floor: 'redGranite', ceiling: 'whitePanels' },
     ],
     blocks: [
-      // round the middle flights' feet on the platform, glass in brushed steel frames with SL's
-      // blue band over a yellow line, to the ceiling, open where the flights climb into it
+      // the platform's ends, brown tiles
       { name: 'the west end wall', plan: [[-72.0, 2.75], [-72.0, -6.25], [-72.4, -6.25], [-72.4, 2.75]], h: [0, 3.55],
         walls: 'skhEndWall', sides: [undefined, null, null, null], onPlatform: true, inHall: true },
       // the east end, round the passage's mouth
       { name: 'the east end wall', plan: [[72.0, -8.3], [72.0, 0.5], [72.4, 0.5], [72.4, -8.3]], h: [0, 3.55],
         walls: 'skhEndWall', sides: [undefined, null, null, null], onPlatform: true, inHall: true },
+      // round the middle flights' feet on the platform, glass in brushed steel frames with SL's
+      // blue band over a yellow line, to the ceiling, open where the flights climb into it
       { name: "west flight's glass", plan: [[-12.4, -1.05], [-12.4, 2.85], [-5.6, 2.85], [-5.6, -1.05]], h: [0, 3.5],
         walls: 'bandGlazed', sides: [undefined, undefined, null, undefined], floor: 'brownTiles', onPlatform: true, inHall: true },
       { name: "east flight's glass", plan: [[8.1, 2.85], [8.1, -1.05], [1.3, -1.05], [1.3, 2.85]], h: [0, 3.5],
@@ -8467,5 +8471,127 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     ],
     // wooden benches in pairs beside the columns
     benches: { at: [-51.5, -41, -30.5, 19.5, 30, 40.5, 51], double: true, wood: true },
+  },
+  // Vårberg (1967): an island platform in the open, narrowing eastwards, under a butterfly roof
+  // over its western part, the tracks running on into Vårberg centrum at its west end. From
+  // Lantmäteriet's laser scan: the roof 3.3 m over the platform in its middle and 3.7 m at its
+  // edges, from the platform's west end 97 m east; the ramp's house on the platform's middle line
+  // from 40 m to 73 m west of the platform's middle, 5.3 m high and 6.6 m nearer the centre; the
+  // station's building between the tracks against the centre's east wall, 7.5 m high, with lower
+  // wings over the stairs' feet. Photographs (2006 and 2015, Wikimedia Commons): one row of dark
+  // grey steel columns, the roof's beams cantilevered from them to light fascias, its underside
+  // corrugated across the platform; the ramp's house tiled lemon yellow over a board-marked plinth,
+  // Maria Ängquist Klyvare's hand in grey mosaic in its north wall, a screen of tiled fins at its
+  // mouth; asphalt underfoot; galvanised lamp posts and the black name signs on the open east part;
+  // a steel fence across its east end. OpenStreetMap's indoor ways for the ramp, the stairs, the
+  // lift, the gates, the hall's doors, the shopping street and the footbridge; the hall's front of
+  // glass in steel under a dark blue band (photograph, 2020).
+  'Vårberg': {
+    roof: {
+      kind: 'butterfly',
+      from: -38.5, to: 24, width: 15,
+      shape: [[-38.5, 0.21, 15.0], [-30, 0.0, 15.0], [-10, 0.1, 14.0], [10, 0.1, 13.0], [24, 0.0, 12.0]],
+      middle: 2.95, edge: 3.4, thick: 0.3, fascia: 0.3,
+      rafters: 3.45, rafterSize: [0.18, 0.35], rafterColor: 0x3e4347, rafterAt: -38, deck: 'ribbedAcross',
+      beam: 0.4,
+      columns: { every: 6.9, at: -38, size: 0.24, plinth: { size: 0.42, height: 0.12 }, between: [-38.5, 24] },
+      lamps: { offset: 0, length: 1.5, every: 3.45, edges: 1.6 },
+      colors: { underside: 0xb8bbbb, fascia: 0xd9d9d4, top: 0x5b5f63, steel: 0x3e4347 },
+      signs: { at: [-34.55, -6.95, 13.75], back: 'Utgång', ahead: '' },
+      clocks: [[-27.65, 0], [6.85, 0]],
+      // (trains keep left: those towards the city stop on the northern track)
+      boards: [
+        { s: -20.75, u: -1.4, toward: 'T-Centralen', trains: ['13 Ropsten  3 min', '13 Ropsten  13 min'] },
+        { s: -20.75, u: 1.4, toward: 'Norsborg', trains: ['13 Norsborg  6 min', '13 Norsborg  16 min'] },
+      ],
+    },
+    // west of the ramp's house's mouth, carried by the house: a lean-to either side of it, from the
+    // platform's edges down to its walls
+    roofs: [
+      {
+        kind: 'butterfly', lean: 1,
+        from: -73, to: -38.5, width: 6.2,
+        shape: [[-73, -4.16, 6.08], [-65.38, -4.06, 6.15], [-55.59, -3.93, 6.23], [-45.76, -3.95, 6.32], [-38.5, -4.07, 6.45]],
+        middle: 2.95, edge: 3.4, thick: 0.3, fascia: 0.3,
+        rafters: 3.45, rafterSize: [0.18, 0.35], rafterColor: 0x3e4347, rafterAt: -41.45, deck: 'ribbedAcross',
+        beam: 0.4,
+        columns: { every: 6.9, at: -38, size: 0.24, plinth: { size: 0.42, height: 0.12 }, between: [0, -1] },
+        lamps: { offset: 0, length: 1.5, every: 3.45, at: [-1.5] },
+        colors: { underside: 0xb8bbbb, fascia: 0xd9d9d4, top: 0x5b5f63, steel: 0x3e4347 },
+        signs: { at: [], back: '', ahead: '' },
+      },
+      {
+        kind: 'butterfly', lean: -1,
+        from: -73, to: -38.5, width: 4.0,
+        shape: [[-73, 5.69, 4.22], [-65.38, 5.79, 4.15], [-55.59, 5.92, 4.07], [-45.76, 5.9, 3.98], [-38.5, 5.79, 3.86]],
+        middle: 3.15, edge: 3.4, thick: 0.3, fascia: 0.3,
+        rafters: 3.45, rafterSize: [0.18, 0.35], rafterColor: 0x3e4347, rafterAt: -41.45, deck: 'ribbedAcross',
+        beam: 0.4,
+        columns: { every: 6.9, at: -38, size: 0.24, plinth: { size: 0.42, height: 0.12 }, between: [0, -1] },
+        lamps: { offset: 0, length: 1.5, every: 3.45, at: [0.6] },
+        colors: { underside: 0xb8bbbb, fascia: 0xd9d9d4, top: 0x5b5f63, steel: 0x3e4347 },
+        signs: { at: [], back: '', ahead: '' },
+      },
+    ],
+    paving: {
+      edge: 0.5, tactile: [0.5, 0.9], slabs: 0.9,
+      colors: { edge: 0xcfccc4, tactile: 0x4d5052, slab: 0x5d6062, pavers: 0x5d6062, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    buildings: ['w997551803'],
+    rooms: [
+      // (the houses' walls are their blocks')
+      { name: 'ramp, stairs and lift', s: [-90, -38], u: [-3, 11], h: [-0.5, 4.0], walls: null, floor: 'asphalt', stairs: 'yellowTiles' },
+      { name: 'paid hall', s: [-98.4, -89], u: [-4, 11], h: [3.5, 4.6], walls: 'whitePanels', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: "the hall past the gates, and the centre's shopping street", s: [-130, -98.4], u: [-30, 33.5], h: [3.5, 4.6], walls: 'shopWindows', floor: 'terrazzo', ceiling: 'perforated' },
+      { name: 'footbridge', s: [-132, -120], u: [33.5, 58], h: [3.5, 4.8], walls: null, floor: 'asphalt', slab: 0.6 },
+    ],
+    blocks: [
+      // the ramp's house, its walls 0.35 m outside the ramp, which runs from (−40, 2.1) to (−88,
+      // 4.6): open at its mouth, where the north wall is a screen of fins; higher towards the centre
+      { name: "ramp's house, at its mouth", plan: [[-38.5, -0.33], [-38.5, 4.37], [-43.5, 4.63], [-43.5, -0.07]], h: [-0.5, 5.3],
+        walls: 'vabTiles', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 3.6 }, floor: 'asphalt', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174, onPlatform: true },
+      { name: "north wall over the fins", plan: [[-38.5, -0.33], [-38.5, -0.03], [-43.5, 0.23], [-43.5, -0.07]], h: [3.1, 5.3], from: 3.1,
+        walls: 'boardConcrete', onPlatform: true },
+      { name: "ramp's house", plan: [[-43.5, -0.07], [-43.5, 4.63], [-61.5, 5.57], [-61.5, 0.87]], h: [-0.5, 5.3],
+        walls: 'vabTiles', sides: [null, undefined, null, undefined], band: { walls: 'boardConcrete', from: 3.6 }, floor: 'asphalt', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174, onPlatform: true },
+      { name: "ramp's house, higher", plan: [[-61.5, 0.87], [-61.5, 5.57], [-78.5, 6.46], [-78.5, 1.76]], h: [-0.5, 6.6],
+        walls: 'vabTiles', sides: [null, undefined, null, undefined], band: { walls: 'boardConcrete', from: 3.6 }, floor: 'asphalt', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174, onPlatform: true },
+      // the fins, each on a plinth of its own
+      ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((k): Block => {
+        const s = -38.8 - 0.55 * k, u = 2.1 + (2.5 * (-40 - s)) / 48 - 2.35;
+        return { name: `fin ${k + 1}`, plan: [[s + 0.12, u], [s + 0.12, u + 0.3], [s - 0.12, u + 0.3], [s - 0.12, u]], h: [-0.5, 3.1], walls: 'vabTiles', onPlatform: true };
+      }),
+      // the station's building between the tracks against the centre's east wall, with lower wings
+      // round the stairs' feet at the platform's end
+      { name: "station building's north wing", plan: [[-73.0, -2.1], [-73.0, 1.47], [-78.5, 1.76], [-78.5, -2.1]], h: [-0.5, 5.2],
+        walls: 'vabTiles', sides: [undefined, null, null, 'boardConcrete'], band: { walls: 'boardConcrete', from: 3.6 }, floor: 'asphalt', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174, onPlatform: true },
+      { name: "station building's south wing", plan: [[-73.0, 6.17], [-73.0, 9.7], [-78.5, 9.7], [-78.5, 6.46]], h: [-0.5, 5.3],
+        walls: 'vabTiles', sides: [undefined, 'boardConcrete', null, null], band: { walls: 'boardConcrete', from: 3.6 }, floor: 'asphalt', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174, onPlatform: true },
+      { name: 'station building', plan: [[-78.5, -2.1], [-78.5, 9.7], [-90.6, 9.7], [-88.05, -2.1]], h: [-0.5, 7.5],
+        walls: 'boardConcrete', sides: [null, undefined, null, undefined], band: { walls: 'ribbedMetal', from: 6.3 }, ceiling: 'whitePanels', roof: 0.2, roofColor: 0x6d7174 },
+      { name: "station building's east face", plan: [[-78.4, -2.1], [-78.4, 9.7], [-78.5, 9.7], [-78.5, -2.1]], h: [5.2, 7.5], from: 5.2,
+        walls: 'boardConcrete', band: { walls: 'ribbedMetal', from: 6.3 } },
+      // the ticket hall's front onto the centre's shopping street: glass in steel frames, its doors
+      // in the middle, under a dark blue band with the name
+      { name: "ticket hall's front", plan: [[-105.9, -1.6], [-105.9, 6.2], [-106.1, 6.2], [-106.1, -1.6]], h: [3.95, 7.0], from: 3.95,
+        walls: 'glassFront', sides: [undefined, null, undefined, null], nameSign: { side: 2, at: 0.5, length: 4.4, bottom: 6.4 } },
+    ],
+    art: [
+      // I våra händer: the hand seen in the north wall, and (a guess) another in the south wall
+      { kind: 'mural', picture: 'handMosaic', s: -45.8, u: 0.03, turn: -1.623, bottom: 0.5, top: 2.6, width: 3.2 },
+      { kind: 'mural', picture: 'handMosaic', variant: 1, s: -52, u: 5.1, turn: 1.519, bottom: 0.5, top: 2.6, width: 3.2 },
+      // lamp posts down the open part's middle, two with the name
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.6, at: [[30, -0.85], [46, -1.2], [66, -1.65]] },
+      { kind: 'masts', height: 4.6, color: 0x9aa0a4, top: false, arm: 0.6, sign: 2.6, at: [[38, -1.0], [56, -1.45]] },
+    ],
+    benches: { at: [-27.6, -13.8, 0, 13.8], double: true, wood: true },
+    fences: [
+      // across the platform's east end, dark steel bars
+      { kind: 'bars', color: 0x3a3e42, h: [0, 1.2], points: [[72.0, -4.2], [72.0, 0.4]] },
+      // the footbridge's railings
+      { kind: 'rails', color: 0x8f9498, h: [3.95, 5.05], points: [[-122.74, 33.9, 0.04], [-125.58, 49.25, 0.25]] },
+      { kind: 'rails', color: 0x8f9498, h: [3.95, 5.05], points: [[-127.06, 33.1, 0.04], [-129.9, 48.45, 0.25]] },
+    ],
   },
 };

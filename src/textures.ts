@@ -5203,6 +5203,60 @@ export function landergrenFace(variant: number) {
   return toTexture(c, { repeat: false });
 }
 
+// Maria Ängquist Klyvare's I våra händer at Vårberg (1996; photograph, 2006), in her manner: a
+// mosaic of glossy tiles 6.6 cm square in sixteen greys, like the pixels of a picture, some split
+// in four where the picture needs it: a large open hand, palm towards one, its fingers spread up
+// to the right, in whites and pale greys over a dark grey-green ground, lighter behind the
+// fingers; or (`variant` 1) a smaller hand, a child's, reaching the other way. 3.2 m wide and
+// 2.1 m high.
+export function handMosaic(variant = 0) {
+  const PX = 150, W = Math.round(3.2 * PX), H = Math.round(2.1 * PX), [c, x] = canvas(W, H), r = rng(1996 + variant);
+  // the hand, drawn white on black at the picture's own scale, read back tile by tile
+  const [, m] = canvas(W, H);
+  m.fillStyle = '#000'; m.fillRect(0, 0, W, H);
+  if (variant === 1) { m.translate(W * 0.9, H * 0.22); m.scale(-0.78, 0.78); }
+  const P = (u: number, v: number): [number, number] => [u * W, v * H];
+  const finger = (u0: number, v0: number, u1: number, v1: number, w: number, shade: number) => {
+    const [ax, ay] = P(u0, v0), [bx, by] = P(u1, v1);
+    m.strokeStyle = `rgb(${shade},${shade},${shade})`; m.lineCap = 'round'; m.lineWidth = w * H;
+    m.beginPath(); m.moveTo(ax, ay); m.lineTo(bx, by); m.stroke();
+  };
+  // the wrist from the left edge, the palm, the thumb along its foot towards the right
+  m.fillStyle = '#d8d8d8';
+  m.beginPath(); m.moveTo(...P(0, 0.42)); m.lineTo(...P(0.2, 0.36)); m.lineTo(...P(0.44, 0.4)); m.lineTo(...P(0.5, 0.62));
+  m.lineTo(...P(0.36, 0.74)); m.lineTo(...P(0.14, 0.76)); m.lineTo(...P(0, 0.74)); m.closePath(); m.fill();
+  finger(0.3, 0.68, 0.5, 0.8, 0.13, 236);
+  // the four fingers, spread up to the right, the nearest brightest
+  finger(0.3, 0.42, 0.36, 0.12, 0.1, 210);
+  finger(0.36, 0.4, 0.48, 0.1, 0.11, 236);
+  finger(0.41, 0.43, 0.6, 0.2, 0.11, 250);
+  finger(0.45, 0.5, 0.66, 0.4, 0.1, 244);
+  // the creases of the palm, and shadow between the fingers
+  m.strokeStyle = 'rgba(0,0,0,0.35)'; m.lineWidth = 0.035 * H;
+  m.beginPath(); m.moveTo(...P(0.12, 0.6)); m.quadraticCurveTo(...P(0.28, 0.52), ...P(0.42, 0.56)); m.stroke();
+  m.beginPath(); m.moveTo(...P(0.18, 0.7)); m.quadraticCurveTo(...P(0.3, 0.62), ...P(0.4, 0.66)); m.stroke();
+  const mask = m.getImageData(0, 0, W, H).data;
+  const at = (px: number, py: number) => mask[(Math.min(H - 1, Math.floor(py)) * W + Math.min(W - 1, Math.floor(px))) * 4] / 255;
+  x.fillStyle = '#20231f'; x.fillRect(0, 0, W, H);
+  const grey = (k: number, tint: number) => { const g = Math.round(k * 15) * 14 + 30; return `rgb(${g},${g + tint},${g - tint * 0.5})`; };
+  const tile = (px: number, py: number, s: number) => {
+    // the ground: a grey-green, lighter up behind the fingers, darker at the foot
+    const ground = Math.max(0, 0.42 - 0.6 * Math.hypot(px / W - 0.5, py / H - 0.3)) + r() * 0.04;
+    const hand = at(px + s / 2, py + s / 2), v = hand > 0.05 ? Math.min(1, hand * (0.92 + r() * 0.1)) : ground;
+    x.fillStyle = grey(v, hand > 0.05 ? 2 : 10); x.fillRect(px + 1, py + 1, s - 2, s - 2);
+    x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(px + 2, py + 2, s * 0.45, 1.5);
+  };
+  const t = 0.066 * PX;
+  for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+    const px = i * t, py = j * t;
+    // (split in four along the hand's outline)
+    const k = [at(px + 1, py + 1), at(px + t - 1, py + 1), at(px + 1, py + t - 1), at(px + t - 1, py + t - 1)];
+    if (Math.max(...k) - Math.min(...k) > 0.5) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) tile(px + dx * t / 2, py + dy * t / 2, t / 2);
+    else tile(px, py, t);
+  }
+  return toTexture(c);
+}
+
 // The wall behind the penguin in Aspudden's middle hall (photographs, 2014 and 2019): glossy tiles
 // 10 cm square in pale joints, a deep royal blue over its left part, folded out of the wall in a
 // wedge, and a saffron yellow over the rest, the two meeting along a diagonal from the top towards
@@ -5584,9 +5638,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   bredangHall: [1.2, 3.1], bredangFront: [1.3, 5.0],
   ernkvistTiles: [2.82, 2.0], satraHall: [1.2, 4.4], satraBoards: [1.2, 2.4], satraHouse: [1.2, 3.9], satraCentre: [2.4, 4.35], satraEntrance: [1.5, 4.35],
   skhBasket: [1.2, 1.2], skhMosaic: [8.0, 3.0], skhEndWall: [9.0, 3.6],
+  vabTiles: [1.2, 3.6],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -8516,6 +8571,27 @@ export function finish(name: Finish) {
       x.strokeStyle = '#151517'; x.lineWidth = 6; x.beginPath(); x.arc(x0 + mw * 0.3, y0 + mh * 0.8, mw * 0.55, -1.4, 0.2); x.stroke();
       x.strokeStyle = '#f4f2ec'; x.lineWidth = 3; x.setLineDash([10, 8]); x.beginPath(); x.moveTo(x0, y0 + mh * 0.3); x.lineTo(x0 + mw, y0 + mh * 0.55); x.stroke(); x.setLineDash([]);
       x.restore();
+      break;
+    }
+    case 'vabTiles': {
+      // (from the bottom: the plinth, then the tiles; canvas rows run from the top)
+      const plinth = 0.5 * PX, band = 0.42 * PX, t = 0.15 * PX;
+      x.fillStyle = '#c9c39f'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * t < W; i++) for (let j = 0; band + j * t < H - plinth - 1; j++) {
+        const v = Math.floor(r() * 10);
+        x.fillStyle = `rgb(${232 + v},${206 + v},${52 + Math.floor(r() * 14)})`;
+        x.fillRect(i * t + 1, band + j * t + 1, t - 2, t - 2);
+        x.fillStyle = 'rgba(255,255,240,0.28)'; x.fillRect(i * t + 2, band + j * t + 2, t * 0.5, 2);
+      }
+      // the concrete band under the roof, and the board-marked plinth
+      for (const [y0, y1] of [[0, band], [H - plinth, H]]) {
+        for (let y = y0; y < y1; y += 0.1 * PX) {
+          const v = 150 + Math.floor(r() * 10);
+          x.fillStyle = `rgb(${v},${v - 1},${v - 5})`; x.fillRect(0, y, W, Math.min(0.1 * PX, y1 - y));
+          x.fillStyle = 'rgba(70,68,64,0.22)'; x.fillRect(0, y, W, 1);
+        }
+      }
+      x.fillStyle = 'rgba(60,58,52,0.5)'; x.fillRect(0, band - 2, W, 2); x.fillRect(0, H - plinth, W, 2);
       break;
     }
     case 'skhEndWall': {

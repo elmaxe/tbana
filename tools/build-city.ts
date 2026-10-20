@@ -1167,12 +1167,13 @@ for (const s of sources) {
     if (roofOnly) { roofsDropped++; continue; }
     overTrack++;
     const union = polygonClipping.union(hits[0].poly, ...hits.slice(1).map((h) => h.poly));
-    const over = polygonClipping.intersection(shape, union);
+    const above = polygonClipping.intersection(shape, union);
     shape = polygonClipping.difference(shape, union);
     // the part over the track, lifted clear of the trains (or the tunnel's roof; under a deck over
-    // a station's hall, onto the deck)
+    // a station's hall, onto the deck); over a station, open where its parts pass through its walls
+    // as the rest is (a hall on the floor over the tracks, Vårberg's)
     const clear = Math.max(...hits.map((h) => h.top), hallDeckAt(s.c[0], s.c[1]) ?? -Infinity);
-    if (top - Math.max(bottom, clear) > 2.5) emit(list, over, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts);
+    if (top - Math.max(bottom, clear) > 2.5) emit(list, above, { ...base, kind: 'part', bottom: Math.max(bottom, clear) }, roofOpts, over);
   }
   emit(list, shape, base, roofOpts, over);
 }
