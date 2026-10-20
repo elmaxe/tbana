@@ -8279,8 +8279,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     rooms: [
       // (the houses' and the centre's walls and ceilings are their blocks')
       { name: 'ramps, lifts and stairs', s: [-96, -46], u: [-10, 9], h: [-0.5, 3.0], walls: null, floor: 'greyTiles', stairs: 'ernkvistTiles' },
-      { name: 'landing and ticket hall', s: [-104, -74], u: [-11, 10], h: [3.0, 4.5], walls: null, floor: 'brownTiles' },
-      { name: "the centre's square and passages", s: [-146, -104], h: [3.0, 4.5], walls: null, floor: 'darkTiles' },
+      { name: 'landing and ticket hall', s: [-104, -74], u: [-11, 10], h: [3.0, 4.5], walls: null, floor: 'brownTiles', lamps: 2.95 },
+      { name: "the centre's square and passages", s: [-146, -104], h: [3.0, 4.5], walls: null, floor: 'darkTiles', lamps: 3.0 },
     ],
     blocks: [
       // the ramps' houses on the islands, tiled under the roof and boarded over it, rising to the
@@ -8306,6 +8306,10 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // behind them under its raised roof, and round them the shops, white render outside
       { name: 'centre over the tracks', plan: [[-90, -17.2], [-90, 13.8], [-104, 13.8], [-104, -17.2]], h: [3.85, 8.2], from: 3.85, ground: true,
         walls: 'satraCentre', sides: [undefined, null, null, undefined], floor: 'brownTiles', ceiling: 'whitePanels', roof: 0.2, roofColor: 0x8f918e },
+      // (drawn as nothing: it keeps the headwalls of the tunnels' mouths under the centre's face,
+      // which the network raises 2 m over their crowns, from standing up through its floor)
+      { name: 'over the tunnels\' mouths', plan: [[-88.5, -17.2], [-88.5, 13.8], [-93, 13.8], [-93, -17.2]], h: [4.9, 6.6], from: 4.9,
+        walls: 'satraCentre', sides: [null, null, null, null], onPlatform: true },
       { name: 'indoor square', plan: [[-104, -17.2], [-104, 13.8], [-126, 13.8], [-126, -17.2]], h: [3.85, 12.0], from: 3.85, ground: true,
         walls: 'shopWindows', band: { walls: 'glazed', from: 8.2 }, floor: 'darkTiles', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x8f918e },
       { name: 'centre south of the square', plan: [[-126, -17.2], [-126, 13.8], [-137, 13.8], [-137, -17.2]], h: [2.6, 8.2], from: 3.85, ground: true,
@@ -8355,6 +8359,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'canopy over the doors', plan: [[-117.0, -36.9], [-117.0, -40.2], [-123.6, -40.2], [-123.6, -37.2]], h: [6.7, 6.7], from: 6.7,
         walls: 'glazed', sides: [null, null, null, null], ceiling: 'glazed' },
       { name: 'east doors', plan: [[-111, 37.67], [-117, 37.35], [-117, 37.43], [-111, 37.75]], h: [3.85, 8.2], from: 3.85, walls: 'satraEntrance' },
+      // and south of the doors onto the square, shop windows (photographs, 2013 and 2016)
+      { name: 'shop fronts onto Sätratorget', plan: [[-124.3, -37.07], [-134.3, -37.57], [-134.3, -37.65], [-124.3, -37.15]], h: [3.85, 7.45], from: 3.85, walls: 'shopWindows' },
       // Kungssätravägen's bridge over the platforms
       { name: "Kungssätravägen's bridge", plan: [[36, -26], [50, -26], [50, 26], [36, 26]], h: [4.05, 4.95], from: 4.05,
         walls: 'boardConcrete', floor: 'boardConcrete', roof: 0.08, roofColor: 0x46484a },

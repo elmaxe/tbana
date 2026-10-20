@@ -1058,10 +1058,10 @@
           {"walk": [-93.0, -7.95], "dh": 3.85, "open": true},
           {"walk": [-95.5, -7.95], "open": true}
         ] },
-        { "from": [-48.0, -5.75], "width": 2.1, "go": [
-          {"walk": [-74.8, -5.75], "open": true},
+        { "from": [-48.0, -5.8], "width": 2.0, "go": [
+          {"walk": [-74.8, -5.8], "open": true},
           {"lift": 3.85, "above": 3.0, "through": true},
-          {"walk": [-95.5, -5.75], "open": true}
+          {"walk": [-95.5, -5.8], "open": true}
         ] },
         { "from": [-73.6, -3.55], "width": 2.0, "go": [
           {"walk": [-75.0, -3.55], "open": true},
