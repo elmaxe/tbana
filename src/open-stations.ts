@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil, Staves, Ceiling } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil, Staves, Ceiling, Girders } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -299,6 +299,7 @@ export class OpenLook {
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
       else if (a.kind === 'deckCeiling') this.deckCeiling(a, frame, on, outside(cut));
       else if (a.kind === 'ceiling') this.ceiling(a, frame, on, outside(cut));
+      else if (a.kind === 'girders') this.girders(a, frame, on, outside(cut), style.signName ?? st.name, group);
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
       else if (a.kind === 'bird') this.bird(a, frame, on);
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
@@ -327,10 +328,11 @@ export class OpenLook {
       else if (a.kind === 'staves') this.staves(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
+    // (or each row down its own, one down each of two islands)
     if (!style.roof && style.benches) {
-      const middle = style.middle ?? [[-500, 0], [500, 0]];
-      const canopy: CanopyPart = { kind: 'canopy', points: middle.map(([s, u]) => frame.at(s, u, CANOPY_HEIGHT)), width: 0 };
-      this.benches(style, new Line(frame, canopy), [], on);
+      const line = (middle: [number, number][]) => new Line(frame, { kind: 'canopy', points: middle.map(([s, u]) => frame.at(s, u, CANOPY_HEIGHT)), width: 0 });
+      const main = line(style.middle ?? [[-500, 0], [500, 0]]);
+      for (const B of [style.benches].flat()) this.benches({ ...style, benches: B }, B.middle ? line(B.middle) : main, [], on);
     }
   }
 
@@ -2489,6 +2491,7 @@ export class OpenLook {
     if (f.kind === 'glass') return this.glassFence(f, frame, on);
     if (f.kind === 'rails') return this.railFence(f, frame, on);
     if (f.kind === 'bars') return this.barFence(f, frame, on);
+    if (f.kind === 'carlstrom') return this.carlstromFence(f, frame, on);
     // (galvanised, or coated in `color`)
     const css = f.color === undefined ? undefined : `#${f.color.toString(16).padStart(6, '0')}`;
     const link = on(this.mat(`chainLink:${css ?? ''}`, () => new THREE.MeshStandardMaterial({ map: T.chainLink(css), alphaTest: 0.35, roughness: 0.5, metalness: css ? 0.2 : 0.5, side: THREE.DoubleSide })));
@@ -2562,6 +2565,103 @@ export class OpenLook {
           box(lamp, p(at - 0.005), dx, dz, 0.12, 0.012, Math.min(1.5, l / n - 0.06), cut);
         }
       }
+    }
+  }
+
+  // A deck's underside over a hall: its concrete, the steel beams across and along under it, the
+  // strip lights in their round housings, and clocks and name signs hung from the beams.
+  private girders(a: Girders, frame: Frame, on: On, cut: Volume[], name: string, group: THREE.Group) {
+    const [s0, s1] = a.s, [fw, fh] = T.FINISH_SIZE[a.finish], m = on(this.finish(a.finish, true));
+    // the sides' u at s, straight between their points and carried on level past them
+    const side = (line: [number, number][], s: number) => {
+      if (s <= line[0][0]) return line[0][1];
+      for (let i = 1; i < line.length; i++) if (s <= line[i][0]) return line[i - 1][1] + (line[i][1] - line[i - 1][1]) * (s - line[i - 1][0]) / (line[i][0] - line[i - 1][0]);
+      return line[line.length - 1][1];
+    };
+    const [west, east] = a.sides.map((line) => (s: number) => side(line, s));
+    // (in pieces of 6 by 10 m or so, so that the stairs' openings cut only those they climb
+    // through; the boards across the hall)
+    for (let s = s0; s < s1 - 1e-6; s += 6) {
+      const sb = Math.min(s1, s + 6), n = Math.max(1, Math.ceil(Math.max(east(s) - west(s), east(sb) - west(sb)) / 10));
+      for (let k = 0; k < n; k++) {
+        const u = (q: number, f: number) => west(q) + (east(q) - west(q)) * f;
+        m.poly(([[s, k / n], [sb, k / n], [sb, (k + 1) / n], [s, (k + 1) / n]] as [number, number][])
+          .map(([p, f]) => [...frame.at(p, u(p, f), a.h), u(p, f) / fw, p / fh]), cut);
+      }
+    }
+    // the beams: I-beams, their flanges and web
+    const steel = on(this.color(a.color, 0.55, 0.35)), { fx, fz } = frame, [bw, bd] = a.beam, t = 0.025, bottom = a.h - bd;
+    const ibeam = (pa: [number, number], pb: [number, number]) => {
+      const A = (h: number) => frame.at(pa[0], pa[1], h), B = (h: number) => frame.at(pb[0], pb[1], h);
+      bar(steel, A(a.h), B(a.h), bw, t, cut);
+      bar(steel, A(bottom + t), B(bottom + t), bw, t, cut);
+      bar(steel, A(a.h - t), B(a.h - t), 0.02, bd - 2 * t, cut);
+    };
+    for (let s = a.at - Math.floor((a.at - s0) / a.every) * a.every; s <= s1 + 1e-6; s += a.every) ibeam([s, west(s)], [s, east(s)]);
+    for (const row of a.along) for (let i = 0; i + 1 < row.length; i++) ibeam(row[i], row[i + 1]);
+    // the strip lights: round galvanised housings 15 cm across, end to end, the light along their
+    // undersides, each hung from the beam over it on two rods
+    const housing = on(this.color(0xa9aeb0, 0.4, 0.6)), rod = on(this.color(0x6e7275, 0.5, 0.5));
+    const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
+    for (const row of a.lamps) {
+      for (let i = 0; i + 1 < row.length; i++) {
+        const [sa, ua] = row[i], [sb, ub] = row[i + 1], l = Math.hypot(sb - sa, ub - ua);
+        const o = frame.at(sa, ua, 0), e = frame.at(sb, ub, 0), dx = (e[0] - o[0]) / l, dz = (e[2] - o[2]) / l;
+        limb(housing, frame.at(sa, ua, a.lampAt + 0.07), frame.at(sb, ub, a.lampAt + 0.07), 0.15, 0.15);
+        box(lamp, frame.at((sa + sb) / 2, (ua + ub) / 2, a.lampAt - 0.005), dx, dz, 0.07, 0.01, l - 0.1, cut);
+        for (let k = 1; k * 3 < l; k++) {
+          const c = (k * 3) / l;
+          box(rod, frame.at(sa + (sb - sa) * c, ua + (ub - ua) * c, (a.lampAt + 0.14 + a.h) / 2), dx, dz, 0.02, a.h - a.lampAt - 0.14, 0.02);
+        }
+      }
+    }
+    // clocks: a white face each way along the platform in a pale rim, on a rod from the beams
+    for (const [s, u] of a.clocks ?? []) {
+      const c = frame.at(s, u, bottom - 0.5);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.1, 32).rotateX(Math.PI / 2), this.color(0xd8dad8, 0.4, 0.5));
+      rim.position.set(...c);
+      rim.rotation.y = Math.atan2(fx, fz);
+      group.add(rim);
+      box(rod, frame.at(s, u, (bottom - 0.19 + a.h) / 2), fx, fz, 0.03, a.h - bottom + 0.19, 0.03);
+      for (const side of [1, -1]) {
+        const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.28, 32), this.mat('clock', () => new THREE.MeshBasicMaterial({ map: T.clockFace() })));
+        mesh.position.set(c[0] + fx * side * 0.055, c[1], c[2] + fz * side * 0.055);
+        mesh.rotation.y = Math.atan2(fx * side, fz * side);
+        group.add(mesh);
+      }
+    }
+    // the name signs, along the platform, facing the tracks either side, a strip light over each
+    const W = 2.4, H = 0.6, top = (a.bottom ?? 2.3) + H, black = on(this.color(0x161718, 0.6, 0.2));
+    for (const [s, u] of a.signs ?? []) {
+      const c = frame.at(s, u, top - H / 2), rx = -fz, rz = fx;
+      box(black, c, fx, fz, 0.05, H, W, cut);
+      limb(housing, frame.at(s - W / 2 + 0.1, u, top + 0.1), frame.at(s + W / 2 - 0.1, u, top + 0.1), 0.12, 0.12);
+      box(lamp, frame.at(s, u, top + 0.035), fx, fz, 0.06, 0.01, W - 0.3);
+      for (const k of [-W / 2 + 0.25, W / 2 - 0.25]) box(rod, frame.at(s + k, u, (top + 0.15 + a.h) / 2), fx, fz, 0.025, a.h - top - 0.15, 0.025);
+      for (const side of [1, -1]) {
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(W, H), this.mat(`sign:${name}:plain:false`, () => new THREE.MeshBasicMaterial({ map: T.hangingSign(name, '', '', false, true) })));
+        mesh.position.set(c[0] + rx * side * 0.03, c[1], c[2] + rz * side * 0.03);
+        mesh.rotation.y = Math.atan2(rx * side, rz * side);
+        group.add(mesh);
+      }
+    }
+  }
+
+  // Britta Carlström's fence: black welded mesh between black posts 3 m apart, flat bars woven
+  // through it, and terracotta-red boxes at its foot in every other gap.
+  private carlstromFence(f: Fence, frame: Frame, on: On) {
+    const mesh = on(this.mat('fence:carlstrom', () => new THREE.MeshStandardMaterial({ map: T.wovenMesh(), alphaTest: 0.4, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide })));
+    const post = on(this.color(0x1e2022, 0.55, 0.4)), red = on(this.color(0x8a4636, 0.75, 0.2)), [h0, h1] = f.h;
+    let along = 0, gap = 0;
+    for (let i = 0; i + 1 < f.points.length; i++) {
+      const [sa, ua] = f.points[i], [sb, ub] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 3));
+      const c = frame.at(sa, ua, 0), d = frame.at(sb, ub, 0), fx = (d[0] - c[0]) / l, fz = (d[2] - c[2]) / l;
+      const at = (t: number, h: number) => frame.at(sa + (sb - sa) * t, ua + (ub - ua) * t, h);
+      for (let k = i === 0 ? 0 : 1; k <= n; k++) box(post, at(k / n, (h0 + h1) / 2 + 0.03), fx, fz, 0.07, h1 - h0 + 0.06, 0.07);
+      for (let k = 0; k < n; k++) if (gap++ % 2 === 0) box(red, at((k + 0.5) / n, (h0 + h1 - 1) / 2), fx, fz, 0.3, h1 - 1 - h0, 1.1);
+      const P = (t: number, h: number, a: number) => [...at(t, h), a / 1.5, (h - h0) / (h1 - h0)];
+      mesh.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
+      along += l;
     }
   }
 
