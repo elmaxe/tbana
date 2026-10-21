@@ -4,7 +4,7 @@ import { LINES, TRAIN_SPECS, lineAt } from './lines';
 import type { Destination, LineId } from './lines';
 import * as T from './textures';
 import { createTrain, SERVICE_UNITS } from './rolling-stock/index';
-import type { BuildOptions, Train, TrainType } from './rolling-stock/index';
+import type { BuildOptions, PassengerInfo, Train, TrainType } from './rolling-stock/index';
 import type { CarFloor } from './rolling-stock/train';
 import { Polyline } from './polyline';
 import type { Platform, SurfaceRecord, Track } from './station';
@@ -31,6 +31,9 @@ const MODEL_NEAR = 700, MODEL_FAR = 900;
 // the chimes for a train coming into a station sound this many seconds before its front gets to
 // the platform; one on the platform sounds out this long before another does
 const ANNOUNCE = 4, PLATFORM_CHIME = 4;
+// a train that has come to the end of the line shows it inside for this many seconds, before it
+// shows the trip it turns into
+const FINAL_SHOWN = 30;
 
 // The player inside a car: their position and heading relative to it.
 export interface Ride {
@@ -68,6 +71,11 @@ export class Trains {
   // the trains on their way to a station whose arrival has been announced
   private announced = new Set<Service>();
   private platformChime = -Infinity;
+  // the lines at each station, for the lines to change to on the trains' screens
+  private linesAt = new Map<string, Set<LineId>>();
+  // until when a train that has turned at the end of the line shows that it has come there
+  private finals = new WeakMap<Service, number>();
+  private infos = new WeakMap<Service, { key: string; info: PassengerInfo }>();
   private _p = new THREE.Vector3();
   private _q = new THREE.Vector3();
 
@@ -173,6 +181,13 @@ export class Trains {
       this.park(network, lengthOf);
     }
     this.all = [...this.shuttles, ...(this.timetable?.trips ?? []), ...this.parked];
+    const calls = (station: string, line: LineId) => {
+      if (LINES[line].kind === 'mainline') return;
+      if (!this.linesAt.has(station)) this.linesAt.set(station, new Set());
+      this.linesAt.get(station)!.add(line);
+    };
+    for (const tr of tracks) calls(tr.station, tr.line);
+    for (const r of this.timetable?.routes ?? []) for (const st of r.stops) calls(st.station, r.line);
   }
 
   // Trains out of service, standing on about two in three of the depots' stabling tracks (a yard
@@ -289,6 +304,7 @@ export class Trains {
     let rumble = 0;
     for (const svc of this.all) {
       this.place(svc, playerPos, ride?.svc === svc);
+      if (svc.model && svc.cars.some((c) => c.car?.interior)) this.showInfo(svc);
       this.announce(svc, playerPos, ride);
       if (svc.state === 'run' && svc.speed > 0) {
         const d = this.distanceTo(svc, playerPos);
@@ -322,10 +338,40 @@ export class Trains {
         c.yaw = c.yaw ? 0 : Math.PI;
       }
       this.setDest(svc, svc.dest);
+      this.finals.set(svc, this.clock + FINAL_SHOWN);
     } else if (ev === 'done' && svc.shuttle) {
       svc.state = 'wait'; svc.timer = 35 + Math.random() * 60; svc.head = 0; svc.stop = 0;
       this.setDest(svc, pick(svc.shuttle.destSet));
     }
+  }
+
+  // What the displays inside a train show: where it is going, and the station it stands at or runs
+  // to next, from when its doors close there (src/rolling-stock/displays.ts). For a while after it
+  // has come to the end of the line, that it has.
+  private showInfo(svc: Service) {
+    const standing = svc.state === 'dwell' || svc.state === 'closing';
+    const final = standing && svc.stop === 0 && (this.finals.get(svc) ?? -Infinity) > this.clock;
+    const key = `${svc.stop}|${standing}|${final}|${svc.dest.join('|')}`;
+    let had = this.infos.get(svc);
+    if (had?.key !== key) {
+      had = { key, info: this.passengerInfo(svc, standing, final) };
+      this.infos.set(svc, had);
+    }
+    // the way the train runs, against the way its model was built
+    const c0 = svc.cars[0];
+    svc.model!.showInfo(had.info, this.clock, (c0.yaw === 0) !== !!c0.car?.reversed);
+  }
+
+  private passengerInfo(svc: Service, at: boolean, final: boolean): PassengerInfo {
+    const [line, dest] = svc.dest;
+    const station = final ? svc.stops[0].station : nextStation(svc);
+    let after: string[] = [];
+    if (final) after = [];
+    else if (svc.trip) after = svc.stops.slice(svc.stop + 1).map((st) => st.station);
+    else if (svc.shuttle) after = [...(svc.stop === 0 ? [svc.shuttle.next] : []), dest].filter((st, i, a) => st && st !== station && a.indexOf(st) === i);
+    const own = (Object.keys(LINES) as LineId[]).find((id) => LINES[id] === svc.L);
+    const changes = [...(this.linesAt.get(station) ?? [])].filter((l) => l !== own).map((l) => ({ name: LINES[l].local, color: LINES[l].color }));
+    return { line, color: svc.L.color, dest: final ? station : dest, station, at: at && !!station, final, after, changes };
   }
 
   // Just before a train comes into a station: a chime inside it for the player riding it, or one on

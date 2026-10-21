@@ -8,6 +8,7 @@ import { interior as C30_INTERIOR } from './c30-interior';
 
 export type { Car, CarDef, BuildOptions, Train, TrainLights, TrainSpec } from './train';
 export type { InteriorSpec } from './interior';
+export type { PassengerInfo } from './displays';
 export type { C20InteriorStyle } from './c20-interior';
 export { setOutsideLight } from './cabin-light';
 

@@ -7,6 +7,7 @@ import {
 import type { Painter } from './kit';
 import type { CabinLights } from './cabin-light';
 import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating, Vec3 } from './interior';
+import { C30_DOOR_TFT, C30_LED, RED_SAMPLE, displayMaterial } from './displays';
 import { DOOR, windowFrames } from './c30';
 import type { CarDef } from './train';
 
@@ -53,6 +54,35 @@ function tAt(z: number, part: 'floor' | 'ceiling') {
   return list[list.length - 1].t;
 }
 
+// The screen over each door, at the end of the network map: x0 to x1 from the door's centre, and
+// y0 to y1 up the cove.
+const SCREEN = { x0: DOOR / 2 - 0.44, x1: DOOR / 2 + 0.14, y0: 3.0, y1: 3.17 };
+
+// Where the lining's side is at height y, and its outward normal there (on the +z side).
+function sideAt(y: number) {
+  const side = prof.pts.filter((p) => p.y > F + 0.01);
+  let i = 1;
+  while (i < side.length - 1 && side[i].y < y) i++;
+  const a = side[i - 1], b = side[i], k = (y - a.y) / (b.y - a.y || 1);
+  return { z: a.z + k * (b.z - a.z), nz: a.nz + k * (b.nz - a.nz), ny: a.ny + k * (b.ny - a.ny) };
+}
+
+// The screen over door d on wall s, just off the cove, its canvas upright as seen from inside.
+function doorScreen(d: number, s: number) {
+  const lo = sideAt(SCREEN.y0), hi = sideAt(SCREEN.y1), e = 0.004;
+  // seen from inside, the +z wall runs from +x on the left to −x on the right
+  const [xl, xr] = s > 0 ? [d + SCREEN.x1, d + SCREEN.x0] : [d + SCREEN.x0, d + SCREEN.x1];
+  const at = (x: number, p: ReturnType<typeof sideAt>, y: number) => [x, y - e * p.ny, s * (p.z - e * p.nz)];
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([
+    ...at(xl, lo, SCREEN.y0), ...at(xr, lo, SCREEN.y0), ...at(xl, hi, SCREEN.y1), ...at(xr, hi, SCREEN.y1),
+  ], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 1], 2));
+  g.setIndex([0, 1, 2, 2, 1, 3]);
+  g.computeVertexNormals();
+  return g;
+}
+
 const C = {
   wall: { c: '#eaecea', r: 0.45 },
   ceiling: { c: '#eef0ee', r: 0.6 },
@@ -71,8 +101,6 @@ const C = {
   panel: { c: '#1d2a48', r: 0.4 },
   bezel: { c: '#0e1013', r: 0.4 },
   red: { c: '#e3242b', r: 0.5, e: '#3a0808' },
-  tft: { c: '#20356e', e: '#3c5aa8' },
-  tftPink: { c: '#e0478f', e: '#b03070' },
   white: { c: '#ffffff', e: '#bbbbbb' },
   adFrame: { c: '#d9dcdc', r: 0.4, m: 0.4 },
   dot: { c: '#ffffff', e: '#f4f8ff' },
@@ -142,8 +170,8 @@ function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
     p.rect(da, db, 3.06, 3.09, C.green);
     // the doorway: the leaves are separate (doorLeaf below)
     p.rect(da, db, F, 3.04, C.hole, 0.15);
-    // above the door: the network map, coloured lines on navy, and an information screen in a
-    // black bezel
+    // above the door: the network map, coloured lines on navy, and the black bezel of the
+    // information screen (doorScreen in furnish)
     p.rect(da - 0.2, db + 0.2, 2.97, 3.2, C.panel);
     const mx = (k: number) => da - 0.12 + k * (DOOR - 0.36);
     for (const [col, pts] of MAP) {
@@ -156,9 +184,7 @@ function paint(p: Painter, def: CarDef, { xa, xb, x0, x1 }: InteriorContext) {
         ctx.closePath();
       }, { c: col, r: 0.5, e: '#101010' });
     }
-    p.rect(db - 0.3, db + 0.16, 2.99, 3.18, C.bezel, 0.02);
-    p.rect(db - 0.28, db + 0.14, 3.0, 3.17, C.tft);
-    p.rect(db - 0.28, db + 0.14, 3.13, 3.17, C.tftPink);
+    p.rect(SCREEN.x0 + d - 0.02, SCREEN.x1 + d + 0.02, SCREEN.y0 - 0.01, SCREEN.y1 + 0.01, C.bezel, 0.02);
     // stainless threshold with black ribs
     p.rectT(da, db, floorEdge - 0.16, floorEdge, C.steel);
     for (let k = 0; k < 3; k++) p.rectT(da, db, floorEdge - 0.14 + k * 0.04, floorEdge - 0.125 + k * 0.04, C.seal);
@@ -224,7 +250,9 @@ function materials(): InteriorMaterials {
     glass: new THREE.MeshStandardMaterial({ color: 0xdfeef0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide }),
     lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff8ec, emissiveIntensity: 1.3 }),
     strap: interiorMat('#b07a45', { roughness: 0.6 }),
-    sign: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 64, drawSign), roughness: 0.2 }),
+    sign: displayMaterial('sign', C30_LED, RED_SAMPLE),
+    doorScreenP: displayMaterial('doorScreenP', C30_DOOR_TFT, RED_SAMPLE, -1),
+    doorScreenN: displayMaterial('doorScreenN', C30_DOOR_TFT, RED_SAMPLE, 1),
     housing: interiorMat('#1d2024', { roughness: 0.5 }),
     pictogram: new THREE.MeshStandardMaterial({ map: screenTexture(256, 116, drawPictograms), roughness: 0.5 }),
     bulkhead: bulkheadMaterial(),
@@ -237,14 +265,6 @@ function drawPictograms(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const s = h * 0.86, m = (h - s) / 2;
   drawPictogram(ctx, w / 2 - 0.04 * w - s, m, s, 'wheelchair', '#1659b8');
   drawPictogram(ctx, w / 2 + 0.04 * w, m, s, 'pram', '#1659b8');
-}
-
-// amber LED sign hanging from the ceiling
-function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#ffae1a'; ctx.font = '700 38px Arial, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('Nästa T-Centralen', w / 2, h / 2 + 2);
 }
 
 // The cab bulkhead: dark slate, a narrow cab door in a stainless frame with the rail network map
@@ -477,6 +497,9 @@ function furnish(def: CarDef, ctx: InteriorContext) {
     addPole(parts, d, 0, F, 3.36);
   }
 
+  // the screen over each door, one material for each wall (its arrow points the way the train runs)
+  for (const d of doors) for (const s of [-1, 1]) parts.add(s > 0 ? 'doorScreenP' : 'doorScreenN', doorScreen(d, s));
+
   // hanging amber signs, crossways on the centre line, one per zone
   for (const x of signs) {
     parts.add('housing', new THREE.BoxGeometry(0.1, 0.16, 1.25).translate(x, 3.2, 0));
@@ -535,4 +558,5 @@ export const interior: InteriorSpec = {
   paint,
   furnish,
   doorLeaf,
+  displays: [C30_LED, C30_DOOR_TFT],
 };

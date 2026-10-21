@@ -8,6 +8,7 @@ import type {
 } from './kit';
 import { liningGeometry, endWallGeometry, portalTube } from './interior';
 import type { InteriorContext, InteriorMaterials, InteriorSpec } from './interior';
+import type { Display, PassengerInfo } from './displays';
 import { carDoors, doorFrames, doorKit, sideZ } from './doors';
 import type { DoorKit, DoorStyle } from './doors';
 import { cabinShadows, lightCabin } from './cabin-light';
@@ -78,6 +79,9 @@ export type TrainLights = 'forward' | 'reverse' | 'off';
 export interface Train {
   type: string; group: THREE.Group; cars: Car[]; length: number;
   setDestination(text: string): void;
+  // what the passenger information displays inside show, at `clock` seconds (their pages turn
+  // with it); `forward`: the train runs towards the front it was built with (+x)
+  showInfo(info: PassengerInfo, clock: number, forward: boolean): void;
   setInterior(on: boolean): void;
   setLights(mode: TrainLights): void;
   setDoors(amount: number, side: 1 | -1 | 0): void;
@@ -343,6 +347,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
   group.name = spec.id;
   const cars: Car[] = [], cabs: Cab[] = [];
   const sides = spec.sideSign && destinationSign(spec.sideSign.w, spec.sideSign.h);
+  const screens = spec.interior?.displays?.length ? trainDisplays(spec.interior.displays) : null;
   let at = 0;
   for (let u = 0; u < units; u++) {
     spec.formation.forEach(([kind, reversed], i) => {
@@ -366,6 +371,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
         inner.visible = false;
         inner.traverse((o) => { if (isMesh(o)) o.userData.interior = true; });
         obj.add(inner);
+        if (screens) screens.add(car, inner);
         const body = obj.children.find((o) => o.name === 'body') as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
         const opaque = body.material;
         car.bodyMats = [opaque, tpl.glazed!];
@@ -397,6 +403,7 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
   const train: Train = {
     type: spec.id, group, cars, length,
     setDestination(text) { for (const c of cabs) c.sign.set(text); sides?.set(text); },
+    showInfo(info, clock, forward) { screens?.show(info, clock, forward); },
     setInterior(on) { for (const c of cars) c.setInterior(on); },
     setDoors(amount, side) { for (const c of cars) c.setDoors(amount, side); },
     // 'forward': lit for running towards +x; 'reverse': the other way; 'off'
@@ -411,4 +418,79 @@ export function buildTrain(spec: TrainSpec, { units = 1, destination = '', quali
   };
   train.setDestination(destination);
   return train;
+}
+
+// The passenger information displays of one train. It gets its own canvases and materials the
+// first time it shows anything (until then its cars show the template's), and each display is
+// drawn again only when what it shows changes. A display with an arrow has a canvas for each way
+// the arrow can point, and the meshes on each wall of each car take the one that points the way
+// the train runs.
+function trainDisplays(displays: Display[]) {
+  interface Canvas { d: Display; ahead: 1 | -1; ctx: CanvasRenderingContext2D; tex: THREE.CanvasTexture; mat: THREE.MeshStandardMaterial }
+  const names = new Set(displays.flatMap((d) => Object.keys(d.mats)));
+  const cars: { car: Car; meshes: Map<string, THREE.Mesh[]> }[] = [];
+  const shown = new Map<Display, string>();
+  let canvases: Canvas[] | null = null;
+  let way: boolean | null = null;
+
+  const make = () => {
+    const list: Canvas[] = [];
+    for (const d of displays) {
+      const base = cars.flatMap((c) => Object.keys(d.mats).flatMap((n) => c.meshes.get(n) ?? []))[0]?.material as THREE.MeshStandardMaterial | undefined;
+      if (!base) continue;
+      const walled = Object.values(d.mats).some((w) => w !== 0);
+      for (const ahead of walled ? [-1, 1] as const : [1] as const) {
+        const cv = document.createElement('canvas');
+        cv.width = d.w; cv.height = d.h;
+        const tex = new THREE.CanvasTexture(cv);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = 4;
+        // the template's material, lit as it is (clone() leaves out the cabin's lights)
+        const mat = base.clone();
+        mat.onBeforeCompile = base.onBeforeCompile;
+        mat.customProgramCacheKey = base.customProgramCacheKey;
+        mat.emissiveMap = tex;
+        list.push({ d, ahead, ctx: cv.getContext('2d')!, tex, mat });
+      }
+    }
+    return list;
+  };
+  // which canvas each car's meshes show: on wall s of a car whose +x points along `travel`, the
+  // front of the train is to the left (−1) of someone facing the wall when s × travel > 0
+  const assign = (forward: boolean) => {
+    for (const { car, meshes } of cars) {
+      const travel = (forward ? 1 : -1) * (car.reversed ? -1 : 1);
+      for (const c of canvases!) {
+        for (const [name, wall] of Object.entries(c.d.mats)) {
+          if (wall && -wall * travel !== c.ahead) continue;
+          for (const m of meshes.get(name) ?? []) m.material = c.mat;
+        }
+      }
+    }
+  };
+  return {
+    add(car: Car, inner: THREE.Object3D) {
+      const meshes = new Map<string, THREE.Mesh[]>();
+      inner.traverse((o) => {
+        if (!isMesh(o) || !names.has(o.material.name)) return;
+        if (!meshes.has(o.material.name)) meshes.set(o.material.name, []);
+        meshes.get(o.material.name)!.push(o);
+      });
+      cars.push({ car, meshes });
+    },
+    show(info: PassengerInfo, clock: number, forward: boolean) {
+      canvases ??= make();
+      if (forward !== way) { way = forward; assign(forward); }
+      for (const d of displays) {
+        const now = d.show(info, clock);
+        if (shown.get(d) === now) continue;
+        shown.set(d, now);
+        for (const c of canvases) {
+          if (c.d !== d) continue;
+          c.d.draw(c.ctx, d.w, d.h, info, now, c.ahead);
+          c.tex.needsUpdate = true;
+        }
+      }
+    },
+  };
 }
