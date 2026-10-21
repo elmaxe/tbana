@@ -6021,7 +6021,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   albyFront: [2.2, 5.6],
   hallundaFloor: [2.4, 2.4], hallundaCeiling: [2.4, 2.4], hallundaSoffit: [2.4, 2.4], hallundaGlazed: [1.2, 3.0], hallundaMesh: [2.4, 3.0], hallundaFront: [3.0, 5.0],
   hallundaFascia: [2.4, 1.2], norsborgCeiling: [4.8, 4.8], norsborgGlazed: [1.2, 3.0], norsborgFascia: [2.4, 1.2], norsborgRainbow: [6.0, 1.2], shotcrete: [6.0, 6.0],
-  kistaGlazed: [1.2, 3.0], kistaPanels: [4.8, 3.0], kistaPerforated: [1.2, 3.0], kistaAggregate: [2.4, 4.0], kistaParapet: [2.4, 2.4],
+  kistaGlazed: [1.2, 3.0], kistaPanels: [4.8, 3.0], kistaPerforated: [1.2, 3.0], kistaAggregate: [2.4, 4.0], kistaParapet: [2.4, 2.4], kistaCeiling: [2.4, 2.4],
 };
 export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate'];
@@ -9452,6 +9452,20 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(60,54,48,0.4)'; x.fillRect(0, 0, 2, H);
       x.fillStyle = '#e8e6e0';
       for (const h of [3.45, 3.7]) for (let s = 0.3; s < 2.4; s += 0.6) { x.beginPath(); x.arc(s * PX, Y(h), 0.035 * PX, 0, Math.PI * 2); x.fill(); }
+      break;
+    }
+    case 'kistaCeiling': {
+      // the ceilings of Kista's halls on the platform: white panels 0.6 m square in a grey grid,
+      // a round downlight every 2.4 m (photographs, 2018)
+      x.fillStyle = '#9d9f9c'; x.fillRect(0, 0, W, H);
+      const a = 0.6 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * a < H; j++) {
+        const v = Math.floor(r() * 6);
+        x.fillStyle = `rgb(${226 + v},${227 + v},${223 + v})`; x.fillRect(i * a + 1.5, j * a + 1.5, a - 3, a - 3);
+      }
+      speckle(x, W, H, 6000, 0.05, 90);
+      x.fillStyle = '#c9cbc4'; x.beginPath(); x.arc(1.5 * a, 1.5 * a, 0.11 * PX, 0, Math.PI * 2); x.fill();
+      x.fillStyle = '#fffdf2'; x.beginPath(); x.arc(1.5 * a, 1.5 * a, 0.08 * PX, 0, Math.PI * 2); x.fill();
       break;
     }
     case 'skhEndWall': {

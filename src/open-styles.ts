@@ -150,8 +150,9 @@ export interface ButterflyRoof {
   // fittings `length` long, `every` apart; `tube`, in a long round housing hung under the rafters;
   // `across`, the fittings lying across the platform; `start`, one of them at this `s` (by default
   // half `every` in from `from`); `drop`, hung this far under the underside, in grey housings
-  // (under the rafters, or under beams across the roof)
-  lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean; start?: number; drop?: number };
+  // (under the rafters, or under beams across the roof); `span`, only between these `s` (none
+  // over halls with ceilings of their own)
+  lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean; start?: number; drop?: number; span?: [number, number] };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // the beams along the rows of columns this wide (0.2 m by default)
   beamWidth?: number;
@@ -468,7 +469,8 @@ export type Finish =
   | 'kistaPanels'     // light-blue steel panels 1.2 m wide in thin dark joints, a door in one of each four (Kista's staff rooms)
   | 'kistaPerforated' // light-blue sheet metal, finely perforated, in panels 1.2 m wide between dark frames
   | 'kistaAggregate'  // exposed-aggregate concrete, warm grey, two rows of small white dots along its top at 3.45 and 3.7 m
-  | 'kistaParapet';   // dark grey-brown concrete, rough with its aggregate, streaked down from the top
+  | 'kistaParapet'    // dark grey-brown concrete, rough with its aggregate, streaked down from the top
+  | 'kistaCeiling';   // white panels 0.6 m square in a grey grid, a round downlight every 2.4 m
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -9319,8 +9321,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       openings: { at: [[-42.4, -24.4, -5.0, 4.6], [-0.4, 17.6, -5.0, 4.6], [41.6, 59.6, -5.0, 4.6]], beams: [-36.4, -30.4, 5.6, 11.6, 47.6, 53.6], top: 0.35 },
       // (none in the north-western escalators' well, nor where the south-eastern lift stands)
       columns: { every: 6, at: -0.4, size: 0.6, plinth: { size: 0.6, height: 0 }, pair: 13.2, offset: 0.15, concrete: true, gaps: [[80, 100], [-77, -75.8]] },
-      lamps: { offset: 0, at: [-8.95, -2.25, 2.55, 9.35], length: 1.5, every: 6, across: true, start: -0.4, drop: 0.87 },
-      colors: { underside: 0xb4b6b0, fascia: 0x8fb8c9, top: 0x4f5559, steel: 0x8fb8c9 },
+      lamps: { offset: 0, at: [-8.95, -2.25, 2.55, 9.35], length: 1.5, every: 6, across: true, start: -0.4, drop: 0.87, span: [-45, 61] },
+      colors: { underside: 0xc4c8ca, fascia: 0x8fb8c9, top: 0x4f5559, steel: 0x8fb8c9 },
       // (the ways out as the signs of 2018 have them: the Galleria to the south-east, the bus
       // terminal to the north-west)
       signs: { at: [-15.4, 26.6], back: 'Kista Galleria', ahead: 'Bussterminal', beam: true, bottom: 2.62 },
@@ -9354,15 +9356,16 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'passage to Vejlegatan', s: [-135, -109], h: [-12.6, -11.9], walls: 'shopWindows', floor: 'terrazzo', ceiling: 'whitePerforated' },
     ],
     blocks: [
-      // the glazed halls on the platform, between the rows of columns, their floors dark tiles: the
-      // north-western one open at its end to the glass over the escalators' well, which stands on
-      // the roof of the hall over the footbridge; the south-eastern one's gable over the Galleria
-      { name: 'north-western hall', plan: [[61.0, -7.6], [88.9, -7.6], [88.9, 9.4], [61.0, 9.4]], h: [0.02, 3.3], from: 0.02,
-        walls: 'kistaGlazed', sides: [undefined, null, undefined, undefined], floor: 'darkTiles' },
+      // the glazed halls on the platform, between the rows of columns, their floors dark tiles and
+      // their ceilings white panels under the roof's beams: the north-western one open at its end
+      // to the glass over the escalators' well, which stands on the roof of the hall over the
+      // footbridge; the south-eastern one's gable over the Galleria
+      { name: 'north-western hall', plan: [[61.0, -7.6], [88.9, -7.6], [88.9, 9.4], [61.0, 9.4]], h: [0.02, 2.5], from: 0.02,
+        walls: 'kistaGlazed', sides: [undefined, null, undefined, undefined], floor: 'darkTiles', ceiling: 'kistaCeiling', roof: 0.8, roofColor: 0x8fb8c9 },
       { name: "glass over the escalators' well", plan: [[88.9, -7.6], [99.0, -7.6], [99.0, 9.4], [88.9, 9.4]], h: [-2.75, 3.3], from: -2.75,
         walls: 'kistaGlazed', sides: [undefined, undefined, undefined, null] },
-      { name: 'south-eastern hall', plan: [[-91.0, -7.6], [-45.4, -7.6], [-45.4, 6.0], [-91.0, 6.0]], h: [0.02, 3.3], from: 0.02,
-        walls: 'kistaGlazed', floor: 'darkTiles' },
+      { name: 'south-eastern hall', plan: [[-91.0, -7.6], [-45.4, -7.6], [-45.4, 6.0], [-91.0, 6.0]], h: [0.02, 2.5], from: 0.02,
+        walls: 'kistaGlazed', floor: 'darkTiles', ceiling: 'kistaCeiling', roof: 0.8, roofColor: 0x8fb8c9 },
       { name: "south-eastern gable's foot", plan: [[-91.1, -7.6], [-90.9, -7.6], [-90.9, 6.0], [-91.1, 6.0]], h: [-2.3, 0.02], from: -2.3, walls: 'kistaGlazed' },
       { name: 'deck beyond the platform', plan: [[-91.0, -11.6], [-88.3, -11.6], [-88.3, 11.9], [-91.0, 11.9]], h: [-0.6, -0.03], from: -0.6,
         walls: 'boardConcrete', roof: 0.03, roofColor: 0x85817b },
@@ -9410,7 +9413,6 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { kind: 'columns', color: 0x9d9a93, size: 1.4, from: -13.5, to: -2.6,
         at: [-12, 12, 36, 60, 84, 108, 132].flatMap((s): [number, number][] => s === 108 ? [[s, 15.4]] : [[s, -15.4], [s, 15.4]]) },
       { kind: 'columns', color: 0x8fb8c9, size: 0.2, from: -13.0, to: -6.6, at: [21, 33, 45, 57, 69, 81, 93, 105].map((s): [number, number] => [s, 14.2]) },
-      // the halls' dark tiles (lights in them are the roof's)
     ],
     fences: [
       // steel rails over the parapets

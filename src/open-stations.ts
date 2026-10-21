@@ -1223,6 +1223,7 @@ export class OpenLook {
     const housing = L.tube || L.drop !== undefined ? on(this.color(0xdcdedd, 0.4, 0.5)) : under, drop = L.drop ?? (L.tube ? rd + 0.25 : 0.13);
     const first = L.start !== undefined ? L.start - Math.floor((L.start - R.from) / L.every) * L.every : R.from + L.every / 2;
     for (let s = first; s < R.to; s += L.every) for (const u of lampRows(s)) {
+      if (L.span && (s < L.span[0] || s > L.span[1])) continue;
       const [fx, fz] = line.dir(s);
       if (L.across) {
         // (kept in from the roof's edge where it narrows; from the lower end of the fitting, the

@@ -484,6 +484,10 @@
     {
       "outline": [[-13976.2, 9823.7], [-13956.3, 9825.4], [-13958.1, 9845.4], [-13978.0, 9843.6]],
       "why": "Norsborg: the forecourt in front of the entrance on the hill, asphalt, and the footway from it to Skarpbrunnavägen (photographs; OpenStreetMap)."
+    },
+    {
+      "outline": [[-6624.4, -7917.0], [-6705.8, -8039.4], [-6665.0, -8066.5], [-6583.6, -7944.1]],
+      "why": "Kista: the bus terminal under the station's viaduct, from Kista Galleria to Köpenhamnsgatan, with the service road along its south-western side and the bus lane along its north-eastern one, all asphalt (OpenStreetMap; photographs; Google's mesh). The elevation model's ground there was grass."
     }
   ],
   "shallow": [
