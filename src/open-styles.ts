@@ -107,6 +107,12 @@ export interface ButterflyRoof {
   // raised bays across the roof, each `length` long with its middle at one of `at`: a covering
   // pitched both ways along the platform from a ridge across it, `ridge` over the platform
   lanterns?: { at: number[]; length: number; ridge: number };
+  // openings through the roof over the platform's middle ([s0, s1, u0, u1], u from the platform's
+  // line): the underside, the covering, the rafters and the lamps cut away, a beam in the fascia's
+  // colour round each, from the covering's top down to the beams' underside; across them, beams
+  // of the rafters' size at these `s` (`beams`), from `top` over the underside down, with the
+  // lamps under them (Kista's)
+  openings?: { at: [number, number, number, number][]; beams: number[]; top: number };
   // or vaulted bays along it, each `length` long from `from`: the underside and the covering arch
   // `rise` up from each bay's ends to its middle (a barrel across the platform), the beams along
   // it staying at the bays' ends' height, so that each bay's arch shows over the fascia
@@ -136,12 +142,16 @@ export interface ButterflyRoof {
     between?: [number, number]; gaps?: [number, number][]; braces?: number; casings?: { at: number[]; size: [number, number] }; offset?: number;
     edges?: number; cross?: [number, number]; ties?: number[];
     portal?: { spring: number; crown: number; top: number; bars?: number[]; pipe?: boolean; hole?: { at: number; r: number } };
+    // the columns of board-marked concrete, not steel, up to the beams over them
+    concrete?: boolean;
   };
   // rows of strip lights along the underside, `offset` either side of the beam (or at these `u`
   // across the roof's middle, or this far in from its edges, `edges`, however wide it is there):
   // fittings `length` long, `every` apart; `tube`, in a long round housing hung under the rafters;
-  // `across`, the fittings lying across the platform
-  lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean };
+  // `across`, the fittings lying across the platform; `start`, one of them at this `s` (by default
+  // half `every` in from `from`); `drop`, hung this far under the underside, in grey housings
+  // (under the rafters, or under beams across the roof)
+  lamps: { offset: number; length: number; every: number; at?: number[]; edges?: number; tube?: boolean; across?: boolean; start?: number; drop?: number };
   colors: { underside: number; fascia: number; top: number; steel: number };
   // the beams along the rows of columns this wide (0.2 m by default)
   beamWidth?: number;
@@ -453,7 +463,12 @@ export type Finish =
   | 'norsborgGlazed'  // glass in orange steel frames 1.2 m apart, a transom every 3 m
   | 'norsborgFascia'  // orange sheet metal, a dark edge along its top
   | 'norsborgRainbow' // broad bands of red, orange, yellow, green, blue and violet (the ceiling of Norsborg's underpass)
-  | 'shotcrete';      // grey concrete sprayed over blasted rock, rippled and streaked
+  | 'shotcrete'       // grey concrete sprayed over blasted rock, rippled and streaked
+  | 'kistaGlazed'     // glass in light-blue steel frames 1.2 m apart, a light-blue kick panel, a transom at 2.4 m (Kista's halls)
+  | 'kistaPanels'     // light-blue steel panels 1.2 m wide in thin dark joints, a door in one of each four (Kista's staff rooms)
+  | 'kistaPerforated' // light-blue sheet metal, finely perforated, in panels 1.2 m wide between dark frames
+  | 'kistaAggregate'  // exposed-aggregate concrete, warm grey, two rows of small white dots along its top at 3.45 and 3.7 m
+  | 'kistaParapet';   // dark grey-brown concrete, rough with its aggregate, streaked down from the top
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -503,7 +518,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil | Staves;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -611,6 +626,13 @@ export interface PrismRods { kind: 'prismRods'; rods: [[number, number, number],
 // radians, lying level, like a coiled spring bent round; its middle at s, u, `h` high, the arc's
 // chord along `yaw` (radians from the platform's line, to the right), hung on wires from a
 // ceiling `ceiling` high.
+// Lars Erik Falk's Modul skulptur at Kista (1980): staves of aluminium angles, each two angles
+// `flange` wide set back to back into a T, bare silver outside and painted `color` inside, all
+// leaning `lean` radians from upright towards +s, in rows along s on a low concrete plinth `foot`
+// high (on the platform by default, its top 0.1 m over it): each of `rows` [s, u, lengths], its
+// first stave's foot at s, u and the next ones `every` m on along s, each `lengths[k]` long.
+export interface Staves { kind: 'staves'; color: number; flange: number; lean: number; every: number; rows: [number, number, number[]][]; foot?: number }
+
 export interface Coil { kind: 'coil'; s: number; u: number; h: number; yaw: number; r: number; bend: number; turn: number; loops: number; band: number; ceiling: number }
 
 // The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
@@ -727,10 +749,11 @@ export interface EdgePaving { kind: 'edgePaving'; points: ([number, number] | [n
 
 // Round columns at the points ([s, u]), `size` across, from `from` up to `to`, in `color`; and
 // (`crown`) on each a funnel `h` deep, spreading to `size` across at its top, its sides lit from
-// within in upright stripes of one of `colors` in turn and white (Liljeholmen's).
+// within in upright stripes of one of `colors` in turn and white (Liljeholmen's); or square ones,
+// their sides in a finish (`square`).
 export interface Columns {
   kind: 'columns'; at: [number, number][]; from: number; to: number; size: number; color: number;
-  crown?: { h: number; size: number; colors: number[] };
+  crown?: { h: number; size: number; colors: number[] }; square?: Finish;
 }
 
 // A ceiling under a deck (Liljeholmen's): steel beams across the hall, painted `color`, `beam`
@@ -9257,6 +9280,145 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // of the northern track, west of the wall
       { h: [-1.0, 0.8], points: [[-100, 10.2], [34, 10.2]] },
       { h: [-1.2, 0.6], points: [[-80, -7.6], [-40, -8.8], [0, -9.9], [33, -10.4]] },
+    ],
+  },
+  // Kista (5 June 1977): the only one of the blue line's stations out in the open, on the 1.1 km
+  // viaduct between Hallonbergen and Husby, its island platform 177 m long and 23.5 m wide between
+  // the tracks' decks, 12 m over the bus terminal and Kista Galleria (Swedish Wikipedia;
+  // OpenStreetMap). Lantmäteriet's laser scan (2021) has the platform at 25.5 m and over it one long
+  // flat roof, its top at 29.35 m, from 91 m south-east of the platform's middle to 99 m north-west,
+  // with three openings over the middle of the platform, each 18 by 9.6 m and crossed by two beams,
+  // the beams every 6 m; on the roof two white boxes over the lifts. Photographs (2001 to 2026): the
+  // roof's steel painted light blue, girders along two rows of square columns of board-marked
+  // concrete and deep beams across them out to the edges, a ribbed silver deck between them, strip
+  // lights in grey housings hung across under the beams; grey asphalt with a pale edge and a dark
+  // strip for the blind; a block of staff rooms in light-blue panels, light-blue perforated
+  // windscreens and a casing of the same sheet (2026); dark parapets beyond the tracks. Through the
+  // openings rise Lars Erik Falk's Modul skulptur (1980): staves of aluminium angles, bare outside
+  // and painted inside, red in two of the openings and pale blue in the third, all leaning the same
+  // way on low plinths and ending 2 m to 3.7 m over the roof; two more stand under the deck at the
+  // bus terminal, red and dark green. Both ends of the platform are glazed halls in light-blue
+  // frames between the rows of columns, the platform's edges running on beside them: past the
+  // north-western one's gates, escalators go down to the hall over the footbridge, which runs under
+  // the south-western track's deck, faced there in exposed-aggregate concrete, out to Köpenhamns-
+  // gatan, and a stair on down to the bus terminal; past the south-eastern one's, escalators go down
+  // into the Galleria, along its indoor street to Kista torg, or on down to Vejlegatan.
+  //
+  // Not drawn: the booths, the signs and boards in the halls, the hall over the footbridge's
+  // north-eastern way into the Galleria, the round T on the deck's soffit, the beams under the deck,
+  // the bus terminal's shelters and seats. Guesses: the columns' size and the rows' places, the
+  // staves' number and lengths, the staff rooms' size and place, the levels under the platform (from
+  // the footbridge's deck and the square), the gallery along the north-eastern side and the piers.
+  'Kista': {
+    roof: {
+      kind: 'butterfly',
+      from: -91, to: 99, width: 24.3, offset: -0.35,
+      middle: 3.3, edge: 3.3, thick: 0.5, fascia: 0.6,
+      rafters: 6, rafterAt: -0.4, rafterSize: [0.3, 0.75], rafterColor: 0x8fb8c9, deck: 'ribbed',
+      beam: 0.75, beamWidth: 0.35,
+      openings: { at: [[-42.4, -24.4, -5.0, 4.6], [-0.4, 17.6, -5.0, 4.6], [41.6, 59.6, -5.0, 4.6]], beams: [-36.4, -30.4, 5.6, 11.6, 47.6, 53.6], top: 0.35 },
+      // (none in the north-western escalators' well, nor where the south-eastern lift stands)
+      columns: { every: 6, at: -0.4, size: 0.6, plinth: { size: 0.6, height: 0 }, pair: 13.2, offset: 0.15, concrete: true, gaps: [[80, 100], [-77, -75.8]] },
+      lamps: { offset: 0, at: [-8.95, -2.25, 2.55, 9.35], length: 1.5, every: 6, across: true, start: -0.4, drop: 0.87 },
+      colors: { underside: 0xb4b6b0, fascia: 0x8fb8c9, top: 0x4f5559, steel: 0x8fb8c9 },
+      // (the ways out as the signs of 2018 have them: the Galleria to the south-east, the bus
+      // terminal to the north-west)
+      signs: { at: [-15.4, 26.6], back: 'Kista Galleria', ahead: 'Bussterminal', beam: true, bottom: 2.62 },
+      clocks: [[-15.4, -9.3], [32.6, 8.6]],
+      // (trains keep left: those towards Akalla stop on the south-western track)
+      boards: [
+        { s: -9.4, u: -9.3, toward: 'Akalla', trains: ['11 Akalla  2 min', '11 Akalla  12 min'] },
+        { s: -9.4, u: 8.6, toward: 'Kungsträdgården', trains: ['11 Kungsträdgården  4 min', '11 Kungsträdgården  14 min'] },
+        { s: 26.6, u: -9.3, toward: 'Akalla', trains: ['11 Akalla  2 min', '11 Akalla  12 min'] },
+        { s: 32.6, u: -9.3, toward: 'Kungsträdgården', trains: ['11 Kungsträdgården  4 min', '11 Kungsträdgården  14 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.5, tactile: [0.5, 0.9], slabs: 0.9,
+      colors: { edge: 0xc4c0b8, tactile: 0x5c5552, slab: 0x85817b, pavers: 0x85817b, face: 0x8e8b85 },
+      pattern: 'asphalt',
+    },
+    // OpenStreetMap's roof over the bus terminal, which is the platform's deck
+    buildings: ['w266624931'],
+    rooms: [
+      { name: 'halls on the platform', s: [-71, 82], h: [-0.3, 0.3], walls: null, floor: null },
+      { name: 'north-western escalators', s: [80, 93], u: [0, 10], h: [-6.5, 0.3], walls: 'kistaGlazed', stairs: 'boardConcrete', ceiling: 'whitePerforated' },
+      { name: 'stair down to the bus terminal', s: [74, 101], u: [-12, -6], h: [-12, -5.9], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'pavers' },
+      { name: 'passage under the track', s: [105, 112], u: [-18.1, -7.9], h: [-6.5, -5.5], walls: 'kistaGlazed', floor: 'darkTiles', ceiling: 'whitePerforated', roof: 0.3, slab: 0.5 },
+      { name: 'footbridge', s: [105, 112], u: [-40, -18], h: [-6.5, -4.5], walls: null, floor: 'asphalt', slab: 0.6 },
+      { name: 'hall over the footbridge', s: [88, 112], u: [-11, 10], h: [-6.5, -5.5], walls: 'kistaGlazed', floor: 'darkTiles', ceiling: 'whitePerforated', roof: 0.35, slab: 0.5 },
+      { name: 'south-eastern escalators', s: [-84, -69], u: [-6, 3], h: [-7.5, 0.3], walls: 'kistaGlazed', stairs: 'boardConcrete', ceiling: 'whitePerforated' },
+      { name: 'Kistagången', s: [-98, -91], u: [-27, -2.9], h: [-7.5, -6.5], walls: 'shopWindows', floor: 'terrazzo', ceiling: 'whitePerforated' },
+      { name: 'hall in the Galleria', s: [-101, -82], h: [-7.5, -6.5], walls: 'terrazzo', floor: 'darkTiles', ceiling: 'whitePerforated' },
+      { name: 'escalators down to Vejlegatan', s: [-110, -99], h: [-12.6, -6.5], walls: 'terrazzo', stairs: 'terrazzo', ceiling: 'whitePerforated' },
+      { name: 'passage to Vejlegatan', s: [-135, -109], h: [-12.6, -11.9], walls: 'shopWindows', floor: 'terrazzo', ceiling: 'whitePerforated' },
+    ],
+    blocks: [
+      // the glazed halls on the platform, between the rows of columns, their floors dark tiles: the
+      // north-western one open at its end to the glass over the escalators' well, which stands on
+      // the roof of the hall over the footbridge; the south-eastern one's gable over the Galleria
+      { name: 'north-western hall', plan: [[61.0, -7.6], [88.9, -7.6], [88.9, 9.4], [61.0, 9.4]], h: [0.02, 3.3], from: 0.02,
+        walls: 'kistaGlazed', sides: [undefined, null, undefined, undefined], floor: 'darkTiles' },
+      { name: "glass over the escalators' well", plan: [[88.9, -7.6], [99.0, -7.6], [99.0, 9.4], [88.9, 9.4]], h: [-2.75, 3.3], from: -2.75,
+        walls: 'kistaGlazed', sides: [undefined, undefined, undefined, null] },
+      { name: 'south-eastern hall', plan: [[-91.0, -7.6], [-45.4, -7.6], [-45.4, 6.0], [-91.0, 6.0]], h: [0.02, 3.3], from: 0.02,
+        walls: 'kistaGlazed', floor: 'darkTiles' },
+      { name: "south-eastern gable's foot", plan: [[-91.1, -7.6], [-90.9, -7.6], [-90.9, 6.0], [-91.1, 6.0]], h: [-2.3, 0.02], from: -2.3, walls: 'kistaGlazed' },
+      { name: 'deck beyond the platform', plan: [[-91.0, -11.6], [-88.3, -11.6], [-88.3, 11.9], [-91.0, 11.9]], h: [-0.6, -0.03], from: -0.6,
+        walls: 'boardConcrete', roof: 0.03, roofColor: 0x85817b },
+      // the lifts: their shafts, and the white boxes over them on the roof
+      { name: 'north-western lifts', plan: [[86.8, -5.6], [90.2, -5.6], [90.2, -0.8], [86.8, -0.8]], h: [-11.6, 3.3], from: -11.6, walls: 'kistaPerforated' },
+      { name: 'south-eastern lift', plan: [[-77.9, -8.4], [-74.9, -8.4], [-74.9, -5.4], [-77.9, -5.4]], h: [-7.0, 3.3], from: -7.0, walls: 'kistaGlazed' },
+      { name: "north-western lifts' box", plan: [[84.0, -8.0], [91.0, -8.0], [91.0, -1.5], [84.0, -1.5]], h: [3.8, 6.9], from: 3.8, walls: 'whitePanels', roof: 0.2, roofColor: 0xd8d8d4 },
+      { name: "south-eastern lift's box", plan: [[-78.5, -9.0], [-71.0, -9.0], [-71.0, -1.0], [-78.5, -1.0]], h: [3.8, 6.9], from: 3.8, walls: 'whitePanels', roof: 0.2, roofColor: 0xd8d8d4 },
+      // on the platform: the staff rooms, the perforated casing before them and the windscreens
+      { name: 'staff rooms', plan: [[-22.4, -5.4], [-10.4, -5.4], [-10.4, 5.0], [-22.4, 5.0]], h: [0, 2.55], walls: 'kistaPanels', roof: 0.05, roofColor: 0x8db6c8, onPlatform: true },
+      { name: 'casing', plan: [[-1.9, -0.7], [-0.9, -0.7], [-0.9, 0.3], [-1.9, 0.3]], h: [0, 3.3], walls: 'kistaPerforated', onPlatform: true },
+      ...([[-5.5, -6.3, -5.0], [-5.5, 4.6, 5.9], [27.5, -6.3, -5.0], [27.5, 4.6, 5.9]] as const).map(([s, u0, u1]): Block => ({
+        name: 'windscreen', plan: [[s - 0.03, u0], [s + 0.03, u0], [s + 0.03, u1], [s - 0.03, u1]], h: [0, 2.3], walls: 'kistaPerforated', onPlatform: true })),
+      // the parapets beyond the tracks: solid along the south-western deck, low along the
+      // north-eastern one
+      { name: 'south-western parapet', plan: [[-100, -16.45], [130, -16.05], [130, -15.8], [-100, -16.2]], h: [-1.6, 0.36], from: -1.6,
+        walls: 'kistaParapet', roof: 0.05, roofColor: 0x4e4844 },
+      { name: 'north-eastern parapet', plan: [[-100, 15.85], [130, 16.25], [130, 16.5], [-100, 16.1]], h: [-1.6, -0.3], from: -1.6,
+        walls: 'kistaParapet', roof: 0.05, roofColor: 0x4e4844 },
+      // the deep fascia of exposed aggregate on the south-western deck over the hall at the
+      // footbridge, with the name over its way in
+      { name: 'fascia', plan: [[92, -16.42], [118, -16.30], [118, -16.0], [92, -16.12]], h: [-3.6, 0.36], from: -3.6,
+        walls: 'kistaAggregate', roof: 0.05, roofColor: 0x8a8076, nameSign: { side: 0, at: 0.63, length: 3.6, bottom: -3.55 } },
+      // the gallery along the north-eastern side, over the bus terminal
+      { name: "gallery's deck", plan: [[15, 11.6], [110.7, 11.6], [110.7, 14.4], [15, 14.4]], h: [-6.6, -6.12], from: -6.6,
+        walls: 'boardConcrete', roof: 0.02, roofColor: 0x9a968f },
+      { name: "gallery's parapet", plan: [[15, 14.2], [110.7, 14.2], [110.7, 14.4], [15, 14.4]], h: [-6.1, -5.0], from: -6.1,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x9a968f },
+    ],
+    art: [
+      // Falk's staves in the three openings, and the two under the deck at the bus terminal
+      { kind: 'staves', color: 0x9a2a33, flange: 0.12, lean: 0.3, every: 0.9, rows: [
+        [-36.6, -1.0, [6.0, 5.4, 6.2, 5.6, 5.9]], [-36.3, -0.1, [5.6, 6.1, 5.3, 6.0, 5.5]], [-36.0, 0.8, [5.9, 5.5, 6.1, 5.4, 5.9]],
+        [5.5, -0.6, [5.8, 6.1, 5.5, 6.1, 5.7]], [5.9, 0.4, [5.4, 6.0, 4.8, 5.9, 5.2]],
+      ] },
+      { kind: 'staves', color: 0x9cc3d8, flange: 0.12, lean: 0.3, every: 0.9, rows: [
+        [41.4, -3.6, [7.8, 6.6, 7.4, 6.2]], [41.6, -2.6, [6.4, 7.6, 6.0, 7.2]], [41.5, -1.6, [7.0, 6.2, 7.8, 6.6]],
+      ] },
+      { kind: 'staves', color: 0x9a2a33, flange: 0.12, lean: 0.08, every: 0.9, foot: -12.1, rows: [[10.0, 1.5, [9.4]]] },
+      { kind: 'staves', color: 0x2f5a3c, flange: 0.12, lean: 0.08, every: 0.9, foot: -12.1, rows: [[12.6, 1.5, [9.4]]] },
+      // under the deck: square columns of board-marked concrete under the platform, round piers
+      // under the tracks' decks, and thin light-blue posts under the gallery
+      { kind: 'columns', square: 'uprightBoards', color: 0x9d9a93, size: 0.8, from: -13.0, to: -2.6,
+        at: [-12.4, -0.4, 11.6, 23.6, 35.6, 47.6, 59.6, 71.6, 83.6].flatMap((s): [number, number][] => s === 83.6 ? [[s, 6.4]] : [[s, -6.8], [s, 6.4]]) },
+      { kind: 'columns', color: 0x9d9a93, size: 1.4, from: -13.5, to: -2.6,
+        at: [-12, 12, 36, 60, 84, 108, 132].flatMap((s): [number, number][] => s === 108 ? [[s, 15.4]] : [[s, -15.4], [s, 15.4]]) },
+      { kind: 'columns', color: 0x8fb8c9, size: 0.2, from: -13.0, to: -6.6, at: [21, 33, 45, 57, 69, 81, 93, 105].map((s): [number, number] => [s, 14.2]) },
+      // the halls' dark tiles (lights in them are the roof's)
+    ],
+    fences: [
+      // steel rails over the parapets
+      { kind: 'rails', color: 0x6e7276, h: [0.36, 1.2], points: [[-100, -16.3], [130, -15.9]] },
+      { kind: 'rails', color: 0x6e7276, h: [-0.3, 0.8], points: [[-100, 15.97], [130, 16.37]] },
+      // along the footbridge, from the passage under the track out to Köpenhamnsgatan
+      { kind: 'bars', color: 0x8f9498, h: [-6.1, -5.0], points: [[106.3, -18.1, 0], [106.3, -35, 1.15], [106.3, -37, 1.19]] },
+      { kind: 'bars', color: 0x8f9498, h: [-6.1, -5.0], points: [[110.5, -18.1, 0], [110.5, -35, 1.15], [110.5, -37, 1.19]] },
     ],
   },
 };

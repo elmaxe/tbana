@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil, Staves } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -323,6 +323,7 @@ export class OpenLook {
       else if (a.kind === 'discs') this.discs(a, frame, on);
       else if (a.kind === 'prismRods') this.prismRods(a, frame, group);
       else if (a.kind === 'coil') this.coil(a, frame, on);
+      else if (a.kind === 'staves') this.staves(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -805,6 +806,17 @@ export class OpenLook {
   private roundColumns(a: Columns, frame: Frame, on: On) {
     const m = on(this.color(a.color, 0.85, 0)), C = a.crown;
     a.at.forEach(([s, u], k) => {
+      if (a.square) {
+        // (its sides, the finish in metres over its repeat)
+        const f = on(this.finish(a.square)), [fw, fh] = T.FINISH_SIZE[a.square], e = a.size / 2;
+        const sq: [number, number][] = [[-e, -e], [e, -e], [e, e], [-e, e]];
+        for (let i = 0; i < 4; i++) {
+          const [p0, q0] = sq[i], [p1, q1] = sq[(i + 1) % 4];
+          f.poly([[...frame.at(s + p0, u + q0, a.from), i * a.size / fw, a.from / fh], [...frame.at(s + p1, u + q1, a.from), (i + 1) * a.size / fw, a.from / fh],
+            [...frame.at(s + p1, u + q1, a.to), (i + 1) * a.size / fw, a.to / fh], [...frame.at(s + p0, u + q0, a.to), i * a.size / fw, a.to / fh]]);
+        }
+        return;
+      }
       limb(m, frame.at(s, u, a.from), frame.at(s, u, C ? a.to - C.h : a.to), a.size, a.size);
       if (!C) return;
       // the funnel, from the column's top out to its rim, and a dark disc over it
@@ -1113,6 +1125,15 @@ export class OpenLook {
     const n = B ? Math.round((R.to - R.from) / B.length) * 12 : Math.max(1, Math.ceil((R.to - R.from) / 2.5));
     const S = (i: number) => R.from + ((R.to - R.from) * i) / n;
     const lip = R.thick - R.fascia, crest = R.thick + 0.05;
+    // (the openings through it, which cut its underside and covering away)
+    const openings = (R.openings?.at ?? []).map(([s0, s1, u0, u1]) => [s0, s1, u0 - line.middle(s0), u1 - line.middle(s0)]);
+    const hole = (down: number) => openings.map(([s0, s1, u0, u1]) => {
+      const c = ([[s0, u0], [s1, u0], [s1, u1], [s0, u1]] as const).map(([s, u]): [number, number] => { const p = line.at(s, u, 0); return [p[0], p[2]]; });
+      const y = line.at((s0 + s1) / 2, 0, 0)[1];
+      return prism(c, c.map(() => y + R.middle - down), c.map(() => y + R.middle + R.thick + 0.3));
+    });
+    // (and down past the rafters and the lamps under them)
+    const holed = cut.concat(hole(0.3)), deep = cut.concat(hole(2));
     // the rows of columns across the roof at s, and the beams along them
     const C = R.columns, mid = C.offset ?? 0, bw = R.beamWidth ?? 0.2;
     const knot = (s: number, k: 1 | 2) => {
@@ -1133,8 +1154,8 @@ export class OpenLook {
         // the boarding under it (u across, the boards along it; or the ribs across it), and the
         // covering over it
         const q = (s: number, u: number, dh: number) => [...line.at(s, u, h(u, s) + dh), ...(across ? [s, u / 2.4] : [u, s / 2.4])];
-        under.poly([q(s0, 0, 0), q(s0, e0, 0), q(s1, e1, 0), q(s1, 0, 0)], cut);
-        if (!covered) top.poly([q(s0, 0, R.thick), q(s0, e0, R.thick), q(s1, e1, R.thick), q(s1, 0, R.thick)], cut);
+        under.poly([q(s0, 0, 0), q(s0, e0, 0), q(s1, e1, 0), q(s1, 0, 0)], holed);
+        if (!covered) top.poly([q(s0, 0, R.thick), q(s0, e0, R.thick), q(s1, e1, R.thick), q(s1, 0, R.thick)], holed);
         // the fascia along its edge, down past the underside and back in under it
         const p = (s: number, u: number, dh: number) => [...line.at(s, u, (R.lean ? h(side * half(s), s) : R.edge + lift(s)) + dh), 0, 0];
         const i0 = e0 - side * 0.05, i1 = e1 - side * 0.05;
@@ -1185,13 +1206,23 @@ export class OpenLook {
     const [rw, rd] = R.rafterSize ?? [0.05, 0.1], rafter = R.rafterColor !== undefined ? on(this.color(R.rafterColor, 0.5, 0.4)) : under;
     const r0 = R.rafterAt !== undefined ? R.rafterAt - Math.floor((R.rafterAt - R.from) / R.rafters) * R.rafters : R.from + R.rafters / 2;
     for (let s = r0; s < R.to; s += R.rafters) {
-      for (const side of [-1, 1]) bar(rafter, line.at(s, 0, h(0, s)), line.at(s, side * (half(s) - 0.05), h(half(s) - 0.05, s)), rw, rd, cut);
+      for (const side of [-1, 1]) bar(rafter, line.at(s, 0, h(0, s)), line.at(s, side * (half(s) - 0.05), h(half(s) - 0.05, s)), rw, rd, deep);
+    }
+    // a beam round each opening, from the covering's top down to the beams' underside (just over
+    // the beams' along the rows of columns, under its long sides), and the beams across it
+    for (const [s0, s1, u0, u1] of openings) {
+      const w = 0.3, d = crest + R.beam - 0.01, y = (s: number, u: number) => h(u, s) + crest;
+      for (const u of [u0 - w / 2, u1 + w / 2]) bar(fascia, line.at(s0 - w, u, y(u, s0)), line.at(s1 + w, u, y(u, s1)), w, d, cut);
+      for (const s of [s0 - w / 2, s1 + w / 2]) bar(fascia, line.at(s, u0, y(u0, s)), line.at(s, u1, y(u1, s)), w, d, cut);
+      const top = R.openings!.top;
+      for (const s of R.openings!.beams) if (s > s0 && s < s1) bar(rafter, line.at(s, u0, h(u0, s) + top), line.at(s, u1, h(u1, s) + top), rw, top + rd, cut);
     }
     // strip lights, hung under the rafters (lying along the platform, or across it); or in a long
     // round housing, hung lower
     const L = R.lamps, lampRows = (s: number) => L.edges !== undefined ? [-(half(s) - L.edges), half(s) - L.edges] : L.at ?? [-L.offset, L.offset];
-    const housing = L.tube ? on(this.color(0xdcdedd, 0.4, 0.5)) : under, drop = L.tube ? rd + 0.25 : 0.13;
-    for (let s = R.from + L.every / 2; s < R.to; s += L.every) for (const u of lampRows(s)) {
+    const housing = L.tube || L.drop !== undefined ? on(this.color(0xdcdedd, 0.4, 0.5)) : under, drop = L.drop ?? (L.tube ? rd + 0.25 : 0.13);
+    const first = L.start !== undefined ? L.start - Math.floor((L.start - R.from) / L.every) * L.every : R.from + L.every / 2;
+    for (let s = first; s < R.to; s += L.every) for (const u of lampRows(s)) {
       const [fx, fz] = line.dir(s);
       if (L.across) {
         // (kept in from the roof's edge where it narrows; from the lower end of the fitting, the
@@ -1199,15 +1230,22 @@ export class OpenLook {
         const a = Math.max(0.3, Math.abs(u) - L.length / 2), b = Math.min(half(s) - 0.4, Math.abs(u) + L.length / 2);
         if (b - a < 0.6) continue;
         const c = Math.sign(u) * (a + b) / 2, y = h(a, s) - drop;
-        box(under, line.at(s, c, y), fx, fz, b - a + 0.05, 0.05, 0.16, cut);
-        box(lamp, line.at(s, c, y - 0.03), fx, fz, b - a, 0.02, 0.1, cut);
+        box(housing, line.at(s, c, y), fx, fz, b - a + 0.05, 0.05, 0.16, deep);
+        box(lamp, line.at(s, c, y - 0.03), fx, fz, b - a, 0.02, 0.1, deep);
         continue;
       }
       if (L.tube) box(housing, line.at(s, u, h(u, s) - drop), fx, fz, 0.26, 0.2, L.every, cut);
-      else box(under, line.at(s, u, h(u, s) - drop), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
+      else box(housing, line.at(s, u, h(u, s) - drop), fx, fz, 0.16, 0.05, L.length + 0.05, cut);
       box(lamp, line.at(s, u, h(u, s) - drop - (L.tube ? 0.1 : 0.03)), fx, fz, L.tube ? 0.16 : 0.1, 0.02, L.length, cut);
     }
     if (L.tube) for (let s = R.from + 1; s < R.to; s += R.rafters * 2) for (const u of lampRows(s)) box(steel, line.at(s, u, h(u, s) - (drop - 0.1) / 2), ...line.dir(s), 0.03, drop - 0.1, 0.03, cut);
+    // (and under the beams across the openings, lying across them)
+    if (L.across) for (const [s0, s1, u0, u1] of openings) for (const s of R.openings!.beams) if (s > s0 && s < s1) for (const u of lampRows(s)) {
+      if (u - L.length / 2 < u0 + 0.3 || u + L.length / 2 > u1 - 0.3) continue;
+      const [fx, fz] = line.dir(s), y = h(u, s) - drop;
+      box(housing, line.at(s, u, y), fx, fz, L.length + 0.05, 0.05, 0.16, cut);
+      box(lamp, line.at(s, u, y - 0.03), fx, fz, L.length, 0.02, 0.1, cut);
+    }
     // the columns, on plinths, under the beams; a casing round those with a sculpture beside them,
     // and those the roof cases; a beam across over each pair, the columns on up through it to the
     // rafters
@@ -1217,9 +1255,18 @@ export class OpenLook {
       const cased = art ? art.casing : C.casings?.at.some((c) => Math.abs(c - s) < 0.5) ? C.casings.size : null;
       for (const w of rows(s)) for (const t of C.twin ? [s - C.twin / 2, s + C.twin / 2] : [s]) for (const u of C.across ? [w - C.across / 2, w + C.across / 2] : [w]) {
         const top = C.cross ? h(w, t) - rd : h(w, t) - R.beam;
-        box(concrete, line.at(t, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
+        if (C.plinth.height > 0) box(concrete, line.at(t, u, C.plinth.height / 2), fx, fz, C.plinth.size, C.plinth.height, C.plinth.size, cut);
         if (cased) box(casing, line.at(t, u, top / 2), fx, fz, cased[0], top, cased[1], cut);
-        else box(steel, line.at(t, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
+        else if (C.concrete) {
+          // (its sides, the boards' marks in metres over the finish's repeat)
+          const m = on(this.finish('uprightBoards')), [fw, fh] = T.FINISH_SIZE.uprightBoards, e = C.size / 2, h0 = C.plinth.height;
+          const sq: [number, number][] = [[-e, -e], [e, -e], [e, e], [-e, e]];
+          for (let k = 0; k < 4; k++) {
+            const [p0, q0] = sq[k], [p1, q1] = sq[(k + 1) % 4], v = (y: number) => y / fh;
+            m.poly([[...line.at(t + p0, u + q0, h0), k * C.size / fw, v(h0)], [...line.at(t + p1, u + q1, h0), (k + 1) * C.size / fw, v(h0)],
+              [...line.at(t + p1, u + q1, top), (k + 1) * C.size / fw, v(top)], [...line.at(t + p0, u + q0, top), k * C.size / fw, v(top)]], cut);
+          }
+        } else box(steel, line.at(t, u, (C.plinth.height + top) / 2), fx, fz, C.size, top - C.plinth.height, C.size, cut);
         // knee braces up to the beam, either way along it
         if (C.braces) for (const k of [-1, 1]) bar(steel, line.at(s, u, top - C.braces), line.at(s + k * C.braces, u, top), 0.08, 0.1, cut);
       }
@@ -1915,6 +1962,36 @@ export class OpenLook {
     for (const f of [-a.turn * 0.35, -a.turn * 0.1, a.turn * 0.1, a.turn * 0.35]) {
       const top = P(f, Math.PI / 2);
       box(wire, [top[0], (top[1] + frame.st.platformY + a.ceiling) / 2, top[2]], 1, 0, 0.01, frame.st.platformY + a.ceiling - top[1], 0.01);
+    }
+  }
+
+  // Falk's staves: each a T of two angles back to back, the flanges' outer faces bare and their
+  // inner faces painted, leaning along the platform from a low plinth under each row.
+  private staves(a: Staves, frame: Frame, on: On) {
+    const bare = on(this.color(0xb4b6b3, 0.35, 0.6)), paint = on(this.color(a.color, 0.5, 0.2));
+    const concrete = on(this.mat('plinth', () => new THREE.MeshStandardMaterial({ map: T.concrete(21, 170), color: 0xb5b1a9, roughness: 0.9, side: THREE.DoubleSide })));
+    const foot = a.foot ?? 0, f = a.flange, t = 0.008, ls = Math.sin(a.lean), lc = Math.cos(a.lean);
+    for (const [s0, u0, lengths] of a.rows) {
+      const n = lengths.length, len = (n - 1) * a.every;
+      box(concrete, frame.at(s0 + len / 2, u0, foot + 0.05), frame.fx, frame.fz, f * 2 + 0.3, 0.1, len + f * 2 + 0.5);
+      lengths.forEach((L, k) => {
+        const s = s0 + k * a.every;
+        // a point x across the stave (along s, square to its lean), y across the platform and z
+        // up along it, from its foot on the plinth
+        const P = (x: number, y: number, z: number) => frame.at(s + x * lc + z * ls, u0 + y, foot + 0.05 - x * ls + z * lc);
+        const face = (m: Mesh, a0: [number, number], a1: [number, number]) => m.poly([[...P(...a0, 0), 0, 0], [...P(...a1, 0), 1, 0], [...P(...a1, L), 1, 1], [...P(...a0, L), 0, 1]]);
+        // the T's bar along s (the angles' outer legs, side by side) and its stem across the
+        // platform (their other legs, back to back): the outsides bare, the insides painted
+        for (const k of [-1, 1]) {
+          face(bare, [0, 0], [k * f, 0]);
+          face(paint, [k * t, t], [k * f, t]);
+          face(bare, [k * f, 0], [k * f, t]);
+          face(paint, [k * t, t], [k * t, f]);
+          face(bare, [0, f], [k * t, f]);
+          bare.poly([[...P(0, 0, L), 0, 0], [...P(k * f, 0, L), 1, 0], [...P(k * f, t, L), 1, 1], [...P(0, t, L), 0, 1]]);
+          bare.poly([[...P(0, t, L), 0, 0], [...P(k * t, t, L), 1, 0], [...P(k * t, f, L), 1, 1], [...P(0, f, L), 0, 1]]);
+        }
+      });
     }
   }
 

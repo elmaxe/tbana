@@ -6,7 +6,8 @@ import { DETAIL_ON } from './areas.ts';
 // (src/detail/ropsten-station.ts), Brommaplan's two decks over the square and its ticket hall,
 // whose round piers and railings the station's style draws (src/open-styles.ts), Åkeshov's
 // three over its ticket hall and the underpass, which stand on the hall's walls, and Bredäng's
-// over Bredängs Allé and the square, whose piers and railings its style draws too. Within
+// over Bredängs Allé and the square, whose piers and railings its style draws too, and Kista's
+// over the bus terminal and Kistagången, whose piers, columns and parapets its style draws. Within
 // `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along
 // its decks and the lamps over its platforms, and keeps the player off its platforms where the
 // `solids` stand on them. Like src/detail/areas.ts it imports next to nothing, for the network.
@@ -32,6 +33,8 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Åkeshov', at: [-7602.6, -1167.8], r: 24, solids: [] },
   // (from 25 m west of Bredäng's platform's west tip to 155 m east of it)
   { name: 'Bredäng', at: [-7175.3, 4095.8], r: 90, solids: [] },
+  // (from 103 m south-east of Kista's platform's middle to 133 m north-west of it)
+  { name: 'Kista', at: [-6623.21, -7958.56], r: 118, solids: [] },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

@@ -6021,9 +6021,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   albyFront: [2.2, 5.6],
   hallundaFloor: [2.4, 2.4], hallundaCeiling: [2.4, 2.4], hallundaSoffit: [2.4, 2.4], hallundaGlazed: [1.2, 3.0], hallundaMesh: [2.4, 3.0], hallundaFront: [3.0, 5.0],
   hallundaFascia: [2.4, 1.2], norsborgCeiling: [4.8, 4.8], norsborgGlazed: [1.2, 3.0], norsborgFascia: [2.4, 1.2], norsborgRainbow: [6.0, 1.2], shotcrete: [6.0, 6.0],
+  kistaGlazed: [1.2, 3.0], kistaPanels: [4.8, 3.0], kistaPerforated: [1.2, 3.0], kistaAggregate: [2.4, 4.0], kistaParapet: [2.4, 2.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -9391,6 +9392,66 @@ export function finish(name: Finish) {
         if (sy + len > H) x.fillRect(sx, sy - H, 1 + r() * 2, len);
       }
       speckle(x, W, H, 9000, 0.1, 40);
+      break;
+    }
+    case 'kistaGlazed': {
+      // Kista's glazed halls: glass in light-blue steel frames 1.2 m apart, a light-blue kick
+      // panel, a transom at 2.4 m (photographs, 2001 to 2018)
+      const b = '#8fb8c9';
+      pane(0, 3, b, 0.1); band(0, 0.15, b); band(2.36, 2.44, b); band(2.94, 3, b);
+      x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.06 * PX, Y(2.3), 2, 2.1 * PX);
+      break;
+    }
+    case 'kistaPanels': {
+      // the staff rooms on Kista's platform: light-blue painted steel panels 1.2 m wide in thin
+      // dark joints, and a door in one of each four, with a dark handle (photographs, 2018, 2026)
+      x.fillStyle = '#8db6c8'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 1.2 * PX < W; i++) {
+        x.fillStyle = 'rgba(40,62,72,0.45)'; x.fillRect(i * 1.2 * PX, 0, 2, H);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * 1.2 * PX + 3, 0, 0.3 * PX, H);
+      }
+      const d = 1.3 * PX;
+      x.fillStyle = 'rgba(40,62,72,0.55)'; x.strokeStyle = 'rgba(40,62,72,0.55)'; x.lineWidth = 2;
+      x.strokeRect(d, Y(2.1), 0.95 * PX, 2.1 * PX);
+      x.fillStyle = '#2e3134'; x.fillRect(d + 0.8 * PX, Y(1.08), 0.1 * PX, 0.03 * PX);
+      x.fillStyle = 'rgba(40,62,72,0.3)'; x.fillRect(0, Y(2.95), W, 2);
+      break;
+    }
+    case 'kistaPerforated': {
+      // Kista's windscreens and the casings on its platform: light-blue sheet metal, finely
+      // perforated, in panels 1.2 m wide between dark frames (photograph, 2026)
+      x.fillStyle = '#8fb8c9'; x.fillRect(0, 0, W, H);
+      x.clearRect(0.05 * PX, 0.05 * PX, W - 0.1 * PX, H - 0.1 * PX);
+      x.fillStyle = 'rgba(143,184,201,0.78)'; x.fillRect(0.05 * PX, 0.05 * PX, W - 0.1 * PX, H - 0.1 * PX);
+      x.fillStyle = 'rgba(48,70,80,0.55)';
+      for (let j = 0.06 * PX; j < H - 0.06 * PX; j += 4) for (let i = 0.06 * PX + ((j / 4) % 2 ? 2 : 0); i < W - 0.06 * PX; i += 4) x.fillRect(i, j, 1.3, 1.3);
+      x.fillStyle = '#26292c'; x.fillRect(0, 0, 0.03 * PX, H); x.fillRect(W - 0.03 * PX, 0, 0.03 * PX, H);
+      break;
+    }
+    case 'kistaParapet': {
+      // the parapets along Kista's viaduct: dark grey-brown concrete, rough with its aggregate,
+      // in lengths 2.4 m long, streaked down from the top (photographs, 2014 to 2018)
+      x.fillStyle = '#5a534e'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 7000; i++) {
+        const v = Math.floor(r() * 44) - 22;
+        x.fillStyle = `rgba(${92 + v},${85 + v},${79 + v},0.8)`; x.fillRect(r() * W, r() * H, 1.5 + r() * 2, 1.5 + r() * 2);
+      }
+      for (let i = 0; i < 40; i++) { x.fillStyle = 'rgba(40,36,34,0.12)'; x.fillRect(r() * W, 0, 2 + r() * 6, (0.4 + r() * 1.6) * PX); }
+      x.fillStyle = 'rgba(30,28,26,0.5)'; x.fillRect(0, 0, 2, H);
+      break;
+    }
+    case 'kistaAggregate': {
+      // the deep fascia at Kista's north-western end: exposed-aggregate concrete, warm grey with
+      // pebbles showing, in panels 2.4 m wide, and two rows of small white dots along its top
+      // (photographs, 2025)
+      x.fillStyle = '#a3978a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 9000; i++) {
+        const v = Math.floor(r() * 60) - 30;
+        x.fillStyle = `rgba(${150 + v},${140 + v},${128 + v},0.8)`; x.fillRect(r() * W, r() * H, 1.5 + r() * 2.5, 1.5 + r() * 2.5);
+      }
+      x.fillStyle = 'rgba(60,54,48,0.4)'; x.fillRect(0, 0, 2, H);
+      x.fillStyle = '#e8e6e0';
+      for (const h of [3.45, 3.7]) for (let s = 0.3; s < 2.4; s += 0.6) { x.beginPath(); x.arc(s * PX, Y(h), 0.035 * PX, 0, Math.PI * 2); x.fill(); }
       break;
     }
     case 'skhEndWall': {

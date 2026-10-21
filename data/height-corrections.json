@@ -103,8 +103,8 @@
     },
     {
       "station": "Kista",
-      "depth": -7.5,
-      "why": "Wikidata's 10 m is below the viaduct the station stands on, the only one of the blue line's in the open (Swedish Wikipedia), over the bus terminal and the streets around it, which are at 12–15 m. The platform is taken to be a storey and a half above the ground under it."
+      "height": 25.55,
+      "why": "The only one of the blue line's stations in the open, on the viaduct over the bus terminal and Kista Galleria (Swedish Wikipedia). Wikidata's 10 m is neither the platform nor the streets under it (13.2–14.3 m). Lantmäteriet's laser scan (2021) has the platform's surface at 25.45–25.6 m through the openings in its roof, and the tracks' decks beside it at 24.1–24.35 m, level with the viaduct's from 0.7 km south-east of the station to 0.3 km north-west of it; it had been taken to be a storey and a half over the ground, 4 m too low."
     },
     {
       "station": "Vällingby",

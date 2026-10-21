@@ -3510,17 +3510,52 @@
     },
     "Kista": {
       "drawing": "kista.png",
-      "note": "The only station of the blue line in the open: a wide island platform on Kistaviadukten. From its north end stairs go down to the ticket hall under the viaduct, at the bus terminal.",
+      "note": "The only station of the blue line in the open (1977): a wide island platform on the viaduct over the bus terminal and Kista Galleria, each track on a deck of its own, under one long flat roof on light-blue steel, open at the sides, with three openings over the platform's middle that Lars Erik Falk's leaning staves rise through. Both ends are glazed ticket halls on the platform: past the north-western one's gates escalators and a stair go down to the footbridge's level, which runs under the tracks to Köpenhamnsgatan, and a stair on down to the bus terminal; past the south-eastern one's, escalators go down into the Galleria, along its indoor street to Kista torg, or on down to Vejlegatan. From OpenStreetMap (the platform, the gates, the escalators, the entrances), Lantmäteriet's laser scan (the platform at 25.5 m, the roof at 29.35 m, the decks, the footbridge, the streets and the square) and photographs (2001 to 2026). The levels under the platform are guesses from the footbridge's deck and the square.",
       "routes": [
-        { "from": [70, 0], "width": 5, "go": [
-          {"stairs": -6.5, "toward": [110, 0]},
-          {"walk": [100, 0], "width": 6},
+        { "from": [57.5, 2.3], "width": 3.0, "go": [
+          {"walk": [61.4, 2.3], "open": true, "edges": false},
+          {"walk": [73.3, 2.3], "width": 12.6, "open": true, "edges": false},
           {"gates": true},
-          {"mark": "hall"},
-          {"exit": 1814905594}
+          {"walk": [81.2, 2.3], "open": true, "edges": false}
         ] },
-        { "from": "hall", "width": 4, "go": [
-          {"exit": 13737050201}
+        { "from": [81.2, 5.1], "width": 7.6, "go": [
+          {"escalators": -6.1, "toward": [300, 5.1], "lanes": "ESE", "open": true},
+          {"walk": [104.6, 5.1], "ceiling": 3.0}
+        ] },
+        { "from": [100.5, -1.0], "h": -6.1, "width": 19.0, "go": [
+          {"walk": [111.0, -1.0], "ceiling": 3.0}
+        ] },
+        { "from": [108.4, -8.0], "h": -6.1, "width": 4.0, "go": [
+          {"walk": [108.4, -18.0], "ceiling": 3.0},
+          {"walk": [108.4, -35.0], "dh": 1.15, "open": true, "daylight": true},
+          {"exit": {"at": [108.4, -37.0], "name": "Köpenhamnsgatan"}, "by": "walk", "open": true}
+        ] },
+        { "from": [100.5, -8.9], "h": -6.1, "width": 4.2, "go": [
+          {"stairs": -5.25, "toward": [-300, -8.9], "lanes": "Es", "daylight": true},
+          {"walk": [77.6, -8.9], "open": true, "daylight": true},
+          {"exit": {"at": [75.6, -8.9], "name": "Bussterminalen"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-41.0, -1.0], "width": 4.0, "go": [
+          {"walk": [-46.6, -1.0], "open": true, "edges": false},
+          {"walk": [-54.2, -1.0], "width": 12.0, "open": true, "edges": false},
+          {"gates": true},
+          {"walk": [-70.5, -1.0], "open": true, "edges": false}
+        ] },
+        { "from": [-70.5, -1.6], "width": 7.0, "go": [
+          {"escalators": -7.0, "toward": [-300, -1.6], "lanes": "ESE", "open": true},
+          {"walk": [-91.5, -1.6], "ceiling": 3.5}
+        ] },
+        { "from": [-88.0, 0.0], "h": -7.0, "width": 9.0, "go": [
+          {"walk": [-100.5, 0.0], "ceiling": 3.5}
+        ] },
+        { "from": [-94.4, -3.0], "h": -7.0, "width": 5.0, "go": [
+          {"walk": [-94.4, -24.6], "ceiling": 3.5},
+          {"exit": {"at": [-94.4, -26.6], "name": "Kista torg"}, "by": "walk", "open": true}
+        ] },
+        { "from": [-100.5, 0.1], "h": -7.0, "width": 5.5, "go": [
+          {"escalators": -5.25, "toward": [-300, 0.1], "lanes": "SEE"},
+          {"walk": [-131.8, 0.1], "ceiling": 3.5},
+          {"exit": {"at": [-134.8, 0.1], "name": "Vejlegatan"}, "by": "walk", "open": true}
         ] }
       ]
     },
