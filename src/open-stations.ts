@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -322,6 +322,7 @@ export class OpenLook {
       else if (a.kind === 'globes') this.globes(a, frame, on);
       else if (a.kind === 'discs') this.discs(a, frame, on);
       else if (a.kind === 'prismRods') this.prismRods(a, frame, group);
+      else if (a.kind === 'coil') this.coil(a, frame, on);
     }
     // (under a hall rather than a roof, the benches down the middle of the platform)
     if (!style.roof && style.benches) {
@@ -1882,6 +1883,38 @@ export class OpenLook {
       mesh.position.copy(A.clone().add(B).multiplyScalar(0.5));
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
       group.add(mesh);
+    }
+  }
+
+  // Min vän: rings of aluminium band strung on a level arc, two dark straps along them, at the
+  // ring's outer and inner sides, and four wires up to the ceiling.
+  private coil(a: Coil, frame: Frame, on: On) {
+    const metal = on(this.color(0xc9cccf, 0.35, 0.6)), strap = on(this.color(0x2c2d2f, 0.6, 0.3)), wire = on(this.color(0x9a9da0, 0.4, 0.6));
+    const ds = Math.cos(a.yaw), du = Math.sin(a.yaw), n = 28;
+    // the arc's middle line at angle f (the coil's middle at f = 0), its tangent there, and the
+    // point at angle g round the ring there, `along` m along the tangent
+    const P = (f: number, g: number, along = 0, rr = a.r): XYZ => {
+      const rs = -du * Math.cos(f) + ds * Math.sin(f), ru = ds * Math.cos(f) + du * Math.sin(f);
+      const ts = ds * Math.cos(f) + du * Math.sin(f), tu = du * Math.cos(f) - ds * Math.sin(f);
+      const cs = a.s + a.bend * (-du - rs), cu = a.u + a.bend * (ds - ru);
+      return frame.at(cs + rs * rr * Math.cos(g) + ts * along, cu + ru * rr * Math.cos(g) + tu * along, a.h + rr * Math.sin(g));
+    };
+    for (let k = 0; k < a.loops; k++) {
+      const f = -a.turn / 2 + (a.turn * (k + 0.5)) / a.loops;
+      for (let i = 0; i < n; i++) {
+        const g0 = (i / n) * Math.PI * 2, g1 = ((i + 1) / n) * Math.PI * 2;
+        metal.poly([[...P(f, g0, -a.band / 2), 0, 0], [...P(f, g1, -a.band / 2), 1, 0], [...P(f, g1, a.band / 2), 1, 1], [...P(f, g0, a.band / 2), 0, 1]]);
+      }
+    }
+    for (const g of [0, Math.PI]) {
+      for (let k = 0; k < a.loops * 2; k++) {
+        const f0 = -a.turn / 2 + (a.turn * k) / (a.loops * 2), f1 = -a.turn / 2 + (a.turn * (k + 1)) / (a.loops * 2);
+        strap.poly([[...P(f0, g, 0, a.r - 0.004), 0, 0], [...P(f1, g, 0, a.r - 0.004), 1, 0], [...P(f1, g + 0.07, 0, a.r - 0.004), 1, 1], [...P(f0, g + 0.07, 0, a.r - 0.004), 0, 1]]);
+      }
+    }
+    for (const f of [-a.turn * 0.35, -a.turn * 0.1, a.turn * 0.1, a.turn * 0.35]) {
+      const top = P(f, Math.PI / 2);
+      box(wire, [top[0], (top[1] + frame.st.platformY + a.ceiling) / 2, top[2]], 1, 0, 0.01, frame.st.platformY + a.ceiling - top[1], 0.01);
     }
   }
 

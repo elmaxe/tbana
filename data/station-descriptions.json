@@ -1347,12 +1347,48 @@
     },
     "Norsborg": {
       "drawing": "norsborg.png",
-      "note": "The end of T13: an island platform in the open. At its east end the ticket hall opens onto the street.",
+      "note": "The end of the red line's Norsborg branch: an island platform in the open, on a shelf at the northern foot of the hill of Eriksberg, under one long butterfly roof on orange steel. A rock face rises south of the southern track. At the platform's eastern end a glazed vestibule over the heads of an escalator and a stair down east, 4 m, to the ticket hall under the tracks, and a lift beside them. Past the hall's gates, doors open onto a lobby under a glazed lantern: north from it a stair and a lift go down under the northern track to the bus station at Norsborgs centrum; south a passage runs under the southern track to three escalators and an inclined lift up the hill to the entrance on Skarpbrunnavägen. From OpenStreetMap (the gates, the entrances, the escalators up the hill), Lantmäteriet's laser scan (the platform, 146 m long at 31.73 m, the roof, the hall's roof at 32.6 m and the lantern's at 35.4 m, the ground beside the line) and photographs (2006, 2018, 2023). The hall's floor is a guess, from the stair's risers and the headroom under the tracks.",
       "routes": [
-        { "from": [65, 0], "width": 6, "go": [
-          {"walk": [85, 0]},
+        { "from": [44.0, -1.8], "width": 1.6, "go": [
+          {"walk": [67.0, -1.8], "open": true, "edges": false},
+          {"escalators": -4.0, "toward": [200, -1.8], "lanes": "E"}
+        ] },
+        { "from": [44.0, 1.2], "width": 3.5, "go": [
+          {"walk": [66.0, 1.2], "open": true, "edges": false},
+          {"stairs": -4.0, "toward": [200, 1.2], "lanes": "Ss"}
+        ] },
+        { "from": [62.0, -5.7], "width": 1.2, "go": [
+          {"walk": [70.9, -5.7], "open": true, "edges": false},
+          {"lift": -4.0, "through": true}
+        ] },
+        { "from": [73.5, -1.4], "h": -4.0, "width": 10.4, "go": [
+          {"walk": [83.4, -1.4], "ceiling": 4.3},
+          {"walk": [84.1, -1.4], "width": 7.6, "ceiling": 4.3},
           {"gates": true},
-          {"exit": 13752056825}
+          {"walk": [84.8, -1.4], "ceiling": 4.3},
+          {"walk": [98.0, -1.4], "width": 10.4, "ceiling": 4.3},
+          {"walk": [98.8, -1.4], "width": 3.0, "ceiling": 2.6},
+          {"walk": [108.0, -1.4], "width": 10.8, "open": true, "daylight": true}
+        ] },
+        { "from": [104.3, -6.0], "h": -4.0, "width": 3.5, "go": [
+          {"walk": [104.3, -7.0], "open": true, "daylight": true},
+          {"stairs": -1.15, "toward": [104.3, -100], "lanes": "Ss", "ceiling": 2.6, "daylight": true},
+          {"walk": [104.3, -12.4], "ceiling": 3.2, "daylight": true},
+          {"exit": {"at": [104.3, -14.4], "name": "Norsborgs centrum"}, "by": "walk", "open": true, "sign": false}
+        ] },
+        { "from": [107.0, -6.0], "h": -4.0, "width": 1.6, "go": [
+          {"walk": [107.0, -7.0], "open": true},
+          {"walk": [107.0, -12.4], "ceiling": 2.1, "daylight": true},
+          {"lift": -1.0, "through": true},
+          {"exit": {"at": [107.0, -16.0], "name": "Norsborgs centrum"}, "by": "walk", "open": true}
+        ] },
+        { "from": [100.9, 3.0], "h": -4.0, "width": 3.4, "go": [
+          {"walk": [100.9, 12.2], "ceiling": 2.1},
+          {"walk": [100.9, 15.0], "width": 6.6, "ceiling": 3.0},
+          {"escalators": 26.14, "to": [100.9, 61.3], "lanes": "LEEE", "open": true},
+          {"walk": [100.9, 66.0], "width": 6.6, "open": true},
+          {"walk": [101.6, 68.6], "width": 3.0, "open": true},
+          {"exit": {"at": [101.6, 70.7], "name": "Skarpbrunnavägen"}, "by": "walk", "open": true}
         ] }
       ]
     },

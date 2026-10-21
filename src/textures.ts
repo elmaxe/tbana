@@ -6020,9 +6020,9 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   albyPanels: [4.8, 3.0], albyDoors: [2.4, 2.2], albyMaroon: [1.2, 3.0], albyRock: [CAVE_REPEAT, 4.4], albyGreen: [4.8, 4.4], albyCopper: [1.5, 1.2],
   albyFront: [2.2, 5.6],
   hallundaFloor: [2.4, 2.4], hallundaCeiling: [2.4, 2.4], hallundaSoffit: [2.4, 2.4], hallundaGlazed: [1.2, 3.0], hallundaMesh: [2.4, 3.0], hallundaFront: [3.0, 5.0],
-  hallundaFascia: [2.4, 1.2],
+  hallundaFascia: [2.4, 1.2], norsborgCeiling: [4.8, 4.8], norsborgGlazed: [1.2, 3.0], norsborgFascia: [2.4, 1.2], norsborgRainbow: [6.0, 1.2], shotcrete: [6.0, 6.0],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed'];
 export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
@@ -9296,16 +9296,20 @@ export function finish(name: Finish) {
       break;
     }
     case 'hallundaCeiling':
-    case 'hallundaSoffit': {
+    case 'hallundaSoffit':
+    case 'norsborgCeiling': {
       // olive-green panels, 0.6 by 1.2 m, in fine dark joints, a round downlight in every other one
-      // (the soffit round the skylight dark grey)
-      const soffit = name === 'hallundaSoffit';
-      x.fillStyle = soffit ? '#5a5c5f' : '#4d5427'; x.fillRect(0, 0, W, H);
-      const a = 0.6 * PX, b = 1.2 * PX;
+      // (the soffit round the skylight dark grey; Norsborg's ochre, finely perforated, 1.2 by
+      // 2.4 m, photographs 2018)
+      const soffit = name === 'hallundaSoffit', ochre = name === 'norsborgCeiling';
+      x.fillStyle = soffit ? '#5a5c5f' : ochre ? '#5e3d1c' : '#4d5427'; x.fillRect(0, 0, W, H);
+      const a = (ochre ? 1.2 : 0.6) * PX, b = (ochre ? 2.4 : 1.2) * PX;
       for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
         const v = Math.floor(r() * 8);
-        x.fillStyle = soffit ? `rgb(${150 + v},${153 + v},${156 + v})` : `rgb(${118 + v},${126 + v},${66 + v})`; x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
+        x.fillStyle = soffit ? `rgb(${150 + v},${153 + v},${156 + v})` : ochre ? `rgb(${172 + v},${114 + v},${52 + v})` : `rgb(${118 + v},${126 + v},${66 + v})`;
+        x.fillRect(i * a + 1, j * b + 1, a - 2, b - 2);
       }
+      if (ochre) speckle(x, W, H, 14000, 0.06, 70);
       for (let i = 0; i * a < W; i += 2) for (let j = 0; j * b < H; j++) {
         const cx = i * a + a / 2, cy = j * b + b / 2;
         x.fillStyle = '#c9cbc4'; x.beginPath(); x.arc(cx, cy, 0.1 * PX, 0, Math.PI * 2); x.fill();
@@ -9313,10 +9317,11 @@ export function finish(name: Finish) {
       }
       break;
     }
-    case 'hallundaGlazed': {
+    case 'hallundaGlazed':
+    case 'norsborgGlazed': {
       // glass in lime-green steel frames 1.2 m apart, a transom every 3 m (Hallunda's vestibule,
-      // lift tower, skylight and entrance on the hill)
-      const g = '#86a83a';
+      // lift tower, skylight and entrance on the hill); in orange ones, Norsborg's lift and lantern
+      const g = name === 'norsborgGlazed' ? '#b8652c' : '#86a83a';
       pane(0, 3, g, 0.1); band(2.92, 3, g); band(0, 0.04, g);
       x.fillStyle = 'rgba(255,255,255,0.18)'; x.fillRect(0.05 * PX, Y(2.92), 2, 2.88 * PX);
       break;
@@ -9351,11 +9356,41 @@ export function finish(name: Finish) {
       band(3.4, 3.5, st); pane(3.5, 4.9, st, 0.08); band(4.9, 5.0, st);
       break;
     }
-    case 'hallundaFascia': {
-      // lime-green sheet metal in panels 1.2 m wide, a dark edge along its top
-      x.fillStyle = '#86a83a'; x.fillRect(0, 0, W, H);
-      for (let i = 0; i * 1.2 * PX < W; i++) { x.fillStyle = 'rgba(40,52,16,0.35)'; x.fillRect(i * 1.2 * PX, 0, 2, H); }
+    case 'hallundaFascia':
+    case 'norsborgFascia': {
+      // lime-green sheet metal in panels 1.2 m wide, a dark edge along its top (orange, Norsborg's)
+      const orange = name === 'norsborgFascia';
+      x.fillStyle = orange ? '#b8652c' : '#86a83a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i * 1.2 * PX < W; i++) { x.fillStyle = orange ? 'rgba(70,30,8,0.35)' : 'rgba(40,52,16,0.35)'; x.fillRect(i * 1.2 * PX, 0, 2, H); }
       band(1.12, 1.2, '#2e3030');
+      break;
+    }
+    case 'norsborgRainbow': {
+      // the ceiling of the underpass under Norsborg's northern track: broad bands of red, orange,
+      // yellow, green, blue and violet (photograph, 2018)
+      const cols = ['#b8423a', '#d4813a', '#d8bd4a', '#4f9a5a', '#3f6fa8', '#7a4f97'];
+      cols.forEach((c, i) => { x.fillStyle = c; x.fillRect((i * W) / cols.length, 0, W / cols.length + 1, H); });
+      speckle(x, W, H, 3000, 0.08, 30);
+      break;
+    }
+    case 'shotcrete': {
+      // grey concrete sprayed over blasted rock (the wall south of Norsborg's yard tracks): soft
+      // bulges, lit above and shaded below, and streaks running down (photographs, 2018–2019)
+      x.fillStyle = '#8b8e93'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 70; i++) {
+        const cx = r() * W, cy = r() * H, rx = (0.4 + r() * 1.2) * PX, ry = (0.3 + r() * 0.8) * PX;
+        for (const [ox, oy] of [[0, 0], [W, 0], [-W, 0], [0, H], [0, -H]]) {
+          const g = x.createRadialGradient(cx + ox, cy + oy - ry * 0.4, 0, cx + ox, cy + oy, Math.max(rx, ry));
+          g.addColorStop(0, 'rgba(172,174,178,0.35)'); g.addColorStop(0.6, 'rgba(130,132,138,0.12)'); g.addColorStop(1, 'rgba(80,82,86,0)');
+          x.fillStyle = g; x.beginPath(); x.ellipse(cx + ox, cy + oy, rx, ry, 0, 0, Math.PI * 2); x.fill();
+        }
+      }
+      for (let i = 0; i < 60; i++) {
+        const sx = r() * W, len = (0.5 + r() * 3) * PX, sy = r() * H;
+        x.fillStyle = `rgba(${r() < 0.5 ? '70,66,60' : '160,160,162'},0.12)`; x.fillRect(sx, sy, 1 + r() * 2, len);
+        if (sy + len > H) x.fillRect(sx, sy - H, 1 + r() * 2, len);
+      }
+      speckle(x, W, H, 9000, 0.1, 40);
       break;
     }
     case 'skhEndWall': {

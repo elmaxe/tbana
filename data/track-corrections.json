@@ -368,7 +368,9 @@
   "platforms": [
     {
       "station": "Norsborg",
-      "why": "No platform is mapped at Norsborg in OSM (October 2026)."
+      "why": "No platform is mapped at Norsborg in OSM (October 2026). It is placed from its middle, 146 m long: in Lantmäteriet's laser scan its paving runs from 81.5 m west of the stop positions to 64.5 m east of them, where the ticket hall's roof begins under the glazed vestibule at its eastern end.",
+      "at": [139304.25, 6569854.23],
+      "length": 146
     },
     {
       "station": "Danderyds sjukhus",

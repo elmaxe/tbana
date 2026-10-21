@@ -448,7 +448,12 @@ export type Finish =
   | 'hallundaGlazed'  // glass in lime-green steel frames 1.2 m apart, a transom every 3 m
   | 'hallundaMesh'    // a concrete upstand to 0.8 m and a handrail, lime-green perforated sheet to 2.9 m between lime-green frames 2.4 m apart (Hallunda's footbridge)
   | 'hallundaFront'   // glass walls and sliding doors in stainless frames to 2.7 m, a dark grey band to 3.4 m, glass in steel frames above to 5 m
-  | 'hallundaFascia'; // lime-green sheet metal, a dark edge along its top
+  | 'hallundaFascia' // lime-green sheet metal, a dark edge along its top
+  | 'norsborgCeiling' // ochre perforated panels 1.2 by 2.4 m, a round downlight in every other one (Norsborg's vestibule and ticket hall)
+  | 'norsborgGlazed'  // glass in orange steel frames 1.2 m apart, a transom every 3 m
+  | 'norsborgFascia'  // orange sheet metal, a dark edge along its top
+  | 'norsborgRainbow' // broad bands of red, orange, yellow, green, blue and violet (the ceiling of Norsborg's underpass)
+  | 'shotcrete';      // grey concrete sprayed over blasted rock, rippled and streaked
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -498,7 +503,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -599,6 +604,14 @@ export interface Discs { kind: 'discs'; at: [number, number][]; size: [number, n
 // rods, `thick` across, each coloured along its length through the rainbow, criss-crossing under
 // the skylight from one end ([s, u, h], in the station's frame) to the other.
 export interface PrismRods { kind: 'prismRods'; rods: [[number, number, number], [number, number, number]][]; thick: number }
+
+// Eva and Peter Moritz's Min vän (2006) in the lantern over Norsborg's ticket hall: `loops` flat
+// bands of aluminium, `band` wide, each bent into a ring `r` across its middle and riveted to two
+// dark straps running along them, the rings strung on an arc `bend` m round through `turn`
+// radians, lying level, like a coiled spring bent round; its middle at s, u, `h` high, the arc's
+// chord along `yaw` (radians from the platform's line, to the right), hung on wires from a
+// ceiling `ceiling` high.
+export interface Coil { kind: 'coil'; s: number; u: number; h: number; yaw: number; r: number; bend: number; turn: number; loops: number; band: number; ceiling: number }
 
 // The gallery along the bank beyond Axelsberg's southern track: a deck of board-marked concrete
 // over the bank, its front along `front` ([s, u] points, facing the platform), `depth` m deep
@@ -9092,6 +9105,158 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { h: [-1.0, 0.8], points: [[-76, -10.3], [40, -10.2]] },
       { kind: 'louvres', color: 0x6b4a34, h: [-1.4, 0.45], points: [[40, -10.0], [74, -10.0]] },
       { h: [-1.0, 0.8], points: [[-76, 6.4], [-40, 8.4], [0, 10.3], [40, 12.4], [80, 14.2], [125, 14.4]] },
+    ],
+  },
+  // Norsborg (1975): the end of the red line's southern branch, an island platform in the open on a
+  // shelf at the northern foot of the hill of Eriksberg, its tracks parting eastwards, so that it
+  // widens from 9 m at its western end to 12 m at its eastern, under one long flat roof. From
+  // photographs (2006, 2018, 2024): orange steel (pink until the 2010s), two rows of columns
+  // under beams along the platform and beams across them out to the edges, the underside of
+  // silver ribbed sheet, a tube lamp along each edge; dark grey pavers in courses across, a pale
+  // edge and a dark strip for the blind; glazed shelters between the rows, an orange booth, a
+  // slatted box. At the eastern end a vestibule glazed in stainless steel, its floor dark polished
+  // stone and its ceiling ochre, over the heads of the escalator and the stair down 4 m to the
+  // ticket hall between the tracks, a lift in an orange-framed glass shaft at its north-eastern
+  // corner. The hall: board-marked concrete, a glazed northern side, the same dark floor and ochre
+  // ceiling; past the gates and SL's booth its glazed fronts, under the name, face a lobby under a
+  // lantern glazed in orange frames, where Eva and Peter Moritz's Min vän (2006), rings of
+  // aluminium band bent round like a spring, hangs. North from the lobby a stair and a lift go down
+  // under the northern track, through an underpass with a rainbow-striped ceiling, to the bus
+  // station; south a passage runs under the southern track to three escalators and an inclined lift
+  // up 26 m through the rock to the glazed entrance on Skarpbrunnavägen, under an orange fascia.
+  // Along the northern track a wall over the drop to the bus station, faced in orange panels where
+  // the track crosses the hall's northern side; along the southern one, the face of blasted rock
+  // east of the depot's portal, and west of it the sprayed concrete wall beyond the yard tracks,
+  // which Raha Rastifard's projection (2017) lights at night. The laser scan has the platform,
+  // the roof (its top 3.6–3.85 m over the platform, its southern edge straight, its northern
+  // following the track), the hall's roof (0.9 m over the platform), the lantern (3.7 m), the
+  // walls along the tracks and the rock; OpenStreetMap the vestibule's doors, the stair, the
+  // escalators, the lifts, the gates and the entrance's outline. Guesses: the columns' places
+  // along the platform, the hall's floor (from the stair's steps) and inside heights, the lobby's
+  // extent, the passage south, and Min vän's size and shape.
+  'Norsborg': {
+    // (OpenStreetMap's outline of the entrance on the hill: its block draws it)
+    buildings: ['w130645942'],
+    roof: {
+      kind: 'butterfly',
+      from: -71, to: 74.5, width: 11,
+      shape: [[-71, 0.98, 8.85], [-60, 0.85, 9.3], [-40, 0.6, 10.0], [-20, 0.3, 10.6], [0, 0.05, 11.1], [20, -0.2, 11.6],
+        [40, -0.45, 12.1], [60, -0.7, 12.6], [74.5, -0.9, 13.0]],
+      middle: 3.38, edge: 3.38, thick: 0.35, fascia: 0.3,
+      rafters: 2.4, rafterSize: [0.15, 0.32], rafterColor: 0xb8652c, rafterAt: -66.5, deck: 'ribbed',
+      beam: 0.6, beamWidth: 0.2,
+      columns: { every: 9.6, at: -66.5, size: 0.22, plinth: { size: 0.32, height: 0.05 }, rows: [[-75, -0.88, 2.78], [75, -2.68, 0.98]], gaps: [[41.5, 76]] },
+      lamps: { offset: 0, edges: 0.45, length: 4.6, every: 4.8, tube: true },
+      colors: { underside: 0xb5b8b7, fascia: 0xb8652c, top: 0x5f5d59, steel: 0xb8652c },
+      signs: { at: [-48.5, -9.5, 24.5], back: '', ahead: 'Utgång' },
+      clocks: [[31.5, -2.4], [-30.5, 1.6]],
+      boards: [
+        { s: 39.5, u: -2.0, toward: 'Ropsten', trains: ['13 Ropsten  2 min', '13 Ropsten  12 min'] },
+      ],
+    },
+    paving: {
+      edge: 0.65, tactile: [0.65, 1.05], slabs: 1.05, paverSize: [0.25, 0.5], mix: 0,
+      colors: { edge: 0xc9c5bc, tactile: 0x4f4d51, slab: 0x6f6d6f, pavers: 0x6f6d6f, face: 0x8a8884 },
+      pattern: 'bond',
+    },
+    rooms: [
+      // (the strip outside the vestibule's northern side, to the lift)
+      { name: 'strip by the vestibule', s: [55, 74], u: [-7.5, -4.6], h: [-0.5, 0.5], walls: null, floor: null },
+      // (its walls and ceiling are its block's)
+      { name: 'the vestibule', s: [42, 66.5], u: [-5, 5.5], h: [-0.5, 0.5], walls: null, floor: 'hallundaFloor' },
+      // (open up to the vestibule's ceiling)
+      { name: 'flights down to the ticket hall', s: [66.5, 73.6], u: [-5, 5.5], h: [-4.5, 0.5], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'hallundaFloor', parapet: 1.0 },
+      // (its northern side glazed; its front to the lobby glazed, under the name)
+      { name: 'ticket hall', s: [73.5, 98.0], u: [-7, 4.5], h: [-4.5, -3.5], walls: 'boardConcrete', left: 'glazed', front: 'hallundaFront', floor: 'hallundaFloor', ceiling: 'norsborgCeiling' },
+      // (its walls are its block's)
+      { name: 'lobby', s: [98.0, 108.2], u: [-7.2, 4.4], h: [-4.5, -3.5], walls: null, floor: 'hallundaFloor' },
+      { name: 'underpass to the bus station', s: [100, 110], u: [-12.45, -7.2], h: [-5.6, -3.5], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'asphalt', ceiling: 'norsborgRainbow' },
+      { name: 'passage south', s: [97, 105], u: [4.4, 12.6], h: [-4.5, -3.5], walls: 'boardConcrete', floor: 'hallundaFloor', ceiling: 'norsborgCeiling' },
+      { name: 'escalators up the hill', s: [95, 107], u: [12.6, 62], h: [-4.5, 23], walls: 'boardConcrete', stairs: 'boardConcrete', floor: 'hallundaFloor', ceiling: 'norsborgCeiling' },
+      // (its walls are its block's)
+      { name: 'entrance on the hill', s: [94, 108], u: [61, 72], h: [21.5, 23], walls: null, floor: 'hallundaFloor' },
+    ],
+    blocks: [
+      // the vestibule at the platform's eastern end, glazed in stainless steel, two sets of doors in
+      // its western end; its floor dark polished stone, its ceiling ochre
+      { name: 'vestibule', plan: [[42.6, -4.5], [66.5, -4.5], [66.5, 5.0], [42.6, 5.0]], h: [0, 3.0],
+        walls: 'glazed', sides: [undefined, null, undefined, 'hallundaFront'], floor: 'hallundaFloor', ceiling: 'norsborgCeiling', onPlatform: true },
+      // its eastern part over the flights, open down to the hall: glazed at the platform's level,
+      // board-marked concrete under it
+      { name: 'vestibule over the flights', plan: [[66.5, -4.5], [73.6, -4.5], [73.6, 5.0], [66.5, 5.0]], h: [-4.0, 3.0], from: -4.0,
+        walls: 'boardConcrete', band: { walls: 'glazed', from: 0 }, sides: [undefined, null, undefined, null], floor: 'hallundaFloor', ceiling: 'norsborgCeiling',
+        onPlatform: true, ground: true },
+      // its eastern end, glazed in orange frames over the hall's roof
+      { name: "vestibule's eastern end", plan: [[73.5, -4.5], [73.7, -4.5], [73.7, 5.0], [73.5, 5.0]], h: [0.62, 3.0], from: 0.62,
+        walls: 'norsborgGlazed', sides: [null, undefined, null, undefined] },
+      // the lift's glass shaft at its north-eastern corner, framed in orange
+      { name: 'lift shaft', plan: [[71.1, -6.95], [73.7, -6.95], [73.7, -4.45], [71.1, -4.45]], h: [-4.0, 2.9], from: -4.0,
+        walls: 'norsborgGlazed', roof: 0.12, roofColor: 0x55585b, onPlatform: true },
+      // the ticket hall's flat roof between the tracks, just over the platform
+      { name: "ticket hall's roof", plan: [[73.6, -6.9], [98.0, -6.9], [98.0, 4.1], [73.6, 4.1]], h: [-1.7, 0.62], from: -1.7,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.25, roofColor: 0x6b6a66 },
+      // the lobby beyond the hall's glazed fronts, its walls board-marked concrete; the fronts
+      // glazed under the name
+      { name: 'lobby', plan: [[98.0, -7.0], [108.1, -7.0], [108.1, 4.2], [98.0, 4.2]], h: [-4.0, 0.62], from: -4.0,
+        walls: 'boardConcrete', sides: [undefined, undefined, undefined, 'hallundaFront'], floor: 'hallundaFloor', ground: true,
+        nameSign: { side: 3, at: 0.5, length: 3.4, bottom: -1.3, inside: true, black: true } },
+      // the lantern over its western part, glazed all round in orange frames under a ribbed ceiling
+      { name: 'lantern', plan: [[98.0, -7.0], [103.6, -7.0], [103.6, 4.2], [98.0, 4.2]], h: [0.62, 3.67], from: 0.62,
+        walls: 'norsborgGlazed', ceiling: 'ribbedMetal', roof: 0.2, roofColor: 0x4f4e4b },
+      // the ochre ceiling east of it
+      { name: 'ceiling east of the lantern', plan: [[103.6, -7.0], [108.1, -7.0], [108.1, 4.2], [103.6, 4.2]], h: [0.6, 0.62], from: 0.6,
+        walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'norsborgCeiling', roof: 0.25, roofColor: 0x6b6a66 },
+      // SL's booth at the gates' southern end
+      { name: "SL's booth", plan: [[81.6, 2.4], [85.8, 2.4], [85.8, 3.8], [81.6, 3.8]], h: [-4.0, -1.5], from: -4.0,
+        walls: 'greyBooth', roof: 0.06, roofColor: 0xd0d2d1, inRoom: true },
+      // the entrance on the hill, glazed under a deep orange fascia that reaches out over its doors
+      // as a porch, orange mullions along its eastern side
+      { name: 'entrance on the hill', plan: [[94.6, 52.6], [106.8, 52.6], [106.8, 68.0], [94.6, 68.0]], h: [19.0, 26.27], from: 22.14,
+        walls: 'glazed', sides: [undefined, 'norsborgGlazed', undefined, undefined], band: { walls: 'norsborgFascia', from: 25.4 }, floor: 'hallundaFloor',
+        roof: 0.3, roofColor: 0x3a3c3e, eaves: [0, 0, 2.8, 0], ground: true },
+      // the wall along the northern track, over the drop to the bus station, its top a walkway
+      { name: 'wall along the northern track (west)', plan: [[33.0, -9.6], [74.0, -10.4], [74.0, -12.0], [33.0, -11.4]], h: [-5.4, 0.77], from: -5.4,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8d8b86 },
+      { name: 'wall along the northern track (over the hall)', plan: [[74.0, -10.4], [104.0, -10.8], [104.0, -12.0], [74.0, -12.0]], h: [-5.4, 0.77], from: -5.4,
+        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.05, roofColor: 0x8d8b86 },
+      { name: 'wall along the northern track (east)', plan: [[104.0, -10.8], [125.0, -10.6], [125.0, -12.0], [104.0, -12.0]], h: [-5.4, 0.77], from: -5.4,
+        walls: 'boardConcrete', roof: 0.05, roofColor: 0x8d8b86 },
+      // where the track crosses the hall's northern side, its face orange, the hall's glazing under it
+      { name: "the track's bridge over the hall", plan: [[74.0, -12.0], [104.0, -12.0], [104.0, -12.15], [74.0, -12.15]], h: [-4.2, 0.77], from: -4.2,
+        walls: 'darkGlazed', band: { walls: 'norsborgFascia', from: -1.83 }, sides: [null, null, undefined, null] },
+      // the face of blasted rock beside the southern track, east of the depot's portal, falling back
+      // to the hillside (the hill's ground runs on through them, and over their tops at the back)
+      { name: 'rock face, 34 to 50', plan: [[50, 10.6], [34, 10.6], [34, 20], [50, 20]], h: [-1.4, 5.0], low: 1.5, lowBack: 6.0, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, undefined, undefined, null], roof: 0.05, roofColor: 0x5b6142 },
+      { name: 'rock face, 50 to 74', plan: [[74, 10.8], [50, 10.6], [50, 20], [74, 20]], h: [-1.4, 6.0], low: 5.0, lowBack: 9.6, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, undefined, null], roof: 0.05, roofColor: 0x5b6142 },
+      { name: 'rock face, 74 to 110', plan: [[110, 11.0], [74, 10.8], [74, 20], [110, 20]], h: [-1.4, 7.4], low: 6.0, lowBack: 9.8, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, undefined, null], roof: 0.05, roofColor: 0x5b6142 },
+      { name: 'rock face, 110 to 138', plan: [[138, 10.2], [110, 11.0], [110, 20], [138, 20]], h: [-1.4, 8.6], low: 7.4, lowBack: 10.4, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, undefined, null], roof: 0.05, roofColor: 0x5b6142 },
+      // (its eastern end, sinking into the cutting's slope)
+      { name: 'rock face, 138 to 160', plan: [[160, 9.6], [138, 10.2], [138, 20], [139, 20]], h: [-1.4, 0.3], low: 8.6, lowBack: 10.4, from: -1.4,
+        walls: 'blastedRock', sides: [undefined, null, undefined, undefined], roof: 0.05, roofColor: 0x5b6142 },
+      // west of the portal, beyond the yard tracks, the wall of concrete sprayed over the rock
+      { name: 'sprayed concrete wall', plan: [[18, 22.4], [-101, 22.4], [-101, 31], [18, 31]], h: [-1.4, 11.9], low: 11.4, lowBack: 10.7, from: -1.4,
+        walls: 'shotcrete', roof: 0.05, roofColor: 0x6e7064 },
+      // on the platform, a staff booth panelled in orange and a slatted grey box
+      { name: 'staff booth', plan: [[-21.5, -0.6], [-18.5, -0.6], [-18.5, 1.4], [-21.5, 1.4]], h: [0, 2.5],
+        walls: 'orangePanels', roof: 0.08, roofColor: 0x4a4b4d, onPlatform: true },
+      { name: 'slatted box', plan: [[22.0, -0.8], [23.6, -0.8], [23.6, 0.2], [22.0, 0.2]], h: [0, 1.0],
+        walls: 'cladding', roof: 0.03, roofColor: 0x8c8e90, onPlatform: true },
+    ],
+    art: [
+      // Min vän, under the lantern
+      { kind: 'coil', s: 100.8, u: -1.4, h: 1.5, yaw: Math.PI / 2, r: 1.1, bend: 2.0, turn: 2.6, loops: 36, band: 0.07, ceiling: 3.6 },
+    ],
+    // (a guess: their places along the platform)
+    shelters: [{ s: [-31, -27], u: [-1.1, 1.1] }, { s: [27, 31], u: [-1.1, 1.1] }, { s: [33, 37], u: [-1.1, 1.1] }],
+    fences: [
+      // chain-link between the southern track and the yard tracks, and along the embankment north
+      // of the northern track, west of the wall
+      { h: [-1.0, 0.8], points: [[-100, 10.2], [34, 10.2]] },
+      { h: [-1.2, 0.6], points: [[-80, -7.6], [-40, -8.8], [0, -9.9], [33, -10.4]] },
     ],
   },
 };

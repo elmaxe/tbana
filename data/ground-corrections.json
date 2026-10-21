@@ -240,6 +240,12 @@
       "outline": [-12228.0, 10288.7, -12202.4, 10289.4, -12203.0, 10312.9, -12228.6, 10312.2],
       "heights": [22.4, 22.48, 22.5, 22.65],
       "why": "The square south of the station's entrance building, out 17 m from its doors, is flat at 22.4–22.7 m (Lantmäteriet's laser scan), and the corridor inside the doors is at its level; the elevation model's 5 m grid smooths the building into it, 23.3 m at the doors, which left the station's exit 0.8 m over its hall. The outline reaches 6 m into the building, under the corridor."
+    },
+    {
+      "name": "Norsborg: the bus station north of the line",
+      "outline": [-14018.9, 9739.4, -13939.2, 9746.5, -13937.5, 9726.7, -14017.2, 9719.6],
+      "heights": [26.7, 26.7, 26.4, 26.6],
+      "why": "The bus station under the wall along the northern track is flat at 26.3–26.9 m (Lantmäteriet's laser scan) right up to the wall, where the underpass from the station's hall comes out; the elevation model's 5 m grid smooths the wall into it, 27.7 m at the underpass's mouth, which left the exits from the hall a metre under the street."
     }
   ],
   "open": [
@@ -470,6 +476,14 @@
     {
       "outline": [[-12228.0, 10288.7], [-12202.4, 10289.4], [-12203.0, 10312.9], [-12228.6, 10312.2]],
       "why": "Alby: the square in front of the station's entrance from Alby centrum, paved in red and grey concrete (photographs, 2012 and 2018)."
+    },
+    {
+      "outline": [[-14028.9, 9738.3], [-13936.2, 9746.5], [-13933.4, 9715.0], [-14026.1, 9706.8]],
+      "why": "Norsborg: the bus station north of the line, under the wall along the northern track, its platforms and the road round them paved (OpenStreetMap; the laser scan, 26.4–26.9 m; photographs)."
+    },
+    {
+      "outline": [[-13976.2, 9823.7], [-13956.3, 9825.4], [-13958.1, 9845.4], [-13978.0, 9843.6]],
+      "why": "Norsborg: the forecourt in front of the entrance on the hill, asphalt, and the footway from it to Skarpbrunnavägen (photographs; OpenStreetMap)."
     }
   ],
   "shallow": [
@@ -490,6 +504,18 @@
     {
       "outline": [[-11309.7, 9380.7], [-11295.4, 9361.2], [-11281.7, 9371.2], [-11296.0, 9390.7]],
       "why": "Fittja: the bank behind the concrete wall along the southern track, south-east of the platform's north-eastern half (its deck, above, sets its height). The wall rises from beside the track to a metre over the ground behind it (the laser scan, 21.7–23.7 m); the southern track's cutting lowered that ground to 18–21.5 m, leaving the wall's back standing bare."
+    },
+    {
+      "outline": [[-14029.1, 9763.3], [-13925.5, 9772.2], [-13929.7, 9819.8], [-14033.3, 9810.6]],
+      "why": "Norsborg: the hill of Eriksberg behind the face of blasted rock beside the southern track, east of the depot's portal, up to Skarpbrunnavägen and the entrance on the hill. The rock rises from beside the track to the hillside (the laser scan, 33–40 m at its crest); the southern track's cutting lowered the hill to a slope of 1:2 as far as 40 m from the track, which left the escalators' tunnel up the hill standing in the open. The outline starts 2 m behind the rock's face, so that the ground meets the cutting's inside the rock and leaves no bank in front of it."
+    },
+    {
+      "outline": [[-14164.6, 9763.1], [-14046.1, 9773.7], [-14049.2, 9809.1], [-14167.8, 9798.6]],
+      "why": "Norsborg: the hillside behind the wall of sprayed concrete beyond the yard tracks, west of the depot's portal. The wall rises from the yard to the ground behind it (the laser scan, 43 m at its top); the yard tracks' cutting lowered that ground to a slope of 1:2."
+    },
+    {
+      "outline": [[-14046.3, 9775.8], [-14030.3, 9777.2], [-14033.3, 9810.6], [-14049.2, 9809.1]],
+      "why": "Norsborg: the hillside over the depot's portal, between the wall of sprayed concrete and the rock face. The yard tracks' cutting, where they end at the portal, lowered it in a trench up to Skarpbrunnavägen."
     }
   ]
 }
