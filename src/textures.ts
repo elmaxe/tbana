@@ -1828,6 +1828,515 @@ export function tcCaveVault() {
   return toTexture(c);
 }
 
+// ------------------------------------------------------------------ T-Centralen's blue line cave
+// As Per Olof Ultvedt painted it (1975), from photographs (SL's "Utforska konsten längs Blå
+// linjen", Wikimedia Commons 2008–2024): the blasted rock in ultramarine from the trench up over
+// the tracks, and white over the middle of the cave, with a straight line between them a few
+// metres up the rock where the two meet on a wall. Over the white, in each of the cave's four
+// vaults a pattern of its own, from leaf tendrils drawn from life to ones like a tractor's tracks
+// in snow, and over the lifts at the end of the Blue passage the silhouettes of the people who
+// built the station on their scaffolding. On the blue, the same leaves a shade darker; on the
+// track walls big leaves on stems in the darker blue and here and there a white star.
+
+export const TC_ULTRA = '#2f4dbf', TC_ULTRA_DARK = '#20369a', TC_FROND = '#4776c9', TC_WHITE_ROCK = '#e8e5dc';
+// the vaults' patterns, west to east, and 'blue' for the vaults over the platforms between the rock
+// cores, blue all over with the darker leaves
+export type TcVault = 'tyres' | 'leaves' | 'workers' | 'fronds' | 'blue';
+// a vault's texture covers TC_VAULT.along m along the track (u), and across from the top of the
+// track wall (the canvas's top, v 1) to the middle of the cave (v 0), about TC_VAULT.across m; the
+// white from `white` of the way across
+export const TC_VAULT = { along: 16, across: 14, white: 0.42 };
+
+// A pointed leaf from (bx, by) along angle `a`, `l` long, `w` wide at its widest.
+function blueLeaf(x: CanvasRenderingContext2D, bx: number, by: number, a: number, l: number, w: number) {
+  x.save(); x.translate(bx, by); x.rotate(a);
+  x.beginPath(); x.moveTo(0, 0);
+  x.bezierCurveTo(l * 0.25, -w * 0.62, l * 0.7, -w * 0.5, l, 0);
+  x.bezierCurveTo(l * 0.7, w * 0.5, l * 0.25, w * 0.62, 0, 0);
+  x.fill(); x.restore();
+}
+
+// A tall plant on a track wall: a stem from (x0, y0) up, bending a little, with pairs of big
+// leaves along it, `h` px tall; now and then a stem across it with its own pairs.
+function bigPlant(x: CanvasRenderingContext2D, x0: number, y0: number, h: number, r: () => number) {
+  const pairs = 3 + Math.floor(r() * 2), bend = (r() - 0.5) * 0.5, lw = h * 0.018;
+  x.lineCap = 'round'; x.lineWidth = lw;
+  const at = (t: number): [number, number, number] => {
+    const a = -Math.PI / 2 + bend * t;
+    return [x0 + Math.sin(bend * t) * h * 0.25, y0 - t * h, a];
+  };
+  x.beginPath(); x.moveTo(x0, y0);
+  for (let k = 1; k <= 20; k++) { const [px, py] = at(k / 20); x.lineTo(px, py); }
+  x.stroke();
+  for (let k = 0; k < pairs; k++) {
+    const t = 0.3 + (k / pairs) * 0.62, [px, py, a] = at(t), l = h * (0.3 - k * 0.035), w = l * 0.42;
+    for (const d of [-1, 1]) blueLeaf(x, px, py, a + d * (0.75 + r() * 0.2), l, w);
+  }
+  const [tx, ty, ta] = at(1);
+  blueLeaf(x, tx, ty, ta, h * 0.2, h * 0.08);
+  if (r() < 0.5) {
+    // the stem across, through the plant's lower half
+    const [cx, cy] = at(0.35), half = h * (0.45 + r() * 0.2);
+    x.beginPath(); x.moveTo(cx - half, cy + h * 0.02); x.lineTo(cx + half, cy - h * 0.02); x.stroke();
+    for (const d of [-1, 1]) {
+      const ex = cx + d * half;
+      blueLeaf(x, ex, cy, d > 0 ? 0 : Math.PI, h * 0.16, h * 0.07);
+      for (const e of [-1, 1]) blueLeaf(x, cx + d * half * 0.6, cy, (d > 0 ? 0 : Math.PI) + e * 0.9 * d, h * 0.14, h * 0.06);
+    }
+  }
+}
+
+// A white star of six strokes, `rad` px out from (cx, cy).
+function sixStar(x: CanvasRenderingContext2D, cx: number, cy: number, rad: number, turn: number) {
+  x.lineCap = 'round'; x.lineWidth = rad * 0.16;
+  x.beginPath();
+  for (let k = 0; k < 3; k++) {
+    const a = turn + (k * Math.PI) / 3;
+    x.moveTo(cx - Math.cos(a) * rad, cy - Math.sin(a) * rad); x.lineTo(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad);
+  }
+  x.stroke();
+}
+
+// The rock's light and shade: blotches in the paint, wrapping across the canvas's sides.
+function rockPaint(x: CanvasRenderingContext2D, w: number, h: number, size: number, r: () => number, y0 = 0, y1 = h) {
+  rockShade(x, w, y1, Math.round((w * (y1 - y0)) / (size * size) * 2.2), '10,15,40', 0.05, size, r, y0);
+  rockShade(x, w, y1, Math.round((w * (y1 - y0)) / (size * size) * 1.2), '255,255,255', 0.06, size * 0.8, r, y0);
+}
+
+// The track walls, as tcCaveWall's canvas (TC_WALL): ultramarine all the way up, grimy in the
+// trench, big plants in the darker blue, a white star here and there.
+export function tcBlueTrackWall() {
+  const [c, x, Y] = tcCanvas(TC_CAVE_REPEAT);
+  const w = c.width, { ppm, floor } = TC_WALL, r = rng(1975 + 10);
+  x.fillStyle = TC_ULTRA; x.fillRect(0, 0, w, c.height);
+  rockPaint(x, w, c.height, 70, r);
+  x.fillStyle = x.strokeStyle = TC_ULTRA_DARK;
+  // two plants a repeat, standing on the platform's height, 2.6–3.6 m tall
+  for (const u0 of [3.2 + r() * 2, 11 + r() * 2]) {
+    const h = (2.6 + r()) * ppm;
+    for (const dx of [-w, 0, w]) bigPlant(x, u0 * ppm + dx, Y(floor + 0.2), h, rng(Math.floor(u0 * 100)));
+  }
+  x.strokeStyle = '#e9ecf4';
+  for (let k = 0; k < 4; k++) {
+    const u0 = r() * TC_CAVE_REPEAT, m = floor + 2.4 + r() * 2.2, rad = (0.16 + r() * 0.08) * ppm, turn = r();
+    for (const dx of [-w, 0, w]) sixStar(x, u0 * ppm + dx, Y(m), rad, turn);
+  }
+  // the trench: grime over the blue
+  const g = x.createLinearGradient(0, Y(floor), 0, Y(0));
+  g.addColorStop(0, 'rgba(15,18,30,0.25)'); g.addColorStop(1, 'rgba(15,15,20,0.85)');
+  x.fillStyle = g; x.fillRect(0, Y(floor), w, Y(0) - Y(floor));
+  return tcTexture(c);
+}
+
+// A tendril of leaves drawn from life: a stem from (x0, y0), curving, with leaves in pairs.
+function tendril(x: CanvasRenderingContext2D, x0: number, y0: number, a: number, len: number, leaf: number, bend: number, r: () => number, stiff = false) {
+  const n = Math.max(5, Math.round(len / (leaf * (stiff ? 0.42 : 0.55))));
+  let px = x0, py = y0, ang = a;
+  const pts: [number, number, number][] = [];
+  for (let k = 0; k <= n; k++) {
+    pts.push([px, py, ang]);
+    ang += bend / n;
+    px += Math.cos(ang) * (len / n); py += Math.sin(ang) * (len / n);
+  }
+  x.lineCap = 'round'; x.lineWidth = Math.max(2, leaf * 0.11);
+  x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+  for (const p of pts) x.lineTo(p[0], p[1]);
+  x.stroke();
+  for (let k = 1; k < pts.length; k++) {
+    const [bx, by, ba] = pts[k], l = leaf * (1 - (k / pts.length) * 0.4) * (0.9 + r() * 0.2);
+    // (stiff: the leaves of the later vaults, set like a herringbone, broad and blunt)
+    const spread = stiff ? 1.05 : 0.7 + r() * 0.15;
+    blueLeaf(x, bx, by, ba - spread, l, l * (stiff ? 0.5 : 0.36));
+    blueLeaf(x, bx, by, ba + spread, l, l * (stiff ? 0.5 : 0.36));
+  }
+  const [tx, ty, ta] = pts[pts.length - 1];
+  blueLeaf(x, tx, ty, ta, leaf * 0.7, leaf * 0.28);
+}
+
+// A star of tyre treads: six thin arms out from (cx, cy), each ending in a tread of short bars set
+// across it in a chevron, as a tractor's wheel leaves in snow.
+function treadStar(x: CanvasRenderingContext2D, cx: number, cy: number, rad: number, turn: number) {
+  const pill = (px: number, py: number, a: number, l: number, w: number) => {
+    x.save(); x.translate(px, py); x.rotate(a);
+    x.beginPath(); x.roundRect(-l / 2, -w / 2, l, w, w / 2); x.fill(); x.restore();
+  };
+  x.lineCap = 'butt'; x.lineWidth = rad * 0.05;
+  for (let k = 0; k < 6; k++) {
+    const a = turn + (k * Math.PI) / 3, ca = Math.cos(a), sa = Math.sin(a);
+    x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + ca * rad * 0.5, cy + sa * rad * 0.5); x.stroke();
+    pill(cx + ca * rad * 0.64, cy + sa * rad * 0.64, a, rad * 0.24, rad * 0.11);
+    // the tread: three pairs of bars in a V, pointing out
+    for (let j = 0; j < 3; j++) {
+      const t = 0.86 + j * 0.15, px = cx + ca * rad * t, py = cy + sa * rad * t;
+      for (const d of [-1, 1]) {
+        const b = a + d * 1.0;
+        pill(px + Math.cos(b) * rad * 0.1, py + Math.sin(b) * rad * 0.1, b, rad * 0.22, rad * 0.1);
+      }
+    }
+  }
+}
+
+// A worker's silhouette, `h` px tall, standing on (fx, fy), facing right (`flip`: left), in one of
+// a few poses: 0 standing, 1 hammering overhead, 2 reaching up with a roller, 3 bending over,
+// 4 carrying a plank, 5 kneeling with a drill.
+function worker(x: CanvasRenderingContext2D, fx: number, fy: number, h: number, pose: number, flip: boolean) {
+  x.save(); x.translate(fx, fy); if (flip) x.scale(-1, 1);
+  const limb = (pts: [number, number][], w: number) => {
+    x.lineWidth = w * h; x.lineCap = 'round'; x.lineJoin = 'round';
+    x.beginPath(); x.moveTo(pts[0][0] * h, -pts[0][1] * h);
+    for (const p of pts.slice(1)) x.lineTo(p[0] * h, -p[1] * h);
+    x.stroke();
+  };
+  const bend = pose === 3 ? 0.55 : 0;
+  const hip: [number, number] = [0, pose === 5 ? 0.3 : 0.5];
+  const sh: [number, number] = [hip[0] + Math.sin(bend) * 0.3, hip[1] + Math.cos(bend) * 0.3];
+  const head: [number, number] = [sh[0] + Math.sin(bend) * 0.11, sh[1] + Math.cos(bend) * 0.11];
+  // legs
+  if (pose === 5) { limb([hip, [0.2, 0.28], [0.22, 0]], 0.09); limb([hip, [-0.05, 0.02], [-0.25, 0]], 0.09); }
+  else { limb([hip, [0.05, 0.26], [0.08, 0]], 0.09); limb([hip, [-0.06, 0.26], [-0.1, 0]], 0.09); }
+  // the body, and the head under a cap
+  limb([hip, sh], 0.2);
+  x.beginPath(); x.arc(head[0] * h, -head[1] * h, 0.065 * h, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.ellipse(head[0] * h + 0.015 * h, -(head[1] + 0.04) * h, 0.075 * h, 0.03 * h, 0, 0, Math.PI * 2); x.fill();
+  // arms and tools
+  const s = sh;
+  switch (pose) {
+    case 1:
+      limb([s, [s[0] + 0.12, s[1] + 0.12], [s[0] + 0.1, s[1] + 0.3]], 0.065);
+      limb([[s[0] + 0.1, s[1] + 0.3], [s[0] + 0.2, s[1] + 0.36]], 0.03);
+      x.fillRect((s[0] + 0.17) * h, -(s[1] + 0.42) * h, 0.08 * h, 0.08 * h);
+      limb([s, [s[0] + 0.18, s[1] - 0.12], [s[0] + 0.3, s[1] - 0.05]], 0.065);
+      break;
+    case 2:
+      limb([s, [s[0] + 0.1, s[1] + 0.18], [s[0] + 0.14, s[1] + 0.32]], 0.065);
+      limb([[s[0] + 0.14, s[1] + 0.32], [s[0] + 0.2, s[1] + 0.62]], 0.025);
+      x.fillRect((s[0] + 0.1) * h, -(s[1] + 0.68) * h, 0.22 * h, 0.07 * h);
+      limb([s, [s[0] + 0.06, s[1] + 0.16], [s[0] + 0.14, s[1] + 0.3]], 0.065);
+      break;
+    case 3:
+      limb([s, [s[0] + 0.1, s[1] - 0.2], [s[0] + 0.14, s[1] - 0.38]], 0.065);
+      limb([s, [s[0] + 0.02, s[1] - 0.22], [s[0] + 0.02, s[1] - 0.4]], 0.065);
+      break;
+    case 4:
+      limb([s, [s[0] + 0.08, s[1] + 0.06], [s[0] + 0.02, s[1] + 0.1]], 0.065);
+      x.save(); x.translate(s[0] * h, -(s[1] + 0.08) * h); x.rotate(-0.25);
+      x.fillRect(-0.6 * h, -0.03 * h, 1.3 * h, 0.06 * h); x.restore();
+      limb([s, [s[0] - 0.06, s[1] - 0.22], [s[0] - 0.02, s[1] - 0.4]], 0.065);
+      break;
+    case 5:
+      limb([s, [s[0] + 0.18, s[1] - 0.04], [s[0] + 0.32, s[1] + 0.02]], 0.065);
+      x.fillRect((s[0] + 0.3) * h, -(s[1] + 0.06) * h, 0.18 * h, 0.07 * h);
+      limb([s, [s[0] + 0.12, s[1] - 0.14], [s[0] + 0.28, s[1] - 0.06]], 0.065);
+      break;
+    default:
+      limb([s, [s[0] + 0.04, s[1] - 0.25], [s[0] + 0.06, s[1] - 0.45]], 0.065);
+      limb([s, [s[0] - 0.05, s[1] - 0.25], [s[0] - 0.06, s[1] - 0.45]], 0.065);
+  }
+  x.restore();
+}
+
+// Scaffolding in lines: a frame `w` × `h` px from (x0, y0) up, poles, ledgers, a brace, a ladder,
+// and a plank of boards across its top.
+function scaffold(x: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, lw: number, r: () => number) {
+  x.lineWidth = lw; x.lineCap = 'butt';
+  const line = (ax: number, ay: number, bx: number, by: number) => { x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); };
+  line(x0, y0, x0, y0 - h); line(x0 + w, y0, x0 + w, y0 - h);
+  const storeys = Math.max(1, Math.round(h / (w * 0.7)));
+  for (let k = 1; k <= storeys; k++) line(x0 - lw, y0 - (h * k) / storeys, x0 + w + lw, y0 - (h * k) / storeys);
+  if (r() < 0.6) line(x0, y0, x0 + w, y0 - h / storeys);
+  if (r() < 0.7) {
+    // a ladder leaning on it
+    const lx = x0 + w * (0.2 + r() * 0.3), lean = w * 0.25;
+    line(lx, y0, lx + lean, y0 - h); line(lx + w * 0.18, y0, lx + w * 0.18 + lean, y0 - h);
+    for (let k = 1; k < 10; k++) { const t = k / 10; line(lx + lean * t, y0 - h * t, lx + w * 0.18 + lean * t, y0 - h * t); }
+  }
+  // the boards on top, in stripes
+  for (let k = 0; k < 4; k++) line(x0 - w * 0.1, y0 - h - lw * (1.4 + k * 1.6), x0 + w * 1.1, y0 - h - lw * (1.4 + k * 1.6));
+}
+
+// A floating plank of boards, as across the workers' vault: a parallelogram of stripes.
+function planks(x: CanvasRenderingContext2D, cx: number, cy: number, l: number, a: number, lw: number) {
+  x.save(); x.translate(cx, cy); x.rotate(a);
+  x.lineWidth = lw;
+  for (let k = 0; k < 5; k++) { x.beginPath(); x.moveTo(-l / 2 + k * lw * 0.5, k * lw * 1.7); x.lineTo(l / 2 + k * lw * 0.5, k * lw * 1.7); x.stroke(); }
+  x.restore();
+}
+
+// A vault's paint, as described at TC_VAULT: along the track, and across from the top of the track
+// wall to the middle of the cave. Blue up to TC_VAULT.white across, white beyond with the vault's
+// pattern, the pattern carried on, darker, over the blue.
+export function tcVault(kind: TcVault) {
+  const PX = 64, W = TC_VAULT.along * PX, H = TC_VAULT.across * PX, [c, x] = canvas(W, H);
+  const r = rng({ tyres: 11, leaves: 12, workers: 13, fronds: 14, blue: 15 }[kind]);
+  // the canvas's top at the track wall
+  const edge = kind === 'blue' ? H : TC_VAULT.white * H;
+  x.fillStyle = TC_ULTRA; x.fillRect(0, 0, W, H);
+  x.fillStyle = TC_WHITE_ROCK; x.fillRect(0, edge, W, H - edge);
+  rockPaint(x, W, H, 60, r);
+  // the pattern, drawn twice: darker clipped to the blue, lighter clipped to the white
+  const pattern = (onBlue: boolean) => {
+    x.save();
+    x.beginPath(); if (onBlue) x.rect(0, 0, W, edge); else x.rect(0, edge, W, H - edge); x.clip();
+    x.fillStyle = x.strokeStyle = onBlue ? TC_ULTRA_DARK : TC_FROND;
+    const rr = rng(77 + kind.length);
+    const wrap = (f: (dx: number) => void) => { for (const dx of [-W, 0, W]) f(dx); };
+    if (kind === 'fronds' || kind === 'blue') {
+      // tendrils drawn from life, long and curling, sweeping across the vault
+      for (let k = 0; k < (kind === 'blue' ? 4 : 8); k++) {
+        const x0 = ((k + rr() * 0.6) / 8) * W, y0 = H * (0.55 + rr() * 0.45), a = -Math.PI / 2 + (rr() - 0.5) * 1.6, len = (4.5 + rr() * 2.5) * PX, leaf = (0.62 + rr() * 0.18) * PX, bend = (rr() - 0.5) * 2.2, s = Math.floor(rr() * 1e6);
+        wrap((dx) => tendril(x, x0 + dx, y0, a, len, leaf, bend, rng(s)));
+      }
+    } else if (kind === 'leaves') {
+      // stiffer stems in rows across the vault, the leaves broad, set like a herringbone
+      for (let k = 0; k < 8; k++) {
+        const x0 = ((k + rr() * 0.4) / 8) * W, y0 = H * (0.95 - rr() * 0.1), a = -Math.PI / 2 + (rr() - 0.5) * 0.5, len = (4.5 + rr() * 2.5) * PX, leaf = (0.5 + rr() * 0.1) * PX, s = Math.floor(rr() * 1e6);
+        wrap((dx) => tendril(x, x0 + dx, y0, a, len, leaf, (rr() - 0.5) * 0.6, rng(s), true));
+      }
+    } else if (kind === 'tyres') {
+      for (let k = 0; k < 7; k++) {
+        const x0 = ((k + rr() * 0.5) / 7) * W, y0 = H * (0.12 + rr() * 0.8), rad = (1.1 + rr() * 0.5) * PX, turn = rr();
+        wrap((dx) => treadStar(x, x0 + dx, y0, rad, turn));
+      }
+    } else {
+      // the builders on their scaffolding, standing with their feet towards the walls (drawn
+      // upside down, up the canvas being down the vault), the scaffolds' feet in the blue; planks
+      // floating up in the vault
+      const lw = 0.08 * PX, foot = -1.2 * PX;
+      x.translate(0, edge); x.scale(1, -1);
+      for (let k = 0; k < 6; k++) {
+        const x0 = ((k + rr() * 0.4) / 6) * W, fw = (1.6 + rr() * 1.2) * PX, fh = (1.8 + rr() * 2.2) * PX;
+        const s = Math.floor(rr() * 1e6);
+        wrap((dx) => scaffold(x, x0 + dx, -foot, fw, fh, lw, rng(s)));
+        const pose = Math.floor(rr() * 6), flip = rr() < 0.5;
+        wrap((dx) => worker(x, x0 + dx + fw * (0.3 + rr() * 0.4), -foot - fh - lw * 7, 2.0 * PX, pose, flip));
+        const pose2 = Math.floor(rr() * 6), flip2 = rr() < 0.5, at = x0 + fw * (1.1 + rr() * 0.4);
+        wrap((dx) => worker(x, at + dx, -foot + 0.3 * PX, 2.0 * PX, pose2, flip2));
+      }
+      for (let k = 0; k < 12; k++) {
+        const cx = rr() * W, cy = -(H - edge) * (0.5 + rr() * 0.5), l = (1 + rr() * 1.8) * PX, a = (rr() - 0.5) * 1.4;
+        wrap((dx) => planks(x, cx + dx, cy, l, a, lw));
+      }
+    }
+    x.restore();
+  };
+  pattern(true); pattern(false);
+  return tcTexture(c);
+}
+
+// The rock of the cores and pillars standing up through the middle of the platform, as the track
+// walls' canvas (TC_WALL, from the platform up): ultramarine up to a straight line `line` m over the
+// platform, white above it up into the vault, and the vault's pattern over both.
+export const TC_CORE_LINE = 3.3;
+export function tcCoreWall(kind: TcVault) {
+  const [c, x, Y] = tcCanvas(TC_CAVE_REPEAT);
+  const w = c.width, { ppm, floor } = TC_WALL, r = rng(1975 + kind.length * 7);
+  const edge = Y(floor + TC_CORE_LINE);
+  x.fillStyle = TC_WHITE_ROCK; x.fillRect(0, 0, w, edge);
+  x.fillStyle = TC_ULTRA; x.fillRect(0, edge, w, c.height - edge);
+  rockPaint(x, w, c.height, 70, r);
+  const pattern = (onBlue: boolean) => {
+    x.save();
+    x.beginPath(); if (onBlue) x.rect(0, edge, w, c.height - edge); else x.rect(0, 0, w, edge); x.clip();
+    x.fillStyle = x.strokeStyle = onBlue ? TC_ULTRA_DARK : TC_FROND;
+    const rr = rng(91 + kind.length);
+    const wrap = (f: (dx: number) => void) => { for (const dx of [-w, 0, w]) f(dx); };
+    if (kind === 'workers') {
+      const lw = 0.07 * ppm;
+      for (let k = 0; k < 4; k++) {
+        const u0 = ((k + rr() * 0.3) / 4) * w, fw = (1.6 + rr()) * ppm, fh = (2 + rr() * 2) * ppm, s = Math.floor(rr() * 1e6);
+        wrap((dx) => scaffold(x, u0 + dx, Y(floor + 0.5), fw, fh, lw, rng(s)));
+        const pose = Math.floor(rr() * 6), flip = rr() < 0.5;
+        wrap((dx) => worker(x, u0 + dx + fw * 0.5, Y(floor + 0.5) - fh - lw * 7, 1.7 * ppm, pose, flip));
+        const pose2 = Math.floor(rr() * 6), flip2 = rr() < 0.5;
+        wrap((dx) => worker(x, u0 + dx + fw * 1.4, Y(floor + 0.5), 1.7 * ppm, pose2, flip2));
+      }
+    } else if (kind === 'tyres') {
+      for (let k = 0; k < 5; k++) {
+        const u0 = ((k + rr() * 0.5) / 5) * w, m = floor + 1.5 + rr() * 5, rad = (1.0 + rr() * 0.4) * ppm, turn = rr();
+        wrap((dx) => treadStar(x, u0 + dx, Y(m), rad, turn));
+      }
+    } else {
+      // tendrils growing up from the plinth, over the line and on up
+      for (let k = 0; k < 6; k++) {
+        const u0 = ((k + rr() * 0.6) / 6) * w, len = (4.5 + rr() * 3) * ppm, leaf = (0.62 + rr() * 0.16) * ppm, s = Math.floor(rr() * 1e6), bend = (rr() - 0.5) * 1.6;
+        wrap((dx) => tendril(x, u0 + dx, Y(floor + 0.5), -Math.PI / 2 + (rr() - 0.5) * 0.6, len, leaf, bend, rng(s), kind === 'leaves'));
+      }
+    }
+    x.restore();
+  };
+  pattern(true); pattern(false);
+  return tcTexture(c);
+}
+
+// The blue line's platform floor, 2 × 2 m: dark grey terrazzo, polished, in big slabs.
+export function tcDarkTerrazzo() {
+  const [c, x] = canvas(512), r = rng(1975 + 3);
+  x.fillStyle = '#3a3c40'; x.fillRect(0, 0, 512, 512);
+  for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) {
+    const v = 56 + Math.floor(r() * 8);
+    x.fillStyle = `rgb(${v},${v + 1},${v + 4})`; x.fillRect(i * 256 + 1, j * 256 + 1, 254, 254);
+  }
+  speckle(x, 512, 512, 16000, 0.35, 1975 + 4);
+  speckle(x, 512, 512, 7000, 0.25, 1975 + 5, true);
+  return toTexture(c);
+}
+
+// The cubes Ultvedt laid in the cement mosaic of the floor below the escalators to Sergels torg:
+// rhombi in white, red and green terrazzo, three to a cube seen from above, on the dark floor.
+// One cube `size` m across, on a transparent canvas.
+export function tcCubes() {
+  const S = 512, [c, x] = canvas(S);
+  const cx = S / 2, cy = S / 2, R = S * 0.48;
+  const pt = (k: number) => [cx + Math.cos(Math.PI / 6 + (k * Math.PI) / 3) * R, cy + Math.sin(Math.PI / 6 + (k * Math.PI) / 3) * R];
+  const face = (a: number, b: number, col: string) => {
+    const [ax, ay] = pt(a), [bx, by] = pt(b), [mx, my] = pt(b + 1);
+    x.fillStyle = col; x.beginPath(); x.moveTo(cx, cy); x.lineTo(ax, ay); x.lineTo(bx, by); x.lineTo(mx, my); x.closePath(); x.fill();
+  };
+  face(5, 0, '#e4e1d8'); face(1, 2, '#8e3a34'); face(3, 4, '#3f8a4c');
+  speckle(x, S, S, 5000, 0.3, 1975 + 7);
+  return toTexture(c, { repeat: false });
+}
+
+// Panels of steel mesh in a frame, near white to be tinted: the boxes of the blue line's lamp
+// frames (galvanised) and the decks hung over its platform (black). 1 m a repeat.
+export function tcMeshPanel() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#e4e6e8'; x.fillRect(0, 0, 256, 256);
+  x.fillStyle = '#b4b8bc'; x.fillRect(10, 10, 236, 236);
+  x.fillStyle = 'rgba(40,42,46,0.55)';
+  for (let k = 10; k < 246; k += 5) { x.fillRect(k, 10, 2, 236); x.fillRect(10, k, 236, 2); }
+  return toTexture(c);
+}
+
+// The ticket halls' ceiling: white, with round panels of dark steel mesh in a grid, 2.4 m a repeat.
+export function tcTicketCeiling() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#efeeea'; x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 600, 0.05, 1957);
+  x.save(); x.beginPath(); x.arc(128, 128, 60, 0, Math.PI * 2); x.clip();
+  x.fillStyle = '#8a8d92'; x.fillRect(0, 0, 256, 256);
+  x.fillStyle = 'rgba(30,30,34,0.55)';
+  for (let k = 64; k < 194; k += 4) { x.fillRect(k, 64, 1.5, 130); x.fillRect(64, k, 130, 1.5); }
+  x.restore();
+  x.strokeStyle = '#c9cbce'; x.lineWidth = 4; x.beginPath(); x.arc(128, 128, 62, 0, Math.PI * 2); x.stroke();
+  return toTexture(c);
+}
+
+// Chequer plate, the combs at the ends of an escalator: 0.5 m a repeat.
+export function tcChequer() {
+  const [c, x] = canvas(128);
+  x.fillStyle = '#8c9096'; x.fillRect(0, 0, 128, 128);
+  x.fillStyle = '#b3b7bc';
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) {
+    x.save(); x.translate(i * 16 + 8, j * 16 + 8); x.rotate((i + j) % 2 ? Math.PI / 4 : -Math.PI / 4);
+    x.fillRect(-6, -1.6, 12, 3.2); x.restore();
+  }
+  return toTexture(c);
+}
+
+// The art on three of the pillars of the upper red/green platform, each drawn once round its four
+// sides (u) from the floor to the ceiling (v), TC_PILLAR.height m.
+export const TC_PILLAR = { height: 5.6 };
+
+// Vera Nilsson's pillar towards the Central Station: a mosaic of natural stones, set close in
+// bands of ochre, rust, grey, black and white.
+export function tcNilsson() {
+  const PX = 90, W = Math.round(4.4 * PX), H = Math.round(TC_PILLAR.height * PX), [c, x] = canvas(W, H), r = rng(1958);
+  x.fillStyle = '#5e5a52'; x.fillRect(0, 0, W, H);
+  const palette = ['#c9a25a', '#a8552f', '#8f8a80', '#2a2826', '#e6e0d2', '#6f6253', '#b9b2a4', '#7d3a24'];
+  for (let y = 0; y < H; y += 7) {
+    const band = Math.floor((y / H) * 9 + Math.sin(y * 0.05) * 0.8);
+    for (let px = (y / 7) % 2 ? 0 : 4; px < W; px += 6 + r() * 5) {
+      x.fillStyle = palette[(band * 3 + Math.floor(r() * 2.4)) % palette.length];
+      x.beginPath(); x.ellipse(px, y + r() * 2, 2.6 + r() * 2, 2.2 + r() * 1.6, r() * Math.PI, 0, Math.PI * 2); x.fill();
+    }
+  }
+  return toTexture(c);
+}
+
+// Berndt Helleberg's "Linje": a black pillar, and on it in black cement mosaic a single line in
+// relief, winding up round it.
+export function tcHelleberg() {
+  const PX = 90, W = Math.round(3.6 * PX), H = Math.round(TC_PILLAR.height * PX), [c, x] = canvas(W, H);
+  x.fillStyle = '#1b1b1c'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 9000, 0.35, 1959, true);
+  x.lineCap = 'round';
+  for (const [col, lw, dy] of [['#0d0d0e', 26, 3], ['#3a3a3c', 20, 0]] as [string, number, number][]) {
+    x.strokeStyle = col; x.lineWidth = lw;
+    x.beginPath();
+    for (let k = 0; k <= 200; k++) {
+      const t = k / 200, px = ((t * 2.25) % 1) * W, py = H * (0.08 + t * 0.84) + Math.sin(t * 31) * 18 + dy;
+      if (k && px < (((k - 1) / 200) * 2.25 % 1) * W) x.moveTo(px, py); else if (k) x.lineTo(px, py); else x.moveTo(px, py);
+    }
+    x.stroke();
+  }
+  return toTexture(c);
+}
+
+// Siri Derkert's "Kvinnopelaren" (1958): drawings cut into the concrete of the pillar nearest
+// Sergels torg, of women, faces and hands, and lines of writing between them.
+export function tcDerkert() {
+  const PX = 90, W = Math.round(4 * PX), H = Math.round(TC_PILLAR.height * PX), [c, x] = canvas(W, H), r = rng(1960);
+  x.fillStyle = '#b9b5ad'; x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 7000, 0.18, 1961);
+  x.strokeStyle = '#4b4843'; x.lineWidth = 2.2; x.lineCap = 'round'; x.lineJoin = 'round';
+  // faces in profile and from the front, figures, hands
+  for (let k = 0; k < 16; k++) {
+    const cx = r() * W, cy = H * (0.1 + r() * 0.85), s = 18 + r() * 26;
+    x.beginPath();
+    if (k % 3 === 0) {
+      x.ellipse(cx, cy, s * 0.7, s, 0, 0, Math.PI * 2);
+      x.moveTo(cx - s * 0.3, cy - s * 0.15); x.lineTo(cx - s * 0.1, cy - s * 0.15);
+      x.moveTo(cx + s * 0.1, cy - s * 0.15); x.lineTo(cx + s * 0.3, cy - s * 0.15);
+      x.moveTo(cx - s * 0.2, cy + s * 0.45); x.quadraticCurveTo(cx, cy + s * 0.55, cx + s * 0.2, cy + s * 0.45);
+    } else if (k % 3 === 1) {
+      x.moveTo(cx, cy - s); x.quadraticCurveTo(cx + s * 0.8, cy - s * 0.9, cx + s * 0.6, cy - s * 0.1);
+      x.lineTo(cx + s * 0.85, cy + s * 0.1); x.lineTo(cx + s * 0.55, cy + s * 0.3); x.quadraticCurveTo(cx + s * 0.5, cy + s, cx, cy + s * 1.1);
+      x.moveTo(cx, cy + s * 1.1); x.quadraticCurveTo(cx - s * 0.4, cy + s * 2.2, cx - s * 0.1, cy + s * 3.2);
+    } else {
+      for (let f = 0; f < 5; f++) { x.moveTo(cx, cy); x.lineTo(cx + Math.cos(-1.9 + f * 0.35) * s, cy + Math.sin(-1.9 + f * 0.35) * s * 1.2); }
+    }
+    x.stroke();
+  }
+  // lines of writing
+  x.lineWidth = 1.4;
+  for (let k = 0; k < 40; k++) {
+    const x0 = r() * W, y0 = r() * H, n = 6 + Math.floor(r() * 14);
+    x.beginPath(); x.moveTo(x0, y0);
+    for (let i = 1; i <= n * 4; i++) x.lineTo(x0 + i * 2.2, y0 + Math.sin(i * 1.7 + r()) * 3.2);
+    x.stroke();
+  }
+  return toTexture(c);
+}
+
+// Carl Fredrik Reuterswärd's "Take the A-train" (1984), the enamel frieze along the Blue passage:
+// SL's emblem, a white T in a ring on deep blue, in a row of variations, one every 0.8 m — whole,
+// halved, turned, the ring broken, the T on its own. 6.4 m a repeat, 0.5 m high.
+export function tcFrieze() {
+  const PX = 160, W = Math.round(6.4 * PX), H = Math.round(0.5 * PX), [c, x] = canvas(W, H);
+  x.fillStyle = '#1d2f86'; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#e8c33a'; x.fillRect(0, H - 5, W, 3);
+  x.strokeStyle = x.fillStyle = '#f2f2ee';
+  const R = H * 0.34, lw = R * 0.22;
+  for (let k = 0; k < 8; k++) {
+    const cx = (k + 0.5) * 0.8 * PX, cy = H * 0.47;
+    x.save(); x.translate(cx, cy); x.rotate([0, 0, Math.PI / 2, 0, Math.PI, 0, -Math.PI / 4, 0][k]);
+    x.lineWidth = lw;
+    const ring = (a0: number, a1: number) => { x.beginPath(); x.arc(0, 0, R, a0, a1); x.stroke(); };
+    const tee = () => { x.fillRect(-R * 0.55, -R * 0.5, R * 1.1, lw); x.fillRect(-lw / 2, -R * 0.5, lw, R * 1.15); };
+    switch (k) {
+      case 1: ring(0, Math.PI * 2); break;
+      case 3: x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill(); x.fillStyle = '#1d2f86'; tee(); x.fillStyle = '#f2f2ee'; break;
+      case 5: tee(); break;
+      case 7: ring(Math.PI * 0.15, Math.PI * 0.85); ring(Math.PI * 1.15, Math.PI * 1.85); tee(); break;
+      case 4: ring(0, Math.PI); tee(); break;
+      default: ring(0, Math.PI * 2); tee();
+    }
+    x.restore();
+  }
+  return toTexture(c);
+}
+
 // Platform floors, 2 × 2 m per repeat. Upper red/green and blue line: polished stone slabs,
 // 1.0 × 0.5 m, `tone` the stone; lower red/green: small square tiles, 10 cm, cream in grey joints.
 export function tcStoneFloor(tone: number, seed: number) {

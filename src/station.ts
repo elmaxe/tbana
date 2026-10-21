@@ -13,6 +13,7 @@ import { prism } from './clip';
 import type { Volume } from './clip';
 import { BULB, TUBE, addLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
+import { TC_BLUE_ROCK, TC_SHAFT, dressTCentralen } from './tcentralen';
 
 // The source model is an extruded 2D drawing: floor slabs, stair ramps, escalator tubes,
 // lift shafts, ticket gates and tracks, each identified only by its colour. This module turns
@@ -149,7 +150,7 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
   const B = {
     floorTop: new Builder(), slabSide: new Builder(), slabBottom: new Builder(),
     stairTop: new Builder(), tubeGlass: new Builder(), tubeFloor: new Builder(),
-    elevator: new Builder(), gates: new Builder(), deco: new Builder(),
+    elevator: new Builder(), gates: new Builder(), deco: new Builder(), shaft: new Builder(), steelGates: new Builder(),
   };
   const mapB = { floors: new Builder() };
   const lineMap: Partial<Record<LineId, Builder>> = {};
@@ -186,12 +187,15 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
           mapB.floors.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0], darker(c, rec.kind === 'floor' ? 0.62 : 0.8));
         }
         for (const t of rec.side) B.slabSide.tri(t[0], t[1], t[2], sideUV(t[0]), sideUV(t[1]), sideUV(t[2]), darker(c, 0.8));
-        for (const t of rec.bottom) B.slabBottom.tri(t[0], t[1], t[2], planar(t[0]), planar(t[1]), planar(t[2]), darker(c, 0.55));
+        // (T-Centralen's are drawn once its cave is known, as its ceilings)
+        if (rec.station !== HOME_STATION) for (const t of rec.bottom) B.slabBottom.tri(t[0], t[1], t[2], planar(t[0]), planar(t[1]), planar(t[2]), darker(c, 0.55));
         break;
       }
       case 'tube': {
-        // Escalator drawn as a solid volume: walk on its floor (bottom face + 1 m) inside a glass tube.
-        for (const t of rec.all) B.tubeGlass.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0]);
+        // Escalator drawn as a solid volume: walk on its floor (bottom face + 1 m) inside a glass tube
+        // (T-Centralen's in a shaft in the rock, open at its ends: src/tcentralen.ts draws the escalators)
+        if (rec.station === HOME_STATION) tubeShaft(rec, B.shaft);
+        else for (const t of rec.all) B.tubeGlass.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0]);
         const uv = rampUV(rec.bottom, 1 / 2.4);
         for (const t of rec.bottom) {
           const s = t.map((v) => v.clone().setY(v.y + 1));
@@ -202,13 +206,15 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
         break;
       }
       case 'elevator': {
-        for (const t of rec.all) B.elevator.tri(t[0], t[1], t[2], sideUV(t[0]), sideUV(t[1]), sideUV(t[2]));
+        // (T-Centralen's shafts are solid, drawn once its cave is known, their doors on them: src/tcentralen.ts)
+        if (rec.station !== HOME_STATION) for (const t of rec.all) B.elevator.tri(t[0], t[1], t[2], sideUV(t[0]), sideUV(t[1]), sideUV(t[2]));
         for (const t of rec.top) mapB.floors.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0], c);
         elevators.push(rec);
         break;
       }
       case 'gates':
-        for (const t of rec.all) B.gates.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0]);
+        // (T-Centralen's are stainless)
+        for (const t of rec.all) (rec.station === HOME_STATION ? B.steelGates : B.gates).tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0]);
         for (const t of rec.top) mapB.floors.tri(t[0], t[1], t[2], [0, 0], [0, 0], [0, 0], c);
         break;
       case 'deco':
@@ -272,6 +278,8 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
   };
   for (const k of ['slabSide', 'slabBottom', 'stairTop', 'tubeFloor', 'gates', 'deco'] as const) addMesh(B[k], mats[k]);
   addMesh(B.elevator, mats.elevator, { renderOrder: 2 });
+  addMesh(B.shaft, tc.vaults.blue);
+  addMesh(B.steelGates, new THREE.MeshStandardMaterial({ color: 0xbfc4c9, roughness: 0.3, metalness: 0.6, emissive: 0x2a2c2e }));
   addMesh(B.tubeGlass, mats.tubeGlass, { renderOrder: 3 });
 
   // Minimap copy: flat colours, original track ribbons in line colours.
@@ -362,13 +370,14 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
         if (farClear) {
           // the blue line's is blasted rock: higher, rounder and rough
           const g = hall === 'blue'
-            ? tcRough(sweep(tr.path.resample(Math.max(0, s0 - 6), Math.min(tr.path.length, s1 + 6), 0.7), tcCaveProfile(far, k), { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true }), tr.path.pointAt(s0).y, -k, tr)
+            ? tcRough(sweep(tr.path.resample(...tcCaveSpan(tr), 0.7), tcCaveProfile(far, k), { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true }), tr.path.pointAt(s0).y, -k, tr)
             : sweep(run, wallProf, { uScale: 1 / T.TC_WALL.height, vScale: 1 / look.repeat, swapUV: true });
           group.add(new THREE.Mesh(g, tc[look.key]));
-          signs.push(...tcPlates(tr, far + k * 0.03, tc.plate[hall]));
+          // (the blue line's name is on small signs on posts along its wall: src/tcentralen.ts)
+          if (hall !== 'blue') signs.push(...tcPlates(tr, far + k * 0.03, tc.plate[hall]));
         }
       } else if (farClear) (blue ? caveGeoms : trackWallGeoms).push(sweep(run, wallProf, { uScale: blue ? 0.2 : 0.5, vScale: blue ? 0.2 : 0.5, swapUV: true }));
-      const row = addPlatformFurniture(tr, spec, lampB, signs, !!hall);
+      const row = addPlatformFurniture(tr, spec, hall === 'blue' ? new Builder() : lampB, signs, !!hall);
       const ys = row.map((q) => q.y);
       stripLamps(row, { power: 1.6, reach: 16, color: TUBE, down: 1, floor: Math.min(...ys) - 5, top: Math.max(...ys) + 5 }, lamps);
     }
@@ -387,21 +396,52 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
 
   // ---------------------------------------------------------------- 4. walls, railings, platform edges
   // T-Centralen's halls get a ceiling over the platform and the tracks, between the tops of the walls
+  const parts = () => Object.fromEntries(TC_PARTS.map(([, k]) => [k, new Builder()])) as Record<T.TcVault, Builder>;
+  const caveEnds = new Builder();
   for (const hall of HALLS) {
-    const ceil = new Builder();
+    const ceil = new Builder(), vaults = hall === 'blue' ? parts() : undefined;
     const hallTracks = tracks.filter((tr) => hallOf(tr) === hall);
     for (const tr of hallTracks) {
       const partner = hallTracks.find((o) => o !== tr && o.platform!.rec === tr.platform!.rec);
-      if (partner) tcCeiling(tr, partner, hall === 'blue' ? TC_CAVE_TOP : TC_CEILING, walk, elevators, hits, ceil, hall === 'blue' ? 1 / 8 : 1 / 2, hall === 'blue');
+      if (partner) tcCeiling(tr, partner, hall === 'blue' ? TC_CAVE_TOP : TC_CEILING, walk, elevators, hits, ceil, 1 / 2, vaults, caveEnds);
     }
     addMesh(ceil, tc[hall].ceiling);
+    if (vaults) for (const [, k] of TC_PARTS) addMesh(vaults[k], tc.vaults[k]);
   }
+  addMesh(caveEnds, tc.vaults.blue);
 
-  const W = buildEdges(records, walk, trackIdx, halls);
+  const cave = tcCave(tracks.filter((tr) => hallOf(tr) === 'blue'));
+  // T-Centralen's lift shafts: in the cave its blue rock, elsewhere dark stone
+  const liftB = { cave: new Builder(), stone: new Builder() }, rockUV = (p: THREE.Vector3): UV => [(p.x + p.z) / 16, p.y / 14];
+  for (const rec of elevators) {
+    if (rec.station !== HOME_STATION) continue;
+    const c = rec.box.getCenter(new THREE.Vector3()), b = cave?.contains(c.x, c.z) && rec.box.min.y < cave.y + 1 ? liftB.cave : liftB.stone;
+    for (const t of rec.all) b.tri(t[0], t[1], t[2], rockUV(t[0]), rockUV(t[1]), rockUV(t[2]));
+  }
+  addMesh(liftB.cave, tc.vaults.blue);
+  // and the undersides of its floors and stairs: in the cave black steel decks hung over the
+  // platform, in the blue line's other halls its painted rock, elsewhere a white ceiling
+  const under = { deck: new Builder(), rock: new Builder(), white: new Builder() };
+  for (const rec of records) {
+    if (rec.station !== HOME_STATION || (rec.kind !== 'floor' && rec.kind !== 'stairs')) continue;
+    for (const t of rec.bottom) {
+      const m = t[0].clone().add(t[1]).add(t[2]).multiplyScalar(1 / 3);
+      const b = cave?.contains(m.x, m.z) && m.y < cave.y + 8 ? under.deck : TC_BLUE_ROCK.has(rec.name) ? under.rock : under.white;
+      b.tri(t[0], t[1], t[2], planar(t[0]), planar(t[1]), planar(t[2]));
+    }
+  }
+  addMesh(under.deck, tc.deck);
+  addMesh(under.rock, tc.vaults.blue);
+  addMesh(under.white, tc.upper.ceiling);
+  addMesh(liftB.stone, new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: 0.35, metalness: 0.2 }));
+  const W = buildEdges(records, walk, trackIdx, halls, cave);
   addMesh(W.wall, mats.wall);
   for (const h of HALLS) {
     addMesh(W.tc[h], tc[h].end);
   }
+  for (const [, k] of TC_PARTS) addMesh(W.core[k], tc.cores[k]);
+  addMesh(W.plinth, tc.plinth);
+  addMesh(W.shaft, tc.vaults.blue);
   addMesh(W.band, tc.band);
   addMesh(W.tactile, tc.tactile);
   addMesh(W.cave, mats.cave);
@@ -411,7 +451,11 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
 
   // ---------------------------------------------------------------- 5. lifts
   const lifts = buildLifts(elevators, walk, hits);
-  addLamps(group, [...lamps, ...concourseLamps(records, walk, hits)]);
+  const dressed = dressTCentralen({ records, walk, hits, tracks, hallOf, cave, lifts, elevators, vault: tc.vaults.fronds, rock: tc.vaults.blue });
+  group.add(dressed.group);
+  const concourseB = new Builder();
+  addLamps(group, [...lamps, ...concourseLamps(records, walk, hits, concourseB), ...dressed.lamps]);
+  addMesh(concourseB, mats.lamp);
 
   // ---------------------------------------------------------------- 6. labels, spawn, teleports
   const LABEL: Record<LineId, string> = { blue: 'Blue line', red: 'Red line', green: 'Green line', pink: 'Pendeltåg', main: 'Stockholm C', tram: 'Tram 7' };
@@ -466,12 +510,14 @@ export function buildStation(root: THREE.Object3D, opts: StationOptions = {}): S
 
 // Light over the models' concourses: rows of tubes 3 m over each floor, 8 m apart down its longer
 // side, wherever the floor is under them (the drawings have no ceilings to hang them from, so they
-// aren't drawn). T-Centralen's levels over its street level are out in the open.
-function concourseLamps(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, hits: WalkHit[]) {
-  const SPACING = 8, STEP = 2, HEIGHT = 3;
+// aren't drawn). T-Centralen's levels over its street level are out in the open; under it its
+// concourses have ceilings (src/tcentralen.ts), and the tubes are drawn on them, into `draw`.
+function concourseLamps(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, hits: WalkHit[], draw: Builder) {
+  const SPACING = 8, STEP = 2;
   const lamps: Lamp[] = [];
   for (const rec of records) {
     if (rec.kind !== 'floor' || rec.platformLines || (rec.station === HOME_STATION && rec.box.max.y > 3.5)) continue;
+    const home = rec.station === HOME_STATION, HEIGHT = home ? 4.15 : 3;
     const { min, max } = rec.box;
     const alongX = rec.size.x >= rec.size.z;
     const [a0, a1, c0, c1] = alongX ? [min.x, max.x, min.z, max.z] : [min.z, max.z, min.x, max.x];
@@ -480,7 +526,13 @@ function concourseLamps(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData
       const c = c0 + ((c1 - c0) * (r + 0.5)) / rows;
       let row: THREE.Vector3[] = [];
       const end = () => {
-        if (row.length > 1) stripLamps(row, { power: 1.4, reach: 12, color: TUBE, down: 1, floor: row[0].y - HEIGHT - 0.3, top: row[0].y + 0.3 }, lamps);
+        if (row.length > 1) {
+          stripLamps(row, { power: home ? 1.8 : 1.4, reach: 12, color: TUBE, down: 1, floor: row[0].y - HEIGHT - 0.3, top: row[0].y + 0.3 }, lamps);
+          if (home) {
+            const a = row[0], b = row[row.length - 1], w = new THREE.Vector3(b.z - a.z, 0, a.x - b.x).setLength(0.1);
+            draw.quad(a.clone().sub(w), b.clone().sub(w), b.clone().add(w), a.clone().add(w), [0, 0], [1, 0], [1, 1], [0, 1]);
+          }
+        }
         row = [];
       };
       for (let a = a0 + STEP / 2; a < a1; a += STEP) {
@@ -493,6 +545,20 @@ function concourseLamps(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData
     }
   }
   return lamps;
+}
+
+// T-Centralen's escalators in tubes: their tubes as shafts in the blue line's rock, the sides and
+// the top but not the ends, where they open into the halls.
+function tubeShaft(rec: SurfaceRecord, out: Builder) {
+  const n = new THREE.Vector3();
+  for (const t of rec.bottom) n.add(new THREE.Vector3().subVectors(t[1], t[0]).cross(new THREE.Vector3().subVectors(t[2], t[0])));
+  const along = new THREE.Vector3(n.x, 0, n.z).normalize();
+  const uv = (p: THREE.Vector3): UV => [(p.x + p.z) / 16, p.y / 14];
+  for (const t of [...rec.top, ...rec.side]) {
+    const f = new THREE.Vector3().subVectors(t[1], t[0]).cross(new THREE.Vector3().subVectors(t[2], t[0])).normalize();
+    if (Math.abs(f.dot(along)) > 0.7) continue;
+    out.tri(t[0], t[1], t[2], uv(t[0]), uv(t[1]), uv(t[2]));
+  }
 }
 
 // The spaces of a model's floors, stairs, escalators and lifts, to be cut out of the city's ground
@@ -679,13 +745,18 @@ function addPlatformFurniture(tr: Track, spec: GaugeSpec, lampB: Builder, signs:
 }
 
 // Builds walls, glass railings and yellow safety lines along the outline of every walkable slab.
-function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, trackIdx: SurfaceIndex<TrackData>, halls: Map<SurfaceRecord, TcHall>) {
+// In T-Centralen's blue line cave (`cave`) the platform's walls are the rock cores standing between
+// its two halves, up into the vault, on a plinth of black stone; round the wells of its escalators a
+// parapet of the same stone; and the escalators and stairs climbing out of it into the rock are in
+// shafts walled in its blue rock.
+function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, trackIdx: SurfaceIndex<TrackData>, halls: Map<SurfaceRecord, TcHall>, cave: TcCave | null) {
   const out = {
     wall: new Builder(), cave: new Builder(), glass: new Builder(), handrail: new Builder(), yellow: new Builder(),
     tc: { upper: new Builder(), lower: new Builder(), blue: new Builder() }, band: new Builder(), tactile: new Builder(),
+    core: Object.fromEntries(TC_PARTS.map(([, k]) => [k, new Builder()])) as Record<T.TcVault, Builder>, plinth: new Builder(), shaft: new Builder(),
   };
   const hits: WalkHit[] = [], trackHits: SurfaceHit<TrackData>[] = [];
-  const OPEN = 0, PLATFORM = 1, RAILING = 2, WALL = 3;
+  const OPEN = 0, PLATFORM = 1, RAILING = 2, WALL = 3, CORE = 4, PARAPET = 5, SHAFT = 6;
 
   const classify = (x: number, y: number, z: number, nx: number, nz: number) => {
     for (const d of [0.2, 0.55, 0.9]) {
@@ -723,8 +794,11 @@ function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, t
     const wallB = hall ? out.tc[hall] : rec.platformLine === 'blue' ? out.cave : out.wall;
     // Open-air platforms (Stockholm C, tram stop) get railings instead of walls.
     const outdoor = rec.platformLines && (rec.platformLines.has('main') || rec.platformLines.has('tram'));
-    // Stairwell walls stop at balustrade height above the top landing.
-    const capY = rec.kind === 'stairs' ? rec.box.max.y + 1.1 : Infinity;
+    // Stairwell walls stop at balustrade height above the top landing (T-Centralen's go on up, to
+    // the ceilings over its stairs and escalators).
+    const home = rec.station === HOME_STATION;
+    const capY = rec.kind === 'stairs' && !home ? rec.box.max.y + 1.1 : Infinity;
+    const rock = home && TC_BLUE_ROCK.has(rec.name);
     const uvScale = rec.platformLine === 'blue' ? 1 / 5 : 1 / 2;
     for (const { a, b, c, n } of edges.values()) {
       if (n !== 1) continue;
@@ -739,6 +813,15 @@ function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, t
         const t0 = i / segs, t1 = (i + 1) / segs, m = at((t0 + t1) / 2);
         let type = classify(m.x, m.y, m.z, nx, nz);
         if (type === WALL && outdoor) type = RAILING;
+        // in the cave: a stair climbing out of it into the rock, high over the platform, in its shaft
+        const inCave = cave && home && cave.contains(m.x, m.z);
+        if (inCave && rec.kind === 'stairs' && type === RAILING && m.y > cave.y + 4) type = SHAFT;
+        // the platform's edges: by an escalator's well, a parapet; under nothing, a rock core
+        if (inCave && hall === 'blue' && (type === RAILING || type === WALL)) {
+          walk.query(m.x + nx * 1.2, m.z + nz * 1.2, hits);
+          if (type === RAILING || hits.some((q) => q.data.kind !== 'floor' && Math.abs(q.y - m.y) < 12)) type = PARAPET;
+          else if (headroom(m.x - nx * 0.3, m.y, m.z - nz * 0.3) >= 4.2) type = CORE;
+        }
         const h = type === WALL ? headroom(m.x - nx * 0.3, m.y, m.z - nz * 0.3) : 0;
         const last = runs[runs.length - 1];
         if (last && last.type === type && Math.abs(last.h - h) < 0.3) { last.t1 = t1; last.h = Math.min(last.h, h); }
@@ -747,15 +830,42 @@ function buildEdges(records: SurfaceRecord[], walk: SurfaceIndex<SurfaceData>, t
       for (const run of runs) {
         const p0 = at(run.t0), p1 = at(run.t1);
         const u0 = run.t0 * len, u1 = run.t1 * len;
+        if (run.type === CORE) {
+          tcCore(out.core[tcPart((p0.x + p1.x) / 2)], out.plinth, p0, p1, nx, nz, u0, cave!.y);
+          continue;
+        }
+        if (run.type === PARAPET) {
+          // black stone, a metre high, under a steel rail
+          const o = new THREE.Vector3(nx * 0.3, 0, nz * 0.3), up = (p: THREE.Vector3, h: number) => p.clone().setY(p.y + h);
+          out.plinth.quad(p0, p1, up(p1, 1.0), up(p0, 1.0), [u0, 0], [u1, 0], [u1, 1], [u0, 1]);
+          out.plinth.quad(up(p0, 1.0), up(p1, 1.0), up(p1, 1.0).add(o), up(p0, 1.0).add(o), [u0, 0], [u1, 0], [u1, 1], [u0, 1]);
+          out.plinth.quad(p0.clone().add(o), p1.clone().add(o), up(p1, 1.0).add(o), up(p0, 1.0).add(o), [u0, 0], [u1, 0], [u1, 1], [u0, 1]);
+          out.handrail.quad(up(p0, 1.0).addScaledVector(o, 0.2), up(p1, 1.0).addScaledVector(o, 0.2), up(p1, 1.06).addScaledVector(o, 0.2), up(p0, 1.06).addScaledVector(o, 0.2), [0, 0], [1, 0], [1, 1], [0, 1]);
+          continue;
+        }
+        if (run.type === SHAFT) {
+          // from under the stair's slab to its shaft's ceiling (tcStairCeilings), in the cave's rock
+          const v = (y: number) => y / T.TC_VAULT.across;
+          out.shaft.quad(p0.clone().setY(p0.y - 1.1), p1.clone().setY(p1.y - 1.1), p1.clone().setY(p1.y + TC_SHAFT), p0.clone().setY(p0.y + TC_SHAFT),
+            [u0 / T.TC_VAULT.along, v(p0.y - 1.1)], [u1 / T.TC_VAULT.along, v(p1.y - 1.1)], [u1 / T.TC_VAULT.along, v(p1.y + TC_SHAFT)], [u0 / T.TC_VAULT.along, v(p0.y + TC_SHAFT)]);
+          continue;
+        }
         if (run.type === WALL) {
           const top = (p: THREE.Vector3) => p.y + Math.max(1.05, Math.min(run.h, capY - p.y));
           const t0 = top(p0), t1 = top(p1);
           if (hall) {
-            // T-Centralen's: its walls' texture from the platform up (src/textures.ts)
+            // T-Centralen's: its walls' texture from the platform up (src/textures.ts); the cave's
+            // under the balcony, its rock cores' paint
             const { height, floor } = T.TC_WALL, rep = tcTrackWall(hall).repeat;
             const v = (p: THREE.Vector3, y: number) => (y - p.y + floor) / height;
-            wallB.quad(p0, p1, p1.clone().setY(t1), p0.clone().setY(t0),
+            (hall === 'blue' ? out.core[tcPart((p0.x + p1.x) / 2)] : wallB).quad(p0, p1, p1.clone().setY(t1), p0.clone().setY(t0),
               [u0 / rep, v(p0, p0.y)], [u1 / rep, v(p1, p1.y)], [u1 / rep, v(p1, t1)], [u0 / rep, v(p0, t0)]);
+            continue;
+          }
+          if (rock) {
+            // in the blue line's painted rock
+            const v = (y: number) => y / T.TC_VAULT.across, k = 1 / T.TC_VAULT.along;
+            out.shaft.quad(p0, p1, p1.clone().setY(t1), p0.clone().setY(t0), [u0 * k, v(p0.y)], [u1 * k, v(p1.y)], [u1 * k, v(t1)], [u0 * k, v(t0)]);
             continue;
           }
           wallB.quad(p0, p1, p1.clone().setY(t1), p0.clone().setY(t0),
@@ -847,12 +957,55 @@ function platformSpot(tr: Track, walk: SurfaceIndex<SurfaceData>, hits: WalkHit[
 // (tracks 3–4) in Oscar Brandtberg's bands of square tiles over cream mosaic; and the blue line's
 // cave (1975) as Per Olof Ultvedt painted it, ultramarine below and white above, blue leaves over all.
 
-type TcHall = 'upper' | 'lower' | 'blue';
+export type TcHall = 'upper' | 'lower' | 'blue';
 const HALLS: TcHall[] = ['upper', 'lower', 'blue'];
 // the ceiling, above the platform: as high as the tops of the track walls' curves (src/station.ts)
 const TC_CEILING = 5.6;
-// the blue line's cave: its walls rise to TC_CAVE_TOP over the platform, the vault 1.4 m higher in the middle
-const TC_CAVE_TOP = 6.9, TC_CAVE_DOME = 1.4;
+// the blue line's cave: its walls rise to TC_CAVE_TOP over the platform, the vault TC_CAVE_DOME
+// higher in the middle, high enough to clear the Blue passage's balcony over the platform
+const TC_CAVE_TOP = 6.9, TC_CAVE_DOME = 3.5;
+// the cave's parts, west to east, by world x: the halls between the platforms, each vault painted
+// in its own pattern, and the platforms' own tunnels either side of the long rock core, blue all
+// over (src/textures.ts tcVault)
+const TC_PARTS: [number, T.TcVault][] = [[-30, 'tyres'], [13, 'leaves'], [57, 'workers'], [100, 'blue'], [Infinity, 'fronds']];
+const tcPart = (x: number) => TC_PARTS.find(([x1]) => x < x1)![1];
+
+// How far along its track the blue line's cave runs: over the whole of its platform's floor, the
+// halls at either end too, and at least 6 m beyond the platform's edge.
+function tcCaveSpan(tr: Track): [number, number] {
+  const { s0, s1, rec } = tr.platform!;
+  const o = tr.path.pointAt(s0), t = tr.path.tangentAt(s0);
+  let lo = s0 - 6, hi = s1 + 6;
+  for (const tri of rec.top) {
+    for (const v of tri) {
+      const s = s0 + (v.x - o.x) * t.x + (v.z - o.z) * t.z;
+      lo = Math.min(lo, s - 1); hi = Math.max(hi, s + 1);
+    }
+  }
+  return [Math.max(0, lo), Math.min(tr.path.length, hi)];
+}
+
+// The blue line's cave: its platform's height, and whether a point is under its vault, between its
+// two track walls along its span (tcCaveSpan).
+export interface TcCave { y: number; contains(x: number, z: number): boolean }
+function tcCave(tracks: Track[]): TcCave | null {
+  const [a, b] = tracks;
+  if (!a?.platform || !b?.platform) return null;
+  const W = TRAIN_SPECS[LINES[a.line].kind].halfWidth + 1.15;
+  const [sa, sb] = tcCaveSpan(a);
+  const o = a.path.pointAt(sa), e = a.path.pointAt(sb);
+  const len = Math.hypot(e.x - o.x, e.z - o.z), tx = (e.x - o.x) / len, tz = (e.z - o.z) / len;
+  const across = (x: number, z: number) => (z - o.z) * tx - (x - o.x) * tz;
+  const m = b.path.pointAt((b.platform.s0 + b.platform.s1) / 2), wb = across(m.x, m.z);
+  const lo = Math.min(0, wb) - W - 1, hi = Math.max(0, wb) + W + 1;
+  return {
+    y: a.platform.rec.box.max.y,
+    contains(x, z) {
+      const u = (x - o.x) * tx + (z - o.z) * tz, w = across(x, z);
+      return u >= 0 && u <= len && w >= lo && w <= hi;
+    },
+  };
+}
 
 // The cave's wall across the track, from the trench up and over towards the platform: steep, then
 // rounding into the vault.
@@ -909,6 +1062,33 @@ function tcRough(g: THREE.BufferGeometry, floorY: number, out: number, tr: Track
   return g;
 }
 
+// A rock core's face along a platform's edge p0 → p1 (outward nx, nz, starting `u0` m along the
+// edge), up from the platform into the vault: set back behind a plinth of black stone, and rough,
+// bulging and hollowed, but flat where it meets the next face at either end.
+const TC_CORE_TOP = 12, TC_PLINTH = { height: 0.45, depth: 0.5 };
+function tcCore(b: Builder, plinth: Builder, p0: THREE.Vector3, p1: THREE.Vector3, nx: number, nz: number, u0: number, floorY: number) {
+  const n = new THREE.Vector3(nx, 0, nz), len = Math.hypot(p1.x - p0.x, p1.z - p0.z);
+  const up = (p: THREE.Vector3, h: number) => p.clone().setY(p.y + h);
+  const { height: ph, depth } = TC_PLINTH, a = p0.clone().addScaledVector(n, depth), e = p1.clone().addScaledVector(n, depth);
+  plinth.quad(p0, p1, up(p1, ph), up(p0, ph), [0, 0], [1, 0], [1, 1], [0, 1]);
+  plinth.quad(up(p0, ph), up(p1, ph), up(e, ph), up(a, ph), [0, 0], [1, 0], [1, 1], [0, 1]);
+  const { height, floor } = T.TC_WALL;
+  const nu = Math.max(1, Math.ceil(len)), rows = Math.ceil(floorY + TC_CORE_TOP - (p0.y + ph));
+  const vert = (i: number, j: number): [THREE.Vector3, [number, number]] => {
+    const t = i / nu, base = new THREE.Vector3().lerpVectors(a, e, t);
+    const y0 = base.y + ph, y = y0 + ((floorY + TC_CORE_TOP - y0) * j) / rows;
+    const amp = 0.8 * THREE.MathUtils.smoothstep(Math.min(t, 1 - t) * len, 0, 1.5) * THREE.MathUtils.smoothstep(y - y0, 0, 1.5);
+    const q = base.addScaledVector(n, (amp * (rockNoise(base.x, y, base.z) + 1)) / 2).setY(y + amp * 0.3 * rockNoise(base.z + 11, base.x, y));
+    return [q, [(u0 + t * len) / 16, (y - base.y + floor) / height]];
+  };
+  for (let i = 0; i < nu; i++) {
+    for (let j = 0; j < rows; j++) {
+      const [q00, w00] = vert(i, j), [q10, w10] = vert(i + 1, j), [q11, w11] = vert(i + 1, j + 1), [q01, w01] = vert(i, j + 1);
+      b.quad(q00, q10, q11, q01, w00, w10, w11, w01);
+    }
+  }
+}
+
 // The home station's platforms, by hall: the red/green ones, upper and lower, by height.
 function tcHalls(records: SurfaceRecord[]) {
   const halls = new Map<SurfaceRecord, TcHall>();
@@ -927,7 +1107,7 @@ function tcTrackWall(hall: TcHall, line?: LineId) {
     return { key: line === 'green' ? 'klara' : 'prisms', repeat: 20.48 } as const;
   }
   if (hall === 'lower') return { key: 'brandtberg', repeat: 4.8 } as const;
-  return { key: 'cave', repeat: 16 } as const;
+  return { key: line ? 'blueTrack' : 'cave', repeat: 16 } as const;
 }
 
 function tcMaterials() {
@@ -936,13 +1116,19 @@ function tcMaterials() {
     new THREE.MeshStandardMaterial({ map, roughness, emissive: glow, emissiveMap: map, side: THREE.DoubleSide });
   const plaster = wall(T.plaster(), 0.9, 0x8e918f);
   const klara = wall(T.tcKlaravagnen()), prisms = wall(T.tcGlassPrisms(), 0.45), upperPlain = wall(T.tcUpperPlain());
-  const brandtberg = wall(T.tcBrandtberg()), cave = wall(T.tcCaveWall(), 0.85);
+  const brandtberg = wall(T.tcBrandtberg()), cave = wall(T.tcCaveWall(), 0.85), blueTrack = wall(T.tcBlueTrackWall(), 0.85);
   const plate = (dark: boolean) => new THREE.MeshBasicMaterial({ map: T.tcPlate('T-Centralen', dark), side: THREE.DoubleSide });
+  const vault = (k: T.TcVault) => wall(T.tcVault(k), 0.9, 0x5e5e5e);
   return {
-    klara, prisms, upperPlain, brandtberg, cave,
+    klara, prisms, upperPlain, brandtberg, cave, blueTrack,
     upper: { floor: new THREE.MeshStandardMaterial({ map: T.tcStoneFloor(150, 41), roughness: 0.45 }), ceiling: plaster, end: upperPlain },
     lower: { floor: new THREE.MeshStandardMaterial({ map: T.tcMosaicFloor(), roughness: 0.6 }), ceiling: plaster, end: brandtberg },
-    blue: { floor: new THREE.MeshStandardMaterial({ map: T.tcStoneFloor(92, 43), roughness: 0.35 }), ceiling: wall(T.tcCaveVault(), 0.9, 0x6a6a6a), end: cave },
+    blue: { floor: new THREE.MeshStandardMaterial({ map: T.tcDarkTerrazzo(), roughness: 0.22 }), ceiling: wall(T.tcCaveVault(), 0.9, 0x6a6a6a), end: cave },
+    // the blue line cave's vaults and the rock cores under them, by part (TC_PARTS)
+    vaults: Object.fromEntries(TC_PARTS.map(([, k]) => [k, vault(k)])) as Record<T.TcVault, THREE.MeshStandardMaterial>,
+    cores: Object.fromEntries(TC_PARTS.map(([, k]) => [k, k === 'blue' ? blueTrack : wall(T.tcCoreWall(k), 0.85)])) as Record<T.TcVault, THREE.MeshStandardMaterial>,
+    plinth: new THREE.MeshStandardMaterial({ color: 0x232325, roughness: 0.3, side: THREE.DoubleSide }),
+    deck: new THREE.MeshStandardMaterial({ color: 0x2a2b2e, map: T.tcMeshPanel(), roughness: 0.6, metalness: 0.3, emissive: 0x0c0c0d, side: THREE.DoubleSide }),
     band: new THREE.MeshStandardMaterial({ map: T.tcEdgeBand(), roughness: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }),
     tactile: new THREE.MeshStandardMaterial({ map: T.tcTactile(), roughness: 0.6, polygonOffset: true, polygonOffsetFactor: -2 }),
     plate: { upper: plate(false), lower: plate(true), blue: plate(false) },
@@ -970,26 +1156,37 @@ function tcPlates(tr: Track, off: number, mat: THREE.Material) {
 
 // A flat ceiling `height` over the platform, from the top of a track's wall to halfway to its
 // partner across the platform, in cells of about a metre, but not where a stair, an escalator, a
-// floor or a lift comes through.
+// floor or a lift comes through. The cave's (`parts`): a vault, domed towards the middle of the hall
+// and rough, rising over the balcony and the escalators' shafts that come up under it, each cell in
+// its part's paint (TC_PARTS), u along the track and v across from the wall's top (1) to the middle (0).
 function tcCeiling(
   tr: Track, partner: Track, height: number, walk: SurfaceIndex<SurfaceData>, elevators: SurfaceRecord[],
-  hits: WalkHit[], out: Builder, uvScale: number, cave = false,
+  hits: WalkHit[], out: Builder, uvScale: number, parts?: Record<T.TcVault, Builder>, ends?: Builder,
 ) {
+  const cave = !!parts;
   const spec = TRAIN_SPECS[LINES[tr.line].kind];
   const W = spec.halfWidth + 1.15, k = tr.platform!.side;
   const { s0, s1 } = tr.platform!;
+  const [sa, sb] = cave ? tcCaveSpan(tr) : [Math.max(0, s0 - 6), Math.min(tr.path.length, s1 + 6)];
   const pts = partner.path.resample(0, partner.path.length, 2);
   const p = new THREE.Vector3(), r = new THREE.Vector3();
+  const floorY = tr.platform!.rec.box.max.y;
   const corner = (s: number, d: number, mid: number) => {
     tr.path.pointAt(s, p); tr.path.rightAt(s, r);
     const c = p.clone().addScaledVector(r, k * d).setY(p.y + height);
     if (!cave) return c;
-    // the cave's vault: domed towards the middle of the hall, and rough
     const t = THREE.MathUtils.clamp((d - from) / Math.max(0.5, mid - from), 0, 1);
     c.y += TC_CAVE_DOME * Math.sin(t * Math.PI / 2) + rockNoise(c.x, p.y, c.z) * 0.6;
-    // but under the floors over it
-    walk.query(c.x, c.z, hits);
-    for (const h of hits) if (h.y > p.y + 3 && h.y - 0.6 < c.y) c.y = h.y - 0.6;
+    // over a floor under it with room to stand on it, and over the shafts of escalators and
+    // stairs climbing through it (and a little beyond their sides, to meet their walls)
+    for (const [dx, dz] of [[0, 0], [0.9, 0], [-0.9, 0], [0, 0.9], [0, -0.9]]) {
+      walk.query(c.x + dx, c.z + dz, hits);
+      for (const h of hits) {
+        if (h.y < floorY + 3) continue;
+        if (h.data.kind === 'floor') { if (!dx && !dz && h.y < c.y) c.y = Math.max(c.y, h.y + 4.5); }
+        else c.y = Math.max(c.y, h.y + 4.4);
+      }
+    }
     return c;
   };
   // halfway across to the partner, at s
@@ -1002,35 +1199,56 @@ function tcCeiling(
   const blocked = (c: THREE.Vector3) => {
     const y0 = c.y - height;
     walk.query(c.x, c.z, hits);
-    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + height + (cave ? TC_CAVE_DOME : 0) + 1.5)) return true;
+    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + height + 1.5)) return true;
+    // (a lift's shaft only where it goes up through the ceiling)
     return elevators.some((e) => c.x > e.box.min.x - 0.3 && c.x < e.box.max.x + 0.3 && c.z > e.box.min.z - 0.3 && c.z < e.box.max.z + 0.3
-      && e.box.max.y > y0 + 0.5 && e.box.min.y < y0 + height + 1.5);
-  };
-  // the cave: only what comes up through the platform, or a floor too low to pass under, stops its vault
-  const blockedLow = (c: THREE.Vector3) => {
-    tr.path.pointAt(s0, p);
-    const y0 = p.y;
-    if (c.y < y0 + 3) return true;
-    walk.query(c.x, c.z, hits);
-    if (hits.some((h) => h.y > y0 + 0.5 && h.y < y0 + 3)) return true;
-    return elevators.some((e) => c.x > e.box.min.x - 0.3 && c.x < e.box.max.x + 0.3 && c.z > e.box.min.z - 0.3 && c.z < e.box.max.z + 0.3
-      && e.box.max.y > y0 + 0.5 && e.box.min.y < y0 + 3);
+      && e.box.max.y > y0 + height - 0.3 && e.box.min.y < y0 + height + 1.5);
   };
   // the top of the wall's curve, across the track from its middle (the cave's from further back,
   // over the top of its rough wall)
   const from = 3.6 - W - (cave ? 1.0 : 0);
   const uv = (v: THREE.Vector3): [number, number] => [v.x * uvScale, v.z * uvScale];
-  for (let s = Math.max(0, s0 - 6); s < Math.min(tr.path.length, s1 + 6); s += 1) {
-    const sb = Math.min(s + 1, tr.path.length, s1 + 6);
-    const ha = half(s), hb = half(sb);
+  for (let s = sa; s < sb; s += 1) {
+    const sn = Math.min(s + 1, sb);
+    const ha = half(s), hb = half(sn);
     const n = Math.max(1, Math.ceil(Math.max(ha, hb) - from));
     for (let i = 0; i < n; i++) {
       const a0 = from + ((ha - from) * i) / n, a1 = from + ((ha - from) * (i + 1)) / n;
       const b0 = from + ((hb - from) * i) / n, b1 = from + ((hb - from) * (i + 1)) / n;
-      const c00 = corner(s, a0, ha), c01 = corner(s, a1, ha), c10 = corner(sb, b0, hb), c11 = corner(sb, b1, hb);
+      const c00 = corner(s, a0, ha), c01 = corner(s, a1, ha), c10 = corner(sn, b0, hb), c11 = corner(sn, b1, hb);
       const mid = c00.clone().add(c01).add(c10).add(c11).multiplyScalar(0.25);
-      if (cave ? [c00, c01, c10, c11].some((c) => blockedLow(c)) : blocked(mid)) continue;
-      out.quad(c00, c10, c11, c01, uv(c00), uv(c10), uv(c11), uv(c01));
+      if (!cave) {
+        if (!blocked(mid)) out.quad(c00, c10, c11, c01, uv(c00), uv(c10), uv(c11), uv(c01));
+        continue;
+      }
+      // (the cave's only stops where it would come down too low to pass under)
+      if ([c00, c01, c10, c11].some((c) => c.y < floorY + 3)) continue;
+      const u0 = s / T.TC_VAULT.along, u1 = sn / T.TC_VAULT.along, v = (j: number) => 1 - j / n;
+      parts![tcPart(mid.x)].quad(c00, c10, c11, c01, [u0, v(i)], [u1, v(i)], [u1, v(i + 1)], [u0, v(i + 1)]);
+    }
+  }
+  if (!cave || !ends) return;
+  // the cave's ends: rock from the trench up to the vault, across from behind the track wall to the
+  // middle, but open for the track's tunnel and for whatever goes on through (the escalators' shafts,
+  // a floor)
+  for (const s of [sa, sb]) {
+    const hh = half(s);
+    for (let d = -W - 1; d < hh; d += 1) {
+      const d1 = Math.min(d + 1, hh);
+      const top = (dd: number) => (dd < from + 0.01 ? floorY + TC_CAVE_TOP + 1.5 : corner(s, dd, hh).y);
+      const t0 = top(Math.max(d, from)), t1 = top(d1);
+      tr.path.pointAt(s, p); tr.path.rightAt(s, r);
+      const at = (dd: number, y: number) => p.clone().addScaledVector(r, k * dd).setY(y);
+      for (let y = floorY - 1.25; y < Math.max(t0, t1); y += 1) {
+        const dm = (d + d1) / 2, ym = y + 0.5, m = at(dm, ym);
+        if (Math.abs(dm) < W && ym < floorY + 4.4) continue;
+        walk.query(m.x, m.z, hits);
+        if (hits.some((h) => (h.data.kind === 'floor' ? ym > h.y - 0.3 && ym < h.y + 4.5 : ym > h.y - 0.6 && ym < h.y + TC_SHAFT + 0.3))) continue;
+        const y0a = Math.min(y, t0), y1a = Math.min(y + 1, t0), y0b = Math.min(y, t1), y1b = Math.min(y + 1, t1);
+        if (y1a - y0a < 0.01 && y1b - y0b < 0.01) continue;
+        const uv = (dd: number, yy: number): [number, number] => [dd / T.TC_VAULT.along, yy / T.TC_VAULT.across];
+        ends.quad(at(d, y0a), at(d1, y0b), at(d1, y1b), at(d, y1a), uv(d, y0a), uv(d1, y0b), uv(d1, y1b), uv(d, y1a));
+      }
     }
   }
 }

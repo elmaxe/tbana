@@ -82,7 +82,7 @@ to each, and exports them:
 | --- | --- |
 | `W A S D` / arrows | Walk (`Shift` to run) |
 | Mouse | Look (click the view to capture the mouse, `Esc` to pause) |
-| `E` / `Q` | Ride a lift up / down (stand next to a light-blue shaft) |
+| `E` / `Q` | Ride a lift up / down (stand next to its shaft or its doors) |
 | Walk through an open door | Board a metro train and ride it |
 | `1`–`9` | Jump to a platform |
 | `M` | Full map: the wheel zooms it, dragging moves it |
@@ -177,7 +177,15 @@ gates and tracks, identified by colour. `src/station.ts` reads it and adds:
   going".
 - **Walls, glass railings and platform edges**, generated along every slab outline. Each edge is
   probed to see whether it continues into another surface, overlooks a lower level, or faces a
-  track. The blue line platform gets the blue vines on white rock that T-Centralen is known for.
+  track.
+- **T-Centralen's furnishings** (`src/tcentralen.ts`), as the station is in photos of it: the blue
+  line's cave painted as Ultvedt painted it (blue vines and leaves on white rock, workers on their
+  scaffold, and all blue at the east end) over rock cores on black plinths, the platform's lamp
+  frames and yellow posts with the station's name, the lifts' doors, escalators with steps and
+  balustrades, Blå gången's walkways under Carl Fredrik Reuterswärd's frieze, the art on the green
+  and red lines' upper platform (Vera Nilsson's, Siri Derkert's and Berndt Helleberg's pillars, and
+  Möller-Nielsen's stone benches), and the ceilings of the halls and passages, with round mesh
+  panels in the ticket halls.
 - **Tracks**: each track ribbon's centre line is recovered and shifted to meet its platform edge,
   then given a track bed, rails, tunnels and a back wall.
 - **Trains** (`src/trains.ts`) on the blue, red and green metro lines and the pendeltåg. They arrive,
