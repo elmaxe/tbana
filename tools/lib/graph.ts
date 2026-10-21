@@ -2,6 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { runningWays } from '../../src/track-graph.ts';
 import type { Route, TrackGraph, TrackPiece } from '../../src/track-graph.ts';
+import { PLATFORM_SIDING_STATIONS } from '../../src/sections.ts';
 
 // distance along a piece of each of its points
 export function chainage(p: TrackPiece) {
@@ -97,8 +98,8 @@ export const drawnLines = (graph: TrackGraph) => [...new Set(graph.routes.map((r
 // joining one of the lines to another), as far as the running lines of other lines. Left out:
 // - a piece that touches the track of a line not drawn, so a connecting track to it ends short
 //   of it
-// - track no service runs on beside a platform (the middle tracks at Alby and Sätra, the third
-//   track at Liljeholmen): the stations are described without them
+// - track no service runs on beside a platform (Sätra's middle track): the stations are described
+//   without it (but not Liljeholmen's third track or Alby's middle one: PLATFORM_SIDING_STATIONS)
 // - and then what is left of such a track that leads nowhere
 export function lineTrack(graph: TrackGraph, lines: string | string[] = drawnLines(graph)) {
   const own = typeof lines === 'string' ? [lines] : lines;
@@ -107,7 +108,7 @@ export function lineTrack(graph: TrackGraph, lines: string | string[] = drawnLin
   for (const p of graph.pieces) for (const n of new Set([p.from, p.to])) (at.get(n) ?? at.set(n, []).get(n)!).push(p);
   const foreign = (p: TrackPiece) => p.lines.length > 0 && !p.lines.some((l) => own.includes(l));
   const touchesForeign = (p: TrackPiece) => [p.from, p.to].some((n) => at.get(n)!.some(foreign));
-  const atPlatform = new Set(graph.stations.flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))));
+  const atPlatform = new Set(graph.stations.filter((st) => !PLATFORM_SIDING_STATIONS.has(st.name)).flatMap((st) => st.platforms.flatMap((pl) => pl.tracks.map((t) => t.piece))));
   const out = new Set(run), queue = [...run];
   while (queue.length) {
     const p = graph.pieces[queue.pop()!];

@@ -15,10 +15,23 @@ export const PLATFORM_HEIGHT = 1.0;
 export const ISLAND_WIDTH = 9;
 // ... and the islands known to be wider: Stadion's, its rock left in two long pillars about
 // 12 m across with 4 m of platform beside each (measured on Albert Guillaumes' drawing, scaled by
-// the platform's length: eight of the old cars, 141 m)
-export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20 };
+// the platform's length: eight of the old cars, 141 m); Tekniska högskolan's, round two cores of
+// rock 15 m across with 6 m of platform beside each (his drawing, its scale read off
+// Roslagsbanan's platforms beside it); Universitetet's (his drawing's proportions, Wikipedia's
+// length); Bergshamra's, round two cores 15.5 m across (his drawing), between OpenStreetMap's
+// outer edges and its tracks; Mörby centrum's, OpenStreetMap's (his drawing's proportions)
+export const ISLAND_WIDTHS: Record<string, number> = { Stadion: 20, 'Tekniska högskolan': 27.4, Universitetet: 31.6, Bergshamra: 28, 'Mörby centrum': 24 };
 export const islandWidth = (station: string) => ISLAND_WIDTHS[station] ?? ISLAND_WIDTH;
 export const SIDE_PLATFORM_WIDTH = 5;
+// stations whose two platforms each reach across to a middle track between them that no service
+// stops at (Högdalen's, to the depot; Vällingby's and Sätra's, where trains turn): each platform's
+// far edge follows that track, its width the gap between the two
+export const MIDDLE_TRACK_STATIONS = new Set(['Högdalen', 'Vällingby', 'Sätra']);
+// stations whose platform track that no service runs on is drawn, with its platform: Liljeholmen's
+// third track, along the western edge of its middle island (on Albert Guillaumes's drawing, where
+// trains turning back at Liljeholmen stand), and Alby's middle track, along its island, where trains
+// ending at Alby stand
+export const PLATFORM_SIDING_STATIONS = new Set(['Liljeholmen', 'Alby']);
 
 export const GAUGE = 1.435;
 export const RAIL = { head: 0.07, height: 0.15 };

@@ -1,5 +1,259 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "decks": [
+    {
+      "name": "Telefonplan: the station's building and the streets round it",
+      "outline": [-3528.5, 3700.7, -3524.8, 3699.7, -3529.8, 3681.9, -3545.2, 3686.2, -3541.4, 3699.7, -3575.1, 3709.2, -3566.5, 3740.0, -3532.8, 3730.5, -3529.0, 3744.0, -3513.6, 3739.7, -3518.9, 3720.9, -3522.5, 3721.9],
+      "heights": [40.09, 40.08, 40.06, 40.12, 40.13, 40.24, 40.27, 40.15, 40.16, 40.11, 40.1, 40.11],
+      "why": "West of Telefonplan's platform the tracks run on for 48 m in tunnels under the station's building and the square and streets beside it, Mikrofonvägen and Telefonvägen, into a cutting again. The elevation model has no ground under the building and joins the two cuttings under it, a trench 5.5 m deep from the platform's end to the far cutting, which put the square in front of the building's doors at the platform's level and its ways out at the bottom of it. Lantmäteriet's laser scan has the street at 40.0–40.4 m all round the building, and over the tunnels west of it (its points there classed as a bridge's). Beside the cutting's west end the outline reaches 4 m east of the building, to the street north of the cutting and the square south of it, where the model's 5 m grid had smoothed them down into the cutting."
+    },
+    {
+      "name": "Högdalen: Högdalsgången",
+      "outline": [-958.5, 7575.5, -978.8, 7618.7, -931.1, 7641.2, -910.9, 7598.0],
+      "heights": [39.46, 39.06, 38.4, 38.8],
+      "why": "South of Högdalen's platforms the tracks run on in a covered cutting, from under the station's building to 68 m south of its north face, under the square and the street in front of it, Högdalsgången. The elevation model has the cutting's floor there, 7 m under the square, which left the square a mound over the tunnels and the station's way out leading down into the cutting. The laser scan has the deck (its points classed as a bridge's) from the building's south face to 48 m south of it and 52 m across, falling from 39.45 m at its north-west corner to 38.4 m at its south-east (a plane fits its points to 7 cm), the ground beside it at 38.8–39.6 m."
+    },
+    {
+      "name": "Högdalen: under the station's building",
+      "outline": [-957.9, 7575.9, -950.0, 7559.1, -904.8, 7580.4, -912.7, 7597.1],
+      "heights": [38.7, 38.7, 38.7, 38.7],
+      "why": "The station's building stands over the tracks' covered cutting, north of Högdalsgången's deck, and the elevation model has the cutting's floor under it too, so the ground in front of its south face fell into a trench. Under the building (its outline from the laser scan's roof) the ground is level just under its floor over the tracks, 5.6 m over the platforms, where the street at its doors is."
+    },
+    {
+      "name": "Rågsved: the passage under the tracks",
+      "outline": [-1790.08, 8351.79, -1776.78, 8373.79, -1769.35, 8367.87, -1785.23, 8347.93],
+      "heights": [34.28, 34.43, 34.43, 34.28],
+      "why": "The passage under Rågsved's platform, from Rågsvedsvägen to the square east of the tracks, runs under the bridge the platform's south-western end stands on, beside the cycle path's trough. The elevation model has a mound there, the bank's top carried on under the bridge, which buried the passage and put the station's doors 4.2 m under the platform rather than at the street. The laser scan has the passage's floor at 34.25–34.3 m on either side of the bridge at its western end and 34.4–34.5 m at its eastern, from the trough's parapet to the ticket hall's front; under the bridge it sees nothing, so the floor is taken as level between them."
+    },
+    {
+      "name": "Rågsved: Rågsvedsvägen and the passage over the cycle tunnel",
+      "outline": [-1795.51, 8331.82, -1783.67, 8346.68, -1794.62, 8355.4, -1806.46, 8340.54],
+      "heights": [33.92, 34.32, 34.27, 34.08],
+      "why": "West of the bridge the passage under Rågsved's platform and Rågsvedsvägen beside it cross the cycle path's tunnel on a slab, from the tunnel's western mouth to the bridge. The laser scan counts the slab as a structure, not the ground, so the elevation model has the cycle path's floor under it, 3–4 m down, and the passage and the street fell into a trench. The scan's points on the slab, and the ground beside it, are at 33.9–34.1 m by the tunnel's mouth and 34.3 m by the bridge."
+    },
+    {
+      "name": "Rågsved: the pavement in front of the shops under the bridge",
+      "outline": [-1792.8, 8343.73, -1781.21, 8358.27, -1766.11, 8346.25, -1777.7, 8331.7],
+      "heights": [34.28, 34.28, 34.33, 34.33],
+      "why": "Under the bridge at Rågsved's south-western end the shops and the ticket hall stand side by side, their fronts on the pavement beside Rågsvedsvägen. The laser scan sees the bridge's top there and nothing under it, so the elevation model carries the track's bank under the bridge, and the city's ground rose from the street up the shops' fronts. The pavement is level with the street, 34.3 m in the scan's points either side of the bridge, out to the hall's wall (inside the shops and the hall the ground is cut away)."
+    },
+    {
+      "name": "Rågsved: Rågsvedsvägen along the bank",
+      "outline": [-1781.44, 8327.01, -1768.54, 8343.2, -1745.46, 8327.24, -1759.54, 8309.56],
+      "heights": [33.73, 34.38, 34.23, 33.53],
+      "why": "North-east of the bridge Rågsved's bank is held on its western side by a retaining wall straight up from the pavement of Rågsvedsvägen to the tracks, 5.5 m high. The elevation model's grid, 5 m apart, makes the wall a slope, which rose up the pavement and the street. The pavement is at the laser scan's height at the wall's foot, 34.2–34.4 m, falling to 33.5–33.7 m at the street's far side; the deck reaches in under the bank behind the wall (drawn by the station), short of the western track, so that the ground stays level up to the wall's face."
+    },
+    {
+      "name": "Gullmarsplan: Johanneshovsvägen's deck",
+      "outline": [1185.23, 3588.95, 1197.34, 3628.12, 1289.06, 3599.77, 1277.24, 3561.55, 1242.96, 3575.92],
+      "heights": [42.59, 43.0, 43.57, 43.17, 42.99],
+      "why": "The southern half of Gullmarsplan's platforms, from 20–25 m south of their middle to the bus terminal's front 61 m south of it, lies under the deck that carries Johanneshovsvägen and the square in front of the terminal over the tracks, 77 m across them. The elevation model leaves the deck out and has the cutting's floor under it, so that the street fell 5.5 m into a trench at the deck's edges and the terminal's doors opened onto it. The laser scan has the deck (its points classed as a bridge's) from its edge over the platforms, which runs askew, 20 m south of their middle at its western end and 25 m south over the tracks between them, to the terminal's front, and from 47 m west of the platforms' middle to 41 m east of it, where the roundabout's well opens in it: a plane fits its 6,300 points over the platforms to 11 cm, rising from 42.6 m at its north-western corner to 43.6 m at its south-eastern, and the street west of it, at grade, is at the same height. Over the open track the city's ground stays lowered; the station draws the deck there."
+    },
+    {
+      "name": "Gullmarsplan: the bus terminal",
+      "outline": [1200.21, 3627.24, 1206.71, 3648.26, 1279.32, 3625.81, 1272.82, 3604.79],
+      "heights": [43.1, 43.15, 43.3, 43.3],
+      "why": "Gullmarsplan's ticket hall is in the bus terminal, which stands over the tracks south of Johanneshovsvägen's deck, from 61 m to 83 m south of the platforms' middle, its floor level with the square in front of it (43.3 m, the laser scan's points on the deck at its front). The elevation model has the cutting's floor under it, 6 m down. The street along its western side, at grade, is at 43.1–43.2 m in the scan."
+    },
+    {
+      "name": "Gullmarsplan: the ramp beside the bus terminal",
+      "outline": [1272.82, 3604.79, 1279.32, 3625.81, 1295.56, 3620.78, 1289.06, 3599.77],
+      "heights": [43.3, 42.55, 42.55, 43.3],
+      "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
+    },
+    {
+      "name": "Skanstull: the pavement round the eastern court",
+      "outline": [989.4, 2598.5, 998.2, 2596.7, 1003.7, 2623.1, 994.9, 2624.9],
+      "heights": [21.88, 21.88, 22.13, 22.13],
+      "why": "East of Götgatan at Skanstull the pavement along the houses lies 0.9 m below Götgatan's own, and the station's sunken court is dug into it, its floor 2.0 m lower still, with stairs up at both ends (Lantmäteriet's laser scan, 2021: the pavement at 21.9 m, rising to 22.1 m at the court's south end; the court's floor at 19.9 m). The elevation model's 5 m grid smooths the court and the step into one hollow, so the court's stairs would come up into a dip; this lays the pavement flat at its level, the court cut into it by the station (src/open-styles.ts)."
+    },
+    {
+      "name": "Skanstull: the end of Allhelgonagatan over the northern hall",
+      "outline": [916.3, 2418.1, 914.1, 2407.3, 896.5, 2411.0, 898.7, 2421.7],
+      "heights": [26.18, 26.18, 26.9, 26.9],
+      "why": "Allhelgonagatan ends at Götgatan 3.2 m above it, on the roof of the station's northern ticket hall, whose glass front opens onto Götgatan's pavement under the street's railing (Lantmäteriet's laser scan, 2021: Allhelgonagatan at 26.2 m at its end, rising to 26.9 m 18 m west; Götgatan's pavement at 23.0 m). The elevation model's 5 m grid smooths the step into a slope 6 m wide that the hall would come up through."
+    },
+    {
+      "name": "Skanstull: Ringvägen's pavement round the open stairs",
+      "outline": [954.6, 2667.0, 970.3, 2663.7, 972.6, 2675.0, 956.9, 2678.3],
+      "heights": [21.93, 21.93, 21.98, 21.98],
+      "why": "On Ringvägen's north side, at Skrapan's corner, the station's open stairs go down from the pavement (Lantmäteriet's laser scan, 2021: the pavement at 21.9–22.0 m, the stairs' foot at 19.5 m). The elevation model's 5 m grid smooths the stairwell into a hollow 0.5 m deep round it, which the passage at its foot would come up through."
+    },
+    {
+      "name": "Kristineberg: in front of the station's doors",
+      "outline": [-3203.5, -161.1, -3208.6, -145.4, -3191.2, -139.8, -3190.0, -143.4, -3186.5, -142.2, -3182.6, -154.3],
+      "heights": [13.65, 13.45, 13.8, 13.85, 13.9, 13.95],
+      "why": "The station's doors open north onto Nordenflychtsvägen where Hjalmar Söderbergs väg meets it, at the foot of the bank the tracks run on. The elevation model's 5 m grid smooths the bank down over the street, which left the ground at the doors a metre over the hall's floor (the deck reaches in under the hall's front, to keep the street level up to the doors). The laser scan has the street and the paving in front of the doors, from the hall's front out to 26 m north of the tracks' middle, at 13.5–13.95 m, rising a little to the east, and the bank rising from behind the hall."
+    },
+    {
+      "name": "Alvik: in front of the ticket hall's doors",
+      "outline": [-4476.9, -267.8, -4481.6, -242.2, -4480.6, -242.0, -4484.4, -221.9, -4489.1, -222.7, -4480.6, -268.4],
+      "heights": [10.5, 10.25, 10.25, 10.05, 10.05, 10.5],
+      "why": "The ticket hall's doors open west under the trams' bridge onto a terrace in front of the bank, 3.3 m deep and running north under the metro's bridge, held up by a wall 4.5 m over Alviksvägen, which passes under the bridges (Lantmäteriet's laser scan, 2021: the terrace at 9.9–10.8 m, rising to the north, the street at 5.5 m). The elevation model's 5 m grid smooths the wall into a slope falling away from the doors, which left no terrace in front of them."
+    },
+    {
+      "name": "Åkeshov: the pavement over the underpass, north of the tracks",
+      "outline": [-7605.4, -1179.6, -7597.5, -1178.0, -7583.6, -1176.0, -7582.1, -1190.9, -7604.0, -1193.1],
+      "heights": [15.05, 15.0, 14.95, 15.05, 15.15],
+      "why": "North of Åkeshov's tracks, from the hall's middle to 18 m past the underpass, the pavement, Bergslagsvägen's service road and the verge beyond it lie over the underpass and the tunnel going on north from it, and over the stair rising from the underpass beside the tracks. The elevation model's 5 m grid smooths the stair's trough into a hollow 1.5–2 m deep across them, which the tunnel would come up through. The laser scan has the pavement and the road at 14.9–15.1 m and the verge at 15.0–15.2 m; the trough is cut by the station."
+    },
+    {
+      "name": "Ängbyplan: the forecourt at the lift passage's mouth",
+      "outline": [-8682.3, -1165.4, -8674.6, -1163.2, -8672.7, -1169.8, -8656.4, -1165.0, -8660.1, -1152.1, -8662.3, -1152.7, -8662.9, -1150.8, -8684.7, -1157.1],
+      "heights": [11.67, 12.02, 11.71, 12.45, 13.05, 12.95, 13.04, 12.06],
+      "why": "South of Ängbyplan's tracks, between the bridges over Färjestadsvägen and the lift passage's mouth, a paved forecourt lies at the street's level below the retaining wall of the bank the station stands on. The elevation model's 5 m grid smooths it into the bank's slope, up to 3.5 m too high at the passage's mouth. Lantmäteriet's laser scan has it at 11.8 m beside the street, rising to 12.5–12.6 m at the mouth and to 12.9–13.4 m along its southern side, where the footway climbs east; the wall and the passage are drawn by the station (src/open-styles.ts). The deck reaches back under the abutment, the retaining wall and the bank east of the passage's mouth, which the station draws too, so that the grid's points under them don't ramp the ground up into the forecourt."
+    },
+    {
+      "name": "Ängbyplan: Färjestadsvägen under the bridges",
+      "outline": [-8685.1, -1191.6, -8670.7, -1187.4, -8671.8, -1183.6, -8668.9, -1182.7, -8670.6, -1177.0, -8667.7, -1176.1, -8669.8, -1168.9, -8672.7, -1169.8, -8674.6, -1163.2, -8691.9, -1168.2],
+      "heights": [11.69, 11.7, 11.72, 11.72, 11.75, 11.76, 11.8, 11.8, 11.84, 11.83],
+      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the foot of the stair coming down between the bridges' abutments. The elevation model's 5 m grid ramps the bank the station stands on down across the pavement into the street, up to 3 m too high at the abutments. Lantmäteriet's laser scan has the street and the pavements at 11.6–11.9 m right up to the abutments; the abutments and the stair are drawn by the station (src/open-styles.ts). The deck reaches back under the abutments as far as the grid's next points, so that they don't ramp the ground up in front of them."
+    },
+    {
+      "name": "Blackeberg: Vinjegatan over the tracks",
+      "outline": [-10018.67, -1832.11, -10027.41, -1841.04, -9992.12, -1873.61, -9984.36, -1865.68],
+      "heights": [35.47, 35.29, 35.34, 35.49],
+      "why": "Blackeberg's platforms are covered from where the cutting ends under Vinjegatan, which crosses the tracks on a deck along the ticket hall's back, 11–12.5 m wide from the shop fronts to its edge over the tracks where they come out, and on 18 m past them to either side. The elevation model leaves the deck out and has the ground falling into the cutting under it, so that the station's covered end stood in the open and the street beside it fell to the rails in a cone round the tunnels' mouths. The laser scan has the street at 35.3–35.5 m all across it, 4 m over the platform (a plane fits 659 of its points to 7 cm)."
+    },
+    {
+      "name": "Vällingby: Kirunaplan over the tracks",
+      "outline": [-10688.98, -3513.14, -10728.69, -3555.42, -10667.47, -3612.93, -10627.76, -3570.65],
+      "heights": [30.02, 30.18, 29.18, 29.01],
+      "why": "Kirunaplan, Vällingby's bus terminal, crosses the tracks on a deck from the front of Vällingby centrum to the car park's deck, 58 m along the platforms' covered south-eastern part and 84 m across. The elevation model leaves the deck out and has the ground falling into the tracks' cutting under it, 5 m down, so that the bus stops stood in a pit. The plane fits the laser scan's points on the deck to 8 cm, falling from 30.2 m on its south-western side to 29.2 m on its north-eastern. (The car park's deck beyond it is drawn by the station, src/open-styles.ts: the ground under it is the road at the platforms' level, which the platforms look out onto.)"
+    },
+    {
+      "name": "Mariatorget: the corner of Swedenborgsgatan and Wollmar Yxkullsgatan",
+      "outline": [235.7, 1601.0, 250.7, 1606.6, 242.3, 1629.1, 227.3, 1623.5],
+      "heights": [21.27, 21.44, 21.49, 21.77],
+      "why": "Mariatorget's eastern doors are on the cut-off corner of Swedenborgsgatan 4, at the pavement's level. A light well about 2 m wide and 3 m deep runs along the building's front on Swedenborgsgatan up to the corner (the laser scan's ground points in it at 18.2–18.8 m, the pavement beside it at 21.3–21.5), and the elevation model's 5 m grid smooths it into a trough that took the street in front of the doors half a metre down. The plane goes through the laser scan's pavement at the outline's corners (medians of its ground points within 2.5 m)."
+    },
+    {
+      "name": "Liljeholmen: Liljeholmstorget's deck over the platforms",
+      "outline": [-2106.6, 2331.7, -1997.4, 2250.6, -1970.2, 2287.2, -2079.4, 2368.3],
+      "heights": [9.93, 9.75, 9.9, 9.92],
+      "why": "Liljeholmen's platforms, from the hall of 1964 at their south end to 64 m north of their middle, are in a hall under a deck built over the open station in the 2000s, which carries Liljeholmstorget, the buildings on its west side and their courtyard; the station draws the hall (src/open-styles.ts). The elevation model leaves the deck out and sags under it to 7.5–9 m, 2.5–4.3 m over the platforms, through the hall's ceiling. Lantmäteriet's laser scan (2021) has the deck at 9.75–9.93 m, about 5.2 m over the platforms, from the hall of 1964 to the north hall. The outline reaches 5 m beyond the hall's western wall, under the blocks of flats over Liljeholmsgränd, so that the 5 m grid's slope down to the street stays out of the hall."
+    },
+    {
+      "name": "Hägerstensåsen: the end of Sedelvägen before the station's pavilion",
+      "outline": [-4540.9, 3993.6, -4532.9, 3987.8, -4515.2, 4012.0, -4523.2, 4017.9],
+      "heights": [52.45, 52.45, 52.45, 52.45],
+      "why": "The tracks go into the tunnel to Telefonplan under Hägerstensåsen's pavilion, whose doors open east onto the end of Sedelvägen, 5.8 m over the platform (Lantmäteriet's laser scan: 52.4–52.8 m). The network has the tunnel's mouths under the pavilion's east end, and the open track's trench, rounding off past them, opened a pit in the street before its doors; on the deck it stops at the mouths, and the street (raised to its level, below) runs on to the pavilion."
+    },
+    {
+      "name": "Fruängen: the bus terminal below the retaining wall",
+      "outline": [-5346.3, 5095.2, -5312.6, 5091.1, -5319.9, 5030.5, -5353.6, 5034.6],
+      "heights": [42.74, 43.64, 43.14, 43.64],
+      "why": "The bus terminal east of Fruängen's station is level with the street, 3.6–4.5 m below the platform, right up to the foot of the retaining wall that carries the tracks (Lantmäteriet's laser scan). The elevation model's 5 m grid smoothed the wall into a grassy slope that buried the foot of the wall and Landergren's mosaics on it."
+    },
+    {
+      "name": "Örnsberg: Örnsbergsvägen over the platform's east end",
+      "outline": [-4036.3, 2893.8, -4035.3, 2903.0, -4035.7, 2907.4, -4031.1, 2921.7, -4026.4, 2934.9, -4005.2, 2927.3, -4019.3, 2887.8],
+      "heights": [14.65, 15.05, 15.0, 15.15, 15.35, 15.55, 14.65],
+      "why": "Örnsbergsvägen crosses the cutting on a deck over the platform's east end, which runs on under it into the passage to the station's building, and over the tracks' tunnels. Lantmäteriet's laser scan has the street at 14.6–15.5 m, rising eastwards; the elevation model leaves the deck out and sags under it to 11.2–14.2 m, a hollow in the street over the passage."
+    },
+    {
+      "name": "Axelsberg: the deck over the tracks' east end",
+      "outline": [-4814.9, 3015.1, -4796.5, 3012.8, -4793.1, 3040.6, -4811.5, 3042.9],
+      "heights": [22.8, 22.8, 23.1, 23.0],
+      "why": "The station's building stands on a deck over the tracks at the east end of the cutting, with a footbridge along its east front from Selmedalsvägen to Axelsbergs torg. Lantmäteriet's laser scan has the deck, the footbridge and the square at the building's doors at 22.8–23.1 m; the elevation model leaves the deck out and falls to the tracks under it, 18.4–21.8 m."
+    },
+    {
+      "name": "Mälarhöjden: the square in front of the station",
+      "outline": [-5836.6, 3399.3, -5827.1, 3391.9, -5816.7, 3405.4, -5806.9, 3418.0, -5817.9, 3426.6, -5825.4, 3412.1],
+      "heights": [35.0, 34.1, 34.46, 34.64, 34.82, 34.71],
+      "why": "The square in front of Mälarhöjden's station, along its whole front at the foot of the church's hill, from 6–9 m out to 5–6 m in under the front (whose walls stand on it). Lantmäteriet's laser scan (2021) has it at 34.6–34.8 m right up to the front, falling to 34.1–34.5 m towards Slättgårdsvägen and the corner of Hägerstensvägen; the elevation model's 5 m grid smooths the hill behind into it, up to 36.0–36.6 m at the doors, which would bury their foot (the hall's floor, behind them, is at 34.7 m). The plane is fitted to the laser scan's square and carried in under the front, so that the 5 m grid's slope down from the hill stays inside the building."
+    },
+    {
+      "name": "Sätra: Sätra centrum, over the tracks' tunnels",
+      "outline": [-7865.0, 5150.1, -7835.5, 5159.6, -7835.8, 5160.6, -7808.0, 5169.5, -7816.2, 5190.0, -7824.2, 5211.0, -7853.0, 5201.8, -7856.5, 5209.6, -7881.4, 5201.6, -7904.0, 5190.9, -7896.3, 5170.6, -7891.1, 5156.7, -7870.4, 5164.5],
+      "heights": [40.7, 40.66, 40.66, 40.62, 40.62, 40.62, 40.66, 40.66, 40.7, 40.7, 40.7, 40.7, 40.7],
+      "why": "South of Sätra's platforms the three tracks run on in tunnels under Sätra centrum, which stands across them, its floor 3.85 m over the platforms. The elevation model has the cutting's floor under the building, 0–2.6 m over the platforms, which put the ground round its doors in a pit and its floor under the street. Lantmäteriet's laser scan has the square before its west doors (Sätratorget) at 40.6–40.8 m, the street by its north-west corner at 40.7 m and the ground before its east side at 40.5–40.7 m. The outline is the building's (its roof in the laser scan) and 4 m round its west and east sides, leaving out its wing to the north-east, where the ground falls to the car park beside the tracks, and the yards on its south side, a metre and more lower."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången, along the front of Skärholmsterrassen",
+      "outline": [-8718.9, 6099.6, -8710.9, 6098.9, -8711.5, 6092.1, -8635.9, 6085.1, -8635.2, 6091.8, -8630.7, 6091.4, -8631.7, 6080.8, -8570.5, 6075.1, -8569.7, 6083.7, -8567.7, 6083.5, -8566.8, 6093.5, -8718.1, 6107.6],
+      "heights": [35.5, 35.5, 35.52, 35.52, 35.5, 35.5, 35.55, 35.58, 35.56, 35.56, 35.45, 35.15],
+      "why": "Skärholmsgången runs along the foot of Skärholmsterrassen, the deck about 5.7 m high over Skärholmen's station, whose two entrances are in its front. Lantmäteriet's laser scan has the street at 35.5–35.6 m and the terrace at 41.2 m, its front a wall; the elevation model's 5 m grid smooths the wall into a slope, which put both entrances 2–2.6 m up it. The outline runs from the street, 8–10 m out, to 5.5 m in under the terrace's front (the station's blocks in src/open-styles.ts stand there, cutting the ground away), leaving out the steps up to the terrace between its blocks."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången west of the middle entrance's steps",
+      "outline": [-8789.2, 6099.2, -8720.9, 6092.8, -8720.3, 6099.8, -8718.9, 6099.6, -8718.1, 6107.6, -8787.8, 6114.1],
+      "heights": [34.6, 35.48, 35.48, 35.5, 35.4, 34.6],
+      "why": "The same street west of the steps up to Skärholmsterrassen west of the station's middle entrance, falling westwards along the terrace's western block: Lantmäteriet's laser scan has it at 35.5 m by the steps and 34.6 m 70 m west, and the block's front a wall to the terrace at 41.2 m, which the elevation model smoothed into a slope out over the street. The outline runs from 9 m out to 6 m in under the block's front (whose block in src/open-styles.ts cuts the ground away)."
+    },
+    {
+      "name": "Skärholmen: Skärholmsgången east of the bus terminal entrance's steps",
+      "outline": [-8567.7, 6083.5, -8565.7, 6083.3, -8566.6, 6074.3, -8522.8, 6070.2, -8521.0, 6089.2, -8566.8, 6093.5],
+      "heights": [35.56, 35.56, 35.6, 35.6, 35.1, 35.4],
+      "why": "The same street east of the steps up to Skärholmsterrassen beside the station's bus terminal entrance, along the terrace's block by the bus terminal: the laser scan has it at 35.1–35.6 m, and the block's front a wall 40 m long to the terrace at 41.2 m, which the elevation model smoothed into a slope out over the street. The outline runs from 13 m out to 5.5 m in under the block's front."
+    },
+    {
+      "name": "Vårby gård: the deck over the northern track south-east of the ticket hall",
+      "outline": [-9946.0, 7447.9, -9952.4, 7452.8, -9953.0, 7456.6, -9952.7, 7459.5, -9922.4, 7499.3, -9912.6, 7491.9],
+      "heights": [31.32, 31.64, 31.64, 31.62, 31.05, 31.12],
+      "why": "South-east of Vårby gård's ticket hall the northern track runs on in a box under a deck, the pavement of Vårby allé, which the stairs and the lift from the station come up onto. Lantmäteriet's laser scan has the deck at 31.6–31.7 m by the hall, falling to 31.0–31.1 m 55 m on, and its south-western edge a wall straight down to the way in at the platform's level (27.9 m); the elevation model's 5 m grid smooths it into a slope down to the tracks, 1–3 m under the deck."
+    },
+    {
+      "name": "Vårby gård: Vårby allé over the tracks' mouths",
+      "outline": [-9931.7, 7506.4, -9912.6, 7491.9, -9902.9, 7504.6, -9922.0, 7519.1],
+      "heights": [30.97, 31.12, 31.05, 30.92],
+      "why": "Vårby allé crosses both tracks south-east of Vårby gård, the southern track's mouth under its edge. The laser scan has the street at 30.9–31.1 m; the elevation model smooths it down towards the southern track's cutting, a metre too low where the ramp from the station comes up onto it."
+    },
+    {
+      "name": "Vårby gård: the square under the retaining wall",
+      "outline": [-9950.5, 7476.7, -9959.2, 7483.4, -10047.0, 7368.0, -10038.3, 7361.3],
+      "heights": [22.72, 22.6, 21.25, 21.3],
+      "why": "South-west of Vårby gård the southern track runs along the top of a concrete retaining wall 5.5–6.8 m high, from the mouth of the passage under the tracks to the bridge north-west of the platform, over a square and a cycleway. Lantmäteriet's laser scan has the square at 22.5–22.7 m by the ticket hall, falling to 21.2–21.3 m at the bridge, and the wall's top at 27.6–28.2 m; the elevation model's 5 m grid smooths the wall into a grassy bank. The outline runs from the track's edge, over the wall's foot (the wall in src/open-styles.ts stands there), to 9 m out."
+    },
+    {
+      "name": "Masmo: the entrance in the rock face and the colonnade along its foot",
+      "outline": [-10129.7, 9101.0, -10118.0, 9095.5, -10121.4, 9088.2, -10123.4, 9089.1, -10134.8, 9064.7, -10139.3, 9066.8, -10128.1, 9090.8, -10133.4, 9093.3],
+      "heights": [16.15, 16.25, 16.25, 16.2, 16.15, 16.1, 16.1, 16.1],
+      "why": "Masmo's only entrance is a portal in the rock face at the foot of Masmoberget, opening west-south-west onto the square at 16.1 m, under a canopy whose roof Lantmäteriet's laser scan has at 19.5 m, 6 m wide; a beam on pilasters runs on along the rock's foot to the north-north-west from the lintel over it, at the same height, 23.4 m. The elevation model's 5 m grid smooths the rock face into a slope that rises through the portal's mouth and under the beam. The deck lays the square's paving 5 m into the rock face there."
+    },
+    {
+      "name": "Fittja: the deck over the tracks and Fittjavägen, where the buses stop",
+      "outline": [-11270.5, 9342.7, -11291.2, 9327.5, -11290.4, 9326.4, -11309.4, 9312.5, -11298.0, 9296.9, -11258.3, 9326.0],
+      "heights": [23.73, 23.78, 23.78, 23.78, 23.38, 23.18],
+      "why": "North-east of Fittja's ticket hall a deck carries the walkway past the hall's doors, the bus stops and the bus loop over both tracks and Fittjavägen, which run under it in the cutting. Lantmäteriet's laser scan has the deck at 23.7–23.8 m in front of the hall, falling to 23.2–23.4 m at its north-eastern edge 20 m on, and the cutting under its edges at 17.6–17.9 m; the elevation model leaves the deck out as a bridge, so the ground fell into the cutting. The outline runs from the hall's front and the edge of the open slot over the northern track north-west of the hall to the deck's far edge."
+    },
+    {
+      "name": "Fittja: under the ticket hall's front",
+      "outline": [-11273.0, 9346.2, -11293.8, 9331.0, -11291.2, 9327.5, -11270.5, 9342.7],
+      "heights": [23.78, 23.78, 23.78, 23.78],
+      "why": "Fittja's ticket hall stands over the southern track's box, its front on the deck's edge, and the elevation model has the cutting's floor under it, so the ground in front of its doors fell away to it. Under the hall's last 4.3 m (inside its outline in OpenStreetMap) the ground is at the hall's floor, the deck's height, 23.78 m."
+    },
+    {
+      "name": "Fittja: the bank behind the wall along the southern track",
+      "outline": [-11309.7, 9380.7, -11295.4, 9361.2, -11281.7, 9371.2, -11296.0, 9390.7],
+      "heights": [21.73, 23.68, 23.9, 21.5],
+      "why": "South-east of Fittja's platform's north-eastern half a concrete wall rises from beside the southern track to 1 m over the ground behind it, which climbs north-eastwards to the square at the ticket hall. The laser scan has that ground at 21.7 m 15 m behind the wall's south-western end, rising to 23.7 m at the footbridge; the elevation model's 5 m grid smooths the wall into a slope down to the track, 3 to 4 m too low behind it."
+    },
+    {
+      "name": "Fittja: the square south-east of the ticket hall",
+      "outline": [-11288.0, 9366.6, -11258.3, 9326.0, -11252.0, 9330.6, -11281.7, 9371.2],
+      "heights": [23.73, 23.18, 22.83, 23.93],
+      "why": "Along the south-eastern side of Fittja's ticket hall a paved square runs from the footbridge to the bus loop, over the southern track's box. The laser scan has it at 23.7–23.9 m by the hall, falling to 23.2 m at the bus loop; the elevation model's 5 m grid smooths the hall's side into a slope down to the cutting, 2 to 4 m too low."
+    },
+    {
+      "name": "Alby: the square in front of the station's entrance from Alby centrum",
+      "outline": [-12228.0, 10288.7, -12202.4, 10289.4, -12203.0, 10312.9, -12228.6, 10312.2],
+      "heights": [22.4, 22.48, 22.5, 22.65],
+      "why": "The square south of the station's entrance building, out 17 m from its doors, is flat at 22.4–22.7 m (Lantmäteriet's laser scan), and the corridor inside the doors is at its level; the elevation model's 5 m grid smooths the building into it, 23.3 m at the doors, which left the station's exit 0.8 m over its hall. The outline reaches 6 m into the building, under the corridor."
+    },
+    {
+      "name": "Norsborg: the bus station north of the line",
+      "outline": [-14018.9, 9739.4, -13939.2, 9746.5, -13937.5, 9726.7, -14017.2, 9719.6],
+      "heights": [26.7, 26.7, 26.4, 26.6],
+      "why": "The bus station under the wall along the northern track is flat at 26.3–26.9 m (Lantmäteriet's laser scan) right up to the wall, where the underpass from the station's hall comes out; the elevation model's 5 m grid smooths the wall into it, 27.7 m at the underpass's mouth, which left the exits from the hall a metre under the street."
+    },
+    {
+      "name": "Slussen: Ryssgården in front of the ticket hall's doors",
+      "outline": [729.7, 1348.0, 723.5, 1324.8, 747.7, 1318.4, 753.8, 1341.7],
+      "heights": [12.88, 12.85, 12.97, 12.98],
+      "why": "Ryssgården, the square north of Stockholms sjömanshem, is flat at 12.8–13.0 m (Lantmäteriet's laser scan, 2021) right up to the building's front, where the ticket hall under the building opens onto it, step-free; the elevation model smooths the building into it, 13.7 m at the doors and up to 15 m 8 m west of them, which left the station's exit 0.8 m over its hall. The outline reaches 7 m into the building, under the hall, so that the street's grid at the doors has no point on the building's slope."
+    }
+  ],
   "open": [
     {
       "outline": [[391.2, 856.2], [418.6, 925.2], [434.8, 984.3], [445.6, 1023.6], [484.9, 1003.9], [468.3, 975.3], [496.9, 960.9], [433.7, 834.9]],
@@ -30,16 +284,69 @@
       "outline": [[2512.6, -2960.9], [2557.7, -2988.6], [2566.9, -2973.7], [2521.7, -2946.0]],
       "ground": 7.8,
       "why": "Lidingöbanan's stop at Ropsten, on its terrace beside the tram's hall: the elevation model smooths the ground between its three platforms up to 8.0–8.06 m, over the tracks' tops (7.85–7.95 m, 0.4 m under the platforms' 8.35 m; Lantmäteriet's laser scan, 2021), so it came up through the southern track. The tracks and platforms are drawn in src/detail/ropsten.ts."
+    },
+    {
+      "outline": [[-6847.2, -784.8], [-6816.8, -781.1], [-6818.8, -764.3], [-6826.8, -766.2], [-6828.0, -755.9], [-6831.8, -757.5], [-6832.5, -751.7], [-6848.9, -753.7], [-6851.0, -757.5]],
+      "ground": 6.2,
+      "why": "Brommaplan's ticket hall and the shops either side of it, under and beside the metro's decks over Tunnlandet. The elevation model has the shops' roofs, 3.4 m under the platform, for the ground, so the square rose in a mound up to the decks. Lantmäteriet's laser scan has the hall's floor at 6.2–6.4 m through the glass vault between the decks, and the square at 5.5–6.3 m round it; the outline keeps to the hall, its two wings and the pavement north of them, clear of the slope up to Kapplandsvägen south of them. The hall and the shops are drawn by the station (src/open-styles.ts)."
+    },
+    {
+      "outline": [[-7612.3, -1176.2], [-7589.9, -1173.9], [-7592.1, -1152.7], [-7617.9, -1155.3], [-7619.6, -1158.7], [-7618.9, -1165.0], [-7613.5, -1164.4]],
+      "ground": 11.7,
+      "why": "Åkeshov's ticket hall and the underpass beside it, under the tracks' decks east of the platforms, and the sunken strip along the hall's south wall out to the underpass's mouth. The elevation model has the bank over the hall, 15.5 m, and a trench along the underpass. Lantmäteriet's laser scan has the forecourt at 11.7–12.0 m from the hall's south wall to 3 m beyond it and at the underpass's mouth (the hall's floor and the underpass's are as high, by the photographs), rising to 12.5–13 m beyond; the outline keeps to the hall, the underpass and the strip. The hall, the underpass and its walls are drawn by the station (src/open-styles.ts)."
+    },
+    {
+      "outline": [[-11436.9, -4075.5], [-11424.9, -4074.3], [-11423.3, -4080.9], [-11422.5, -4083.4], [-11434.4, -4084.6], [-11434.4, -4080.0], [-11436.6, -4078.3]],
+      "ground": 25.2,
+      "why": "The forecourt in front of Johannelund's ticket hall, a notch in the railway's bank north of the platforms' east end, from the hall's doors 9 m out. Lantmäteriet's laser scan (2021) has it level at 25.0–25.3 m from the doors out to where it falls away northwards, the bank either side at 27 m; the elevation model's 5 m grid smooths the bank into it, up to 25.7–26.2 m at the doors, so the hall (its floor at 25.0 m) stood in a pit."
     }
   ],
   "fill": [
     {
+      "outline": [[-3528.5, 3700.7], [-3524.8, 3699.7], [-3529.8, 3681.9], [-3545.2, 3686.2], [-3541.4, 3699.7], [-3575.1, 3709.2], [-3566.5, 3740.0], [-3532.8, 3730.5], [-3529.0, 3744.0], [-3513.6, 3739.7], [-3518.9, 3720.9], [-3522.5, 3721.9]],
+      "ground": 40.0,
+      "why": "Telefonplan's building and the square and streets round it, over the tracks' tunnels: the same outline as its deck (above), which sets the ground's height there. The tunnels' ground, by the elevation model, is the trench it draws under the building, below half their height, so they stood in the open with the trench round them; raised to the street, they are buried under it."
+    },
+    {
       "outline": [[669, 1184.5], [707, 1202], [707, 1241], [733, 1241], [733, 1218], [752, 1227], [753, 1229], [758, 1241], [761, 1252], [767, 1250], [808, 1269], [800, 1283], [790, 1288], [740, 1290], [700, 1292], [655, 1290], [655, 1200]],
       "ground": 12.5,
       "why": "Södermalmstorg, from the pavilions over the water square to Slussbrogatan and Guldbron's Söder end. The elevation model is from the rebuilding of Slussen, when the square was a pit 2–11 m deep with ramps and spoil in it; the finished square is paved and level with Guldbron's Söder end at 12.5 m (Lantmäteriet's laser scan of the bridge, 2021), rising to the south-west towards Hornsgatan, where the model's ground still stands above this and is kept. The outline reaches to Guldbron's end (the deck covers the ground beyond it) and keeps a grid cell (5 m) back from the pavilions' walls over the water square and from the stairs' flights, so that the ground's slope down from it lies under the pavilions' roofs and the stairs' landing (src/detail/slussen.ts)."
+    },
+    {
+      "outline": [[-4540.9, 3993.6], [-4532.9, 3987.8], [-4515.2, 4012.0], [-4523.2, 4017.9]],
+      "ground": 52.45,
+      "why": "Hägerstensåsen: the end of Sedelvägen in front of the station's pavilion over the tracks, 5.8 m over the platform at its doors (Lantmäteriet's laser scan: 52.4–52.8 m; the elevation model's 52.5 m at the doors). The elevation model dips there into the cutting at the tunnel's mouth under the pavilion, so the street before its doors was a pit; raised to the street, the tunnel is buried under it."
+    },
+    {
+      "outline": [[-4814.9, 3015.1], [-4796.5, 3012.8], [-4793.1, 3040.6], [-4811.5, 3042.9]],
+      "ground": 23.0,
+      "why": "Axelsberg's deck over the tracks' east end: the same outline as its deck (above), which sets the ground's height there. By the elevation model the tunnels under it stood in a trench; raised to the deck, they are buried under it."
+    },
+    {
+      "outline": [[-7865.0, 5150.1], [-7835.5, 5159.6], [-7835.8, 5160.6], [-7808.0, 5169.5], [-7816.2, 5190.0], [-7824.2, 5211.0], [-7853.0, 5201.8], [-7856.5, 5209.6], [-7881.4, 5201.6], [-7904.0, 5190.9], [-7896.3, 5170.6], [-7891.1, 5156.7], [-7870.4, 5164.5]],
+      "ground": 40.6,
+      "why": "Sätra centrum over the tracks' tunnels: the same outline as its deck (above), which sets the ground's height there. By the elevation model the tunnels' ground was the cutting's floor under the building, so they stood in the open; raised to the street, they are buried under it."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9912.6, 7491.9]],
+      "ground": 31.0,
+      "why": "Vårby gård's deck over the northern track: the same outline as its deck (above), which sets the ground's height there. The elevation model has the box's ground in a trench under the deck, below half its height, so it would stand in the open."
+    },
+    {
+      "outline": [[-11270.5, 9342.7], [-11291.2, 9327.5], [-11290.4, 9326.4], [-11309.4, 9312.5], [-11298.0, 9296.9], [-11258.3, 9326.0]],
+      "ground": 23.2,
+      "why": "Fittja's deck over the tracks and Fittjavägen: the same outline as its deck (above), which sets the ground's height there. The elevation model has the boxes' ground in the cutting under the deck, so they would stand in the open."
     }
   ],
   "paved": [
+    {
+      "outline": [[-3586.4, 3687.4], [-3408.3, 3637.4], [-3401.6, 3661.5], [-3552.7, 3703.9], [-3537.9, 3756.9], [-3564.8, 3764.4]],
+      "why": "Telefonplan: the street along the north side of the cutting, from west of the station's building to past the platform's east end, with its pavement and parking, and the street across the tracks' tunnels west of the building, asphalt (Google's 3D model). Few buildings stand beside them, so they were grass."
+    },
+    {
+      "outline": [[-3545.4, 3729.9], [-3472.3, 3709.4], [-3462.0, 3746.0], [-3535.1, 3766.5]],
+      "why": "Telefonplan: the square south of the station's building and the cutting's western half, with the buses' loop round a small island of grass, asphalt and concrete pavers (Google's 3D model)."
+    },
     {
       "outline": [[100, 520], [480, 520], [480, 600], [1010, 600], [1010, 1060], [560, 1040], [505, 1055], [440, 1055], [380, 1000], [100, 880]],
       "why": "Gamla stan and Riddarholmen are stone and asphalt to the water's edge: Munkbroleden, Kornhamnstorg, Munkbrohamnen, Skeppsbron, Riddarholmskajen and Evert Taubes terrass are quays (Google's 3D model). Their rims, and the street under Centralbron, were grass for want of buildings beside them."
@@ -63,6 +370,162 @@
     {
       "outline": [[2687, -2494], [2682, -2505], [2662, -2560], [2648, -2595], [2609, -2682], [2603, -2696], [2598, -2710], [2594, -2725], [2591, -2740], [2589, -2754], [2590, -2761], [2592, -2768], [2597, -2776], [2603, -2782], [2609, -2787], [2616, -2791], [2627, -2795], [2656, -2807], [2625, -2871], [2663, -2895], [2705, -2914], [2722, -2908], [2744, -2919], [2796, -2812], [2773, -2802], [2842, -2655], [2872, -2668], [2920, -2560], [2920, -2480]],
       "why": "Energihamnen east of Ropsten: the power station's tanks, yards and quays (OpenStreetMap's industrial outline, closed out over the water; Google's 3D model). It was grass between the tanks."
+    },
+    {
+      "outline": [[-4484.1, -250.8], [-4490.3, -217.4], [-4513.9, -221.7], [-4507.7, -255.2]],
+      "why": "Alviksvägen and its pavements under the metro's and the trams' bridges west of Alvik's ticket hall (Google's 3D model). With no buildings beside them they were grass."
+    },
+    {
+      "outline": [[-4476.9, -267.8], [-4481.6, -242.2], [-4480.6, -242.0], [-4484.4, -221.9], [-4489.1, -222.7], [-4480.6, -268.4]],
+      "why": "The paved terrace in front of Alvik's ticket hall's doors, on its deck (photographs)."
+    },
+    {
+      "outline": [[-6072.7, -568.4], [-6058.3, -564.1], [-6064.1, -544.9], [-6047.8, -540.0], [-6037.4, -540.0], [-6030.6, -534.8], [-6034.1, -523.4], [-6081.9, -537.8]],
+      "why": "Abrahamsbergstorget and the forecourt of Abrahamsberg's ticket hall, south of the tracks by Abrahamsbergsvägen, are paved (photographs; OpenStreetMap's place=square). With no buildings beside them they were grass."
+    },
+    {
+      "outline": [[-7612.0, -1154.7], [-7582.1, -1151.7], [-7583.5, -1137.7], [-7613.4, -1140.8]],
+      "why": "Åkeshov's forecourt, south of the underpass's mouth: asphalt, with bicycle racks and the footways up to Åkeshovs Gårdsväg and into the park (photographs, 2018 and 2021; OpenStreetMap)."
+    },
+    {
+      "outline": [[-7575.2, -1243.9], [-7578.2, -1228.7], [-7559.8, -1224.4], [-7553.5, -1239.7]],
+      "why": "The plaza round Åkeshov's entrance building north of Bergslagsvägen, widest before the passage through its western gable: grey and light concrete pavers (Mapillary, 2025; Commons, 2018). With few buildings near it, it was grass."
+    },
+    {
+      "outline": [[-8685.1, -1191.6], [-8670.7, -1187.4], [-8671.8, -1183.6], [-8668.9, -1182.7], [-8674.6, -1163.2], [-8660.4, -1159.1], [-8662.9, -1150.8], [-8694.3, -1159.9]],
+      "why": "Färjestadsvägen and its pavements under the bridges at Ängbyplan's west end, and the asphalt forecourt south of the tracks out to the lift passage's mouth (Mapillary, 2024; Commons, 2018). With few buildings near them, they were grass."
+    },
+    {
+      "outline": [[-9460.1, -1639.4], [-9442.2, -1634.0], [-9449.0, -1611.0], [-9458.4, -1586.7], [-9473.7, -1591.3], [-9483.5, -1600.4], [-9473.9, -1617.4], [-9461.5, -1638.7]],
+      "why": "Blackebergsvägen and its pavement in front of Islandstorget's ticket hall, out to the bus street and its stops south of the hall (OSM 254336764, 109273943; Mapillary, 2018 and 2025; Commons, 2018). With few buildings near them, they were grass."
+    },
+    {
+      "outline": [[-10075.1, -2655.3], [-10062.7, -2657.0], [-10049.0, -2657.5], [-10010.4, -2658.8], [-10012.4, -2634.5], [-10030.7, -2636.6], [-10053.4, -2639.3], [-10053.5, -2634.3], [-10060.8, -2633.3], [-10063.9, -2632.8], [-10067.2, -2640.5], [-10071.9, -2639.3], [-10073.8, -2647.9], [-10074.6, -2651.3], [-10074.8, -2653.5]],
+      "why": "Råcksta torg, the square in front of Råcksta's ticket hall on Jämtlandsgatan, is paved (OpenStreetMap's pedestrian area, surface=paving_stones; photographs). With few buildings beside it, it was grass."
+    },
+    {
+      "outline": [[-10653.9, -3501.0], [-10630.6, -3477.1], [-10591.2, -3515.5], [-10614.5, -3539.4]],
+      "why": "Vällingby torg, the square in front of Vällingby centrum's south-eastern front, over the tracks' tunnels: paved, with trees (the laser scan has it level at 29.3–29.5 m from the front to 33 m beyond it, and from 35 m south-west of the tracks' middle to 20 m north-east of it, the buildings round it beyond). The city drew it as grass."
+    },
+    {
+      "outline": [[-222.3, -3768.8], [-221.1, -3768.1], [-219.9, -3767.3], [-216.0, -3762.2], [-215.2, -3760.9], [-214.4, -3759.6], [-212.5, -3752.5], [-212.5, -3751.0], [-212.4, -3749.6], [-214.6, -3744.1], [-216.2, -3742.5], [-217.5, -3739.7], [-226.0, -3742.3], [-232.6, -3740.0], [-235.4, -3740.3], [-238.6, -3740.9], [-238.5, -3745.0], [-238.3, -3749.1], [-238.1, -3755.0], [-236.6, -3757.3], [-237.7, -3758.5], [-237.5, -3760.2], [-236.8, -3769.1], [-235.4, -3772.6]],
+      "why": "The round square at Frescati in front of Universitetet's station building, paved with stones (OpenStreetMap's pedestrian area): with the building's outlines left out for the station's own, too few buildings stand round it to pave it."
+    },
+    {
+      "outline": [[-989.0, -6626.2], [-934.3, -6632.0], [-910.3, -6403.2], [-965.0, -6397.5]],
+      "why": "Danderyds sjukhus's bus terminal over the station's southern half: the bus street and the platforms under the two long canopies either side of it, asphalt and concrete pavers from 10 m to 240 m south of the platform's middle (Lantmäteriet's laser scan has the canopies' roofs; photographs from the street, 2019). With no buildings beside it, it was grass."
+    },
+    {
+      "outline": [[-1002.6, -6717.3], [-987.2, -6718.9], [-993.1, -6774.6], [-1003.0, -6773.6], [-997.8, -6723.8], [-1003.3, -6723.3]],
+      "why": "The sunken walkway east of Danderyds sjukhus's northern ticket hall, whose door opens in its side: a path in a cutting 4.7 m deep, rising out of it to the north (Lantmäteriet's laser scan)."
+    },
+    {
+      "outline": [[-4540.9, 3993.6], [-4532.9, 3987.8], [-4515.2, 4012.0], [-4523.2, 4017.9]],
+      "why": "Hägerstensåsen: the end of Sedelvägen in front of the station's pavilion, asphalt (a photograph, 2016; Google's 3D model)."
+    },
+    {
+      "outline": [[-5403.9, 4572.8], [-5358.9, 4576.3], [-5313.8, 4579.9], [-5314.9, 4593.9], [-5360.0, 4590.3], [-5405.0, 4586.7]],
+      "why": "Västertorpsvägen under the track's bridge at Västertorp's south-west end, with its pavements, asphalt (Google's 3D model; OpenStreetMap). Away from the detail areas the city draws no streets, so it was grass up to the ticket hall's doors."
+    },
+    {
+      "outline": [[-5347.0, 4558.5], [-5337.0, 4567.6], [-5342.6, 4571.6], [-5346.3, 4583.1], [-5352.8, 4581.2], [-5350.3, 4567.3], [-5350.1, 4562.0]],
+      "why": "The paving in front of Västertorp's south-west ticket hall and the path from its doors to Västertorpsvägen (Google's 3D model; OpenStreetMap's footways)."
+    },
+    {
+      "outline": [[-5198.3, 4303.2], [-5190.7, 4318.1], [-5159.3, 4369.6], [-5153.7, 4379.0], [-5142.7, 4401.3], [-5133.3, 4420.7], [-5145.9, 4426.8], [-5155.3, 4407.4], [-5166.1, 4385.5], [-5171.3, 4376.9], [-5202.8, 4325.2], [-5210.7, 4309.6]],
+      "why": "Störtloppsvägen under the track's bridges at Västertorp's north-east end, with its pavements, asphalt (Google's 3D model; OpenStreetMap). Away from the detail areas the city draws no streets, so it was grass in front of the ticket hall's doors."
+    },
+    {
+      "outline": [[-5170.7, 4393.7], [-5162.9, 4407.6], [-5147.6, 4404.3], [-5160.7, 4380.1]],
+      "why": "The paving under the southern bridge between Västertorp's north-east ticket hall and Störtloppsvägen, where cars park (Google's 3D model)."
+    },
+    {
+      "outline": [[-5346.3, 5095.2], [-5312.6, 5091.1], [-5319.9, 5030.5], [-5353.6, 5034.6]],
+      "why": "Fruängen's bus terminal below the retaining wall east of the station, from the wall's foot out past its four stops and the service roads round them (OpenStreetMap; photographs, 2010 and 2016): pavement and asphalt. Away from the detail areas the city draws no streets, so it was grass up to Landergren's mosaics."
+    },
+    {
+      "outline": [[-4037.4, 2887.8], [-4035.4, 2897.7], [-4035.7, 2907.4], [-4031.1, 2921.7], [-4027.0, 2933.0], [-3965.4, 2910.9], [-3980.9, 2867.6]],
+      "why": "Örnsberg: Örnsbergsvägen over the platform's east end, the station's building east of it and the square before its doors, with the street's spur along its south side and the pavements to the north, asphalt and paving slabs (Google's 3D mesh; photographs, 2019). With no buildings right beside the street over the cutting, the game had it grass."
+    },
+    {
+      "outline": [[-4815.9, 3013.2], [-4794.6, 3010.6], [-4790.7, 3042.3], [-4812.0, 3044.9]],
+      "why": "Axelsberg: the deck over the tracks' east end, the station's building on it and the footbridge along its front, asphalt and paving slabs (photographs, 2014 and 2019). With no buildings right beside it over the cutting, the game had it grass."
+    },
+    {
+      "outline": [[-7913.4, 5145.2], [-7890.0, 5156.5], [-7887.4, 5158.1], [-7892.5, 5171.8], [-7900.2, 5192.1], [-7907.4, 5189.3], [-7914.0, 5186.6], [-7920.9, 5195.2], [-7922.2, 5194.2], [-7940.5, 5181.3], [-7926.0, 5162.0], [-7923.0, 5158.1]],
+      "why": "Sätra: Sätratorget, the square west of Sätra centrum, granite setts and concrete slabs (OpenStreetMap's outline; photographs, 2012 to 2016). With few buildings beside it, the game had it grass."
+    },
+    {
+      "outline": [[-8775.7, 6104.5], [-8718.9, 6099.1], [-8633.5, 6092.2], [-8632.1, 6092.0], [-8567.7, 6083.5], [-8522.2, 6076.2], [-8521.2, 6087.2], [-8631.6, 6097.5], [-8628.0, 6142.7], [-8711.3, 6149.5], [-8714.7, 6149.8], [-8718.3, 6105.6], [-8775.1, 6110.9]],
+      "why": "Skärholmen: Skärholmsgången along the front of Skärholmsterrassen, from its west end to the bus terminal, and Skärholmstorget south of it, brick-red pavers and granite (OpenStreetMap's outlines of the square and the street; photographs, 2008 to 2017; Google's 3D mesh). The game had them partly grass."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9931.7, 7506.4], [-9922.0, 7519.1], [-9902.9, 7504.6]],
+      "why": "Vårby gård: the deck over the northern track and Vårby allé over the tracks' mouths, paved (Google's 3D model). Few buildings stand beside them, so they were grass."
+    },
+    {
+      "outline": [[-9950.5, 7476.7], [-10002.6, 7408.3], [-10019.3, 7421.0], [-9967.2, 7489.4]],
+      "why": "Vårby gård: the square under the retaining wall south-west of the ticket hall, pale concrete pavers with a row of trees (Google's 3D model). The lawn north-west of it stays grass."
+    },
+    {
+      "outline": [[-10182.6, 9075.6], [-10163.5, 9119.7], [-10129.7, 9107.2], [-10129.7, 9101.0], [-10118.0, 9095.5], [-10121.4, 9088.2], [-10123.4, 9089.1], [-10134.8, 9064.7], [-10142.2, 9058.1]],
+      "why": "Masmo: the square in front of the entrance in the rock face, pale concrete pavers with Land arkitektur's orange-red poles, young trees in beds and a low timber deck (Google's 3D model; photographs, 2016–2018). Few buildings stand beside it, so it was grass."
+    },
+    {
+      "outline": [[-11270.5, 9342.7], [-11291.2, 9327.5], [-11290.4, 9326.4], [-11309.4, 9312.5], [-11298.0, 9296.9], [-11258.3, 9326.0]],
+      "why": "Fittja: the deck over the tracks, with the walkway in front of the ticket hall, the bus stops and the bus loop, paved and asphalted (Google's 3D model; photographs, 2018). Few buildings stand beside it, so it was grass."
+    },
+    {
+      "outline": [[-11288.0, 9366.6], [-11258.3, 9326.0], [-11252.0, 9330.6], [-11281.7, 9371.2]],
+      "why": "Fittja: the square along the south-eastern side of the ticket hall, paved (Google's 3D model)."
+    },
+    {
+      "outline": [[-12228.0, 10288.7], [-12202.4, 10289.4], [-12203.0, 10312.9], [-12228.6, 10312.2]],
+      "why": "Alby: the square in front of the station's entrance from Alby centrum, paved in red and grey concrete (photographs, 2012 and 2018)."
+    },
+    {
+      "outline": [[-14028.9, 9738.3], [-13936.2, 9746.5], [-13933.4, 9715.0], [-14026.1, 9706.8]],
+      "why": "Norsborg: the bus station north of the line, under the wall along the northern track, its platforms and the road round them paved (OpenStreetMap; the laser scan, 26.4–26.9 m; photographs)."
+    },
+    {
+      "outline": [[-13976.2, 9823.7], [-13956.3, 9825.4], [-13958.1, 9845.4], [-13978.0, 9843.6]],
+      "why": "Norsborg: the forecourt in front of the entrance on the hill, asphalt, and the footway from it to Skarpbrunnavägen (photographs; OpenStreetMap)."
+    },
+    {
+      "outline": [[-6624.4, -7917.0], [-6705.8, -8039.4], [-6665.0, -8066.5], [-6583.6, -7944.1]],
+      "why": "Kista: the bus terminal under the station's viaduct, from Kista Galleria to Köpenhamnsgatan, with the service road along its south-western side and the bus lane along its north-eastern one, all asphalt (OpenStreetMap; photographs; Google's mesh). The elevation model's ground there was grass."
+    }
+  ],
+  "shallow": [
+    {
+      "outline": [[-9477.8, -1640.5], [-9443.3, -1630.2], [-9451.0, -1604.3], [-9485.5, -1614.6]],
+      "why": "Blackebergsvägen over the tunnels west of Islandstorget, from 27 m out in front of the ticket hall to under it. The street and the hall's floor are 3.4–3.6 m over the platform (the laser scan; the elevation model's 3.5–3.7), only about 4.5 m over the rails, where the network's tunnels have their crowns 4.6 m over them: the ground kept 0.5 m over the crowns stood as a mound up to a metre high in front of the hall's doors."
+    },
+    {
+      "outline": [[-4814.9, 3015.1], [-4796.5, 3012.8], [-4793.1, 3040.6], [-4811.5, 3042.9]],
+      "why": "Axelsberg's deck over the tracks' east end, the station's building on it. The deck is 3.4 m over the platform (the laser scan), only about 4.4 m over the rails, where the network's boxes have their tops 4.8 m over them: kept over their tops, the ground would stand as a mound in front of the building's doors."
+    },
+    {
+      "outline": [[-9946.0, 7447.9], [-9952.4, 7452.8], [-9953.0, 7456.6], [-9952.7, 7459.5], [-9922.4, 7499.3], [-9931.7, 7506.4], [-9922.0, 7519.1], [-9902.9, 7504.6]],
+      "why": "Vårby gård: the deck over the northern track and Vårby allé over both tracks' mouths. The deck is 3.0–3.7 m over the platform (the laser scan), only 4.5–5 m over the rails, where the network's boxes have their tops 4.8 m over them: kept over their tops, the ground would stand as a mound on the street."
+    }
+  ],
+  "walled": [
+    {
+      "outline": [[-11309.7, 9380.7], [-11295.4, 9361.2], [-11281.7, 9371.2], [-11296.0, 9390.7]],
+      "why": "Fittja: the bank behind the concrete wall along the southern track, south-east of the platform's north-eastern half (its deck, above, sets its height). The wall rises from beside the track to a metre over the ground behind it (the laser scan, 21.7–23.7 m); the southern track's cutting lowered that ground to 18–21.5 m, leaving the wall's back standing bare."
+    },
+    {
+      "outline": [[-14029.1, 9763.3], [-13925.5, 9772.2], [-13929.7, 9819.8], [-14033.3, 9810.6]],
+      "why": "Norsborg: the hill of Eriksberg behind the face of blasted rock beside the southern track, east of the depot's portal, up to Skarpbrunnavägen and the entrance on the hill. The rock rises from beside the track to the hillside (the laser scan, 33–40 m at its crest); the southern track's cutting lowered the hill to a slope of 1:2 as far as 40 m from the track, which left the escalators' tunnel up the hill standing in the open. The outline starts 2 m behind the rock's face, so that the ground meets the cutting's inside the rock and leaves no bank in front of it."
+    },
+    {
+      "outline": [[-14164.6, 9763.1], [-14046.1, 9773.7], [-14049.2, 9809.1], [-14167.8, 9798.6]],
+      "why": "Norsborg: the hillside behind the wall of sprayed concrete beyond the yard tracks, west of the depot's portal. The wall rises from the yard to the ground behind it (the laser scan, 43 m at its top); the yard tracks' cutting lowered that ground to a slope of 1:2."
+    },
+    {
+      "outline": [[-14046.3, 9775.8], [-14030.3, 9777.2], [-14033.3, 9810.6], [-14049.2, 9809.1]],
+      "why": "Norsborg: the hillside over the depot's portal, between the wall of sprayed concrete and the rock face. The yard tracks' cutting, where they end at the portal, lowered it in a trench up to Skarpbrunnavägen."
     }
   ]
 }

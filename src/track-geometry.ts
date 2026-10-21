@@ -14,8 +14,10 @@ export const STRUCTURE_KINDS: StructureKind[] = ['rock', 'box', 'cutting', 'grad
 
 // A platform beside a stretch of a piece: s0 < s1 along the piece (as in the track graph), on the
 // given side looking from the piece's `from` end (+1 right, −1 left), `width` metres wide.
-// An island platform has a track on each side, and both tracks list it.
-export interface GeometryPlatform { station: string; s0: number; s1: number; side: 1 | -1; width: number; island: boolean }
+// An island platform has a track on each side, and both tracks list it. A platform that `reach`es
+// runs out to the track beside it that no service stops at (a middle track): its far edge follows
+// that track, `width` the median.
+export interface GeometryPlatform { station: string; s0: number; s1: number; side: 1 | -1; width: number; island: boolean; reach?: boolean }
 
 export interface GeometryPiece {
   // one entry per point, about 10 m apart:

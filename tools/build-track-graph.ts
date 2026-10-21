@@ -18,7 +18,8 @@
 //    way leave from, where they turn. A service that can't be traced, or a station without a
 //    platform track, fails the build.
 //
-// Where OSM is wrong, data/track-corrections.json adds links, crossovers or platform tracks.
+// Where OSM is wrong, data/track-corrections.json adds links, crossovers, platform tracks or
+// points along a track.
 // DEBUG=1 also lists stations with a single platform track and stretches run on the wrong track.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { lonLatToWorld, ORIGIN } from '../src/geo.ts';
@@ -43,20 +44,38 @@ interface OsmElement {
 }
 interface Corrections {
   // links between OSM nodes to add or remove before the graph is built, or to retag (`service`,
-  // `line`) where OSM's tags change halfway along a platform
+  // `line`) where OSM's tags change halfway along a platform, or (`structure`) where OSM's isn't
+  // the game's
   links?: { op: 'add' | 'remove' | 'retag'; nodes: [number, number]; why: string; structure?: Structure; service?: Service; line?: string }[];
   // crossovers missing from OSM, between two points given in SWEREF 99 18 00 (east, north); each
   // point is snapped onto the nearest track within 5 m
   crossovers?: { a: [number, number]; b: [number, number]; why: string }[];
+  // tracks OSM ends short: the end node moves to `to` (SWEREF 99 18 00 east, north), so the
+  // track's last link runs on to it
+  ends?: { node: number; to: [number, number]; why: string }[];
+  // track OSM only sketched (tagged source=interpolation) where it runs somewhere else: the node
+  // moves to `to` (SWEREF 99 18 00 east, north)
+  moves?: { node: number; to: [number, number]; why: string }[];
   // stations whose platform OSM doesn't put beside every track: each running line passing within
   // `reach` m (default 12) of the station's node gets a 145 m platform track centred on its
   // nearest point, unless it already has one. With `replace`, OSM's platforms there are dropped
   // first (for a platform drawn on the wrong side of a track). With `at` (SWEREF 99 18 00 east,
-  // north), the platform is placed from that point instead of the station's node. With `extend`,
-  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead.
-  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; extend?: boolean }[];
+  // north), the platform is placed from that point instead of the station's node, and with
+  // `length` it is that long rather than 145 m. With `sides`, each track gets a platform of its own
+  // on the side facing the node (side platforms, in halls of their own) rather than sharing one.
+  // With `extend`,
+  // OSM's platform tracks there, drawn short, are lengthened to 145 m about their middle instead
+  // (or to `length` about their nearest point to `at`).
+  // With `shortRuns`, a platform there counts beside runs of track as short as this, rather than
+  // MIN_RUN: a track split near the platform's end leaves a short piece beside it.
+  platforms?: { station: string; why: string; reach?: number; replace?: boolean; at?: [number, number]; length?: number; sides?: boolean; extend?: boolean; shortRuns?: number }[];
   // side platforms wider than SIDE_PLATFORM_WIDTH (read by tools/build-track-geometry.ts)
   widths?: { station: string; width: number; why: string }[];
+  // points to add to a track (SWEREF 99 18 00 east, north, snapped onto the nearest within 5 m)
+  // where OpenStreetMap has none: the track's heights are kept at its points and straight
+  // between them (tools/build-heights.ts), so a platform track needs one at each end of the
+  // platform to be level along it
+  points?: { at: [number, number]; why: string }[];
 }
 
 const osm: { timestamp?: string; attribution: string; elements: OsmElement[] } = JSON.parse(readFileSync(OSM, 'utf8'));
@@ -108,11 +127,21 @@ for (const c of corrections.links ?? []) {
     const i = links.findIndex((l) => (l.a === a && l.b === b) || (l.a === b && l.b === a));
     if (i < 0) throw new Error(`correction: no link ${a}–${b} to ${c.op} (${c.why})`);
     if (c.op === 'remove') links.splice(i, 1);
-    else links[i] = { ...links[i], service: c.service ?? links[i].service, line: c.line ?? links[i].line };
+    else links[i] = { ...links[i], structure: c.structure ?? links[i].structure, service: c.service ?? links[i].service, line: c.line ?? links[i].line };
   } else {
     if (!pos.has(a) || !pos.has(b)) throw new Error(`correction: node ${pos.has(a) ? b : a} is not on a track (${c.why})`);
     links.push({ a, b, structure: c.structure ?? 'tunnel', service: c.service ?? 'main', line: null, way: 0, covered: false, layer: null });
   }
+}
+
+for (const c of corrections.ends ?? []) {
+  const at = links.filter((l) => l.a === c.node || l.b === c.node);
+  if (at.length !== 1) throw new Error(`correction: node ${c.node} doesn't end a track (${c.why})`);
+  pos.set(c.node, { x: c.to[0] - ORIGIN.e, z: ORIGIN.n - c.to[1] });
+}
+for (const c of corrections.moves ?? []) {
+  if (!pos.has(c.node) || !links.some((l) => l.a === c.node || l.b === c.node)) throw new Error(`correction: node ${c.node} isn't on a track (${c.why})`);
+  pos.set(c.node, { x: c.to[0] - ORIGIN.e, z: ORIGIN.n - c.to[1] });
 }
 
 // Each missing crossover: split the nearest link at both ends and join the new nodes.
@@ -160,6 +189,8 @@ for (const c of corrections.crossovers ?? []) {
   }
   if (split) console.log(`${split} nodes where two lines' tracks cross one over the other, split`);
 }
+
+for (const c of corrections.points ?? []) splitAt(c.at[0], c.at[1], c.why);
 
 const linksAt = new Map<number, Link[]>();
 for (const l of links) {
@@ -340,6 +371,7 @@ for (const e of stationEls) {
 }
 
 const MIN_RUN = 30;
+const shortRuns = new Map((corrections.platforms ?? []).filter((c) => c.shortRuns).map((c) => [c.station, c.shortRuns!]));
 const shortPlatforms: number[] = [];
 const toXZ = (g: { lat: number; lon: number }): XZ => { const w = lonLatToWorld(g.lon, g.lat); return [w.x, w.z]; };
 const lineSegs = (pts: XZ[]) => pts.slice(1).map((p, i) => [pts[i], p] as [XZ, XZ]);
@@ -375,6 +407,14 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
       }
     }
   }
+  // the nearest station within 400 m
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  let station: Station | null = null, bestD = 400;
+  for (const st of stations.values()) {
+    const d = Math.hypot(st.x - cx, st.z - cz);
+    if (d < bestD) { bestD = d; station = st; }
+  }
+  const minRun = (station && shortRuns.get(station.name)) ?? MIN_RUN;
   const tracks: PlatformTrack[] = [];
   for (const [piece, list] of near) {
     list.sort((a, b) => a.s - b.s);
@@ -382,7 +422,7 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
     let run = [list[0]];
     const flush = () => {
       const len = run[run.length - 1].s - run[0].s;
-      if (len >= MIN_RUN) {
+      if (len >= minRun) {
         // +z is south, so in plan (x east, z south) a positive cross product means the
         // platform is to the right of the direction of travel
         const sideSum = run.reduce((a, r) => a + r.side, 0);
@@ -401,13 +441,6 @@ function addPlatform(id: number, segs: [XZ, XZ][], closed: boolean) {
     if (tracks.length) shortPlatforms.push(id);
     return;
   }
-  // the nearest station within 400 m
-  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-  let station: Station | null = null, bestD = 400;
-  for (const st of stations.values()) {
-    const d = Math.hypot(st.x - cx, st.z - cz);
-    if (d < bestD) { bestD = d; station = st; }
-  }
   if (station) station.platforms.push({ osm: id, tracks } satisfies Platform);
 }
 
@@ -424,18 +457,35 @@ for (const e of osm.elements) {
   }
 }
 
+let madeSide = 0;
 for (const c of corrections.platforms ?? []) {
   const st = stations.get(c.station);
   if (!st) throw new Error(`correction: no station called ${c.station}`);
+  if (c.shortRuns) {
+    if (!st.platforms.some((p) => p.tracks.some((t) => t.s1 - t.s0 < MIN_RUN))) throw new Error(`correction: ${c.station} has no platform track shorter than ${MIN_RUN} m (${c.why})`);
+    continue;
+  }
   if (c.extend) {
     // OSM's platform is drawn short of the 145 m it is: each of its tracks is lengthened about
-    // its middle
+    // its middle (or about its nearest point to `at`, to `length`)
     let grown = 0;
+    const half = (c.length ?? 145) / 2;
     for (const t of st.platforms.flatMap((p) => p.tracks)) {
       if (t.s1 - t.s0 >= 140) continue;
-      const len = pieces[t.piece].length, mid = Math.min(len - 72.5, Math.max(72.5, (t.s0 + t.s1) / 2));
-      t.s0 = round(Math.max(0, mid - 72.5));
-      t.s1 = round(Math.min(len, mid + 72.5));
+      const p = pieces[t.piece], len = p.length;
+      let mid = (t.s0 + t.s1) / 2;
+      if (c.at) {
+        const x = c.at[0] - ORIGIN.e, z = ORIGIN.n - c.at[1];
+        let best = Infinity;
+        for (let i = 1, s = 0; i < p.points.length; i++) {
+          const r = distToSegment(x, z, p.points[i - 1], p.points[i]);
+          if (r.d < best) { best = r.d; mid = s + Math.hypot(r.px - p.points[i - 1][0], r.pz - p.points[i - 1][1]); }
+          s += Math.hypot(p.points[i][0] - p.points[i - 1][0], p.points[i][1] - p.points[i - 1][1]);
+        }
+      }
+      mid = Math.min(len - half, Math.max(half, mid));
+      t.s0 = round(Math.max(0, mid - half));
+      t.s1 = round(Math.min(len, mid + half));
       grown++;
     }
     if (!grown) throw new Error(`correction: ${c.station}'s platforms are long enough already (${c.why})`);
@@ -457,14 +507,21 @@ for (const c of corrections.platforms ?? []) {
     }
     if (best.d > reach) continue;
     // the platform is on the side of the track facing the station's node (or `at`)
-    const s0 = Math.max(0, best.s - 72.5), s1 = Math.min(p.length, best.s + 72.5);
+    const half = (c.length ?? 145) / 2;
+    const s0 = Math.max(0, best.s - half), s1 = Math.min(p.length, best.s + half);
     const smp = pointAt(p, best.s), ahead = pointAt(p, Math.min(p.length, best.s + 1)), back = pointAt(p, Math.max(0, best.s - 1));
     const tx = ahead[0] - back[0], tz = ahead[1] - back[1];
     const side = tx * (at.z - smp[1]) - tz * (at.x - smp[0]) >= 0 ? 'right' : 'left';
     tracks.push({ piece: p.id, s0: round(s0), s1: round(s1), side });
   }
   if (!tracks.length) throw new Error(`correction: no running line without a platform within ${reach} m of ${c.at ? c.at.join(', ') : c.station} (${c.why})`);
-  st.platforms.push({ osm: 0, tracks });
+  // (a second `at` for the same platform, on the tracks of a bridge at its end, which OSM maps as
+  // pieces of their own, adds them to the platform the first made)
+  const made = st.platforms.find((p) => p.osm === 0);
+  // (side platforms get ids of their own below zero, since a shared id makes an island)
+  if (c.sides) for (const t of tracks) st.platforms.push({ osm: --madeSide, tracks: [t] });
+  else if (made) made.tracks.push(...tracks);
+  else st.platforms.push({ osm: 0, tracks });
 }
 
 // ------------------------------------------------------------------ 4. routes

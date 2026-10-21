@@ -1,10 +1,141 @@
 {
-  "note": "Fixes to OpenStreetMap's tags of buildings, for tools/build-city.ts, each with its reason. Checked against Lantmäteriet's laser scan (tools/laser-points.ts) and Google's 3D mesh of the city (tools/google-mesh.ts).",
+  "note": "Fixes to OpenStreetMap's buildings, for tools/build-city.ts, each with its reason: their tags; an outline in place of OSM's (`outline`, world x, z in turn); and `overStation`, a building whose ground floor a station's stairs climb into, or under which a passage runs just below the ground, which isn't cut where they pass under it, its walls open where they pass through them instead. Checked against Lantmäteriet's laser scan (tools/laser-points.ts) and Google's 3D mesh of the city (tools/google-mesh.ts).",
   "buildings": [
     {
       "osm": "w18779937",
       "tags": { "building:levels": "6" },
       "why": "Hötorgshallen and Filmstaden Sergel with the shops along Sergelgatan, south of Hötorget: a market hall under a cinema, its storeys tall. OSM has 3 levels, but the laser scan and Google's mesh both put its roofs 17–24 m over the street (35 m RH 2000 at Hötorget, 28–33 m further south), more than 3 levels can be, so the scan was left out and it stood 10 m high. 6 levels lets the scan's height in."
+    },
+    {
+      "osm": "w31894933",
+      "tags": { "height": "22.1", "roof:shape": "gabled", "roof:height": "5.4", "building:colour": "#d9d2bf", "roof:colour": "#a9acab" },
+      "outline": [2451.65, 10721.68, 2488.2, 10763.1, 2484.9, 10766, 2486.6, 10768, 2474, 10779.1, 2471.4, 10776.1, 2467.8, 10779.3, 2432.6, 10739.53],
+      "overStation": true,
+      "why": "Centrumhuset at Farsta strand. OSM's outline takes in the metro station's low pavilion on Stieg Trenters torg, so the whole stood five storeys high over the ticket hall; the outline ends at its south gable, which the laser scan puts 29.6 m south-east of the platform's middle (the station draws the pavilion, src/open-styles.ts). The laser scan has its eaves at 53.6 m and its ridge at 59.0 m (RH 2000), along the building, and Google's mesh a cream render and a pale grey roof. The station's southern escalators climb into its ground floor."
+    },
+    {
+      "osm": "w75120309",
+      "overStation": true,
+      "why": "Ringen centrum's long block on the corner of Götgatan and Ringvägen, over Skanstull's passage from its southern ticket hall south-west to Ringvägen, which runs under its corner just below the pavement (its ceiling at most 0.15 m above the 5 m elevation model there): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1560006146",
+      "overStation": true,
+      "why": "The part of Ringen centrum on Götgatan's west side over the start of Skanstull's passage to Ringvägen, as for its long block (w75120309)."
+    },
+    {
+      "osm": "w1350945355",
+      "overStation": true,
+      "why": "The hotel (Malmen) on the corner of Götgatan and Folkungagatan, whose ground floor Medborgarplatsen's eastern stairs climb into from the ticket hall under the crossing, coming out on Folkungagatan: it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1558255512",
+      "overStation": true,
+      "why": "Medborgarhuset's main part, on the opposite corner, whose ground floor Medborgarplatsen's western stairs climb into, as for the hotel (w1350945355)."
+    },
+    {
+      "osm": "w1558255515",
+      "overStation": true,
+      "why": "An upper part of Medborgarhuset over the same stairs, as for its main part (w1558255512)."
+    },
+    {
+      "osm": "w1354661598",
+      "overStation": true,
+      "why": "The block on the south-west corner of Sveavägen and Rådmansgatan, whose ground floor the station's western stairs climb into from the passage under the corner, coming out on Sveavägen where OpenStreetMap has the entrance in its east front: it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w1354381841",
+      "overStation": true,
+      "why": "Sveavägen 98, on the north-east corner of Sveavägen and Rehnsgatan, whose ground floor the station's north-eastern stairs climb into from the passage under the street, coming out through SL's doors in its west front (photographs, 1955 and 2016): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w141565037",
+      "tags": { "building:colour": "#232426" },
+      "why": "Bistro Tarboush, the kiosk beside Islandstorget's ticket hall, black in a Mapillary panorama (2025), with painted panels, and in OpenStreetMap's building:colour; but the city's tiles take a colour of 0 for none given, so black came out a wall colour by chance."
+    },
+    {
+      "osm": "w310639607",
+      "outline": [-12903.55, -3309.38, -12890.92, -3304.36, -12891.09, -3297.85, -12885.16, -3297.70, -12872.19, -3297.44, -12872.45, -3285.38, -12896.08, -3285.69, -12896.02, -3290.39, -12919.44, -3298.67, -12921.14, -3289.90, -12945.96, -3290.00, -12945.89, -3305.92, -12940.34, -3305.94, -12930.96, -3305.96, -12929.18, -3310.84, -12926.04, -3319.42, -12913.93, -3314.62, -12914.31, -3313.62],
+      "overStation": true,
+      "why": "The 2015 building on Fyrspannsgatan at Hässelby strand, its flats 12.4 m over the platform in Lantmäteriet's laser scan, the ticket hall in its ground floor. OSM's outline takes in the station's low box over the platform's south end and the hall under the sloping roof south of it, 20 m along the tracks, so the flats stood over the platform's end; the outline ends at the building's north face instead, 95 m south of the platform's middle, where the laser scan has the hall's roof meet it (the station draws the box and the hall, src/open-styles.ts). The ticket hall runs through its ground floor to the glass front on Fyrspannsgatan."
+    },
+    {
+      "osm": "w10507357",
+      "overStation": true,
+      "why": "Mörby centrum, the shopping centre on Mörbyplan, whose ground floor holds the station's ticket hall at the top of its escalators and the passage on through the centre to the doors onto Mörbyplan (OpenStreetMap's indoor ways, 2026; sv.wikipedia): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1362054500",
+      "overStation": true,
+      "why": "Torkel Knutssonsgatan 33, whose ground floor holds the vestibule of Mariatorget's western way out, its glass doors on the street (sv.wikipedia; OpenStreetMap's indoor ways, 2026; photographs, 2009): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w232424988",
+      "overStation": true,
+      "why": "Swedenborgsgatan 4, on the corner of Wollmar Yxkullsgatan, whose ground floor holds the top of the stairs from Mariatorget's eastern ticket hall and the glass doors at the corner (sv.wikipedia; OpenStreetMap's indoor ways, 2026; photographs, 2024): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1377222623",
+      "overStation": true,
+      "why": "The office block on Långholmsgatan at Hornstull, whose ground floor holds the top of the escalator and stairs up from Hornstull's passage of shops and the glass doors in its west front, where OpenStreetMap has the entrance: it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1356784711",
+      "overStation": true,
+      "why": "The block on Hornsgatan at Hornstull, whose ground floor holds the top of the stairs up from Hornstull's passage of shops and the glass doors in its west front, where OpenStreetMap has the entrance: it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103079",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the low part with the round roof over the top of the escalators: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103083",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the part over the top of the escalators: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103084",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the part with the round roof over the hall's western end: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w1560103082",
+      "overStation": true,
+      "why": "Of the building on Hornsbruksgatan's northern side by Högalidsparken (w84036458), the tall part with the round roof over the hall and the doors on Hornsbruksgatan: Hornstull's eastern escalators climb inside it to the hall in its ground floor, and the glass doors are in its south front, where OpenStreetMap has the entrance (OpenStreetMap's indoor ways, 2026): it is left whole, not cut through its full height, its wall open at the doors."
+    },
+    {
+      "osm": "w165343351",
+      "tags": { "min_height": "5.6" },
+      "overStation": true,
+      "why": "The L-shaped block of flats on Liljeholmstorget's deck over Liljeholmen's platforms, at their north end: the station's northern hall is in its ground floor, the stairs and escalators from the platforms climbing into it through the deck, and its doors open onto the square and the street (OpenStreetMap's indoor mapping; photographs). It is left whole, not cut through its full height, and stands from the courtyard on the deck up (15.4 m, the laser scan; 5.6 m over its lowest ground), the hall (the station's blocks) under it."
+    },
+    {
+      "osm": "w165343354",
+      "tags": { "min_height": "8.4" },
+      "overStation": true,
+      "why": "The northernmost of the three point blocks on the west side of Liljeholmstorget's deck, over Liljeholmen's platforms: the stairs from the western island climb under it into the northern hall (OpenStreetMap's indoor mapping). It is left whole, not cut through its full height, and stands from the courtyard on the deck up (15.4 m, the laser scan; 8.4 m over its lowest ground, on Liljeholmsgränd's side), the hall and its own ground floor (the station's blocks) under it."
+    },
+    {
+      "osm": "w67549300",
+      "overStation": true,
+      "why": "The long building on Svandammsvägen (Coop Midsommarkransen and the shops beside it), whose ground floor Midsommarkransen's stairs climb into from the passage under it, coming out between its shops (OpenStreetMap's indoor ways and entrance): it is left whole, not cut through its full height."
+    },
+    {
+      "osm": "w129319703",
+      "overStation": true,
+      "why": "Vårberg centrum, the shopping centre built over the tracks at Vårberg's platform's west end, whose ground floor holds the station's ticket hall, level with its indoor square, and the shopping street from the hall's doors south to the footbridge over Vårbergsplan (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, not cut through its full height, its walls open where the station passes through them."
+    },
+    {
+      "osm": "w108674501",
+      "outline": [731.5, 1338.8, 735.3, 1337.8, 745.5, 1335.7, 749.3, 1334.8, 758.2, 1367.8, 764.8, 1366.3, 765.2, 1368.6, 767.3, 1379.1, 732.7, 1381.6, 727.5, 1360.3, 732.5, 1360.8, 733.6, 1347.2],
+      "overStation": true,
+      "why": "Stockholms sjömanshem, over Slussen's platforms, whose ground floor holds the station's ticket hall at street level, its doors onto Ryssgården and Katarinavägen (OpenStreetMap's indoor ways; Region Stockholm; sv.wikipedia): it is left whole, its walls open where the station passes through them. OSM's outline takes in the low box of the doors onto Ryssgården, 2.6 m deep in front of its north end, so the whole stood four storeys high over them; the laser scan has that box's roof at 16.0 m, 3.1 m over the square, and the station draws it (src/open-styles.ts)."
+    },
+    {
+      "osm": "w1350661812",
+      "overStation": true,
+      "why": "The house on Götgatan over Slussen's southern ticket hall, whose doors are in its ground floor between the shops, an escalator inside them climbing from the hall (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, its walls open where the station passes through them."
     }
   ]
 }
