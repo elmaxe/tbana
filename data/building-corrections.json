@@ -125,6 +125,17 @@
       "osm": "w129319703",
       "overStation": true,
       "why": "Vårberg centrum, the shopping centre built over the tracks at Vårberg's platform's west end, whose ground floor holds the station's ticket hall, level with its indoor square, and the shopping street from the hall's doors south to the footbridge over Vårbergsplan (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, not cut through its full height, its walls open where the station passes through them."
+    },
+    {
+      "osm": "w108674501",
+      "outline": [731.5, 1338.8, 735.3, 1337.8, 745.5, 1335.7, 749.3, 1334.8, 758.2, 1367.8, 764.8, 1366.3, 765.2, 1368.6, 767.3, 1379.1, 732.7, 1381.6, 727.5, 1360.3, 732.5, 1360.8, 733.6, 1347.2],
+      "overStation": true,
+      "why": "Stockholms sjömanshem, over Slussen's platforms, whose ground floor holds the station's ticket hall at street level, its doors onto Ryssgården and Katarinavägen (OpenStreetMap's indoor ways; Region Stockholm; sv.wikipedia): it is left whole, its walls open where the station passes through them. OSM's outline takes in the low box of the doors onto Ryssgården, 2.6 m deep in front of its north end, so the whole stood four storeys high over them; the laser scan has that box's roof at 16.0 m, 3.1 m over the square, and the station draws it (src/open-styles.ts)."
+    },
+    {
+      "osm": "w1350661812",
+      "overStation": true,
+      "why": "The house on Götgatan over Slussen's southern ticket hall, whose doors are in its ground floor between the shops, an escalator inside them climbing from the hall (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, its walls open where the station passes through them."
     }
   ]
 }

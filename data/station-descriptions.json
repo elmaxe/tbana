@@ -82,27 +82,73 @@
     },
     "Slussen": {
       "drawing": "slussen.png",
-      "note": "Two island platforms, red on the inner side of each and green on the outer. Stairs up from each platform to the hall over the tracks, at street level by Ryssgården.",
+      "note": "Two curved island platforms in one hall, decked over: from west to east the green line's northbound track, the red line's, a wall between the red line's two tracks with Bengt Rafael Sundberg's blue screens in its openings, the red line's southbound track and the green line's; each line's trains stop at the same island going the same way, the red on its inner side. Two flights of stairs from each platform, rising towards each other, and two lifts between them climb to the ticket hall at street level under Stockholms sjömanshem, with gates at each end: north to the doors on Ryssgården, south to the doors on Katarinavägen. From the platforms' south ends escalators climb to a passage across over the tracks (Sune Fogde's wall), three more up to the hall at Götgatan and its gates, and a last flight to its door on Götgatan. From OpenStreetMap's indoor ways (2026: the stairs, lifts, gates and doors), the laser scan (Ryssgården 12.85 m, Götgatan 29.0 m) and photographs; the ticket hall's floor (12.9 m) and the heights of the passages to Götgatan are guessed.",
       "routes": [
-        { "from": [-12, 6.2], "width": 2, "go": [
-          {"stairs": 5.5, "toward": [20, 6.2]},
-          {"walk": [4, 6.2], "width": 4},
-          {"mark": "east"}
+        { "from": [-2.9, -8.0], "width": 3, "go": [
+          {"stairs": 4.72, "toward": [30, -8.0], "lanes": "ss", "ceiling": 2.4}
         ] },
-        { "from": [-12, -6.2], "width": 2, "go": [
-          {"stairs": 5.5, "toward": [20, -6.2]},
-          {"walk": [4, -6.2], "width": 4},
-          {"walk": [4, 6.2], "width": 8}
+        { "from": [22.85, -8.4], "width": 3, "go": [
+          {"stairs": 4.72, "toward": [-30, -8.1], "lanes": "ss", "ceiling": 2.4}
         ] },
-        { "from": "east", "width": 6, "go": [
-          {"walk": [8, 10]},
+        { "from": [-2.9, 7.95], "width": 3, "go": [
+          {"stairs": 4.72, "toward": [30, 7.8], "lanes": "ss", "ceiling": 2.4}
+        ] },
+        { "from": [22.85, 7.3], "width": 3, "go": [
+          {"stairs": 4.72, "toward": [-30, 7.7], "lanes": "ss", "ceiling": 2.4}
+        ] },
+        { "from": [8.75, -4.7], "width": 2.4, "go": [
+          {"walk": [8.75, -6.6], "open": true},
+          {"lift": 4.72}
+        ] },
+        { "from": [11.25, -4.7], "width": 2.4, "go": [
+          {"walk": [11.25, -6.6], "open": true},
+          {"lift": 4.72}
+        ] },
+        { "from": [8.75, 4.6], "width": 2.4, "go": [
+          {"walk": [8.75, 6.3], "open": true},
+          {"lift": 4.72}
+        ] },
+        { "from": [11.25, 4.6], "width": 2.4, "go": [
+          {"walk": [11.25, 6.3], "open": true},
+          {"lift": 4.72}
+        ] },
+        { "from": [-3.4, -0.5], "h": 4.72, "width": 22, "go": [
+          {"walk": [18.6, -0.5]}
+        ] },
+        { "from": [17.8, 1.5], "h": 4.72, "width": 7, "go": [
+          {"walk": [18.6, 1.5]},
           {"gates": true},
-          {"exit": 13887436423, "by": "walk"}
+          {"walk": [29.0, 1.5]},
+          {"exit": {"at": [31.4, 1.5], "name": "Ryssgården"}, "by": "walk"}
         ] },
-        { "from": [4, -6.2], "h": 5.5, "width": 6, "go": [
-          {"walk": [10, -6.2]},
+        { "from": [-2.6, 6.0], "h": 4.72, "width": 7, "go": [
+          {"walk": [-3.8, 6.0]},
           {"gates": true},
-          {"exit": 13887476098, "by": "walk"}
+          {"walk": [-9.0, 6.0]},
+          {"exit": 13887436423, "by": "walk", "sign": false}
+        ] },
+        { "from": [-74.9, -17.37], "width": 5.2, "go": [
+          {"walk": [-77.5, -17.9], "open": true},
+          {"escalators": 8.0, "toward": [-95, -22.8], "lanes": "EES"},
+          {"walk": [-96.0, -21.64]}
+        ] },
+        { "from": [-76.1, -0.72], "width": 5.2, "go": [
+          {"walk": [-79, -1.45], "open": true},
+          {"escalators": 8.0, "toward": [-95, -5.9], "lanes": "EES"},
+          {"walk": [-96.0, -5.17]}
+        ] },
+        { "from": [-98.5, -1.5], "h": 8.0, "width": 6, "go": [
+          {"walk": [-98.5, -41]},
+          {"walk": [-108, -41]},
+          {"escalators": 9.3, "toward": [-140, -42], "lanes": "EEE"},
+          {"walk": [-131.5, -42.3], "width": 8},
+          {"walk": [-131.5, -54.6]},
+          {"gates": true},
+          {"walk": [-131.5, -71.0]},
+          {"walk": [-131.5, -74.8], "width": 3.6},
+          {"escalators": 3.7, "toward": [-100, -74.8], "lanes": "ES"},
+          {"walk": [-123.1, -74.8]},
+          {"exit": 8099387, "by": "walk", "sign": false}
         ] }
       ]
     },

@@ -5,7 +5,7 @@ import { Mesh, bar, box, slab, taper } from './poly-mesh.ts';
 import { CANOPY_HEIGHT } from './station-layout.ts';
 import type { CanopyPart, FloorPart, InclinePart, StationLayout, XYZ } from './station-layout.ts';
 import { OPEN_STYLES } from './open-styles';
-import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil, Staves } from './open-styles';
+import type { Bird, Birches, Block, BronzeFrames, Capitals, CastColumn, Discs, LightBoxes, ButterflyRoof, Chairs, Checks, Columns, Cone, DeckCeiling, Fence, Figure, Finish, FoolsShip, GlassPosts, GlassStacks, Growth, Guardian, Masts, Mural, Mushrooms, NeonBoxes, OpenStyle, Panels, Room, Rooflights, Roundel, Ruler, SlabBenches, Stacks, Stone, TramTrack, Catenary, EdgePaving, Revolver, Traveller, Tulip, Wreath, Penguin, CrossVault, Sawtooth, Gallery, Globes, PrismRods, Coil, Staves, Ceiling } from './open-styles';
 import * as T from './textures';
 
 // The styled open stations' own look (src/open-styles.ts), for src/stations.ts: the roof over
@@ -285,7 +285,7 @@ export class OpenLook {
     const frame = new Frame(st);
     const outside = (c: Volume[]) => c.filter((v) => !voids.includes(v));
     for (const b of style.blocks ?? []) this.block(b, frame, on, b.inRoom ? [] : b.inHall ? outside(cut) : cut, style.signName ?? st.name, b.inRoom ? [] : b.inHall ? outside(roofCut) : roofCut);
-    for (const f of style.fences ?? []) this.fence(f, frame, on);
+    for (const f of style.fences ?? []) this.fence(f, frame, on, outside(cut));
     for (const a of style.art ?? []) {
       if (a.kind === 'masts') this.masts(a, frame, on, st.name, group);
       else if (a.kind === 'mural') this.mural(a, frame, on);
@@ -298,6 +298,7 @@ export class OpenLook {
       else if (a.kind === 'stone') this.stone(a, frame, on);
       else if (a.kind === 'columns') this.roundColumns(a, frame, on);
       else if (a.kind === 'deckCeiling') this.deckCeiling(a, frame, on, outside(cut));
+      else if (a.kind === 'ceiling') this.ceiling(a, frame, on, outside(cut));
       else if (a.kind === 'tulip') this.tulip(a, frame, on);
       else if (a.kind === 'bird') this.bird(a, frame, on);
       else if (a.kind === 'rooflights') this.rooflights(a, frame, on);
@@ -2250,7 +2251,7 @@ export class OpenLook {
         const [w, hh] = T.FINISH_SIZE[f];
         const q = [[...P(0, h0a), 0, (h0a - fa) / hh], [...P(1, h0b), l / w, (h0b - fb) / hh], [...P(1, hb), l / w, (hb - fb) / hh], [...P(0, ha), 0, (ha - fa) / hh]];
         on(this.finish(f)).poly(q, cut);
-        if (T.FINISH_GLASS.includes(f)) on(this.pane).poly(q, cut);
+        if (T.FINISH_GLASS.includes(f) && !T.FINISH_OPEN.includes(f)) on(this.pane).poly(q, cut);
       };
       const band = b.band && b.band.from < Math.min(ta, tb) ? Math.max(from, b.band.from) : null;
       if (b.band?.low !== undefined) {
@@ -2482,7 +2483,8 @@ export class OpenLook {
 
   // Chain-link on posts every 2.5 m or so, with a rail along the top; or boards, standing side by
   // side on rails, or slanting between concrete posts.
-  private fence(f: Fence, frame: Frame, on: On) {
+  private fence(f: Fence, frame: Frame, on: On, cut: Volume[]) {
+    if (f.kind === 'wall') return this.wallFence(f, frame, on, cut);
     if (f.kind === 'boards' || f.kind === 'louvres') return this.boardFence(f, frame, on);
     if (f.kind === 'glass') return this.glassFence(f, frame, on);
     if (f.kind === 'rails') return this.railFence(f, frame, on);
@@ -2506,6 +2508,60 @@ export class OpenLook {
       link.poly([P(0, h0, along), P(1, h0, along + l), P(1, h1, along + l), P(0, h1, along)]);
       bar(post, frame.at(sa, ua, h1 + 0.02 + da), frame.at(sb, ub, h1 + 0.02 + db), 0.04, 0.04);
       along += l;
+    }
+  }
+
+  // A wall along the points, both faces in its finish, which runs on unbroken from one length to
+  // the next (measured up from h[0]), and its top.
+  private wallFence(f: Fence, frame: Frame, on: On, cut: Volume[]) {
+    const fin = f.finish ?? 'boardConcrete', m = on(this.finish(fin)), [fw, fh] = T.FINISH_SIZE[fin], [h0, h1] = f.h, e = (f.thick ?? 0.3) / 2;
+    const top = on(this.color(0x5a5856, 0.8));
+    let along = 0;
+    for (let i = 0; i + 1 < f.points.length; i++) {
+      const [sa, ua, da = 0] = f.points[i], [sb, ub, db = 0] = f.points[i + 1], l = Math.hypot(sb - sa, ub - ua);
+      // (each face out along the normal, the lengths overlapping a little where they bend)
+      const ns = -(ub - ua) / l, nu = (sb - sa) / l, x = 0.02 / l;
+      for (const k of [-e, e]) {
+        const P = (t: number, h: number) => [...frame.at(sa + (sb - sa) * t + ns * k, ua + (ub - ua) * t + nu * k, h + da + (db - da) * t), (along + l * t) / fw, (h - h0) / fh];
+        m.poly([P(-x, h0), P(1 + x, h0), P(1 + x, h1), P(-x, h1)], cut);
+      }
+      const Q = (t: number, k: number) => [...frame.at(sa + (sb - sa) * t + ns * k, ua + (ub - ua) * t + nu * k, h1 + da + (db - da) * t), 0, 0];
+      top.poly([Q(0, -e), Q(1, -e), Q(1, e), Q(0, e)], cut);
+      along += l;
+    }
+  }
+
+  // A flat ceiling, the strips hung under it along the platforms, and the strip lights.
+  private ceiling(a: Ceiling, frame: Frame, on: On, cut: Volume[]) {
+    const [s0, s1] = a.s, [u0, u1] = a.u, [fw, fh] = T.FINISH_SIZE[a.finish], m = on(this.finish(a.finish, true));
+    // (in squares of 10 m, so that the stairs' openings cut only those they climb through)
+    for (let s = s0; s < s1 - 1e-6; s += 10) for (let u = u0; u < u1 - 1e-6; u += 10) {
+      const sb = Math.min(s1, s + 10), ub = Math.min(u1, u + 10);
+      m.poly([[s, u], [sb, u], [sb, ub], [s, ub]].map(([p, q]) => [...frame.at(p, q, a.h), p / fw, q / fh]), cut);
+    }
+    for (const st of a.strips ?? []) {
+      const f = on(this.finish(st.finish, true)), side = on(this.finish(st.finish)), [gw, gh] = T.FINISH_SIZE[st.finish];
+      let along = 0;
+      for (let i = 0; i + 1 < st.points.length; i++) {
+        const [sa, ua] = st.points[i], [sb, ub] = st.points[i + 1], l = Math.hypot(sb - sa, ub - ua), ns = -(ub - ua) / l, nu = (sb - sa) / l, w = st.width / 2;
+        const P = (t: number, k: number, h: number, v: number) => [...frame.at(sa + (sb - sa) * t + ns * k, ua + (ub - ua) * t + nu * k, h), (along + l * t) / gw, v];
+        f.poly([P(0, -w, st.h, -w / gh), P(1, -w, st.h, -w / gh), P(1, w, st.h, w / gh), P(0, w, st.h, w / gh)], cut);
+        for (const k of [-w, w]) side.poly([P(0, k, st.h, 0), P(1, k, st.h, 0), P(1, k, a.h, (a.h - st.h) / gh), P(0, k, a.h, (a.h - st.h) / gh)], cut);
+        along += l;
+      }
+    }
+    const lamp = on(this.mat('lamp', () => new THREE.MeshBasicMaterial({ color: 0xfff5e0, side: THREE.DoubleSide })));
+    const fitting = on(this.color(0xd8d8d4, 0.5, 0.2)), at = a.lampAt ?? a.h - 0.1;
+    for (const row of a.lamps ?? []) {
+      for (let i = 0; i + 1 < row.length; i++) {
+        const [sa, ua] = row[i], [sb, ub] = row[i + 1], l = Math.hypot(sb - sa, ub - ua), n = Math.max(1, Math.round(l / 1.6));
+        const o = frame.at(sa, ua, 0), e = frame.at(sb, ub, 0), dx = (e[0] - o[0]) / l, dz = (e[2] - o[2]) / l;
+        for (let k = 0; k < n; k++) {
+          const c = (k + 0.5) / n, p = (h: number) => frame.at(sa + (sb - sa) * c, ua + (ub - ua) * c, h);
+          box(fitting, p(at + 0.04), dx, dz, 0.2, 0.08, Math.min(1.55, l / n - 0.02), cut);
+          box(lamp, p(at - 0.005), dx, dz, 0.12, 0.012, Math.min(1.5, l / n - 0.06), cut);
+        }
+      }
     }
   }
 

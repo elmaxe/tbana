@@ -195,7 +195,7 @@ export interface Paving {
   veins?: boolean;
   // herringbone pavers, rectangular ones in a running bond, square tiles in a grid, small setts
   // laid in fans, asphalt, laid without joints (in the pavers' colour), or small tiles laid
-  // diagonally in fields (`fields`)
+  // diagonally in fields (`fields`), or all over without them
   pattern: 'herringbone' | 'bond' | 'grid' | 'fans' | 'asphalt' | 'diagonal';
   // the diagonal tiles' fields: `every` m along the platform (a repeat) and across it, framed by
   // bands of tiles laid straight, `border` wide, in `color`; the tiles of `palette`'s colours at
@@ -248,6 +248,7 @@ export type Finish =
   | 'slate'         // dark blue-grey slate in long slabs
   | 'darkTiles'     // large dark grey tiles
   | 'greyPanels'    // dark grey sheet-metal panels, standing
+  | 'slatePanels'   // large flat slate grey metal panels, 2.5 by 3 m
   | 'highWindows'   // pale grey wall to 2.5 m, windows in grey steel frames above
   | 'paleGreenTiles' // small square tiles, a pale green
   | 'paleTiles'     // pale cream floor tiles, 30 cm
@@ -470,7 +471,15 @@ export type Finish =
   | 'kistaPerforated' // light-blue sheet metal, finely perforated, in panels 1.2 m wide between dark frames
   | 'kistaAggregate'  // exposed-aggregate concrete, warm grey, two rows of small white dots along its top at 3.45 and 3.7 m
   | 'kistaParapet'    // dark grey-brown concrete, rough with its aggregate, streaked down from the top
-  | 'kistaCeiling';   // white panels 0.6 m square in a grey grid, a round downlight every 2.4 m
+  | 'kistaCeiling'    // white panels 0.6 m square in a grey grid, a round downlight every 2.4 m
+  | 'sundbergScreens' // pale blue-grey tiles over a dark brown plinth, openings filled with blue pyramid-pressed screens, cut through in places (Bengt Rafael Sundberg's, Slussen's)
+  | 'slussenAdWall'   // glossy tiles nearly black, a row of posters in pale frames side by side along it (beyond Slussen's outer tracks)
+  | 'slussenCeiling'  // light grey paint, a ceiling's
+  | 'slussenSoffit'   // the same in a darker grey
+  | 'speckledGranite' // polished dark grey granite speckled black and white, in slabs 0.6 by 1.2 m
+  | 'slussenNavy'     // glossy tiles on end, 10 by 20 cm, a near-black navy, in white joints
+  | 'fogdeWall'       // pale pink-white terrazzo, angular fields of black and cork brown, coloured enamel plates in groups on it (Sune Fogde's)
+  | 'oxbloodTerrazzo'; // dark red-brown terrazzo in 1.2 m squares, a floor's
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -520,7 +529,7 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil | Staves;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil | Staves | Ceiling;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -634,6 +643,17 @@ export interface PrismRods { kind: 'prismRods'; rods: [[number, number, number],
 // high (on the platform by default, its top 0.1 m over it): each of `rows` [s, u, lengths], its
 // first stave's foot at s, u and the next ones `every` m on along s, each `lengths[k]` long.
 export interface Staves { kind: 'staves'; color: number; flange: number; lean: number; every: number; rows: [number, number, number[]][]; foot?: number }
+
+// A flat ceiling over a platform hall a station draws itself (Slussen's): `h` high from s[0] to
+// s[1] and u[0] to u[1], in `finish`; under it `strips`, each `width` wide along the line through
+// its `points` ([s, u]), `h` high in a finish of its own, its sides up to the ceiling (a lower
+// soffit over a platform, bending with it); and strip lights end to end along each of `lamps`
+// (points [s, u]), `lampAt` high. Cut where the station's stairs climb through it.
+export interface Ceiling {
+  kind: 'ceiling'; h: number; finish: Finish; s: [number, number]; u: [number, number];
+  strips?: { points: [number, number][]; width: number; h: number; finish: Finish }[];
+  lamps?: [number, number][][]; lampAt?: number;
+}
 
 export interface Coil { kind: 'coil'; s: number; u: number; h: number; yaw: number; r: number; bend: number; turn: number; loops: number; band: number; ceiling: number }
 
@@ -839,8 +859,14 @@ export interface NeonBoxes { kind: 'neonBoxes'; at: [number, number][]; size: [n
 // side by side (`color`), or slanting between concrete posts (`louvres`); or panes of glass in
 // steel frames (`glass`), on most of them a leaf drawn in white (`leaves`); or a railing of round
 // rails on posts (`rails`, in `color`), three of them, the top one at `h[1]`; or black steel
-// railings of upright bars between a top rail and a bottom one (`bars`, in `color` if given).
-export interface Fence { points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass' | 'rails' | 'bars'; color?: number; leaves?: boolean }
+// railings of upright bars between a top rail and a bottom one (`bars`, in `color` if given); or a
+// wall `thick` thick, both its faces in `finish` (`wall`: the walls of a platform hall a station
+// draws itself, Slussen's, which bend with the track), cut where the station's spaces pass
+// through it.
+export interface Fence {
+  points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass' | 'rails' | 'bars' | 'wall';
+  color?: number; leaves?: boolean; finish?: Finish; thick?: number;
+}
 
 // Gubbängen (1950): an island platform on a low bank on the hillside, along Lingvägen, under a
 // long butterfly roof. Since its renewal the roof's underside is white boarding on white rafters,
@@ -9421,6 +9447,112 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // along the footbridge, from the passage under the track out to Köpenhamnsgatan
       { kind: 'bars', color: 0x8f9498, h: [-6.1, -5.0], points: [[106.3, -18.1, 0], [106.3, -35, 1.15], [106.3, -37, 1.19]] },
       { kind: 'bars', color: 0x8f9498, h: [-6.1, -5.0], points: [[110.5, -18.1, 0], [110.5, -35, 1.15], [110.5, -37, 1.19]] },
+    ],
+  },
+  // Slussen (1 October 1933 as the tram tunnel's terminus; rebuilt for the metro in 1950 and 1957,
+  // and in the 1960s covered over and given four tracks for the red line, 1964): under Ryssgården and
+  // Stockholms sjömanshem, two curved island platforms in one hall, which the station draws itself
+  // (`hall`): from west to east the green line's northbound track, the red line's, a wall between
+  // the red line's two tracks, the red line's southbound track and the green line's, so that each
+  // line's trains stop at the same island going the same way (OpenStreetMap's platforms and indoor
+  // ways, 2026; Albert Guillaumes's drawing, 2024; Swedish Wikipedia). From photographs (2010 to
+  // 2025, Wikimedia Commons):
+  //
+  // The platforms are small beige tiles laid diagonally, a band of white tiles along the edges and
+  // a dark strip for the blind inside it. Over them a flat ceiling painted light grey, rows of strip
+  // lights along both edges, and over the tracks the soffit a little higher and darker. Square
+  // columns of dark speckled granite stand down the middle of each island. The walls beyond the
+  // green tracks are dark, lined with posters side by side. The wall between the red tracks is pale
+  // blue-grey tiles on a dark brown plinth, with large openings, and in them Bengt Rafael Sundberg's
+  // screens (1990): blue sheet metal pressed into small pyramids, cut through in patches so that
+  // the other platform shows through. Two flights of granite stairs rise from each island towards
+  // each other, the space under each enclosed in granite, and between their tops two lifts (2025).
+  //
+  // They climb to the ticket hall at street level under Stockholms sjömanshem, rebuilt in 2022 to
+  // 2025: white tiles, a grey stone floor, an exposed ceiling, glass round the stairs' openings,
+  // gates at each end, north to the doors in a low box on Ryssgården and south to the new doors on
+  // Katarinavägen (Region Stockholm, 2026). From the platforms' south ends escalators climb to a
+  // passage across over the tracks, one wall of it Sune Fogde's (1964-65), enamelled plates on
+  // terrazzo, the other plain dark brown; three more escalators to the hall at Götgatan, dark red
+  // terrazzo and white tiles, the escalators' sides navy tiles between walls of red-brown stone, its
+  // gates, and a last escalator up to its doors on Götgatan under a blue band.
+  //
+  // Not drawn: the benches, the signs and displays hung from the ceiling, the booths, the posters'
+  // pictures (generic here), Fogde's plates' real places, Harald Lyth's glass in the ticket hall and
+  // the Forsbergs' "Entre 70 öre" in the Götgatan hall (no photograph found), the temporary north
+  // entrance (closed on 3 August 2026, to be pulled down; OpenStreetMap's outline left out).
+  // Guesses: the ceiling's height, the openings' size and places in the screen wall, the columns'
+  // spacing, the halls' floors and ceilings, the heights of the passages to Götgatan.
+  'Slussen': {
+    hall: { at: [747.32, 1364.05, 0.25749], s: [-81, 81], u: [-30, 20], deck: 4.72 },
+    paving: {
+      edge: 0.9, edgeTile: [0.3, 0.3], tactile: [0.9, 1.2], slabs: 1.2, paverSize: [0.3, 0.3], mix: 0.12,
+      colors: { edge: 0xd9d6cc, tactile: 0x55524e, slab: 0xb9a37a, pavers: 0xb9a37a, paler: 0xc4b087, face: 0x4a4744 },
+      pattern: 'diagonal',
+    },
+    buildings: ['w634716658'],
+    rooms: [
+      // (the flights from the platforms, open under the hall's floor, their parapets granite; the
+      // lifts' landings on the platforms, which are paved)
+      { name: 'stairs and lifts', s: [-4, 24], u: [-12, 12], h: [-0.5, 4.6], walls: null, floor: null, stairs: 'speckledGranite', parapet: 1.0 },
+      { name: 'ticket hall', s: [-14, 32], u: [-14, 18], h: [4.6, 8], walls: 'squareTiles', floor: 'terrazzo', ceiling: 'whitePerforated' },
+      // the landings at the platforms' south ends, and the escalators up to the passage across
+      { name: 'landings', s: [-80, -68], u: [-24, 6], h: [-0.5, 1], walls: null, floor: 'paleTiles' },
+      { name: 'escalators to the passage', s: [-97, -68], u: [-26, 5], h: [-0.5, 7.5], walls: 'redGranite', stairs: 'slussenNavy', floor: 'terrazzo', ceiling: 'slats' },
+      { name: 'passage across', s: [-112, -86], u: [-46, 3], h: [7, 11], walls: 'brownTiles', back: 'fogdeWall', floor: 'terrazzo', ceiling: 'slats' },
+      { name: 'escalators to the Götgatan hall', s: [-127, -104], u: [-50, -32], h: [8.5, 17], walls: 'redGranite', stairs: 'slussenNavy', floor: 'terrazzo', ceiling: 'whitePanels' },
+      { name: 'Götgatan hall', s: [-142, -118], u: [-82, -34], h: [16.5, 22], walls: 'squareTiles', stairs: 'slussenNavy', floor: 'oxbloodTerrazzo', ceiling: 'whitePanels' },
+    ],
+    blocks: [
+      // the ends of the hall, round the mouths of the tunnels south (the green line's single ones and
+      // the red line's double) and over the box north
+      { name: 'south end', plan: [[-81, -22.58], [-81.3, -22.58], [-81.3, -15.84], [-81, -15.84]], h: [-1.25, 3.5], from: -1.25, walls: 'slussenAdWall', inHall: true },
+      { name: 'south end', plan: [[-81, -5.35], [-81.3, -5.35], [-81.3, 1.44], [-81, 1.44]], h: [-1.25, 3.5], from: -1.25, walls: 'slussenAdWall', inHall: true },
+      { name: 'south end, over the tunnels', plan: [[-81, -27.6], [-81.3, -27.6], [-81.3, 6.5], [-81, 6.5]], h: [3.0, 4.6], from: 3.0, walls: 'slussenSoffit', inHall: true },
+      { name: 'north end, over the box', plan: [[81, -24.9], [81.3, -24.9], [81.3, 8.0], [81, 8.0]], h: [3.2, 4.6], from: 3.2, walls: 'slussenSoffit', inHall: true },
+      { name: 'under the stairs', plan: [[5.95, -9.65], [-1.4, -9.64], [-1.4, -6.34], [5.95, -6.35]], h: [0, 4.47], low: 0.55, from: 0,
+        walls: 'speckledGranite', roofColor: 0x4a4b4a, onPlatform: true, inHall: true },
+      { name: 'under the stairs', plan: [[14.02, -6.7], [21.36, -6.74], [21.34, -10.04], [14, -10]], h: [0, 4.47], low: 0.55, from: 0,
+        walls: 'speckledGranite', roofColor: 0x4a4b4a, onPlatform: true, inHall: true },
+      { name: 'under the stairs', plan: [[5.94, 6.27], [-1.41, 6.3], [-1.39, 9.6], [5.96, 9.57]], h: [0, 4.47], low: 0.55, from: 0,
+        walls: 'speckledGranite', roofColor: 0x4a4b4a, onPlatform: true, inHall: true },
+      { name: 'under the stairs', plan: [[14.02, 9.02], [21.37, 8.96], [21.34, 5.66], [13.99, 5.72]], h: [0, 4.47], low: 0.55, from: 0,
+        walls: 'speckledGranite', roofColor: 0x4a4b4a, onPlatform: true, inHall: true },
+      // the doors to Ryssgården, in a low box in front of Stockholms sjömanshem (Lantmäteriet's laser
+      // scan: its roof at 16.0 m), rendered pale grey, glass across its front under a dark fascia
+      { name: 'doors to Ryssgården', plan: [[31.02, -4.88], [28.45, -4.94], [27.88, 5.46], [30.86, 5.52]], h: [4.72, 7.82], from: 4.72,
+        walls: 'whiteRender', sides: [undefined, null, undefined, 'glassFront'], roof: 0.3, roofColor: 0x4a4c4f, inRoom: true,
+        nameSign: { side: 3, at: 0.5, length: 4.4, bottom: 7.12, black: true } },
+      // the doors to Katarinavägen, under large slate grey panels up to the terrace over them
+      { name: 'doors to Katarinavägen', plan: [[-5.0, 16.51], [-13.0, 15.95], [-13.0, 16.1], [-5.0, 16.66]], h: [5.08, 7.98], from: 5.08,
+        walls: 'glassFront', sides: [null, null, undefined, null], inRoom: true, nameSign: { side: 2, at: 0.5, length: 6.0, bottom: 7.48, black: true } },
+      { name: 'over the doors to Katarinavägen', plan: [[-4.6, 16.54], [-13.4, 15.92], [-13.4, 16.12], [-4.6, 16.74]], h: [7.98, 10.6], from: 7.98,
+        walls: 'slatePanels', sides: [null, null, undefined, null], inRoom: true },
+      // the doors to Götgatan, in the ground floor of the house over its hall
+      { name: 'doors to Götgatan', plan: [[-120.7, -77.5], [-125.5, -77.5], [-125.5, -77.65], [-120.7, -77.65]], h: [21.0, 24.0], from: 21.0,
+        walls: 'glassFront', sides: [null, null, undefined, null], inRoom: true, nameSign: { side: 2, at: 0.5, length: 3.0, bottom: 23.4 } },
+    ],
+    fences: [
+      // the walls beyond the green tracks, and between the red ones, bending with them
+      { kind: 'wall', finish: 'slussenAdWall', thick: 0.3, h: [-1.25, 3.5], points: [[-81, -27.43], [-75, -26.04], [-69, -24.66], [-63, -23.31], [-57, -22.07], [-51, -20.91], [-45, -19.94], [-39, -19.03], [-33, -18.27], [-27, -17.63], [-21, -17.07], [-15, -16.69], [-9, -16.38], [-3, -16.19], [3, -16.12], [9, -16.13], [15, -16.32], [21, -16.57], [27, -16.97], [33, -17.47], [39, -18.03], [45, -18.73], [51, -19.49], [57, -20.37], [63, -21.36], [69, -22.41], [75, -23.53], [81, -24.68]] },
+      { kind: 'wall', finish: 'slussenAdWall', thick: 0.3, h: [-1.25, 3.5], points: [[-81, 6.29], [-75, 7.79], [-69, 9.04], [-63, 10.21], [-57, 11.28], [-51, 12.2], [-45, 13.07], [-39, 13.81], [-33, 14.47], [-27, 15.04], [-21, 15.46], [-15, 15.81], [-9, 16.01], [-3, 16.11], [3, 16.13], [9, 16.01], [15, 15.83], [21, 15.56], [27, 15.2], [33, 14.78], [39, 14.21], [45, 13.58], [51, 12.84], [57, 12.03], [63, 11.18], [69, 10.17], [75, 9.08], [81, 7.83]] },
+      { kind: 'wall', finish: 'sundbergScreens', thick: 0.3, h: [-1.25, 3.5], points: [[-81, -10.59], [-75, -9.12], [-69, -7.74], [-63, -6.46], [-57, -5.33], [-51, -4.29], [-45, -3.38], [-39, -2.58], [-33, -1.85], [-27, -1.29], [-21, -0.78], [-15, -0.43], [-9, -0.18], [-3, -0.02], [3, -0.01], [9, -0.06], [15, -0.25], [21, -0.52], [27, -0.88], [33, -1.37], [39, -1.91], [45, -2.58], [51, -3.33], [57, -4.16], [63, -5.12], [69, -6.12], [75, -7.24], [81, -8.43]] },
+      // glass round the stairs' openings in the ticket hall's floor
+      { kind: 'glass', h: [4.72, 5.8], points: [[5.95, -9.6], [1.45, -9.59], [1.45, -6.39], [5.95, -6.4]] },
+      { kind: 'glass', h: [4.72, 5.8], points: [[14.02, -6.75], [18.51, -6.77], [18.5, -9.97], [14, -9.95]] },
+      { kind: 'glass', h: [4.72, 5.8], points: [[5.94, 6.32], [1.44, 6.34], [1.46, 9.54], [5.96, 9.52]] },
+      { kind: 'glass', h: [4.72, 5.8], points: [[14.02, 8.97], [18.52, 8.93], [18.49, 5.73], [13.99, 5.77]] },
+    ],
+    art: [
+      // the ceiling: over the platforms light grey, over the tracks darker and 0.2 m higher; the
+      // strip lights along the platforms' edges
+      { kind: 'ceiling', h: 3.5, finish: 'slussenSoffit', s: [-81, 81], u: [-28, 17], lampAt: 3.22,
+        strips: [{ points: [[-81, -19.2], [-75, -17.75], [-69, -16.37], [-63, -15.02], [-57, -13.82], [-51, -12.69], [-45, -11.72], [-39, -10.85], [-33, -10.09], [-27, -9.48], [-21, -8.94], [-15, -8.55], [-9, -8.26], [-3, -8.06], [3, -8], [9, -8.01], [15, -8.19], [21, -8.45], [27, -8.83], [33, -9.34], [39, -9.9], [45, -10.57], [51, -11.32], [57, -12.17], [63, -13.17], [69, -14.22], [75, -15.35], [81, -16.54]], width: 8.4, h: 3.3, finish: 'slussenCeiling' },
+          { points: [[-81, -1.96], [-75, -0.49], [-69, 0.82], [-63, 2.01], [-57, 3.09], [-51, 4.05], [-45, 4.9], [-39, 5.66], [-33, 6.33], [-27, 6.9], [-21, 7.35], [-15, 7.68], [-9, 7.89], [-3, 8], [3, 8], [9, 7.9], [15, 7.7], [21, 7.43], [27, 7.07], [33, 6.63], [39, 6.08], [45, 5.41], [51, 4.66], [57, 3.84], [63, 2.96], [69, 1.99], [75, 0.89], [81, -0.31]], width: 8.4, h: 3.3, finish: 'slussenCeiling' }],
+        lamps: [[[-75, -21.67], [-69, -20.29], [-63, -18.94], [-57, -17.7], [-51, -16.54], [-45, -15.57], [-39, -14.66], [-33, -13.9], [-27, -13.26], [-21, -12.7], [-15, -12.32], [-9, -12.01], [-3, -11.82], [3, -11.75], [9, -11.76], [15, -11.95], [21, -12.2], [27, -12.6], [33, -13.1], [39, -13.66], [45, -14.36], [51, -15.12], [57, -16], [63, -16.99], [69, -18.04], [75, -19.16]], [[-75, -13.84], [-69, -12.45], [-63, -11.1], [-57, -9.93], [-51, -8.85], [-45, -7.87], [-39, -7.05], [-33, -6.28], [-27, -5.7], [-21, -5.18], [-15, -4.78], [-9, -4.51], [-3, -4.3], [3, -4.25], [9, -4.27], [15, -4.43], [21, -4.71], [27, -5.06], [33, -5.58], [39, -6.14], [45, -6.77], [51, -7.52], [57, -8.34], [63, -9.35], [69, -10.4], [75, -11.54]], [[-75, -4.4], [-69, -3.02], [-63, -1.82], [-57, -0.74], [-51, 0.27], [-45, 1.11], [-39, 1.89], [-33, 2.57], [-27, 3.13], [-21, 3.62], [-15, 3.91], [-9, 4.15], [-3, 4.26], [3, 4.24], [9, 4.16], [15, 3.94], [21, 3.67], [27, 3.31], [33, 2.84], [39, 2.32], [45, 1.61], [51, 0.86], [57, 0.03], [63, -0.88], [69, -1.83], [75, -2.93]], [[-75, 3.42], [-69, 4.67], [-63, 5.84], [-57, 6.91], [-51, 7.83], [-45, 8.7], [-39, 9.44], [-33, 10.1], [-27, 10.67], [-21, 11.09], [-15, 11.44], [-9, 11.64], [-3, 11.74], [3, 11.76], [9, 11.64], [15, 11.46], [21, 11.19], [27, 10.83], [33, 10.41], [39, 9.84], [45, 9.21], [51, 8.47], [57, 7.66], [63, 6.81], [69, 5.8], [75, 4.71]]] },
+      // the granite columns down the islands' middles
+      { kind: 'columns', size: 0.8, from: 0, to: 3.3, color: 0x4a4b4a, square: 'speckledGranite',
+        at: [[-67.5, -16.03], [-58.5, -14.11], [-49.5, -12.45], [-40.5, -11.05], [-31.5, -9.92], [-22.5, -9.06], [-13.5, -8.46], [31.5, -9.2], [40.5, -10.07], [49.5, -11.11], [58.5, -12.4], [67.5, -13.94], [-67.5, 1.13], [-58.5, 2.83], [-49.5, 4.27], [-40.5, 5.49], [-31.5, 6.49], [-22.5, 7.24], [-13.5, 7.74], [31.5, 6.74], [40.5, 5.92], [49.5, 4.86], [58.5, 3.63], [67.5, 2.23]] },
     ],
   },
 };

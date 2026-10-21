@@ -2707,6 +2707,8 @@ export class Network {
     for (let i = i0 + 1; i <= i1; i++) {
       const p = samples[i - 1], q = samples[i];
       if (q.along - p.along > 0.05) continue;
+      // (none under a hall a station draws itself, where neither outline is drawn)
+      if (hallDrawn(p.x, p.z) && hallDrawn(q.x, q.z)) continue;
       if (tunnel(p) && tunnel(q)) {
         const a = closedOutline(p), c = closedOutline(q);
         if (a.length !== c.length || a.some(([u, v], j) => Math.hypot(u - c[j][0], v - c[j][1]) > 0.05)) {

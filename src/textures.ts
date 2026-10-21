@@ -4513,6 +4513,14 @@ export function openPaving(p: Paving) {
         x.fillStyle = band(); x.fillRect(u0 + 0.6, k * t + 0.6, t - 1.2, t - 1.2);
       }
     }
+  } else if (p.pattern === 'diagonal') {
+    // (with no fields: the pavers, square, laid at 45° all over; Slussen's)
+    const d = pw * Math.SQRT1_2;
+    for (let row = -2; row * d < H + d; row++) for (let a = -2 * d; a < W + 2 * d; a += 2 * d) {
+      const cx = a + (row % 2 ? d : 0), cy = row * d;
+      x.fillStyle = tone();
+      x.beginPath(); x.moveTo(cx, cy - d + 0.8); x.lineTo(cx + d - 0.8, cy); x.lineTo(cx, cy + d - 0.8); x.lineTo(cx - d + 0.8, cy); x.closePath(); x.fill();
+    }
   } else if (p.pattern === 'asphalt') {
     // asphalt, laid without joints: its stone showing dark and pale
     x.fillStyle = css(C.pavers); x.fillRect(0, 0, W, H);
@@ -5967,7 +5975,7 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
-  darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4],
+  darkGlazed: [1.4, 2.6], slate: [2.4, 2.4], darkTiles: [1.2, 2.4], greyPanels: [1.2, 2.4], slatePanels: [2.5, 3],
   highWindows: [1.2, 4], paleGreenTiles: [1.2, 1.2], paleTiles: [2.4, 2.4], asphalt: [2.4, 2.4],
   stripes: [2.4, 2.4], greenWindows: [1.2, 4], checkWindows: [1.5, 2.8], blueTiles: [1.2, 3], tiledWindows: [1.2, 3],
   gridTerrazzo: [2.1, 2.1], shopWindows: [4.8, 3.6], storeys: [1.8, 10.8], liftWindows: [1.3, 3.9],
@@ -6022,9 +6030,13 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   hallundaFloor: [2.4, 2.4], hallundaCeiling: [2.4, 2.4], hallundaSoffit: [2.4, 2.4], hallundaGlazed: [1.2, 3.0], hallundaMesh: [2.4, 3.0], hallundaFront: [3.0, 5.0],
   hallundaFascia: [2.4, 1.2], norsborgCeiling: [4.8, 4.8], norsborgGlazed: [1.2, 3.0], norsborgFascia: [2.4, 1.2], norsborgRainbow: [6.0, 1.2], shotcrete: [6.0, 6.0],
   kistaGlazed: [1.2, 3.0], kistaPanels: [4.8, 3.0], kistaPerforated: [1.2, 3.0], kistaAggregate: [2.4, 4.0], kistaParapet: [2.4, 2.4], kistaCeiling: [2.4, 2.4],
+  sundbergScreens: [13.2, 4.5], slussenAdWall: [7.2, 4.5], slussenCeiling: [2.4, 2.4], slussenSoffit: [2.4, 2.4], speckledGranite: [1.2, 1.2], slussenNavy: [1.2, 1.2],
+  fogdeWall: [9.6, 3.0], oxbloodTerrazzo: [2.4, 2.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate'];
+export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated', 'sundbergScreens'];
+// glass finishes whose clear parts are open, with no pane behind them: Sundberg's screens
+export const FINISH_OPEN: Finish[] = ['sundbergScreens'];
+export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate', 'sundbergScreens', 'slussenAdWall', 'fogdeWall'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -6206,6 +6218,12 @@ export function finish(name: Finish) {
         x.fillStyle = 'rgba(30,32,34,0.6)'; x.fillRect(i * W / 2, 0, 2, H);
         x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * W / 2 + 2, 0, 2, H);
       }
+      break;
+    case 'slatePanels':
+      // one large flat panel, slate grey, a dark seam round it
+      x.fillStyle = '#727f8e'; x.fillRect(0, 0, W, H);
+      x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(0, 0, W, H / 2);
+      x.fillStyle = 'rgba(28,30,34,0.7)'; x.fillRect(0, 0, 3, H); x.fillRect(0, 0, W, 3);
       break;
     case 'highWindows': {
       // pale grey blocks, 40 by 20 cm, to 2.5 m; above, windows in grey steel frames
@@ -9468,6 +9486,179 @@ export function finish(name: Finish) {
       x.fillStyle = '#fffdf2'; x.beginPath(); x.arc(1.5 * a, 1.5 * a, 0.08 * PX, 0, Math.PI * 2); x.fill();
       break;
     }
+    case 'sundbergScreens': {
+      // the wall between Slussen's red-line tracks: pale blue-grey glazed tiles, 12 cm, over a dark
+      // brown plinth, and in it openings 2.8 m wide and 2.5 m high every 4.4 m, each filled with
+      // Bengt Rafael Sundberg's screen (1990): blue sheet metal pressed into small pyramids, in
+      // places left flat in broad abstract shapes, and cut away in triangles where it is seen
+      // through to the other platform; one blue over red-brown, one with a band of larger, paler
+      // triangles along its top (photographs, 2010 to 2024). Measured up from the track bed, 1.2 m
+      // under the platforms, to the ceiling; the openings from just over the platforms' level.
+      const T0 = 1.3, T1 = 3.8, bay = 4.4, ow = 2.8;
+      x.fillStyle = '#8f989d'; x.fillRect(0, 0, W, H);
+      const t = 0.12 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 10);
+        x.fillStyle = `rgb(${190 + v},${200 + v},${206 + v})`; x.fillRect(i * t + 1.2, j * t + 1.2, t - 2.4, t - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.16)'; x.fillRect(i * t + 2.5, j * t + 2.5, t * 0.4, 1.5);
+      }
+      band(0, T0, '#3e2a22');
+      for (let i = 0; i < 4000; i++) { x.fillStyle = `rgba(20,12,8,${r() * 0.25})`; x.fillRect(r() * W, Y(T0) + r() * T0 * PX, 2, 2); }
+      // smooth noise in [0, 1] over the screen, from a seed
+      const noise = (seed: number) => {
+        const q = rng(seed), g: number[][] = [];
+        for (let i = 0; i < 40; i++) { g.push([]); for (let j = 0; j < 40; j++) g[i].push(q()); }
+        return (u: number, v: number) => {
+          const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j, S = (a: number) => a * a * (3 - 2 * a);
+          const L = (a: number, b: number, k: number) => a + (b - a) * S(k), G = (a: number, b: number) => g[((a % 40) + 40) % 40][((b % 40) + 40) % 40];
+          return L(L(G(i, j), G(i + 1, j), fu), L(G(i, j + 1), G(i + 1, j + 1), fu), fv);
+        };
+      };
+      const cell = 0.1 * PX;
+      for (let k = 0; k * bay < w - 0.01; k++) {
+        const x0 = (k * bay + (bay - ow) / 2) * PX, x1 = x0 + ow * PX, y0 = Y(T1), y1 = Y(T0);
+        // the opening's dark reveal round the screen
+        x.fillStyle = '#2a1f1b'; x.fillRect(x0 - 0.06 * PX, y0 - 0.06 * PX, ow * PX + 0.12 * PX, (T1 - T0) * PX + 0.12 * PX);
+        const flat = noise(31 + k * 7), holes = noise(57 + k * 11);
+        for (let ci = 0; x0 + ci * cell < x1 - 0.5; ci++) for (let cj = 0; y0 + cj * cell < y1 - 0.5; cj++) {
+          const cx = x0 + ci * cell, cy = y0 + cj * cell, fu = ci / 7, fv = cj / 7, up = 1 - cj * cell / (y1 - y0);
+          // (the second screen red-brown in its lower part; the third's top band of larger, paler cuts)
+          const red = k === 1 && up < 0.42 + 0.1 * Math.sin(ci * 0.25);
+          const blue = red ? '#7a3a2a' : '#3b62b3', dark = red ? '#3c1c15' : '#1c2a55', pale = red ? '#a65a44' : '#5b86d6';
+          x.fillStyle = blue; x.fillRect(cx, cy, cell + 0.5, cell + 0.5);
+          const cut = holes(fu, fv) * (0.55 + 0.6 * up) > 0.68 || (k === 2 && up > 0.86 && (ci + cj) % 2 === 0);
+          if (cut) {
+            // (a triangle cut away, the sheet's other half left)
+            x.save(); x.globalCompositeOperation = 'destination-out';
+            x.beginPath(); x.moveTo(cx, cy + cell); x.lineTo(cx + cell, cy + cell); x.lineTo(cx + cell / 2, cy + (k === 2 && up > 0.86 ? 0 : cell * 0.15)); x.closePath(); x.fill();
+            x.restore();
+            continue;
+          }
+          if (flat(fu * 0.8 + 3, fv * 0.8) > 0.6) { x.fillStyle = pale; x.globalAlpha = 0.25; x.fillRect(cx, cy, cell, cell); x.globalAlpha = 1; continue; }
+          // a pyramid: its faces lit from above and the left, in shade below and to the right
+          x.fillStyle = pale; x.beginPath(); x.moveTo(cx + cell / 2, cy + 1); x.lineTo(cx + 1, cy + cell - 1); x.lineTo(cx + cell / 2, cy + cell * 0.62); x.closePath(); x.fill();
+          x.fillStyle = dark; x.beginPath(); x.moveTo(cx + cell / 2, cy + 1); x.lineTo(cx + cell - 1, cy + cell - 1); x.lineTo(cx + cell / 2, cy + cell * 0.62); x.closePath(); x.fill();
+          x.fillStyle = 'rgba(10,16,40,0.55)'; x.beginPath(); x.moveTo(cx + 1, cy + cell - 1); x.lineTo(cx + cell - 1, cy + cell - 1); x.lineTo(cx + cell / 2, cy + cell * 0.62); x.closePath(); x.fill();
+        }
+      }
+      break;
+    }
+    case 'slussenAdWall': {
+      // the walls beyond Slussen's outer tracks: glossy tiles, nearly black, 15 cm, and along them
+      // a row of posters 1.1 by 1.8 m in pale frames, side by side, from 0.85 m over the
+      // platforms (photographs, 2016 to 2024); measured up from the track bed, 1.2 m under them
+      x.fillStyle = '#4a4c50'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        const v = Math.floor(r() * 8);
+        x.fillStyle = `rgb(${24 + v},${25 + v},${30 + v})`; x.fillRect(i * t + 1.2, j * t + 1.2, t - 2.4, t - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(i * t + 3, j * t + 3, t * 0.45, 2);
+      }
+      const p0 = 2.05, p1 = 3.85, pw = 1.1, gap = 0.1;
+      const grounds = ['#f2c230', '#1d2a4a', '#f1eee6', '#c8372d', '#2d6b8f', '#e9e2cf', '#3c2d4f', '#f08a2b'];
+      for (let k = 0; (k + 1) * (pw + gap) <= w + 0.01; k++) {
+        const px0 = (k * (pw + gap) + gap / 2) * PX;
+        x.fillStyle = '#d9d9d4'; x.fillRect(px0 - 0.04 * PX, Y(p1 + 0.04), (pw + 0.08) * PX, (p1 - p0 + 0.08) * PX);
+        const g = grounds[(k * 5 + Math.floor(r() * 3)) % grounds.length], light = ['#f2c230', '#f1eee6', '#e9e2cf', '#f08a2b'].includes(g);
+        x.fillStyle = g; x.fillRect(px0, Y(p1), pw * PX, (p1 - p0) * PX);
+        // a picture on it (a face, a shape), and lines of text
+        x.fillStyle = light ? 'rgba(40,40,48,0.8)' : 'rgba(250,248,240,0.85)';
+        if (k % 3 === 0) { x.beginPath(); x.arc(px0 + pw * PX * (0.4 + r() * 0.2), Y(p1 - 0.65), 0.3 * PX, 0, Math.PI * 2); x.fill(); }
+        else if (k % 3 === 1) x.fillRect(px0 + 0.12 * PX, Y(p1 - 0.15), (pw - 0.24) * PX, 0.75 * PX);
+        else { x.beginPath(); x.moveTo(px0 + 0.1 * PX, Y(p0 + 0.7)); x.lineTo(px0 + pw * PX * 0.5, Y(p1 - 0.2)); x.lineTo(px0 + (pw - 0.1) * PX, Y(p0 + 0.7)); x.fill(); }
+        for (let l = 0; l < 3; l++) x.fillRect(px0 + 0.1 * PX, Y(p0 + 0.5 - l * 0.13), pw * PX * (0.45 + r() * 0.35), 0.06 * PX);
+      }
+      break;
+    }
+    case 'slussenCeiling':
+    case 'slussenSoffit': {
+      // the ceiling over Slussen's platforms, painted a light grey, flaking here and there; over
+      // the tracks a darker grey (photographs, 2010 to 2024)
+      const soffit = name === 'slussenSoffit';
+      x.fillStyle = soffit ? '#6d6b67' : '#c9c6bf'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 14; i++) {
+        x.fillStyle = soffit ? 'rgba(40,38,36,0.06)' : 'rgba(150,146,138,0.06)';
+        x.beginPath(); x.ellipse(r() * W, r() * H, (0.04 + r() * 0.16) * PX, (0.03 + r() * 0.1) * PX, r() * 3, 0, Math.PI * 2); x.fill();
+      }
+      speckle(x, W, H, 5000, 0.06, 404);
+      break;
+    }
+    case 'speckledGranite': {
+      // polished granite, a dark grey speckled black and white, in slabs 0.6 by 1.2 m (Slussen's
+      // columns, stairs and parapets; photographs, 2010 to 2024)
+      x.fillStyle = '#4a4b4a'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 40000; i++) {
+        const k = r();
+        x.fillStyle = k < 0.5 ? `rgba(20,20,22,${0.25 + r() * 0.35})` : k < 0.72 ? `rgba(200,200,196,${0.12 + r() * 0.25})` : `rgba(110,108,104,0.4)`;
+        x.fillRect(r() * W, r() * H, 1 + r() * 1.5, 1 + r() * 1.5);
+      }
+      x.fillStyle = 'rgba(20,20,20,0.6)';
+      for (let i = 0; i * 0.6 < w; i++) x.fillRect(i * 0.6 * PX, 0, 1.5, H);
+      for (let j = 0; j * 1.2 < h; j++) x.fillRect(0, j * 1.2 * PX, W, 1.5);
+      break;
+    }
+    case 'slussenNavy': {
+      // the walls round Slussen's stairs and lifts on its platforms: glossy tiles on end, 10 by 20
+      // cm, a blue so dark it is nearly black, in white joints (photographs, 2010 to 2024)
+      x.fillStyle = '#c4c6c8'; x.fillRect(0, 0, W, H);
+      const a = 0.1 * PX, b = 0.2 * PX;
+      for (let i = 0; i * a < W; i++) for (let j = 0; j * b < H; j++) {
+        const v = Math.floor(r() * 8);
+        x.fillStyle = `rgb(${30 + v},${32 + v},${48 + v})`; x.fillRect(i * a + 1.2, j * b + 1.2, a - 2.4, b - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * a + 2.5, j * b + 2.5, a * 0.3, b - 5);
+      }
+      break;
+    }
+    case 'fogdeWall': {
+      // Sune Fogde's wall (1964–65) in the passage at the foot of Slussen's escalators to
+      // Götgatan: pale pinkish-white speckled terrazzo, large angular fields of black-grey and of
+      // cork-brown speckle across it, and on it plates of coloured enamel, rounded and angular, in
+      // loose groups (photographs, 2018 and 2023)
+      x.fillStyle = '#d9cbc3'; x.fillRect(0, 0, W, H);
+      const fields: [string, number[][]][] = [
+        ['#2f2c2d', [[0.2, 0.1], [2.1, 0.1], [2.7, 1.6], [1.0, 2.2], [0.2, 1.4]]],
+        ['#9a6b45', [[2.9, 0.5], [4.6, 0.3], [4.9, 1.9], [3.4, 2.5]]],
+        ['#2f2c2d', [[5.2, 1.2], [7.1, 0.8], [7.6, 2.6], [5.6, 2.8]]],
+        ['#9a6b45', [[7.8, 0.2], [9.4, 0.6], [9.0, 2.0], [7.9, 1.6]]],
+        ['#2f2c2d', [[3.8, 2.6], [5.0, 2.9], [4.6, 3.0], [3.6, 3.0]]],
+      ];
+      for (const [col, poly] of fields) {
+        x.fillStyle = col; x.beginPath(); poly.forEach(([a, b], i) => (i ? x.lineTo(a * PX, Y(b)) : x.moveTo(a * PX, Y(b)))); x.closePath(); x.fill();
+      }
+      for (let i = 0; i < 30000; i++) {
+        const v = r();
+        x.fillStyle = v < 0.5 ? `rgba(60,50,48,${r() * 0.5})` : `rgba(250,240,232,${r() * 0.5})`;
+        x.fillRect(r() * W, r() * H, 1 + r() * 2, 1 + r() * 2);
+      }
+      const enamel = ['#d23a2c', '#f0b62a', '#2a64b4', '#2f8a4e', '#f2efe6', '#e2752b', '#7a3a8c'];
+      for (let g = 0; g < 9; g++) {
+        const gx = (0.5 + g * 1.05 + r() * 0.4) * PX, gy = Y(0.9 + r() * 1.4);
+        for (let k = 0; k < 4 + Math.floor(r() * 5); k++) {
+          const px = gx + (r() - 0.5) * 0.9 * PX, py = gy + (r() - 0.5) * 0.7 * PX, rad = (0.05 + r() * 0.13) * PX;
+          x.fillStyle = 'rgba(0,0,0,0.3)'; x.beginPath(); x.ellipse(px + 3, py + 3, rad, rad * (0.6 + r() * 0.5), r() * 3, 0, Math.PI * 2); x.fill();
+          x.fillStyle = enamel[Math.floor(r() * enamel.length)];
+          x.beginPath();
+          if (r() < 0.5) x.ellipse(px, py, rad, rad * (0.6 + r() * 0.5), r() * 3, 0, Math.PI * 2);
+          else { x.moveTo(px - rad, py + rad * 0.6); x.lineTo(px + rad * 0.2, py - rad); x.lineTo(px + rad, py + rad * 0.4); }
+          x.fill();
+        }
+      }
+      break;
+    }
+    case 'oxbloodTerrazzo': {
+      // the floor of Slussen's ticket hall at Götgatan: a dark red-brown terrazzo, speckled, in
+      // squares 1.2 m across (photographs, 2023)
+      x.fillStyle = '#6a3a31'; x.fillRect(0, 0, W, H);
+      for (let i = 0; i < 26000; i++) {
+        const v = r();
+        x.fillStyle = v < 0.5 ? `rgba(40,20,16,${r() * 0.6})` : v < 0.85 ? `rgba(160,110,96,${r() * 0.5})` : `rgba(230,220,210,${r() * 0.5})`;
+        x.fillRect(r() * W, r() * H, 1 + r() * 2, 1 + r() * 2);
+      }
+      x.fillStyle = 'rgba(30,20,18,0.5)';
+      for (let i = 0; i * 1.2 < w; i++) x.fillRect(i * 1.2 * PX, 0, 1.5, H);
+      for (let j = 0; j * 1.2 < h; j++) x.fillRect(0, j * 1.2 * PX, W, 1.5);
+      break;
+    }
     case 'skhEndWall': {
       // the west end of Skärholmen's platform: brown clay tiles, 10 by 20 cm, laid on their sides
       // in grey joints, and darker ones in bands a tile wide running down from the top corners to
@@ -9497,7 +9688,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'ernkvistTiles', 'satraHall', 'satraHouse', 'satraEntrance'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'ernkvistTiles', 'satraHall', 'satraHouse', 'satraEntrance', 'sundbergScreens', 'slussenAdWall', 'slussenNavy'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;

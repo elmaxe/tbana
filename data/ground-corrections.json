@@ -246,6 +246,12 @@
       "outline": [-14018.9, 9739.4, -13939.2, 9746.5, -13937.5, 9726.7, -14017.2, 9719.6],
       "heights": [26.7, 26.7, 26.4, 26.6],
       "why": "The bus station under the wall along the northern track is flat at 26.3–26.9 m (Lantmäteriet's laser scan) right up to the wall, where the underpass from the station's hall comes out; the elevation model's 5 m grid smooths the wall into it, 27.7 m at the underpass's mouth, which left the exits from the hall a metre under the street."
+    },
+    {
+      "name": "Slussen: Ryssgården in front of the ticket hall's doors",
+      "outline": [729.7, 1348.0, 723.5, 1324.8, 747.7, 1318.4, 753.8, 1341.7],
+      "heights": [12.88, 12.85, 12.97, 12.98],
+      "why": "Ryssgården, the square north of Stockholms sjömanshem, is flat at 12.8–13.0 m (Lantmäteriet's laser scan, 2021) right up to the building's front, where the ticket hall under the building opens onto it, step-free; the elevation model smooths the building into it, 13.7 m at the doors and up to 15 m 8 m west of them, which left the station's exit 0.8 m over its hall. The outline reaches 7 m into the building, under the hall, so that the street's grid at the doors has no point on the building's slope."
     }
   ],
   "open": [
