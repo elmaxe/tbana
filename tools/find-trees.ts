@@ -18,6 +18,7 @@
 // - the canopy: the highest unclassified point over the ground in each cell, leaving out cells in
 //   or within 1.5 m of a building (data/osm/buildings.json), over water (the scan's, or
 //   OpenStreetMap's in data/osm/water.json: a lock dug since the scan was flown), and on bridges;
+//   a cell amid the canopy that the scan missed given the mean of those round it;
 // - a tree for each top of it at least 4.5 m up that is the highest within 2.5 m, its crown as far
 //   out as the canopy stays above half its height, and the lower tops in a crown left out;
 // - kept only if its crown is as a tree's: at least 1.8 m in radius (and a sixth of its height,
@@ -26,7 +27,8 @@
 //   the bare branches of the March flight do; a roof's lie flat). Poles, masts, wires and cranes
 //   are too thin, and site huts and kiosks too flat;
 // - and not on a deck or roof OpenStreetMap doesn't have (a bridge's, where the scan doesn't call
-//   it a bridge), nor within 3 m of one: lamps, masts and wires stand on those.
+//   it a bridge: a wide stretch of flat points, each level with those round it, which a wood's
+//   rough canopy is not), nor within 3 m of one: lamps, masts and wires stand on those.
 // The scan was flown in March 2021, so it misses the trees planted since (the new quay along
 // Munkbroleden's), and sees a young tree's bare crown too thin to tell from a lamp. With --google,
 // the trees are also looked for in Google's mesh, whose photos were taken in leaf: the tops of
@@ -214,12 +216,24 @@ for (const a of areas) {
   }
 
   // decks and roofs OpenStreetMap doesn't have, and what stands on them (lamps, masts, wires): wide
-  // stretches of cells whose points lie flat, well above the ground, and the scan's bridges, and 3 m
-  // round them
+  // stretches of cells whose points lie flat, well above the ground, level with the cells round
+  // them, and the scan's bridges, and 3 m round them. (A wood's canopy has cells whose few points
+  // lie flat too, but it is rough: they are not level with their neighbours, as a deck's are.)
   const deck = new Uint8Array(W * H);
   {
     const flatHigh = new Uint8Array(W * H);
-    for (let c = 0; c < W * H; c++) flatHigh[c] = count[c] >= 2 && low[c] >= 2.5 && top[c] - low[c] < 0.4 ? 1 : 0;
+    const level = (c: number) => {
+      const i = c % W, j = (c - i) / W;
+      let near = 0, hit = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const ii = i + di, jj = j + dj, k = jj * W + ii;
+        if ((!di && !dj) || ii < 0 || jj < 0 || ii >= W || jj >= H || !count[k]) continue;
+        near++;
+        if (Math.abs(top[k] - top[c]) < 0.25) hit++;
+      }
+      return near >= 4 && hit >= near * 0.6;
+    };
+    for (let c = 0; c < W * H; c++) flatHigh[c] = count[c] >= 2 && low[c] >= 2.5 && top[c] - low[c] < 0.4 && level(c) ? 1 : 0;
     const seen = new Uint8Array(W * H);
     for (let c0 = 0; c0 < W * H; c0++) {
       if (!flatHigh[c0] || seen[c0]) continue;
@@ -247,6 +261,23 @@ for (const a of areas) {
         if (ii >= 0 && jj >= 0 && ii < W && jj < H) deck[jj * W + ii] = 1;
       }
     }
+  }
+
+  // The scan doesn't hit every metre of a canopy: in a wood, the cells it missed would cut the
+  // crowns short. A cell with no points that most of the cells round it have is given their mean
+  // height and spread.
+  for (let c = 0; c < W * H; c++) {
+    if (count[c] || built[c] || bridge[c] || water[c] || ground[c] < WATER_TOP) continue;
+    const i = c % W, j = (c - i) / W;
+    let n = 0, h = 0, spread = 0;
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      const ii = i + di, jj = j + dj, k = jj * W + ii;
+      if (ii < 0 || jj < 0 || ii >= W || jj >= H || !count[k]) continue;
+      n++; h += top[k]; spread += top[k] - low[k];
+    }
+    if (n < 5) continue;
+    top[c] = h / n;
+    low[c] = (h - spread) / n;
   }
 
   // the trees the scan shows: their crowns ragged, as the bare branches are
