@@ -54,28 +54,47 @@
     },
     "Gamla stan": {
       "drawing": "gamla_stan.png",
-      "note": "Two island platforms at ground level, a metre or two above the streets beside them, red on the inner side of each and green on the outer. Stairs go down through each platform to the ticket hall under the tracks, and up from it to the streets.",
+      "note": "Two island platforms at ground level, a metre or two above the streets beside them, red on the inner side of each and green on the outer, northbound on the western island. On each island, in the southern half, a glass enclosure round two flights of stairs going down from its ends towards its middle (OpenStreetMap's indoor ways, 2024), to a passage under the tracks, the gates, and the ticket hall across under the platforms' south end: west to the stairs up to the quay at Munkbrohamnen, east to the stairs up to the vestibule on Munkbroleden and the passage on under it to Mälartorget. The enclosures' places across the islands are from photographs; the hall's depth is guessed.",
       "routes": [
-        { "from": [-6, 7], "width": 2, "go": [
-          {"stairs": -5.5, "toward": [-30, 7]},
-          {"walk": [-18, 0], "width": 6},
+        { "from": [-23, -8.0], "width": 2, "go": [
+          {"stairs": -4.8, "toward": [-42, -7.05]},
+          {"walk": [-32.5, -7.52]},
+          {"walk": [-32.5, 0.5], "width": 3, "ceiling": 2.6},
+          {"mark": "under"}
+        ] },
+        { "from": [-42, -7.05], "width": 2, "go": [
+          {"stairs": -4.8, "toward": [-23, -8.0]},
+          {"walk": [-32.5, -7.52]}
+        ] },
+        { "from": [-23, 9.0], "width": 2, "go": [
+          {"stairs": -4.8, "toward": [-42, 9.95]},
+          {"walk": [-32.5, 9.47]},
+          {"walk": [-32.5, 0.5], "width": 3, "ceiling": 2.6}
+        ] },
+        { "from": [-42, 9.95], "width": 2, "go": [
+          {"stairs": -4.8, "toward": [-23, 9.0]},
+          {"walk": [-32.5, 9.47]}
+        ] },
+        { "from": "under", "width": 4, "go": [
+          {"walk": [-38, 0.5], "ceiling": 2.6},
+          {"gates": true},
+          {"walk": [-42.5, 0.5], "ceiling": 2.6},
           {"mark": "hall"}
         ] },
-        { "from": [-6, -7], "width": 2, "go": [
-          {"stairs": -5.5, "toward": [-30, -7]},
-          {"walk": [-18, 0], "width": 6}
-        ] },
-        { "from": "hall", "width": 6, "go": [
-          {"walk": [-26, 0]},
-          {"gates": true},
-          {"mark": "gates"},
+        { "from": "hall", "width": 4, "go": [
+          {"walk": [-42.8, -26.2], "ceiling": 2.6},
           {"exit": 401798228}
         ] },
-        { "from": "gates", "width": 2.5, "go": [
-          {"walk": [-44, 18.7]},
-          {"exit": 3596988872}
+        { "from": "hall", "width": 4, "go": [
+          {"walk": [-41.3, 20.6], "ceiling": 2.6},
+          {"mark": "east"}
         ] },
-        { "from": "gates", "width": 4, "go": [
+        { "from": "east", "width": 2.5, "go": [
+          {"walk": [-44.5, 21.0]},
+          {"exit": {"at": [-53.5, 21.0], "name": "Munkbroleden"}}
+        ] },
+        { "from": "east", "width": 4, "go": [
+          {"walk": [-28, 57.5]},
           {"exit": 486085165}
         ] }
       ]

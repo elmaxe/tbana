@@ -3,6 +3,7 @@ import * as T from '../textures';
 import type { Builder, V2, V3 } from './builder.ts';
 import * as S from '../sections.ts';
 import { addMaterial, standard } from './materials.ts';
+import { OPEN_STYLES } from '../open-styles.ts';
 
 // Gamla stan station and what stands over and beside it, as seen from the metro's bridge over
 // Söderström and from the quays.
@@ -10,11 +11,13 @@ import { addMaterial, standard } from './materials.ts';
 // The station (1957) lies along the west shore of Stadsholmen under Centralbron (1967), the road
 // bridge from Tegelbacken to Södermalm: the bridge's deck is the roof over the platforms' northern
 // half and the west of the southern half, and the rest of the southern half has its own roof, low
-// and brownish grey with seven glazed lanterns across it. Its east wall stands along Munkbroleden,
-// light grey with pilasters, an entrance in its southern part and a railing along the top. West of
-// it, a few metres lower, runs the railway between Stockholm C and Södra (two tracks, the narrow
-// "Getingmidjan"), on a bank behind a white wall along the quay of Riddarfjärden, with the
-// station's entrance from the quay through it under a blue sign. South of the station all three
+// and brownish grey with seven glazed lanterns across it. Its east wall stands along Munkbroleden:
+// light grey with pilasters under the bridge, and under its own roof a screen of upright grey steel
+// slats over a low dark plinth, a copper-green fascia over them, and the glass vestibule of its
+// entrance on the pavement in front. West of it runs the railway between Stockholm C and Södra
+// (two tracks, the narrow "Getingmidjan"), on a bank behind a white wall along the quay of
+// Riddarfjärden, with the station's entrance from the quay through it under a blue sign; the
+// platforms' hall (src/open-styles.ts draws it) is open to it over a low wall. South of the station all three
 // cross Söderström side by side, the railway and the road on one long low bridge on concrete
 // piers, the metro on its own; on Södermalm the railway and the road run into tunnels under the
 // block at Söder Mälarstrand.
@@ -44,7 +47,13 @@ const BOX_END = 64.3;
 // reaches 7.72 m (4.8 m over its rails), so the decks over it are a little higher.
 const OVER_BOX = 7.85;
 // Its own roof: from where the lanterns begin to the box's end, its lanterns' middles (frame z).
-const ROOF = { north: 1.5, y: 8.35, lanterns: [6, 15.2, 24.4, 33.6, 42.8, 52, 61.2] };
+const ROOF = { north: 1.5, y: 8.35, lanterns: [5.8, 15.3, 24.8, 33.8, 43.3, 53.8, 62.8] };
+// The platforms' hall, as the station draws it (src/open-styles.ts): its frame (s along the
+// platforms to the north, u to the east), how far north it reaches, its floor and the top of the
+// walls of tiles round it (1.15 m over the platforms; the slats over them on the east, the bars on
+// the west), and its ceiling's underside.
+const HALL = { ...OPEN_STYLES['Gamla stan'].hall!, floor: 3.92, tiles: 5.07, soffit: 7.37 };
+const hallS = (x: number, z: number) => -(x - HALL.at[0]) * Math.sin(HALL.at[2]) - (z - HALL.at[1]) * Math.cos(HALL.at[2]);
 
 const xAt = (line: V2[], z: number) => {
   if (z <= line[0][1]) return line[0][0];
@@ -222,6 +231,10 @@ addMaterial('gs-glass', () => standard(null, 0.12, 0.5));
 addMaterial('gs-dark', () => standard(null, 1));
 addMaterial('gs-sign', () => standard(T.entranceSign('GAMLA STAN'), 0.5));
 addMaterial('gs-boards', () => standard(T.boardWalk(), 0.9));
+addMaterial('gs-pane', () => standard(null, 0.08, 0.1, { transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
+addMaterial('gs-black-tiles', () => standard(T.finish('blackTiles'), 0.35));
+addMaterial('gs-name', () => standard(T.hangingSign('Gamla stan', '', '', false, true), 0.6));
+addMaterial('gs-light', () => standard(null, 0.6, 0, { emissive: new THREE.Color(0xfff4e0), emissiveIntensity: 0.6 }));
 
 // colours
 const ASPHALT = 0x6d7076, FASCIA = 0x5f6265, CONCRETE = 0xa8a59f, PIER = 0xb3b0a8, WHITE_WALL = 0xf0eee8;
@@ -254,14 +267,26 @@ export function buildCentralbron(B: Builder, ground: Ground, part: 'north' | 'so
     B.tint(CONCRETE);
     loft(B, cuts.map((c) => [v3(edge(c), c.y + 0.45), v3(inward(c), c.y + 0.45)]), 'concrete', () => UP, 2);
     loft(B, cuts.map((c) => [v3(inward(c), c.y + 0.45), v3(inward(c), c.y)]), 'concrete', (i) => (side < 0 ? east(cuts[i]) : west(cuts[i])), 2);
-    // the outer face, in runs of the same foot
+    // the outer face, in runs of the same foot; beside the platforms' hall only the deck's edge, the
+    // hall open to the railway under it, and the railway's bank on its own lower down
+    const open = (c: Cut) => {
+      const e = edge(c), b = boxWest(e[1]);
+      return side < 0 && b !== null && Math.abs(e[0] - (b - 0.3)) < 0.6 && hallS(e[0], e[1]) <= HALL.s[1];
+    };
     const foot = (c: Cut) => {
       const e = edge(c);
+      if (open(c)) return HALL.soffit - 0.2;
       if (side < 0) { const r = railEast(e); if (r !== null) return r - 0.35; }
       return free(e) ? c.y - DEPTH.road : c.y;
     };
     B.tint(FASCIA);
     loft(B, cuts.map((c) => [v3(edge(c), c.y + 0.45), v3(edge(c), foot(c))]), 'concrete', (i) => (side < 0 ? west(cuts[i]) : east(cuts[i])), 3);
+    for (let i = 0; i + 1 < cuts.length; i++) {
+      const a = cuts[i], b = cuts[i + 1], ra = railEast(a.w), rb = railEast(b.w);
+      if (!open(a) || !open(b) || ra === null || rb === null) continue;
+      const ga = (ground(a.w[0], a.w[1]) ?? 1) - 0.5, gb = (ground(b.w[0], b.w[1]) ?? 1) - 0.5;
+      B.poly([v3(a.w, ra - 0.35), v3(b.w, rb - 0.35), v3(b.w, gb), v3(a.w, ga)], west(a), 'concrete', 3);
+    }
     // the railing on the parapet
     B.tint(BARS_DARK);
     railing(B, cuts.map((c) => v3(across(c, side < 0 ? 0.15 : width(c) - 0.15), c.y + 0.45)), 0.75, (i) => (side < 0 ? west(cuts[i]) : east(cuts[i])));
@@ -530,7 +555,7 @@ export function buildStation(B: Builder, ground: Ground) {
     const z0 = ROOF.north, x0 = fromRoad(z0) + 0.3, x1 = wallX(z0);
     B.poly([[x0, OVER_BOX, z0], [x1, OVER_BOX, z0], [x1, ROOF.y + 0.25, z0], [x0, ROOF.y + 0.25, z0]], [0, 0, -1], 'concrete', 2);
     const z1 = BOX_END + 0.3, x2 = fromRoad(z1) + 0.3, x3 = wallX(z1);
-    B.poly([[x2, ROOF.y - 0.6, z1], [x3, ROOF.y - 0.6, z1], [x3, ROOF.y + 0.25, z1], [x2, ROOF.y + 0.25, z1]], [0, 0, 1], 'concrete', 2);
+    B.poly([[x2, HALL.soffit - 0.25, z1], [x3, HALL.soffit - 0.25, z1], [x3, ROOF.y + 0.25, z1], [x2, ROOF.y + 0.25, z1]], [0, 0, 1], 'concrete', 2);
   }
   for (const zc of ROOF.lanterns) {
     const x0 = fromRoad(zc) + 1.2, x1 = wallX(zc) - 0.9, h = 0.85, hw = 0.8;
@@ -544,53 +569,52 @@ export function buildStation(B: Builder, ground: Ground) {
     rod(B, [x0, ROOF.y + h + 0.05, zc], [x1, ROOF.y + h + 0.05, zc], 0.12, 0.08, 'metal');
   }
 
-  // the east wall along Munkbroleden: light grey between pilasters, a band at the top, and the
-  // entrance in its southern part
-  const DOOR = { z0: 46.6, z1: 51.2, h: 2.9 };
-  const wz = zs(north, BOX_END + 0.3, 1.5).filter((z) => z <= DOOR.z0 || z >= DOOR.z1);
-  wz.push(DOOR.z0, DOOR.z1);
-  wz.sort((a, b) => a - b);
-  const topAt = (z: number) => (z < ROOF.north ? OVER_BOX + 0.2 : ROOF.y + 0.25);
+  // the east wall along Munkbroleden: under the bridge light grey between pilasters, a band at the
+  // top; under the station's own roof a low dark plinth, upright grey steel slats on it in front of
+  // the platforms' tiled wall (over that the hall's own slats, set back), and the roof's
+  // copper-green fascia (photographs, 2023 and 2024)
+  const wz = zs(north, BOX_END + 0.3, 1.5).concat(ROOF.north).sort((a, b) => a - b);
+  const SLATS = { every: 0.16, wide: 0.06, deep: 0.1 }, FASCIA_FOOT = HALL.soffit - 0.25;
   for (let i = 0; i + 1 < wz.length; i++) {
     const za = wz[i], zb = wz[i + 1];
     if (zb - za < 1e-3) continue;
     const xa = wallX(za), xb = wallX(zb), n: V3 = [zb - za, 0, -(xb - xa)];
     const ga = g(xa, za) - 0.5, gb = g(xb, zb) - 0.5;
-    const door = za >= DOOR.z0 - 1e-6 && zb <= DOOR.z1 + 1e-6;
-    // the top's step where the roof begins
-    const ta = topAt(za + 1e-4), tb = topAt(zb - 1e-4);
-    B.tint(STATION_WALL);
-    if (door) {
-      const dg = Math.max(g(xa, za), g(xb, zb));
-      B.poly([[xa, dg + DOOR.h, za], [xb, dg + DOOR.h, zb], [xb, tb - 0.6, zb], [xa, ta - 0.6, za]], n, 'plaster', 3);
-      // the passage behind, dark, its reveals tiled
-      B.tint(0x303234);
-      B.poly([[xa - 3, dg - 0.5, za], [xb - 3, dg - 0.5, zb], [xb - 3, dg + DOOR.h, zb], [xa - 3, dg + DOOR.h, za]], n, 'gs-dark', 3);
-      B.tint(0xb9c6cc);
-      B.poly([[xa, dg + DOOR.h, za], [xb, dg + DOOR.h, zb], [xb - 3, dg + DOOR.h, zb], [xa - 3, dg + DOOR.h, za]], DOWN, 'stone', 1);
-      B.poly([[xa, dg - 0.5, za], [xa - 3, dg - 0.5, za], [xa - 3, dg + DOOR.h, za], [xa, dg + DOOR.h, za]], [0, 0, 1], 'stone', 1);
-      B.poly([[xb, dg - 0.5, zb], [xb - 3, dg - 0.5, zb], [xb - 3, dg + DOOR.h, zb], [xb, dg + DOOR.h, zb]], [0, 0, -1], 'stone', 1);
-      // the sign over it, read from the street
-      B.tint(0xffffff);
-      const zc = (za + zb) / 2, xc = wallX(zc) + 0.2;
-      B.poly([[xc, dg + DOOR.h + 0.15, zc + 2.3], [xc, dg + DOOR.h + 0.15, zc - 2.3], [xc, dg + DOOR.h + 0.95, zc - 2.3], [xc, dg + DOOR.h + 0.95, zc + 2.3]],
-        [1, 0, 0], 'gs-sign', 1, [[0, 0], [1, 0], [1, 1], [0, 1]]);
-    } else {
+    if (zb <= ROOF.north + 1e-6) {
+      const ta = OVER_BOX + 0.2, tb = OVER_BOX + 0.2;
+      B.tint(STATION_WALL);
       B.poly([[xa, ga, za], [xb, gb, zb], [xb, tb - 0.6, zb], [xa, ta - 0.6, za]], n, 'plaster', 3);
+      // the band at the top
+      B.tint(0xb7b3ab);
+      B.poly([[xa, ta - 0.6, za], [xb, tb - 0.6, zb], [xb + 0.12, tb - 0.6, zb], [xa + 0.12, ta - 0.6, za]], DOWN, 'concrete', 2);
+      B.poly([[xa + 0.12, ta - 0.6, za], [xb + 0.12, tb - 0.6, zb], [xb + 0.12, tb, zb], [xa + 0.12, ta, za]], n, 'concrete', 2);
+      B.poly([[xa, ta, za], [xb, tb, zb], [xb + 0.12, tb, zb], [xa + 0.12, ta, za]], UP, 'concrete', 2);
+      continue;
     }
-    // the band at the top
-    B.tint(0xb7b3ab);
-    B.poly([[xa, ta - 0.6, za], [xb, tb - 0.6, zb], [xb + 0.12, tb - 0.6, zb], [xa + 0.12, ta - 0.6, za]], DOWN, 'concrete', 2);
-    B.poly([[xa + 0.12, ta - 0.6, za], [xb + 0.12, tb - 0.6, zb], [xb + 0.12, tb, zb], [xa + 0.12, ta, za]], n, 'concrete', 2);
-    B.poly([[xa, ta, za], [xb, tb, zb], [xb + 0.12, tb, zb], [xa + 0.12, ta, za]], UP, 'concrete', 2);
+    // the plinth, its top, and the fascia with its underside
+    B.tint(0x4a4b4c);
+    B.poly([[xa, ga, za], [xb, gb, zb], [xb, gb + 0.95, zb], [xa, ga + 0.95, za]], n, 'concrete', 2);
+    B.poly([[xa, ga + 0.95, za], [xb, gb + 0.95, zb], [xb - 0.3, gb + 0.95, zb], [xa - 0.3, ga + 0.95, za]], UP, 'concrete', 2);
+    const top = ROOF.y + 0.25;
+    B.tint(0xe4ece8);
+    B.poly([[xa + 0.1, FASCIA_FOOT, za], [xb + 0.1, FASCIA_FOOT, zb], [xb + 0.1, top, zb], [xa + 0.1, top, za]], n, 'copper', 2);
+    B.poly([[xa + 0.1, top, za], [xb + 0.1, top, zb], [xb - 0.2, top, zb], [xa - 0.2, top, za]], UP, 'copper', 2);
+    B.tint(0x4f5355);
+    B.poly([[xa + 0.1, FASCIA_FOOT, za], [xb + 0.1, FASCIA_FOOT, zb], [xb - 0.9, FASCIA_FOOT, zb], [xa - 0.9, FASCIA_FOOT, za]], DOWN, 'concrete', 2);
   }
-  // the pilasters, every 6 m
+  B.tint(0x868d92);
+  for (let z = ROOF.north + 0.1; z < BOX_END + 0.3; z += SLATS.every) {
+    const x = wallX(z), gz = g(x, z) + 0.45;
+    B.box([x - SLATS.deep, gz, z - SLATS.wide / 2], [x, HALL.tiles, z + SLATS.wide / 2], 'metal', 1, ['-x', '-y']);
+  }
+  // the pilasters, every 6 m under the bridge
   B.tint(0xd6d3cc);
-  for (let z = north + 3; z < BOX_END - 1; z += 6) {
-    if (z > DOOR.z0 - 1.2 && z < DOOR.z1 + 1.2) continue;
+  for (let z = north + 3; z < ROOF.north - 0.5; z += 6) {
     const x = wallX(z), gz = g(x, z) - 0.5;
-    B.box([x, gz, z - 0.45], [x + 0.22, topAt(z) - 0.6, z + 0.45], 'plaster', 2, ['-x']);
+    B.box([x, gz, z - 0.45], [x + 0.22, OVER_BOX + 0.2 - 0.6, z + 0.45], 'plaster', 2, ['-x']);
   }
+  buildVestibule(B, ground);
+  B.place([ST.x, 0, ST.z], ST.turn);
   // the box's west wall, where it stands clear under the road's deck
   B.tint(0xa9a69f);
   const west = zs(-10, BOX_END, 1.5);
@@ -601,6 +625,62 @@ export function buildStation(B: Builder, ground: Ground) {
     B.poly([[xa, g(xa, za) - 0.5, za], [xb, g(xb, zb) - 0.5, zb], [xb, OVER_BOX, zb], [xa, OVER_BOX, za]], [-(zb - za), 0, xb - xa], 'concrete', 3);
   }
   B.place([0, 0, 0], 0);
+}
+
+// ------------------------------------------------------------------ the vestibule on Munkbroleden
+// The entrance from Munkbroleden: a glass box on the pavement in front of the slats, over the
+// stairs down to the ticket hall, its doors at its south end (OpenStreetMap's entrance and steps):
+// glass in brushed steel frames on a low plinth of black tiles, black tiles at its north end and
+// beside its doors, SL's blue sign with the station's name over them, a flat roof behind a steel
+// fascia (photographs, 2023 and 2024). In the hall's frame: s along the platforms, u across.
+const VESTIBULE = { s: [-55.6, -46.2], u: [18.4, 23.0], doors: [19.4, 22.4], h: 2.85, roof: 0.3 };
+
+function buildVestibule(B: Builder, ground: Ground) {
+  const [hx, hz, yaw] = HALL.at, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const [s0, s1] = VESTIBULE.s, [u0, u1] = VESTIBULE.u, [d0, d1] = VESTIBULE.doors;
+  const sm = (s0 + s1) / 2, um = (u0 + u1) / 2;
+  const g = ground(hx + fx * sm - fz * um, hz + fz * sm + fx * um) ?? 2.7, top = g + VESTIBULE.h;
+  // (placed in the hall's frame: a point at [u, y, −s])
+  B.place([hx, 0, hz], yaw);
+  const P = (s: number, u: number, y: number): V3 => [u, y, -s];
+  const SOUTH: V3 = [0, 0, 1], NORTH: V3 = [0, 0, -1], EAST: V3 = [1, 0, 0];
+  const steel = 0xb4b8ba, frame = 0.08;
+  // the north end, black tiles
+  B.tint(0xffffff);
+  B.poly([P(s1, u0, g), P(s1, u1, g), P(s1, u1, top), P(s1, u0, top)], NORTH, 'gs-black-tiles', 1.2);
+  // the south end: black tiles either side of the doors, the doors glass in steel with a blue
+  // band across them, the sign over them
+  B.poly([P(s0, u0, g), P(s0, d0, g), P(s0, d0, top), P(s0, u0, top)], SOUTH, 'gs-black-tiles', 1.2);
+  B.poly([P(s0, d1, g), P(s0, u1, g), P(s0, u1, top), P(s0, d1, top)], SOUTH, 'gs-black-tiles', 1.2);
+  const signFoot = top - 0.62;
+  B.tint(0xc4d4dc);
+  B.poly([P(s0, d0, g), P(s0, d1, g), P(s0, d1, signFoot), P(s0, d0, signFoot)], SOUTH, 'gs-pane', 2);
+  B.tint(steel);
+  for (const u of [d0, (d0 + d1) / 2 - 0.02, (d0 + d1) / 2 + 0.02, d1]) B.box([u - frame / 2, g, -s0 - 0.05], [u + frame / 2, signFoot, -s0 + 0.05], 'metal', 1);
+  B.box([d0, g + 1.0, -s0 - 0.04], [d1, g + 1.12, -s0 + 0.04], 'metal', 1);
+  B.tint(0x1f3f8f);
+  B.box([d0, g + 1.12, -s0 - 0.04], [d1, g + 1.3, -s0 + 0.04], 'metal', 1);
+  B.tint(0xffffff);
+  B.poly([P(s0 - 0.06, d0 - 0.4, signFoot), P(s0 - 0.06, d1 + 0.4, signFoot), P(s0 - 0.06, d1 + 0.4, top), P(s0 - 0.06, d0 - 0.4, top)], SOUTH, 'gs-sign', 1,
+    [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  // the side to the street: glass in steel frames 1.2 m apart over a plinth of black tiles
+  const plinth = g + 0.45;
+  B.poly([P(s0, u1, g), P(s1, u1, g), P(s1, u1, plinth), P(s0, u1, plinth)], EAST, 'gs-black-tiles', 1.2);
+  B.tint(0xc4d4dc);
+  B.poly([P(s0, u1, plinth), P(s1, u1, plinth), P(s1, u1, top), P(s0, u1, top)], EAST, 'gs-pane', 2);
+  B.tint(steel);
+  const n = Math.round((s1 - s0) / 1.2);
+  for (let k = 0; k <= n; k++) {
+    const sk = s0 + ((s1 - s0) * k) / n;
+    B.box([u1 - 0.04, plinth, -sk - frame / 2], [u1 + 0.04, top, -sk + frame / 2], 'metal', 1);
+  }
+  B.box([u1 - 0.04, g + 1.1, -s1], [u1 + 0.04, g + 1.18, -s0], 'metal', 1);
+  // the roof: its fascia of brushed steel, its top
+  B.box([u0, top, -s1 - 0.1], [u1 + 0.1, top + VESTIBULE.roof, -s0 + 0.1], 'metal', 1, ['-x']);
+  B.tint(0x6b6d6e);
+  B.poly([P(s0 - 0.1, u0, top + VESTIBULE.roof + 0.01), P(s0 - 0.1, u1 + 0.1, top + VESTIBULE.roof + 0.01), P(s1 + 0.1, u1 + 0.1, top + VESTIBULE.roof + 0.01), P(s1 + 0.1, u0, top + VESTIBULE.roof + 0.01)], UP, 'roof', 2);
+  B.tint(0xe8e8e4);
+  B.poly([P(s0, u0, top - 0.01), P(s0, u1, top - 0.01), P(s1, u1, top - 0.01), P(s1, u0, top - 0.01)], DOWN, 'plaster', 2);
 }
 
 // ------------------------------------------------------------------ the station's south end
@@ -675,22 +755,40 @@ export function buildSouthEnd(B: Builder, ground: Ground) {
     loft(B, pz.map((z) => { const e = side(z); return [[e.x1, e.y, z], [e.x1, e.f1, z]] as V3[]; }), 'concrete', () => [1, 0, 0], 2);
     const e = side(PLATFORM_END);
     B.poly([[e.x0, e.f0, PLATFORM_END], [e.x1, e.f1, PLATFORM_END], [e.x1, e.y, PLATFORM_END], [e.x0, e.y, PLATFORM_END]], [0, 0, 1], 'concrete', 2);
-    // the canopy: a light roof on a row of posts down the middle
-    const CANOPY = { z0: BOX_END + 0.3, z1: PLATFORM_END - 2, h: 3.1 };
-    const cz = pz.filter((z) => z > CANOPY.z0 && z < CANOPY.z1).concat([CANOPY.z0, CANOPY.z1]).sort((p, q) => p - q);
-    B.tint(0xc9cbc8);
-    loft(B, cz.map((z) => { const c = side(z); return [[c.x0 + 0.5, c.y + CANOPY.h, z], [c.x1 - 0.5, c.y + CANOPY.h, z]] as V3[]; }), 'metal', () => UP, 2);
-    loft(B, cz.map((z) => { const c = side(z); return [[c.x0 + 0.5, c.y + CANOPY.h - 0.25, z], [c.x1 - 0.5, c.y + CANOPY.h - 0.25, z]] as V3[]; }), 'metal', () => DOWN, 2);
+    // over it, open frames of galvanised steel (photographs, 2023 and 2024): a square post down the
+    // middle every 6 m, a beam across on each, and a beam along either side over the long lamps
+    // hung under them; the station's name hung from the middle frame, facing along the platform
+    const F = { z0: BOX_END + 2.5, z1: PLATFORM_END - 1.5, h: 3.2, every: 5.5, along: 2.1 };
+    const frames: number[] = [];
+    for (let z = F.z0; z <= F.z1 + 1e-6; z += F.every) frames.push(z);
+    B.tint(GALVANISED);
+    for (const z of frames) {
+      const c = side(z), xm = (c.x0 + c.x1) / 2;
+      B.box([xm - 0.08, c.y, z - 0.08], [xm + 0.08, c.y + F.h + 0.14, z + 0.08], 'metal', 1, ['-y']);
+      B.box([xm - F.along - 0.4, c.y + F.h, z - 0.06], [xm + F.along + 0.4, c.y + F.h + 0.14, z + 0.06], 'metal', 1);
+    }
     for (const sd of [-1, 1]) {
-      loft(B, cz.map((z) => { const c = side(z), x = sd < 0 ? c.x0 + 0.5 : c.x1 - 0.5; return [[x, c.y + CANOPY.h, z], [x, c.y + CANOPY.h - 0.25, z]] as V3[]; }), 'metal', () => [sd, 0, 0], 2);
+      const at = (z: number, dy: number): V3 => { const c = side(z); return [(c.x0 + c.x1) / 2 + sd * F.along, c.y + F.h + dy, z]; };
+      const z0 = frames[0] - 1.5, z1 = frames[frames.length - 1] + 1.5;
+      B.tint(GALVANISED);
+      beam(B, at(z0, 0.14), at(z1, 0.14), 0.1, 0.14, 'metal');
+      // the lamp: a long round housing on rods, lit underneath
+      rod(B, at(z0 + 0.3, -0.3), at(z1 - 0.3, -0.3), 0.16, 0.14, 'metal');
+      for (const z of frames) rod(B, at(z, 0), at(z, -0.3), 0.03, 0.3, 'metal');
+      B.tint(0xffffff);
+      rod(B, at(z0 + 0.4, -0.44), at(z1 - 0.4, -0.44), 0.07, 0.01, 'gs-light');
     }
-    const c1 = side(CANOPY.z1);
-    B.poly([[c1.x0 + 0.5, c1.y + CANOPY.h - 0.25, CANOPY.z1], [c1.x1 - 0.5, c1.y + CANOPY.h - 0.25, CANOPY.z1], [c1.x1 - 0.5, c1.y + CANOPY.h, CANOPY.z1], [c1.x0 + 0.5, c1.y + CANOPY.h, CANOPY.z1]], [0, 0, 1], 'metal', 2);
-    B.tint(0x5d6064);
-    for (let z = CANOPY.z0 + 2; z < CANOPY.z1; z += 5) {
-      const c = side(z), x = (c.x0 + c.x1) / 2;
-      B.box([x - 0.12, c.y, z - 0.12], [x + 0.12, c.y + CANOPY.h - 0.25, z + 0.12], 'metal', 1);
+    const zm = frames[Math.floor(frames.length / 2)], cm = side(zm), xs = (cm.x0 + cm.x1) / 2 + 1.1;
+    B.tint(0x161718);
+    B.box([xs - 0.8, cm.y + 2.3, zm - 0.04], [xs + 0.8, cm.y + 2.7, zm + 0.04], 'metal', 1);
+    B.tint(0xffffff);
+    for (const d of [-1, 1]) {
+      const zf = zm + d * 0.045;
+      B.poly([[xs - 0.8, cm.y + 2.3, zf], [xs + 0.8, cm.y + 2.3, zf], [xs + 0.8, cm.y + 2.7, zf], [xs - 0.8, cm.y + 2.7, zf]], [0, 0, d], 'gs-name', 1,
+        d > 0 ? [[0, 0], [1, 0], [1, 1], [0, 1]] : [[1, 0], [0, 0], [0, 1], [1, 1]]);
     }
+    B.tint(GALVANISED);
+    for (const x of [xs - 0.6, xs + 0.6]) B.box([x - 0.015, cm.y + 2.7, zm - 0.015], [x + 0.015, cm.y + F.h, zm + 0.015], 'metal', 1);
   }
   B.place([0, 0, 0], 0);
 }

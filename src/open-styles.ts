@@ -38,7 +38,8 @@ export interface OpenStyle {
   // another platform beside it; or several such rows
   benches?: Benches | Benches[];
   // under a hall rather than a roof, the line down the middle of the platform the benches follow,
-  // through these [s, u] (along s at u 0 without)
+  // through these [s, u] (along s at u 0 without; or a row's own `middle`, one down each of two
+  // islands)
   middle?: [number, number][];
   // glass shelters on the platform, from s[0] to s[1] and u[0] to u[1] across the line down its
   // middle, glazed along both sides and open at the ends, with a bench inside; out in the open,
@@ -67,7 +68,7 @@ export function hallDrawn(x: number, z: number) {
   return false;
 }
 
-export interface Benches { at: number[]; across?: boolean; double?: boolean; wood?: boolean; roof?: number }
+export interface Benches { at: number[]; across?: boolean; double?: boolean; wood?: boolean; roof?: number; middle?: [number, number][] }
 
 // A roof whose two halves slope down to a valley along its middle, held up by a row of columns
 // down the middle of the platform under a beam along the valley.
@@ -204,6 +205,11 @@ export interface Paving {
   // thin lines of brass let into it, crossing it in long triangles that repeat `every` m along
   // the platform (Liljeholmen's terrazzo)
   lines?: { color: number; every: number };
+  // Göran Dahl's patterns let into the polished granite (Gamla stan's, 1998), in `color`, from
+  // `from` m in from the edge to the platform's middle, repeating `every` m along it: square-cut
+  // keys hooked into each other (`keys`), or broad wavy bands woven over and under each other
+  // (`waves`); the islands on the hall's left (−u) in `left`'s
+  dahl?: { color: number; from: number; every: number; pattern: 'keys' | 'waves'; left?: 'keys' | 'waves' };
 }
 
 // The finishes in a box: from `s[0]` to `s[1]` along, across `u` (all of it by default), and
@@ -479,7 +485,13 @@ export type Finish =
   | 'speckledGranite' // polished dark grey granite speckled black and white, in slabs 0.6 by 1.2 m
   | 'slussenNavy'     // glossy tiles on end, 10 by 20 cm, a near-black navy, in white joints
   | 'fogdeWall'       // pale pink-white terrazzo, angular fields of black and cork brown, coloured enamel plates in groups on it (Sune Fogde's)
-  | 'oxbloodTerrazzo'; // dark red-brown terrazzo in 1.2 m squares, a floor's
+  | 'oxbloodTerrazzo' // dark red-brown terrazzo in 1.2 m squares, a floor's
+  | 'gsBlueTiles'     // glossy tiles, 10 cm, blues from navy to white at random, a steel coping (beyond Gamla stan's western track)
+  | 'gsEastWindows'   // tiles, 15 cm, two sea greens at random, frosted glass in grey frames over them, posters on them (beyond its eastern track)
+  | 'gsEastSlats'     // the same tiles, and over them a screen of upright grey steel slats, open between them
+  | 'gsHallTiles'     // glossy tiles, 15 cm, a mottled turquoise, a thin yellow line at 2.6 m (Gamla stan's ticket hall)
+  | 'gsHallFloor'     // pale grey speckled stone in 0.6 m squares, thin orange-red lines crossing them on the diagonal
+  | 'gsSoffit';       // dark charcoal concrete cast against boards 15 cm wide, their ends staggered
 
 // A building's shell round the quadrilateral `plan` ([s, u], in order round it): its walls from
 // `from` (the platform's level by default) up to `h[1]` (concrete below, down to `h[0]`), a roof
@@ -529,7 +541,8 @@ export interface Block {
 }
 
 export type Art = Guardian | Stacks | Panels | Masts | Mural | Chairs | Roundel | GlassStacks | GlassPosts | Figure | FoolsShip | Cone | Growth | Ruler | Stone | Columns | Tulip | Bird | Rooflights | Checks | Birches | LightBoxes | SlabBenches | BronzeFrames | Mushrooms | NeonBoxes | Capitals | Traveller | CastColumn
-  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil | Staves | Ceiling;
+  | TramTrack | Catenary | EdgePaving | Revolver | DeckCeiling | Wreath | Penguin | CrossVault | Sawtooth | Gallery | Globes | Discs | PrismRods | Coil | Staves | Ceiling
+  | Girders;
 
 // A tall, thin bronze figure on a dark stone plinth, at s, u, facing `turn` (radians from
 // looking along the platform, to the right), beside a dark casing round the column at the same
@@ -653,6 +666,21 @@ export interface Ceiling {
   kind: 'ceiling'; h: number; finish: Finish; s: [number, number]; u: [number, number];
   strips?: { points: [number, number][]; width: number; h: number; finish: Finish }[];
   lamps?: [number, number][][]; lampAt?: number;
+}
+
+// The underside of a deck over a platform hall a station draws itself (Gamla stan's, under
+// Centralbron): concrete cast against boards (`finish`) `h` high from s[0] to s[1], across from
+// the line `sides[0]` to the line `sides[1]` ([s, u] points), and under it steel beams painted
+// `color`, `beam` across and deep: across the hall every `every` m (one at `at`), and along it on
+// the lines `along` ([s, u] points); strip lights in long
+// round galvanised housings end to end along each of `lamps` ([s, u] points), hung `lampAt` high;
+// round clocks hung from the beams at `clocks` ([s, u]), a face each way along the platform; and
+// black signs with the station's name, 2.4 by 0.5 m from `bottom` up, a lamp over each, hung
+// along the platform at `signs` ([s, u]). Cut where the station's stairs climb through it.
+export interface Girders {
+  kind: 'girders'; s: [number, number]; sides: [[number, number][], [number, number][]]; h: number; finish: Finish; color: number;
+  every: number; at: number; beam: [number, number]; along: [number, number][][];
+  lamps: [number, number][][]; lampAt: number; clocks?: [number, number][]; signs?: [number, number][]; bottom?: number;
 }
 
 export interface Coil { kind: 'coil'; s: number; u: number; h: number; yaw: number; r: number; bend: number; turn: number; loops: number; band: number; ceiling: number }
@@ -862,9 +890,12 @@ export interface NeonBoxes { kind: 'neonBoxes'; at: [number, number][]; size: [n
 // railings of upright bars between a top rail and a bottom one (`bars`, in `color` if given); or a
 // wall `thick` thick, both its faces in `finish` (`wall`: the walls of a platform hall a station
 // draws itself, Slussen's, which bend with the track), cut where the station's spaces pass
-// through it.
+// through it; or Britta Carlström's fence between Gamla stan's red-line tracks (`carlstrom`,
+// 1998): panels of black welded mesh between black posts 3 m apart, flat bars woven through
+// them, and at their foot, in every other gap between the posts, a box of terracotta-red sheet
+// steel, from h[0] to 1 m under h[1].
 export interface Fence {
-  points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass' | 'rails' | 'bars' | 'wall';
+  points: ([number, number] | [number, number, number])[]; h: [number, number]; kind?: 'chainLink' | 'boards' | 'louvres' | 'glass' | 'rails' | 'bars' | 'wall' | 'carlstrom';
   color?: number; leaves?: boolean; finish?: Finish; thick?: number;
 }
 
@@ -894,6 +925,17 @@ export interface Fence {
 //
 // Chain-link fences on galvanised posts run beyond both tracks, with the wooded slope behind the
 // eastern one and the yellow houses of Lingvägen beyond the western.
+// Gamla stan's hall in its frame (see its style): the walls beyond its outer tracks, 2.6 m out
+// from them, and the middles of its two islands.
+const GS_WEST_WALL: [number, number][] = [[-68, -11.85], [-66, -12.13], [-60, -12.95], [-54, -13.62], [-48, -14.20], [-42, -14.58], [-36, -14.93], [-30, -15.24], [-24, -15.49], [-18, -15.72], [-12, -15.86], [-6, -15.97], [0, -16.03], [6, -16.06], [12, -16.07], [18, -16.03], [24, -15.96], [30, -15.85], [36, -15.69], [42, -15.50], [48, -15.26], [54, -14.99], [60, -14.65], [66, -14.18]];
+const GS_EAST_WALL: [number, number][] = [[-68, 19.01], [-66, 18.93], [-60, 18.67], [-54, 18.34], [-48, 17.89], [-42, 17.46], [-36, 17.05], [-30, 16.74], [-24, 16.48], [-18, 16.29], [-12, 16.15], [-6, 16.05], [0, 16.03], [6, 16.06], [12, 16.15], [18, 16.29], [24, 16.46], [30, 16.69], [36, 16.95], [42, 17.25], [48, 17.57], [54, 17.89], [60, 18.21], [66, 18.47]];
+// (the deck's underside reaches out to the outer faces of the walls round the station, where the
+// bridge's edge and the station's own roof stand: src/detail/gamla-stan.ts)
+const GS_WEST_EAVES: [number, number][] = [[-68, -12.56], [-66, -12.69], [-60, -13.31], [-54, -13.93], [-48, -14.54], [-42, -15.16], [-36, -15.63], [-30, -15.85], [-24, -16.07], [-18, -16.30], [-12, -16.52], [-6, -16.65], [0, -16.65], [6, -16.65], [12, -16.65], [18, -16.65], [24, -16.59], [30, -16.43], [36, -16.27], [42, -16.11], [48, -15.95], [54, -15.64], [60, -15.11], [66, -14.58]];
+const GS_EAST_EAVES: [number, number][] = [[-68, 19.63], [-66, 19.59], [-60, 19.21], [-54, 18.83], [-48, 18.45], [-42, 18.07], [-36, 17.71], [-30, 17.51], [-24, 17.31], [-18, 17.11], [-12, 16.91], [-6, 16.73], [0, 16.81], [6, 16.89], [12, 16.96], [18, 17.04], [24, 17.14], [30, 17.42], [36, 17.70], [42, 17.97], [48, 18.25], [54, 18.53], [60, 18.73], [66, 18.92]];
+const GS_WEST_MIDDLE: [number, number][] = [[-68, -3.81], [-66, -4.04], [-60, -4.74], [-54, -5.34], [-48, -5.88], [-42, -6.28], [-36, -6.64], [-30, -6.96], [-24, -7.22], [-18, -7.44], [-12, -7.58], [-6, -7.69], [0, -7.75], [6, -7.78], [12, -7.80], [18, -7.75], [24, -7.68], [30, -7.56], [36, -7.40], [42, -7.22], [48, -6.98], [54, -6.70], [60, -6.37], [66, -5.95]];
+const GS_EAST_MIDDLE: [number, number][] = [[-68, 11.08], [-66, 10.93], [-60, 10.51], [-54, 10.07], [-48, 9.59], [-42, 9.16], [-36, 8.76], [-30, 8.46], [-24, 8.21], [-18, 8.02], [-12, 7.88], [-6, 7.78], [0, 7.76], [6, 7.79], [12, 7.87], [18, 8.02], [24, 8.19], [30, 8.42], [36, 8.68], [42, 8.97], [48, 9.28], [54, 9.61], [60, 9.93], [66, 10.23]];
+
 export const OPEN_STYLES: Record<string, OpenStyle> = {
   'Gubbängen': {
     roof: {
@@ -9553,6 +9595,108 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // the granite columns down the islands' middles
       { kind: 'columns', size: 0.8, from: 0, to: 3.3, color: 0x4a4b4a, square: 'speckledGranite',
         at: [[-67.5, -16.03], [-58.5, -14.11], [-49.5, -12.45], [-40.5, -11.05], [-31.5, -9.92], [-22.5, -9.06], [-13.5, -8.46], [31.5, -9.2], [40.5, -10.07], [49.5, -11.11], [58.5, -12.4], [67.5, -13.94], [-67.5, 1.13], [-58.5, 2.83], [-49.5, 4.27], [-40.5, 5.49], [-31.5, 6.49], [-22.5, 7.24], [-13.5, 7.74], [31.5, 6.74], [40.5, 5.92], [49.5, 4.86], [58.5, 3.63], [67.5, 2.23]] },
+    ],
+  },
+  // Gamla stan (24 November 1957 for the green line; four tracks for the red line from 1964;
+  // renewed in 1997 and 1998, when it was given its art): two island platforms on the west shore of
+  // Stadsholmen between Munkbroleden and the railway along Munkbrohamnen, the northbound trains at
+  // the western island and the southbound at the eastern, each line's on the inner side (Swedish
+  // Wikipedia; OpenStreetMap, 2026). The platforms lie under Centralbron's deck at their northern
+  // half and under the station's own low roof at the rest, which the station draws itself (`hall`)
+  // as one hall. From photographs (Tim Kynerd, 2002; Wikimedia Commons, 1994 to 2024):
+  //
+  // The floor is Göran Dahl's (1998): polished granite in 1.2 m squares, pale and speckled, and let
+  // into it black cement mosaic, on the western island keys hooked into each other and on the
+  // eastern broad wavy bands woven over and under each other, after the medieval weaves (and the
+  // Vädersolstavlan's sky) of the old town; along the edges pale stone, and two pairs of brass
+  // strips for the blind. Over it the deck's underside, dark concrete cast against boards, and under
+  // it steel beams painted a dark grey-green, across the hall and along the islands' middles, on a
+  // row of slender round columns, pale sage green, down each island; long round lamps hung on rods
+  // along both sides of each island, black name signs lit from above, and clocks. Between the red
+  // tracks Britta Carlström's fence (1998), black mesh with flat bars woven through it, terracotta
+  // boxes at its foot. Beyond the northbound green track a low wall of glossy tiles in blues and
+  // white under a steel coping, a fence of rusty brown bars on it, and over it the hall is open to
+  // the railway and the water; beyond the southbound one, sea-green tiles to a sill and over them
+  // frosted glass in grey frames with posters on it under the bridge, and further south a screen
+  // of grey steel slats along Munkbroleden.
+  //
+  // Halfway along the southern half on each island a glass enclosure (glass in steel frames on a
+  // low base of the blue tiles, its ends tiled to the top), the stairs inside it climbing from each
+  // end down towards its middle (OpenStreetMap's indoor ways, 2024: their tops 24 m and 41 m south
+  // of the platforms' middle, their feet meeting at 33 m), to a passage under the tracks and the
+  // ticket hall across under them all at the platforms' south end: walls and square columns in
+  // mottled turquoise tiles, the columns' white capitals spreading under a white ceiling, a floor
+  // of pale speckled stone with thin orange-red lines across it, and the gates. From it a passage
+  // west and stairs up to the quay, stairs east up to the glass vestibule on Munkbroleden, and a
+  // passage on under Munkbroleden to Mälartorget.
+  //
+  // Not drawn: the departure displays, the cameras, the booths, the posters' pictures (generic
+  // here), the benches' real places. Guesses: the enclosures' places across the islands (the
+  // photographs put the eastern one east of its island's middle, OpenStreetMap west of it; the
+  // western mirrored), the ceiling's height (3.45 m, as the laser scan's roof less the deck), the
+  // beams' spacing, the hall's height and the passages' finishes.
+  'Gamla stan': {
+    hall: { at: [445.52, 908.66, 0.44819], s: [-68, 66], u: [-22, 24] },
+    paving: {
+      edge: 0.85, edgeTile: [0.85, 1.2], tactile: [1.0, 1.15], studColor: 0xb08d3c, slabs: 0,
+      colors: { edge: 0xd6d4cd, tactile: 0x9a9c9a, slab: 0xa6a8a6, pavers: 0xa6a8a6, face: 0x4c4d4c },
+      pattern: 'grid', dahl: { color: 0x29292b, from: 1.5, every: 4.8, pattern: 'waves', left: 'keys' },
+    },
+    rooms: [
+      // the ticket hall across under the platforms' south end, and the passages under the tracks
+      { name: 'ticket hall', s: [-52, -40.5], u: [-30, 19], h: [-5.5, -3.5], walls: 'gsHallTiles', floor: 'gsHallFloor', ceiling: 'whitePanels', stairs: 'gsHallTiles' },
+      // the stairs in their glass enclosures, the walls beside them in the blue tiles up to a low sill
+      { name: 'western stairs', s: [-45, -20], u: [-10.5, -5], h: [-5.5, -4], walls: 'gsBlueTiles', floor: 'gsHallFloor', ceiling: 'whitePanels', stairs: 'gsBlueTiles', sill: 0.45 },
+      { name: 'eastern stairs', s: [-45, -20], u: [7, 12.5], h: [-5.5, -4], walls: 'gsBlueTiles', floor: 'gsHallFloor', ceiling: 'whitePanels', stairs: 'gsBlueTiles', sill: 0.45 },
+      // the passage west and the stairs up to the quay; the stairs up to Munkbroleden, which the
+      // vestibule's black tiles line; the passage on to Mälartorget
+      { name: 'way to the quay', s: [-52, -34], u: [-40, -14], h: [-5.5, 0], walls: 'squareTiles', floor: 'greyTiles', ceiling: 'whitePanels', stairs: 'squareTiles' },
+      { name: 'stairs to Munkbroleden', s: [-60, -34], u: [14, 30], h: [-5.5, 0], walls: 'blackTiles', floor: 'greyTiles', ceiling: 'whitePanels', stairs: 'blackTiles' },
+      { name: 'passage to Mälartorget', s: [-45, -20], u: [12, 70], h: [-5.5, 0], walls: 'gsHallTiles', floor: 'gsHallFloor', ceiling: 'whitePanels', stairs: 'gsHallTiles' },
+      { name: 'passages under the tracks', s: [-45, -20], u: [-30, 30], h: [-5.5, -3.5], walls: 'gsHallTiles', floor: 'gsHallFloor', ceiling: 'whitePanels' },
+    ],
+    // wooden benches back to back down each island's middle
+    benches: [
+      { at: [-53.5, -11.5, 9.5, 30.5, 51.5], double: true, wood: true, middle: GS_WEST_MIDDLE },
+      { at: [-53.5, -11.5, 9.5, 30.5, 51.5], double: true, wood: true, middle: GS_EAST_MIDDLE },
+    ],
+    fences: [
+      // beyond the western track, the low tiled wall and the bars on it; beyond the eastern, the
+      // tiles and the glass under the bridge, the tiles and the slats under the station's roof
+      { kind: 'wall', finish: 'gsBlueTiles', thick: 0.3, h: [-1.6, 1.1], points: GS_WEST_WALL },
+      { kind: 'bars', color: 0x5b4434, h: [1.1, 2.6], points: GS_WEST_WALL },
+      { kind: 'wall', finish: 'gsEastSlats', thick: 0.3, h: [-1.6, 3.45], points: [[-68, 19.01], [-66, 18.93], [-60, 18.67], [-54, 18.34], [-48, 17.89], [-42, 17.46], [-36, 17.05], [-30, 16.74], [-24, 16.48], [-18, 16.29], [-12, 16.15], [-6, 16.05], [-5, 16.04]] },
+      { kind: 'wall', finish: 'gsEastWindows', thick: 0.3, h: [-1.6, 3.45], points: [[-5, 16.04], [0, 16.03], [6, 16.06], [12, 16.15], [18, 16.29], [24, 16.46], [30, 16.69], [36, 16.95], [42, 17.25], [48, 17.57], [54, 17.89], [60, 18.21], [66, 18.47]] },
+      // Carlström's fence, midway between the red tracks
+      { kind: 'carlstrom', h: [-1.6, 1.0], points: [[-68, 3.69], [-66, 3.50], [-60, 2.91], [-54, 2.37], [-48, 1.86], [-42, 1.44], [-36, 1.06], [-30, 0.75], [-24, 0.50], [-18, 0.29], [-12, 0.15], [-6, 0.05], [0, 0.00], [6, 0.00], [12, 0.04], [18, 0.14], [24, 0.26], [30, 0.44], [36, 0.64], [42, 0.87], [48, 1.15], [54, 1.45], [60, 1.79], [66, 2.14]] },
+      // the enclosures round the stairs: glass along their sides, open at their ends' sides, the
+      // ends tiled
+      { kind: 'glass', h: [0.45, 2.6], points: [[-23, -9.2], [-42, -8.25]] },
+      { kind: 'glass', h: [0.45, 2.6], points: [[-23, -6.8], [-42, -5.85]] },
+      { kind: 'glass', h: [0.45, 2.6], points: [[-23, 7.8], [-42, 8.75]] },
+      { kind: 'glass', h: [0.45, 2.6], points: [[-23, 10.2], [-42, 11.15]] },
+      { kind: 'wall', finish: 'gsBlueTiles', thick: 0.2, h: [0, 2.6], points: [[-21, -9.3], [-21, -6.7]] },
+      { kind: 'wall', finish: 'gsBlueTiles', thick: 0.2, h: [0, 2.6], points: [[-44, -8.15], [-44, -5.55]] },
+      { kind: 'wall', finish: 'gsBlueTiles', thick: 0.2, h: [0, 2.6], points: [[-21, 7.7], [-21, 10.3]] },
+      { kind: 'wall', finish: 'gsBlueTiles', thick: 0.2, h: [0, 2.6], points: [[-44, 8.85], [-44, 11.45]] },
+    ],
+    art: [
+      // the deck's underside, its beams, lamps, clocks and signs
+      { kind: 'girders', s: [-68, 66], sides: [GS_WEST_EAVES, GS_EAST_EAVES], h: 3.45, finish: 'gsSoffit', color: 0x404a47,
+        every: 3.6, at: 0, beam: [0.3, 0.45], along: [GS_WEST_MIDDLE, GS_EAST_MIDDLE], lampAt: 2.85, bottom: 2.2,
+        lamps: [
+          [[-66, -6.44], [-60, -7.14], [-54, -7.74], [-48, -8.28], [-42, -8.68], [-36, -9.04], [-30, -9.36], [-24, -9.62], [-18, -9.84], [-12, -9.98], [-6, -10.09], [0, -10.15], [6, -10.18], [12, -10.20], [18, -10.15], [24, -10.08], [30, -9.96], [36, -9.80], [42, -9.62], [48, -9.38], [54, -9.10], [60, -8.77]],
+          [[-66, -1.64], [-60, -2.34], [-54, -2.94], [-48, -3.48], [-42, -3.88], [-36, -4.24], [-30, -4.56], [-24, -4.82], [-18, -5.04], [-12, -5.18], [-6, -5.29], [0, -5.35], [6, -5.38], [12, -5.40], [18, -5.35], [24, -5.28], [30, -5.16], [36, -5.00], [42, -4.82], [48, -4.58], [54, -4.30], [60, -3.97]],
+          [[-66, 8.53], [-60, 8.11], [-54, 7.67], [-48, 7.19], [-42, 6.76], [-36, 6.36], [-30, 6.06], [-24, 5.81], [-18, 5.62], [-12, 5.48], [-6, 5.38], [0, 5.36], [6, 5.39], [12, 5.47], [18, 5.62], [24, 5.79], [30, 6.02], [36, 6.28], [42, 6.57], [48, 6.88], [54, 7.21], [60, 7.53]],
+          [[-66, 13.33], [-60, 12.91], [-54, 12.47], [-48, 11.99], [-42, 11.56], [-36, 11.16], [-30, 10.86], [-24, 10.61], [-18, 10.42], [-12, 10.28], [-6, 10.18], [0, 10.16], [6, 10.19], [12, 10.27], [18, 10.42], [24, 10.59], [30, 10.82], [36, 11.08], [42, 11.37], [48, 11.68], [54, 12.01], [60, 12.33]],
+        ],
+        clocks: [[-11.5, -7.59], [30.5, -7.55], [-11.5, 7.87], [30.5, 8.44]],
+        signs: [[-60.5, -4.68], [-18.5, -7.43], [2.5, -7.78], [23.5, -7.69], [44.5, -7.12], [-60.5, 10.55], [-18.5, 8.03], [2.5, 7.75], [23.5, 8.17], [44.5, 9.09]] },
+      // the columns down the islands' middles (none by the stairs' enclosures)
+      { kind: 'columns', size: 0.32, from: 0, to: 3.0, color: 0xa3b8ac,
+        at: [[-64, -4.27], [-57, -5.07], [-50, -5.70], [-15, -7.52], [-8, -7.67], [-1, -7.74], [6, -7.78], [13, -7.79], [20, -7.73], [27, -7.62], [34, -7.46], [41, -7.25], [48, -6.98], [55, -6.65], [62, -6.25], [-64, 10.79], [-57, 10.30], [-50, 9.75], [-15, 7.94], [-8, 7.80], [-1, 7.76], [6, 7.79], [13, 7.89], [20, 8.07], [27, 8.31], [34, 8.59], [41, 8.92], [48, 9.28], [55, 9.66], [62, 10.04]] },
+      // the ticket hall's tiled columns by the gates, their white capitals
+      { kind: 'capitals', at: [[-40.5, -2.6], [-40.5, 3.6]], size: 0.55, tiles: 'gsHallTiles', from: -4.8, flare: -2.75, head: 1.3, ceiling: -2.2 },
     ],
   },
 };

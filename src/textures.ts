@@ -4473,8 +4473,9 @@ const css = (n: number, k = 0) => {
 // v along it, PAVING_REPEAT m a repeat (or its lines' repeat: pavingRepeat): the edge stones, the
 // ribbed strip for the blind, pale slabs, then pavers.
 export const PAVING_ACROSS = 8, PAVING_REPEAT = 2.4;
-export const pavingRepeat = (p: Paving) => p.lines?.every ?? p.fields?.every ?? PAVING_REPEAT;
-export function openPaving(p: Paving) {
+export const pavingRepeat = (p: Paving) => p.lines?.every ?? p.fields?.every ?? p.dahl?.every ?? PAVING_REPEAT;
+// (`left`: an island on the hall's left, in Dahl's other pattern)
+export function openPaving(p: Paving, left = false) {
   const PX = 100, W = PAVING_ACROSS * PX, H = pavingRepeat(p) * PX, [c, x] = canvas(W, H);
   const r = rng(1950), C = p.colors;
   const joint = css(C.pavers, -34);
@@ -4483,7 +4484,9 @@ export function openPaving(p: Paving) {
   x.fillStyle = joint; x.fillRect(0, 0, W, H);
   const [plm, pwm] = p.paverSize ?? [0.24, 0.12], pw = pwm * PX, pl = plm * PX;
   const tone = () => css(p.mix && r() < p.mix ? C.paler ?? C.pavers : C.pavers, Math.floor(r() * 14) - 7);
-  if (p.pattern === 'bond' || p.pattern === 'grid') {
+  if (p.dahl) {
+    gamlaStanFloor(x, W, H, PX, p, left && p.dahl.left ? p.dahl.left : p.dahl.pattern, r);
+  } else if (p.pattern === 'bond' || p.pattern === 'grid') {
     // (a grid: the same, without the half offset; square tiles in straight rows both ways)
     const off = p.pattern === 'bond' ? pl / 2 : 0;
     for (let i = 0; i * pw < W; i++) for (let j = -1; j * pl < H; j++) {
@@ -4611,6 +4614,62 @@ export function openPaving(p: Paving) {
   return toTexture(c);
 }
 
+// Gamla stan's platforms (Göran Dahl, 1998): polished granite in 1.2 m squares, a pale grey
+// speckled black and white, in thin pale joints, and let into it from `dahl.from` m in, black
+// cement mosaic in one of his two patterns (photographs, 2016 to 2024): on the northbound island
+// square-cut strips hooked into each other in keys, frets and Ts, in a band down its middle; on the
+// southbound broad wavy bands, woven over and under each other along the platform, each edged in
+// white where it crosses another.
+function gamlaStanFloor(x: CanvasRenderingContext2D, W: number, H: number, PX: number, p: Paving, pattern: 'keys' | 'waves', r: () => number) {
+  const D = p.dahl!, ink = css(D.color), from = D.from * PX;
+  x.fillStyle = css(p.colors.pavers); x.fillRect(0, 0, W, H);
+  speckle(x, W, H, 26000, 0.3, 1998); speckle(x, W, H, 16000, 0.3, 1999, true);
+  if (pattern === 'keys') {
+    // a grid of 0.3 m cells, a stroke 7 cm wide along some of their sides; each cell's strokes a
+    // key's: an L, a T or a hook, turned at random, so that they meet their neighbours' in frets
+    const g = 0.3 * PX, sw = 0.07 * PX, cols = Math.floor((W - from) / g), rows = Math.round(H / g);
+    const glyphs = [[[0, 0, 1, 0], [1, 0, 1, 1]], [[0, 0, 1, 0], [0.5, 0, 0.5, 1]], [[0, 0, 0, 1], [0, 1, 1, 1], [1, 1, 1, 0.5]], [[0, 0.5, 1, 0.5], [1, 0.5, 1, 1]]];
+    x.fillStyle = ink;
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      if (r() < 0.18) continue;
+      const gl = glyphs[Math.floor(r() * glyphs.length)], turn = Math.floor(r() * 4);
+      for (const [a, b, c2, d] of gl) {
+        // (turned a quarter at a time about the cell's middle)
+        const rot = (u: number, v: number): [number, number] => {
+          let pu = u - 0.5, pv = v - 0.5;
+          for (let t = 0; t < turn; t++) [pu, pv] = [-pv, pu];
+          return [pu + 0.5, pv + 0.5];
+        };
+        const [u0, v0] = rot(a, b), [u1, v1] = rot(c2, d);
+        const X0 = from + (Math.min(u0, u1) + i) * g, Y0 = (Math.min(v0, v1) + j) * g;
+        x.fillRect(X0 - sw / 2, Y0 - sw / 2, Math.abs(u1 - u0) * g + sw, Math.abs(v1 - v0) * g + sw);
+      }
+    }
+  } else {
+    // bands 0.16 m wide, waving 0.22 m either side of lines 0.55 m apart, a wave each 1.2 m; each
+    // band half a wave behind the next, so that they cross, and woven: drawn in turn over a pale
+    // edge, every other crossing the later one under
+    const bw = 0.16 * PX, amp = 0.22 * PX, gap = 0.55 * PX, wave = 1.2 * PX;
+    const n = Math.ceil((W - from) / gap) + 1;
+    const path = (k: number) => {
+      x.beginPath();
+      for (let v = -4; v <= H + 4; v += 4) {
+        const u = from + k * gap + Math.sin((v / wave) * Math.PI * 2 + (k % 2) * Math.PI) * amp + Math.sin((v / wave) * Math.PI * 4 + k) * amp * 0.25;
+        if (v === -4) x.moveTo(u, v); else x.lineTo(u, v);
+      }
+    };
+    x.lineCap = 'round';
+    for (let k = 0; k < n; k++) {
+      path(k); x.strokeStyle = 'rgba(232,232,226,0.9)'; x.lineWidth = bw + 0.035 * PX; x.stroke();
+      path(k); x.strokeStyle = ink; x.lineWidth = bw; x.stroke();
+    }
+  }
+  // the joints, every 1.2 m both ways, over it
+  x.fillStyle = 'rgba(214,214,206,0.7)';
+  for (let u = 0; u < W; u += 1.2 * PX) x.fillRect(u, 0, 1.2, H);
+  for (let v = 0; v < H; v += 1.2 * PX) x.fillRect(0, v, W, 1.2);
+}
+
 // The face of a platform's edge over the track: dark grey, with a bracket every 1.2 m. u up the
 // face from the track bed (0) to the platform's top (1), v along, FACE_REPEAT m a repeat.
 export const FACE_REPEAT = 1.2;
@@ -4697,6 +4756,34 @@ export function barRailing(color = '#1d1f21') {
   x.fillStyle = color;
   x.fillRect(0, 0, W, 9); x.fillRect(0, H - 12, W, 6);
   for (let i = 0; i < 10; i++) x.fillRect(i * W / 10 + 7, 0, 4, H - 6);
+  return toTexture(c);
+}
+
+// Britta Carlström's fence between Gamla stan's red-line tracks (1998): black welded mesh, 5 cm,
+// and flat bars woven through it, over and under each other in a lattice of long diamonds. 1.5 m
+// along to a repeat, u; v up its whole height. Clear between the wires.
+export function wovenMesh() {
+  const W = 300, H = 300, [c, x] = canvas(W, H);
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = '#1b1c1d';
+  for (let i = 0; i < 30; i++) x.fillRect(i * 10, 0, 2, H);
+  for (let j = 0; j < 30; j++) x.fillRect(0, j * 10, W, 2);
+  // the bars: two families of diagonals, each 6 px wide, woven: where they cross, the one on top
+  // drawn whole and the other broken round it
+  const bar = (k: number, dir: number, shade: string) => {
+    x.strokeStyle = shade; x.lineWidth = 7;
+    x.beginPath(); x.moveTo(k, dir > 0 ? 0 : H); x.lineTo(k + W / 2, dir > 0 ? H : 0); x.stroke();
+  };
+  for (let k = -W; k < W; k += 75) bar(k, 1, '#232526');
+  for (let k = -W; k < W; k += 75) bar(k, -1, '#2a2c2e');
+  // (over and under: a dark nick on every other crossing)
+  x.fillStyle = '#0c0d0e';
+  for (let k = -W; k < W; k += 75) for (let m = -W; m < W; m += 75) {
+    const cx = (k + m + H) / 2, cy = (H - (m - k) ) / 2;
+    if (cx < 0 || cx > W || cy < 0 || cy > H || (Math.round((k - m) / 75) & 1)) continue;
+    x.fillRect(cx - 4, cy - 1, 8, 2);
+  }
+  x.fillRect(0, 0, W, 5); x.fillRect(0, H - 5, W, 5);
   return toTexture(c);
 }
 
@@ -5972,6 +6059,7 @@ export function smallSetts() {
 // (across, and up a wall or along a floor). Walls are drawn as seen, from the floor up; their
 // glass is left clear (the glass itself is drawn apart). `clamp`: drawn to a height, not repeating.
 export const FINISH_SIZE: Record<Finish, [number, number]> = {
+  gsBlueTiles: [1.2, 1.2], gsEastWindows: [4.8, 5], gsEastSlats: [1.2, 5], gsHallTiles: [1.2, 3], gsHallFloor: [2.4, 2.4], gsSoffit: [2.4, 2.4],
   clerestory: [1.2, 4], windows: [1.2, 4], glazed: [1.2, 1.8], yellowTiles: [1.2, 1.2], boardConcrete: [2.4, 2.4],
   darkStone: [2.4, 2.4], pavers: [2.4, 2.4], triangles: [2.4, 2.4], slats: [1.2, 1.2],
   whiteTiles: [1.2, 2.4], terrazzo: [2.4, 2.4], whitePanels: [1.2, 2.4], greyTiles: [2.4, 2.4], redLineTiles: [1.2, 2.4],
@@ -6033,10 +6121,10 @@ export const FINISH_SIZE: Record<Finish, [number, number]> = {
   sundbergScreens: [13.2, 4.5], slussenAdWall: [7.2, 4.5], slussenCeiling: [2.4, 2.4], slussenSoffit: [2.4, 2.4], speckledGranite: [1.2, 1.2], slussenNavy: [1.2, 1.2],
   fogdeWall: [9.6, 3.0], oxbloodTerrazzo: [2.4, 2.4],
 };
-export const FINISH_GLASS: Finish[] = ['clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated', 'sundbergScreens'];
+export const FINISH_GLASS: Finish[] = ['gsEastSlats', 'clerestory', 'windows', 'glazed', 'darkGlazed', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'liftWindows', 'redWindows', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'darkWindows', 'blackFront', 'redFront', 'bronzeGlazed', 'clinkerWindows', 'greyClerestory', 'roxnerClerestory', 'greyGlazed', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'bandGlazed', 'tricolourWindows', 'greyBooth', 'blueBooth', 'aspuddenPavilion', 'bredangHall', 'bredangFront', 'satraHouse', 'satraEntrance', 'vbgFront', 'fittjaHall', 'fittjaShops', 'albyFront', 'hallundaGlazed', 'hallundaMesh', 'hallundaFront', 'norsborgGlazed', 'kistaGlazed', 'kistaPerforated', 'sundbergScreens'];
 // glass finishes whose clear parts are open, with no pane behind them: Sundberg's screens
-export const FINISH_OPEN: Finish[] = ['sundbergScreens'];
-export const FINISH_CLAMP: Finish[] = ['clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate', 'sundbergScreens', 'slussenAdWall', 'fogdeWall'];
+export const FINISH_OPEN: Finish[] = ['sundbergScreens', 'gsEastSlats'];
+export const FINISH_CLAMP: Finish[] = ['gsEastWindows', 'gsEastSlats', 'gsHallTiles', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'shutter', 'blueGlazed', 'blueClerestory', 'steelFront', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'libraryFront', 'libraryBack', 'libraryEntrance', 'brownWindows', 'steelGlazed', 'tealTiles', 'darkWindows', 'blackFront', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'clinkerWindows', 'greyClerestory', 'liftPanes', 'roxnerClerestory', 'greyGlazed', 'purpleTiles', 'circleFront', 'stripPanels', 'greenBooth', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'tornellEnamel', 'striated', 'triangleTiles', 'rods', 'bandGlazed', 'kransenHall', 'kioskFront', 'tfpWestFront', 'tfpSouthFront', 'tricolourWindows', 'hgaFront', 'greyBooth', 'blueBooth', 'fraBuilding', 'fraEntrance', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'axelsbergFront', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'satraHall', 'satraHouse', 'satraCentre', 'satraEntrance', 'skhEndWall', 'vabTiles', 'vbgFront', 'vbgParapet', 'masmoRock', 'masmoFascia', 'fittjaHall', 'fittjaShops', 'fittjaWall', 'albyDoors', 'albyRock', 'albyGreen', 'albyFront', 'hallundaMesh', 'hallundaFront', 'kistaPanels', 'kistaAggregate', 'sundbergScreens', 'slussenAdWall', 'fogdeWall'];
 export function finish(name: Finish) {
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   const r = rng(name.length * 131 + 7);
@@ -9680,6 +9768,105 @@ export function finish(name: Finish) {
       x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(mid + 0.5 * PX, Y(1.1), 0.12 * PX, 0.03 * PX);
       break;
     }
+    case 'gsBlueTiles': {
+      // the low wall beyond Gamla stan's western track: glossy tiles, 10 cm, in blues from navy to
+      // a pale sky blue and white, at random, in grey joints (photographs, 2023 and 2024)
+      x.fillStyle = '#7d8790'; x.fillRect(0, 0, W, H);
+      // (mostly white and pale blues, the darker ones scattered among them)
+      const t = 0.1 * PX, blues = ['#2e5aa8', '#4a78bf', '#7fa2d4', '#a9c2e2', '#c9d8ea', '#c9d8ea', '#dde6f0', '#dde6f0', '#e8eef2', '#eef2f4', '#eef2f4', '#b8c8da'];
+      for (let i = 0; i * t < W; i++) for (let j = 0; j * t < H; j++) {
+        x.fillStyle = blues[Math.floor(r() * blues.length)]; x.fillRect(i * t + 1.2, j * t + 1.2, t - 2.4, t - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.12)'; x.fillRect(i * t + 2.5, j * t + 2.5, t * 0.4, 1.5);
+      }
+      break;
+    }
+    case 'gsEastWindows':
+    case 'gsEastSlats': {
+      // the wall beyond Gamla stan's eastern track, measured up from the track bed: glazed tiles,
+      // 15 cm, two sea greens at random, to 1.15 m over the platform (2.75 m); over them, under
+      // the deck, frosted glass in grey steel frames 1.2 m apart, a transom at 3.9 m, and posters
+      // in black frames on the wall every 4.8 m; under the station's own roof, a screen of upright
+      // grey steel slats, 6 cm wide and 16 cm apart, on rails, open between them (photographs,
+      // 2016 to 2024)
+      x.fillStyle = '#5b7f78'; x.fillRect(0, Y(2.75), W, 2.75 * PX);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.75 * PX + 1; j++) {
+        const v = Math.floor(r() * 12), pale = r() < 0.45;
+        x.fillStyle = pale ? `rgb(${120 + v},${172 + v},${160 + v})` : `rgb(${58 + v},${122 + v},${112 + v})`;
+        x.fillRect(i * t + 1.2, Y(0) - (j + 1) * t + 1.2, t - 2.4, t - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * t + 2.5, Y(0) - (j + 1) * t + 2.5, t * 0.4, 1.5);
+      }
+      band(2.75, 2.82, '#8b9094');
+      if (name === 'gsEastSlats') {
+        x.clearRect(0, 0, W, Y(2.82));
+        x.fillStyle = '#868d92';
+        for (let k = 0; k * 0.16 < w; k++) x.fillRect(k * 0.16 * PX + 2, 0, 0.06 * PX, Y(2.82));
+        x.fillStyle = 'rgba(255,255,255,0.18)';
+        for (let k = 0; k * 0.16 < w; k++) x.fillRect(k * 0.16 * PX + 2, 0, 0.015 * PX, Y(2.82));
+        band(3.3, 3.36, '#6f767b'); band(4.6, 4.66, '#6f767b');
+        break;
+      }
+      band(2.82, 5, '#d9dcda');
+      for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(160,166,166,${r() * 0.12})`; x.fillRect(r() * W, Y(5) + r() * 2.2 * PX, 3 + r() * 8, 2 + r() * 6); }
+      x.fillStyle = '#7a8086';
+      for (let k = 0; k * 1.2 < w + 0.01; k++) x.fillRect(k * 1.2 * PX - 0.04 * PX, Y(5), 0.08 * PX, 2.2 * PX);
+      band(3.88, 3.94, '#7a8086'); band(4.94, 5, '#7a8086');
+      // a poster in a black frame, 1.2 by 1.75 m, on the tiles and glass
+      x.fillStyle = '#18191a'; x.fillRect(1.75 * PX, Y(3.98), 1.3 * PX, 1.85 * PX);
+      const grounds = ['#f2c230', '#1d2a4a', '#f1eee6', '#c8372d', '#2d6b8f', '#e9e2cf'], g = grounds[Math.floor(r() * grounds.length)];
+      x.fillStyle = g; x.fillRect(1.8 * PX, Y(3.93), 1.2 * PX, 1.75 * PX);
+      x.fillStyle = ['#f2c230', '#f1eee6', '#e9e2cf'].includes(g) ? 'rgba(40,40,48,0.8)' : 'rgba(250,248,240,0.85)';
+      x.beginPath(); x.arc(2.4 * PX, Y(3.3), 0.32 * PX, 0, Math.PI * 2); x.fill();
+      for (let l = 0; l < 3; l++) x.fillRect(1.92 * PX, Y(2.75 - l * 0.13), (0.5 + r() * 0.4) * PX, 0.06 * PX);
+      break;
+    }
+    case 'gsHallTiles': {
+      // the walls and columns of Gamla stan's ticket hall: glossy tiles, 15 cm, a turquoise mottled
+      // paler and darker, to 2.6 m, a thin yellow line, white render above (photograph, 2002)
+      x.fillStyle = '#5e8f8c'; x.fillRect(0, 0, W, H);
+      const t = 0.15 * PX;
+      for (let i = 0; i * t < W; i++) for (let j = 0; (j + 1) * t <= 2.6 * PX + 1; j++) {
+        const v = Math.floor(r() * 18) - 9, k = r();
+        x.fillStyle = k < 0.12 ? `rgb(${92 + v},${156 + v},${152 + v})` : `rgb(${128 + v},${192 + v},${186 + v})`;
+        x.fillRect(i * t + 1.2, Y(0) - (j + 1) * t + 1.2, t - 2.4, t - 2.4);
+        x.fillStyle = 'rgba(255,255,255,0.14)'; x.fillRect(i * t + 2.5, Y(0) - (j + 1) * t + 2.5, t * 0.4, 1.5);
+      }
+      band(2.6, 2.64, '#e8b632');
+      band(2.64, 3, '#ecebe6');
+      break;
+    }
+    case 'gsHallFloor': {
+      // the floor of Gamla stan's ticket hall: a pale grey stone speckled black and white, in 0.6 m
+      // squares, and thin orange-red lines let into it crossing them on the diagonal (photograph,
+      // 2002)
+      x.fillStyle = '#b9b9b4'; x.fillRect(0, 0, W, H);
+      speckle(x, W, H, 30000, 0.45, 2002); speckle(x, W, H, 16000, 0.4, 2003, true);
+      x.fillStyle = 'rgba(120,118,112,0.55)';
+      for (let i = 0; i * 0.6 < w; i++) x.fillRect(i * 0.6 * PX, 0, 1.2, H);
+      for (let j = 0; j * 0.6 < h; j++) x.fillRect(0, j * 0.6 * PX, W, 1.2);
+      x.strokeStyle = 'rgba(206,92,52,0.85)'; x.lineWidth = 2;
+      for (const [a, b, c2, d] of [[0, 0, W, H], [W / 2, 0, W, H / 2], [0, H / 2, W / 2, H], [W, 0, 0, H]]) { x.beginPath(); x.moveTo(a, b); x.lineTo(c2, d); x.stroke(); }
+      break;
+    }
+    case 'gsSoffit': {
+      // the underside of Gamla stan's deck: concrete cast against boards, dark charcoal with the
+      // grain and the boards' ends showing, the boards 15 cm wide across the hall, from 0.6 to
+      // 2.4 m long (photographs, 2023 and 2024)
+      const t = 0.15 * PX;
+      for (let j = 0; j * t < H; j++) {
+        let at = -r() * 2.4 * PX;
+        while (at < W) {
+          const l = (0.6 + r() * 1.8) * PX, v = 84 + Math.floor(r() * 16);
+          x.fillStyle = `rgb(${v},${v + 1},${v + 3})`; x.fillRect(at, j * t, l, t);
+          x.fillStyle = 'rgba(20,20,22,0.5)'; x.fillRect(at, j * t, 1.5, t);
+          at += l;
+        }
+        x.fillStyle = 'rgba(18,18,20,0.45)'; x.fillRect(0, j * t, W, 1.5);
+        x.fillStyle = 'rgba(120,120,122,0.08)'; x.fillRect(0, j * t + 2, W, 1);
+      }
+      for (let k = 0; k < 400; k++) { x.fillStyle = `rgba(${r() < 0.5 ? '30,30,32' : '110,110,112'},${0.04 + r() * 0.06})`; x.fillRect(r() * W, r() * H, 10 + r() * 60, 1 + r() * 2); }
+      break;
+    }
     case 'slats':
       x.fillStyle = '#5d5f60'; x.fillRect(0, 0, W, H);
       for (let i = 0; i * 0.1 * PX < W; i++) {
@@ -9688,7 +9875,7 @@ export function finish(name: Finish) {
       }
       break;
   }
-  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'ernkvistTiles', 'satraHall', 'satraHouse', 'satraEntrance', 'sundbergScreens', 'slussenAdWall', 'slussenNavy'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
+  if (!['triangles', 'glazed', 'darkGlazed', 'clerestory', 'windows', 'highWindows', 'greenWindows', 'checkWindows', 'tiledWindows', 'shopWindows', 'storeys', 'liftWindows', 'redWindows', 'perforated', 'whitePerforated', 'hallTiles', 'glassFront', 'tealWindows', 'greenGlazed', 'greenFront', 'greenDoors', 'creamClerestory', 'silverPerforated', 'libraryFront', 'libraryBack', 'libraryEntrance', 'glassBlocks', 'blueMosaic', 'warmMosaic', 'brownWindows', 'steelGlazed', 'birchX', 'tealTiles', 'darkWindows', 'blackFront', 'splitBlocks', 'cladClerestory', 'frostedPanels', 'redBand', 'redFront', 'gridPanels', 'navyTiles', 'pineBoards', 'redTiles', 'bronzeGlass', 'bronzeGlazed', 'pixelTiles', 'clinkerWindows', 'greyClerestory', 'portalTiles', 'liftPanes', 'roxnerTiles', 'roxnerClerestory', 'greyGlazed', 'sageRender', 'bottleTiles', 'purpleTiles', 'rivetedSteel', 'glossTiles', 'stripeTiles', 'twoGreens', 'scrollPanels', 'opPanels', 'circleFront', 'stripPanels', 'maroonGlazed', 'slateGlazed', 'goranssonTiles', 'greenBooth', 'checkTiles', 'mosaicPosters', 'vallingbyCentrum', 'wiredGlazed', 'dripTiles', 'ochreDoor', 'greenEnamel', 'tornellEnamel', 'brownTiles', 'partosTiles', 'cafeWall', 'iridescentTiles', 'striated', 'triangleTiles', 'rods', 'wineTiles', 'uprightTiles', 'bandGlazed', 'narrowTiles', 'kransenTiles', 'kransenHall', 'ochreClinker', 'morseClinker', 'blastedRock', 'tricolourWindows', 'tricolourTiles', 'hgaFront', 'gingham', 'orangeGingham', 'greyBooth', 'blueBooth', 'aspuddenStrips', 'amberTiles', 'aspuddenHall', 'aspuddenPavilion', 'ornsbergTimber', 'ornsbergWindows', 'ornsbergFront', 'wesselClinker', 'wesselBricks', 'axelsbergTiles', 'axelsbergFront', 'glulam', 'ribbedBoards', 'cobbles', 'axelsbergFloor', 'malarhojdenBrick', 'uprightBoards', 'malarhojdenHall', 'malarhojdenFront', 'bredangHall', 'bredangFront', 'ernkvistTiles', 'satraHall', 'satraHouse', 'satraEntrance', 'sundbergScreens', 'slussenAdWall', 'slussenNavy', 'gsBlueTiles', 'gsEastWindows', 'gsEastSlats', 'gsHallTiles', 'gsHallFloor', 'gsSoffit'].includes(name)) speckle(x, W, H, 2500, 0.08, 63);
   const t = toTexture(c);
   if (FINISH_CLAMP.includes(name)) t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
@@ -9718,6 +9905,16 @@ function tornellHoles(W: number, H: number, PX: number) {
 // What a finish gives out of its own light, or nothing: the light behind the holes in Pia Törnell's
 // enamel, and its glow through the panels about the middle.
 export function finishGlow(name: Finish) {
+  if (name === 'gsEastWindows') {
+    // (daylight through the frosted glass beyond Gamla stan's eastern track)
+    const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
+    x.fillStyle = '#000000'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#9a9c98'; x.fillRect(0, 0, W, H - 2.82 * PX);
+    x.fillStyle = '#000000'; x.fillRect(1.75 * PX, H - 3.98 * PX, 1.3 * PX, 1.85 * PX);
+    const t = toTexture(c);
+    t.wrapT = THREE.ClampToEdgeWrapping;
+    return t;
+  }
   if (name !== 'tornellEnamel') return null;
   const PX = 160, [w, h] = FINISH_SIZE[name], W = Math.round(w * PX), H = Math.round(h * PX), [c, x] = canvas(W, H);
   x.fillStyle = '#000000'; x.fillRect(0, 0, W, H);

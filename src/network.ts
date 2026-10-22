@@ -863,12 +863,16 @@ export class Network {
     // a styled open station's, or a flat hall's in concrete: its paving, mapped across from the
     // edge (on an island, each track's half out to the line down its middle), and the face of its
     // edge
-    for (const station of new Set(run.filter((sm) => pavingOf(sm)).map((sm) => sm.plat!.station))) {
-      const pave: MaterialName = `pave:${station}`, face: MaterialName = `face:${station}`;
+    // (Gamla stan's islands each in a pattern of their own: the one on its hall's left in `dahl.left`)
+    const keys = new Set(run.filter((sm) => pavingOf(sm)).map((sm) => `${sm.plat!.station}${pavingOf(sm)!.dahl?.left && onHallLeft(sm) ? ':left' : ''}`));
+    for (const key of keys) {
+      const [station, side] = key.split(':'), left = side === 'left';
+      const pave: MaterialName = `pave:${key}`, face: MaterialName = `face:${station}`;
       const paving = pavingOf(run.find((sm) => pavingOf(sm) && sm.plat!.station === station)!)!;
-      this.mats[pave] ??= new THREE.MeshStandardMaterial({ map: T.openPaving(paving), roughness: 0.85 });
+      this.mats[pave] ??= new THREE.MeshStandardMaterial({ map: T.openPaving(paving, left), roughness: 0.85 });
       this.mats[face] ??= new THREE.MeshStandardMaterial({ map: T.platformFace(paving.colors.face), roughness: 0.6, side: THREE.DoubleSide });
-      const mine = (sm: Sample) => pavingOf(sm) && sm.plat!.station === station;
+      const all = (sm: Sample) => pavingOf(sm) && sm.plat!.station === station;
+      const mine = (sm: Sample) => all(sm) && !!(paving.dahl?.left && onHallLeft(sm)) === left;
       sweep(b[pave] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
         const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
@@ -3073,6 +3077,14 @@ function islandOpening(st: CaveIsland) {
 // An island cave's ceiling's height over the rail: under the roof, where it is in a box.
 function islandCeilingAt(st: CaveIsland, sm: Sample) {
   return sm.kind === 'box' ? Math.min(st.ceiling, S.BOX.height - 0.15) : st.ceiling;
+}
+
+// Whether a platform's sample lies left of the line down the middle of the hall its station draws.
+function onHallLeft(sm: Sample) {
+  const h = OPEN_STYLES[sm.plat!.station]?.hall;
+  if (!h) return false;
+  const [hx, hz, yaw] = h.at;
+  return (sm.x - hx) * Math.cos(yaw) - (sm.z - hz) * Math.sin(yaw) < 0;
 }
 
 // A styled open station (src/open-styles.ts): a platform out in the open, under its own roof.
