@@ -641,7 +641,7 @@
           {"walk": [-95.3, 0.3]},
           {"walk": [-127.9, 4.2], "width": 5},
           {"walk": [-139.5, 3.3]},
-          {"escalators": 9.94, "toward": [-157.3, -2.9], "lanes": "EEE"},
+          {"escalators": 9.63, "toward": [-157.3, -2.9], "lanes": "EEE"},
           {"walk": [-160.4, -4], "width": 8},
           {"walk": [-164, -5.2]},
           {"gates": true},
@@ -649,7 +649,7 @@
         ] },
         { "from": [-136, -2.6], "width": 3, "go": [
           {"walk": [-139.4, -2.6]},
-          {"lift": 9.94, "through": true},
+          {"lift": 9.63, "through": true},
           {"walk": [-158.5, -8.8]},
           {"walk": [-160.4, -4]}
         ] }

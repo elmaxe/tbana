@@ -39,8 +39,9 @@ const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[
 // ------------------------------------------------------------------ drawing helpers
 // A line on the ground, resampled every metre and its direction smoothed over a few metres, so
 // that lines offset far to its side bend smoothly at its corners. `s` is metres along it from its
-// first point; before and after it, it runs straight on.
-class Line {
+// first point; before and after it, it runs straight on. (Stocksundet's bridge uses these too,
+// src/detail/stocksundet.ts.)
+export class Line {
   private p: V2[] = [];
   private t: V2[] = [];
   readonly length: number;
@@ -82,7 +83,7 @@ class Line {
 }
 
 // straight between [s, value] rows, level beyond the first and last
-function table(rows: [number, number][]) {
+export function table(rows: [number, number][]) {
   return (s: number) => {
     if (s <= rows[0][0]) return rows[0][1];
     for (let i = 1; i < rows.length; i++) {
@@ -96,7 +97,7 @@ function table(rows: [number, number][]) {
 }
 
 // Quads between rows of points (each row across, the rows along), each facing the side of `hint`.
-function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number) => V3, tile: number | V2 = 4, uv?: (i: number, k: number) => V2) {
+export function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number) => V3, tile: number | V2 = 4, uv?: (i: number, k: number) => V2) {
   for (let i = 0; i + 1 < rows.length; i++) {
     for (let k = 0; k + 1 < rows[i].length; k++) {
       const p = [rows[i][k], rows[i][k + 1], rows[i + 1][k + 1], rows[i + 1][k]];
@@ -111,7 +112,7 @@ function loft(B: Builder, rows: V3[][], mat: string, hint: (i: number, k: number
 }
 // A box standing on the ground, turned to a line's direction `t` (x, z): `along` by `across`, from
 // y0 to y1.
-function post(B: Builder, c: V2, t: V2, along: number, across: number, y0: number, y1: number, mat: string, tile = 2) {
+export function post(B: Builder, c: V2, t: V2, along: number, across: number, y0: number, y1: number, mat: string, tile = 2) {
   B.wallBox([c[0], 0, c[1]], [t[0], 0, t[1]], [-t[1], 0, t[0]], -along / 2, along / 2, y0, y1, -across / 2, across / 2, mat, tile);
 }
 // A railing of bars along a line of points at their heights, `h` high, facing `out`.

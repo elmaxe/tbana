@@ -11730,3 +11730,20 @@ export function violetTiles() {
   }
   return toTexture(c);
 }
+
+// The sign under a bridge over a channel boats use, giving the height clear under it: a yellow
+// disc with a black rim and the height in black (Stocksundet's metro bridge: "13 m"). 256 × 256,
+// the disc filling it; clear outside it.
+export function clearanceSign(text: string) {
+  const [c, x] = canvas(256);
+  x.clearRect(0, 0, 256, 256);
+  x.fillStyle = '#1d1d1b';
+  x.beginPath(); x.arc(128, 128, 126, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#f0c419';
+  x.beginPath(); x.arc(128, 128, 114, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#1d1d1b';
+  x.font = '700 88px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 128, 134, 196);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}

@@ -21,6 +21,10 @@ export const DETAIL_AREAS: DetailArea[] = [
   // over them, and the shore at the foot of Lidingöbron (src/detail/ropsten.ts)
   { name: 'Ropsten', x: 2480, z: -2905, r: 200 },
   { name: 'Lidingöbron', x: 2690, z: -2990, r: 110 },
+  // the red line's bridge over Stocksundet, between Bergshamra and Danderyds sjukhus
+  // (src/detail/stocksundet.ts): the wooded shores either side, the villas on the north shore
+  // and the paths under its ends
+  { name: 'Stocksundet', x: -1255, z: -5940, r: 220 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

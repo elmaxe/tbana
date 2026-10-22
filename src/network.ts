@@ -15,7 +15,7 @@ import { OPEN_STYLES, hallDrawn } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
-import { viaductInDetail, viaductSolids } from './detail/viaducts.ts';
+import { girderInDetail, viaductInDetail, viaductSolids } from './detail/viaducts.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -778,9 +778,10 @@ export class Network {
         return { key: 'cg', pts: side < 0 ? [[side * GROUND_STRIP, g], [u, g]] : [[u, g], [side * GROUND_STRIP, g]] };
       }, { uScale: 0.3, vScale: 0.3 });
       // bridge deck edge girder and its railing, and the deck's underside: to the middle, or where
-      // the deck is shared on the other side, to that end of this track's part
+      // the deck is shared on the other side, to that end of this track's part (a viaduct drawn in
+      // detail may have its own girder, src/detail/viaducts.ts)
       sweep(b.concrete, run, (sm) => {
-        if (sm.kind !== 'bridge' || !outer(sm)) return null;
+        if (sm.kind !== 'bridge' || !outer(sm) || girderInDetail(sm.x, sm.z)) return null;
         const u = side * S.BRIDGE.deck, bottom = S.FLOOR - S.BRIDGE.depth;
         const own = ownSpan(sm, structureSpan(sm)), inner = continues(sm, -side) ? own[side < 0 ? 1 : 0] : 0;
         return { key: 'deck', pts: [[u, S.FLOOR], [u, S.FLOOR + 0.3], [u + side * 0.25, S.FLOOR + 0.3], [u + side * 0.25, bottom], [inner, bottom]] };
@@ -794,7 +795,7 @@ export class Network {
     }
     // the underside of a deck shared on both sides, under this track's part
     sweep(b.concrete, run, (sm) => {
-      if (sm.kind !== 'bridge' || !continues(sm, -1) || !continues(sm, 1)) return null;
+      if (sm.kind !== 'bridge' || !continues(sm, -1) || !continues(sm, 1) || girderInDetail(sm.x, sm.z)) return null;
       const [a, c] = ownSpan(sm, structureSpan(sm)), bottom = S.FLOOR - S.BRIDGE.depth;
       return { key: 'under', pts: [[c, bottom], [a, bottom]] };
     }, { uScale: 0.25, vScale: 0.25 });
