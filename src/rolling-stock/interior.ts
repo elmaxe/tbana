@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { loopOf, profile } from './kit';
 import type { Painter, Profile, ProfileCtrl } from './kit';
 import type { CabinLights } from './cabin-light';
+import type { Display } from './displays';
 import type { CarDef } from './train';
 
 // Building blocks for the passenger interiors. Same car axes as kit.js: +x forward, +y up from the
@@ -35,6 +36,8 @@ export interface InteriorSpec {
   furnish(def: CarDef, ctx: InteriorContext): THREE.Object3D[];
   // the inside face of a door leaf (see doors.ts)
   doorLeaf?(p: Painter, w: number): void;
+  // the passenger information displays, drawn per train from what it is doing (displays.ts)
+  displays?: Display[];
 }
 
 // Lining cross-section. ctrl goes from the floor centre [0, floorY] round the right side to the

@@ -7,6 +7,7 @@ import {
 import type { Painter } from './kit';
 import type { CabinLights } from './cabin-light';
 import type { InteriorContext, InteriorMaterials, InteriorSpec, Seating } from './interior';
+import { C20_LED, C20U_TFT, displayMaterial } from './displays';
 import { DOOR, windowPanes } from './c20';
 import type { CarDef } from './train';
 
@@ -223,7 +224,7 @@ function makeMaterials(style: C20InteriorStyle) {
       yellow: interiorMat('#f2d21e', { roughness: 0.4 }),
       glass: new THREE.MeshStandardMaterial({ color: 0xdfeef0, roughness: 0.05, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide }),
       lamp: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff4e2, emissiveIntensity: 1.3 }),
-      sign: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 64, drawSign), roughness: 0.2 }),
+      sign: displayMaterial('sign', C20_LED),
       housing: interiorMat('#1d2024', { roughness: 0.5 }),
       bezel: interiorMat('#d3d5d6', { roughness: 0.4 }),
       pictogram: new THREE.MeshStandardMaterial({ map: screenTexture(64, 132, drawPictograms), roughness: 0.5 }),
@@ -241,36 +242,11 @@ function makeMaterials(style: C20InteriorStyle) {
         pan: fab((c, n) => plain(c, n, '#30374f'), 0.05, 32),
         backY: fab((c, n) => plattan(c, n, '#dfae1c', '#f2c322'), 0.42),
         panY: fab((c, n) => plain(c, n, '#ebba26'), 0.05, 32),
-        screen: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: screenTexture(512, 320, drawTft), roughness: 0.2 }),
+        screen: displayMaterial('screen', C20U_TFT),
       });
     }
     return mats;
   };
-}
-
-function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#ffae1a'; ctx.font = '700 38px Arial, sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('Mot: Skarpnäck', w / 2, h / 2 + 2);
-}
-
-// C20U screen: the next station, then the following ones down the line's colour, and the terminus
-// with its line number, white on dark navy
-function drawTft(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = '#0b1830'; ctx.fillRect(0, 0, w, h);
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#b9c6e4'; ctx.font = '500 22px Arial, sans-serif'; ctx.fillText('Nästa station / Next stop', 22, 30);
-  ctx.fillStyle = '#fff'; ctx.font = '700 50px Arial, sans-serif'; ctx.fillText('Gamla stan', 22, 78);
-  ctx.fillStyle = '#1f9a3c'; ctx.fillRect(37, 124, 8, 170);
-  ['Slussen', 'Medborgarplatsen', 'Skanstull', 'Gullmarsplan'].forEach((name, i) => {
-    const y = 140 + i * 42;
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(41, y, 9, 0, Math.PI * 2); ctx.fill();
-    ctx.font = '500 26px Arial, sans-serif'; ctx.fillText(name, 66, y);
-  });
-  ctx.fillStyle = '#1f9a3c'; ctx.beginPath(); ctx.roundRect(w - 196, 126, 44, 32, 6); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.font = '700 24px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('17', w - 174, 143);
-  ctx.textAlign = 'left'; ctx.font = '700 24px Arial, sans-serif'; ctx.fillText('SKARPNÄCK', w - 142, 143);
 }
 
 // The pram and wheelchair signs on the wall of a flex area: white on dark grey, one above the other.
@@ -507,7 +483,7 @@ function makeFurnish(style: C20InteriorStyle) {
       }
     }
 
-    // LED destination displays hanging in front of the gangway portals and over the cab door
+    // amber LED signs hanging in front of the gangway portals and over the cab door
     const signAt = (x: number, face: number) => {
       parts.add('housing', new THREE.BoxGeometry(0.08, 0.15, 1.04).translate(x, ceilingY - 0.14, 0));
       parts.add('sign', new THREE.PlaneGeometry(0.98, 0.11).rotateY(face * Math.PI / 2).translate(x + face * 0.041, ceilingY - 0.14, 0));
@@ -554,6 +530,7 @@ function make(style: C20InteriorStyle): InteriorSpec {
     paint: makePaint(style),
     furnish: makeFurnish(style),
     doorLeaf,
+    displays: style === 'upgraded' ? [C20_LED, C20U_TFT] : [C20_LED],
   };
 }
 

@@ -184,6 +184,17 @@ match the exterior doors and the station's platforms.
 **Model values:** 36 seats a car. Seats in the bays are 0.47 m wide, those along the walls
 0.43 m; seat backs reach about 0.92 m above the floor.
 
+### Passenger displays
+
+What the screens inside the cars show, from photos of the cars in service. The game draws them
+from what the train is doing: the next station once it has left, the station it stands at while
+the doors are open, and the end of the line for half a minute after arriving there.
+
+| | C20 / C20U | C30 |
+|---|---|---|
+| Amber LED signs | Amber dots on black, a single line. The photos show only "Mot: Akalla", with a colon. The model takes the rest from the C30: "Nästa: Slussen" on the way and "Slussen" at the station, in turn with "Mot: …" | Pages of one line in amber dots: "Nästa T-Centralen" on the way, the station's name standing at it ("Karlaplan"), "Mot Alby" and the time ("14:53") |
+| Screens | The C20U's TFT screens: "Nästa station" and "Next stop" (yellow) over the next station's name on a blue band, then the following stations on dark navy beside a line in the line's colour with a dot for each, and the line's number on a badge and the terminus in capitals at the foot. At the end of the line the whole screen turns blue: the line, the station in capitals, "Slutstation: Avstigning för samtliga resenärer" and "Final Stop: Exit all passengers" | A screen at one end of the panel over each door (about 0.58 × 0.28 m): a pink block with "Mot …" and a big white arrow, then a blue band with "Nästa station / Next station" and the next station's name, and the lines to change to listed in their colours below on black. The model takes the arrow to point the way the train runs, so it points opposite ways on the two walls |
+
 ### How the interiors are built
 
 - `interior.ts`: the inner lining is swept from its own cross-section (floor, walls and ceiling
@@ -212,6 +223,10 @@ match the exterior doors and the station's platforms.
 - `c20-interior.ts` / `c30-interior.ts`: the lining paint, materials, the furnishing layout and
   the inside of the door leaves for each type. Window cut-outs come from the same functions that paint the windows outside
   (`windowPanes`, `windowFrames`).
+- `displays.ts`: the passenger displays, drawn on canvases from a `PassengerInfo` (line,
+  destination, the next or current station, the stations after it, the lines to change to). Each
+  train gets its own canvases the first time its interior shows, and `train.showInfo()` redraws a
+  display only when what it shows changes. `src/trains.ts` fills in the info from the timetable.
 - With an interior shown, a car's shell swaps to a glazed material whose windows are partly
   transparent. The station shows interiors only for cars within about 30 m of the player.
 
@@ -278,6 +293,11 @@ Interiors:
   20221105*, *SL C20 - 20260106 - 08*, *SL C20, interiör, 20230326, bild 1–4*, *Uppgraderade C20*,
   *Tunnelbana-C20-Interior* and *C20 interiör, 20220219*. For the C30 *C30 interior 200909 1* and
   *2*, *C30, interiör, 20220730*, *C30 Carriage* and *C30 Metro 20200811 01–06*.
+- Passenger displays, from the same categories: for the C30 *C30 Metro 20200811 01–06* (the LED
+  pages, and the door screen in *05 detalj*), *C30 interior 210519* and *SL C30 interiör
+  20201007*; for the C20U *SL C20U (1–15)* and *Tunnelbanan, vagn C20U, interiör, bild 1–5* (the
+  end-of-line screen); for the original C20's LED signs the Flickr series *Stockholm - Tunnelbana -
+  Details of the rolling stock*.
 - [Stockholms tunnelbana: Vagntyp C20](https://stockholmtunnelbana.wordpress.com/2017/09/19/vagntyp-c20/) (SL's seat plan for the upgrade)
 - Region Stockholm: [Uppgraderingen av tunnelbanans C20-vagnar pågår för fullt](https://www.regionstockholm.se/nyheter/2022/09/uppgraderingen-av-tunnelbanans-c20-vagnar-pagar-for-fullt/);
   SL on Mynewsdesk: [Nyrenoverade tåg i tunnelbanan](https://www.mynewsdesk.com/se/sl/pressreleases/nyrenoverade-taag-i-tunnelbanan-3305430)
