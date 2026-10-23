@@ -364,6 +364,44 @@
       ],
       "reach": 2,
       "why": "Fruängen, the siding east of the platform to its buffer stop beside the ticket hall: the laser scan has the ballast between it and the platform at 46.0–46.1 m, level with the platform's tracks. Left to the elevation model's ground, which humps up over the retaining wall beside it, it climbed to 1.5 m over them, higher than the platform, at its end."
+    },
+    {
+      "along": [
+        [-1295.1, -5811.8, 14.62],
+        [-1292.9, -5821.6, 14.93],
+        [-1291.0, -5831.4, 15.23],
+        [-1289.1, -5841.3, 15.52],
+        [-1287.0, -5851.1, 15.8],
+        [-1284.8, -5860.9, 16.06],
+        [-1282.3, -5870.6, 16.3],
+        [-1279.6, -5880.3, 16.53],
+        [-1276.7, -5889.9, 16.73],
+        [-1273.6, -5899.5, 16.91],
+        [-1270.3, -5909.0, 17.06],
+        [-1266.8, -5918.5, 17.19],
+        [-1263.1, -5927.8, 17.29],
+        [-1259.2, -5937.1, 17.36],
+        [-1255.0, -5946.3, 17.41],
+        [-1250.7, -5955.4, 17.43],
+        [-1246.2, -5964.4, 17.42],
+        [-1241.4, -5973.3, 17.39],
+        [-1236.4, -5982.0, 17.33],
+        [-1231.3, -5990.7, 17.24],
+        [-1225.9, -5999.2, 17.13],
+        [-1220.4, -6007.6, 16.99],
+        [-1214.8, -6015.9, 16.83],
+        [-1209.0, -6024.1, 16.64],
+        [-1203.0, -6032.2, 16.43],
+        [-1197.0, -6040.2, 16.19],
+        [-1190.8, -6048.2, 15.93],
+        [-1184.5, -6056.0, 15.65],
+        [-1178.1, -6063.7, 15.35],
+        [-1171.9, -6071.5, 15.03],
+        [-1165.5, -6079.2, 14.68],
+        [-1161.6, -6083.7, 14.47]
+      ],
+      "reach": 6,
+      "why": "The bridge over Stocksundet between Bergshamra and Danderyds sjukhus (1978, 230 m, a concrete girder on three piers), and the cutting from it to the tunnel to Danderyds sjukhus: Lantmäteriet's laser scan (March 2021) has the deck's ballast at 14.8 m at its southern end, where the tunnel from Bergshamra comes out of the hillside, rising to 17.2 m over the middle of the sound and falling to 16.2 m at its northern end, and the cutting's ballast falling on to 14.3 m at the tunnel's mouth 65 m further on; the rail about 0.2 m above the ballast. Bridges get no anchor of their own, so without this the line ran straight between the tunnels, 5 m under the deck at its southern end and 4.5 m under it over the water."
     }
   ],
   "toBridge": [
@@ -494,6 +532,11 @@
       ],
       "reach": 3,
       "why": "Vårby gård: the southern track runs along the top of a concrete retaining wall 5.5–6.8 m high, over the square and the cycleway south-west of the station, from its mouth under Vårby allé to the bridge north-west of the platform (Lantmäteriet's laser scan: the ballast at 26.2–26.8 m, the wall's top at 27.6–28.2 m, its foot at 21.2–22.7 m; south-east of the ticket hall the ground behind it rises to the street, 31 m). The elevation model smooths the wall into a slope, which made the track an embankment whose bank spread out over the square."
+    },
+    {
+      "along": [[-1201.5, -6033.6], [-1183.7, -6056.7], [-1158.7, -6086.5]],
+      "reach": 4,
+      "why": "The cutting from the northern end of the bridge over Stocksundet to the mouth of the tunnel to Danderyds sjukhus, 65 m: the tracks run down between concrete retaining walls with ribbed faces, the hillside behind the western one 2–4 m above the ballast and a street beside the eastern one (Lantmäteriet's laser scan; photographs on Wikimedia Commons). Laid on the laser scan's ballast (the bridge's rail heights, above), the line is level with the elevation model's ground there, which smooths the walls away, so it was drawn on the ground."
     }
   ]
 }

@@ -13,6 +13,7 @@ import { inDetailArea } from './areas.ts';
 import { ropstenWorld } from './viaducts.ts';
 import { buildChimney, buildLidingobron, buildLillaLidingobron, buildRopstensplan, buildTramStop, buildVarmeverk, CHIMNEYS, ENERGIHAMNEN_TANKS, LIDINGOBRON_PARTS, LILLA_LIDINGOBRON_PARTS, VVR_OUTLINE } from './ropsten.ts';
 import { buildRopstenStation } from './ropsten-station.ts';
+import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUTLINE } from './stocksundet.ts';
 import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -63,6 +64,14 @@ const LANDMARKS: Landmark[] = [
   // Värtaverket's two chimneys, the tallest things in sight there (OpenStreetMap has them, but not
   // as buildings)
   ...CHIMNEYS.map((c, i): Landmark => ({ name: `Värtaverket chimney ${i + 1}`, outline: [], anchor: c.c, build: (B, g) => buildChimney(B, g, c) })),
+  // the red line's bridge over Stocksundet, between Bergshamra and Danderyds sjukhus
+  // (src/detail/stocksundet.ts), built whole with the tile its middle is in
+  { name: 'Stocksundsbron', outline: [], anchor: [-1259.5, -5935.8], build: buildStocksundsbron },
+  // and the water tower over its southern end, in place of the city's plain block of it
+  { name: 'Svedenreservoaren', outline: SVEDEN_OUTLINE, anchor: [-1402.1, -5800.4], build: buildSvedenreservoaren },
+  // and the E18's bridge 320 m east of it, in view from it (OpenStreetMap's road bridges are left
+  // out of the city)
+  { name: 'Stocksundsbron (E18)', outline: [], anchor: [-995, -5744], build: buildE18Bridge },
 ];
 
 export interface TileDetail {

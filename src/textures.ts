@@ -10892,40 +10892,221 @@ export function gravel() {
   return toTexture(c, { aniso: 4 });
 }
 
-// A tree's leaves, packed: clumps of small leaves in lighter and darker greens on shadow. Near
-// white-green for the vertex colours to tint. Covers 2 × 2 m.
-export function leaves() {
-  const S = 256;
-  const [c, x] = canvas(S);
-  x.fillStyle = '#7d8a74'; x.fillRect(0, 0, S, S);
-  leafClumps(x, S, 2600, 87);
-  return toTexture(c, { aniso: 4 });
-}
-
-// A spray of leaves on nothing, for an alpha test: thick in the middle, ragged at the edge. A
-// crown's outside is made of many of them (src/detail/streets.ts).
-export function leafCard() {
-  const S = 128;
-  const [c, x] = canvas(S);
-  const r = rng(89);
-  for (let k = 0; k < 150; k++) {
-    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * S * 0.4, len = 6 + r() * 6, v = r(), shade = 0.7 + r() * 0.3;
-    const g = Math.floor(165 + v * 90);
-    x.fillStyle = `rgb(${Math.floor(g * 0.86 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.74 * shade)})`;
-    x.beginPath(); x.ellipse(S / 2 + Math.cos(a) * d, S / 2 + Math.sin(a) * d, len, len * 0.5, r() * Math.PI, 0, Math.PI * 2); x.fill();
-  }
+// Trees, each one picture for a plane that turns to face the camera (src/detail/streets.ts): eight
+// in a 4 × 2 sheet, 512 pixels each, standing on the bottom of their square on nothing. Two round
+// broadleaves (oak, lime), two taller ones (maple, elm), two birches, a Scots pine and a spruce, in
+// summer. A crown is painted as the sub-crowns a real one is made of, each lit on top and shaded
+// underneath, of small leaves, ragged at the edge, with the limbs showing in the gaps; the light
+// comes from above, as the plane turns with the camera. TREE_PICTURES says where each is in the
+// sheet (u, v of its lower left corner; a square is 0.25 across and 0.5 high) and how much of its
+// square its crown fills across (`width`) and its top reaches up (`top`), for the plane to be
+// scaled to a tree as found.
+export const TREE_PICTURES = [
+  { name: 'round', u: 0, v: 0.5, width: 0.92, top: 0.869 },
+  { name: 'round', u: 0.25, v: 0.5, width: 0.906, top: 0.893 },
+  { name: 'tall', u: 0.5, v: 0.5, width: 0.832, top: 0.938 },
+  { name: 'tall', u: 0.75, v: 0.5, width: 0.771, top: 0.838 },
+  { name: 'birch', u: 0, v: 0, width: 0.514, top: 0.891 },
+  { name: 'birch', u: 0.25, v: 0, width: 0.443, top: 0.865 },
+  { name: 'pine', u: 0.5, v: 0, width: 0.549, top: 0.969 },
+  { name: 'spruce', u: 0.75, v: 0, width: 0.594, top: 0.982 },
+] as const;
+type Rgb = [number, number, number];
+// shade to light; the leaves of each kind
+const OAK: Rgb[] = [[16, 28, 12], [38, 60, 22], [74, 100, 36], [128, 148, 64]];
+const MAPLE: Rgb[] = [[18, 30, 14], [42, 66, 26], [82, 108, 40], [138, 156, 70]];
+const BIRCH: Rgb[] = [[24, 38, 14], [56, 82, 28], [104, 128, 44], [164, 176, 84]];
+const PINE: Rgb[] = [[12, 24, 18], [30, 48, 32], [58, 78, 46], [100, 116, 70]];
+const SPRUCE: Rgb[] = [[10, 20, 16], [24, 40, 28], [46, 66, 42], [80, 100, 62]];
+export function treePictures() {
+  const S = 512;
+  const [c, x] = canvas(4 * S, 2 * S);
+  x.clearRect(0, 0, 4 * S, 2 * S);
+  // (each in its square: the foot at the bottom middle, 4 pixels up)
+  const at = (k: number, f: (fx: number, fy: number) => void) => { x.save(); x.translate((k % 4) * S, Math.floor(k / 4) * S); f(S / 2, S - 4); x.restore(); };
+  at(0, (fx, fy) => broadleaf(x, fx, fy, { cx: fx + 6, cy: 222, rx: 218, ry: 186, lobes: 15, trunk: 11, bark: [78, 70, 62], leaves: OAK, seed: 101 }));
+  at(1, (fx, fy) => broadleaf(x, fx, fy, { cx: fx + 6, cy: 222, rx: 225, ry: 196, lobes: 12, trunk: 10, bark: [84, 76, 66], leaves: OAK, seed: 111 }));
+  at(2, (fx, fy) => broadleaf(x, fx, fy, { cx: fx, cy: 210, rx: 198, ry: 196, lobes: 14, trunk: 9, bark: [86, 80, 72], leaves: MAPLE, seed: 121 }));
+  at(3, (fx, fy) => broadleaf(x, fx, fy, { cx: fx - 4, cy: 220, rx: 188, ry: 208, lobes: 13, trunk: 9, bark: [80, 74, 66], leaves: MAPLE, seed: 131 }));
+  at(4, (fx, fy) => birch(x, fx, fy, 128, 141));
+  at(5, (fx, fy) => birch(x, fx, fy, 116, 151));
+  at(6, (fx, fy) => pine(x, fx, fy, 161));
+  at(7, (fx, fy) => spruce(x, fx, fy, 171));
   return toTexture(c, { repeat: false, aniso: 4 });
 }
 
-function leafClumps(x: CanvasRenderingContext2D, S: number, n: number, seed: number) {
-  const r = rng(seed);
-  for (let k = 0; k < n; k++) {
-    const cx = r() * S, cy = r() * S, len = 3 + r() * 5, a = r() * Math.PI, v = r();
-    const g = Math.floor(170 + v * 85), shade = 0.75 + r() * 0.25;
-    x.fillStyle = `rgb(${Math.floor(g * 0.88 * shade)},${Math.floor(g * shade)},${Math.floor(g * 0.78 * shade)})`;
-    for (const [ox, oy] of [[0, 0], [S, 0], [-S, 0], [0, S], [0, -S]]) {
-      x.beginPath(); x.ellipse(cx + ox, cy + oy, len, len * 0.55, a, 0, Math.PI * 2); x.fill();
+interface Lobe { x: number; y: number; rx: number; ry: number; base: number }
+// A broadleaf: a trunk forking into limbs, one to each sub-crown, and the sub-crowns over them,
+// the lower drawn first, so that each upper one's shaded underside lies over the lit tops below.
+function broadleaf(x: CanvasRenderingContext2D, fx: number, fy: number,
+  o: { cx: number; cy: number; rx: number; ry: number; lobes: number; trunk: number; bark: Rgb; leaves: Rgb[]; seed: number }) {
+  const r = rng(o.seed);
+  const lobes: Lobe[] = [{ x: o.cx, y: o.cy + o.ry * 0.1, rx: o.rx * 0.66, ry: o.ry * 0.64, base: 0.42 }];
+  for (let k = 0; k < o.lobes; k++) {
+    // a ring of large sub-crowns reaching the edge, and smaller ones bulging from it
+    const small = k >= o.lobes * 0.6, a = (k / o.lobes) * Math.PI * 2 * (small ? 1.7 : 1) + (r() - 0.5) * 0.8;
+    const d = small ? 0.66 + r() * 0.14 : 0.32 + r() * 0.2, s = (1 - d) * (small ? 0.95 + r() * 0.3 : 0.92 + r() * 0.2);
+    const nx = Math.cos(a), ny = Math.sin(a);
+    // the lower ones in the shade of the crown above them
+    lobes.push({ x: o.cx + nx * o.rx * d, y: o.cy + ny * o.ry * d, rx: o.rx * s, ry: o.rx * s * (0.82 + r() * 0.22), base: 0.5 - ny * 0.16 - nx * 0.04 + (r() - 0.5) * 0.2 });
+  }
+  const top = o.cy + o.ry * 0.35;
+  trunk(x, fx, fy, o.trunk, top, o.bark);
+  for (const l of lobes.slice(1)) limb(x, fx, top + 10, l.x, l.y + l.ry * 0.2, o.trunk * 0.9, 2, o.bark);
+  paintLobe(x, r, lobes[0], o.leaves, { leaf: 3.4, core: 0.9 });
+  for (const l of lobes.slice(1).sort((p, q) => q.y - p.y + (r() - 0.5) * 60)) paintLobe(x, r, l, o.leaves, { leaf: 3.4, core: 0.66, open: 0.12 });
+}
+
+// A silver birch: its white trunk with black marks up into an oval, open crown of small leaves on
+// branches that rise from it, and strands of them hanging at its edge.
+function birch(x: CanvasRenderingContext2D, fx: number, fy: number, rx: number, seed: number) {
+  const r = rng(seed), top = 44, base = 356, mid = (top + base) / 2, ry = (base - top) / 2;
+  trunk(x, fx, fy, 6.5, top + 70, [228, 224, 214], true);
+  const lobes: Lobe[] = [];
+  for (let k = 0; k < 22; k++) {
+    const a = (k / 22) * Math.PI * 2 + (r() - 0.5) * 0.5, d = 0.38 + r() * 0.34, s = (1 - d) * (0.75 + r() * 0.3);
+    const nx = Math.cos(a), ny = Math.sin(a), lx = fx + nx * rx * d, ly = mid + ny * ry * d;
+    limb(x, fx, ly + 26 + Math.abs(nx) * 30, lx, ly, 3.5, 1.2, [204, 200, 192], fx + (lx - fx) * 0.4, ly);
+    lobes.push({ x: lx, y: ly + 6, rx: rx * s * (0.85 + r() * 0.3), ry: ry * s * 0.62 + 10, base: 0.52 - ny * 0.15 + (r() - 0.5) * 0.14 });
+  }
+  paintLobe(x, r, { x: fx, y: mid, rx: rx * 0.55, ry: ry * 0.62, base: 0.4 }, BIRCH, { leaf: 2.6, core: 0.45, open: 0.4 });
+  for (const l of lobes.sort((p, q) => q.y - p.y + (r() - 0.5) * 80)) paintLobe(x, r, l, BIRCH, { leaf: 2.6, core: 0.4, open: 0.35 });
+  // the hanging strands, from the lower and outer sub-crowns
+  const strands: [number, number, number][] = [];
+  for (let k = 0; k < 90; k++) {
+    const l = lobes[Math.floor(r() * lobes.length)], a = r() * Math.PI;
+    if (Math.abs(l.x - fx) < rx * 0.3 && l.y < mid) continue;
+    const sx = l.x + Math.cos(a) * l.rx * 0.95, sy = l.y + Math.sin(a) * l.ry * 0.85, len = 12 + r() * 30;
+    for (let t = 0; t < len; t += 2.2) strands.push([sx + Math.sin(t * 0.08) * 2 + (r() - 0.5) * 3, sy + t, l.base - 0.12 + (r() - 0.5) * 0.3 - (t / len) * 0.12]);
+  }
+  leaves(x, r, strands, BIRCH, 2, 0.8, 1);
+}
+
+// A Scots pine: a tall bare trunk, grey below and orange above, and at its top flat, uneven clouds
+// of needles on branches that reach out from it, broadest high up.
+function pine(x: CanvasRenderingContext2D, fx: number, fy: number, seed: number) {
+  const r = rng(seed), top = 22, base = 230, W = 158;
+  trunk(x, fx, fy, 8, top + 6, [96, 82, 72], false, [176, 102, 58]);
+  const pads: Lobe[] = [];
+  for (let k = 0; k < 18; k++) {
+    const t = (k + r() * 0.8) / 18, y = top + 16 + t * (base - top - 30);
+    const w = W * (0.45 + 0.55 * Math.sin(Math.PI * Math.min(1, 0.15 + t * 1.05))), side = k % 2 ? 1 : -1;
+    const prx = 26 + r() * 30 + w * 0.12, px = fx + side * Math.max(0, w - prx) * (0.35 + r() * 0.65);
+    limb(x, fx, y + 26, px, y + 4, 5, 1.5, [150, 92, 56], (fx + px) / 2, y + 14);
+    pads.push({ x: px, y, rx: prx, ry: 11 + r() * 9, base: 0.6 - t * 0.22 + (r() - 0.5) * 0.14 });
+  }
+  pads.push({ x: fx + (r() - 0.5) * 16, y: top + 18, rx: 52, ry: 22, base: 0.66 });
+  for (const p of pads.sort((p, q) => q.y - p.y + (r() - 0.5) * 30)) paintLobe(x, r, p, PINE, { leaf: 2.6, core: 0.55, needles: true, open: 0.25 });
+}
+
+// A Norway spruce: a dark narrow cone of drooping branches, layer over layer, from near the ground.
+function spruce(x: CanvasRenderingContext2D, fx: number, fy: number, seed: number) {
+  const r = rng(seed), top = 16, bottom = fy - 26;
+  trunk(x, fx, fy, 8, top + 40, [70, 58, 50]);
+  const pads: Lobe[] = [];
+  for (let y = top + 18; y < bottom; y += 9 + r() * 6) {
+    const w = 128 * Math.pow((y - top) / (bottom - top), 0.9) + 6;
+    for (const side of [-1, 1]) {
+      const n = Math.max(1, Math.round(w / 22));
+      for (let k = 0; k < n; k++) {
+        const t = (k + 0.5 + (r() - 0.5) * 0.5) / n;
+        pads.push({ x: fx + side * w * t * (0.85 + r() * 0.25), y: y + t * t * 22 + r() * 4, rx: 10 + r() * 8 + w * 0.06, ry: 7 + r() * 5, base: 0.5 - t * 0.12 + (r() - 0.5) * 0.14 });
+      }
     }
+  }
+  pads.push({ x: fx, y: top + 12, rx: 6, ry: 16, base: 0.6 });
+  for (const p of pads.sort((p, q) => p.y - q.y)) paintLobe(x, r, p, SPRUCE, { leaf: 2.2, core: 0.7, needles: true });
+}
+
+// A sub-crown: a shaded core, then small leaves over it, lit on top and shaded underneath, more
+// densely towards its middle so that it is ragged at the edge. `open` (0–1) leaves some of its
+// leaves out, for the sky to show through, as a birch's and a pine's do.
+function paintLobe(x: CanvasRenderingContext2D, r: () => number, l: Lobe, pal: Rgb[],
+  { leaf, core, open = 0, needles = false }: { leaf: number; core: number; open?: number; needles?: boolean }) {
+  // the core, a few lumps fading out at their edges, so that from afar (where the mipmaps blur the
+  // leaves) it stays solid
+  const [cr, cg, cb] = ramp(pal, l.base - 0.32);
+  for (let k = 0; k < 3; k++) {
+    const a = r() * Math.PI * 2, R = l.rx * core;
+    x.save(); x.translate(l.x + Math.cos(a) * l.rx * 0.15, l.y + l.ry * 0.1 + Math.sin(a) * l.ry * 0.15); x.scale(1, l.ry / l.rx);
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, R);
+    g.addColorStop(0, `rgba(${cr},${cg},${cb},1)`); g.addColorStop(0.6, `rgba(${cr},${cg},${cb},1)`); g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, R, 0, Math.PI * 2); x.fill();
+    x.restore();
+  }
+  const n = Math.round((Math.PI * l.rx * l.ry) / (leaf * leaf * (needles ? 1.2 : 2.4)) * (1 - open));
+  const pts: [number, number, number][] = [];
+  for (let k = 0; k < n; k++) {
+    const a = r() * Math.PI * 2, d = Math.pow(r(), 0.55) * 1.04, nx = Math.cos(a) * d, ny = Math.sin(a) * d;
+    if (open && d > 0.4 && r() < open) continue;
+    pts.push([l.x + nx * l.rx, l.y + ny * l.ry, l.base - 0.34 * ny - 0.08 * nx + 0.12 * (d - 0.5) + (r() - 0.5) * 0.26]);
+  }
+  leaves(x, r, pts, pal, leaf, needles ? 0.3 : 0.65, needles ? 2.4 : 1.4);
+}
+
+// Leaves at the points, each a small ellipse (needles: a long thin one, lying more or less level)
+// in its point's light, the darker first; drawn a few shades at a time.
+function leaves(x: CanvasRenderingContext2D, r: () => number, pts: [number, number, number][], pal: Rgb[], leaf: number, thin: number, spread: number) {
+  pts.sort((p, q) => p[2] - q[2]);
+  const LEVELS = 24;
+  for (let i = 0, lv = -1; i < pts.length; i++) {
+    const level = Math.round(Math.min(1, Math.max(0, pts[i][2])) * LEVELS);
+    if (level !== lv) {
+      if (lv >= 0) x.fill();
+      lv = level; x.fillStyle = rgbOf(ramp(pal, level / LEVELS)); x.beginPath();
+    }
+    const [px, py] = pts[i], size = leaf * (0.7 + r() * 0.6), rot = thin < 0.5 ? (r() - 0.5) * 1.2 : r() * Math.PI;
+    for (let k = 0; k < 2; k++) {
+      const ex = px + (r() - 0.5) * leaf * spread * 2, ey = py + (r() - 0.5) * leaf * spread;
+      x.moveTo(ex + Math.cos(rot) * size, ey + Math.sin(rot) * size);
+      x.ellipse(ex, ey, size, size * thin, rot, 0, Math.PI * 2);
+    }
+    if (i === pts.length - 1) x.fill();
+  }
+}
+
+function ramp(pal: Rgb[], t: number): Rgb {
+  const f = Math.min(1, Math.max(0, t)) * (pal.length - 1), k = Math.min(pal.length - 2, Math.floor(f)), g = f - k;
+  return pal[k].map((a, i) => Math.round(a + (pal[k + 1][i] - a) * g)) as Rgb;
+}
+const rgbOf = ([r0, g0, b0]: number[]) => `rgb(${Math.round(r0)},${Math.round(g0)},${Math.round(b0)})`;
+
+// A trunk from (fx, fy), `w` pixels wide at the foot, up to y `top`, shaded from the left; a birch's
+// with black marks, a pine's turning to `upper` above its lower third.
+function trunk(x: CanvasRenderingContext2D, fx: number, fy: number, w: number, top: number, bark: Rgb, birch = false, upper?: Rgb) {
+  const r = rng(fx + fy + w);
+  const shaded = (c: Rgb) => {
+    const g = x.createLinearGradient(fx - w, 0, fx + w, 0);
+    g.addColorStop(0, rgbOf(c.map((v) => v * 1.12))); g.addColorStop(0.45, rgbOf(c)); g.addColorStop(1, rgbOf(c.map((v) => v * 0.5)));
+    return g;
+  };
+  x.fillStyle = shaded(bark);
+  x.beginPath(); x.moveTo(fx - w * 1.25, fy); x.lineTo(fx - w * 0.35, top); x.lineTo(fx + w * 0.35, top); x.lineTo(fx + w * 1.25, fy); x.closePath(); x.fill();
+  const half = (y: number) => w * (0.35 + 0.9 * (y - top) / (fy - top));
+  if (upper) {
+    const y1 = fy - (fy - top) * 0.4;
+    x.fillStyle = shaded(upper);
+    x.beginPath(); x.moveTo(fx - half(y1) * 0.9, y1); x.lineTo(fx - w * 0.33, top); x.lineTo(fx + w * 0.3, top); x.lineTo(fx + half(y1) * 0.7, y1); x.closePath(); x.fill();
+  }
+  // bark: dark furrows, a birch's black marks
+  x.fillStyle = birch ? 'rgb(38,36,34)' : rgbOf(bark.map((v) => v * 0.6));
+  for (let k = 0; k < (birch ? 46 : 30); k++) {
+    const y = top + r() * (fy - top), h = half(y);
+    if (birch) x.fillRect(fx - h + r() * h, Math.min(y, fy - 5), h * (0.3 + r() * 0.9) * (y > fy - 60 ? 1.6 : 1), 1.5 + r() * 3.5);
+    else { const len = 4 + r() * 12; x.fillRect(fx - h + r() * 2 * h, Math.min(y, fy - len), 1.2, len); }
+  }
+}
+
+// A limb from (x0, y0) to (x1, y1), tapering from w0 to w1 pixels, bowed through (bx, by).
+function limb(x: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, w0: number, w1: number, c: Rgb, bx = (x0 + x1) / 2, by = Math.min(y0, y1) - 10) {
+  x.strokeStyle = rgbOf(c.map((v) => v * 0.7)); x.lineCap = 'round';
+  const N = 6;
+  for (let k = 0; k < N; k++) {
+    const t0 = k / N, t1 = (k + 1) / N;
+    const p = (t: number) => [(1 - t) * (1 - t) * x0 + 2 * t * (1 - t) * bx + t * t * x1, (1 - t) * (1 - t) * y0 + 2 * t * (1 - t) * by + t * t * y1];
+    const [ax, ay] = p(t0), [cx, cy] = p(t1);
+    x.lineWidth = w0 + (w1 - w0) * (t0 + t1) / 2;
+    x.beginPath(); x.moveTo(ax, ay); x.lineTo(cx, cy); x.stroke();
   }
 }
 
@@ -11729,4 +11910,158 @@ export function violetTiles() {
     x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(i * t + 1, j * t + 1, t * 0.4, 1);
   }
   return toTexture(c);
+}
+
+// The sign under a bridge over a channel boats use, giving the height clear under it: a yellow
+// disc with a black rim and the height in black (Stocksundet's metro bridge: "13 m"). 256 × 256,
+// the disc filling it; clear outside it.
+export function clearanceSign(text: string) {
+  const [c, x] = canvas(256);
+  x.clearRect(0, 0, 256, 256);
+  x.fillStyle = '#1d1d1b';
+  x.beginPath(); x.arc(128, 128, 126, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#f0c419';
+  x.beginPath(); x.arc(128, 128, 114, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#1d1d1b';
+  x.font = '700 88px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 128, 134, 196);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// The direction signs on the gantries over the E18 on its bridge over Stocksundet, as photographed
+// in 2014–2026: blue (and over the northbound lanes at the bridge's north end, green), white-rimmed,
+// with green route shields, the motorway's symbol and white arrows; the exit's own sign white with
+// black letters and its number on a yellow plate. All in one sheet of 1024 × 1024 at 60 pixels to
+// the metre; E18_SIGNS gives each one's rectangle in it (pixels, from the top left) and its size in
+// metres.
+export const E18_SIGNS = {
+  northbound: { x: 0, y: 0, w: 660, h: 144 },
+  exit177: { x: 680, y: 0, w: 60, h: 30 },
+  norrtalje: { x: 0, y: 160, w: 432, h: 90 },
+  inverness: { x: 450, y: 160, w: 168, h: 60 },
+  stockholm: { x: 0, y: 270, w: 492, h: 114 },
+  oslo: { x: 510, y: 270, w: 276, h: 168 },
+  southbound: { x: 0, y: 460, w: 780, h: 168 },
+} as const;
+export function e18Signs() {
+  const [c, x] = canvas(1024);
+  x.fillStyle = '#7d8286'; x.fillRect(0, 0, 1024, 1024);
+  const S = E18_SIGNS, BLUE = '#1b5aa8', GREEN = '#21704a', WHITE = '#f4f6f4', BLACK = '#18191a';
+  const font = (px: number) => { x.font = `700 ${px}px "DIN Alternate", "Arial Narrow", Arial, sans-serif`; };
+  const rect = (rx: number, ry: number, w: number, h: number, r: number) => {
+    x.beginPath(); x.moveTo(rx + r, ry); x.arcTo(rx + w, ry, rx + w, ry + h, r); x.arcTo(rx + w, ry + h, rx, ry + h, r);
+    x.arcTo(rx, ry + h, rx, ry, r); x.arcTo(rx, ry, rx + w, ry, r); x.closePath();
+  };
+  // a panel: its ground, rimmed in white
+  const panel = ({ x: px, y: py, w, h }: { x: number; y: number; w: number; h: number }, ground: string, rim = WHITE) => {
+    x.fillStyle = ground; x.fillRect(px, py, w, h);
+    x.strokeStyle = rim; x.lineWidth = 2.5; rect(px + 3, py + 3, w - 6, h - 6, 4); x.stroke();
+  };
+  const text = (t: string, cx: number, cy: number, px: number, colour: string, align: CanvasTextAlign = 'center') => {
+    font(px); x.fillStyle = colour; x.textAlign = align; x.textBaseline = 'middle';
+    x.fillText(t, cx, cy);
+  };
+  // a route's shield: white letters on green, rimmed in white; returns its width
+  const shield = (t: string, lx: number, cy: number, h: number) => {
+    font(h * 0.72); const w = x.measureText(t).width + h * 0.5;
+    x.fillStyle = GREEN; rect(lx, cy - h / 2, w, h, 3); x.fill();
+    x.strokeStyle = WHITE; x.lineWidth = 2; rect(lx + 2, cy - h / 2 + 2, w - 4, h - 4, 2); x.stroke();
+    text(t, lx + w / 2, cy + 1, h * 0.72, WHITE);
+    return w;
+  };
+  // the motorway's symbol: a road passing under a bridge, white on the ground it stands on
+  const motorway = (lx: number, cy: number, h: number, ground: string) => {
+    x.fillStyle = ground; rect(lx, cy - h / 2, h, h, 3); x.fill();
+    x.strokeStyle = WHITE; x.lineWidth = 2; rect(lx + 2, cy - h / 2 + 2, h - 4, h - 4, 2); x.stroke();
+    x.fillStyle = WHITE;
+    x.fillRect(lx + h * 0.18, cy - h * 0.2, h * 0.64, h * 0.1);
+    x.beginPath(); x.moveTo(lx + h * 0.2, cy + h * 0.36); x.lineTo(lx + h * 0.4, cy - h * 0.06); x.lineTo(lx + h * 0.46, cy - h * 0.06); x.lineTo(lx + h * 0.32, cy + h * 0.36); x.fill();
+    x.beginPath(); x.moveTo(lx + h * 0.8, cy + h * 0.36); x.lineTo(lx + h * 0.6, cy - h * 0.06); x.lineTo(lx + h * 0.54, cy - h * 0.06); x.lineTo(lx + h * 0.68, cy + h * 0.36); x.fill();
+    return h;
+  };
+  // an arrow from (ax, ay) up `len`, its head `head` wide, bent to the right at its top if `right`
+  const arrow = (ax: number, ay: number, len: number, head: number, colour = WHITE, right = false) => {
+    x.strokeStyle = colour; x.fillStyle = colour; x.lineWidth = head * 0.32; x.lineCap = 'butt';
+    const tip = right ? [ax + len * 0.32, ay - len] : [ax, ay - len], d = right ? [0.6, -0.8] : [0, -1];
+    x.beginPath(); x.moveTo(ax, ay);
+    if (right) { x.lineTo(ax, ay - len * 0.45); x.lineTo(tip[0] - d[0] * head * 0.8, tip[1] - d[1] * head * 0.8); } else x.lineTo(ax, ay - len + head * 0.8);
+    x.stroke();
+    const [px, py] = [-d[1], d[0]];
+    x.beginPath(); x.moveTo(tip[0], tip[1]);
+    x.lineTo(tip[0] - d[0] * head + px * head * 0.5, tip[1] - d[1] * head + py * head * 0.5);
+    x.lineTo(tip[0] - d[0] * head - px * head * 0.5, tip[1] - d[1] * head - py * head * 0.5); x.fill();
+  };
+  // a row of a destination's routes: shields and the motorway's symbol, from lx
+  const routes = (names: string[], lx: number, cy: number, h: number, ground: string) => {
+    let at = lx;
+    for (const n of names) at += shield(n, at, cy, h) + 4;
+    return at + motorway(at, cy, h, ground) - lx;
+  };
+
+  // northbound at the bridge's south end: straight on to Norrtälje, the exit to Inverness and
+  // Stocksund on the right
+  {
+    const p = S.northbound;
+    panel(p, BLUE);
+    arrow(p.x + 26, p.y + 130, 112, 18);
+    x.fillStyle = GREEN; rect(p.x + 104, p.y + 12, 172, 84, 4); x.fill();
+    x.strokeStyle = WHITE; x.lineWidth = 2; rect(p.x + 107, p.y + 15, 166, 78, 3); x.stroke();
+    text('NORRTÄLJE', p.x + 190, p.y + 35, 25, WHITE);
+    routes(['E18'], p.x + 140, p.y + 70, 30, GREEN);
+    arrow(p.x + 190, p.y + 134, 28, 14);
+    arrow(p.x + 360, p.y + 130, 110, 18, WHITE, true);
+    x.fillStyle = WHITE; x.fillRect(p.x + 410, p.y + 42, 222, 62);
+    text('INVERNESS', p.x + 521, p.y + 60, 25, BLACK);
+    text('STOCKSUND', p.x + 521, p.y + 88, 25, BLACK);
+    const e = S.exit177;
+    x.fillStyle = '#f1c40f'; x.fillRect(e.x, e.y, e.w, e.h);
+    x.strokeStyle = BLACK; x.lineWidth = 2; x.strokeRect(e.x + 2, e.y + 2, e.w - 4, e.h - 4);
+    text('177', e.x + e.w / 2, e.y + e.h / 2 + 1, 20, BLACK);
+  }
+  // northbound at its north end: Norrtälje straight on, green; the exit's sign beside it
+  {
+    const p = S.norrtalje;
+    panel(p, GREEN);
+    text('NORRTÄLJE', p.x + p.w / 2, p.y + 24, 26, WHITE);
+    for (const lx of [p.x + 70, p.x + 262]) routes(['E18'], lx, p.y + 62, 28, GREEN);
+    for (const ax of [p.x + 30, p.x + 214, p.x + 404]) arrow(ax, p.y + 82, 46, 14);
+    const q = S.inverness;
+    x.fillStyle = WHITE; x.fillRect(q.x, q.y, q.w, q.h);
+    x.strokeStyle = BLACK; x.lineWidth = 2; rect(q.x + 3, q.y + 3, q.w - 6, q.h - 6, 3); x.stroke();
+    arrow(q.x + 18, q.y + 50, 38, 12, BLACK, true);
+    text('INVERNESS', q.x + 100, q.y + 20, 18, BLACK);
+    text('STOCKSUND', q.x + 100, q.y + 42, 18, BLACK);
+  }
+  // southbound: Stockholm straight on by the E4 and E20, and to the right the E4 north and the E18
+  // to Oslo, by Solna
+  const stockholm = (lx: number, ty: number, w: number) => {
+    arrow(lx + 24, ty + 100, 88, 16);
+    text('STOCKHOLM', lx + w / 2 + 10, ty + 28, 28, WHITE);
+    routes(['E4 S', 'E20'], lx + 60, ty + 74, 30, BLUE);
+    arrow(lx + w / 2 + 34, ty + 92, 40, 14);
+    routes(['E4 S', 'E20'], lx + w / 2 + 64, ty + 74, 30, BLUE);
+  };
+  const oslo = (lx: number, ty: number, w: number, h: number) => {
+    arrow(lx + 26, ty + h - 16, h - 40, 16, WHITE, true);
+    arrow(lx + w - 52, ty + h - 16, h - 40, 16, WHITE, true);
+    const mid = lx + w / 2 - 6;
+    shield('E4 N', mid - 34, ty + 34, 30);
+    const sw = shield('E18', mid - 64, ty + 82, 30);
+    text('OSLO', mid - 58 + sw, ty + 83, 28, WHITE, 'left');
+    text('SOLNA', mid - 64, ty + 130, 28, WHITE, 'left');
+  };
+  {
+    const p = S.stockholm;
+    panel(p, BLUE);
+    stockholm(p.x, p.y, p.w);
+    const q = S.oslo;
+    panel(q, BLUE);
+    oslo(q.x, q.y, q.w, q.h);
+    const r = S.southbound;
+    panel(r, BLUE);
+    stockholm(r.x, r.y + 20, 492);
+    oslo(r.x + 492, r.y, 288, r.h);
+  }
+  return toTexture(c, { repeat: false, aniso: 8 });
 }

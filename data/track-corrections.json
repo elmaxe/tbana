@@ -363,6 +363,81 @@
       "node": 2774972047,
       "to": [148572.2, 6576566.6],
       "why": "Axelsberg, the southern track's tunnel under the deck east of the platform: OSM ends it 3.2 m short of the deck's east edge in Lantmäteriet's laser scan, under the station building's front. Moved on along the track to the deck's edge, level with the northern track's mouth."
+    },
+    {
+      "node": 13284063103,
+      "to": [152072.35, 6585429.73],
+      "why": "The bridge over Stocksundet between Bergshamra and Danderyds sjukhus, the western track at its southern end: OSM's two tracks on the bridge are 3.4–4 m apart and both up to 6 m east of its deck, which Lantmäteriet's laser scan (March 2021: 230 m of deck about 9.8 m wide, from the tunnel's mouth in Bergshamra's hillside to the cutting on the Stocksund shore) and Google's 3D mesh have curving further west. The bridge's tracks are moved to either side of the deck's middle line, 4 m apart (OSM's own spacing there)."
+    },
+    {
+      "node": 35972971,
+      "to": [152076.59, 6585451.68],
+      "why": "The bridge over Stocksundet, the western track 22 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 1386245403,
+      "to": [152087.94, 6585494.28],
+      "why": "The bridge over Stocksundet, the western track 66 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 449247173,
+      "to": [152099.43, 6585526.54],
+      "why": "The bridge over Stocksundet, the western track 100 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 449247177,
+      "to": [152113.22, 6585557.71],
+      "why": "The bridge over Stocksundet, the western track 133 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 449247184,
+      "to": [152131.41, 6585591.04],
+      "why": "The bridge over Stocksundet, the western track 171 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 35972975,
+      "to": [152162.36, 6585636.67],
+      "why": "The bridge over Stocksundet, the western track 226 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 4759106532,
+      "to": [152076.30, 6585429.07],
+      "why": "The bridge over Stocksundet, the eastern track 0 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187303,
+      "to": [152080.41, 6585450.45],
+      "why": "The bridge over Stocksundet, the eastern track 22 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187304,
+      "to": [152086.79, 6585476.32],
+      "why": "The bridge over Stocksundet, the eastern track 48 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187307,
+      "to": [152096.05, 6585506.03],
+      "why": "The bridge over Stocksundet, the eastern track 80 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187310,
+      "to": [152107.91, 6585536.53],
+      "why": "The bridge over Stocksundet, the eastern track 112 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187312,
+      "to": [152122.14, 6585566.48],
+      "why": "The bridge over Stocksundet, the eastern track 145 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187314,
+      "to": [152140.07, 6585597.46],
+      "why": "The bridge over Stocksundet, the eastern track 181 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 3160187317,
+      "to": [152166.10, 6585635.00],
+      "why": "The bridge over Stocksundet, the eastern track 226 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
     }
   ],
   "platforms": [

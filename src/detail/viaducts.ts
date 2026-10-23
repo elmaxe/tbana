@@ -7,10 +7,12 @@ import { DETAIL_ON } from './areas.ts';
 // whose round piers and railings the station's style draws (src/open-styles.ts), Åkeshov's
 // three over its ticket hall and the underpass, which stand on the hall's walls, and Bredäng's
 // over Bredängs Allé and the square, whose piers and railings its style draws too, and Kista's
-// over the bus terminal and Kistagången, whose piers, columns and parapets its style draws. Within
-// `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along
-// its decks and the lamps over its platforms, and keeps the player off its platforms where the
-// `solids` stand on them. Like src/detail/areas.ts it imports next to nothing, for the network.
+// over the bus terminal and Kistagången, whose piers, columns and parapets its style draws, and the
+// bridge over Stocksundet (src/detail/stocksundet.ts). Within `r` metres of `at` the network
+// (src/network.ts) leaves out its own piers, the railings along its decks and the lamps over its
+// platforms, and keeps the player off its platforms where the `solids` stand on them; where
+// `girder`, it leaves out its decks' girders too, which the landmark draws in their real shape.
+// Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
 // platforms from their middle towards the north-east, u to the right of that (south-east); the
@@ -25,7 +27,7 @@ export const SNAKE_WALL = { s0: -62, s1: -57.5, u0: -6.1, u1: 4.7 };
 const box = (s0: number, s1: number, u0: number, u1: number, y0: number, y1: number): Volume =>
   prism([ropstenWorld(s0, u0), ropstenWorld(s1, u0), ropstenWorld(s1, u1), ropstenWorld(s0, u1)], [y0, y0, y0, y0], [y1, y1, y1, y1]);
 
-export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number; solids: Volume[] }[] = [
+export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number; solids: Volume[]; girder?: boolean }[] = [
   { name: 'Ropsten', at: ropstenWorld(12, 0), r: 105, solids: [box(SNAKE_WALL.s0, SNAKE_WALL.s1, SNAKE_WALL.u0, SNAKE_WALL.u1, ROPSTEN.platform - 0.5, ROPSTEN.platform + 3)] },
   // (from 151 m to 79 m west of Brommaplan's platform's middle)
   { name: 'Brommaplan', at: [-6850.0, -769.5], r: 36, solids: [] },
@@ -35,9 +37,13 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Bredäng', at: [-7175.3, 4095.8], r: 90, solids: [] },
   // (from 103 m south-east of Kista's platform's middle to 133 m north-west of it)
   { name: 'Kista', at: [-6623.21, -7958.56], r: 118, solids: [] },
+  // (from the southern abutment to the northern one, 116 m either side of the middle)
+  { name: 'Stocksundet', at: [-1259.47, -5935.8], r: 122, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark
 export const viaductInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_VIADUCTS.some((v) => Math.hypot(x - v.at[0], z - v.at[1]) < v.r);
+// whether it leaves the girder under the deck at (x, z) to a landmark too
+export const girderInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_VIADUCTS.some((v) => v.girder && Math.hypot(x - v.at[0], z - v.at[1]) < v.r);
 // what stands on their platforms
 export const viaductSolids = (): Volume[] => (DETAIL_ON ? DETAILED_VIADUCTS.flatMap((v) => v.solids) : []);
