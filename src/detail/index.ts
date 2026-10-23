@@ -14,6 +14,7 @@ import { ropstenWorld } from './viaducts.ts';
 import { buildChimney, buildLidingobron, buildLillaLidingobron, buildRopstensplan, buildTramStop, buildVarmeverk, CHIMNEYS, ENERGIHAMNEN_TANKS, LIDINGOBRON_PARTS, LILLA_LIDINGOBRON_PARTS, VVR_OUTLINE } from './ropsten.ts';
 import { buildRopstenStation } from './ropsten-station.ts';
 import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUTLINE } from './stocksundet.ts';
+import { buildFence, buildHerrhagsvagen, buildRockFace, buildTallkrogenBridges, FENCE_PARTS, HERRHAGSVAGEN, ROCK_ANCHOR, TALLKROGEN_BRIDGES } from './gubbangen.ts';
 import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -72,6 +73,13 @@ const LANDMARKS: Landmark[] = [
   // and the E18's bridge 320 m east of it, in view from it (OpenStreetMap's road bridges are left
   // out of the city)
   { name: 'Stocksundsbron (E18)', outline: [], anchor: [-995, -5744], build: buildE18Bridge },
+  // the green line between Tallkrogen and Gubbängen (src/detail/gubbangen.ts): Tallkrogen's bridges
+  // over Victor Balcks väg, Herrhagsvägen's over the tracks at Gubbängen, the rock face in the
+  // cutting north of it, and the fences along the line, in parts, each built with the tile it is in
+  { name: 'Tallkrogen bridges', outline: [], anchor: TALLKROGEN_BRIDGES.o, build: buildTallkrogenBridges },
+  { name: 'Herrhagsvägen bridge', outline: [], anchor: HERRHAGSVAGEN.o, build: buildHerrhagsvagen },
+  { name: 'Rock face north of Herrhagsvägen', outline: [], anchor: ROCK_ANCHOR, build: buildRockFace },
+  ...FENCE_PARTS.map((p, i): Landmark => ({ name: `Gubbängen–Tallkrogen fence ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildFence(B, g, p.pts, p.out) })),
 ];
 
 export interface TileDetail {

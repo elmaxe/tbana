@@ -11929,6 +11929,27 @@ export function clearanceSign(text: string) {
   return toTexture(c, { repeat: false, aniso: 4 });
 }
 
+// The road sign on a bridge's face giving the height clear under it for vehicles (C17, "Begränsad
+// fordonshöjd"): a yellow disc in a red ring, the height in black between two black wedges
+// pointing at it (Tallkrogen's bridges over Victor Balcks väg: "3,7 m"). 256 × 256, clear outside
+// the disc.
+export function heightLimitSign(text: string) {
+  const [c, x] = canvas(256);
+  x.clearRect(0, 0, 256, 256);
+  x.fillStyle = '#c8202a';
+  x.beginPath(); x.arc(128, 128, 126, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#f2c418';
+  x.beginPath(); x.arc(128, 128, 100, 0, Math.PI * 2); x.fill();
+  x.fillStyle = '#1d1d1b';
+  for (const [y, d] of [[52, 1], [204, -1]]) {
+    x.beginPath(); x.moveTo(110, y); x.lineTo(146, y); x.lineTo(128, y + d * 22); x.closePath(); x.fill();
+  }
+  x.font = '700 62px "Helvetica Neue", Arial, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 128, 131, 160);
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
 // The direction signs on the gantries over the E18 on its bridge over Stocksundet, as photographed
 // in 2014–2026: blue (and over the northbound lanes at the bridge's north end, green), white-rimmed,
 // with green route shields, the motorway's symbol and white arrows; the exit's own sign white with

@@ -8,10 +8,11 @@ import { DETAIL_ON } from './areas.ts';
 // three over its ticket hall and the underpass, which stand on the hall's walls, and Bredäng's
 // over Bredängs Allé and the square, whose piers and railings its style draws too, and Kista's
 // over the bus terminal and Kistagången, whose piers, columns and parapets its style draws, and the
-// bridge over Stocksundet (src/detail/stocksundet.ts). Within `r` metres of `at` the network
-// (src/network.ts) leaves out its own piers, the railings along its decks and the lamps over its
-// platforms, and keeps the player off its platforms where the `solids` stand on them; where
-// `girder`, it leaves out its decks' girders too, which the landmark draws in their real shape.
+// bridge over Stocksundet (src/detail/stocksundet.ts), and Tallkrogen's two over Victor Balcks väg
+// (src/detail/gubbangen.ts). Within `r` metres of `at` the network (src/network.ts) leaves out its
+// own piers, the railings along its decks and the lamps over its platforms, and keeps the player
+// off its platforms where the `solids` stand on them; where `girder`, it leaves out its decks'
+// girders too, which the landmark draws in their real shape.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -39,6 +40,8 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Kista', at: [-6623.21, -7958.56], r: 118, solids: [] },
   // (from the southern abutment to the northern one, 116 m either side of the middle)
   { name: 'Stocksundet', at: [-1259.47, -5935.8], r: 122, solids: [], girder: true },
+  // (the network's bridges there, 22 m either side of the middle of their spans)
+  { name: 'Tallkrogen', at: [1490.5, 6736.7], r: 23, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

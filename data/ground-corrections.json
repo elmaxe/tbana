@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside an `under` outline a street runs under the network's bridge: the ground there is the street's (drawn on and walked on), not the track's, however close over it the track passes. Inside a `paved` outline (and an `open`, `fill` or `under` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Telefonplan: the station's building and the streets round it",
@@ -526,6 +526,24 @@
     {
       "outline": [[-14046.3, 9775.8], [-14030.3, 9777.2], [-14033.3, 9810.6], [-14049.2, 9809.1]],
       "why": "Norsborg: the hillside over the depot's portal, between the wall of sprayed concrete and the rock face. The yard tracks' cutting, where they end at the portal, lowered it in a trench up to Skarpbrunnavägen."
+    },
+    {
+      "outline": [[1308.2, 7334.0], [1308.9, 7350.0], [1309.5, 7360.0], [1310.7, 7379.0], [1311.8, 7392.0], [1312.8, 7404.0], [1324.0, 7404.0], [1324.0, 7334.0]],
+      "why": "Gubbängen–Tallkrogen: the hillside east of the cutting north of Herrhagsvägen, behind the face of blasted rock beside the eastern track, which src/detail/gubbangen.ts draws. The rock rises 4.5–5.5 m from beside the track to the hillside (the laser scan, 39–40 m at its crest, from 7340 to 7400 m south); the track's cutting lowered the hill to a slope of 1:2 as far as 15 m from the track. The outline starts 10.5 m from the track, a grid step behind the drawn face: nearer, the 5 m grid's triangles rose from the track to the hillside in front of the face. Between them the track's slope stays under the face's top, which runs back over it to the hillside."
+    },
+    {
+      "outline": [[1299.1, 7486.5], [1302.2, 7511.2], [1290.7, 7504.7], [1287.7, 7479.9]],
+      "why": "Gubbängen: Herrhagsvägen behind the western abutment of its bridge over the tracks, which src/detail/gubbangen.ts draws (the elevation model leaves the bridge out, not the road on the ground behind it). The track's cutting lowered the road to a slope of 1:2 from the wall, leaving a trench under the road's end."
+    },
+    {
+      "outline": [[1316.5, 7496.3], [1328.0, 7502.9], [1331.1, 7527.6], [1319.6, 7521.1]],
+      "why": "Gubbängen: Herrhagsvägen behind the eastern abutment of its bridge over the tracks, as behind the western one."
+    }
+  ],
+  "under": [
+    {
+      "outline": [[1473.2, 6735.4], [1488.2, 6717.9], [1509.4, 6736.2], [1494.4, 6753.6]],
+      "why": "Tallkrogen: Victor Balcks väg and its pavements under the metro's two bridges at the south-west end of the platform, between their abutments (src/detail/gubbangen.ts), 3.7 m under the decks. The track over them made a band of the road some 20 m wide the track's, where the street wasn't drawn and nobody could walk."
     }
   ]
 }

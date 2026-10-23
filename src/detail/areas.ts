@@ -25,6 +25,13 @@ export const DETAIL_AREAS: DetailArea[] = [
   // (src/detail/stocksundet.ts): the wooded shores either side, the villas on the north shore
   // and the paths under its ends
   { name: 'Stocksundet', x: -1255, z: -5940, r: 220 },
+  // the green line from Tallkrogen to Gubbängen (src/detail/gubbangen.ts): the bridges over Victor
+  // Balcks väg and the bank south of them, the woods the line runs through between the villas,
+  // the rock cutting and Herrhagsvägen's bridge north of Gubbängen, and the station with the
+  // centre beside it
+  { name: 'Tallkrogen south', x: 1400, z: 6880, r: 200 },
+  { name: 'Gubbängen–Tallkrogen', x: 1320, z: 7240, r: 200 },
+  { name: 'Gubbängen', x: 1325, z: 7620, r: 200 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one
