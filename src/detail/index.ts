@@ -15,6 +15,8 @@ import { buildChimney, buildLidingobron, buildLillaLidingobron, buildRopstenspla
 import { buildRopstenStation } from './ropsten-station.ts';
 import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUTLINE } from './stocksundet.ts';
 import { buildFence, buildHerrhagsvagen, buildRockFace, buildTallkrogenBridges, FENCE_PARTS, HERRHAGSVAGEN, ROCK_ANCHOR, TALLKROGEN_BRIDGES } from './gubbangen.ts';
+import { buildFarstaViaduct, buildFarstavagenBridge, buildGubbangsfaltet, buildHokarangenBridges, FN_ANCHOR, FV_ANCHOR, GF_ANCHOR, HK_ANCHOR } from './farsta-line.ts';
+import { buildHammarbybacken, buildNynasvagen, buildSockenvagen, buildSofielundsvagen, buildTallkrogenPath, HAMMARBYBACKEN, NYNASVAGEN, SOCKENVAGEN, SOFIELUNDSVAGEN, TALLKROGEN_PATH } from './farsta-line-north.ts';
 import { buildStreets, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -80,6 +82,22 @@ const LANDMARKS: Landmark[] = [
   { name: 'Herrhagsvägen bridge', outline: [], anchor: HERRHAGSVAGEN.o, build: buildHerrhagsvagen },
   { name: 'Rock face north of Herrhagsvägen', outline: [], anchor: ROCK_ANCHOR, build: buildRockFace },
   ...FENCE_PARTS.map((p, i): Landmark => ({ name: `Gubbängen–Tallkrogen fence ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildFence(B, g, p.pts, p.out) })),
+  // and on south to Farsta strand (src/detail/farsta-line.ts): the steel viaduct over Gubbängsfältet,
+  { name: 'Gubbängsfältet viaduct', outline: [], anchor: GF_ANCHOR, build: buildGubbangsfaltet },
+  // Hökarängen's bridges over Örbyleden: the metro's and the cycle bridge beside it
+  { name: 'Hökarängen bridges', outline: [], anchor: HK_ANCHOR, build: buildHokarangenBridges },
+  // the bridge over Farstavägen north of Farsta
+  { name: 'Farstavägen bridge', outline: [], anchor: FN_ANCHOR, build: buildFarstavagenBridge },
+  // and the two decks into Farsta's platform
+  { name: 'Farsta viaduct', outline: [], anchor: FV_ANCHOR, build: buildFarstaViaduct },
+  // and north from Tallkrogen to Gullmarsplan (src/detail/farsta-line-north.ts): the bridge over the
+  // path in the woods, the long one over Nynäsvägen, Sockenvägen's into Skogskyrkogården, and the
+  // steel ones over Sofielundsvägen south of Blåsut and Hammarbybacken east of Gullmarsplan
+  { name: 'Tallkrogen path bridge', outline: [], anchor: TALLKROGEN_PATH.at(15, 1), build: buildTallkrogenPath },
+  { name: 'Nynäsvägen bridge', outline: [], anchor: NYNASVAGEN.at(80, 0), build: buildNynasvagen },
+  { name: 'Sockenvägen bridge', outline: [], anchor: SOCKENVAGEN.at(67, -3), build: buildSockenvagen },
+  { name: 'Sofielundsvägen bridge', outline: [], anchor: SOFIELUNDSVAGEN.at(25, -2), build: buildSofielundsvagen },
+  { name: 'Hammarbybacken bridge', outline: [], anchor: HAMMARBYBACKEN.at(17, -3), build: buildHammarbybacken },
 ];
 
 export interface TileDetail {

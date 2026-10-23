@@ -37,7 +37,8 @@
 //   (or a deck's) right up to the wall.
 // - Under the network's bridge where a street runs under it (data/ground-corrections.json, `under`,
 //   as Victor Balcks väg under Tallkrogen's), the ground is the street's, paved, to draw on and walk
-//   on, not the track's, however close over it the track passes.
+//   on, not the track's, however close over it the track passes; or with `"paved": false`, under a
+//   viaduct over a park (Gubbängsfältet's), the park's, its grass and paths running on under it.
 // A point between two pieces of track takes the lower of what the open track asks and the higher
 // of what the tunnels ask, with the open track winning, except over a tunnel's own half: there
 // the ground stays over its roof, so that open track beside a tunnel doesn't open it.
@@ -175,7 +176,7 @@ for (const [key, h] of ground) {
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; why: string }[]; under?: { outline: XZ[]; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; why: string }[]; under?: { outline: XZ[]; paved?: boolean; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
@@ -203,7 +204,9 @@ function fixed(x: number, z: number, g: number) {
 }
 // whether the ground at (x, z) is paved though few buildings stand round it (a quay, a street under
 // a deck)
-const paved = (x: number, z: number) => openGround(x, z) !== null || fillGround(x, z) !== null || underBridge(x, z) || (groundFixes?.paved ?? []).some((o) => inside([x, z], o.outline));
+const paved = (x: number, z: number) => openGround(x, z) !== null || fillGround(x, z) !== null
+  || (groundFixes?.under ?? []).some((o) => o.paved !== false && inside([x, z], o.outline))
+  || (groundFixes?.paved ?? []).some((o) => inside([x, z], o.outline));
 
 // the fetched ground at any point of the city (bilinear), or null outside it
 function groundAt(x: number, z: number): number | null {
@@ -654,7 +657,7 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
       const u = floor + Math.max(0, out - 1) / (s.kind === 'cutting' ? 1 : S.EMBANKMENT.slope);
       upper = Math.min(upper, u);
       if (!s.yard) upperRun = Math.min(upperRun, u);
-      if (out < 1.5 && !s.yard && !(under && s.kind === 'bridge')) beside = true;
+      if (out < 1.5 && !s.yard && !under) beside = true;
     }
   }
   let h = Math.max(h0, lower);

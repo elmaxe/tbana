@@ -32,6 +32,36 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Tallkrogen south', x: 1400, z: 6880, r: 200 },
   { name: 'Gubbängen–Tallkrogen', x: 1320, z: 7240, r: 200 },
   { name: 'Gubbängen', x: 1325, z: 7620, r: 200 },
+  // and on south to Farsta strand: the steel viaduct over Gubbängsfältet, Hökarängen, the woods
+  // and the industrial estate the line runs past to Farsta, Farsta's bridges and centre, and the
+  // cut between the tunnels before Farsta strand
+  { name: 'Gubbängsfältet', x: 1332, z: 7960, r: 200 },
+  { name: 'Hökarängen', x: 1365, z: 8280, r: 200 },
+  { name: 'Hökarängen–Farsta 1', x: 1530, z: 8510, r: 200 },
+  { name: 'Hökarängen–Farsta 2', x: 1700, z: 8730, r: 200 },
+  { name: 'Hökarängen–Farsta 3', x: 1795, z: 9010, r: 200 },
+  { name: 'Farsta north', x: 1830, z: 9300, r: 200 },
+  { name: 'Farsta bridges', x: 1890, z: 9590, r: 200 },
+  { name: 'Farsta', x: 2030, z: 9870, r: 200 },
+  { name: 'Farsta strand', x: 2320, z: 10600, r: 150 },
+  // and north from Tallkrogen to Gullmarsplan (src/detail/farsta-line-north.ts): the bridge over
+  // the path in the woods, the long one over Nynäsvägen, the cemetery's edge, the bridge over
+  // Sockenvägen into Skogskyrkogården, Sandsborg and Blåsut between the blocks, the bridge over
+  // Sofielundsvägen, Skärmarbrink where the Skarpnäck line joins, and the bridge over
+  // Hammarbybacken into Gullmarsplan
+  { name: 'Tallkrogen', x: 1600, z: 6620, r: 200 },
+  { name: 'Tallkrogen–Skogskyrkogården 1', x: 1800, z: 6430, r: 200 },
+  { name: 'Tallkrogen–Skogskyrkogården 2', x: 1960, z: 6270, r: 200 },
+  { name: 'Skogskyrkogården north', x: 2050, z: 6020, r: 200 },
+  { name: 'Skogskyrkogården', x: 2070, z: 5800, r: 200 },
+  { name: 'Skogskyrkogården–Sandsborg', x: 2020, z: 5520, r: 200 },
+  { name: 'Sandsborg', x: 1910, z: 5170, r: 200 },
+  { name: 'Sandsborg–Blåsut', x: 1840, z: 4860, r: 200 },
+  { name: 'Blåsut', x: 1835, z: 4560, r: 200 },
+  { name: 'Blåsut–Skärmarbrink', x: 1855, z: 4280, r: 200 },
+  { name: 'Skärmarbrink', x: 1760, z: 4010, r: 200 },
+  { name: 'Skärmarbrink–Gullmarsplan', x: 1530, z: 3840, r: 200 },
+  { name: 'Gullmarsplan', x: 1300, z: 3660, r: 200 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

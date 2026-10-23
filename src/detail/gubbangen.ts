@@ -26,7 +26,7 @@ import { loft, post } from './ropsten.ts';
 // (src/detail/viaducts.ts); OpenStreetMap's road bridges are left out of the city
 // (tools/build-city.ts), so without this Herrhagsvägen would stop at the cutting's edges.
 
-type Ground = (x: number, z: number) => number | null;
+export type Ground = (x: number, z: number) => number | null;
 type V3s = V3[];
 
 addMaterial('gt-boards', () => standard(T.finish('boardConcrete'), 0.95));
@@ -34,11 +34,11 @@ addMaterial('gt-sign', () => standard(T.heightLimitSign('3,7 m'), 0.5, 0, { alph
 addMaterial('gt-chain', () => standard(T.chainLink(), 0.6, 0.4, { alphaTest: 0.5, side: THREE.DoubleSide }));
 addMaterial('gt-bars', () => standard(T.railingBars(), 0.6, 0.3, { alphaTest: 0.5, side: THREE.DoubleSide }));
 
-const UP: V3 = [0, 1, 0];
-const v3 = ([x, z]: V2, y: number): V3 => [x, y, z];
+export const UP: V3 = [0, 1, 0];
+export const v3 = ([x, z]: V2, y: number): V3 => [x, y, z];
 
 // A straight frame on the ground: s metres along `t` from `o`, u to its right.
-class Frame {
+export class Frame {
   readonly t: V2;
   constructor(readonly o: V2, t: V2) { const l = Math.hypot(t[0], t[1]); this.t = [t[0] / l, t[1] / l]; }
   at(s: number, u: number): V2 { return [this.o[0] + this.t[0] * s - this.t[1] * u, this.o[1] + this.t[1] * s + this.t[0] * u]; }
@@ -48,7 +48,7 @@ class Frame {
 
 // A block standing on a convex plan (s, u) in a frame, between a bottom and a top by (s, u): its top,
 // its underside and its sides.
-function block(B: Builder, F: Frame, plan: V2[], bottom: (s: number, u: number) => number, top: (s: number, u: number) => number,
+export function block(B: Builder, F: Frame, plan: V2[], bottom: (s: number, u: number) => number, top: (s: number, u: number) => number,
   mat: string, tile: number, { faces = 'all' as 'all' | 'sides' | 'top' } = {}) {
   const lo = plan.map(([s, u]) => v3(F.at(s, u), bottom(s, u))), hi = plan.map(([s, u]) => v3(F.at(s, u), top(s, u)));
   if (faces !== 'sides') B.poly(hi, UP, mat, tile);
@@ -67,7 +67,7 @@ function block(B: Builder, F: Frame, plan: V2[], bottom: (s: number, u: number) 
 }
 
 // A bar from p to q, w wide and h deep, its ends open (rails, tubes).
-function bar(B: Builder, p: V3, q: V3, w: number, h: number, mat: string) {
+export function bar(B: Builder, p: V3, q: V3, w: number, h: number, mat: string) {
   const d: V3 = [q[0] - p[0], 0, q[2] - p[2]], l = Math.hypot(d[0], d[2]) || 1, n: V3 = [-d[2] / l * w / 2, 0, d[0] / l * w / 2];
   const at = (o: V3, a: number, b: number): V3 => [o[0] + n[0] * a, o[1] + (h / 2) * b, o[2] + n[2] * a];
   const side = (a0: number, b0: number, a1: number, b1: number, nn: V3) =>
@@ -80,7 +80,7 @@ function bar(B: Builder, p: V3, q: V3, w: number, h: number, mat: string) {
 
 // A railing of rails on posts along a line of feet: the top rail `h` high and one halfway, a post
 // every `every` metres or so.
-function pipeRailing(B: Builder, feet: V3[], h: number, every: number) {
+export function pipeRailing(B: Builder, feet: V3[], h: number, every: number) {
   for (let i = 0; i + 1 < feet.length; i++) {
     const a = feet[i], b = feet[i + 1];
     for (const y of [h, h / 2]) bar(B, [a[0], a[1] + y, a[2]], [b[0], b[1] + y, b[2]], 0.05, 0.05, 'metal');
@@ -97,7 +97,7 @@ function pipeRailing(B: Builder, feet: V3[], h: number, every: number) {
 }
 
 // A sign facing `n`, its middle at c, w wide.
-function sign(B: Builder, c: V3, n: V3, w: number, mat: string) {
+export function sign(B: Builder, c: V3, n: V3, w: number, mat: string) {
   const r: V3 = [-n[2], 0, n[0]];
   const P = (a: number, b: number): V3 => [c[0] + r[0] * a + n[0] * 0.02, c[1] + b, c[2] + r[2] * a + n[2] * 0.02];
   B.tint(0xffffff);

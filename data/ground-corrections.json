@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside an `under` outline a street runs under the network's bridge: the ground there is the street's (drawn on and walked on), not the track's, however close over it the track passes. Inside a `paved` outline (and an `open`, `fill` or `under` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside an `under` outline a street runs under the network's bridge: the ground there is the street's (drawn on and walked on), not the track's, however close over it the track passes; with `\"paved\": false` it is a park's, grass with its paths. Inside a `paved` outline (and an `open`, `fill` or paved `under` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Telefonplan: the station's building and the streets round it",
@@ -544,6 +544,47 @@
     {
       "outline": [[1473.2, 6735.4], [1488.2, 6717.9], [1509.4, 6736.2], [1494.4, 6753.6]],
       "why": "Tallkrogen: Victor Balcks väg and its pavements under the metro's two bridges at the south-west end of the platform, between their abutments (src/detail/gubbangen.ts), 3.7 m under the decks. The track over them made a band of the road some 20 m wide the track's, where the street wasn't drawn and nobody could walk."
+    },
+    {
+      "outline": [[1327.6, 7785.8], [1342, 7785.8], [1342, 7956.4], [1327.6, 7956.4]],
+      "paved": false,
+      "why": "Gubbängsfältet: the park, its paths and Majrovägen under the metro's steel viaduct south of Gubbängen, between its abutments (src/detail/farsta-line.ts), 4.5–5 m under the rails. The track over them made a band 14 m wide and 170 m long the track's, ballast instead of grass, with the paths and the street cut off under it. Not paved: it is grass but for them."
+    },
+    {
+      "outline": [[1327.4, 8149.5], [1341.6, 8149.5], [1349.3, 8197], [1332.3, 8197]],
+      "why": "Hökarängen: Örbyleden, its carriageways and the cycleways beside them under the metro's two decks at the north end of the platform, between the abutment in the bank and the ticket hall (src/detail/farsta-line.ts), 5–6 m under the rails. The track over them made the road there the track's, cut off under the decks."
+    },
+    {
+      "outline": [[1826.7, 9308.4], [1838.9, 9308.4], [1843.2, 9352.2], [1831.3, 9352.2]],
+      "why": "Farsta: Farstavägen's two carriageways and the cycleway crossing under the metro's bridge north of the station, between its abutments (src/detail/farsta-line.ts), 4.3 m under the deck. The track over them made the road there the track's, cut off under the bridge."
+    },
+    {
+      "outline": [[1900.2, 9661.4], [1920, 9658.1], [1962.9, 9739.9], [1941, 9747.8]],
+      "paved": false,
+      "why": "Farsta: the park, its paths and the street Kroppaplan under the metro's two decks north of the platform, from their abutments to the platform's end (src/detail/farsta-line.ts), 4–7 m under the rails. The tracks over them made two bands 8 m wide the track's, ballast instead of grass, with the paths and the street cut off under them. Not paved: it is grass but for them."
+    },
+    {
+      "outline": [[1696.5, 6536.9], [1687.3, 6546.1], [1678.9, 6537.7], [1688.1, 6528.6]],
+      "paved": false,
+      "why": "Tallkrogen: the footpath through the woods under the metro's bridge 80 m north-east of the platform, between its abutments (src/detail/farsta-line-north.ts). Without this the tracks over it made the path's ground the track's, ballast across the path. Not paved: it is woods but for the path."
+    },
+    {
+      "outline": [[1981.2, 6282.5], [1868.2, 6382], [1857.3, 6369.6], [1969.9, 6269.8]],
+      "paved": false,
+      "why": "Nynäsvägen: its carriageways, the ramps, the cycleways and the verges between them under the metro's bridge on the way to Skogskyrkogården, between its abutments (src/detail/farsta-line-north.ts), 5–6 m under the rails. The tracks over them made a band 8 m wide the track's, cutting the roads off under it. Not paved: the verges are grass."
+    },
+    {
+      "outline": [[2078.5, 5744], [2083.8, 5847], [2065.4, 5847], [2065.2, 5744]],
+      "paved": false,
+      "why": "Skogskyrkogården: Sockenvägen, the service road and the cycleways under the metro's bridge north of the station, between its abutments (src/detail/farsta-line-north.ts), 5–6 m under the rails. The tracks over them made two bands the track's, cutting the streets off under them. Not paved: grass but for them."
+    },
+    {
+      "outline": [[1834.7, 4721.9], [1836.8, 4755.8], [1819.2, 4756.9], [1817.5, 4722.9]],
+      "why": "Blåsut: Sofielundsvägen, its pavements and the cycleways under the metro's steel bridge south of the station, between its abutments (src/detail/farsta-line-north.ts), 5 m under the rails. The tracks over them made a band the track's, cutting the street off under it."
+    },
+    {
+      "outline": [[1553.8, 3859.8], [1536.2, 3852.8], [1542.2, 3837.7], [1559.8, 3844.7]],
+      "why": "Gullmarsplan: Hammarbybacken and the cycleways beside it under the metro's steel bridge east of the station, between its granite abutments (src/detail/farsta-line-north.ts), 4.5 m under the rails. The three tracks over it made a band the track's, cutting the road off under it."
     }
   ]
 }
