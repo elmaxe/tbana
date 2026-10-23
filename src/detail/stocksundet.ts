@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as T from '../textures';
 import type { Builder, V2, V3 } from './builder.ts';
 import { addMaterial, standard } from './materials.ts';
-import { Line, loft, post, table } from './ropsten.ts';
+import { deck, lampMast, Line, loft, post, table } from './ropsten.ts';
 
 // The red line's bridge over Stocksundet, between Bergshamra and Danderyds sjukhus, opened with
 // the line to Mörby centrum in January 1978: 231 m of concrete in four spans (71, 55, 54 and 51 m)
@@ -222,4 +222,211 @@ export function buildSvedenreservoaren(B: Builder, ground: Ground) {
   B.box([cx - 5.2, TOWER.top - 0.1, cz - 4.9], [cx + 5.0, 73.4, cz + 5.0], 'concrete', 4, ['-y']);
   B.tint(MAST);
   B.lathe(cx - 3.1, cz + 1.1, [[0.4, 73.4], [0.32, 80], [0.25, 87.4]], 'metal', 8);
+}
+
+// ------------------------------------------------------------------ the E18's bridge
+// Stocksundsbron for the road, 320 m east of the metro's: the E18 (Norrtäljevägen) on two bridges
+// side by side, the southbound one opened in 1990 and the northbound in May 1992 in place of the
+// arch bridge of 1936. Each a concrete box girder with wide cantilevers, in three spans (64, 121
+// and 74 m), deep over its two piers and shallow between them, on a gentle curve to the east and
+// banked for it; 12 m clear over the water.
+//
+// - the decks: the southbound one to the west, 19.5 m wide, four lanes; the northbound 15.5 m,
+//   three lanes and a path for walking and cycling outside a guardrail on its east side, widening
+//   at the north end for the slip road from Inverness; a gap of 0.8 m between them;
+// - the edges: on the west a railing of bars, on the east a screen of glass panels 1.4 m high, in
+//   the middle guardrails;
+// - the piers: one big block under each girder at the shores, darker at its foot;
+// - lamp masts in the middle every 38.5 m, 12 m high with an arm over each carriageway;
+// - two sign gantries at each end, the signs as photographed: northbound to Norrtälje and the exit
+//   to Inverness and Stocksund, southbound to Stockholm and to the E4 north and the E18 to Oslo.
+//
+// The decks' plan, heights, edges and banking, the masts and the gantries from Lantmäteriet's
+// laser scan (2021); the piers and the abutments from Google's 3D mesh; the girders' depth, the
+// edges and the signs from photographs on Wikimedia Commons (2014) and Mapillary (2024–2026); the
+// spans, the widths, the lanes and the dates from Swedish Wikipedia ("Stocksundsbron
+// (vägtrafik)"). OpenStreetMap leaves road bridges out of the city (tools/build-city.ts), so
+// without this there would be water here.
+//
+// Drawn along a straight line through the middle of the river, northwards: s metres from there,
+// u to the east (right); the decks' edges curve off it.
+addMaterial('e18-signs', () => standard(T.e18Signs(), 0.6, 0));
+const E18 = new Line([[-995.05, -5744.24], [-994.758, -5745.196]]);
+// the middle of the gap between the decks, and their widths, every 10 m (the scan's deck)
+const E18_GAP = table([[-140, 1.08], [-130, 0.84], [-120, 0.66], [-110, 0.53], [-100, 0.45], [-90, 0.42], [-80, 0.43], [-70, 0.48],
+  [-60, 0.57], [-50, 0.69], [-40, 0.84], [-30, 1.02], [-20, 1.22], [-10, 1.45], [0, 1.69], [10, 1.94], [20, 2.21], [30, 2.49], [40, 2.77],
+  [50, 3.05], [60, 3.33], [70, 3.6], [80, 3.87], [90, 4.13], [100, 4.37], [110, 4.59], [120, 4.8], [130, 4.98], [140, 5.13]]);
+const E18_WEST_W = table([[-140, 22.29], [-120, 21.65], [-100, 21.08], [-80, 20.59], [-60, 20.17], [-40, 19.83], [-20, 19.57], [0, 19.38],
+  [20, 19.27], [40, 19.24], [60, 19.28], [80, 19.4], [100, 19.59], [120, 19.86], [140, 20.21]]);
+const E18_EAST_W = table([[-140, 16.76], [-120, 16.42], [-100, 16.14], [-80, 15.95], [-60, 15.85], [-40, 15.87], [-20, 16.03], [0, 16.33],
+  [10, 16.55], [20, 16.8], [30, 17.1], [40, 17.45], [50, 17.85], [60, 18.3], [70, 18.81], [80, 19.37], [90, 19.99], [100, 20.67],
+  [110, 21.41], [120, 22.21], [130, 23.08], [140, 24.02]]);
+// the roads' heights in their middles, and their banking (rise to the east per metre)
+const E18_WEST_TOP = table([[-140, 16.16], [-130, 16.16], [-120, 16.2], [-110, 16.3], [-100, 16.42], [-90, 16.55], [-80, 16.7], [-70, 16.84],
+  [-60, 16.96], [-50, 17.08], [-40, 17.17], [-30, 17.24], [-20, 17.28], [-10, 17.28], [0, 17.25], [10, 17.18], [20, 17.08], [30, 16.93],
+  [40, 16.76], [50, 16.55], [60, 16.32], [70, 16.06], [80, 15.79], [90, 15.52], [100, 15.23], [110, 14.96], [120, 14.7], [130, 14.48], [140, 14.29]]);
+const E18_EAST_TOP = table([[-140, 15.19], [-130, 15.34], [-120, 15.51], [-110, 15.68], [-100, 15.85], [-90, 16.02], [-80, 16.16], [-70, 16.31],
+  [-60, 16.43], [-50, 16.54], [-40, 16.63], [-30, 16.7], [-20, 16.74], [-10, 16.75], [0, 16.74], [10, 16.71], [20, 16.64], [30, 16.56],
+  [40, 16.43], [50, 16.29], [60, 16.12], [70, 15.94], [80, 15.72], [90, 15.49], [100, 15.24], [110, 14.98], [120, 14.7], [130, 14.42], [140, 14.14]]);
+const E18_WEST_CROSS = table([[-140, -0.054], [-120, -0.045], [-100, -0.04], [-60, -0.037], [-20, -0.032], [0, -0.028], [20, -0.021],
+  [40, -0.013], [60, -0.003], [80, 0.006], [100, 0.014], [120, 0.018], [140, 0.018]]);
+const E18_EAST_CROSS = table([[-140, -0.041], [-120, -0.029], [-100, -0.021], [-80, -0.015], [-60, -0.012], [-40, -0.01], [0, -0.01],
+  [40, -0.014], [80, -0.016], [120, -0.017], [140, -0.017]]);
+const HALF_GAP = 0.4;
+// the decks, from west to east
+const E18_DECKS = [
+  { left: (s: number) => E18_GAP(s) - HALF_GAP - E18_WEST_W(s), right: (s: number) => E18_GAP(s) - HALF_GAP, top: E18_WEST_TOP, cross: E18_WEST_CROSS, inset: 4.6 },
+  { left: (s: number) => E18_GAP(s) + HALF_GAP, right: (s: number) => E18_GAP(s) + HALF_GAP + E18_EAST_W(s), top: E18_EAST_TOP, cross: E18_EAST_CROSS, inset: 3.9 },
+];
+// the abutments' faces, the piers (the mesh's), and the deck's ends beyond the abutments (the scan's)
+const E18_SOUTH = -133, E18_NORTH = 131, E18_PIERS = [-66, 55], E18_ENDS = [-146, 146];
+// The girders' depth under the road: 3.4 m, and 6.5 m over the piers, the soffit curving down to
+// them over 40 m of the main span and 24 m of the side spans.
+const E18_DEPTH = (s: number) => {
+  let f = 0;
+  for (const p of E18_PIERS) {
+    const main = (p < 0) === (s > p), t = Math.abs(s - p) / (main ? 40 : 24);
+    if (t < 1) f = Math.max(f, (1 - t) * (1 - t));
+  }
+  return 3.4 + 3.1 * f;
+};
+const E18_EDGE = 1.0;
+const E18_CONCRETE = 0xb0afa9, E18_UNDER = 0x908f8a, E18_KERB = 0xbdbbb4, E18_ROAD = 0x5d5f62, E18_PATH = 0x77797b, E18_PAINT = 0xe6e6e0;
+const E18_FOOT = 0x6f6e69, E18_RAIL = 0xc9ccca, E18_STEEL = 0x9ea3a6;
+// lamp masts and the gantries (s, and which deck)
+const E18_MASTS = [-111, -72.6, -34.2, 4.6, 43, 81.4, 120];
+const E18_GANTRIES = [
+  { s: -84.5, deck: 1, signs: [{ sign: 'northbound', u: 0.42, y: 4.9 }, { sign: 'exit177', u: 0.87, y: 7.05 }] },
+  { s: -71, deck: 0, signs: [{ sign: 'stockholm', u: 0.62, y: 5.2 }, { sign: 'oslo', u: 0.15, y: 4.8 }] },
+  { s: 87.5, deck: 1, signs: [{ sign: 'norrtalje', u: 0.4, y: 5.6 }, { sign: 'inverness', u: 0.82, y: 5.9 }, { sign: 'exit177', u: 0.93, y: 6.95 }] },
+  { s: 90.5, deck: 0, signs: [{ sign: 'southbound', u: 0.5, y: 4.8 }] },
+] as const;
+
+export function buildE18Bridge(B: Builder, ground: Ground) {
+  B.place([0, 0, 0], 0);
+  const whole: V2 = [-1e4, 1e4];
+  const topAt = (k: number, s: number, u: number) => {
+    const d = E18_DECKS[k];
+    return d.top(s) + d.cross(s) * (u - (d.left(s) + d.right(s)) / 2);
+  };
+  const p3 = (k: number, s: number, u: number, dy = 0): V3 => v3(E18.at(s, u), topAt(k, s, u) + dy);
+  const along = E18.along(0), dir: V2 = [along[0], along[2]], right = E18.right(0);
+
+  // the girders, the roads on them, their kerbs and railings
+  E18_DECKS.forEach((d, k) => {
+    deck(B, {
+      line: E18, from: E18_ENDS[0], to: E18_ENDS[1], step: 4, left: d.left, right: d.right, top: d.top, cross: d.cross,
+      edge: E18_EDGE, inset: d.inset, depth: E18_DEPTH, road: E18_ROAD, fascia: E18_CONCRETE, under: E18_UNDER, underMat: 'st-under', kerb: E18_KERB,
+      rails: k === 0 ? { left: true, right: false, colour: E18_RAIL, height: 1.1 } : { left: false, right: true, colour: 0xd2dcd8, height: 1.15, mat: 'rp-glass' },
+      ends: { from: true, to: true },
+    }, whole, ground);
+  });
+  const ss: number[] = [];
+  for (let s = E18_ENDS[0]; s <= E18_ENDS[1] + 0.01; s += 4) ss.push(s);
+  // the glass screen's posts
+  B.tint(E18_STEEL);
+  for (let s = E18_ENDS[0] + 1; s < E18_ENDS[1]; s += 3) {
+    const u = E18_DECKS[1].right(s) - 0.2;
+    post(B, E18.at(s, u), dir, 0.1, 0.1, topAt(1, s, u) + 0.25, topAt(1, s, u) + 1.42, 'metal', 1);
+  }
+
+  // guardrails: along the gap on both decks, and on the northbound deck between the lanes and the path
+  const guardrail = (k: number, u: (s: number) => number, side: 1 | -1) => {
+    B.tint(E18_STEEL);
+    const face = (sign: number) => (i: number): V3 => [right[0] * side * sign, 0, right[2] * side * sign];
+    for (const sign of [1, -1]) {
+      const du = sign * 0.03;
+      loft(B, ss.map((s) => [p3(k, s, u(s) + du, 0.45), p3(k, s, u(s) + du, 0.78)]), 'metal', face(sign), 2);
+    }
+    for (let s = E18_ENDS[0] + 2; s < E18_ENDS[1]; s += 4) post(B, E18.at(s, u(s) - side * 0.12), dir, 0.12, 0.12, topAt(k, s, u(s)), topAt(k, s, u(s)) + 0.72, 'metal', 1);
+  };
+  guardrail(0, (s) => E18_DECKS[0].right(s) - 0.8, -1);
+  guardrail(1, (s) => E18_DECKS[1].left(s) + 0.8, 1);
+  guardrail(1, (s) => E18_DECKS[1].right(s) - 3.6, 1);
+
+  // the lines on the roads: solid at the edges, dashed between the lanes (3 m in 12); and the path
+  const paint = (k: number, u: (s: number) => number, dashed: boolean, where: (s: number) => boolean = () => true) => {
+    B.tint(E18_PAINT);
+    const w = 0.08;
+    if (dashed) {
+      for (let s = Math.ceil(E18_ENDS[0] / 12) * 12; s + 3 <= E18_ENDS[1]; s += 12) {
+        if (!where(s)) continue;
+        B.poly([p3(k, s, u(s) - w, 0.015), p3(k, s + 3, u(s + 3) - w, 0.015), p3(k, s + 3, u(s + 3) + w, 0.015), p3(k, s, u(s) + w, 0.015)], UP, 'gs-paint', 4);
+      }
+    } else loft(B, ss.map((s) => [p3(k, s, u(s) - w, 0.015), p3(k, s, u(s) + w, 0.015)]), 'gs-paint', () => UP, 4);
+  };
+  // the lanes between a and b, n of them (a lane line only where there are that many)
+  const lanes = (k: number, a: (s: number) => number, b: (s: number) => number, n: (s: number) => number) => {
+    paint(k, a, false); paint(k, b, false);
+    for (let j = 1; j < 4; j++) paint(k, (s) => a(s) + ((b(s) - a(s)) * j) / n(s), true, (s) => j < n(s));
+  };
+  const W = E18_DECKS[0], E = E18_DECKS[1];
+  lanes(0, (s) => W.left(s) + 1.9, (s) => W.right(s) - 1.3, () => 4);
+  lanes(1, (s) => E.left(s) + 1.3, (s) => E.right(s) - 4.4, (s) => (E.right(s) - E.left(s) - 5.7 > 12.6 ? 4 : 3));
+  B.tint(E18_PATH);
+  loft(B, ss.map((s) => [p3(1, s, E.right(s) - 3.45, 0.012), p3(1, s, E.right(s) - 0.5, 0.012)]), 'rp-asphalt', () => UP, 6);
+
+  // the abutments: under the deck from its end to the face, down to the ground
+  for (const [a, b] of [[E18_ENDS[0], E18_SOUTH], [E18_NORTH, E18_ENDS[1]]]) {
+    const s = (a + b) / 2, l = W.left(s) - 0.3, r = E.right(s) + 0.3;
+    const low = Math.min(...[l, (l + r) / 2, r].flatMap((u) => [a, s, b].map((t) => { const p = E18.at(t, u); return ground(p[0], p[1]) ?? 0; })));
+    const under = Math.min(topAt(0, s, W.right(s)), topAt(1, s, E.left(s))) - E18_DEPTH(s) + 0.1;
+    if (low >= under) continue;
+    B.tint(PIER);
+    post(B, E18.at(s, (l + r) / 2), dir, Math.abs(b - a), r - l, low - 1, under, 'concrete', 4);
+  }
+
+  // the piers: under each girder, as wide as its bottom, darker at the foot
+  for (const s of E18_PIERS) {
+    E18_DECKS.forEach((d, k) => {
+      const a = d.left(s), b = d.right(s), D = E18_DEPTH(s), I = Math.min(d.inset, (b - a) / 2 - 0.6);
+      const web = Math.min(0.25 * (D - E18_EDGE), (b - a) / 2 - I - 0.3), half = (b - a) / 2 - I - web, mid = (a + b) / 2;
+      const c = E18.at(s, mid), g = ground(c[0], c[1]), wet = g === null || g < 0.6;
+      const foot = wet ? Math.min(g ?? -2, -1) - 1 : (g ?? 0) - 0.5, under = topAt(k, s, mid) - D + 0.02;
+      B.tint(PIER);
+      post(B, c, dir, 3.6, 2 * half - 0.2, foot, under, 'concrete', 4);
+      B.tint(E18_FOOT);
+      post(B, c, dir, 3.64, 2 * half - 0.16, foot, Math.max(g ?? 0.35, 0.35) + 2.2, 'concrete', 4);
+    });
+  }
+
+  // the lamp masts, on the southbound deck's edge by the gap
+  for (const s of E18_MASTS) {
+    const u = W.right(s) - 0.25;
+    lampMast(B, E18.at(s, u), topAt(0, s, u) + 0.25, 12.1, dir, [-4.4, 4.6]);
+  }
+
+  // the gantries: a lattice tower at each edge of the deck, a lattice beam across, the signs
+  // hung on the side facing the traffic, lamps over them
+  const sheet = T.E18_SIGNS;
+  for (const g of E18_GANTRIES) {
+    const d = E18_DECKS[g.deck], s = g.s, a = d.left(s) + 0.3, b = d.right(s) - 0.3, k = g.deck;
+    const y0 = Math.min(topAt(k, s, a), topAt(k, s, b)) + 0.25, beam = Math.max(topAt(k, s, a), topAt(k, s, b)) + 6.0;
+    // northbound signs face south, against the line; southbound ones north
+    const face = g.deck === 1 ? -1 : 1;
+    B.tint(E18_STEEL);
+    for (const u of [a, b]) post(B, E18.at(s, u), dir, 0.7, 0.7, y0 - 0.25, beam + 1.0, 'sl-lattice', 0.9);
+    B.wallBox(v3(E18.at(s, (a + b) / 2), 0), right, along, -(b - a) / 2 - 0.4, (b - a) / 2 + 0.4, beam, beam + 1.0, -0.45, 0.45, 'sl-lattice', 0.9);
+    for (const sg of g.signs) {
+      const r = sheet[sg.sign], w = r.w / 60, h = r.h / 60, u = a + (b - a) * sg.u, y = topAt(k, s, u) + sg.y;
+      const o = v3(E18.at(s + face * 0.62, u), 0), n: V3 = [along[0] * face, 0, along[2] * face];
+      // the panel: its face, and a grey back and edges
+      B.tint(0x8a8f92);
+      B.wallBox(o, right, along, -w / 2, w / 2, y, y + h, -0.06, 0.06, 'metal', 2);
+      B.tint(0xffffff);
+      const P = (du: number, dy: number): V3 => [o[0] + right[0] * du + n[0] * 0.075, y + dy, o[2] + right[2] * du + n[2] * 0.075];
+      const U0 = r.x / 1024, U1 = (r.x + r.w) / 1024, V0 = 1 - (r.y + r.h) / 1024, V1 = 1 - r.y / 1024;
+      // (seen from in front, the panel's left is to the west for a south-facing sign)
+      const [ul, ur] = face < 0 ? [U0, U1] : [U1, U0];
+      B.poly([P(-w / 2, 0), P(w / 2, 0), P(w / 2, h), P(-w / 2, h)], n, 'e18-signs', 1, [[ul, V0], [ur, V0], [ur, V1], [ul, V1]]);
+      // and lamps on stalks over the bigger ones
+      if (h < 1) continue;
+      B.tint(E18_STEEL);
+      for (let x = -w / 2 + 0.9; x < w / 2 - 0.5; x += 1.8) {
+        const c: V2 = [o[0] + right[0] * x + n[0] * 0.5, o[2] + right[2] * x + n[2] * 0.5];
+        post(B, c, dir, 0.06, 0.06, y + h - 0.2, y + h + 0.45, 'metal', 1);
+        post(B, c, dir, 0.32, 0.2, y + h + 0.45, y + h + 0.6, 'metal', 1);
+      }
+    }
+  }
 }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as T from '../textures';
 import type { Square, Street, StreetKind, Surface, Tree } from '../city-tile.ts';
 import { STREET_CROSSING, STREET_ONEWAY, STREET_SIDEWALK, STREET_ZEBRA } from '../city-tile.ts';
-import { Builder, unit, type V2, type V3 } from './builder.ts';
+import { Builder, type V2, type V3 } from './builder.ts';
 import { addMaterial, standard } from './materials.ts';
 
 // The streets, paths and squares, and the trees, in the areas drawn in detail (src/detail/areas.ts),
@@ -14,8 +14,8 @@ import { addMaterial, standard } from './materials.ts';
 //   triangles as drawn. The pavements beside roads are raised a kerb's height, with the kerbs;
 // - the main roads' dashed centre lines, the lanes of one-way roads and the zebra crossings;
 // - the squares, filled;
-// - the trees: a trunk forking under a crown of leafy lumps and sprays of leaves, as tall and as
-//   wide as found.
+// - the trees: each a picture of a tree on a plane that turns about the upright to face the
+//   camera, as tall and its crown as wide as found.
 // Being flat on the ground, the squares, paths, roads and markings are kept apart each over the
 // one before: by a centimetre or so near the camera, and by polygon offset further off, where a
 // centimetre is lost in the depth buffer.
@@ -56,12 +56,25 @@ function material(look: Look, layer: number) {
   return key;
 }
 addMaterial('st-paint', () => standard(null, 0.7, 0, offset(PAINT)));
-addMaterial('st-bark', () => standard(T.concrete(31, 175), 0.95));
-addMaterial('st-leaves', () => standard(T.leaves(), 0.9));
-addMaterial('st-leaf-card', () => standard(T.leafCard(), 0.9, 0, { alphaTest: 0.4 }));
-const PAINT_COLOUR = 0xe6e6e0, KERB = 0xa3a09a, BARK = 0x8a8177;
-// lime, maple, ash and elm in summer, a little apart
-const LEAVES = [0x8fb05a, 0x84a654, 0x9cb865, 0x7f9f52, 0xa2b66a, 0x89aa5e];
+addMaterial('st-tree', () => {
+  const m = standard(T.treePictures(), 0.95, 0, { alphaTest: 0.4 });
+  // Each tree's plane is laid out across x at its foot, and its four corners keep the foot in their
+  // normals: here the plane is turned about the upright through the foot to face the camera, and
+  // lit as if it faced up and a little towards it. (The city's meshes are in world coordinates,
+  // unmoved, so the camera's position is the plane's.)
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <beginnormal_vertex>', `vec3 treeFoot = normal;
+        vec2 treeTo = cameraPosition.xz - treeFoot.xz;
+        treeTo = length(treeTo) > 0.001 ? normalize(treeTo) : vec2(0.0, 1.0);
+        vec3 objectNormal = normalize(vec3(treeTo.x * 0.5, 1.0, treeTo.y * 0.5));`)
+      .replace('#include <begin_vertex>', `vec3 transformed = treeFoot + vec3(treeTo.y, 0.0, -treeTo.x) * (position.x - treeFoot.x)
+        + vec3(0.0, position.y - treeFoot.y, 0.0);`);
+  };
+  m.customProgramCacheKey = () => 'st-tree';
+  return m;
+});
+const PAINT_COLOUR = 0xe6e6e0, KERB = 0xa3a09a;
 
 const ROADS = new Set<StreetKind>(['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential', 'service',
   'living_street', 'track', 'other']);
@@ -308,126 +321,20 @@ function area(p: V2[]) {
 const cross = (a: V3, b: V3): V3 => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 
 // ------------------------------------------------------------------ trees
-// A tree on the ground at height y: a tapering trunk, forking into a few limbs under the crown; the
-// crown lumps of leaves, one in its middle and more round it, each a little uneven, and over them
-// sprays of leaves standing out from it, which give it its ragged edge; the lower ones in shade.
-// The crown starts no lower than 2.2 m (over a street), and is as tall and as wide as was found.
+// A tree on the ground at height y: one of the pictures of src/textures.ts (a round broadleaf; for a
+// taller tree a taller one or a birch; for a tall narrow one also a pine or a spruce), scaled to its
+// height and the width of its crown, a little darker or lighter, and mirrored at random. Its foot is
+// sunk 0.3 m, for a slope.
 function tree(B: Builder, t: Tree, y: number, seed: number) {
   const r = T.rng(seed);
-  const h = Math.min(30, Math.max(3, t.height)), R = Math.min(9, Math.max(1, t.radius));
-  const depth = Math.min(h - 2.2, Math.max(R * 1.6, h * 0.65)), base = h - depth;
-  const trunk = Math.min(0.5, Math.max(0.1, 0.05 + h * 0.017 + R * 0.015));
-  const cy = y + base + depth / 2, ry = depth / 2;
-  B.tint(BARK);
-  B.lathe(t.x, t.z, [[trunk * 1.3, y - 0.3], [trunk * 1.1, y + 0.4], [trunk, y + base], [trunk * 0.5, y + base + depth * 0.4]], 'st-bark', 8, 1.5);
-  const limbs = 3 + Math.floor(r() * 2);
-  for (let i = 0; i < limbs; i++) {
-    const a = ((i + r() * 0.5) / limbs) * Math.PI * 2, out = R * (0.45 + r() * 0.2);
-    limb(B, [t.x, y + base - 0.3, t.z], [t.x + Math.cos(a) * out, cy + ry * (r() * 0.3), t.z + Math.sin(a) * out], trunk * 0.6, trunk * 0.2);
-  }
-  const leaf = new THREE.Color(LEAVES[Math.floor(r() * LEAVES.length)]);
-  const shadeAt = (yy: number) => 0.7 + 0.4 * Math.min(1, Math.max(0, (yy - (cy - ry)) / (2 * ry)));
-  // the lumps, filling it
-  const lumps: [V3, V3][] = [[[t.x, cy, t.z], [R * 0.72, ry * 0.72, R * 0.72]]];
-  const n = Math.min(9, Math.max(4, Math.round(2 + R)));
-  for (let i = 0; i < n; i++) {
-    const a = ((i + r() * 0.7) / n) * Math.PI * 2, up = Math.min(1, -0.3 + r() * 1.2), el = Math.asin(up), k = 0.4 + r() * 0.12;
-    const d: V3 = [Math.cos(el) * Math.cos(a), up, Math.cos(el) * Math.sin(a)];
-    lumps.push([[t.x + d[0] * R * (0.85 - k), cy + d[1] * ry * (0.85 - k), t.z + d[2] * R * (0.85 - k)], [R * k, ry * k, R * k]]);
-  }
-  for (const [c, rr] of lumps) {
-    const s = shadeAt(c[1]) * 0.85;
-    B.tint([leaf.r * s, leaf.g * s, leaf.b * s]);
-    lump(B, c, rr, 'st-leaves', r, 0.35);
-  }
-  // the sprays, over its outside, fewer underneath
-  const size = Math.min(1.8, Math.max(0.8, R * 0.32)), cards = Math.min(240, Math.max(50, Math.round(14 * R * (R + depth) / 2)));
-  for (let i = 0; i < cards; i++) {
-    const up = Math.min(1, -0.55 + r() * 1.55), a = r() * Math.PI * 2, el = Math.asin(up), f = 0.78 + r() * 0.3;
-    const d: V3 = [Math.cos(el) * Math.cos(a), up, Math.cos(el) * Math.sin(a)];
-    const p: V3 = [t.x + d[0] * R * f, Math.min(y + h - size / 3, cy + d[1] * ry * f), t.z + d[2] * R * f];
-    const n3 = unit([d[0] / R, d[1] / ry + 0.4 / ry, d[2] / R]);
-    // the spray's plane, facing out from the crown and turned about that at random
-    const facing = unit([d[0] + (r() - 0.5) * 0.8, d[1] + (r() - 0.5) * 0.8, d[2] + (r() - 0.5) * 0.8]);
-    const helper: V3 = Math.abs(facing[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0];
-    const u0 = unit(cross(helper, facing)), v0 = cross(facing, u0), turn = r() * Math.PI, ct = Math.cos(turn), st = Math.sin(turn);
-    const U: V3 = [u0[0] * ct + v0[0] * st, u0[1] * ct + v0[1] * st, u0[2] * ct + v0[2] * st];
-    const V: V3 = [v0[0] * ct - u0[0] * st, v0[1] * ct - u0[1] * st, v0[2] * ct - u0[2] * st];
-    const s = shadeAt(p[1]) * (0.92 + r() * 0.16), half = (size * (0.8 + r() * 0.4)) / 2;
-    B.tint([leaf.r * s, leaf.g * s, leaf.b * s]);
-    const corners = CARD.map(([cu, cv]): V3 => [p[0] + (U[0] * cu + V[0] * cv) * half, p[1] + (U[1] * cu + V[1] * cv) * half, p[2] + (U[2] * cu + V[2] * cv) * half]);
-    // (both ways round, both lit as the crown is there: a two-sided material would darken its back)
-    B.mesh(corners, [n3, n3, n3, n3], CARD.map(([cu, cv]): V2 => [(cu + 1) / 2, (cv + 1) / 2]), [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2], 'st-leaf-card');
-  }
-}
-
-const CARD: V2[] = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-
-// A limb from a to b, tapering from radius r0 to r1: six sides.
-function limb(B: Builder, a: V3, b: V3, r0: number, r1: number) {
-  const ax = unit([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
-  const u = unit(cross(Math.abs(ax[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0], ax)), v = cross(ax, u);
-  const pts: V3[] = [], nrm: V3[] = [], uvs: V2[] = [], tris: number[] = [];
-  for (let k = 0; k <= 6; k++) {
-    const t = (k / 6) * Math.PI * 2, n: V3 = [u[0] * Math.cos(t) + v[0] * Math.sin(t), u[1] * Math.cos(t) + v[1] * Math.sin(t), u[2] * Math.cos(t) + v[2] * Math.sin(t)];
-    pts.push([a[0] + n[0] * r0, a[1] + n[1] * r0, a[2] + n[2] * r0], [b[0] + n[0] * r1, b[1] + n[1] * r1, b[2] + n[2] * r1]);
-    nrm.push(n, n);
-    uvs.push([k / 6, 0], [k / 6, 2]);
-  }
-  for (let k = 0; k < 6; k++) tris.push(2 * k, 2 * k + 2, 2 * k + 1, 2 * k + 1, 2 * k + 2, 2 * k + 3);
-  B.mesh(pts, nrm, uvs, tris, 'st-bark');
-}
-
-// An uneven ball of radii r about c: an icosahedron split once, each point moved in or out by up to
-// `rough`/2 of the way. Shaded as the ellipsoid but lit a little from above, as leaves let the light
-// through; its uvs (2 m to a repeat) round it and up.
-function lump(B: Builder, c: V3, r: V3, mat: string, rnd: () => number, rough: number) {
-  const { v, f } = icosphere();
-  const k = v.map(() => 1 + (rnd() - 0.5) * rough);
-  const P = v.map((d, i): V3 => [c[0] + d[0] * r[0] * k[i], c[1] + d[1] * r[1] * k[i], c[2] + d[2] * r[2] * k[i]]);
-  const Nn = v.map((d) => unit([d[0] / r[0], d[1] / r[1] + 0.5 / r[1], d[2] / r[2]]));
-  const round = Math.PI * (r[0] + r[2]) / 2, U = v.map((d) => (Math.atan2(d[2], d[0]) / (Math.PI * 2)) * round);
-  const pts: V3[] = [], nrm: V3[] = [], uvs: V2[] = [], tris: number[] = [];
-  for (let i = 0; i < f.length; i += 3) {
-    const j3 = [f[i], f[i + 1], f[i + 2]], u = j3.map((j) => U[j]);
-    // (a face across the seam, all on one side of it)
-    const hi = Math.max(...u);
-    for (let m = 0; m < 3; m++) if (hi - u[m] > round / 2) u[m] += round;
-    j3.forEach((j, m) => {
-      tris.push(pts.length);
-      pts.push(P[j]); nrm.push(Nn[j]); uvs.push([u[m] / 2, P[j][1] / 2]);
-    });
-  }
-  B.mesh(pts, nrm, uvs, tris, mat);
-}
-
-let ico: { v: V3[]; f: number[] } | null = null;
-function icosphere() {
-  if (ico) return ico;
-  const g = (1 + Math.sqrt(5)) / 2;
-  const v: V3[] = ([[-1, g, 0], [1, g, 0], [-1, -g, 0], [1, -g, 0], [0, -1, g], [0, 1, g], [0, -1, -g], [0, 1, -g], [g, 0, -1], [g, 0, 1], [-g, 0, -1], [-g, 0, 1]] as V3[]).map(unit);
-  const f0 = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
-    3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1];
-  const mid = new Map<string, number>();
-  const m = (a: number, b: number) => {
-    const key = a < b ? `${a},${b}` : `${b},${a}`;
-    let i = mid.get(key);
-    if (i === undefined) {
-      v.push(unit([(v[a][0] + v[b][0]) / 2, (v[a][1] + v[b][1]) / 2, (v[a][2] + v[b][2]) / 2]));
-      mid.set(key, i = v.length - 1);
-    }
-    return i;
-  };
-  const f: number[] = [];
-  for (let k = 0; k < f0.length; k += 3) {
-    const [a, b, c] = [f0[k], f0[k + 1], f0[k + 2]], ab = m(a, b), bc = m(b, c), ca = m(c, a);
-    f.push(a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca);
-  }
-  // wound to face out
-  for (let k = 0; k < f.length; k += 3) {
-    const [A, Bp, C] = [v[f[k]], v[f[k + 1]], v[f[k + 2]]];
-    const n = cross([Bp[0] - A[0], Bp[1] - A[1], Bp[2] - A[2]], [C[0] - A[0], C[1] - A[1], C[2] - A[2]]);
-    if (n[0] * A[0] + n[1] * A[1] + n[2] * A[2] < 0) [f[k + 1], f[k + 2]] = [f[k + 2], f[k + 1]];
-  }
-  return ico = { v, f };
+  const h = Math.min(30, Math.max(3, t.height)), R = Math.min(9, Math.max(1, t.radius)), tall = h / (2 * R), pick = r(), two = r() < 0.5 ? 0 : 1;
+  const p = T.TREE_PICTURES[tall >= 1.6 && h >= 10 && pick < 0.6 ? (pick < 0.35 ? 6 : 7)
+    : tall >= 1.25 ? (pick < 0.35 ? 4 : 2) + two : two];
+  const w = (2 * R) / p.width, top = h / p.top, y0 = y - 0.3;
+  const shade = 0.86 + r() * 0.18;
+  B.tint([shade * (0.95 + r() * 0.1), shade, shade * (0.92 + r() * 0.12)]);
+  const [u0, u1] = r() < 0.5 ? [p.u, p.u + 0.25] : [p.u + 0.25, p.u];
+  const foot: V3 = [t.x, y0, t.z];
+  B.mesh([[t.x - w / 2, y0, t.z], [t.x + w / 2, y0, t.z], [t.x + w / 2, y0 + top, t.z], [t.x - w / 2, y0 + top, t.z]], [foot, foot, foot, foot],
+    [[u0, p.v], [u1, p.v], [u1, p.v + 0.5], [u0, p.v + 0.5]], [0, 1, 2, 0, 2, 3], 'st-tree');
 }

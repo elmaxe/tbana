@@ -150,8 +150,11 @@ interface Deck {
   // an abutment's wall at an end, down to the ground
   ends?: { from?: boolean; to?: boolean };
   roadMat?: string;
+  underMat?: string;
+  // the road's fall across, metres per metre to the right, about the deck's middle (level if left out)
+  cross?: (s: number) => number;
 }
-function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
+export function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
   const ss = stations(d.from, d.to, d.step, range);
   if (ss.length < 2) return;
   // the cross-section, (u, up from the road), clockwise round the girder from the left kerb
@@ -162,7 +165,8 @@ function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
     return [[a + KERB_W, 0], [a + KERB_W, KERB_H], [a, KERB_H], [a, -E], [a + I, -E - 0.3], [a + I + web, -D],
       [b - I - web, -D], [b - I, -E - 0.3], [b, -E], [b, KERB_H], [b - KERB_W, KERB_H], [b - KERB_W, 0]];
   };
-  const point = (s: number, [u, dy]: V2): V3 => v3(d.line.at(s, u), d.top(s) + dy);
+  const point = (s: number, [u, dy]: V2): V3 =>
+    v3(d.line.at(s, u), d.top(s) + dy + (d.cross ? d.cross(s) * (u - (d.left(s) + d.right(s)) / 2) : 0));
   const secs = ss.map(section);
   const hint = (i: number, k: number): V3 => {
     const s = ss[i], [ua, ya] = secs[i][k], [ub, yb] = secs[i][(k + 1) % secs[i].length];
@@ -179,7 +183,7 @@ function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
   strip(9, 11, 'concrete', d.kerb, 2);
   strip(2, 3, 'concrete', d.fascia, 3);
   strip(8, 9, 'concrete', d.fascia, 3);
-  strip(3, 8, 'concrete', d.under, 6);
+  strip(3, 8, d.underMat ?? 'concrete', d.under, 6);
   // the ends: the section closed, and an abutment's wall under it down to the ground
   for (const [end, s, i] of [['from', ss[0], 0], ['to', ss[ss.length - 1], ss.length - 1]] as const) {
     const want = end === 'from' ? d.ends?.from && s <= d.from + 0.01 : d.ends?.to && s >= d.to - 0.01;
@@ -201,7 +205,7 @@ function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
     for (const side of ['left', 'right'] as const) {
       if (!d.rails[side]) continue;
       const u = (s: number) => (side === 'left' ? d.left(s) + 0.2 : d.right(s) - 0.2);
-      const pts = ss.map((s) => v3(d.line.at(s, u(s)), d.top(s) + KERB_H));
+      const pts = ss.map((s) => point(s, [u(s), KERB_H]));
       const out = (i: number): V3 => { const r = d.line.right(ss[i]); return side === 'left' ? [-r[0], 0, -r[2]] : r; };
       if (d.rails.mat) loft(B, ss.map((s, i) => [pts[i], [pts[i][0], pts[i][1] + d.rails!.height, pts[i][2]]]), d.rails.mat, (i) => out(i), 2);
       else railing(B, pts, d.rails.height, out);
@@ -215,7 +219,7 @@ function deck(B: Builder, d: Deck, range: V2, ground: Ground) {
 }
 
 // Dashed and solid lines on a deck's road, `lane` lines at these u (by s), dashed or not.
-function lines(B: Builder, line: Line, top: (s: number) => number, from: number, to: number, range: V2, us: ((s: number) => number)[], dashed: boolean) {
+export function lines(B: Builder, line: Line, top: (s: number) => number, from: number, to: number, range: V2, us: ((s: number) => number)[], dashed: boolean) {
   B.tint(PAINT);
   const w = 0.075;
   if (dashed) {
@@ -235,7 +239,7 @@ function lines(B: Builder, line: Line, top: (s: number) => number, from: number,
 
 // A lamp mast `h` high at the side of a road, its arm out over the road to the right of `t`
 // (or both ways), the lamp a flat box.
-function lampMast(B: Builder, p: V2, foot: number, h: number, t: V2, arms: number[]) {
+export function lampMast(B: Builder, p: V2, foot: number, h: number, t: V2, arms: number[]) {
   B.tint(MAST);
   B.lathe(p[0], p[1], [[0.11, foot], [0.09, foot + h * 0.6], [0.065, foot + h]], 'metal', 6);
   const r: V2 = [-t[1], t[0]];
