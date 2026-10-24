@@ -136,6 +136,26 @@
       "osm": "w1350661812",
       "overStation": true,
       "why": "The house on Götgatan over Slussen's southern ticket hall, whose doors are in its ground floor between the shops, an escalator inside them climbing from the hall (OpenStreetMap's indoor ways; sv.wikipedia): it is left whole, its walls open where the station passes through them."
+    },
+    {
+      "osm": "w746149988",
+      "tags": { "building:material": "glass", "min_height": "4.5" },
+      "why": "The glass bridge from Hovet to the low buildings round Globen, over the way to Globen's entrance 2 (photograph on Wikimedia Commons, 2007). OSM tags it only building=bridge, so it stood as a block of flats from the square up to its roof; the laser scan has its roof at 58.2 m and the square under it at 49.5 m, so it is a tube of glass about 4 m high."
+    },
+    {
+      "osm": "w109511518",
+      "tags": { "height": "14.2" },
+      "why": "Annexet, the small arena north-west of Globen. OSM's height of 20 m kept the laser scan out and stood it at 69.4 m, 6 m over its roof; the scan has the roof at 62–63 m over the square at 48.9 m, with a raised part at 68 m on the south-west (src/detail/globen.ts draws that near the camera)."
+    },
+    {
+      "osm": "w25431325",
+      "tags": { "building:colour": "#e6e9eb" },
+      "why": "Avicii Arena (Globen): its cladding is near white all the way down (photographs on Wikimedia Commons), but OSM has only its roof's colour and Google's mesh has no walls to measure on a sphere, so the part of it under the dome stood in plaster. (src/detail/globen.ts draws the sphere near the camera.)"
+    },
+    {
+      "osm": "w109511512",
+      "tags": { "building:colour": "#a3a6a7" },
+      "why": "The low buildings round Globen: concrete pillars with dark glass between them, orange-framed glazing on two corners (photographs on Wikimedia Commons, Google's mesh). OSM has no colour for them and Google's mesh measured none, so they stood in plaster; a grey between the concrete and the glass. (src/detail/globen.ts draws them near the camera.)"
     }
   ]
 }

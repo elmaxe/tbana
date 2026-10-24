@@ -463,7 +463,7 @@ export function buildLillaLidingobron(B: Builder, ground: Ground, range: V2) {
 }
 const unit2 = (v: V3): V3 => { const l = Math.hypot(v[0], v[2]) || 1; return [v[0] / l, 0, v[2] / l]; };
 // a bar from a to b: its top on the line, `w` wide and `h` deep
-function railBar(B: Builder, a: V3, b: V3, w = 0.07, h = 0.15) {
+export function railBar(B: Builder, a: V3, b: V3, w = 0.07, h = 0.15) {
   const l = Math.hypot(b[0] - a[0], b[2] - a[2]);
   if (l < 1e-6) return;
   const d = unit2(sub(b, a)), n: V3 = [-d[2], 0, d[0]];

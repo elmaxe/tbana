@@ -14,7 +14,16 @@ import { ropstenWorld } from './viaducts.ts';
 import { buildChimney, buildLidingobron, buildLillaLidingobron, buildRopstensplan, buildTramStop, buildVarmeverk, CHIMNEYS, ENERGIHAMNEN_TANKS, LIDINGOBRON_PARTS, LILLA_LIDINGOBRON_PARTS, VVR_OUTLINE } from './ropsten.ts';
 import { buildRopstenStation } from './ropsten-station.ts';
 import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUTLINE } from './stocksundet.ts';
-import { buildStreets, type TileStreets } from './streets.ts';
+import { buildFence, buildHerrhagsvagen, buildRockFace, buildTallkrogenBridges, FENCE_PARTS, HERRHAGSVAGEN, ROCK_ANCHOR, TALLKROGEN_BRIDGES } from './gubbangen.ts';
+import { buildFarstaViaduct, buildFarstavagenBridge, buildGubbangsfaltet, buildHokarangenBridges, FN_ANCHOR, FV_ANCHOR, GF_ANCHOR, HK_ANCHOR } from './farsta-line.ts';
+import { buildHammarbybacken, buildNynasDeck, buildNynasvagen, buildSockenvagen, buildSofielundsvagen, buildTallkrogenPath, HAMMARBYBACKEN, NYNAS_DECK, NYNASVAGEN, SOCKENVAGEN, SOFIELUNDSVAGEN, TALLKROGEN_PATH } from './farsta-line-north.ts';
+import {
+  BANDHAGSVAGEN, BJURSATRAGATAN, buildBandhagsvagen, buildBjursatragatan, buildDepotBridge, buildHogdalenPath, buildMagelungsvagen, buildNynasLine,
+  buildNynasRailwayBridges, buildOlshammarsgatan, buildOrbyleden, buildRagsvedsvagen, buildSkonviksvagen, buildSockenplan, buildSvedmyra, DEPOT_BRIDGE,
+  HOGDALEN_PATH, MAGELUNGSVAGEN, NYNAS_LINE, NYNAS_RAILWAY, OLSHAMMARSGATAN, ORBYLEDEN, RAGSVEDSVAGEN, SKONVIKSVAGEN, SOCKENPLAN, SVEDMYRA,
+} from './hagsatra-line.ts';
+import { ANNEXET_ANCHOR, ANNEXET_OUTLINE, buildAnnexet, buildGloben, GLOBEN_ANCHOR, GLOBEN_OUTLINE } from './globen.ts';
+import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
 // The city in detail near the camera, in the areas of src/detail/areas.ts:
@@ -25,7 +34,10 @@ import { buildTower, TOWERS } from './towers.ts';
 
 export { DETAIL_ON } from './areas.ts';
 
-interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
+// (a landmark carrying a road gets the tile's streets: the city's ground they lie on, and a way to
+// lay them again on its own, a deck's, where the city leaves them out over the tracks)
+export interface LandmarkStreets { ground: StreetGround; draw: (ground: StreetGround) => void }
+interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null, streets?: LandmarkStreets) => void }
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
   ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: t.at, build: (B) => buildTower(B, t.tower) })),
@@ -72,6 +84,53 @@ const LANDMARKS: Landmark[] = [
   // and the E18's bridge 320 m east of it, in view from it (OpenStreetMap's road bridges are left
   // out of the city)
   { name: 'Stocksundsbron (E18)', outline: [], anchor: [-995, -5744], build: buildE18Bridge },
+  // the green line between Tallkrogen and Gubbängen (src/detail/gubbangen.ts): Tallkrogen's bridges
+  // over Victor Balcks väg, Herrhagsvägen's over the tracks at Gubbängen, the rock face in the
+  // cutting north of it, and the fences along the line, in parts, each built with the tile it is in
+  { name: 'Tallkrogen bridges', outline: [], anchor: TALLKROGEN_BRIDGES.o, build: buildTallkrogenBridges },
+  { name: 'Herrhagsvägen bridge', outline: [], anchor: HERRHAGSVAGEN.o, build: buildHerrhagsvagen },
+  { name: 'Rock face north of Herrhagsvägen', outline: [], anchor: ROCK_ANCHOR, build: buildRockFace },
+  ...FENCE_PARTS.map((p, i): Landmark => ({ name: `Gubbängen–Tallkrogen fence ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildFence(B, g, p.pts, p.out) })),
+  // and on south to Farsta strand (src/detail/farsta-line.ts): the steel viaduct over Gubbängsfältet,
+  { name: 'Gubbängsfältet viaduct', outline: [], anchor: GF_ANCHOR, build: buildGubbangsfaltet },
+  // Hökarängen's bridges over Örbyleden: the metro's and the cycle bridge beside it
+  { name: 'Hökarängen bridges', outline: [], anchor: HK_ANCHOR, build: buildHokarangenBridges },
+  // the bridge over Farstavägen north of Farsta
+  { name: 'Farstavägen bridge', outline: [], anchor: FN_ANCHOR, build: buildFarstavagenBridge },
+  // and the two decks into Farsta's platform
+  { name: 'Farsta viaduct', outline: [], anchor: FV_ANCHOR, build: buildFarstaViaduct },
+  // and north from Tallkrogen to Gullmarsplan (src/detail/farsta-line-north.ts): the bridge over the
+  // path in the woods, the long one over Nynäsvägen, Sockenvägen's into Skogskyrkogården, and the
+  // steel ones over Sofielundsvägen south of Blåsut and Hammarbybacken east of Gullmarsplan
+  { name: 'Tallkrogen path bridge', outline: [], anchor: TALLKROGEN_PATH.at(15, 1), build: buildTallkrogenPath },
+  { name: 'Nynäsvägen bridge', outline: [], anchor: NYNASVAGEN.at(80, 0), build: buildNynasvagen },
+  { name: 'Sockenvägen bridge', outline: [], anchor: SOCKENVAGEN.at(67, -3), build: buildSockenvagen },
+  { name: 'Sofielundsvägen bridge', outline: [], anchor: SOFIELUNDSVAGEN.at(25, -2), build: buildSofielundsvagen },
+  { name: 'Hammarbybacken bridge', outline: [], anchor: HAMMARBYBACKEN.at(17, -3), build: buildHammarbybacken },
+  // and Nynäsvägen's deck over the Skärmarbrink line's tracks south-east of Gullmarsplan, with the
+  // city's streets laid on it
+  { name: 'Nynäsvägen deck at Gullmarsplan', outline: [], anchor: NYNAS_DECK.o, build: buildNynasDeck },
+  // the Hagsätra line from Gullmarsplan to Hagsätra (src/detail/hagsatra-line.ts): the metro's
+  // bridges from Sockenplan's viaduct to the one over Olshammarsgatan south of Hagsätra, and the
+  // depot tracks' over the main line south of Högdalen
+  { name: 'Sockenplan viaduct', outline: [], anchor: SOCKENPLAN.at(62, 3), build: buildSockenplan },
+  { name: 'Svedmyra viaduct', outline: [], anchor: SVEDMYRA.at(33, 3), build: buildSvedmyra },
+  { name: 'Skönviksvägen bridge', outline: [], anchor: SKONVIKSVAGEN.at(15, 3.5), build: buildSkonviksvagen },
+  { name: 'Bandhagsvägen bridge', outline: [], anchor: BANDHAGSVAGEN.at(19, -5), build: buildBandhagsvagen },
+  { name: 'Örbyleden arches', outline: [], anchor: ORBYLEDEN.at(42, -4), build: buildOrbyleden },
+  { name: 'Högdalen path bridge', outline: [], anchor: HOGDALEN_PATH.at(8.5, 2), build: buildHogdalenPath },
+  { name: 'Högdalen depot bridge', outline: [], anchor: DEPOT_BRIDGE.at(16, -2), build: buildDepotBridge },
+  { name: 'Magelungsvägen bridges', outline: [], anchor: MAGELUNGSVAGEN.at(30, 8), build: buildMagelungsvagen },
+  { name: 'Nynäs railway bridges', outline: [], anchor: NYNAS_RAILWAY.at(12, 9), build: buildNynasRailwayBridges },
+  // and the railway under them, which the city leaves out
+  { name: 'Nynäs railway', outline: [], anchor: NYNAS_LINE.at(140, 0), build: buildNynasLine },
+  { name: 'Bjursätragatan bridge', outline: [], anchor: BJURSATRAGATAN.at(26, 2), build: buildBjursatragatan },
+  { name: 'Rågsvedsvägen arch', outline: [], anchor: RAGSVEDSVAGEN.at(38, 0), build: buildRagsvedsvagen },
+  { name: 'Olshammarsgatan viaduct', outline: [], anchor: OLSHAMMARSGATAN.at(30, 1.5), build: buildOlshammarsgatan },
+  // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
+  // beside it (src/detail/globen.ts)
+  { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },
+  { name: 'Annexet', outline: ANNEXET_OUTLINE, anchor: ANNEXET_ANCHOR, build: buildAnnexet },
 ];
 
 export interface TileDetail {
@@ -89,9 +148,10 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
   buildings.forEach((b, k) => {
     if (LANDMARKS.some((l) => inPoly(mid[k][0], mid[k][1], l.outline))) replaced.add(k);
   });
+  const roads = streets && { ground: streets.ground, draw: (G: StreetGround) => buildStreets(B, { streets: streets.streets, ground: G }, x0, z0, size) };
   for (const l of LANDMARKS) {
     if (l.anchor[0] >= x0 && l.anchor[0] < x0 + size && l.anchor[1] >= z0 && l.anchor[1] < z0 + size) {
-      l.build(B, ground);
+      l.build(B, ground, roads);
       B.place([0, 0, 0], 0);
     }
   }

@@ -4,14 +4,19 @@ import { DETAIL_ON } from './areas.ts';
 
 // The metro's viaducts drawn in detail near the camera, with the station on them: Ropsten's
 // (src/detail/ropsten-station.ts), Brommaplan's two decks over the square and its ticket hall,
-// whose round piers and railings the station's style draws (src/open-styles.ts), Åkeshov's
-// three over its ticket hall and the underpass, which stand on the hall's walls, and Bredäng's
-// over Bredängs Allé and the square, whose piers and railings its style draws too, and Kista's
-// over the bus terminal and Kistagången, whose piers, columns and parapets its style draws, and the
-// bridge over Stocksundet (src/detail/stocksundet.ts). Within `r` metres of `at` the network
-// (src/network.ts) leaves out its own piers, the railings along its decks and the lamps over its
-// platforms, and keeps the player off its platforms where the `solids` stand on them; where
-// `girder`, it leaves out its decks' girders too, which the landmark draws in their real shape.
+// whose round piers and railings the station's style draws (src/open-styles.ts), Åkeshov's three
+// over its ticket hall and the underpass, which stand on the hall's walls, and Bredäng's over
+// Bredängs Allé and the square, whose piers and railings its style draws too, and Kista's over the
+// bus terminal and Kistagången, whose piers, columns and parapets its style draws, and the bridge
+// over Stocksundet (src/detail/stocksundet.ts), and Tallkrogen's two over Victor Balcks väg
+// (src/detail/gubbangen.ts), and the viaduct over Gubbängsfältet south of Gubbängen, Hökarängen's
+// over Örbyleden, Farsta's over Farstavägen and its two decks into the station
+// (src/detail/farsta-line.ts), and those north of Tallkrogen to Gullmarsplan
+// (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts). Within
+// `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its
+// decks and the lamps over its platforms, and keeps the player off its platforms where the `solids`
+// stand on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in
+// their real shape.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -39,6 +44,52 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Kista', at: [-6623.21, -7958.56], r: 118, solids: [] },
   // (from the southern abutment to the northern one, 116 m either side of the middle)
   { name: 'Stocksundet', at: [-1259.47, -5935.8], r: 122, solids: [], girder: true },
+  // (the network's bridges there, 22 m either side of the middle of their spans)
+  { name: 'Tallkrogen', at: [1490.5, 6736.7], r: 23, solids: [], girder: true },
+  // (the whole viaduct over Gubbängsfältet, from 7774 to 7963.4 south of the origin, where the
+  // network's tracks are a bridge)
+  { name: 'Gubbängsfältet', at: [1335, 7868.7], r: 95.5, solids: [], girder: true },
+  // (Hökarängen's two over Örbyleden, from 8141 to 8210, over the station's ticket hall at their south end)
+  { name: 'Hökarängen', at: [1339, 8175.5], r: 36.5, solids: [], girder: true },
+  // (the bridge over Farstavägen north of Farsta, from 9290.5 to 9367)
+  { name: 'Farstavägen', at: [1835, 9328.8], r: 38.8, solids: [], girder: true },
+  // (Farsta's two decks north of the platform, from where the tracks become a bridge to the network's
+  // pier under the platform's north end, 9742 and 9746.2 south of the origin)
+  { name: 'Farsta', at: [1937.25, 9690], r: 55.5, solids: [], girder: true },
+  // (north of Tallkrogen: the bridge over the path in the woods, the one over Nynäsvägen,
+  // Sockenvägen's to Skogskyrkogården's platform, and the steel ones south of Blåsut and east of
+  // Gullmarsplan, each over the whole stretch where the network's tracks are a bridge)
+  { name: 'Tallkrogen path', at: [1688.3, 6536.8], r: 15, solids: [], girder: true },
+  { name: 'Nynäsvägen', at: [1917.2, 6326.4], r: 86, solids: [], girder: true },
+  { name: 'Sockenvägen', at: [2075, 5797], r: 61.5, solids: [], girder: true },
+  { name: 'Sofielundsvägen', at: [1827, 4740.5], r: 23, solids: [], girder: true },
+  { name: 'Hammarbybacken', at: [1549.4, 3849.3], r: 17, solids: [], girder: true },
+  // (Sockenplan's viaduct, from the bank's end to the station's hall, 125.5 m south of it:
+  // src/detail/hagsatra-line.ts)
+  { name: 'Sockenplan', at: [690.3, 5314.1], r: 63.3, solids: [], girder: true },
+  // (Svedmyra's, from the bank's end to the platform's north end, 73 m south of it)
+  { name: 'Svedmyra', at: [528.1, 5930.7], r: 39.3, solids: [], girder: true },
+  // (Skönviksvägen's, between Svedmyra and Stureby, abutment to abutment)
+  { name: 'Skönviksvägen', at: [-18.3, 6299.3], r: 22.3, solids: [], girder: true },
+  // (Bandhagsvägen's, west of Stureby, abutment to abutment)
+  { name: 'Bandhagsvägen', at: [-305.6, 6370.5], r: 25.6, solids: [], girder: true },
+  // (the two arches over Örbyleden north of Bandhagen, abutment to abutment)
+  { name: 'Örbyleden', at: [-489.1, 6636.9], r: 44, solids: [], girder: true },
+  // (Magelungsvägen's, between Högdalen and Rågsved, end to end)
+  { name: 'Magelungsvägen', at: [-1232.6, 7977.0], r: 27, solids: [], girder: true },
+  // (the slab over the Nynäs railway west of it, and the bank under the network's floor beyond its
+  // ends: OpenStreetMap's bridge is twice as long)
+  { name: 'Nynäs railway', at: [-1330.9, 8029.8], r: 16.5, solids: [], girder: true },
+  // (the path's bridge south of Högdalen, Bjursätragatan's east of Rågsved, Rågsvedsvägen's arch
+  // west of it and the viaduct over Olshammarsgatan south-east of Hagsätra, each with the bank
+  // beyond its ends where OpenStreetMap's bridge runs on: 65 m of it north of the viaduct)
+  { name: 'Högdalen path', at: [-729.2, 7246.1], r: 13.2, solids: [], girder: true },
+  // (the depot tracks' slab over the main line and the cycleway south of Högdalen, and the bank beyond
+  // its ends, where OpenStreetMap's bridges run on along each track: 26 m either side of the middle)
+  { name: 'Högdalen depot', at: [-1010.8, 7775.5], r: 27, solids: [], girder: true },
+  { name: 'Bjursätragatan', at: [-1624.2, 8242.2], r: 31.5, solids: [], girder: true },
+  { name: 'Rågsvedsvägen', at: [-2161.3, 8410.1], r: 45.8, solids: [], girder: true },
+  { name: 'Olshammarsgatan', at: [-2565.5, 7838.6], r: 71.5, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark
