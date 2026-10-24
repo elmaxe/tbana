@@ -76,8 +76,10 @@ interface Corrections {
   raised?: (Segment & { clearance: number })[];
   // the rail's height where the elevation model can't see it (on a bridge, under water), such as
   // from Google Earth's 3D model: x, z and the height at each point, anchored like a platform
-  // within reach of the line between them
-  rail?: { along: [number, number, number][]; reach: number; why: string }[];
+  // within reach of the line between them and running along it (not a track crossing it there), or
+  // held tighter where `sigma` (metres) is less than a platform's, as where the solve's smoothing
+  // would lift the rail into a bridge over it
+  rail?: { along: [number, number, number][]; reach: number; sigma?: number; why: string }[];
   // tracks crossing one over the other closer than STACKED: the rails' least distance apart there
   stacked?: (Segment & { clearance: number })[];
 }
@@ -105,13 +107,16 @@ const within = (fixes: Segment[] | undefined) => (x: number, z: number) => (fixe
 // tunnel that needs no cover, surface track that isn't on the ground, and surface track that is
 // on it up to a bridge
 const uncovered = within(corrections.uncovered), offGround = within(corrections.offGround), toBridge = within(corrections.toBridge);
-// the rail's height from the corrections at a point, if one reaches it
-const railAt = (x: number, z: number) => {
-  for (const { along, reach } of corrections.rail ?? []) {
+// the rail's height from the corrections at a point of a track running (tx, tz), if one reaches it
+// along the track (within 10°)
+const railAt = (x: number, z: number, [tx, tz]: number[]) => {
+  for (const { along, reach, sigma } of corrections.rail ?? []) {
     for (let k = 1; k < along.length; k++) {
       const [ax, az, ay] = along[k - 1], [bx, bz, by] = along[k], dx = bx - ax, dz = bz - az;
       const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
-      if (Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach) return ay + t * (by - ay);
+      if (Math.hypot(x - ax - t * dx, z - az - t * dz) <= reach && Math.abs(dx * tx + dz * tz) >= Math.hypot(dx, dz) * Math.cos(Math.PI / 18)) {
+        return { h: ay + t * (by - ay), sigma: sigma ?? SIGMA.station };
+      }
     }
   }
   return null;
@@ -342,10 +347,16 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   }
   // the rail's height where the corrections give it
   let railAnchors = 0;
-  vars.forEach((v, vi) => {
-    const h = onPlatform.has(vi) ? null : railAt(v.x, v.z);
-    if (h !== null) { addAnchor(vi, h, SIGMA.station); railAnchors++; }
-  });
+  const railHeld = new Set<number>();
+  for (const p of pieces) {
+    const { v } = disc.get(p.id)!;
+    v.forEach((vi, k) => {
+      if (onPlatform.has(vi) || railHeld.has(vi)) return;
+      const a = vars[v[Math.max(0, k - 1)]], b = vars[v[Math.min(v.length - 1, k + 1)]], l = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const r = railAt(vars[vi].x, vars[vi].z, [(b.x - a.x) / l, (b.z - a.z) / l]);
+      if (r !== null) { addAnchor(vi, r.h, r.sigma); railAnchors++; railHeld.add(vi); }
+    });
+  }
 
   // the ground under every point, if known (nearest sample within 6 m)
   const groundGrid = new Map<string, [number, number, number][]>();

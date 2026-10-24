@@ -34,7 +34,9 @@
 //   buried, but raises no mound.
 // - Behind a retaining wall beside open track (data/ground-corrections.json, `walled`, as along
 //   Fittja's southern track), the open track doesn't lower the ground: it is the elevation model's
-//   (or a deck's) right up to the wall.
+//   (or a deck's) right up to the wall; with `"tracks": true`, a track running through the outline
+//   itself still lowers it under its own formation (as the depot tracks on their bank over the
+//   main line's trough south of Högdalen).
 // - Under the network's bridge where a street runs under it (data/ground-corrections.json, `under`,
 //   as Victor Balcks väg under Tallkrogen's), the ground is the street's, paved, to draw on and walk
 //   on, not the track's, however close over it the track passes; or with `"paved": false`, under a
@@ -176,7 +178,7 @@ for (const [key, h] of ground) {
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; why: string }[]; under?: { outline: XZ[]; paved?: boolean; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; tracks?: boolean; why: string }[]; under?: { outline: XZ[]; paved?: boolean; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
@@ -193,7 +195,7 @@ function fillGround(x: number, z: number): number | null {
 const shallowCover = (x: number, z: number) => (groundFixes?.shallow ?? []).some((o) => inside([x, z], o.outline));
 // Whether a retaining wall stands between the ground at (x, z) and the open track beside it, as the
 // model has it: the track's cutting doesn't lower the ground behind it.
-const walledGround = (x: number, z: number) => (groundFixes?.walled ?? []).some((o) => inside([x, z], o.outline));
+const walledGround = (x: number, z: number) => (groundFixes?.walled ?? []).find((o) => inside([x, z], o.outline)) ?? null;
 // Whether a street runs under the network's bridge at (x, z): the ground there isn't the track's.
 const underBridge = (x: number, z: number) => (groundFixes?.under ?? []).some((o) => inside([x, z], o.outline));
 // the model's ground with these fixes
@@ -652,7 +654,7 @@ function shape(x: number, z: number, h0: number): [number, boolean] {
       // cutting's walls); the bank rounding off past the track's end doesn't reach under a deck,
       // where the track goes on covered (as wide as a platform, it would sink the street there),
       // nor behind a retaining wall
-      if ((deck && r.beyond) || walled) continue;
+      if ((deck && r.beyond) || (walled && (out > 0 || !walled.tracks))) continue;
       const floor = s.kind === 'bridge' ? r.y + S.FLOOR - S.BRIDGE.depth - UNDER : r.y + S.FLOOR - UNDER;
       const u = floor + Math.max(0, out - 1) / (s.kind === 'cutting' ? 1 : S.EMBANKMENT.slope);
       upper = Math.min(upper, u);

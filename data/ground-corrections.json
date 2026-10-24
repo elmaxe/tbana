@@ -506,6 +506,14 @@
     {
       "outline": [[-6624.4, -7917.0], [-6705.8, -8039.4], [-6665.0, -8066.5], [-6583.6, -7944.1]],
       "why": "Kista: the bus terminal under the station's viaduct, from Kista Galleria to Köpenhamnsgatan, with the service road along its south-western side and the bus lane along its north-eastern one, all asphalt (OpenStreetMap; photographs; Google's mesh). The elevation model's ground there was grass."
+    },
+    {
+      "outline": [[-501.5, 6649.9], [-500.6, 6646.2], [-484.2, 6659.1], [-485.1, 6662.8]],
+      "why": "North of Bandhagen: the concrete paving on Örbyleden's southern slope under the ends of the metro's arch bridges, from the arches' springings down to the road's verge, askew as the road crosses (Mapillary photographs, the laser scan)."
+    },
+    {
+      "outline": [[-491.3, 6608.2], [-493.5, 6617.2], [-477.4, 6631.6], [-474.9, 6621.0]],
+      "why": "North of Bandhagen: the concrete paving on Örbyleden's northern slope under the ends of the metro's arch bridges, from the arches' springings down to the road's verge (the laser scan, as on the southern slope)."
     }
   ],
   "shallow": [
@@ -558,6 +566,16 @@
     {
       "outline": [[1339.2, 3785.6], [1380.8, 3800.9], [1386.4, 3817.9], [1344.9, 3802.6]],
       "why": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line, behind the abutment along the deck's southern edge, as north of it."
+    },
+    {
+      "outline": [[-1025.8, 7775.4], [-1020.2, 7773.9], [-983.9, 7706.5], [-980.0, 7676.6], [-1012.6, 7672.4]],
+      "tracks": true,
+      "why": "South of Högdalen, the depot tracks' bank north of their bridge over the main line's trough, and the ground west of it: the trough's walls hold it up (src/detail/hagsatra-line.ts; the laser scan has it at 33.5–34.4 m, the trough's floor 5 m under it). The southbound main line's cutting lowered it to 28.7–31 m, as far as 13 m from the track, leaving the depot tracks standing in the air. The outline starts 5 m behind the walls' faces, so that the city's ground, a point every 5 m, doesn't rise in front of them; the landmark's bank covers the ground between."
+    },
+    {
+      "outline": [[-1021.7, 7847.7], [-1016.9, 7810.3], [-1015.4, 7805.5], [-1001.0, 7779.1], [-998.4, 7777.5], [-989.1, 7778.6], [-998.3, 7850.7]],
+      "tracks": true,
+      "why": "South of Högdalen, the depot tracks' bank south of their bridge over the main line's trough, as north of it (the entry before): the main line's cutting lowered it by up to 3 m."
     }
   ],
   "under": [
@@ -605,6 +623,63 @@
     {
       "outline": [[1553.8, 3859.8], [1536.2, 3852.8], [1542.2, 3837.7], [1559.8, 3844.7]],
       "why": "Gullmarsplan: Hammarbybacken and the cycleways beside it under the metro's steel bridge east of the station, between its granite abutments (src/detail/farsta-line-north.ts), 4.5 m under the rails. The three tracks over it made a band the track's, cutting the road off under it."
+    },
+    {
+      "outline": [[722.8, 5264.1], [714.6, 5279.0], [705.2, 5296.7], [696.1, 5314.5], [687.0, 5332.3], [677.8, 5350.1], [668.7, 5367.8], [656.0, 5361.3], [665.9, 5343.9], [675.8, 5326.5], [685.7, 5309.1], [695.5, 5291.7], [705.4, 5274.3], [714.0, 5259.6]],
+      "why": "Sockenplan: the car park, the street Sockenplan, the footway and cycleway beside it, Sockenvägen and the service road's loop under the metro's viaduct north of the station, from its abutment at the bank to the square in front of the ticket hall (src/detail/hagsatra-line.ts), 4–5.5 m under the rails."
+    },
+    {
+      "outline": [[550.6, 5905.9], [544.1, 5918.9], [537.0, 5932.1], [529.6, 5945.1], [524.8, 5953.9], [518.8, 5962.0], [514.8, 5967.8], [500.0, 5960.0], [504.5, 5954.4], [510.4, 5946.3], [516.0, 5937.9], [523.8, 5925.1], [530.5, 5911.7], [537.1, 5898.7]],
+      "paved": false,
+      "why": "Svedmyra: Tussmötevägen, the cycleway and path beside it, the service road and the grass between them under the metro's viaduct north of the platform, from its abutment at the bank to the platform's north end (src/detail/hagsatra-line.ts), 4.5–5.5 m under the rails."
+    },
+    {
+      "outline": [[-2.8, 6300.8], [-12.2, 6304.3], [-21.6, 6307.7], [-28.1, 6310.2], [-33.1, 6296.6], [-26.2, 6295.0], [-16.8, 6291.6], [-7.3, 6288.5]],
+      "paved": false,
+      "why": "Between Svedmyra and Stureby: Skönviksvägen and the woods either side of it under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 4.5–5 m under the rails."
+    },
+    {
+      "outline": [[-326.5, 6372.0], [-312.6, 6365.1], [-299.0, 6358.8], [-287.7, 6354.6], [-281.2, 6368.2], [-292.3, 6372.7], [-305.8, 6379.2], [-319.5, 6386.6]],
+      "why": "West of Stureby: Bandhagsvägen's two carriageways, the island between them and the pavements under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 5.5 m under the rails. The crossover between the tracks on its deck stood on a bank across the road too (data/track-corrections.json)."
+    },
+    {
+      "outline": [[-506.9, 6669.6], [-498.3, 6634.6], [-489.7, 6599.6], [-470.2, 6604.4], [-478.9, 6639.4], [-487.5, 6674.3]],
+      "paved": false,
+      "why": "North of Bandhagen: Örbyleden in its cutting, its slopes and the paths along the ledges at their tops under the metro's two arch bridges, between their abutments (src/detail/hagsatra-line.ts), 9.5 m under the rails over the road."
+    },
+    {
+      "outline": [[-1211.8, 7972.5], [-1240.7, 7988.2], [-1251.3, 7980.3], [-1223.4, 7965.1]],
+      "paved": false,
+      "why": "Between Högdalen and Rågsved: Magelungsvägen in its valley, the paths beside it and the paved slopes up to the walls under the metro's bridge (src/detail/hagsatra-line.ts), 6.5 m under the rails."
+    },
+    {
+      "outline": [[-1321.1, 8032.6], [-1330.7, 8037.9], [-1341.1, 8029.3], [-1331.5, 8024.0]],
+      "paved": false,
+      "why": "West of Magelungsvägen: the Nynäs railway's cutting under the metro's slab over it, between the walls either side of its tracks (src/detail/hagsatra-line.ts), 8 m under the rails."
+    },
+    {
+      "outline": [[-722.1, 7245.1], [-729.5, 7254.9], [-738.0, 7248.6], [-730.6, 7238.7]],
+      "paved": false,
+      "why": "South of Högdalen: the cycleway through the park and the grass either side of it under the metro's slab, between its walls (src/detail/hagsatra-line.ts), 4.5 m under the rails."
+    },
+    {
+      "outline": [[-1021.5, 7806.4], [-1018.1, 7780.6], [-1000.2, 7747.3], [-1003.5, 7773.1]],
+      "why": "South of Högdalen, beside Rågsvedsvägen: the trough under the depot tracks' slab, with the main line's southbound track and the cycleway beside it, between the trough's walls (src/detail/hagsatra-line.ts), 5–6 m under the depot tracks' rails."
+    },
+    {
+      "outline": [[-1603.0, 8231.6], [-1636.9, 8262.3], [-1646.0, 8252.2], [-1611.6, 8222.1]],
+      "paved": false,
+      "why": "East of Rågsved: Bjursätragatan, the paths either side of it and the grass slopes in their valley under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 7 m under the rails."
+    },
+    {
+      "outline": [[-2199.6, 8390.0], [-2178.8, 8398.9], [-2160.0, 8405.7], [-2140.9, 8411.4], [-2123.5, 8416.2], [-2127.1, 8427.1], [-2144.5, 8422.3], [-2163.6, 8416.4], [-2182.4, 8409.5], [-2203.3, 8401.1]],
+      "paved": false,
+      "why": "West of Rågsved: Rågsvedsvägen, the cycleway and the path in the valley under the metro's arch bridge and its slopes, between its abutments (src/detail/hagsatra-line.ts), 10.5 m under the rails."
+    },
+    {
+      "outline": [[-2551.8, 7903.9], [-2570.3, 7844.7], [-2557.9, 7841.1], [-2541.4, 7900.8]],
+      "paved": false,
+      "why": "South-east of Hagsätra: Olshammarsgatan, its pavements, the paths and the open ground under the metro's viaduct, between its abutments (src/detail/hagsatra-line.ts), 6 m under the rails."
     }
   ]
 }

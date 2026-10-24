@@ -194,7 +194,7 @@ function beam(B: Builder, a: V3, b: V3, w: number, h: number, mat: string, tile 
   B.wallBox(a, d, n, 0, l, Math.min(a[1], b[1]) - h, Math.max(a[1], b[1]), -w / 2, w / 2, mat, tile);
 }
 // A thin rod from a to b (wires, rails, arms): `w` wide and `h` high, its top on the line.
-function rod(B: Builder, a: V3, b: V3, w: number, h: number, mat: string) {
+export function rod(B: Builder, a: V3, b: V3, w: number, h: number, mat: string) {
   const l = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
   if (l < 1e-6) return;
   const d: V3 = [(b[0] - a[0]) / l, (b[1] - a[1]) / l, (b[2] - a[2]) / l];

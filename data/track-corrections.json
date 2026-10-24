@@ -245,6 +245,15 @@
       ],
       "structure": "surface",
       "why": "Västertorp: OSM tags the two tracks bridges for 13 m where they cross a footpath's tunnel through the embankment 65 m south-west of the station's node, which cuts them into short pieces under the island platform's south-western third; they run on the embankment there, as on either side (Lantmäteriet's laser scan), and the platform, which OSM draws on over them, stopped short where the pieces start."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        290801719,
+        12489297994
+      ],
+      "structure": "bridge",
+      "why": "Between Stureby and Bandhagen: the long crossover from the northern track to the southern runs between them over Bandhagsvägen on the bridge's one broad deck (Lantmäteriet's laser scan: 15 m wide, from 6 m west of the northern track's bridge to 10 m east of it). OSM leaves it untagged, so it stood on a bank across the road under the bridge."
     }
   ],
   "crossovers": [

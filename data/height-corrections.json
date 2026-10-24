@@ -52,6 +52,11 @@
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station (infobox): 5 m deep; the platforms are in a short tunnel under the town centre."
     },
     {
+      "station": "Sockenplan",
+      "height": 24.5,
+      "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.9 m low, and the viaduct north of it over Sockenvägen 1.3 m low, 2.8 m over the road where the sign on it says 4,0 m. Lantmäteriet's laser scan (2021) has the platform's surface at 24.45–24.55 m along its open southern half, the ballast beside it at 23.1–23.2 m, the viaduct's top at 23.6 m over Sockenvägen and the road under it at 18.1 m."
+    },
+    {
       "station": "Stureby",
       "height": 36.65,
       "why": "Wikidata has no height, so the platform tracks followed the elevation model, which put the platform 0.7 m low. Lantmäteriet's laser scan has the platform's surface at 36.6–36.7 m and the ballast beside it at 35.4 m; the streets under the track deck at the ticket hall are at 32.1–33.0 m."
@@ -222,6 +227,11 @@
   ],
   "offGround": [
     {
+      "along": [[578.5, 5558.0], [572.0, 5585.0]],
+      "reach": 10,
+      "why": "Sockenplan, 50 m south of the platform: the elevation model dips 3 m under the line for about 15 m, where the cycleway along Enskedevägen's park passes under it (OSM: tunnel). Lantmäteriet's laser scan has the bank's ballast falling smoothly from 23.0 m to 21.8 m across it."
+    },
+    {
       "along": [
         [478, 967],
         [508, 1012]
@@ -298,6 +308,11 @@
       ],
       "reach": 3,
       "why": "Vårby gård, the southern track: it runs along the top of the retaining wall over the square to the south-west, and the elevation model has the square under it, 22.2–23.6 m, where the laser scan (2020) has its ballast at 26.6–26.8 m. Held to it, the platform came out half a metre under its real height."
+    },
+    {
+      "along": [[-1057.6, 7840.8], [-1045.5, 7825.4], [-1034.1, 7809.6], [-1023.3, 7793.3], [-1013.1, 7776.7], [-1003.5, 7759.7], [-994.3, 7742.5], [-985.6, 7725.0], [-977.1, 7707.4]],
+      "reach": 3,
+      "why": "South of Högdalen, the main line's southbound track through the trough under the depot tracks' bridge: the elevation model has the bridge's deck over it, 33.5–34 m, and held to that it rose onto a bank 1.5 m over its ballast either side (the rail entry for it)."
     }
   ],
   "rail": [
@@ -402,6 +417,124 @@
       ],
       "reach": 6,
       "why": "The bridge over Stocksundet between Bergshamra and Danderyds sjukhus (1978, 230 m, a concrete girder on three piers), and the cutting from it to the tunnel to Danderyds sjukhus: Lantmäteriet's laser scan (March 2021) has the deck's ballast at 14.8 m at its southern end, where the tunnel from Bergshamra comes out of the hillside, rising to 17.2 m over the middle of the sound and falling to 16.2 m at its northern end, and the cutting's ballast falling on to 14.3 m at the tunnel's mouth 65 m further on; the rail about 0.2 m above the ballast. Bridges get no anchor of their own, so without this the line ran straight between the tunnels, 5 m under the deck at its southern end and 4.5 m under it over the water."
+    },
+    {
+      "along": [
+        [767.4, 5172.7, 21.9],
+        [763.1, 5181.6, 21.74],
+        [758.6, 5190.4, 21.63],
+        [754.0, 5199.2, 21.54],
+        [749.3, 5207.8, 21.52],
+        [744.5, 5216.5, 21.54],
+        [739.6, 5225.1, 21.62],
+        [734.7, 5233.7, 21.77],
+        [729.8, 5242.2, 21.99],
+        [720.0, 5259.4, 22.42],
+        [715.1, 5268.0, 22.67],
+        [710.6, 5275.8, 22.94],
+        [705.6, 5284.5, 23.16],
+        [701.2, 5292.4, 23.35],
+        [696.3, 5301.1, 23.5],
+        [692.0, 5309.0, 23.59]
+      ],
+      "reach": 8,
+      "why": "Sockenplan's viaduct, its northern 60 m, where it leaves the bank and climbs over a footway and a service road to the square, and the bank north of it, which dips into a shallow sag 50–60 m from the viaduct: Lantmäteriet's laser scan has the ballast at 21.3–21.4 m in the sag, 21.8 m 10 m from the viaduct, 22.3 m at its end and 23.45 m at its northern part's end, and the rail is about 0.15–0.2 m over it. Held only by a clearance over the ground, as the rest of the viaduct is (`raised`), the viaduct's end stood 0.7 m high and lifted the bank north of it 1.1 m over its ballast for 100 m; with no correction at all, the bank stood 0.5 m over it and the viaduct sagged."
+    },
+    {
+      "along": [
+        [-1418.3, 8079.2, 34.64],
+        [-1409.7, 8074.0, 34.37],
+        [-1401.1, 8069.0, 34.04],
+        [-1392.4, 8064.0, 33.71],
+        [-1383.7, 8059.2, 33.37],
+        [-1374.9, 8054.4, 33.04],
+        [-1366.0, 8049.7, 32.71],
+        [-1357.2, 8045.1, 32.38],
+        [-1348.3, 8040.5, 32.05],
+        [-1339.5, 8035.9, 31.72],
+        [-1330.6, 8031.2, 31.38],
+        [-1321.7, 8026.6, 31.09],
+        [-1316.2, 8023.7, 30.84],
+        [-1307.4, 8019.1, 30.56],
+        [-1298.5, 8014.4, 30.3],
+        [-1289.7, 8009.7, 30.08],
+        [-1280.9, 8005.0, 29.89],
+        [-1272.0, 8000.4, 29.72],
+        [-1263.2, 7995.7, 29.59],
+        [-1254.3, 7991.0, 29.48],
+        [-1245.5, 7986.3, 29.4],
+        [-1241.7, 7984.3, 29.32],
+        [-1232.9, 7979.6, 29.23],
+        [-1224.1, 7974.8, 29.13],
+        [-1215.3, 7970.0, 29.04],
+        [-1206.6, 7965.1, 28.94],
+        [-1198.0, 7960.1, 28.83],
+        [-1189.4, 7955.0, 28.76]
+      ],
+      "reach": 2,
+      "why": "Between Rågsved and Högdalen, the southern track from 80 m west of the bridge over the Nynäs railway to 20 m east of the bridge over Magelungsvägen, down the valley between them: Lantmäteriet's laser scan has its ballast falling from 34.5 m to 31.6 m at the railway, 29.25 m at Magelungsvägen's western abutment and 28.8 m at its eastern, and the rail is about 0.15 m over it. With bridges at both ends and no ground anchor near them, the solve carried the line over the valley, 0.5–0.85 m over its ballast from the railway to Magelungsvägen."
+    },
+    {
+      "along": [
+        [-1421.8, 8077.1, 34.77],
+        [-1413.2, 8072.0, 34.52],
+        [-1404.5, 8067.0, 34.17],
+        [-1395.8, 8062.1, 33.83],
+        [-1387.1, 8057.3, 33.51],
+        [-1378.3, 8052.5, 33.17],
+        [-1369.5, 8047.8, 32.82],
+        [-1360.6, 8043.2, 32.48],
+        [-1351.8, 8038.5, 32.16],
+        [-1342.9, 8033.9, 31.86],
+        [-1334.0, 8029.2, 31.54],
+        [-1325.2, 8024.6, 31.2],
+        [-1314.4, 8018.9, 30.88],
+        [-1305.6, 8014.2, 30.62],
+        [-1296.8, 8009.5, 30.38],
+        [-1288.0, 8004.8, 30.15],
+        [-1279.2, 8000.1, 29.95],
+        [-1270.3, 7995.4, 29.77],
+        [-1261.5, 7990.6, 29.61],
+        [-1252.8, 7985.8, 29.5],
+        [-1249.3, 7983.9, 29.41],
+        [-1240.5, 7979.0, 29.32],
+        [-1231.8, 7974.1, 29.25],
+        [-1223.2, 7969.1, 29.19],
+        [-1214.6, 7963.9, 29.15],
+        [-1210.8, 7961.6, 29.13],
+        [-1202.4, 7956.2, 29.14],
+        [-1194.1, 7950.7, 29.18],
+        [-1185.9, 7945.0, 29.21],
+        [-1177.8, 7939.1, 29.26],
+        [-1169.8, 7933.1, 29.34],
+        [-1161.9, 7927.0, 29.43],
+        [-1154.2, 7920.6, 29.55],
+        [-1146.5, 7914.2, 29.69],
+        [-1139.1, 7907.5, 29.85],
+        [-1131.7, 7900.8, 30.04],
+        [-1124.5, 7893.9, 30.26],
+        [-1117.4, 7886.8, 30.43]
+      ],
+      "reach": 2,
+      "why": "Between Rågsved and Högdalen, the northern track, as the southern one beside it (the entry before), on east of Magelungsvägen as far as it stood high: the laser scan has its ballast at 31.7 m at the railway, 29.3 m on the bridge over Magelungsvägen and rising again from 29.0 m east of it to 30.3 m 120 m on. It stood 0.7–1.05 m over its ballast from the railway to Magelungsvägen and 0.3–0.9 m for 120 m east of it."
+    },
+    {
+      "along": [[-987.0, 7703.1, 33.39], [-994.4, 7719.8, 33.86], [-1001.0, 7736.8, 34.25], [-1006.1, 7754.3, 34.44], [-1009.3, 7771.3, 34.42], [-1010.5, 7788.6, 34.33], [-1009.2, 7808.3, 34.01], [-1005.2, 7827.7, 33.72], [-998.8, 7846.5, 33.45], [-990.0, 7864.3, 33.17], [-979.1, 7880.8, 32.88]],
+      "reach": 2,
+      "sigma": 0.1,
+      "why": "South of Högdalen, the eastern track to the depot, from 30 m south of where it leaves the line to 90 m past the bridge over the main line and the cycleway: Lantmäteriet's laser scan has its ballast rising from 33.2 m to a crest of 34.3 m over the bridge and falling to 32.7 m, and the rail is about 0.15 m over it. With the bridge between ground anchors 60 m apart, the solve ran nearly level under the crest, 1.1 m under its ballast at the bridge. Held tight (sigma): at a platform's spread the solve smoothed it back down half a metre."
+    },
+    {
+      "along": [[-989.3, 7698.4, 33.22], [-997.3, 7716.6, 33.77], [-1004.4, 7735.1, 34.24], [-1010.0, 7754.2, 34.53], [-1013.4, 7773.7, 34.5], [-1014.3, 7788.7, 34.38], [-1014.3, 7796.2, 34.27], [-1013.6, 7806.0, 34.18], [-1010.1, 7825.5, 33.88], [-1004.2, 7844.4, 33.62], [-996.0, 7862.5, 33.36], [-985.6, 7879.4, 33.0]],
+      "reach": 2,
+      "sigma": 0.1,
+      "why": "South of Högdalen, the western track to the depot, as the eastern one beside it (the entry before): the laser scan has its ballast rising from 33.1 m to 34.4 m at the bridge over the main line and the cycleway and falling to 32.6 m; it stood 1.0–1.35 m under it there. Held tight (sigma): at a platform's spread the solve smoothed it back down half a metre."
+    },
+    {
+      "along": [[-1157.1, 7933.9, 28.33], [-1141.5, 7922.2, 28.16], [-1126.2, 7910.0, 28.04], [-1111.5, 7897.2, 28.0], [-1097.2, 7883.9, 28.01], [-1083.4, 7870.1, 28.05], [-1070.2, 7855.7, 28.14], [-1057.6, 7840.8, 28.3], [-1045.5, 7825.4, 28.44], [-1034.1, 7809.6, 28.53], [-1023.3, 7793.3, 28.62], [-1018.2, 7785.0, 28.7], [-1013.1, 7776.7, 28.86], [-1003.5, 7759.7, 29.18], [-998.9, 7751.1, 29.34], [-994.3, 7742.5, 29.6], [-989.9, 7733.8, 29.91], [-985.6, 7725.0, 30.24], [-981.3, 7716.2, 30.51], [-977.1, 7707.4, 30.87], [-972.9, 7698.6, 31.19], [-968.7, 7689.8, 31.43], [-964.5, 7680.9, 31.61]],
+      "reach": 2,
+      "sigma": 0.1,
+      "why": "South of Högdalen, the main line's southbound track, from 160 m north-west of the depot tracks' bridge, where it runs through the trough under them beside the cycleway, to 110 m south-east of it: the laser scan has its ballast at 27.9–28.6 m in the trough and rising to 31.5 m beyond, with no points under the bridge's slab. The solve had put it on a bank, 1.3–1.5 m over its ballast at the bridge, leaving 2.5 m between the rail and the slab's underside over it; now 4.3 m. Held tight (sigma): at a platform's spread the solve's smoothing kept it 0.3–0.4 m over its ballast there."
     }
   ],
   "toBridge": [
@@ -467,6 +600,12 @@
     }
   ],
   "raised": [
+    {
+      "along": [[694.1, 5304.5], [680.9, 5329.2], [665.4, 5357.2]],
+      "reach": 12,
+      "clearance": 5.3,
+      "why": "Sockenplan's viaduct north of the platform, from 50 m south of the bank to the platform, over Sockenplan, Sockenvägen and the paths and parking beside them (OpenStreetMap: bridge). Bridges get no anchor of their own, so it sagged from the bank north of it to the platform, 1.3 m under Lantmäteriet's laser scan, whose points on the deck are 5.3–5.4 m over Sockenvägen and the square south of it (18.1 m); the sign on it over Sockenvägen says 4,0 m. Its northern part is held in `rail`."
+    },
     {
       "along": [
         [-6036, -7566],

@@ -36,15 +36,15 @@ addMaterial('fl-granite', () => standard(T.finish('granite'), 0.95));
 
 // ------------------------------------------------------------------ in a bridge's frame
 // A bridge's tracks every 4 m along its frame: s, then each track's u and its rails' top.
-type Rows = number[][];
+export type Rows = number[][];
 // at s: track k's u and its rails' top
-function track(rows: Rows, s: number, k: number): V2 {
+export function track(rows: Rows, s: number, k: number): V2 {
   const step = rows[1][0] - rows[0][0], i = Math.max(0, Math.min(rows.length - 2, Math.floor((s - rows[0][0]) / step)));
   const a = rows[i], b = rows[i + 1], f = (s - a[0]) / step;
   return [a[1 + 2 * k] + (b[1 + 2 * k] - a[1 + 2 * k]) * f, a[2 + 2 * k] + (b[2 + 2 * k] - a[2 + 2 * k]) * f];
 }
 // the rails' top at (s, u): from track to track across, level beyond the outer ones
-function railAt(rows: Rows, s: number, u: number): number {
+export function railAt(rows: Rows, s: number, u: number): number {
   const ts = Array.from({ length: (rows[0].length - 1) / 2 }, (_, k) => track(rows, s, k)).sort((p, q) => p[0] - q[0]);
   if (u <= ts[0][0]) return ts[0][1];
   for (let k = 0; k + 1 < ts.length; k++) {
@@ -53,27 +53,27 @@ function railAt(rows: Rows, s: number, u: number): number {
   return ts[ts.length - 1][1];
 }
 // from s0 to s1 about every `every` metres, and at each of `at` between
-function steps(s0: number, s1: number, at: number[] = [], every = 4): number[] {
+export function steps(s0: number, s1: number, at: number[] = [], every = 4): number[] {
   const n = Math.max(1, Math.round((s1 - s0) / every)), ss = Array.from({ length: n + 1 }, (_, i) => s0 + ((s1 - s0) * i) / n);
   for (const s of at) if (s > s0 + 0.05 && s < s1 - 0.05) ss.push(s);
   return ss.sort((a, b) => a - b).filter((s, i, a) => i === 0 || s - a[i - 1] > 0.05);
 }
-type Edge = (s: number) => number;
+export type Edge = (s: number) => number;
 // a band along a frame between u = lo(s) and hi(s), a step at a time
-function band(B: Builder, F: Frame, ss: number[], lo: Edge, hi: Edge, bottom: (s: number, u: number) => number,
+export function band(B: Builder, F: Frame, ss: number[], lo: Edge, hi: Edge, bottom: (s: number, u: number) => number,
   top: (s: number, u: number) => number, mat: string, tile: number, opts: { faces?: 'all' | 'sides' | 'top' } = {}) {
   for (let i = 0; i + 1 < ss.length; i++) {
     const [a, b] = [ss[i], ss[i + 1]];
     block(B, F, [[a, lo(a)], [b, lo(b)], [b, hi(b)], [a, hi(a)]], bottom, top, mat, tile, opts);
   }
 }
-const off = (e: Edge, d: number): Edge => (s) => e(s) + d;
+export const off = (e: Edge, d: number): Edge => (s) => e(s) + d;
 // the feet of a line along a frame at u = e(s), at heights y(s, u)
-const line = (F: Frame, ss: number[], e: Edge, y: (s: number, u: number) => number): V3[] => ss.map((s) => v3(F.at(s, e(s)), y(s, e(s))));
+export const line = (F: Frame, ss: number[], e: Edge, y: (s: number, u: number) => number): V3[] => ss.map((s) => v3(F.at(s, e(s)), y(s, e(s))));
 
 // A railing of upright bars along a line of feet, `h` high, a rail along its top and a post every
 // 2.5 m or so.
-function barRailing(B: Builder, feet: V3[], h: number) {
+export function barRailing(B: Builder, feet: V3[], h: number) {
   let run = 0, next = 0;
   for (let i = 0; i + 1 < feet.length; i++) {
     const p = feet[i], q = feet[i + 1], l = Math.hypot(q[0] - p[0], q[2] - p[2]);
@@ -89,7 +89,7 @@ function barRailing(B: Builder, feet: V3[], h: number) {
   }
 }
 // A chain-link fence along a line of feet, `h` high, on posts every 3 m or so.
-function chainFence(B: Builder, feet: V3[], h: number) {
+export function chainFence(B: Builder, feet: V3[], h: number) {
   let run = 0, next = 0;
   for (let i = 0; i + 1 < feet.length; i++) {
     const p = feet[i], q = feet[i + 1], l = Math.hypot(q[0] - p[0], q[2] - p[2]);
@@ -108,12 +108,12 @@ function chainFence(B: Builder, feet: V3[], h: number) {
 
 // heights from the rails' top: the network's floor (the decks' top is just under it) and the
 // kerbs along the edges
-const FLOOR = -0.62, KERB = 0.25;
-const CONCRETE = 0xb4b1a9, UNDER = 0x9a978f, BOARDS = 0xe6e3dc, RAILING = 0xaeb3b3, PAINT = 0x6d7274, ASPHALT = 0x5f6164;
+export const FLOOR = -0.62, KERB = 0.25;
+export const CONCRETE = 0xb4b1a9, UNDER = 0x9a978f, BOARDS = 0xe6e3dc, RAILING = 0xaeb3b3, PAINT = 0x6d7274, ASPHALT = 0x5f6164;
 
 // A concrete deck between lo and hi: an edge beam along each side, cast against boards, from
 // `fascia` to the kerb, and the slab between them, its underside at `soffit`.
-function slabDeck(B: Builder, F: Frame, rows: Rows, ss: number[], lo: Edge, hi: Edge, fascia: number, soffit: number, edge = 0.45) {
+export function slabDeck(B: Builder, F: Frame, rows: Rows, ss: number[], lo: Edge, hi: Edge, fascia: number, soffit: number, edge = 0.45) {
   const at = (y: number) => (s: number, u: number) => railAt(rows, s, u) + y;
   B.tint(UNDER);
   band(B, F, ss, off(lo, edge), off(hi, -edge), at(soffit), at(FLOOR), 'fl-under', 3);
@@ -123,7 +123,7 @@ function slabDeck(B: Builder, F: Frame, rows: Rows, ss: number[], lo: Edge, hi: 
 }
 // An abutment under a deck from s0 to s1, between lo and hi and a little beyond, from below the
 // lowest ground under it to `top` under the rails.
-function abutment(B: Builder, F: Frame, rows: Rows, ground: Ground, s0: number, s1: number, lo: Edge, hi: Edge, top: number, mat: string) {
+export function abutment(B: Builder, F: Frame, rows: Rows, ground: Ground, s0: number, s1: number, lo: Edge, hi: Edge, top: number, mat: string) {
   const plan: V2[] = [[s0, lo(s0) - 0.3], [s1, lo(s1) - 0.3], [s1, hi(s1) + 0.3], [s0, hi(s0) + 0.3]];
   const foot = Math.min(...plan.map(([s, u]) => ground(...F.at(s, u)) ?? railAt(rows, s, u) - 5)) - 0.6;
   block(B, F, plan, () => foot, (s, u) => railAt(rows, s, u) + top, mat, 2.4);

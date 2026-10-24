@@ -12,10 +12,11 @@ import { DETAIL_ON } from './areas.ts';
 // (src/detail/gubbangen.ts), and the viaduct over Gubbängsfältet south of Gubbängen, Hökarängen's
 // over Örbyleden, Farsta's over Farstavägen and its two decks into the station
 // (src/detail/farsta-line.ts), and those north of Tallkrogen to Gullmarsplan
-// (src/detail/farsta-line-north.ts). Within `r` metres of `at` the network (src/network.ts) leaves
-// out its own piers, the railings along its decks and the lamps over its platforms, and keeps the
-// player off its platforms where the `solids` stand on them; where `girder`, it leaves out its
-// decks' girders too, which the landmark draws in their real shape.
+// (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts). Within
+// `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its
+// decks and the lamps over its platforms, and keeps the player off its platforms where the `solids`
+// stand on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in
+// their real shape.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -63,6 +64,32 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Sockenvägen', at: [2075, 5797], r: 61.5, solids: [], girder: true },
   { name: 'Sofielundsvägen', at: [1827, 4740.5], r: 23, solids: [], girder: true },
   { name: 'Hammarbybacken', at: [1549.4, 3849.3], r: 17, solids: [], girder: true },
+  // (Sockenplan's viaduct, from the bank's end to the station's hall, 125.5 m south of it:
+  // src/detail/hagsatra-line.ts)
+  { name: 'Sockenplan', at: [690.3, 5314.1], r: 63.3, solids: [], girder: true },
+  // (Svedmyra's, from the bank's end to the platform's north end, 73 m south of it)
+  { name: 'Svedmyra', at: [528.1, 5930.7], r: 39.3, solids: [], girder: true },
+  // (Skönviksvägen's, between Svedmyra and Stureby, abutment to abutment)
+  { name: 'Skönviksvägen', at: [-18.3, 6299.3], r: 22.3, solids: [], girder: true },
+  // (Bandhagsvägen's, west of Stureby, abutment to abutment)
+  { name: 'Bandhagsvägen', at: [-305.6, 6370.5], r: 25.6, solids: [], girder: true },
+  // (the two arches over Örbyleden north of Bandhagen, abutment to abutment)
+  { name: 'Örbyleden', at: [-489.1, 6636.9], r: 44, solids: [], girder: true },
+  // (Magelungsvägen's, between Högdalen and Rågsved, end to end)
+  { name: 'Magelungsvägen', at: [-1232.6, 7977.0], r: 27, solids: [], girder: true },
+  // (the slab over the Nynäs railway west of it, and the bank under the network's floor beyond its
+  // ends: OpenStreetMap's bridge is twice as long)
+  { name: 'Nynäs railway', at: [-1330.9, 8029.8], r: 16.5, solids: [], girder: true },
+  // (the path's bridge south of Högdalen, Bjursätragatan's east of Rågsved, Rågsvedsvägen's arch
+  // west of it and the viaduct over Olshammarsgatan south-east of Hagsätra, each with the bank
+  // beyond its ends where OpenStreetMap's bridge runs on: 65 m of it north of the viaduct)
+  { name: 'Högdalen path', at: [-729.2, 7246.1], r: 13.2, solids: [], girder: true },
+  // (the depot tracks' slab over the main line and the cycleway south of Högdalen, and the bank beyond
+  // its ends, where OpenStreetMap's bridges run on along each track: 26 m either side of the middle)
+  { name: 'Högdalen depot', at: [-1010.8, 7775.5], r: 27, solids: [], girder: true },
+  { name: 'Bjursätragatan', at: [-1624.2, 8242.2], r: 31.5, solids: [], girder: true },
+  { name: 'Rågsvedsvägen', at: [-2161.3, 8410.1], r: 45.8, solids: [], girder: true },
+  { name: 'Olshammarsgatan', at: [-2565.5, 7838.6], r: 71.5, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

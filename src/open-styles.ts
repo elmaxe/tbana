@@ -1865,16 +1865,15 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
   // scan: from 73.5 m to 91 m north, about 5 m wide, its roof falling from 5.3 m over the
   // platform to 3.9 m), framed in black, with a ceiling of white perforated panels and a dark
   // floor: on its west side a walkway on the platform's level, behind a glass balustrade, out to
-  // a lift in a glass shaft; on its east side stairs down between dark grey tiles, 5 m to the
+  // a lift in a glass shaft; on its east side stairs down between dark grey tiles, 5.9 m to the
   // ticket hall at the street (OpenStreetMap's indoor mapping: the stairs from 76 m to 89 m
   // north, the lift at 88 m, the gates at 93 m). The hall stands under the tracks' two bridges
   // over the square, rising between them (the laser scan: its roof 1.2 m to 1.8 m over the
   // platform, to 101 m north): dark stone floor, white tiles below a row of windows in grey
   // frames, the bridges' edges boxed in white over them and tall windows in black frames at the
   // top, white perforated ceilings, the gates (the booth beside them isn't drawn). The network's
-  // decks lie lower than the real ones (its platform is about 0.9 m under the laser scan's) and
-  // closer together, so the tiles and windows are drawn lower, and the lift and the stairs
-  // squeezed into the gap. Its doors open north under a glass canopy onto a paved square: a
+  // decks lie closer together than the real ones, so the lift and the stairs are squeezed into
+  // the gap. Its doors open north under a glass canopy onto a paved square: a
   // front of glass in brushed steel under SL's blue band with the station's name, between walls
   // of grey roughcast under the bridges.
   //
@@ -1905,15 +1904,15 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: "platform's north end", s: [66, 73.5], h: [-0.5, 1], walls: null, floor: null },
       // (the glass stair house's: walls beside the stairs up to the walkway's level, the glass over
       // them)
-      { name: 'stair house', s: [73.5, 89.6], h: [-5.2, 1], walls: 'darkTiles', floor: 'darkStone', ceiling: 'whitePerforated', stairs: 'darkTiles', sill: 0 },
+      { name: 'stair house', s: [73.5, 89.6], h: [-6.1, 1], walls: 'darkTiles', floor: 'darkStone', ceiling: 'whitePerforated', stairs: 'darkTiles', sill: 0 },
       // (the hall's walls are its shell's)
-      { name: 'ticket hall', s: [88.5, 101.4], h: [-5.6, -4.5], walls: 'hallTiles', floor: 'darkStone', ceiling: 'whitePerforated', sill: -5.0 },
-      { name: 'square', s: [101.4, 106], h: [-5.6, -4.5], walls: null, floor: 'greyTiles' },
+      { name: 'ticket hall', s: [88.5, 101.4], h: [-6.5, -5.4], walls: 'hallTiles', floor: 'darkStone', ceiling: 'whitePerforated', sill: -5.9 },
+      { name: 'square', s: [101.4, 106], h: [-6.5, -5.4], walls: null, floor: 'greyTiles' },
     ],
     blocks: [
       // between the tracks, kept 2 m off them, open to the platform and to the hall;
       // roughcast below the platform's level, where it stands under the bridges
-      { name: 'stair house', plan: [[73.5, -1.5], [91, -1.3], [91, 3.5], [73.5, 3.5]], h: [-5.3, 5.3], from: -5.05, low: 3.9,
+      { name: 'stair house', plan: [[73.5, -1.5], [91, -1.3], [91, 3.5], [73.5, 3.5]], h: [-6.2, 5.3], from: -5.96, low: 3.9,
         walls: 'roughcast', band: { walls: 'darkGlazed', from: 0 }, sides: [undefined, null, undefined, null],
         floor: 'darkStone', ceiling: 'whitePerforated', roof: 0.3, onPlatform: true, ground: true },
       // its glazed gables, over the platform's roof and over the hall's
@@ -1922,13 +1921,13 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       // (and where it is wider than the hall, beside the western bridge)
       { name: "stair house's north end", plan: [[90.9, -1.3], [91.1, -1.3], [91.1, -0.95], [90.9, -0.95]], h: [-2.62, 1.4], from: -2.62, walls: 'whitePanels', roof: 0 },
       // the hall, rising between the bridges, its doors to the north
-      { name: 'ticket hall', plan: [[91, -0.95], [101.3, -0.3], [101.3, 3.1], [91, 3.5]], h: [-5.3, 1.8], from: -5.05, low: 1.2,
+      { name: 'ticket hall', plan: [[91, -0.95], [101.3, -0.3], [101.3, 3.1], [91, 3.5]], h: [-6.2, 1.8], from: -5.96, low: 1.2,
         walls: 'hallTiles', sides: [undefined, 'glassFront', undefined, null], ceiling: 'whitePerforated', roof: 0.25, roofColor: 0x8a8f92,
-        nameSign: { side: 1, at: 0.5, length: 2.8, bottom: -2.65 }, ground: true },
+        nameSign: { side: 1, at: 0.5, length: 2.8, bottom: -3.56 }, ground: true },
       // its rooms either side, under the bridges, their windows in a row with the hall's
-      { name: "hall's west side", plan: [[91, -3.0], [101.3, -3.0], [101.3, -0.3], [91, -0.95]], h: [-5.3, -2.62], from: -5.05,
+      { name: "hall's west side", plan: [[91, -3.0], [101.3, -3.0], [101.3, -0.3], [91, -0.95]], h: [-6.2, -2.62], from: -5.96,
         walls: 'roughcast', band: { walls: 'hallTiles', from: -3.49 }, sides: [undefined, undefined, null, undefined], roof: 0.02, ground: true },
-      { name: "hall's east side", plan: [[91, 3.5], [101.3, 3.1], [101.3, 4.8], [91, 4.8]], h: [-5.3, -2.62], from: -5.05,
+      { name: "hall's east side", plan: [[91, 3.5], [101.3, 3.1], [101.3, 4.8], [91, 4.8]], h: [-6.2, -2.62], from: -5.96,
         walls: 'roughcast', band: { walls: 'hallTiles', from: -3.49 }, sides: [null, undefined, undefined, undefined], roof: 0.02, ground: true },
       // the bridges' edges over the hall and the lower part of the house, boxed in white (the
       // network's decks, 2.85 m either side of each track, reach 0.2 m to 0.5 m in over them)
@@ -1941,14 +1940,14 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: "eastern bridge's edge, in the hall", plan: [[91, 3.04], [101.25, 2.84], [101.25, 3.15], [91, 3.55]], h: [-2.77, -2.77], from: -2.77,
         walls: 'whitePanels', sides: [null, null, null, null], roof: 1.5, roofColor: 0xe9e9e5 },
       // the glass canopy over the doors, between the bridges
-      { name: 'canopy', plan: [[101.3, 0.05], [103.5, 0.05], [103.5, 2.7], [101.3, 2.7]], h: [-1.9, -1.85], from: -1.9,
+      { name: 'canopy', plan: [[101.3, 0.05], [103.5, 0.05], [103.5, 2.7], [101.3, 2.7]], h: [-2.85, -2.8], from: -2.85,
         walls: 'glassFront', sides: [null, null, null, null], roof: 0.05, roofColor: 0xc4cfd0 },
       // the square paved in front of the doors, on the hall's level (the city's ground, from a 4 m
       // grid, lies up to 0.2 m higher here, sloping away: a granite kerb up to it)
-      { name: 'square', plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-5.03, -4.85], from: -5.03, low: -4.97,
+      { name: 'square', plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-5.94, -5.76], from: -5.94, low: -5.88,
         walls: 'granite', sides: [undefined, undefined, undefined, null], floor: 'greyTiles' },
       // (the ground cut away under it)
-      { name: "square's ground", plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-4.5, -4.5], from: -5.03,
+      { name: "square's ground", plan: [[101.3, -2.5], [106, -2.5], [106, 5.5], [101.3, 5.5]], h: [-5.41, -5.41], from: -5.94,
         walls: 'granite', sides: [null, null, null, null], ground: true },
     ],
     buildings: ['w114114819'],

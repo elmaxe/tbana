@@ -17,6 +17,11 @@ import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUT
 import { buildFence, buildHerrhagsvagen, buildRockFace, buildTallkrogenBridges, FENCE_PARTS, HERRHAGSVAGEN, ROCK_ANCHOR, TALLKROGEN_BRIDGES } from './gubbangen.ts';
 import { buildFarstaViaduct, buildFarstavagenBridge, buildGubbangsfaltet, buildHokarangenBridges, FN_ANCHOR, FV_ANCHOR, GF_ANCHOR, HK_ANCHOR } from './farsta-line.ts';
 import { buildHammarbybacken, buildNynasDeck, buildNynasvagen, buildSockenvagen, buildSofielundsvagen, buildTallkrogenPath, HAMMARBYBACKEN, NYNAS_DECK, NYNASVAGEN, SOCKENVAGEN, SOFIELUNDSVAGEN, TALLKROGEN_PATH } from './farsta-line-north.ts';
+import {
+  BANDHAGSVAGEN, BJURSATRAGATAN, buildBandhagsvagen, buildBjursatragatan, buildDepotBridge, buildHogdalenPath, buildMagelungsvagen, buildNynasLine,
+  buildNynasRailwayBridges, buildOlshammarsgatan, buildOrbyleden, buildRagsvedsvagen, buildSkonviksvagen, buildSockenplan, buildSvedmyra, DEPOT_BRIDGE,
+  HOGDALEN_PATH, MAGELUNGSVAGEN, NYNAS_LINE, NYNAS_RAILWAY, OLSHAMMARSGATAN, ORBYLEDEN, RAGSVEDSVAGEN, SKONVIKSVAGEN, SOCKENPLAN, SVEDMYRA,
+} from './hagsatra-line.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -104,6 +109,23 @@ const LANDMARKS: Landmark[] = [
   // and Nynäsvägen's deck over the Skärmarbrink line's tracks south-east of Gullmarsplan, with the
   // city's streets laid on it
   { name: 'Nynäsvägen deck at Gullmarsplan', outline: [], anchor: NYNAS_DECK.o, build: buildNynasDeck },
+  // the Hagsätra line from Gullmarsplan to Hagsätra (src/detail/hagsatra-line.ts): the metro's
+  // bridges from Sockenplan's viaduct to the one over Olshammarsgatan south of Hagsätra, and the
+  // depot tracks' over the main line south of Högdalen
+  { name: 'Sockenplan viaduct', outline: [], anchor: SOCKENPLAN.at(62, 3), build: buildSockenplan },
+  { name: 'Svedmyra viaduct', outline: [], anchor: SVEDMYRA.at(33, 3), build: buildSvedmyra },
+  { name: 'Skönviksvägen bridge', outline: [], anchor: SKONVIKSVAGEN.at(15, 3.5), build: buildSkonviksvagen },
+  { name: 'Bandhagsvägen bridge', outline: [], anchor: BANDHAGSVAGEN.at(19, -5), build: buildBandhagsvagen },
+  { name: 'Örbyleden arches', outline: [], anchor: ORBYLEDEN.at(42, -4), build: buildOrbyleden },
+  { name: 'Högdalen path bridge', outline: [], anchor: HOGDALEN_PATH.at(8.5, 2), build: buildHogdalenPath },
+  { name: 'Högdalen depot bridge', outline: [], anchor: DEPOT_BRIDGE.at(16, -2), build: buildDepotBridge },
+  { name: 'Magelungsvägen bridges', outline: [], anchor: MAGELUNGSVAGEN.at(30, 8), build: buildMagelungsvagen },
+  { name: 'Nynäs railway bridges', outline: [], anchor: NYNAS_RAILWAY.at(12, 9), build: buildNynasRailwayBridges },
+  // and the railway under them, which the city leaves out
+  { name: 'Nynäs railway', outline: [], anchor: NYNAS_LINE.at(140, 0), build: buildNynasLine },
+  { name: 'Bjursätragatan bridge', outline: [], anchor: BJURSATRAGATAN.at(26, 2), build: buildBjursatragatan },
+  { name: 'Rågsvedsvägen arch', outline: [], anchor: RAGSVEDSVAGEN.at(38, 0), build: buildRagsvedsvagen },
+  { name: 'Olshammarsgatan viaduct', outline: [], anchor: OLSHAMMARSGATAN.at(30, 1.5), build: buildOlshammarsgatan },
 ];
 
 export interface TileDetail {

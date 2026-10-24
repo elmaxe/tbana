@@ -62,6 +62,35 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Skärmarbrink', x: 1760, z: 4010, r: 200 },
   { name: 'Skärmarbrink–Gullmarsplan', x: 1530, z: 3840, r: 200 },
   { name: 'Gullmarsplan', x: 1300, z: 3660, r: 200 },
+  // and the Hagsätra line from Gullmarsplan to Hagsätra (src/detail/hagsatra-line.ts): past Globen's
+  // arenas and Enskede gård on its bank, over Sockenplan's square and Svedmyra's street, between the
+  // villas of Stureby, over Örbyleden to Bandhagen, past Högdalen's centre, over Magelungsvägen and
+  // the Nynäs railway to Rågsved, and over Rågsvedsvägen round into Hagsätra
+  { name: 'Gullmarsplan–Globen', x: 1170, z: 3960, r: 200 },
+  { name: 'Globen', x: 1000, z: 4190, r: 200 },
+  { name: 'Globen–Enskede gård', x: 740, z: 4330, r: 200 },
+  { name: 'Enskede gård', x: 630, z: 4630, r: 200 },
+  { name: 'Enskede gård–Sockenplan 1', x: 740, z: 4920, r: 200 },
+  { name: 'Enskede gård–Sockenplan 2', x: 765, z: 5150, r: 200 },
+  { name: 'Sockenplan', x: 665, z: 5370, r: 200 },
+  { name: 'Sockenplan–Svedmyra', x: 580, z: 5640, r: 200 },
+  { name: 'Svedmyra', x: 520, z: 5920, r: 200 },
+  { name: 'Svedmyra–Stureby 1', x: 330, z: 6120, r: 200 },
+  { name: 'Svedmyra–Stureby 2', x: 90, z: 6255, r: 200 },
+  { name: 'Stureby', x: -180, z: 6345, r: 200 },
+  { name: 'Stureby–Bandhagen', x: -420, z: 6510, r: 200 },
+  { name: 'Bandhagen', x: -530, z: 6780, r: 200 },
+  { name: 'Bandhagen–Högdalen 1', x: -610, z: 7050, r: 200 },
+  { name: 'Bandhagen–Högdalen 2', x: -780, z: 7310, r: 200 },
+  { name: 'Högdalen', x: -910, z: 7570, r: 200 },
+  { name: 'Högdalen–Rågsved 1', x: -1080, z: 7860, r: 200 },
+  { name: 'Högdalen–Rågsved 2', x: -1330, z: 8030, r: 200 },
+  { name: 'Högdalen–Rågsved 3', x: -1560, z: 8190, r: 200 },
+  { name: 'Rågsved', x: -1770, z: 8360, r: 200 },
+  { name: 'Rågsved–Hagsätra 1', x: -2050, z: 8430, r: 200 },
+  { name: 'Rågsved–Hagsätra 2', x: -2320, z: 8300, r: 200 },
+  { name: 'Rågsved–Hagsätra 3', x: -2500, z: 8050, r: 200 },
+  { name: 'Hagsätra', x: -2620, z: 7730, r: 200 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one
