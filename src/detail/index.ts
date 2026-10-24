@@ -16,8 +16,8 @@ import { buildRopstenStation } from './ropsten-station.ts';
 import { buildE18Bridge, buildStocksundsbron, buildSvedenreservoaren, SVEDEN_OUTLINE } from './stocksundet.ts';
 import { buildFence, buildHerrhagsvagen, buildRockFace, buildTallkrogenBridges, FENCE_PARTS, HERRHAGSVAGEN, ROCK_ANCHOR, TALLKROGEN_BRIDGES } from './gubbangen.ts';
 import { buildFarstaViaduct, buildFarstavagenBridge, buildGubbangsfaltet, buildHokarangenBridges, FN_ANCHOR, FV_ANCHOR, GF_ANCHOR, HK_ANCHOR } from './farsta-line.ts';
-import { buildHammarbybacken, buildNynasvagen, buildSockenvagen, buildSofielundsvagen, buildTallkrogenPath, HAMMARBYBACKEN, NYNASVAGEN, SOCKENVAGEN, SOFIELUNDSVAGEN, TALLKROGEN_PATH } from './farsta-line-north.ts';
-import { buildStreets, type TileStreets } from './streets.ts';
+import { buildHammarbybacken, buildNynasDeck, buildNynasvagen, buildSockenvagen, buildSofielundsvagen, buildTallkrogenPath, HAMMARBYBACKEN, NYNAS_DECK, NYNASVAGEN, SOCKENVAGEN, SOFIELUNDSVAGEN, TALLKROGEN_PATH } from './farsta-line-north.ts';
+import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
 // The city in detail near the camera, in the areas of src/detail/areas.ts:
@@ -28,7 +28,10 @@ import { buildTower, TOWERS } from './towers.ts';
 
 export { DETAIL_ON } from './areas.ts';
 
-interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null) => void }
+// (a landmark carrying a road gets the tile's streets: the city's ground they lie on, and a way to
+// lay them again on its own, a deck's, where the city leaves them out over the tracks)
+export interface LandmarkStreets { ground: StreetGround; draw: (ground: StreetGround) => void }
+interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null, streets?: LandmarkStreets) => void }
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
   ...TOWERS.map((t, i): Landmark => ({ name: `Hötorget tower ${i + 1}`, outline: t.outline, anchor: t.at, build: (B) => buildTower(B, t.tower) })),
@@ -98,6 +101,9 @@ const LANDMARKS: Landmark[] = [
   { name: 'Sockenvägen bridge', outline: [], anchor: SOCKENVAGEN.at(67, -3), build: buildSockenvagen },
   { name: 'Sofielundsvägen bridge', outline: [], anchor: SOFIELUNDSVAGEN.at(25, -2), build: buildSofielundsvagen },
   { name: 'Hammarbybacken bridge', outline: [], anchor: HAMMARBYBACKEN.at(17, -3), build: buildHammarbybacken },
+  // and Nynäsvägen's deck over the Skärmarbrink line's tracks south-east of Gullmarsplan, with the
+  // city's streets laid on it
+  { name: 'Nynäsvägen deck at Gullmarsplan', outline: [], anchor: NYNAS_DECK.o, build: buildNynasDeck },
 ];
 
 export interface TileDetail {
@@ -115,9 +121,10 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
   buildings.forEach((b, k) => {
     if (LANDMARKS.some((l) => inPoly(mid[k][0], mid[k][1], l.outline))) replaced.add(k);
   });
+  const roads = streets && { ground: streets.ground, draw: (G: StreetGround) => buildStreets(B, { streets: streets.streets, ground: G }, x0, z0, size) };
   for (const l of LANDMARKS) {
     if (l.anchor[0] >= x0 && l.anchor[0] < x0 + size && l.anchor[1] >= z0 && l.anchor[1] < z0 + size) {
-      l.build(B, ground);
+      l.build(B, ground, roads);
       B.place([0, 0, 0], 0);
     }
   }

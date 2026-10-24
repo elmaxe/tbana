@@ -3,6 +3,7 @@ import type { Builder, V2, V3 } from './builder.ts';
 import { addMaterial, standard } from './materials.ts';
 import { lampMast, post } from './ropsten.ts';
 import { bar, block, Frame, pipeRailing, sign, v3, type Ground } from './gubbangen.ts';
+import type { LandmarkStreets } from './index.ts';
 
 // What the green line looks out on from Tallkrogen north to Gullmarsplan, beyond what the city draws
 // there itself (its blocks with facades, the streets and the trees: see the areas in
@@ -423,4 +424,135 @@ const HB_STEEL: Steel = {
 export function buildHammarbybacken(B: Builder, ground: Ground) {
   B.place([0, 0, 0], 0);
   buildSteel(B, ground, HB_STEEL);
+}
+
+// ------------------------------------------------------------------ Nynäsvägen over the tracks at Gullmarsplan
+// South-east of Gullmarsplan's bus terminal, Nynäsvägen's two carriageways, the ramp onto it beside
+// them and the cycleways along both sides cross the Skärmarbrink line's two tracks on one concrete
+// deck, askew to them, open underneath from the cutting east of the road to the gap between the road
+// and the terminal: s metres along the road southwards (south-south-east), u to the right (west).
+// The deck from the laser scan (its points classed as a bridge's): its faces along the road's edges,
+// over the cutting and over the gap; its ends with the tracks, the northern one with the southbound
+// track and the southern one with the northbound, which part westwards; its road on a plane (8 cm
+// rms), rising 2.3 % southwards and 0.7 % westwards. Its edges as in the photographs (Mapillary,
+// 2015–2025): a concrete kerb with a railing of upright bars along each face, the western one going
+// on north along the wall over the gap; concrete barriers between the carriageways, and between the
+// southbound one and the ramp. The roads on it are the city's own streets (src/detail/streets.ts),
+// which the city leaves out over the tracks, laid again on the deck.
+export const NYNAS_DECK = new Frame([1350, 3775], [0.3158, 0.9488]);
+const ND = NYNAS_DECK;
+const ND_TOP = (s: number, u: number) => 41.286 + 0.02325 * s + 0.0071 * u;
+// the faces, east and west; the ends, north and south: s at u along each
+const ND_FACES: V2 = [-21, 13.6];
+const ND_ENDS: [(u: number) => number, (u: number) => number] = [(u) => -21.74 - 1.109 * u, (u) => 17.54 - 0.799 * u];
+// how far beyond its ends the road is laid on its plane (data/ground-corrections.json keeps the city's
+// ground on it there, its decks), and the fill under the road there, held by the abutments' wing
+// walls; the abutments' faces in from the ends; where the wall along the gap begins north of the deck
+const ND_REACH: V2 = [11.2, 9.6], ND_FILL: V2 = [7.5, 6.4], ND_ABUTMENTS: V2 = [6, 4], ND_WALL = -49;
+// the slab's depth under the road, its edge beams' width; the barriers' lines
+const ND_DEPTH = 0.65, ND_BEAM = 0.5, ND_BARRIERS = [-5.25, 2.0];
+const ND_BARS = 0x5d6265, ND_BARRIER = 0xc4c1ba;
+// The northbound track's box west of the deck, from its mouth in the gap in under the terminal. The
+// city cuts the mouth out of the ground as wide as a box's far side and the thickness of its walls on
+// both sides (tools/build-city.ts), but the network draws the box without that thickness, and narrower
+// on the side towards the other track, which has parted from it here, and its walls stop at its floor:
+// footings along both sides fill the strips in between, from under its walls at its floor's height
+// to the ground. u to the left (north, the near side); each side's inner and outer edge.
+const ND_BOX = new Frame([1324.69, 3766.73], [-0.811, -0.584]);
+const ND_BOX_SIDES: V2[] = [[1.8, 3.0], [-2.3, -3.0]], ND_BOX_FLOOR = 34.85;
+
+export function buildNynasDeck(B: Builder, ground: Ground, streets?: LandmarkStreets) {
+  B.place([0, 0, 0], 0);
+  const [east, west] = ND_FACES, [north, south] = ND_ENDS;
+  const under = (s: number, u: number) => ND_TOP(s, u) - ND_DEPTH;
+  // a strip of the deck from u0 to u1, from its northern end to its southern, or n and m beyond them
+  const strip = (u0: number, u1: number, n = 0, m = 0): V2[] => [[north(u0) - n, u0], [south(u0) + m, u0], [south(u1) + m, u1], [north(u1) - n, u1]];
+  // the lowest ground along a line, less a little
+  const foot = (pts: V2[]) => Math.min(...pts.map(([s, u]) => ground(...ND.at(s, u)) ?? under(s, u) - 6)) - 0.6;
+  const along = (a: V2, b: V2, n = 8) => Array.from({ length: n + 1 }, (_, i): V2 => [a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n]);
+
+  // the slab, its road, and the edge beams along its faces with the kerbs
+  B.tint(UNDER);
+  block(B, ND, strip(east + ND_BEAM, west - ND_BEAM), under, (s, u) => ND_TOP(s, u) - 0.03, 'fl-under', 3);
+  B.tint(0x6b6c6d);
+  block(B, ND, strip(east + ND_BEAM, west - ND_BEAM), under, ND_TOP, 'rp-asphalt', 6, { faces: 'top' });
+  B.tint(CONCRETE);
+  for (const [u0, u1] of [[east, east + ND_BEAM], [west - ND_BEAM, west]]) {
+    block(B, ND, strip(u0, u1), under, (s, u) => ND_TOP(s, u) + KERB, 'concrete', 3);
+  }
+
+  // the abutments under its ends, cast against boards, from below the cutting's floor to the slab, and
+  // beyond its ends the fill under the road between their wing walls
+  B.tint(BOARDS);
+  const [dn, ds] = ND_ABUTMENTS;
+  const abutments: V2[][] = [
+    [[north(east), east], [north(east) + dn, east], [north(west) + dn, west], [north(west), west]],
+    [[south(east) - ds, east], [south(east), east], [south(west), west], [south(west) - ds, west]],
+  ];
+  for (const [k, plan] of abutments.entries()) {
+    const face = k === 0 ? along(plan[1], plan[2]) : along(plan[0], plan[3]);
+    block(B, ND, plan, () => foot(face), (s, u) => under(s, u) - 0.01, 'gt-boards', 2.4);
+  }
+  const fills: V2[][] = [
+    [[north(east) - ND_FILL[0], east], [north(east), east], [north(west), west], [north(west) - ND_FILL[0], west]],
+    [[south(east), east], [south(east) + ND_FILL[1], east], [south(west) + ND_FILL[1], west], [south(west), west]],
+  ];
+  for (const plan of fills) {
+    block(B, ND, plan, () => foot([...along(plan[0], plan[1], 3), ...along(plan[2], plan[3], 3)]), (s, u) => ND_TOP(s, u) - 0.05, 'gt-boards', 2.4);
+  }
+
+  // the wall along the gap north of the deck, up to the kerb
+  B.tint(CONCRETE);
+  const wall: V2[] = [[ND_WALL, west - ND_BEAM], [north(west - ND_BEAM), west - ND_BEAM], [north(west), west], [ND_WALL, west]];
+  block(B, ND, wall, () => foot(along(wall[3], wall[2])), (s, u) => ND_TOP(s, u) + KERB, 'concrete', 3);
+  // the box's footings at its mouth, flush with the ground, from below the city's cut
+  B.tint(0x86827b);
+  for (const [inner, outer] of ND_BOX_SIDES) {
+    const top = (s: number, u: number) => Math.max(u === inner ? ND_BOX_FLOOR : 34.3, (ground(...ND_BOX.at(s, u)) ?? 35) + 0.02);
+    block(B, ND_BOX, [[-1, inner], [7, inner], [7, outer], [-1, outer]], () => 34.1, top, 'concrete', 3);
+  }
+
+  // the railings: along the western face and the wall, and along the eastern face
+  B.tint(ND_BARS);
+  const kerb = (s: number, u: number) => ND_TOP(s, u) + KERB;
+  barRailing(B, line(ND, steps(ND_WALL, south(west - 0.2), [north(west - 0.2)], 2.5), () => west - 0.2, kerb), 1.15);
+  barRailing(B, line(ND, steps(north(east + 0.2), south(east + 0.2), [], 2.5), () => east + 0.2, kerb), 1.15);
+
+  // the barriers, over the deck and as far as the road is laid on its plane
+  B.tint(ND_BARRIER);
+  for (const u of ND_BARRIERS) barrier(B, ND, north(u) - ND_REACH[0], south(u) + ND_REACH[1], u, ND_TOP);
+
+  // the roads, laid on the deck and its plane beyond it where the city leaves them out
+  if (streets) {
+    const city = streets.ground, [ox, oz] = ND.o, [tx, tz] = ND.t;
+    streets.draw({
+      step: city.step,
+      height: (x, z) => ND_TOP((x - ox) * tx + (z - oz) * tz, -(x - ox) * tz + (z - oz) * tx),
+      bare: (x, z) => !city.bare(x, z),
+      water: () => null,
+      outline: strip(east, west, ND_REACH[0], ND_REACH[1]).map(([s, u]) => ND.at(s, u)),
+    });
+  }
+}
+
+// A concrete safety barrier along a frame at u from s0 to s1, on the road at y(s, u): its profile
+// 0.6 m wide at the foot, sloping in at 0.25 m and to 0.16 m at the top, 0.81 m high; at its ends it
+// slopes down over 2.5 m.
+const BARRIER: V2[] = [[-0.3, 0], [-0.2, 0.25], [-0.08, 0.81], [0.08, 0.81], [0.2, 0.25], [0.3, 0]];
+function barrier(B: Builder, F: Frame, s0: number, s1: number, u: number, y: (s: number, u: number) => number) {
+  const al = F.along, r = F.right;
+  const ss: [number, number][] = [[s0, 0.12], [s0 + 2.5, 1], [s1 - 2.5, 1], [s1, 0.12]];
+  const at = (s: number, k: number, f: number): V3 => {
+    const [du, h] = BARRIER[k], p = F.at(s, u + du);
+    return [p[0], y(s, u + du) + h * f - 0.02, p[1]];
+  };
+  for (let i = 0; i + 1 < ss.length; i++) {
+    const [a, fa] = ss[i], [b, fb] = ss[i + 1];
+    for (let k = 0; k + 1 < BARRIER.length; k++) {
+      const du = BARRIER[k + 1][0] - BARRIER[k][0], dh = (BARRIER[k + 1][1] - BARRIER[k][1]) * (fa + fb) / 2, l = Math.hypot(du, dh);
+      const n: V3 = [(r[0] * -dh) / l, du / l, (r[2] * -dh) / l];
+      B.poly([at(a, k, fa), at(b, k, fb), at(b, k + 1, fb), at(a, k + 1, fa)], n, 'concrete', 2);
+    }
+  }
+  for (const [s, f, d] of [[s0, 0.12, -1], [s1, 0.12, 1]]) B.poly(BARRIER.map((_, k) => at(s, k, f)), [al[0] * d, 0, al[2] * d], 'concrete', 2);
 }

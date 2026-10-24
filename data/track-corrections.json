@@ -177,6 +177,24 @@
     {
       "op": "retag",
       "nodes": [
+        1279783389,
+        1279783410
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's northbound track tunnel=yes from its portal in the cutting east of Nynäsvägen; under Nynäsvägen it runs in the open beside the southbound track, under the road's bridge (src/detail/farsta-line-north.ts), whose deck the laser scan has open underneath from the cutting to the gap between the road and the bus terminal, not in a box. Its box begins at the terminal's edge, 9 m beyond the bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783410,
+        1279783390
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's northbound track tunnel=yes from its portal in the cutting east of Nynäsvägen; under Nynäsvägen it runs in the open beside the southbound track, under the road's bridge (src/detail/farsta-line-north.ts), whose deck the laser scan has open underneath from the cutting to the gap between the road and the bus terminal, not in a box. Its box begins at the terminal's edge, 9 m beyond the bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
         161383,
         5282566353
       ],

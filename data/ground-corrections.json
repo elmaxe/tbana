@@ -62,6 +62,18 @@
       "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
     },
     {
+      "name": "Gullmarsplan: Nynäsvägen north of its bridge over the Skärmarbrink line",
+      "outline": [1323.4, 3734.5, 1366.9, 3759.2, 1370.4, 3769.8, 1326.9, 3745.2],
+      "heights": [40.29, 40.91, 41.17, 40.55],
+      "why": "South-east of the bus terminal Nynäsvägen crosses the Skärmarbrink line's two tracks on a skewed concrete deck (src/detail/farsta-line-north.ts), which the elevation model leaves out. Its 5 m grid smooths the road along the deck's northern edge down towards the cutting under it, by up to a third of a metre; here the road is kept on the plane of the deck's (the laser scan's points on the deck, classed as a bridge's, 40.6–41.9 m, rising 2.3 % southwards), so that the road drawn on the deck meets it."
+    },
+    {
+      "name": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line",
+      "outline": [1339.9, 3785.9, 1380.8, 3800.9, 1383.8, 3810.0, 1343.0, 3795.0],
+      "heights": [41.54, 41.93, 42.16, 41.77],
+      "why": "Along the deck's southern edge, as along its northern: the elevation model's grid had the road there up to half a metre low."
+    },
+    {
       "name": "Skanstull: the pavement round the eastern court",
       "outline": [989.4, 2598.5, 998.2, 2596.7, 1003.7, 2623.1, 994.9, 2624.9],
       "heights": [21.88, 21.88, 22.13, 22.13],
@@ -538,6 +550,14 @@
     {
       "outline": [[1316.5, 7496.3], [1328.0, 7502.9], [1331.1, 7527.6], [1319.6, 7521.1]],
       "why": "Gubbängen: Herrhagsvägen behind the eastern abutment of its bridge over the tracks, as behind the western one."
+    },
+    {
+      "outline": [[1318.9, 3724.5], [1363.8, 3750.0], [1370.4, 3769.8], [1325.5, 3744.4]],
+      "why": "Gullmarsplan: Nynäsvägen north of its bridge over the Skärmarbrink line (src/detail/farsta-line-north.ts), behind the abutment along the deck's northern edge. The tracks' cutting under the deck lowered the road to a slope of 1:2 as far as 14 m from it, so that the road fell into a trench at the bridge (the elevation model leaves the deck out, not the road on the ground behind it)."
+    },
+    {
+      "outline": [[1339.2, 3785.6], [1380.8, 3800.9], [1386.4, 3817.9], [1344.9, 3802.6]],
+      "why": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line, behind the abutment along the deck's southern edge, as north of it."
     }
   ],
   "under": [
