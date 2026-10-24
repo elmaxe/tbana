@@ -68,6 +68,8 @@ export const DETAIL_AREAS: DetailArea[] = [
   // the Nynäs railway to Rågsved, and over Rågsvedsvägen round into Hagsätra
   { name: 'Gullmarsplan–Globen', x: 1170, z: 3960, r: 200 },
   { name: 'Globen', x: 1000, z: 4190, r: 200 },
+  // (and the arenas east of the station, in view from it: src/detail/globen.ts)
+  { name: 'Globen arenas', x: 1330, z: 4230, r: 200 },
   { name: 'Globen–Enskede gård', x: 740, z: 4330, r: 200 },
   { name: 'Enskede gård', x: 630, z: 4630, r: 200 },
   { name: 'Enskede gård–Sockenplan 1', x: 740, z: 4920, r: 200 },
@@ -91,6 +93,22 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Rågsved–Hagsätra 2', x: -2320, z: 8300, r: 200 },
   { name: 'Rågsved–Hagsätra 3', x: -2500, z: 8050, r: 200 },
   { name: 'Hagsätra', x: -2620, z: 7730, r: 200 },
+  // and the Skarpnäck line from Skärmarbrink to Bagarmossen's tunnel (src/detail/skarpnack-line.ts):
+  // over the Farsta line's tracks and Sparrmansvägen to Hammarbyhöjden, over Ulricehamnsvägen, the
+  // long viaduct over Malmövägen to Björkhagen, over Halmstadsvägen, the viaduct over the park and
+  // Ystadsvägen to Kärrtorp, over Kärrtorpsplan, and the viaduct over Sockenvägen into the rock
+  { name: 'Skärmarbrink–Hammarbyhöjden 1', x: 2030, z: 4140, r: 200 },
+  { name: 'Skärmarbrink–Hammarbyhöjden 2', x: 2300, z: 4100, r: 200 },
+  { name: 'Hammarbyhöjden', x: 2575, z: 4085, r: 200 },
+  { name: 'Hammarbyhöjden–Björkhagen 1', x: 2860, z: 4095, r: 200 },
+  { name: 'Hammarbyhöjden–Björkhagen 2', x: 3110, z: 4200, r: 200 },
+  { name: 'Björkhagen', x: 3215, z: 4455, r: 200 },
+  { name: 'Björkhagen–Kärrtorp 1', x: 3200, z: 4760, r: 200 },
+  { name: 'Björkhagen–Kärrtorp 2', x: 3150, z: 5005, r: 200 },
+  { name: 'Kärrtorp', x: 3165, z: 5250, r: 200 },
+  { name: 'Kärrtorp–Bagarmossen 1', x: 3315, z: 5520, r: 200 },
+  { name: 'Kärrtorp–Bagarmossen 2', x: 3480, z: 5745, r: 200 },
+  { name: 'Kärrtorp–Bagarmossen 3', x: 3650, z: 5875, r: 150 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

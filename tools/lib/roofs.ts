@@ -17,9 +17,10 @@
 // than both their neighbours (or, with roof:orientation=across, longer); round a courtyard the
 // roof is hipped. Pyramidal roofs rise to
 // the middle of a convex outline (a concave one gets a hipped roof); skillion roofs slope down
-// towards roof:direction, or away from the longest edge. The other shapes are near enough to these:
-// gambrel, half-hipped and round roofs are built gabled, mansard and dome roofs hipped, onion
-// roofs pyramidal.
+// towards roof:direction, or away from the longest edge; dome roofs rise in a quarter circle from
+// the outline to its middle (over a concave one, hipped). The other shapes are near enough to
+// these: gambrel, half-hipped and round roofs are built gabled, mansard roofs hipped, onion roofs
+// pyramidal.
 import * as THREE from 'three';
 import type { RoofShape } from '../../src/city-tile.ts';
 
@@ -70,6 +71,7 @@ export function buildRoof(rings: XZ[][], shape: RoofShape, height: number, opts:
   try {
     if (shape === 'skillion') return skillion(rings, height, opts.direction ?? null);
     if ((shape === 'pyramidal' || shape === 'onion') && convex) return pyramid(rings[0], height);
+    if (shape === 'dome' && convex) return dome(rings[0], height);
     const gabled = ['gabled', 'gambrel', 'half-hipped', 'round'].includes(shape);
     // (round a courtyard, the wings have no ends to tell: hipped)
     if (gabled && rings.length === 1) markGables(edges, !!opts.across);
@@ -320,20 +322,45 @@ function centroid(poly: XZ[]): XZ {
   return [x / poly.length, z / poly.length];
 }
 
-// ------------------------------------------------------------------ pyramidal and skillion
-function pyramid(ring: XZ[], height: number): Roof {
+// ------------------------------------------------------------------ pyramidal, dome and skillion
+// the middle of an outline's area
+function middle(ring: XZ[]): XZ {
   let cx = 0, cz = 0, a = 0;
   for (let k = 0; k < ring.length; k++) {
     const p = ring[k], q = ring[(k + 1) % ring.length], w = p[0] * q[1] - q[0] * p[1];
     a += w; cx += (p[0] + q[0]) * w; cz += (p[1] + q[1]) * w;
   }
-  const apex: [number, number, number] = [cx / (3 * a), cz / (3 * a), height];
+  return [cx / (3 * a), cz / (3 * a)];
+}
+
+function pyramid(ring: XZ[], height: number): Roof {
+  const apex: [number, number, number] = [...middle(ring), height];
   const roof: Roof = { points: [apex], triangles: [], tops: [ring.map(([x, z]) => [x, z, 0])] };
   for (let k = 0; k < ring.length; k++) {
     const p = ring[k], q = ring[(k + 1) % ring.length];
     roof.points.push([p[0], p[1], 0], [q[0], q[1], 0]);
     const n = roof.points.length;
     roof.triangles.push(0, n - 2, n - 1);
+  }
+  fixWinding(roof);
+  return roof;
+}
+
+// The outline drawn in towards its middle in rings, each higher, in a quarter circle up to the top.
+function dome(ring: XZ[], height: number): Roof {
+  const [cx, cz] = middle(ring), m = ring.length;
+  const N = Math.max(2, Math.min(8, Math.floor(MAX_TRIANGLES / (2 * m))));
+  const roof: Roof = { points: [], triangles: [], tops: [ring.map(([x, z]) => [x, z, 0])] };
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * (Math.PI / 2), f = Math.cos(a), y = height * Math.sin(a);
+    for (const [x, z] of ring) roof.points.push([cx + (x - cx) * f, cz + (z - cz) * f, y]);
+  }
+  roof.points.push([cx, cz, height]);
+  const top = N * m;
+  for (let i = 0; i < N; i++) for (let k = 0; k < m; k++) {
+    const a = i * m + k, b = i * m + ((k + 1) % m);
+    if (i + 1 < N) roof.triangles.push(a, b, b + m, a, b + m, a + m);
+    else roof.triangles.push(a, b, top);
   }
   fixWinding(roof);
   return roof;

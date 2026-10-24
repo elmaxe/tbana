@@ -22,6 +22,7 @@ import {
   buildNynasRailwayBridges, buildOlshammarsgatan, buildOrbyleden, buildRagsvedsvagen, buildSkonviksvagen, buildSockenplan, buildSvedmyra, DEPOT_BRIDGE,
   HOGDALEN_PATH, MAGELUNGSVAGEN, NYNAS_LINE, NYNAS_RAILWAY, OLSHAMMARSGATAN, ORBYLEDEN, RAGSVEDSVAGEN, SKONVIKSVAGEN, SOCKENPLAN, SVEDMYRA,
 } from './hagsatra-line.ts';
+import { ANNEXET_ANCHOR, ANNEXET_OUTLINE, buildAnnexet, buildGloben, GLOBEN_ANCHOR, GLOBEN_OUTLINE } from './globen.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -126,6 +127,10 @@ const LANDMARKS: Landmark[] = [
   { name: 'Bjursätragatan bridge', outline: [], anchor: BJURSATRAGATAN.at(26, 2), build: buildBjursatragatan },
   { name: 'Rågsvedsvägen arch', outline: [], anchor: RAGSVEDSVAGEN.at(38, 0), build: buildRagsvedsvagen },
   { name: 'Olshammarsgatan viaduct', outline: [], anchor: OLSHAMMARSGATAN.at(30, 1.5), build: buildOlshammarsgatan },
+  // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
+  // beside it (src/detail/globen.ts)
+  { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },
+  { name: 'Annexet', outline: ANNEXET_OUTLINE, anchor: ANNEXET_ANCHOR, build: buildAnnexet },
 ];
 
 export interface TileDetail {

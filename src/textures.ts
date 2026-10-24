@@ -11152,6 +11152,107 @@ export function lattice() {
   return toTexture(c, { aniso: 4 });
 }
 
+// Avicii Arena's (Globen's) cladding, near white for its tint: lacquered sheet-metal cassettes in
+// eight columns by eight rows, each a shade lighter or darker than the next, between grey joints
+// with the aluminium trim's light edge beside them. One tile; src/detail/globen.ts maps one panel
+// to each column and row of the sphere.
+export function globenPanels() {
+  const [c, x] = canvas(1024);
+  const r = rng(1989), P = 128;
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+    const v = 232 + Math.floor(r() * 18);
+    x.fillStyle = `rgb(${v},${v},${v + 2})`;
+    x.fillRect(i * P, j * P, P, P);
+  }
+  speckle(x, 1024, 1024, 2500, 0.05, 1988);
+  for (let k = 0; k < 8; k++) {
+    x.fillStyle = 'rgba(70,76,82,0.75)';
+    x.fillRect(k * P, 0, 4, 1024); x.fillRect(0, k * P, 1024, 4);
+    x.fillStyle = 'rgba(255,255,255,0.6)';
+    x.fillRect(k * P + 4, 0, 3, 1024); x.fillRect(0, k * P + 4, 1024, 3);
+  }
+  return toTexture(c);
+}
+
+// A round window in Globen's cladding, on nothing (alpha test): a pale frame round blue-grey glass
+// with the sky's light in its upper part.
+export function porthole() {
+  const [c, x] = canvas(64);
+  x.fillStyle = '#e4e6e8';
+  x.beginPath(); x.arc(32, 32, 31, 0, Math.PI * 2); x.fill();
+  const g = x.createLinearGradient(0, 6, 0, 58);
+  g.addColorStop(0, '#7d8e9c'); g.addColorStop(0.45, '#3e4c58'); g.addColorStop(1, '#2c3740');
+  x.fillStyle = g;
+  x.beginPath(); x.arc(32, 32, 25, 0, Math.PI * 2); x.fill();
+  return toTexture(c, { repeat: false, aniso: 4 });
+}
+
+// A vent in Globen's cladding: grey louvres in a frame. One panel.
+export function louvres() {
+  const [c, x] = canvas(128, 64);
+  x.fillStyle = '#9aa0a4'; x.fillRect(0, 0, 128, 64);
+  for (let y = 6; y < 60; y += 6) {
+    x.fillStyle = '#4c5257'; x.fillRect(4, y, 120, 3);
+    x.fillStyle = '#c9cdd0'; x.fillRect(4, y + 3, 120, 1);
+  }
+  x.fillStyle = '#d8dbdd';
+  x.fillRect(0, 0, 128, 4); x.fillRect(0, 60, 128, 4); x.fillRect(0, 0, 4, 64); x.fillRect(124, 0, 4, 64); x.fillRect(62, 0, 4, 64);
+  return toTexture(c, { aniso: 4 });
+}
+
+// The low buildings round Globen: concrete pillars 7 m apart with dark glass between them in
+// storeys of 3.5 m, under a concrete fascia 1.4 m deep. One bay, 7 × 28 m, the fascia at the top.
+export function globenPodium() {
+  const [c, x] = canvas(256, 1024);
+  const r = rng(1990), m = 1024 / 28;
+  x.fillStyle = '#c3c4bf';
+  x.fillRect(0, 0, 256, 1024);
+  speckle(x, 256, 1024, 3000, 0.12, 1991);
+  const p = Math.round(0.55 * m), top = Math.round(1.4 * m), storey = Math.round(3.5 * m);
+  for (let y = top; y < 1024; y += storey) {
+    paintGlass(x, p, y + 5, 256 - 2 * p, storey - 10, r, 'rgba(24,34,44,0.42)', true);
+    x.fillStyle = '#3d454c';
+    for (let k = 0; k <= 4; k++) x.fillRect(p + Math.round(((256 - 2 * p - 4) * k) / 4), y + 5, 4, storey - 10);
+    x.fillRect(p, y + 2, 256 - 2 * p, 4); x.fillRect(p, y + storey - 6, 256 - 2 * p, 4);
+  }
+  // the pillars' edges and the fascia's joint
+  x.fillStyle = 'rgba(0,0,0,0.18)';
+  x.fillRect(p - 3, top, 3, 1024 - top); x.fillRect(256 - p, top, 3, 1024 - top);
+  x.fillRect(0, top - 3, 256, 3); x.fillRect(0, 0, 256, 2);
+  return toTexture(c);
+}
+
+// The white-tiled walls of the arena's buildings by Globen: square tiles 0.6 m across in a near
+// white with grey joints, and a dark fixing every 1.8 m. Covers 3.6 × 3.6 m.
+export function globenTiles() {
+  const [c, x] = canvas(256);
+  x.fillStyle = '#eeece6';
+  x.fillRect(0, 0, 256, 256);
+  speckle(x, 256, 256, 600, 0.08, 1992);
+  x.fillStyle = 'rgba(110,110,104,0.45)';
+  for (let k = 0; k < 6; k++) { const v = Math.round((k * 256) / 6); x.fillRect(v, 0, 2, 256); x.fillRect(0, v, 256, 2); }
+  x.fillStyle = '#3c4247';
+  for (const [u, v] of [[64, 64], [192, 64], [64, 192], [192, 192]]) x.fillRect(u - 4, v - 4, 8, 8);
+  return toTexture(c);
+}
+
+// SkyView's front on Globentorget: a single storey of glass in steel frames 2 m apart, with a
+// blue line across, under a steel fascia. Covers 8 × 4.6 m.
+export function globenFront() {
+  const [c, x] = canvas(256, 148);
+  const r = rng(1993);
+  x.fillStyle = '#9ea3a7';
+  x.fillRect(0, 0, 256, 148);
+  for (let k = 0; k < 4; k++) paintGlass(x, k * 64 + 3, 30, 58, 118, r, 'rgba(20,28,40,0.45)');
+  x.fillStyle = '#5d6368';
+  for (let k = 0; k <= 4; k++) x.fillRect(k * 64 - 3, 26, 6, 122);
+  x.fillStyle = '#2f55a8';
+  x.fillRect(0, 64, 256, 4);
+  x.fillStyle = 'rgba(255,255,255,0.35)';
+  x.fillRect(0, 22, 256, 3);
+  return toTexture(c, { aniso: 4 });
+}
+
 // The band of lights under Katarinahissen's walkway, red with a running line of pale letters
 // too small to read, which the material lights up by itself. Covers about 8 × 1 m.
 export function ledBand() {
