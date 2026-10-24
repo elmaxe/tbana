@@ -62,6 +62,12 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Skärmarbrink', x: 1760, z: 4010, r: 200 },
   { name: 'Skärmarbrink–Gullmarsplan', x: 1530, z: 3840, r: 200 },
   { name: 'Gullmarsplan', x: 1300, z: 3660, r: 200 },
+  // and north from Gullmarsplan over Skanstullsbron (src/detail/skanstull.ts) to the tunnel under
+  // Södermalm: the slopes down from Gullmarsplan, Hammarby kanal with Skansbron and its quays, and the
+  // low ground under the bridge's arches at Södermalm's foot
+  { name: 'Skanstullsbron south', x: 1180, z: 3300, r: 200 },
+  { name: 'Skanstullsbron', x: 1110, z: 3080, r: 200 },
+  { name: 'Skanstullsbron north', x: 1040, z: 2860, r: 200 },
   // and the Hagsätra line from Gullmarsplan to Hagsätra (src/detail/hagsatra-line.ts): past Globen's
   // arenas and Enskede gård on its bank, over Sockenplan's square and Svedmyra's street, between the
   // villas of Stureby, over Örbyleden to Bandhagen, past Högdalen's centre, over Magelungsvägen and

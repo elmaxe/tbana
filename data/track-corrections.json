@@ -866,6 +866,38 @@
     {
       "at": [146218.1, 6575516.8],
       "why": "Bredäng, the northern track at the platform's east end, by the ticket gates (as the southern track, above): its last point on the platform is 10 m short of them."
+    },
+    {
+      "at": [154359.1, 6576922.6],
+      "why": "Skanstull, the eastern track 110 m into the tunnel from its mouth at Skanstullsbron's northern end: OSM has no point on it between 66 m in, where the track is still coming down from Skanstullsbron at 4%, and the platform's middle, 258 m in, so its height sloped straight between them, and the south hall's passages over the tracks just beyond the platform's end, on floors 3.55 m over the platform, stood in the trains' way. With this point and the next the track comes down onto the platform's level before the hall (the rail heights in data/height-corrections.json)."
+    },
+    {
+      "at": [154349.2, 6576966.5],
+      "why": "Skanstull, the eastern track 155 m into the tunnel, just short of the south hall's passages (as the point before)."
+    },
+    {
+      "at": [154339.9, 6577008.0],
+      "why": "Skanstull, the eastern track at the platform's south end: OSM's nearest points are 61 m inside the platform and 132 m beyond its end, so the track sloped along the platform's southern half."
+    },
+    {
+      "at": [154302.8, 6577184.1],
+      "why": "Skanstull, the eastern track at the platform's north end: OSM has no point on it between the platform's middle and 205 m beyond its north end."
+    },
+    {
+      "at": [154355.3, 6576921.8],
+      "why": "Skanstull, the western track 110 m into the tunnel from its mouth, as the eastern track (above)."
+    },
+    {
+      "at": [154345.5, 6576965.7],
+      "why": "Skanstull, the western track 155 m into the tunnel, just short of the south hall's passages (as the eastern track, above)."
+    },
+    {
+      "at": [154336.2, 6577007.2],
+      "why": "Skanstull, the western track at the platform's south end (as the eastern track, above)."
+    },
+    {
+      "at": [154299.4, 6577183.3],
+      "why": "Skanstull, the western track at the platform's north end (as the eastern track, above)."
     }
   ]
 }

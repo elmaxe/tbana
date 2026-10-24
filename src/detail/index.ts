@@ -27,6 +27,7 @@ import {
   BAGARMOSSEN, BAGARMOSSEN_VIADUCT, buildSkarpnackViaduct, HALMSTADS, HALMSTADSVAGEN, KARRTORPS, KARRTORPSVAGEN, MALMO, MALMOVAGEN, SKARMARBRINK,
   SKARMARBRINK_FLYOVER, SPARRMANS, SPARRMANSVAGEN, ULRICEHAMNS, ULRICEHAMNSVAGEN, YSTADS, YSTADSVAGEN,
 } from './skarpnack-line.ts';
+import { buildSkanstullsbron, SKANSTULLSBRON_PARTS } from './skanstull.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -141,6 +142,9 @@ const LANDMARKS: Landmark[] = [
   { name: 'Ystadsvägen viaduct', outline: [], anchor: YSTADSVAGEN.at(58, -1.7), build: buildSkarpnackViaduct(YSTADS) },
   { name: 'Kärrtorpsvägen bridges', outline: [], anchor: KARRTORPSVAGEN.at(48, 3), build: buildSkarpnackViaduct(KARRTORPS) },
   { name: 'Bagarmossen viaduct', outline: [], anchor: BAGARMOSSEN_VIADUCT.at(44.5, 1.3), build: buildSkarpnackViaduct(BAGARMOSSEN) },
+  // Skanstullsbron, from Gullmarsplan over Hammarby kanal to Södermalm: the metro's deck and the road's
+  // beside it, their bents and arches, in three parts along it (src/detail/skanstull.ts)
+  ...SKANSTULLSBRON_PARTS.map((p, i): Landmark => ({ name: `Skanstullsbron ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildSkanstullsbron(B, g, p.range) })),
   // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
   // beside it (src/detail/globen.ts)
   { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },

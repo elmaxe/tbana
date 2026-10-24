@@ -12,7 +12,8 @@ import { DETAIL_ON } from './areas.ts';
 // (src/detail/gubbangen.ts), and the viaduct over Gubbängsfältet south of Gubbängen, Hökarängen's
 // over Örbyleden, Farsta's over Farstavägen and its two decks into the station
 // (src/detail/farsta-line.ts), and those north of Tallkrogen to Gullmarsplan
-// (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts). Within
+// (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts) and the
+// Skarpnäck line (src/detail/skarpnack-line.ts), and Skanstullsbron (src/detail/skanstull.ts). Within
 // `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its
 // decks and the lamps over its platforms, and keeps the player off its platforms where the `solids`
 // stand on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in
@@ -102,6 +103,12 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Ystadsvägen', at: [3187.2, 4814.1], r: 70.5, solids: [], girder: true },
   { name: 'Kärrtorpsvägen', at: [3192.9, 5334.3], r: 51.2, solids: [], girder: true },
   { name: 'Bagarmossen', at: [3444.4, 5702.5], r: 48.0, solids: [], girder: true },
+  // (Skanstullsbron (src/detail/skanstull.ts), from the bank OpenStreetMap's bridge runs on over at
+  // Gullmarsplan, short of its platforms, to the northern abutment: 100 m south of its southern end
+  // to 184 m north of it, on to 420 m, and on to 555 m)
+  { name: 'Skanstullsbron south', at: [1177.5, 3314.3], r: 142, solids: [], girder: true },
+  { name: 'Skanstullsbron', at: [1105.5, 3066.5], r: 120, solids: [], girder: true },
+  { name: 'Skanstullsbron north', at: [1049.0, 2888.2], r: 68, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

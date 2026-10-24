@@ -30,15 +30,16 @@ export interface Shape {
   haunch?: { at: number[]; depth: number; length: number };
 }
 // What carries a deck at s (all its decks, or the one `deck`):
-// - a row of `n` round columns `r` across (square ones `square` wide), evenly from `inset` in from
-//   each edge, under a crossbeam `beam` wide along the deck and `depth` under its soffit, maybe on a
-//   low plinth shared by the row;
+// - a row of `n` round columns `r` across (square ones `square` wide, or `square` along the deck by
+//   `across`), evenly from `inset` in from each edge (or at `at` from the deck's middle), under a
+//   crossbeam `beam` wide along the deck and `depth` under its soffit, maybe on a low plinth shared
+//   by the row;
 // - a wall across the deck `thick` thick, from `inset` in from each edge, skewed `skew` metres along
 //   per metre across from the deck's middle (to stand along a street crossing it at a slant);
 // - a pier `wide` across and `thick` along under the deck's middle, maybe under a head `head`
 //   across and `depth` deep.
 export type Support = { s: number; deck?: number; mat?: string; paint?: number } & (
-  | { kind: 'columns'; n: number; r?: number; square?: number; inset: number; beam?: { w: number; depth: number }; plinth?: { h: number; out: number } }
+  | { kind: 'columns'; n: number; r?: number; square?: number; across?: number; at?: number[]; inset: number; beam?: { w: number; depth: number }; plinth?: { h: number; out: number } }
   | { kind: 'wall'; thick: number; inset: number; skew?: number }
   | { kind: 'pier'; wide: number; thick: number; head?: { wide: number; depth: number } }
 );
@@ -105,7 +106,7 @@ export function buildViaduct(B: Builder, ground: Ground, v: Viaduct) {
           band(B, F, [p.s - p.beam.w / 2, p.s + p.beam.w / 2], () => lo + Math.max(0.6, p.inset - 0.8), () => hi - Math.max(0.6, p.inset - 0.8), y, (s, u) => soffit(s, u) + 0.05, m, 3);
           top = (u) => y(p.s, u);
         }
-        const us = p.n === 1 ? [mid] : Array.from({ length: p.n }, (_, i) => lo + p.inset + ((hi - lo - 2 * p.inset) * i) / (p.n - 1));
+        const us = p.at ? p.at.map((d) => mid + d) : p.n === 1 ? [mid] : Array.from({ length: p.n }, (_, i) => lo + p.inset + ((hi - lo - 2 * p.inset) * i) / (p.n - 1));
         const base = Math.min(...us.map((u) => g(p.s, u)));
         if (p.plinth) {
           const plan: V2[] = [[p.s - p.plinth.out, us[0] - p.plinth.out], [p.s + p.plinth.out, us[0] - p.plinth.out], [p.s + p.plinth.out, us[us.length - 1] + p.plinth.out], [p.s - p.plinth.out, us[us.length - 1] + p.plinth.out]];
@@ -113,7 +114,7 @@ export function buildViaduct(B: Builder, ground: Ground, v: Viaduct) {
         }
         for (const u of us) {
           const c = F.at(p.s, u), foot = (p.plinth ? Math.max(...us.map((w) => g(p.s, w))) + p.plinth.h : g(p.s, u)) - 0.1;
-          if (p.square) post(B, c, F.t, p.square, p.square, foot, top(u) + 0.02, m, 3);
+          if (p.square) post(B, c, F.t, p.square, p.across ?? p.square, foot, top(u) + 0.02, m, 3);
           else B.lathe(c[0], c[1], [[p.r ?? 0.35, foot - 0.2], [p.r ?? 0.35, top(u) + 0.02]], m, 16, 3);
         }
       } else if (p.kind === 'wall') {

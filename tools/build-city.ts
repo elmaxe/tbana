@@ -47,7 +47,9 @@
 //
 // The water is where the elevation model has it flattened: the lakes and the sea, each at its level.
 // Where it hides water under bridges and decks, OpenStreetMap's outlines (data/osm/water.json, from
-// tools/fetch-water.ts) fill it in, and the ground there is brought down to the water's level.
+// tools/fetch-water.ts) fill it in, and the ground there is brought down to the water's level; so
+// do data/ground-corrections.json's `water` outlines, where OpenStreetMap has only a narrow
+// canal's shores (Hammarby kanal under Skanstullsbron).
 // None stands over a tunnel whose inside reaches up through its level, where it would be in it.
 //
 // The buildings are OpenStreetMap's, as blocks with their roofs:
@@ -178,7 +180,7 @@ for (const [key, h] of ground) {
 
 // Where the elevation model has a deck for the ground (data/ground-corrections.json): the street's
 // height under it there, or null elsewhere. The tunnels there stand in the open.
-const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; tracks?: boolean; why: string }[]; under?: { outline: XZ[]; paved?: boolean; why: string }[] } | null =
+const groundFixes: { open?: { outline: XZ[]; ground: number; why: string }[]; fill?: { outline: XZ[]; ground: number; why: string }[]; paved?: { outline: XZ[]; why: string }[]; shallow?: { outline: XZ[]; why: string }[]; walled?: { outline: XZ[]; tracks?: boolean; why: string }[]; under?: { outline: XZ[]; paved?: boolean; why: string }[]; water?: { outline: XZ[]; why: string }[] } | null =
   existsSync('data/ground-corrections.json') ? JSON.parse(readFileSync('data/ground-corrections.json', 'utf8')) : null;
 function openGround(x: number, z: number): number | null {
   for (const o of groundFixes?.open ?? []) if (inside([x, z], o.outline)) return o.ground;
@@ -273,9 +275,14 @@ const bodyLevels: number[] = [];
 let filled = 0, bridged = 0, flattened = 0;
 if (water) {
   const mask = new Uint8Array(WW * WH);
-  for (const { rings } of water.water) {
+  // (and data/ground-corrections.json's `water`: a canal under bridges that OpenStreetMap only has
+  // the shores of, too close together for them to bound it on the model's grid)
+  const outlines = [
+    ...water.water.map(({ rings }) => rings.map((r) => { const out: XZ[] = []; for (let k = 0; k < r.length; k += 2) out.push([r[k], r[k + 1]]); return out; })),
+    ...(groundFixes?.water ?? []).map((o) => [o.outline]),
+  ];
+  for (const pts of outlines) {
     // the cells whose middles are inside, by even–odd over all the rings, row by row
-    const pts = rings.map((r) => { const out: XZ[] = []; for (let k = 0; k < r.length; k += 2) out.push([r[k], r[k + 1]]); return out; });
     let z0 = Infinity, z1 = -Infinity;
     for (const r of pts) for (const [, z] of r) { z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
     const y0 = Math.max(0, Math.ceil((z0 - tj0 * CITY_TILE) / STEP - 0.5)), y1 = Math.min(WH - 1, Math.floor((z1 - tj0 * CITY_TILE) / STEP - 0.5));
