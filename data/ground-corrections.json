@@ -680,6 +680,45 @@
       "outline": [[-2551.8, 7903.9], [-2570.3, 7844.7], [-2557.9, 7841.1], [-2541.4, 7900.8]],
       "paved": false,
       "why": "South-east of Hagsätra: Olshammarsgatan, its pavements, the paths and the open ground under the metro's viaduct, between its abutments (src/detail/hagsatra-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[2135.6, 4119.0], [2146.7, 4117.6], [2157.8, 4116.2], [2168.9, 4114.8], [2170.2, 4125.5], [2159.1, 4127.0], [2148.1, 4128.4], [2137.0, 4129.9]],
+      "paved": false,
+      "why": "Between Skärmarbrink and Hammarbyhöjden: Sparrmansvägen, the cycleway and footway beside it and the grass either side under the metro's bridge, between its abutments (src/detail/skarpnack-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[2688.7, 4075.5], [2699.0, 4075.6], [2709.2, 4075.8], [2719.5, 4076.2], [2729.7, 4076.6], [2739.9, 4077.1], [2750.2, 4077.6], [2749.5, 4094.6], [2739.2, 4094.6], [2729.0, 4094.6], [2718.7, 4094.7], [2708.4, 4094.8], [2698.2, 4095.0], [2687.9, 4095.2]],
+      "paved": false,
+      "why": "Between Hammarbyhöjden and Björkhagen: Ulricehamnsvägen, the footways beside it, the service road and the grass between them under the metro's two bridges, between their abutments (src/detail/skarpnack-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[3141.8, 4228.5], [3147.8, 4237.2], [3153.6, 4246.1], [3159.1, 4255.1], [3164.2, 4264.2], [3169.0, 4273.4], [3173.6, 4282.8], [3177.8, 4292.3], [3181.8, 4301.9], [3185.5, 4311.7], [3188.9, 4321.6], [3191.9, 4331.7], [3194.7, 4341.8], [3182.9, 4347.0], [3180.3, 4336.8], [3177.5, 4326.6], [3174.3, 4316.7], [3170.8, 4306.8], [3167.0, 4297.1], [3163.0, 4287.5], [3158.6, 4278.1], [3153.8, 4268.8], [3148.7, 4259.6], [3143.1, 4250.7], [3137.3, 4241.9], [3131.1, 4233.2]],
+      "paved": false,
+      "why": "North of Björkhagen: Karlskronavägen, the path, Malmövägen's two carriageways, the cycleway and the grass between them under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 6–7 m under the rails."
+    },
+    {
+      "outline": [[3211.8, 4626.6], [3211.9, 4616.9], [3212.0, 4607.1], [3212.0, 4597.3], [3211.9, 4587.6], [3229.2, 4588.3], [3229.0, 4598.1], [3228.6, 4607.8], [3228.1, 4617.6], [3227.4, 4627.3]],
+      "paved": false,
+      "why": "South of Björkhagen: Halmstadsvägen, the footway and the grass beside them under the metro's two bridges, between their abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
+    },
+    {
+      "outline": [[3207.8, 4750.1], [3205.5, 4760.1], [3203.2, 4770.2], [3200.9, 4780.2], [3198.6, 4790.3], [3196.3, 4800.3], [3194.0, 4810.4], [3191.7, 4820.4], [3189.4, 4830.5], [3187.1, 4840.5], [3184.8, 4850.6], [3182.5, 4860.6], [3180.2, 4870.7], [3177.9, 4880.7], [3167.1, 4878.2], [3169.4, 4868.2], [3171.8, 4858.2], [3174.1, 4848.1], [3176.4, 4838.1], [3178.8, 4828.0], [3181.2, 4818.0], [3183.5, 4808.0], [3185.8, 4797.9], [3188.1, 4787.9], [3190.3, 4777.8], [3192.5, 4767.7], [3194.7, 4757.7], [3196.8, 4747.6]],
+      "paved": false,
+      "why": "Between Björkhagen and Kärrtorp: the park along Ystadsvägen, the street, the footway, path, Fyrskeppsvägen and cycleway under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 8–9 m under the rails."
+    },
+    {
+      "outline": [[3207.1, 5380.5], [3201.8, 5371.6], [3196.6, 5362.8], [3191.6, 5353.8], [3186.8, 5344.7], [3203.2, 5337.0], [3207.4, 5346.3], [3211.9, 5355.5], [3216.5, 5364.7], [3221.3, 5373.8]],
+      "paved": false,
+      "why": "South of Kärrtorp: Kärrtorpsvägen and the grass either side of it under the metro's two bridges, from their southern abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
+    },
+    {
+      "outline": [[3186.8, 5344.7], [3182.5, 5336.1], [3178.5, 5327.4], [3174.7, 5318.6], [3171.1, 5309.7], [3167.7, 5300.8], [3164.4, 5291.7], [3182.6, 5283.1], [3185.7, 5292.2], [3188.9, 5301.3], [3192.3, 5310.3], [3195.7, 5319.3], [3199.4, 5328.2], [3203.2, 5337.0]],
+      "why": "South of Kärrtorp: Kärrtorpsplan, the square under the metro's two bridges up to the station's ticket hall under their northern ends (src/detail/skarpnack-line.ts, src/open-styles.ts), 5 m under the rails."
+    },
+    {
+      "outline": [[3466.0, 5740.6], [3460.0, 5733.1], [3454.0, 5725.5], [3448.1, 5717.8], [3442.3, 5710.1], [3436.6, 5702.3], [3430.9, 5694.5], [3425.3, 5686.6], [3419.7, 5678.7], [3414.2, 5670.8], [3423.3, 5664.0], [3428.9, 5671.9], [3434.5, 5679.8], [3440.1, 5687.7], [3445.8, 5695.5], [3451.5, 5703.3], [3457.3, 5711.0], [3463.2, 5718.6], [3469.2, 5726.2], [3475.3, 5733.7]],
+      "paved": false,
+      "why": "Between Kärrtorp and Bagarmossen: Länsmansvägen, Sockenvägen, the cycleways beside it and the grass between them under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
     }
   ]
 }

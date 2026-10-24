@@ -84,7 +84,7 @@ function column(B: Builder, c: V2, ground: number, y: number, r = 0.2, paint = 0
 // under the floor between lo and hi, and its sides, where `sides` has them, falling at 1 in 1.5 to
 // a little under the city's ground a metre beyond.
 const TURF = 0x6a7a4b;
-function bank(B: Builder, F: Frame, rows: Rows, ground: Ground, s0: (u: number) => number, s1: (u: number) => number, lo: Edge, hi: Edge,
+export function bank(B: Builder, F: Frame, rows: Rows, ground: Ground, s0: (u: number) => number, s1: (u: number) => number, lo: Edge, hi: Edge,
   sides: [boolean, boolean] = [true, true]) {
   const n = Math.max(1, Math.round(Math.abs(s1(0) - s0(0)) / 2)), sections: V3[][] = [];
   for (let i = 0; i <= n; i++) {

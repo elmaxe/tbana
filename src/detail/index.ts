@@ -23,6 +23,10 @@ import {
   HOGDALEN_PATH, MAGELUNGSVAGEN, NYNAS_LINE, NYNAS_RAILWAY, OLSHAMMARSGATAN, ORBYLEDEN, RAGSVEDSVAGEN, SKONVIKSVAGEN, SOCKENPLAN, SVEDMYRA,
 } from './hagsatra-line.ts';
 import { ANNEXET_ANCHOR, ANNEXET_OUTLINE, buildAnnexet, buildGloben, GLOBEN_ANCHOR, GLOBEN_OUTLINE } from './globen.ts';
+import {
+  BAGARMOSSEN, BAGARMOSSEN_VIADUCT, buildSkarpnackViaduct, HALMSTADS, HALMSTADSVAGEN, KARRTORPS, KARRTORPSVAGEN, MALMO, MALMOVAGEN, SKARMARBRINK,
+  SKARMARBRINK_FLYOVER, SPARRMANS, SPARRMANSVAGEN, ULRICEHAMNS, ULRICEHAMNSVAGEN, YSTADS, YSTADSVAGEN,
+} from './skarpnack-line.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
@@ -127,6 +131,16 @@ const LANDMARKS: Landmark[] = [
   { name: 'Bjursätragatan bridge', outline: [], anchor: BJURSATRAGATAN.at(26, 2), build: buildBjursatragatan },
   { name: 'Rågsvedsvägen arch', outline: [], anchor: RAGSVEDSVAGEN.at(38, 0), build: buildRagsvedsvagen },
   { name: 'Olshammarsgatan viaduct', outline: [], anchor: OLSHAMMARSGATAN.at(30, 1.5), build: buildOlshammarsgatan },
+  // the Skarpnäck line from Skärmarbrink to Bagarmossen (src/detail/skarpnack-line.ts): the metro's
+  // bridges from the flyover east of Skärmarbrink to the viaduct over Sockenvägen at Bagarmossen
+  { name: 'Skärmarbrink flyover', outline: [], anchor: SKARMARBRINK_FLYOVER.at(27, -1), build: buildSkarpnackViaduct(SKARMARBRINK) },
+  { name: 'Sparrmansvägen bridge', outline: [], anchor: SPARRMANSVAGEN.at(17, 1.8), build: buildSkarpnackViaduct(SPARRMANS) },
+  { name: 'Ulricehamnsvägen bridges', outline: [], anchor: ULRICEHAMNSVAGEN.at(31, 5), build: buildSkarpnackViaduct(ULRICEHAMNS) },
+  { name: 'Malmövägen viaduct', outline: [], anchor: MALMOVAGEN.at(60, -8), build: buildSkarpnackViaduct(MALMO) },
+  { name: 'Halmstadsvägen bridges', outline: [], anchor: HALMSTADSVAGEN.at(22, -4.5), build: buildSkarpnackViaduct(HALMSTADS) },
+  { name: 'Ystadsvägen viaduct', outline: [], anchor: YSTADSVAGEN.at(58, -1.7), build: buildSkarpnackViaduct(YSTADS) },
+  { name: 'Kärrtorpsvägen bridges', outline: [], anchor: KARRTORPSVAGEN.at(48, 3), build: buildSkarpnackViaduct(KARRTORPS) },
+  { name: 'Bagarmossen viaduct', outline: [], anchor: BAGARMOSSEN_VIADUCT.at(44.5, 1.3), build: buildSkarpnackViaduct(BAGARMOSSEN) },
   // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
   // beside it (src/detail/globen.ts)
   { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },

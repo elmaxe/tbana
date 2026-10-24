@@ -90,6 +90,18 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Bjursätragatan', at: [-1624.2, 8242.2], r: 31.5, solids: [], girder: true },
   { name: 'Rågsvedsvägen', at: [-2161.3, 8410.1], r: 45.8, solids: [], girder: true },
   { name: 'Olshammarsgatan', at: [-2565.5, 7838.6], r: 71.5, solids: [], girder: true },
+  // (the Skarpnäck line's, from the flyover east of Skärmarbrink to the viaduct at Bagarmossen
+  // (src/detail/skarpnack-line.ts), each abutment to abutment, with the bank beyond the ends where
+  // OpenStreetMap's bridge runs on: east of Sparrmansvägen's, Ulricehamnsvägen's and Malmövägen's;
+  // Kärrtorpsvägen's up to the station's ticket hall under their northern ends)
+  { name: 'Skärmarbrink flyover', at: [1861.1, 4111.6], r: 28.5, solids: [], girder: true },
+  { name: 'Sparrmansvägen', at: [2152.5, 4122.5], r: 23.8, solids: [], girder: true },
+  { name: 'Ulricehamnsvägen', at: [2726.3, 4086.1], r: 42.5, solids: [], girder: true },
+  { name: 'Malmövägen', at: [3168.3, 4291.4], r: 71.8, solids: [], girder: true },
+  { name: 'Halmstadsvägen', at: [3220.1, 4607.5], r: 24, solids: [], girder: true },
+  { name: 'Ystadsvägen', at: [3187.2, 4814.1], r: 70.5, solids: [], girder: true },
+  { name: 'Kärrtorpsvägen', at: [3192.9, 5334.3], r: 51.2, solids: [], girder: true },
+  { name: 'Bagarmossen', at: [3444.4, 5702.5], r: 48.0, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark
