@@ -539,7 +539,7 @@ export function buildNynasDeck(B: Builder, ground: Ground, streets?: LandmarkStr
 // 0.6 m wide at the foot, sloping in at 0.25 m and to 0.16 m at the top, 0.81 m high; at its ends it
 // slopes down over 2.5 m.
 const BARRIER: V2[] = [[-0.3, 0], [-0.2, 0.25], [-0.08, 0.81], [0.08, 0.81], [0.2, 0.25], [0.3, 0]];
-function barrier(B: Builder, F: Frame, s0: number, s1: number, u: number, y: (s: number, u: number) => number) {
+export function barrier(B: Builder, F: Frame, s0: number, s1: number, u: number, y: (s: number, u: number) => number) {
   const al = F.along, r = F.right;
   const ss: [number, number][] = [[s0, 0.12], [s0 + 2.5, 1], [s1 - 2.5, 1], [s1, 0.12]];
   const at = (s: number, k: number, f: number): V3 => {

@@ -264,6 +264,60 @@
       "outline": [729.7, 1348.0, 723.5, 1324.8, 747.7, 1318.4, 753.8, 1341.7],
       "heights": [12.88, 12.85, 12.97, 12.98],
       "why": "Ryssgården, the square north of Stockholms sjömanshem, is flat at 12.8–13.0 m (Lantmäteriet's laser scan, 2021) right up to the building's front, where the ticket hall under the building opens onto it, step-free; the elevation model smooths the building into it, 13.7 m at the doors and up to 15 m 8 m west of them, which left the station's exit 0.8 m over its hall. The outline reaches 7 m into the building, under the hall, so that the street's grid at the doors has no point on the building's slope."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 1 of 9",
+      "outline": [-2218.2, 0.2, -2242.2, 1.7, -2245.7, -35.4, -2221.9, -38.1],
+      "heights": [3.79, 3.65, 3.65, 3.79],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 2 of 9",
+      "outline": [-2242.2, 1.7, -2266.1, 3.7, -2269.6, -32.5, -2245.7, -35.4],
+      "heights": [3.65, 3.75, 3.75, 3.65],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 3 of 9",
+      "outline": [-2266.1, 3.7, -2275.3, 2.4, -2278.5, -31.8, -2269.6, -32.5],
+      "heights": [3.75, 3.87, 3.87, 3.75],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 4 of 9",
+      "outline": [-2275.8, -2.6, -2299.6, -0.1, -2302.0, -25.3, -2278.1, -26.8],
+      "heights": [3.87, 4.35, 4.35, 3.87],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to the walls, under Lindhagensplan's deck."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 5 of 9",
+      "outline": [-2299.2, 4.9, -2314.0, 6.9, -2317.6, -30.1, -2302.5, -30.3],
+      "heights": [4.35, 4.85, 4.85, 4.35],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 6 of 9",
+      "outline": [-2314.0, 6.9, -2337.9, 9.7, -2341.5, -28.8, -2317.6, -30.1],
+      "heights": [4.85, 5.78, 5.78, 4.85],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 7 of 9",
+      "outline": [-2337.9, 9.7, -2361.6, 13.9, -2365.4, -26.7, -2341.5, -28.8],
+      "heights": [5.78, 6.71, 6.71, 5.78],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 8 of 9",
+      "outline": [-2361.6, 13.9, -2385.4, 17.5, -2389.4, -24.9, -2365.4, -26.7],
+      "heights": [6.71, 7.64, 7.64, 6.71],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 9 of 9",
+      "outline": [-2385.4, 17.5, -2407.9, 23.0, -2412.4, -23.4, -2389.4, -24.9],
+      "heights": [7.64, 8.45, 8.45, 7.64],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
     }
   ],
   "open": [

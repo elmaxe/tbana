@@ -13,11 +13,12 @@ import { DETAIL_ON } from './areas.ts';
 // over Örbyleden, Farsta's over Farstavägen and its two decks into the station
 // (src/detail/farsta-line.ts), and those north of Tallkrogen to Gullmarsplan
 // (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts) and the
-// Skarpnäck line (src/detail/skarpnack-line.ts), and Skanstullsbron (src/detail/skanstull.ts). Within
-// `r` metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its
-// decks and the lamps over its platforms, and keeps the player off its platforms where the `solids`
-// stand on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in
-// their real shape.
+// Skarpnäck line (src/detail/skarpnack-line.ts), and Skanstullsbron (src/detail/skanstull.ts), and
+// Tranebergsbron and the bridges west of it to Islandstorget (src/detail/vasterort.ts). Within `r`
+// metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its decks
+// and the lamps over its platforms, and keeps the player off its platforms where the `solids` stand
+// on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in their
+// real shape.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -109,6 +110,24 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Skanstullsbron south', at: [1177.5, 3314.3], r: 142, solids: [], girder: true },
   { name: 'Skanstullsbron', at: [1105.5, 3066.5], r: 120, solids: [], girder: true },
   { name: 'Skanstullsbron north', at: [1049.0, 2888.2], r: 68, solids: [], girder: true },
+  // (Tranebergsbron (src/detail/vasterort.ts), from where the network's tracks become a bridge at
+  // Kristineberg's end to where they leave it at Traneberg's: 10 m east of the southern track's
+  // bridge's eastern end to 140 m west of it, on to 330 m, and on to 471 m)
+  { name: 'Tranebergsbron east', at: [-3477.4, -223.4], r: 76, solids: [], girder: true },
+  { name: 'Tranebergsbron', at: [-3646.5, -246.6], r: 95, solids: [], girder: true },
+  { name: 'Tranebergsbron west', at: [-3813.0, -252.9], r: 72, solids: [], girder: true },
+  // (the bridges west of it (src/detail/vasterort.ts): Tranebergsslingan's, the flyover west of Alvik,
+  // Drottningholmsvägen's and Stora Mossens backe's)
+  { name: 'Tranebergsslingan', at: [-3933.0, -227.9], r: 27, solids: [], girder: true },
+  { name: 'Alvik flyover', at: [-4730.7, -283.4], r: 34, solids: [], girder: true },
+  { name: 'Drottningholmsvägen', at: [-4831.3, -223.2], r: 34, solids: [], girder: true },
+  { name: 'Stora Mossens backe', at: [-5202.4, -311.1], r: 17, solids: [], girder: true },
+  // (and on west to Islandstorget: Abrahamsbergsvägen's, Brommaplan's viaduct from the station's decks
+  // to its western end, Åkeshovsvägen's and the path's underpass east of Ängbyplan, each end to end)
+  { name: 'Abrahamsbergsvägen', at: [-6070.4, -572.8], r: 17, solids: [], girder: true },
+  { name: 'Brommaplan viaduct', at: [-6936.4, -814.8], r: 64.5, solids: [], girder: true },
+  { name: 'Åkeshovsvägen', at: [-7393.9, -1083.9], r: 15.5, solids: [], girder: true },
+  { name: 'Ängby underpass', at: [-8025.2, -1183.1], r: 8, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

@@ -34,13 +34,14 @@ export interface Shape {
 //   `across`), evenly from `inset` in from each edge (or at `at` from the deck's middle), under a
 //   crossbeam `beam` wide along the deck and `depth` under its soffit, maybe on a low plinth shared
 //   by the row;
-// - a wall across the deck `thick` thick, from `inset` in from each edge, skewed `skew` metres along
-//   per metre across from the deck's middle (to stand along a street crossing it at a slant);
+// - a wall across the deck `thick` thick, from `inset` in from each edge (or from u = span[0] to
+//   span[1]), skewed `skew` metres along per metre across from the deck's middle (to stand along a
+//   street crossing it at a slant);
 // - a pier `wide` across and `thick` along under the deck's middle, maybe under a head `head`
 //   across and `depth` deep.
 export type Support = { s: number; deck?: number; mat?: string; paint?: number } & (
   | { kind: 'columns'; n: number; r?: number; square?: number; across?: number; at?: number[]; inset: number; beam?: { w: number; depth: number }; plinth?: { h: number; out: number } }
-  | { kind: 'wall'; thick: number; inset: number; skew?: number }
+  | { kind: 'wall'; thick: number; inset: number; skew?: number; span?: V2 }
   | { kind: 'pier'; wide: number; thick: number; head?: { wide: number; depth: number } }
 );
 export interface Viaduct {
@@ -118,7 +119,7 @@ export function buildViaduct(B: Builder, ground: Ground, v: Viaduct) {
           else B.lathe(c[0], c[1], [[p.r ?? 0.35, foot - 0.2], [p.r ?? 0.35, top(u) + 0.02]], m, 16, 3);
         }
       } else if (p.kind === 'wall') {
-        const h = p.thick / 2, u0 = lo + p.inset, u1 = hi - p.inset, k = p.skew ?? 0;
+        const h = p.thick / 2, u0 = p.span?.[0] ?? lo + p.inset, u1 = p.span?.[1] ?? hi - p.inset, k = p.skew ?? 0;
         const plan: V2[] = [[p.s - h + k * (u0 - mid), u0], [p.s + h + k * (u0 - mid), u0], [p.s + h + k * (u1 - mid), u1], [p.s - h + k * (u1 - mid), u1]];
         const foot = Math.min(...plan.map(([s, u]) => g(s, u))) - 0.6;
         block(B, F, plan, () => foot, (s, u) => soffit(s, u) + 0.02, m, 2.4);
@@ -162,21 +163,21 @@ export function buildViaduct(B: Builder, ground: Ground, v: Viaduct) {
 export const around = (rows: Rows, k: number, half: number): [Edge, Edge] => [(s) => track(rows, s, k)[0] - half, (s) => track(rows, s, k)[0] + half];
 const beside = (rows: Rows, k: number, d: number): Edge => (s) => track(rows, s, k)[0] + d;
 // a deck from `from` to `to` along the tracks, `half` either side of track k
-const deckOn = (rows: Rows, from: number, to: number, k: number, half: number): Deck => {
+export const deckOn = (rows: Rows, from: number, to: number, k: number, half: number): Deck => {
   const [lo, hi] = around(rows, k, half);
   return { from, to, lo, hi };
 };
 // one from `d0` to the right of track k0 to `d1` to the right of track k1
-const deckBetween = (rows: Rows, from: number, to: number, [k0, d0]: V2, [k1, d1]: V2): Deck => ({ from, to, lo: beside(rows, k0, d0), hi: beside(rows, k1, d1) });
+export const deckBetween = (rows: Rows, from: number, to: number, [k0, d0]: V2, [k1, d1]: V2): Deck => ({ from, to, lo: beside(rows, k0, d0), hi: beside(rows, k1, d1) });
 
 // The supports at each of `at`, alike.
 type Unplaced = Support extends infer T ? (T extends unknown ? Omit<T, 's'> : never) : never;
-const each = (at: number[], p: Unplaced): Support[] => at.map((s) => ({ ...p, s }) as Support);
+export const each = (at: number[], p: Unplaced): Support[] => at.map((s) => ({ ...p, s }) as Support);
 // A slab whose underside curves up to thin edge beams (most of the line's bridges of 1958), and
 // one whose edges overhang a deeper middle (Halmstadsvägen's and Kärrtorpsvägen's, on crossheads).
-const CURVED: Shape = { fascia: -0.9, edge: 0.4, soffit: -1.5, curve: 1.8 };
-const OVERHUNG: Shape = { fascia: -0.95, edge: 0.35, soffit: -1.65, overhang: { wide: 1.3, under: -1.15 } };
-const RAILINGS = { h: 1.1, every: 2.4 };
+export const CURVED: Shape = { fascia: -0.9, edge: 0.4, soffit: -1.5, curve: 1.8 };
+export const OVERHUNG: Shape = { fascia: -0.95, edge: 0.35, soffit: -1.65, overhang: { wide: 1.3, under: -1.15 } };
+export const RAILINGS = { h: 1.1, every: 2.4 };
 
 // ------------------------------------------------------------------ Skärmarbrink's flyover
 // East of Skärmarbrink, where the Skarpnäck line's southern track climbs over the Farsta and
