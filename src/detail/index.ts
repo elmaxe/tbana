@@ -31,6 +31,7 @@ import { buildSkanstullsbron, SKANSTULLSBRON_PARTS } from './skanstull.ts';
 import { buildJohanneshovsbron, buildRamp, JOHANNESHOVSBRON_PARTS, OFF_RAMP, ON_RAMP } from './johanneshovsbron.ts';
 import { armAnchor, ARMS, buildGroundRoads, buildRing, buildStationDeckStreets, GROUND_ROAD_TILES, STATION_DECK_ANCHOR } from './johanneshovsmotet.ts';
 import { buildTunnelMouths, MOUTHS_ANCHOR } from './soderledstunneln.ts';
+import { buildTerminal, TERMINAL_ANCHOR, TERMINAL_OUTLINE } from './gullmarsplan-terminal.ts';
 import { buildRoadDeck } from './road-bridges.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import {
@@ -171,6 +172,9 @@ const LANDMARKS: Landmark[] = [
   ...GROUND_ROAD_TILES.map((p, i): Landmark => ({ name: `Johanneshovsmotet's roads ${i + 1}`, outline: [], anchor: p, build: (B, g, s) => buildGroundRoads(B, p, s) })),
   // and Johanneshovsvägen west of it, on the deck over Gullmarsplan's platforms, which the station draws
   { name: "Johanneshovsvägen's deck", outline: [], anchor: STATION_DECK_ANCHOR, build: (B, g, s) => buildStationDeckStreets(B, s) },
+  // and south of the station Gullmarsplan's bus terminal, on its deck over the tracks to Skärmarbrink
+  // and Globen, with its galleries and pavilions, in place of the city's blocks for them
+  { name: 'Gullmarsplan bus terminal', outline: TERMINAL_OUTLINE, anchor: TERMINAL_ANCHOR, build: buildTerminal },
   // the roads over and beside the line between Fridhemsplan and Kristineberg: Drottningholmsvägen's
   // trench, in two parts, Lindhagensplan's deck over it, Mariebergsavfarten's ramps, and Essingeleden's
   // viaduct, in two parts, with Fredhällspåfarten's deck under it (src/detail/vasterort.ts)

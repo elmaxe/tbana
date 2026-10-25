@@ -359,6 +359,11 @@
       "outline": [[-11436.9, -4075.5], [-11424.9, -4074.3], [-11423.3, -4080.9], [-11422.5, -4083.4], [-11434.4, -4084.6], [-11434.4, -4080.0], [-11436.6, -4078.3]],
       "ground": 25.2,
       "why": "The forecourt in front of Johannelund's ticket hall, a notch in the railway's bank north of the platforms' east end, from the hall's doors 9 m out. Lantmäteriet's laser scan (2021) has it level at 25.0–25.3 m from the doors out to where it falls away northwards, the bank either side at 27 m; the elevation model's 5 m grid smooths the bank into it, up to 25.7–26.2 m at the doors, so the hall (its floor at 25.0 m) stood in a pit."
+    },
+    {
+      "outline": [[1306.3, 3721.8], [1318.5, 3755.6], [1324.3, 3760.0], [1327.5, 3763.1], [1331.1, 3761.9], [1322.4, 3735.8], [1319.8, 3735.1], [1315.7, 3731.2], [1313.3, 3728.9], [1311.7, 3726.3], [1309.0, 3720.8]],
+      "ground": 35.4,
+      "why": "Gullmarsplan: the gap between the bus terminal's deck and Nynäsvägen's, where the southbound track to Skärmarbrink runs in the open, between the retaining wall along the street beside the terminal and the wall along Nynäsvägen. Lantmäteriet's laser scan has its floor flat at 35.3–35.7 m; the track's bank sloped it up to 38 m against the walls."
     }
   ],
   "fill": [
@@ -570,6 +575,14 @@
     {
       "outline": [[1279.0, 3598.0], [1328.0, 3594.0], [1335.0, 3610.0], [1336.0, 3660.0], [1293.0, 3660.0]],
       "why": "Gullmarsplan: the main lanes out of the cutting south of Johanneshovsmotet's roundabout, with the roundabout's southern arm and Olaus Magnus väg beside them, from the covered metro to the trees along the eastern edge: asphalt and concrete (Google's 3D mesh), not grass."
+    },
+    {
+      "outline": [[1228.9, 3643.0], [1275.6, 3627.0], [1312.0, 3732.5], [1313.5, 3742.6], [1321.7, 3769.4], [1323.2, 3775.2], [1319.7, 3788.1], [1314.3, 3784.7], [1304.7, 3781.6], [1289.2, 3782.7], [1266.7, 3775.6], [1270.4, 3768.0], [1272.0, 3763.3], [1267.6, 3756.3]],
+      "why": "Gullmarsplan: the ground under the bus terminal's deck (src/detail/gullmarsplan-terminal.ts), from the ticket hall south to where the deck meets the hill, round the tracks to Skärmarbrink and Globen under it, but not the open gap between the deck and Nynäsvägen's. Nothing grows 10 m under a deck; it was grass."
+    },
+    {
+      "outline": [[1276.5, 3626.7], [1309.0, 3720.8], [1311.7, 3726.3], [1313.3, 3728.9], [1315.7, 3731.2], [1319.8, 3735.1], [1322.4, 3735.8], [1325.6, 3734.7], [1287.1, 3623.0]],
+      "why": "Gullmarsplan: the pavement and the street along the bus terminal's eastern side, under and beside the eastern gallery (the laser scan's ground points, asphalt in Google's 3D mesh), not grass."
     }
   ],
   "shallow": [
@@ -622,6 +635,14 @@
     {
       "outline": [[1339.2, 3785.6], [1380.8, 3800.9], [1386.4, 3817.9], [1344.9, 3802.6]],
       "why": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line, behind the abutment along the deck's southern edge, as north of it."
+    },
+    {
+      "outline": [[1276.5, 3626.7], [1309.0, 3720.8], [1311.7, 3726.3], [1313.3, 3728.9], [1315.7, 3731.2], [1319.8, 3735.1], [1322.4, 3735.8], [1325.6, 3734.7], [1287.1, 3623.0]],
+      "why": "Gullmarsplan: the street along the bus terminal's eastern side, behind the retaining wall under the edge of the terminal's deck (src/detail/gullmarsplan-terminal.ts), between the street and the southbound track to Skärmarbrink, which runs 4 m lower under the deck. The laser scan has the street and its pavement at 38.2–40.5 m right up to the wall, which turns out towards Nynäsvägen's deck where the gap the track runs in opens 30 m south of the deck's middle; the track's bank sloped it down to 36–37 m under the eastern gallery."
+    },
+    {
+      "outline": [[1285.7, 3781.8], [1324.5, 3768.4], [1337.4, 3804.2], [1298.1, 3817.7]],
+      "why": "Gullmarsplan: the hill where the bus terminal's deck comes down to the ground at its southern end, and the street on south from it, behind the wall along the western side of the gap the tracks to Skärmarbrink run in (src/detail/gullmarsplan-terminal.ts). The laser scan has the hill at 45.0–46.2 m right up to the wall; the tracks' bank sloped it down to 39–43 m."
     },
     {
       "outline": [[-1025.8, 7775.4], [-1020.2, 7773.9], [-983.9, 7706.5], [-980.0, 7676.6], [-1012.6, 7672.4]],
