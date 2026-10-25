@@ -3716,18 +3716,27 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'square', s: [-61.3, -50], h: [4, 6.5], walls: null, floor: 'pavers' },
     ],
     blocks: [
-      // the deck, out to where the ground comes up to it either side: its top 3 cm over the laser
-      // scan's plane, asphalt, its edges' faces concrete; under it the ceiling over the platforms
+      // the deck, out to where the ground comes up to it on the west and to the roundabout's deck on
+      // the east (src/detail/johanneshovsmotet.ts, which lays Johanneshovsvägen's lanes on it): its
+      // top 3 cm over the laser scan's plane, asphalt, its edges' faces concrete; under it the
+      // ceiling over the platforms
       { name: 'Johanneshovsvägen, west', plan: [[-20, -47], [-61, -47], [-61, 4], [-24.6, 4]], h: [3.9, 4.13], low: 4.539, from: 4.10, fall: 4.403,
-        walls: 'boardConcrete', sides: ['boardConcrete', null, null, 'boardConcrete'], roof: 0.25, roofColor: 0x55585a },
-      { name: 'Johanneshovsvägen, east', plan: [[-24.6, 4], [-61, 4], [-61, 41], [-21, 41]], h: [3.9, 4.479], low: 4.842, from: 4.45, fall: 4.67,
-        walls: 'boardConcrete', sides: [null, null, 'boardConcrete', 'boardConcrete'], roof: 0.25, roofColor: 0x55585a },
+        walls: 'boardConcrete', sides: ['boardConcrete', null, null, 'boardConcrete'], roof: 0.25, roofColor: 0x67696b },
+      { name: 'Johanneshovsvägen, east', plan: [[-24.6, 4], [-61, 4], [-61, 22.5], [-22.8, 22.5]], h: [3.9, 4.479], low: 4.842, from: 4.45, fall: 4.56,
+        walls: 'boardConcrete', sides: [null, null, null, 'boardConcrete'], roof: 0.25, roofColor: 0x67696b },
       { name: 'ceiling under the deck, west', plan: [[-20, -47], [-61, -47], [-61, 4], [-24.6, 4]], h: [3.88, 3.9], from: 3.88,
         walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
-      { name: 'ceiling under the deck, east', plan: [[-24.6, 4], [-61, 4], [-61, 41], [-21, 41]], h: [3.88, 3.9], from: 3.88,
+      { name: 'ceiling under the deck, east', plan: [[-24.6, 4], [-61, 4], [-61, 22.5], [-22.8, 22.5]], h: [3.88, 3.9], from: 3.88,
         walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
       { name: 'ceiling under the terminal', plan: [[-61, -39], [-83, -39], [-83, 24.5], [-61, 24.5]], h: [3.98, 4.0], from: 3.98,
         walls: 'boardConcrete', sides: [null, null, null, null], ceiling: 'boardConcrete' },
+      // (the ground model takes the deck for the ground, so the network's walls of a cutting along
+      // the outer tracks stand up through it and through the terminal's floor: cut away from inside
+      // the deck's slab and from the hall's floor up, a block's cut reaching a metre under `from`)
+      { name: 'cut, deck', plan: [[-19, -48], [-62, -48], [-62, 23], [-19, 23]], h: [5.1, 7], from: 5.1,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
+      { name: 'cut, terminal', plan: [[-61, -40], [-92, -40], [-92, 25], [-61, 25]], h: [5.02, 9], from: 5.02,
+        walls: 'boardConcrete', sides: [null, null, null, null], onPlatform: true },
       // the walls beyond the outer tracks, black tiles up to a little over the platforms and red
       // over them, the deck's concrete edge beam along their top (the western one in two lengths,
       // following its track's curve)
@@ -3793,8 +3802,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { at: [-4, 16, 36], double: true, roof: 0 },
     ],
     fences: [
-      // the railing along the deck's northern edge, rising with it to the east
-      { kind: 'bars', points: [[-20.2, -47], [-24.4, 4, 0.35], [-21.2, 41, 0.53]], h: [4.35, 5.45] },
+      // the railing along the deck's northern edge, rising with it to the east (and on along the
+      // roundabout's deck's)
+      { kind: 'bars', points: [[-20.2, -47], [-24.4, 4, 0.35], [-22.6, 22.5, 0.44]], h: [4.35, 5.45] },
       // glass screens along the columns, under the eastern platform's roof and the western's
       { kind: 'glass', points: [[-20, 12.3], [11, 12.4]], h: [0, 2.4] },
       { kind: 'glass', points: [[28, -6.85], [36, -6.35], [44, -5.85]], h: [0, 2.4] },

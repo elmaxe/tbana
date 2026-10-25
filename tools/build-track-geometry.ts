@@ -1050,6 +1050,42 @@ for (const station of straightInners.keys()) {
   }
 }
 
+// How far the track across an island is at each of the piece's points along it (and one beyond
+// either end), square to it: the nearest track on the platform's side at about the same level.
+// Only for an island whose track graph pairs its tracks the other way at most of its points (a
+// line's two islands with two tracks between them, as at Gullmarsplan or Skärmarbrink): drawn
+// `width` wide all along, its halves ran over the tracks where these close in. The pairs (or the
+// other line's track beside, at Gamla stan and Slussen) keep the others to their middle already.
+function islandSpread(p: TrackPiece, g: GeometryPiece, r: PlatformRange): { spread?: [number, number][] } {
+  const ks = g.s.map((_, k) => k).filter((k) => g.s[k] >= r.s0 - STEP && g.s[k] <= r.s1 + STEP);
+  if (ks.filter((k) => Math.sign(g.pair[k]) === r.side || Math.sign(g.beside?.[k] ?? 0) === r.side).length * 2 >= ks.length) return {};
+  const spread: [number, number][] = [];
+  for (const k of ks) {
+    const a = Math.max(0, k - 1), b = Math.min(g.s.length - 1, k + 1);
+    const l = Math.hypot(g.x[b] - g.x[a], g.z[b] - g.z[a]) || 1;
+    const tx = (g.x[b] - g.x[a]) / l, tz = (g.z[b] - g.z[a]) / l;
+    let best = 0;
+    const n = Math.ceil(PLATFORM_REACH / CELL), seen = new Set<Seg>();
+    for (let i = Math.floor(g.x[k] / CELL) - n; i <= Math.floor(g.x[k] / CELL) + n; i++) for (let j = Math.floor(g.z[k] / CELL) - n; j <= Math.floor(g.z[k] / CELL) + n; j++) {
+      for (const sg of alignedGrid.get(`${i},${j}`) ?? []) {
+        if (sg.piece.id === p.id || seen.has(sg)) continue;
+        seen.add(sg);
+        const o = out[sg.piece.id], m = sg.k;
+        // where the line square to this track crosses the other track's segment
+        const ax = o.x[m] - g.x[k], az = o.z[m] - g.z[k], bx = o.x[m + 1] - g.x[k], bz = o.z[m + 1] - g.z[k];
+        const da = ax * tx + az * tz, db = bx * tx + bz * tz;
+        if (da * db > 0 || da === db) continue;
+        const t = da / (da - db);
+        const lat = (-tz * (ax + (bx - ax) * t) + tx * (az + (bz - az) * t)) * r.side;
+        const dy = o.y[m] + (o.y[m + 1] - o.y[m]) * t - g.y[k];
+        if (lat > 2 * PLATFORM_EDGE && lat < PLATFORM_REACH && Math.abs(dy) < 3 && (!best || lat < best)) best = lat;
+      }
+    }
+    spread.push([Math.round(g.s[k] * 100) / 100, Math.round(best * 100) / 100]);
+  }
+  return spread.some(([, d]) => d) ? { spread } : {};
+}
+
 // Platforms. An island platform reaches to the other track beside it at the same platform;
 // another platform is as wide as SIDE_PLATFORM_WIDTH (or its width in data/track-corrections.json),
 // or as fits before the next track, or at a station with a middle track (MIDDLE_TRACK_STATIONS)
@@ -1097,7 +1133,8 @@ for (const p of pieces) {
     const reach = !island && MIDDLE_TRACK_STATIONS.has(r.station);
     const width = island || reach ? across - 2 * PLATFORM_EDGE : Math.min(sideWidths.get(r.station) ?? SIDE_PLATFORM_WIDTH, across - 2 * PLATFORM_EDGE - 0.5);
     if (width < MIN_PLATFORM) { dropped.push(`${r.station} (piece ${p.id})`); continue; }
-    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island, ...(reach ? { reach } : {}) });
+    g.platforms.push({ station: r.station, s0: r.s0, s1: r.s1, side: r.side, width: Math.round(width * 100) / 100, island, ...(reach ? { reach } : {}),
+      ...(island ? islandSpread(p, g, r) : {}) });
   }
 }
 if (dropped.length) console.warn(`platforms with no room beside their track, not drawn: ${dropped.join(', ')}`);

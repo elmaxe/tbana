@@ -35,6 +35,8 @@ export interface RoadDeck {
   walls?: { at: number; span: V2; thick: number }[];
   abutments?: [number, number];
   surface?: number;
+  // the slab's end faces at from and to (left out where another deck carries on from it)
+  ends?: [boolean, boolean];
 }
 
 const PATH = 0x7a7b7c, ROAD = 0x67696b, BARRIER = 0xc4c1ba;
@@ -77,8 +79,8 @@ export function buildRoadDeck(B: Builder, ground: Ground, d: RoadDeck, range?: V
       (k, j) => (j === 0 ? down : j === 1 ? out(ts[k]) : j === 2 ? up : (out(ts[k]).map((c) => -c) as V3)), 3);
   }
   // the ends of the slab
-  for (const [t, dir] of [[d.from, -1], [d.to, 1]] as const) {
-    if (t !== from && t !== to) continue;
+  for (const [t, dir, k] of [[d.from, -1, 0], [d.to, 1, 1]] as const) {
+    if ((t !== from && t !== to) || d.ends?.[k] === false) continue;
     const a = L.along(t), n: V3 = [a[0] * dir, 0, a[2] * dir];
     B.poly([P(t, lo(t), -fascia), P(t, hi(t), -fascia), P(t, hi(t), KERB), P(t, lo(t), KERB)], n, 'concrete', 3);
   }

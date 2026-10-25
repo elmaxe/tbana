@@ -17,7 +17,27 @@ export const STRUCTURE_KINDS: StructureKind[] = ['rock', 'box', 'cutting', 'grad
 // An island platform has a track on each side, and both tracks list it. A platform that `reach`es
 // runs out to the track beside it that no service stops at (a middle track): its far edge follows
 // that track, `width` the median.
-export interface GeometryPlatform { station: string; s0: number; s1: number; side: 1 | -1; width: number; island: boolean; reach?: boolean }
+// An island's `spread`: [s, how far the track across it is] at the piece's points along it, where
+// the track graph's pairs don't cross it (a line's two islands with two tracks between them, as at
+// Gullmarsplan): each half of the island reaches only to the middle where its tracks close in.
+export interface GeometryPlatform {
+  station: string; s0: number; s1: number; side: 1 | -1; width: number; island: boolean; reach?: boolean;
+  spread?: [number, number][];
+}
+
+// How far the track across an island is at s along its piece, from its `spread`; 0 where unknown.
+export function spreadAt(p: GeometryPlatform, s: number): number {
+  const sp = p.spread;
+  if (!sp?.length) return 0;
+  if (s <= sp[0][0]) return sp[0][1];
+  for (let k = 1; k < sp.length; k++) {
+    if (s > sp[k][0]) continue;
+    const [s0, a] = sp[k - 1], [s1, b] = sp[k];
+    // (where one point has none, the other's)
+    return a && b ? a + ((b - a) * (s - s0)) / (s1 - s0 || 1) : a || b;
+  }
+  return sp[sp.length - 1][1];
+}
 
 export interface GeometryPiece {
   // one entry per point, about 10 m apart:

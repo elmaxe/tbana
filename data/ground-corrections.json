@@ -45,21 +45,15 @@
     },
     {
       "name": "Gullmarsplan: Johanneshovsvägen's deck",
-      "outline": [1185.23, 3588.95, 1197.34, 3628.12, 1289.06, 3599.77, 1277.24, 3561.55, 1242.96, 3575.92],
-      "heights": [42.59, 43.0, 43.57, 43.17, 42.99],
-      "why": "The southern half of Gullmarsplan's platforms, from 20–25 m south of their middle to the bus terminal's front 61 m south of it, lies under the deck that carries Johanneshovsvägen and the square in front of the terminal over the tracks, 77 m across them. The elevation model leaves the deck out and has the cutting's floor under it, so that the street fell 5.5 m into a trench at the deck's edges and the terminal's doors opened onto it. The laser scan has the deck (its points classed as a bridge's) from its edge over the platforms, which runs askew, 20 m south of their middle at its western end and 25 m south over the tracks between them, to the terminal's front, and from 47 m west of the platforms' middle to 41 m east of it, where the roundabout's well opens in it: a plane fits its 6,300 points over the platforms to 11 cm, rising from 42.6 m at its north-western corner to 43.6 m at its south-eastern, and the street west of it, at grade, is at the same height. Over the open track the city's ground stays lowered; the station draws the deck there."
+      "outline": [1185.23, 3588.95, 1197.34, 3628.12, 1277.47, 3603.35, 1275.74, 3602.03, 1274.13, 3600.57, 1272.64, 3598.99, 1271.29, 3597.28, 1270.09, 3595.47, 1269.05, 3593.56, 1268.17, 3591.57, 1267.46, 3589.51, 1266.92, 3587.41, 1266.56, 3585.26, 1266.38, 3583.1, 1266.38, 3580.92, 1266.57, 3578.75, 1262.38, 3567.78, 1242.96, 3575.92],
+      "heights": [42.591, 43.0, 43.498, 43.473, 43.448, 43.423, 43.398, 43.373, 43.349, 43.326, 43.304, 43.283, 43.264, 43.245, 43.228, 43.213, 43.092, 42.987],
+      "why": "The southern half of Gullmarsplan's platforms, from 20–25 m south of their middle to the bus terminal's front 61 m south of it, lies under the deck that carries Johanneshovsvägen and the square in front of the terminal over the tracks, 77 m across them. The elevation model leaves the deck out and has the cutting's floor under it, so that the street fell 5.5 m into a trench at the deck's edges and the terminal's doors opened onto it. The laser scan has the deck (its points classed as a bridge's) from its edge over the platforms, which runs askew, 20 m south of their middle at its western end and 25 m south over the tracks between them, to the terminal's front, and from 47 m west of the platforms' middle to the roundabout east of it: a plane fits its 6,300 points over the platforms to 11 cm, rising from 42.6 m at its north-western corner to 43.5 m at its south-eastern, and the street west of it, at grade, is at the same height. The roundabout's ring is a deck of its own (src/detail/johanneshovsmotet.ts), whose western rim lies on this one's plane: this one ends under the rim, 26 m from the ring's middle, and north of the ring at the western edge of the road that runs at grade under the ring's deck, so that the ground under the ring stays the cutting's. Over the open track the city's ground stays lowered; the station draws the deck there."
     },
     {
       "name": "Gullmarsplan: the bus terminal",
       "outline": [1200.21, 3627.24, 1206.71, 3648.26, 1279.32, 3625.81, 1272.82, 3604.79],
       "heights": [43.1, 43.15, 43.3, 43.3],
       "why": "Gullmarsplan's ticket hall is in the bus terminal, which stands over the tracks south of Johanneshovsvägen's deck, from 61 m to 83 m south of the platforms' middle, its floor level with the square in front of it (43.3 m, the laser scan's points on the deck at its front). The elevation model has the cutting's floor under it, 6 m down. The street along its western side, at grade, is at 43.1–43.2 m in the scan."
-    },
-    {
-      "name": "Gullmarsplan: the ramp beside the bus terminal",
-      "outline": [1272.82, 3604.79, 1279.32, 3625.81, 1295.56, 3620.78, 1289.06, 3599.77],
-      "heights": [43.3, 42.55, 42.55, 43.3],
-      "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
     },
     {
       "name": "Gullmarsplan: Nynäsvägen north of its bridge over the Skärmarbrink line",
@@ -568,6 +562,14 @@
     {
       "outline": [[-491.3, 6608.2], [-493.5, 6617.2], [-477.4, 6631.6], [-474.9, 6621.0]],
       "why": "North of Bandhagen: the concrete paving on Örbyleden's northern slope under the ends of the metro's arch bridges, from the arches' springings down to the road's verge (the laser scan, as on the southern slope)."
+    },
+    {
+      "outline": [[1215.0, 3405.0], [1271.0, 3405.0], [1283.0, 3440.0], [1293.0, 3450.0], [1303.0, 3500.0], [1316.0, 3550.0], [1311.0, 3560.0], [1262.0, 3560.0]],
+      "why": "Gullmarsplan: Nynäsvägen's main lanes coming down from Johanneshovsbron into the cutting under Johanneshovsmotet's roundabout, between the metro and the pavement along the street to the east: asphalt, the carriageways' concrete median and the cutting's walls, not a lawn between the lanes (Google's 3D mesh). Few buildings stand round it, so the city took it for grass."
+    },
+    {
+      "outline": [[1279.0, 3598.0], [1328.0, 3594.0], [1335.0, 3610.0], [1336.0, 3660.0], [1293.0, 3660.0]],
+      "why": "Gullmarsplan: the main lanes out of the cutting south of Johanneshovsmotet's roundabout, with the roundabout's southern arm and Olaus Magnus väg beside them, from the covered metro to the trees along the eastern edge: asphalt and concrete (Google's 3D mesh), not grass."
     }
   ],
   "shallow": [
