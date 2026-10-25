@@ -2030,17 +2030,17 @@
           {"exit": {"at": [-18.8, 6.8], "name": "Vinjegatan"}, "by": "walk", "open": true, "sign": false}
         ] },
         { "from": [-49.3, -10.8], "h": 4.07, "width": 2.0, "go": [
-          {"stairs": 3.63, "toward": [-49.3, 0], "lanes": "S", "open": true},
+          {"stairs": 3.46, "toward": [-49.3, 0], "lanes": "S", "open": true},
           {"walk": [-49.3, -0.4], "open": true},
           {"exit": {"at": [-51.0, -0.4], "name": "Blackebergs torg"}, "by": "walk", "open": true, "sign": false}
         ] },
         { "from": [-49.3, 9.3], "h": 4.07, "width": 2.0, "go": [
-          {"stairs": 3.63, "toward": [-49.3, 0], "lanes": "S", "open": true},
+          {"stairs": 3.46, "toward": [-49.3, 0], "lanes": "S", "open": true},
           {"walk": [-49.3, -0.4], "open": true}
         ] },
         { "from": "hall", "go": [
           {"walk": [-36.6, 9.6], "width": 2.2, "open": true},
-          {"lift": 3.75, "above": 2.7, "through": true},
+          {"lift": 3.58, "above": 2.7, "through": true},
           {"walk": [-36.6, 13.0], "open": true},
           {"exit": {"at": [-36.6, 14.4], "name": "Blackebergs torg"}, "by": "walk", "open": true, "sign": false}
         ] },
@@ -2123,7 +2123,7 @@
           {"exit": 2601421832, "by": "walk"}
         ] },
         { "from": [-85, -0.2], "h": 4.67, "width": 2.6, "go": [
-          {"walk": [-71.0, -0.2], "open": true},
+          {"walk": [-72.2, -0.2], "open": true},
           {"exit": {"at": [-69.8, -0.2], "name": "Kirunaplan"}, "by": "walk", "open": true, "sign": false}
         ] },
         { "from": [70.5, -3.5], "width": 2.0, "go": [

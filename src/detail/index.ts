@@ -34,6 +34,10 @@ import {
   DROTTNINGHOLMSVAGEN, DROTTNINGHOLMSVAGEN_BRIDGE, DV_TVARBANAN_ANCHOR, ESSINGELEDEN_PARTS, FLYOVER, LINDHAGENSPLAN_ANCHOR, MARIEBERGSAVFARTEN_ANCHOR, NOCKEBY_ANCHORS,
   STORA_MOSSEN_BRIDGE, STORA_MOSSENS_BACKE, buildTrench, TRANEBERGSBRON_PARTS, TRENCH_PARTS, TRANEBERGSSLINGAN, TRANEBERGSSLINGAN_BRIDGE, TS_ROADS_ANCHOR,
 } from './vasterort.ts';
+import {
+  ABISKOVAGEN, ABISKOVAGEN_BRIDGE, BERGSLAGSVAGEN_RACKSTA, BERGSLAGSVAGEN_RACKSTA_BRIDGE, BERGSLAGSVAGEN_VIADUCT, BERGSLAGSVAGEN_VIADUCT_BRIDGE, BJORNSONSGATAN,
+  BJORNSONSGATAN_BRIDGE, buildLovstavagen, buildRackstaArches, DEPOT_FLYOVER, DEPOT_FLYOVER_BRIDGE, HASSELBY_ROADS, LOVSTAVAGEN, RACKSTA_ARCHES,
+} from './hasselby-line.ts';
 import { buildTower, TOWERS } from './towers.ts';
 
 // The city in detail near the camera, in the areas of src/detail/areas.ts:
@@ -178,6 +182,18 @@ const LANDMARKS: Landmark[] = [
   { name: 'Brommaplan viaduct', outline: [], anchor: BROMMAPLAN_WEST.at(106, -1), build: buildSkarpnackViaduct(BROMMAPLAN_VIADUCT) },
   { name: 'Åkeshovsvägen bridge', outline: [], anchor: AKESHOVSVAGEN.at(10, -1.7), build: buildSkarpnackViaduct(AKESHOVSVAGEN_BRIDGE) },
   { name: 'Ängby underpass', outline: [], anchor: ANGBY_UNDERPASS.at(3, 2.1), build: buildSkarpnackViaduct(ANGBY_UNDERPASS_BRIDGE) },
+  // from Blackeberg to Johannelund: Björnsonsgatan's bridge, the arches over Kanaans väg and
+  // Grimstagatan, Bergslagsvägen's bridge at Råcksta, the depot's flyover, Abiskovägen's bridge,
+  // Bergslagsvägen's viaduct and Lövstavägen's with its footway; and the roads and the path over the
+  // line on to Hässelby strand (src/detail/hasselby-line.ts)
+  { name: 'Björnsonsgatan bridge', outline: [], anchor: BJORNSONSGATAN.at(16, -4.5), build: buildSkarpnackViaduct(BJORNSONSGATAN_BRIDGE) },
+  { name: 'Råcksta arches', outline: [], anchor: RACKSTA_ARCHES.at(80, -6.4), build: buildRackstaArches },
+  { name: 'Bergslagsvägen bridge at Råcksta', outline: [], anchor: BERGSLAGSVAGEN_RACKSTA.at(21.5, 3), build: buildSkarpnackViaduct(BERGSLAGSVAGEN_RACKSTA_BRIDGE) },
+  { name: 'Depot flyover', outline: [], anchor: DEPOT_FLYOVER.at(24, 0), build: buildSkarpnackViaduct(DEPOT_FLYOVER_BRIDGE) },
+  { name: 'Abiskovägen bridge', outline: [], anchor: ABISKOVAGEN.at(14.5, 1.8), build: buildSkarpnackViaduct(ABISKOVAGEN_BRIDGE) },
+  { name: 'Bergslagsvägen viaduct', outline: [], anchor: BERGSLAGSVAGEN_VIADUCT.at(81, 0.3), build: buildSkarpnackViaduct(BERGSLAGSVAGEN_VIADUCT_BRIDGE) },
+  { name: 'Lövstavägen viaduct', outline: [], anchor: LOVSTAVAGEN.at(48, 1.8), build: buildLovstavagen },
+  ...HASSELBY_ROADS.map((r): Landmark => ({ name: r.name, outline: [], anchor: r.anchor, build: r.build })),
   // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
   // beside it (src/detail/globen.ts)
   { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },

@@ -33,14 +33,14 @@ export interface Shape {
 // - a row of `n` round columns `r` across (square ones `square` wide, or `square` along the deck by
 //   `across`), evenly from `inset` in from each edge (or at `at` from the deck's middle), under a
 //   crossbeam `beam` wide along the deck and `depth` under its soffit, maybe on a low plinth shared
-//   by the row;
+//   by the row; round ones may flare at the top into a cap `flare` across (mushroom columns);
 // - a wall across the deck `thick` thick, from `inset` in from each edge (or from u = span[0] to
 //   span[1]), skewed `skew` metres along per metre across from the deck's middle (to stand along a
 //   street crossing it at a slant);
 // - a pier `wide` across and `thick` along under the deck's middle, maybe under a head `head`
 //   across and `depth` deep.
 export type Support = { s: number; deck?: number; mat?: string; paint?: number } & (
-  | { kind: 'columns'; n: number; r?: number; square?: number; across?: number; at?: number[]; inset: number; beam?: { w: number; depth: number }; plinth?: { h: number; out: number } }
+  | { kind: 'columns'; n: number; r?: number; square?: number; across?: number; at?: number[]; inset: number; beam?: { w: number; depth: number }; plinth?: { h: number; out: number }; flare?: number }
   | { kind: 'wall'; thick: number; inset: number; skew?: number; span?: V2 }
   | { kind: 'pier'; wide: number; thick: number; head?: { wide: number; depth: number } }
 );
@@ -116,7 +116,10 @@ export function buildViaduct(B: Builder, ground: Ground, v: Viaduct) {
         for (const u of us) {
           const c = F.at(p.s, u), foot = (p.plinth ? Math.max(...us.map((w) => g(p.s, w))) + p.plinth.h : g(p.s, u)) - 0.1;
           if (p.square) post(B, c, F.t, p.square, p.across ?? p.square, foot, top(u) + 0.02, m, 3);
-          else B.lathe(c[0], c[1], [[p.r ?? 0.35, foot - 0.2], [p.r ?? 0.35, top(u) + 0.02]], m, 16, 3);
+          else if (p.flare) {
+            const r = p.r ?? 0.35, y = top(u), f = p.flare / 2;
+            B.lathe(c[0], c[1], [[r, foot - 0.2], [r, y - 1.4], [r + 0.15, y - 0.9], [f - 0.15, y - 0.35], [f, y - 0.3], [f, y + 0.02]], m, 20, 3);
+          } else B.lathe(c[0], c[1], [[p.r ?? 0.35, foot - 0.2], [p.r ?? 0.35, top(u) + 0.02]], m, 16, 3);
         }
       } else if (p.kind === 'wall') {
         const h = p.thick / 2, u0 = p.span?.[0] ?? lo + p.inset, u1 = p.span?.[1] ?? hi - p.inset, k = p.skew ?? 0;

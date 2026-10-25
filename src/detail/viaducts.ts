@@ -14,11 +14,11 @@ import { DETAIL_ON } from './areas.ts';
 // (src/detail/farsta-line.ts), and those north of Tallkrogen to Gullmarsplan
 // (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts) and the
 // Skarpnäck line (src/detail/skarpnack-line.ts), and Skanstullsbron (src/detail/skanstull.ts), and
-// Tranebergsbron and the bridges west of it to Islandstorget (src/detail/vasterort.ts). Within `r`
-// metres of `at` the network (src/network.ts) leaves out its own piers, the railings along its decks
-// and the lamps over its platforms, and keeps the player off its platforms where the `solids` stand
-// on them; where `girder`, it leaves out its decks' girders too, which the landmark draws in their
-// real shape.
+// Tranebergsbron and the bridges west of it to Islandstorget (src/detail/vasterort.ts) and on to
+// Johannelund (src/detail/hasselby-line.ts). Within `r` metres of `at` the network (src/network.ts)
+// leaves out its own piers, the railings along its decks and the lamps over its platforms, and keeps
+// the player off its platforms where the `solids` stand on them; where `girder`, it leaves out its
+// decks' girders too, which the landmark draws in their real shape.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -128,6 +128,17 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Brommaplan viaduct', at: [-6936.4, -814.8], r: 64.5, solids: [], girder: true },
   { name: 'Åkeshovsvägen', at: [-7393.9, -1083.9], r: 15.5, solids: [], girder: true },
   { name: 'Ängby underpass', at: [-8025.2, -1183.1], r: 8, solids: [], girder: true },
+  // (and from Blackeberg to Johannelund (src/detail/hasselby-line.ts): Björnsonsgatan's, the arches
+  // over Kanaans väg and Grimstagatan, Bergslagsvägen's at Råcksta, the depot's flyover, Abiskovägen's,
+  // Bergslagsvägen's viaduct and Lövstavägen's, each end to end and 5 m on: the network's deck runs
+// on half way to the line's next point)
+  { name: 'Björnsonsgatan', at: [-10102.6, -1988.2], r: 23.4, solids: [], girder: true },
+  { name: 'Råcksta arches', at: [-10130.6, -2246.8], r: 91.3, solids: [], girder: true },
+  { name: 'Bergslagsvägen at Råcksta', at: [-10093.0, -2457.1], r: 33.7, solids: [], girder: true },
+  { name: 'Depot flyover', at: [-10403.2, -3290.4], r: 36.6, solids: [], girder: true },
+  { name: 'Abiskovägen', at: [-11041.1, -3936.0], r: 18.2, solids: [], girder: true },
+  { name: 'Bergslagsvägen viaduct', at: [-11305.0, -4041.7], r: 87.9, solids: [], girder: true },
+  { name: 'Lövstavägen viaduct', at: [-11590.1, -4071.6], r: 58.3, solids: [], girder: true },
 ];
 
 // whether the network leaves the viaduct at (x, z) to a landmark

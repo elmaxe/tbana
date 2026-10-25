@@ -5596,7 +5596,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
       { name: 'white wall', plan: [[-23.108, 8.2], [-22.708, 8.2], [-22.888, 16.83], [-23.288, 16.83]], h: [3.9, 8.7], from: 4.0,
         walls: 'whiteRender', sides: [null, undefined, null, null], band: { walls: 'boardConcrete', from: 7.1 }, roof: 0.1, roofColor: 0x8c8984 },
       // the lift house on the square, against the hall's north-eastern lunette
-      { name: 'lift house', plan: [[-37.9, 10.3], [-35.3, 10.3], [-35.3, 12.5], [-37.9, 12.5]], h: [7.8, 10.5], from: 7.8,
+      { name: 'lift house', plan: [[-37.9, 10.3], [-35.3, 10.3], [-35.3, 12.5], [-37.9, 12.5]], h: [7.63, 10.5], from: 7.63,
         walls: 'glazed', sides: [null, undefined, undefined, undefined], roof: 0.25, roofColor: 0xd4d4d0, eaves: 0.45 },
     ],
     art: [
