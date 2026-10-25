@@ -331,17 +331,21 @@ for (const a of areas) {
 }
 
 // with --areas, the other areas' trees as they were (and OpenStreetMap's are added by build-city)
+const earlier = new Set<Tree>();
 if (only && existsSync(OUT)) {
   const box = (a: (typeof areas)[number]) => [a.x - a.r - MARGIN, a.z - a.r - MARGIN, a.x + a.r + MARGIN, a.z + a.r + MARGIN];
   const searched = areas.map(box);
   const had: { trees: Tree[]; flown: string[] } = JSON.parse(readFileSync(OUT, 'utf8'));
   for (const f of had.flown) flights.add(f);
-  trees.push(...had.trees.filter(([x, z]) => !searched.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1)));
+  const kept = had.trees.filter(([x, z]) => !searched.some(([x0, z0, x1, z1]) => x >= x0 && x <= x1 && z >= z0 && z <= z1));
+  for (const t of kept) earlier.add(t);
+  trees.push(...kept);
 }
 
-// a tree on two areas' edge is found twice
+// a tree on two areas' edge is found twice (the other areas' trees, as they were, are left be among
+// themselves)
 trees.sort((p, q) => q[2] - p[2]);
-const unique = trees.filter((t, k) => !trees.slice(0, k).some((u) => Math.hypot(u[0] - t[0], u[1] - t[1]) < Math.max(2, u[3] * 0.6)));
+const unique = trees.filter((t, k) => !trees.slice(0, k).some((u) => !(earlier.has(t) && earlier.has(u)) && Math.hypot(u[0] - t[0], u[1] - t[1]) < Math.max(2, u[3] * 0.6)));
 unique.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
 writeFileSync(OUT, `{
   "attribution": "Laserdata Nedladdning, skog © Lantmäteriet, CC BY 4.0 (processed: trees found in it)",

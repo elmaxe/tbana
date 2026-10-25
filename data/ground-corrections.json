@@ -1,5 +1,5 @@
 {
-  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside a `paved` outline (and an `open` or `fill` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
+  "note": "Fixes to the ground that tools/build-city.ts builds from Lantmäteriet's elevation model, each with its reason. Outlines are world x, z (src/geo.ts). Inside an `open` outline the elevation model's ground is brought down to at most `ground` (RH 2000), and the metro's tunnels and boxes there stand in the open: something else draws what covers them (src/detail/). Inside a `fill` outline the ground is raised to at least `ground`: a square the model has as the hole it was when the model was flown. Inside a `shallow` outline the metro's tunnels raise no mound over the elevation model's ground, only keeping it out of them: a street runs right over a tunnel there, whose crown the network has higher than the real one. Inside a `walled` outline the open track beside it doesn't lower the ground: a retaining wall stands between them, the ground behind it at the elevation model's height or a deck's. Inside an `under` outline a street runs under the network's bridge: the ground there is the street's (drawn on and walked on), not the track's, however close over it the track passes; with `\"paved\": false` it is a park's, grass with its paths. Inside a `water` outline is water, at the level of the water it joins: a canal under bridges that OpenStreetMap has only the shores of, too close together to bound it on the model's grid. Inside a `paved` outline (and an `open`, `fill` or paved `under` one) the ground is paved: without an aerial photo, the game colours the ground by how much is built round it, so a wide quay or a street with no buildings beside it would be grass. `decks` (read by tools/build-track-geometry.ts and tools/build-stations.ts too): a square or street on a deck over the tracks, which the elevation model leaves out as a bridge, so that under it the ground falls to the tracks' cutting: inside the outline (world x, z in turn) the ground is on the plane through `heights` (RH 2000, one at each of its points; the best fit, where there are more than three). A deck is also used where the model's 5 m grid smooths a street or pavement into a step or a stairwell beside it, to keep it at its level. Checked against Lantmäteriet's laser scan (tools/laser-points.ts), whose points on a deck are classed as a bridge's.",
   "decks": [
     {
       "name": "Telefonplan: the station's building and the streets round it",
@@ -60,6 +60,18 @@
       "outline": [1272.82, 3604.79, 1279.32, 3625.81, 1295.56, 3620.78, 1289.06, 3599.77],
       "heights": [43.3, 42.55, 42.55, 43.3],
       "why": "Along the bus terminal's eastern side the deck goes on south over the tracks as a ramp, falling from the square's 43.3 m at the terminal's front to 42.6 m at its back, 22 m south (the laser scan's points on it, classed as a bridge's); the elevation model has the cutting's floor under it."
+    },
+    {
+      "name": "Gullmarsplan: Nynäsvägen north of its bridge over the Skärmarbrink line",
+      "outline": [1323.4, 3734.5, 1366.9, 3759.2, 1370.4, 3769.8, 1326.9, 3745.2],
+      "heights": [40.29, 40.91, 41.17, 40.55],
+      "why": "South-east of the bus terminal Nynäsvägen crosses the Skärmarbrink line's two tracks on a skewed concrete deck (src/detail/farsta-line-north.ts), which the elevation model leaves out. Its 5 m grid smooths the road along the deck's northern edge down towards the cutting under it, by up to a third of a metre; here the road is kept on the plane of the deck's (the laser scan's points on the deck, classed as a bridge's, 40.6–41.9 m, rising 2.3 % southwards), so that the road drawn on the deck meets it."
+    },
+    {
+      "name": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line",
+      "outline": [1339.9, 3785.9, 1380.8, 3800.9, 1383.8, 3810.0, 1343.0, 3795.0],
+      "heights": [41.54, 41.93, 42.16, 41.77],
+      "why": "Along the deck's southern edge, as along its northern: the elevation model's grid had the road there up to half a metre low."
     },
     {
       "name": "Skanstull: the pavement round the eastern court",
@@ -252,6 +264,60 @@
       "outline": [729.7, 1348.0, 723.5, 1324.8, 747.7, 1318.4, 753.8, 1341.7],
       "heights": [12.88, 12.85, 12.97, 12.98],
       "why": "Ryssgården, the square north of Stockholms sjömanshem, is flat at 12.8–13.0 m (Lantmäteriet's laser scan, 2021) right up to the building's front, where the ticket hall under the building opens onto it, step-free; the elevation model smooths the building into it, 13.7 m at the doors and up to 15 m 8 m west of them, which left the station's exit 0.8 m over its hall. The outline reaches 7 m into the building, under the hall, so that the street's grid at the doors has no point on the building's slope."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 1 of 9",
+      "outline": [-2218.2, 0.2, -2242.2, 1.7, -2245.7, -35.4, -2221.9, -38.1],
+      "heights": [3.79, 3.65, 3.65, 3.79],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 2 of 9",
+      "outline": [-2242.2, 1.7, -2266.1, 3.7, -2269.6, -32.5, -2245.7, -35.4],
+      "heights": [3.65, 3.75, 3.75, 3.65],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 3 of 9",
+      "outline": [-2266.1, 3.7, -2275.3, 2.4, -2278.5, -31.8, -2269.6, -32.5],
+      "heights": [3.75, 3.87, 3.87, 3.75],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 4 of 9",
+      "outline": [-2275.8, -2.6, -2299.6, -0.1, -2302.0, -25.3, -2278.1, -26.8],
+      "heights": [3.87, 4.35, 4.35, 3.87],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to the walls, under Lindhagensplan's deck."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 5 of 9",
+      "outline": [-2299.2, 4.9, -2314.0, 6.9, -2317.6, -30.1, -2302.5, -30.3],
+      "heights": [4.35, 4.85, 4.85, 4.35],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 6 of 9",
+      "outline": [-2314.0, 6.9, -2337.9, 9.7, -2341.5, -28.8, -2317.6, -30.1],
+      "heights": [4.85, 5.78, 5.78, 4.85],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 7 of 9",
+      "outline": [-2337.9, 9.7, -2361.6, 13.9, -2365.4, -26.7, -2341.5, -28.8],
+      "heights": [5.78, 6.71, 6.71, 5.78],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 8 of 9",
+      "outline": [-2361.6, 13.9, -2385.4, 17.5, -2389.4, -24.9, -2365.4, -26.7],
+      "heights": [6.71, 7.64, 7.64, 6.71],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
+    },
+    {
+      "name": "Drottningholmsvägen's trench 9 of 9",
+      "outline": [-2385.4, 17.5, -2407.9, 23.0, -2412.4, -23.4, -2389.4, -24.9],
+      "heights": [7.64, 8.45, 8.45, 7.64],
+      "why": "Between Fridhemsplan's tunnel and Thorildsplan the metro and Drottningholmsvägen's two carriageways either side of it run in a trench between concrete retaining walls (src/detail/vasterort.ts), 5.4 m deep at the tunnel and 1.4 m 190 m west of it. The elevation model's 5 m grid smooths each wall into a slope reaching 5 m into the trench, which lifted the carriageways beside the walls up the slope. Lantmäteriet's laser scan has the trench's floor rising 4.6 m westwards and the walls' faces; the floor is laid up to 5 m behind the walls, where the landmark's pavement covers the ground's step up to the level above."
     }
   ],
   "open": [
@@ -494,6 +560,14 @@
     {
       "outline": [[-6624.4, -7917.0], [-6705.8, -8039.4], [-6665.0, -8066.5], [-6583.6, -7944.1]],
       "why": "Kista: the bus terminal under the station's viaduct, from Kista Galleria to Köpenhamnsgatan, with the service road along its south-western side and the bus lane along its north-eastern one, all asphalt (OpenStreetMap; photographs; Google's mesh). The elevation model's ground there was grass."
+    },
+    {
+      "outline": [[-501.5, 6649.9], [-500.6, 6646.2], [-484.2, 6659.1], [-485.1, 6662.8]],
+      "why": "North of Bandhagen: the concrete paving on Örbyleden's southern slope under the ends of the metro's arch bridges, from the arches' springings down to the road's verge, askew as the road crosses (Mapillary photographs, the laser scan)."
+    },
+    {
+      "outline": [[-491.3, 6608.2], [-493.5, 6617.2], [-477.4, 6631.6], [-474.9, 6621.0]],
+      "why": "North of Bandhagen: the concrete paving on Örbyleden's northern slope under the ends of the metro's arch bridges, from the arches' springings down to the road's verge (the laser scan, as on the southern slope)."
     }
   ],
   "shallow": [
@@ -526,6 +600,190 @@
     {
       "outline": [[-14046.3, 9775.8], [-14030.3, 9777.2], [-14033.3, 9810.6], [-14049.2, 9809.1]],
       "why": "Norsborg: the hillside over the depot's portal, between the wall of sprayed concrete and the rock face. The yard tracks' cutting, where they end at the portal, lowered it in a trench up to Skarpbrunnavägen."
+    },
+    {
+      "outline": [[1308.2, 7334.0], [1308.9, 7350.0], [1309.5, 7360.0], [1310.7, 7379.0], [1311.8, 7392.0], [1312.8, 7404.0], [1324.0, 7404.0], [1324.0, 7334.0]],
+      "why": "Gubbängen–Tallkrogen: the hillside east of the cutting north of Herrhagsvägen, behind the face of blasted rock beside the eastern track, which src/detail/gubbangen.ts draws. The rock rises 4.5–5.5 m from beside the track to the hillside (the laser scan, 39–40 m at its crest, from 7340 to 7400 m south); the track's cutting lowered the hill to a slope of 1:2 as far as 15 m from the track. The outline starts 10.5 m from the track, a grid step behind the drawn face: nearer, the 5 m grid's triangles rose from the track to the hillside in front of the face. Between them the track's slope stays under the face's top, which runs back over it to the hillside."
+    },
+    {
+      "outline": [[1299.1, 7486.5], [1302.2, 7511.2], [1290.7, 7504.7], [1287.7, 7479.9]],
+      "why": "Gubbängen: Herrhagsvägen behind the western abutment of its bridge over the tracks, which src/detail/gubbangen.ts draws (the elevation model leaves the bridge out, not the road on the ground behind it). The track's cutting lowered the road to a slope of 1:2 from the wall, leaving a trench under the road's end."
+    },
+    {
+      "outline": [[1316.5, 7496.3], [1328.0, 7502.9], [1331.1, 7527.6], [1319.6, 7521.1]],
+      "why": "Gubbängen: Herrhagsvägen behind the eastern abutment of its bridge over the tracks, as behind the western one."
+    },
+    {
+      "outline": [[1318.9, 3724.5], [1363.8, 3750.0], [1370.4, 3769.8], [1325.5, 3744.4]],
+      "why": "Gullmarsplan: Nynäsvägen north of its bridge over the Skärmarbrink line (src/detail/farsta-line-north.ts), behind the abutment along the deck's northern edge. The tracks' cutting under the deck lowered the road to a slope of 1:2 as far as 14 m from it, so that the road fell into a trench at the bridge (the elevation model leaves the deck out, not the road on the ground behind it)."
+    },
+    {
+      "outline": [[1339.2, 3785.6], [1380.8, 3800.9], [1386.4, 3817.9], [1344.9, 3802.6]],
+      "why": "Gullmarsplan: Nynäsvägen south of its bridge over the Skärmarbrink line, behind the abutment along the deck's southern edge, as north of it."
+    },
+    {
+      "outline": [[-1025.8, 7775.4], [-1020.2, 7773.9], [-983.9, 7706.5], [-980.0, 7676.6], [-1012.6, 7672.4]],
+      "tracks": true,
+      "why": "South of Högdalen, the depot tracks' bank north of their bridge over the main line's trough, and the ground west of it: the trough's walls hold it up (src/detail/hagsatra-line.ts; the laser scan has it at 33.5–34.4 m, the trough's floor 5 m under it). The southbound main line's cutting lowered it to 28.7–31 m, as far as 13 m from the track, leaving the depot tracks standing in the air. The outline starts 5 m behind the walls' faces, so that the city's ground, a point every 5 m, doesn't rise in front of them; the landmark's bank covers the ground between."
+    },
+    {
+      "outline": [[-1021.7, 7847.7], [-1016.9, 7810.3], [-1015.4, 7805.5], [-1001.0, 7779.1], [-998.4, 7777.5], [-989.1, 7778.6], [-998.3, 7850.7]],
+      "tracks": true,
+      "why": "South of Högdalen, the depot tracks' bank south of their bridge over the main line's trough, as north of it (the entry before): the main line's cutting lowered it by up to 3 m."
+    }
+  ],
+  "under": [
+    {
+      "outline": [[1473.2, 6735.4], [1488.2, 6717.9], [1509.4, 6736.2], [1494.4, 6753.6]],
+      "why": "Tallkrogen: Victor Balcks väg and its pavements under the metro's two bridges at the south-west end of the platform, between their abutments (src/detail/gubbangen.ts), 3.7 m under the decks. The track over them made a band of the road some 20 m wide the track's, where the street wasn't drawn and nobody could walk."
+    },
+    {
+      "outline": [[1327.6, 7785.8], [1342, 7785.8], [1342, 7956.4], [1327.6, 7956.4]],
+      "paved": false,
+      "why": "Gubbängsfältet: the park, its paths and Majrovägen under the metro's steel viaduct south of Gubbängen, between its abutments (src/detail/farsta-line.ts), 4.5–5 m under the rails. The track over them made a band 14 m wide and 170 m long the track's, ballast instead of grass, with the paths and the street cut off under it. Not paved: it is grass but for them."
+    },
+    {
+      "outline": [[1327.4, 8149.5], [1341.6, 8149.5], [1349.3, 8197], [1332.3, 8197]],
+      "why": "Hökarängen: Örbyleden, its carriageways and the cycleways beside them under the metro's two decks at the north end of the platform, between the abutment in the bank and the ticket hall (src/detail/farsta-line.ts), 5–6 m under the rails. The track over them made the road there the track's, cut off under the decks."
+    },
+    {
+      "outline": [[1826.7, 9308.4], [1838.9, 9308.4], [1843.2, 9352.2], [1831.3, 9352.2]],
+      "why": "Farsta: Farstavägen's two carriageways and the cycleway crossing under the metro's bridge north of the station, between its abutments (src/detail/farsta-line.ts), 4.3 m under the deck. The track over them made the road there the track's, cut off under the bridge."
+    },
+    {
+      "outline": [[1900.2, 9661.4], [1920, 9658.1], [1962.9, 9739.9], [1941, 9747.8]],
+      "paved": false,
+      "why": "Farsta: the park, its paths and the street Kroppaplan under the metro's two decks north of the platform, from their abutments to the platform's end (src/detail/farsta-line.ts), 4–7 m under the rails. The tracks over them made two bands 8 m wide the track's, ballast instead of grass, with the paths and the street cut off under them. Not paved: it is grass but for them."
+    },
+    {
+      "outline": [[1696.5, 6536.9], [1687.3, 6546.1], [1678.9, 6537.7], [1688.1, 6528.6]],
+      "paved": false,
+      "why": "Tallkrogen: the footpath through the woods under the metro's bridge 80 m north-east of the platform, between its abutments (src/detail/farsta-line-north.ts). Without this the tracks over it made the path's ground the track's, ballast across the path. Not paved: it is woods but for the path."
+    },
+    {
+      "outline": [[1981.2, 6282.5], [1868.2, 6382], [1857.3, 6369.6], [1969.9, 6269.8]],
+      "paved": false,
+      "why": "Nynäsvägen: its carriageways, the ramps, the cycleways and the verges between them under the metro's bridge on the way to Skogskyrkogården, between its abutments (src/detail/farsta-line-north.ts), 5–6 m under the rails. The tracks over them made a band 8 m wide the track's, cutting the roads off under it. Not paved: the verges are grass."
+    },
+    {
+      "outline": [[2078.5, 5744], [2083.8, 5847], [2065.4, 5847], [2065.2, 5744]],
+      "paved": false,
+      "why": "Skogskyrkogården: Sockenvägen, the service road and the cycleways under the metro's bridge north of the station, between its abutments (src/detail/farsta-line-north.ts), 5–6 m under the rails. The tracks over them made two bands the track's, cutting the streets off under them. Not paved: grass but for them."
+    },
+    {
+      "outline": [[1834.7, 4721.9], [1836.8, 4755.8], [1819.2, 4756.9], [1817.5, 4722.9]],
+      "why": "Blåsut: Sofielundsvägen, its pavements and the cycleways under the metro's steel bridge south of the station, between its abutments (src/detail/farsta-line-north.ts), 5 m under the rails. The tracks over them made a band the track's, cutting the street off under it."
+    },
+    {
+      "outline": [[1553.8, 3859.8], [1536.2, 3852.8], [1542.2, 3837.7], [1559.8, 3844.7]],
+      "why": "Gullmarsplan: Hammarbybacken and the cycleways beside it under the metro's steel bridge east of the station, between its granite abutments (src/detail/farsta-line-north.ts), 4.5 m under the rails. The three tracks over it made a band the track's, cutting the road off under it."
+    },
+    {
+      "outline": [[722.8, 5264.1], [714.6, 5279.0], [705.2, 5296.7], [696.1, 5314.5], [687.0, 5332.3], [677.8, 5350.1], [668.7, 5367.8], [656.0, 5361.3], [665.9, 5343.9], [675.8, 5326.5], [685.7, 5309.1], [695.5, 5291.7], [705.4, 5274.3], [714.0, 5259.6]],
+      "why": "Sockenplan: the car park, the street Sockenplan, the footway and cycleway beside it, Sockenvägen and the service road's loop under the metro's viaduct north of the station, from its abutment at the bank to the square in front of the ticket hall (src/detail/hagsatra-line.ts), 4–5.5 m under the rails."
+    },
+    {
+      "outline": [[550.6, 5905.9], [544.1, 5918.9], [537.0, 5932.1], [529.6, 5945.1], [524.8, 5953.9], [518.8, 5962.0], [514.8, 5967.8], [500.0, 5960.0], [504.5, 5954.4], [510.4, 5946.3], [516.0, 5937.9], [523.8, 5925.1], [530.5, 5911.7], [537.1, 5898.7]],
+      "paved": false,
+      "why": "Svedmyra: Tussmötevägen, the cycleway and path beside it, the service road and the grass between them under the metro's viaduct north of the platform, from its abutment at the bank to the platform's north end (src/detail/hagsatra-line.ts), 4.5–5.5 m under the rails."
+    },
+    {
+      "outline": [[-2.8, 6300.8], [-12.2, 6304.3], [-21.6, 6307.7], [-28.1, 6310.2], [-33.1, 6296.6], [-26.2, 6295.0], [-16.8, 6291.6], [-7.3, 6288.5]],
+      "paved": false,
+      "why": "Between Svedmyra and Stureby: Skönviksvägen and the woods either side of it under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 4.5–5 m under the rails."
+    },
+    {
+      "outline": [[-326.5, 6372.0], [-312.6, 6365.1], [-299.0, 6358.8], [-287.7, 6354.6], [-281.2, 6368.2], [-292.3, 6372.7], [-305.8, 6379.2], [-319.5, 6386.6]],
+      "why": "West of Stureby: Bandhagsvägen's two carriageways, the island between them and the pavements under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 5.5 m under the rails. The crossover between the tracks on its deck stood on a bank across the road too (data/track-corrections.json)."
+    },
+    {
+      "outline": [[-506.9, 6669.6], [-498.3, 6634.6], [-489.7, 6599.6], [-470.2, 6604.4], [-478.9, 6639.4], [-487.5, 6674.3]],
+      "paved": false,
+      "why": "North of Bandhagen: Örbyleden in its cutting, its slopes and the paths along the ledges at their tops under the metro's two arch bridges, between their abutments (src/detail/hagsatra-line.ts), 9.5 m under the rails over the road."
+    },
+    {
+      "outline": [[-1211.8, 7972.5], [-1240.7, 7988.2], [-1251.3, 7980.3], [-1223.4, 7965.1]],
+      "paved": false,
+      "why": "Between Högdalen and Rågsved: Magelungsvägen in its valley, the paths beside it and the paved slopes up to the walls under the metro's bridge (src/detail/hagsatra-line.ts), 6.5 m under the rails."
+    },
+    {
+      "outline": [[-1321.1, 8032.6], [-1330.7, 8037.9], [-1341.1, 8029.3], [-1331.5, 8024.0]],
+      "paved": false,
+      "why": "West of Magelungsvägen: the Nynäs railway's cutting under the metro's slab over it, between the walls either side of its tracks (src/detail/hagsatra-line.ts), 8 m under the rails."
+    },
+    {
+      "outline": [[-722.1, 7245.1], [-729.5, 7254.9], [-738.0, 7248.6], [-730.6, 7238.7]],
+      "paved": false,
+      "why": "South of Högdalen: the cycleway through the park and the grass either side of it under the metro's slab, between its walls (src/detail/hagsatra-line.ts), 4.5 m under the rails."
+    },
+    {
+      "outline": [[-1021.5, 7806.4], [-1018.1, 7780.6], [-1000.2, 7747.3], [-1003.5, 7773.1]],
+      "why": "South of Högdalen, beside Rågsvedsvägen: the trough under the depot tracks' slab, with the main line's southbound track and the cycleway beside it, between the trough's walls (src/detail/hagsatra-line.ts), 5–6 m under the depot tracks' rails."
+    },
+    {
+      "outline": [[-1603.0, 8231.6], [-1636.9, 8262.3], [-1646.0, 8252.2], [-1611.6, 8222.1]],
+      "paved": false,
+      "why": "East of Rågsved: Bjursätragatan, the paths either side of it and the grass slopes in their valley under the metro's bridge, between its abutments (src/detail/hagsatra-line.ts), 7 m under the rails."
+    },
+    {
+      "outline": [[-2199.6, 8390.0], [-2178.8, 8398.9], [-2160.0, 8405.7], [-2140.9, 8411.4], [-2123.5, 8416.2], [-2127.1, 8427.1], [-2144.5, 8422.3], [-2163.6, 8416.4], [-2182.4, 8409.5], [-2203.3, 8401.1]],
+      "paved": false,
+      "why": "West of Rågsved: Rågsvedsvägen, the cycleway and the path in the valley under the metro's arch bridge and its slopes, between its abutments (src/detail/hagsatra-line.ts), 10.5 m under the rails."
+    },
+    {
+      "outline": [[-2551.8, 7903.9], [-2570.3, 7844.7], [-2557.9, 7841.1], [-2541.4, 7900.8]],
+      "paved": false,
+      "why": "South-east of Hagsätra: Olshammarsgatan, its pavements, the paths and the open ground under the metro's viaduct, between its abutments (src/detail/hagsatra-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[2135.6, 4119.0], [2146.7, 4117.6], [2157.8, 4116.2], [2168.9, 4114.8], [2170.2, 4125.5], [2159.1, 4127.0], [2148.1, 4128.4], [2137.0, 4129.9]],
+      "paved": false,
+      "why": "Between Skärmarbrink and Hammarbyhöjden: Sparrmansvägen, the cycleway and footway beside it and the grass either side under the metro's bridge, between its abutments (src/detail/skarpnack-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[2688.7, 4075.5], [2699.0, 4075.6], [2709.2, 4075.8], [2719.5, 4076.2], [2729.7, 4076.6], [2739.9, 4077.1], [2750.2, 4077.6], [2749.5, 4094.6], [2739.2, 4094.6], [2729.0, 4094.6], [2718.7, 4094.7], [2708.4, 4094.8], [2698.2, 4095.0], [2687.9, 4095.2]],
+      "paved": false,
+      "why": "Between Hammarbyhöjden and Björkhagen: Ulricehamnsvägen, the footways beside it, the service road and the grass between them under the metro's two bridges, between their abutments (src/detail/skarpnack-line.ts), 6 m under the rails."
+    },
+    {
+      "outline": [[3141.8, 4228.5], [3147.8, 4237.2], [3153.6, 4246.1], [3159.1, 4255.1], [3164.2, 4264.2], [3169.0, 4273.4], [3173.6, 4282.8], [3177.8, 4292.3], [3181.8, 4301.9], [3185.5, 4311.7], [3188.9, 4321.6], [3191.9, 4331.7], [3194.7, 4341.8], [3182.9, 4347.0], [3180.3, 4336.8], [3177.5, 4326.6], [3174.3, 4316.7], [3170.8, 4306.8], [3167.0, 4297.1], [3163.0, 4287.5], [3158.6, 4278.1], [3153.8, 4268.8], [3148.7, 4259.6], [3143.1, 4250.7], [3137.3, 4241.9], [3131.1, 4233.2]],
+      "paved": false,
+      "why": "North of Björkhagen: Karlskronavägen, the path, Malmövägen's two carriageways, the cycleway and the grass between them under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 6–7 m under the rails."
+    },
+    {
+      "outline": [[3211.8, 4626.6], [3211.9, 4616.9], [3212.0, 4607.1], [3212.0, 4597.3], [3211.9, 4587.6], [3229.2, 4588.3], [3229.0, 4598.1], [3228.6, 4607.8], [3228.1, 4617.6], [3227.4, 4627.3]],
+      "paved": false,
+      "why": "South of Björkhagen: Halmstadsvägen, the footway and the grass beside them under the metro's two bridges, between their abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
+    },
+    {
+      "outline": [[3207.8, 4750.1], [3205.5, 4760.1], [3203.2, 4770.2], [3200.9, 4780.2], [3198.6, 4790.3], [3196.3, 4800.3], [3194.0, 4810.4], [3191.7, 4820.4], [3189.4, 4830.5], [3187.1, 4840.5], [3184.8, 4850.6], [3182.5, 4860.6], [3180.2, 4870.7], [3177.9, 4880.7], [3167.1, 4878.2], [3169.4, 4868.2], [3171.8, 4858.2], [3174.1, 4848.1], [3176.4, 4838.1], [3178.8, 4828.0], [3181.2, 4818.0], [3183.5, 4808.0], [3185.8, 4797.9], [3188.1, 4787.9], [3190.3, 4777.8], [3192.5, 4767.7], [3194.7, 4757.7], [3196.8, 4747.6]],
+      "paved": false,
+      "why": "Between Björkhagen and Kärrtorp: the park along Ystadsvägen, the street, the footway, path, Fyrskeppsvägen and cycleway under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 8–9 m under the rails."
+    },
+    {
+      "outline": [[3207.1, 5380.5], [3201.8, 5371.6], [3196.6, 5362.8], [3191.6, 5353.8], [3186.8, 5344.7], [3203.2, 5337.0], [3207.4, 5346.3], [3211.9, 5355.5], [3216.5, 5364.7], [3221.3, 5373.8]],
+      "paved": false,
+      "why": "South of Kärrtorp: Kärrtorpsvägen and the grass either side of it under the metro's two bridges, from their southern abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
+    },
+    {
+      "outline": [[3186.8, 5344.7], [3182.5, 5336.1], [3178.5, 5327.4], [3174.7, 5318.6], [3171.1, 5309.7], [3167.7, 5300.8], [3164.4, 5291.7], [3182.6, 5283.1], [3185.7, 5292.2], [3188.9, 5301.3], [3192.3, 5310.3], [3195.7, 5319.3], [3199.4, 5328.2], [3203.2, 5337.0]],
+      "why": "South of Kärrtorp: Kärrtorpsplan, the square under the metro's two bridges up to the station's ticket hall under their northern ends (src/detail/skarpnack-line.ts, src/open-styles.ts), 5 m under the rails."
+    },
+    {
+      "outline": [[3466.0, 5740.6], [3460.0, 5733.1], [3454.0, 5725.5], [3448.1, 5717.8], [3442.3, 5710.1], [3436.6, 5702.3], [3430.9, 5694.5], [3425.3, 5686.6], [3419.7, 5678.7], [3414.2, 5670.8], [3423.3, 5664.0], [3428.9, 5671.9], [3434.5, 5679.8], [3440.1, 5687.7], [3445.8, 5695.5], [3451.5, 5703.3], [3457.3, 5711.0], [3463.2, 5718.6], [3469.2, 5726.2], [3475.3, 5733.7]],
+      "paved": false,
+      "why": "Between Kärrtorp and Bagarmossen: Länsmansvägen, Sockenvägen, the cycleways beside it and the grass between them under the metro's viaduct, between its abutments (src/detail/skarpnack-line.ts), 5.5 m under the rails."
+    },
+    {
+      "outline": [[1189.8, 3396.3], [1181.8, 3356.9], [1172.2, 3318.0], [1162.4, 3279.2], [1153.4, 3240.1], [1143.4, 3201.3], [1119.8, 3124.9], [1095.2, 3048.8], [1070.6, 2972.6], [1045.9, 2896.5], [1026.2, 2835.6], [1035.4, 2832.7], [1055.0, 2893.7], [1079.4, 2969.9], [1104.0, 3046.0], [1128.8, 3122.1], [1153.6, 3198.2], [1165.8, 3236.2], [1177.9, 3274.4], [1188.5, 3312.9], [1197.1, 3352.2], [1205.5, 3391.4]],
+      "paved": false,
+      "why": "Skanstullsbron: the slopes down from Gullmarsplan, Sundstabacken, the quays and paths along Hammarby kanal, Hammarby slussväg, the low ground under the arches and Skansbrogatan under the metro's deck, between its abutments (src/detail/skanstull.ts), 14–33 m under the rails. The track over them made a band 8–16 m wide and 580 m long the track's, cutting off the streets and paths under it. Not paved: the ground keeps its own grass and streets."
+    }
+  ],
+  "water": [
+    {
+      "outline": [[1046.3, 3154.7], [1051.1, 3153.2], [1188.4, 3114.2], [1193.2, 3112.7], [1195.2, 3124.6], [1190.4, 3126.1], [1174.6, 3131.4], [1060.8, 3169.0], [1056.0, 3170.5]],
+      "why": "Hammarby kanal at Skanstull, from Årstaviken to Hammarby sjö under Johanneshovsbron, Skanstullsbron (src/detail/skanstull.ts) and Skansbron. The elevation model fills in the ground under the bridges between their ends, and OpenStreetMap has the canal only as Mälaren's shores, 12–19 m apart, too close together to bound the water on the model's 5 m grid, so it was dry grass under the bridges. Its shores as OpenStreetMap has them, 5 m on into the open water at each end."
     }
   ]
 }

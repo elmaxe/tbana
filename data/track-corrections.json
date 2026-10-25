@@ -177,6 +177,24 @@
     {
       "op": "retag",
       "nodes": [
+        1279783389,
+        1279783410
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's northbound track tunnel=yes from its portal in the cutting east of Nynäsvägen; under Nynäsvägen it runs in the open beside the southbound track, under the road's bridge (src/detail/farsta-line-north.ts), whose deck the laser scan has open underneath from the cutting to the gap between the road and the bus terminal, not in a box. Its box begins at the terminal's edge, 9 m beyond the bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        1279783410,
+        1279783390
+      ],
+      "structure": "surface",
+      "why": "Gullmarsplan: OSM tags the Skärmarbrink line's northbound track tunnel=yes from its portal in the cutting east of Nynäsvägen; under Nynäsvägen it runs in the open beside the southbound track, under the road's bridge (src/detail/farsta-line-north.ts), whose deck the laser scan has open underneath from the cutting to the gap between the road and the bus terminal, not in a box. Its box begins at the terminal's edge, 9 m beyond the bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
         161383,
         5282566353
       ],
@@ -227,6 +245,15 @@
       ],
       "structure": "surface",
       "why": "Västertorp: OSM tags the two tracks bridges for 13 m where they cross a footpath's tunnel through the embankment 65 m south-west of the station's node, which cuts them into short pieces under the island platform's south-western third; they run on the embankment there, as on either side (Lantmäteriet's laser scan), and the platform, which OSM draws on over them, stopped short where the pieces start."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        290801719,
+        12489297994
+      ],
+      "structure": "bridge",
+      "why": "Between Stureby and Bandhagen: the long crossover from the northern track to the southern runs between them over Bandhagsvägen on the bridge's one broad deck (Lantmäteriet's laser scan: 15 m wide, from 6 m west of the northern track's bridge to 10 m east of it). OSM leaves it untagged, so it stood on a bank across the road under the bridge."
     }
   ],
   "crossovers": [
@@ -839,6 +866,38 @@
     {
       "at": [146218.1, 6575516.8],
       "why": "Bredäng, the northern track at the platform's east end, by the ticket gates (as the southern track, above): its last point on the platform is 10 m short of them."
+    },
+    {
+      "at": [154359.1, 6576922.6],
+      "why": "Skanstull, the eastern track 110 m into the tunnel from its mouth at Skanstullsbron's northern end: OSM has no point on it between 66 m in, where the track is still coming down from Skanstullsbron at 4%, and the platform's middle, 258 m in, so its height sloped straight between them, and the south hall's passages over the tracks just beyond the platform's end, on floors 3.55 m over the platform, stood in the trains' way. With this point and the next the track comes down onto the platform's level before the hall (the rail heights in data/height-corrections.json)."
+    },
+    {
+      "at": [154349.2, 6576966.5],
+      "why": "Skanstull, the eastern track 155 m into the tunnel, just short of the south hall's passages (as the point before)."
+    },
+    {
+      "at": [154339.9, 6577008.0],
+      "why": "Skanstull, the eastern track at the platform's south end: OSM's nearest points are 61 m inside the platform and 132 m beyond its end, so the track sloped along the platform's southern half."
+    },
+    {
+      "at": [154302.8, 6577184.1],
+      "why": "Skanstull, the eastern track at the platform's north end: OSM has no point on it between the platform's middle and 205 m beyond its north end."
+    },
+    {
+      "at": [154355.3, 6576921.8],
+      "why": "Skanstull, the western track 110 m into the tunnel from its mouth, as the eastern track (above)."
+    },
+    {
+      "at": [154345.5, 6576965.7],
+      "why": "Skanstull, the western track 155 m into the tunnel, just short of the south hall's passages (as the eastern track, above)."
+    },
+    {
+      "at": [154336.2, 6577007.2],
+      "why": "Skanstull, the western track at the platform's south end (as the eastern track, above)."
+    },
+    {
+      "at": [154299.4, 6577183.3],
+      "why": "Skanstull, the western track at the platform's north end (as the eastern track, above)."
     }
   ]
 }

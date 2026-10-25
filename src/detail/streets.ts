@@ -25,6 +25,7 @@ export interface StreetGround {
   height: (x: number, z: number) => number;        // the ground as drawn
   bare: (x: number, z: number) => boolean;         // there to draw on: not cut away, nor the track's
   water: (x: number, z: number) => number | null;  // the level of water over the ground's cell there
+  outline?: V2[];                                  // a deck's edges (convex), where it ends: what is laid on it is cut there
 }
 export interface TileStreets { streets?: Street[]; squares?: Square[]; trees?: Tree[]; ground: StreetGround }
 
@@ -242,7 +243,8 @@ function drape(poly: V2[], G: StreetGround, emit: (pts: V3[], n: V3) => void, bo
       const hNW = G.height(cx, cz), hSE = G.height(cx + s, cz + s);
       for (const upper of [true, false]) {
         // north-east of the cell's diagonal (x − cx ≥ z − cz), or south-west of it
-        const q = upper ? clipHalf(p, 1, -1, cx - cz) : clipHalf(p, -1, 1, cz - cx);
+        let q = upper ? clipHalf(p, 1, -1, cx - cz) : clipHalf(p, -1, 1, cz - cx);
+        if (G.outline) q = edges(G.outline).reduce((r, [a, b, c]) => clipHalf(r, a, b, c), q);
         if (q.length < 3 || Math.abs(area(q)) < 1e-4) continue;
         let mx = 0, mz = 0;
         for (const [x, z] of q) { mx += x / q.length; mz += z / q.length; }
@@ -265,7 +267,16 @@ function drape(poly: V2[], G: StreetGround, emit: (pts: V3[], n: V3) => void, bo
 // between where the edge crosses the ground's cells and their diagonals.
 function kerb(B: Builder, G: StreetGround, a: V2, b: V2, out: V2, h: number) {
   const s = G.step, dx = b[0] - a[0], dz = b[1] - a[1];
-  const ts = [0, 1];
+  // (on a deck, only as far as its edges)
+  let t0 = 0, t1 = 1;
+  for (const [ea, eb, ec] of G.outline ? edges(G.outline) : []) {
+    const f0 = ea * a[0] + eb * a[1] - ec, df = ea * dx + eb * dz;
+    if (Math.abs(df) < 1e-9) { if (f0 < 0) return; continue; }
+    const t = -f0 / df;
+    if (df > 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t);
+  }
+  if (t1 - t0 < 1e-4) return;
+  const ts = [t0, t1];
   const cuts = (from: number, d: number) => {
     if (Math.abs(d) < 1e-9) return;
     for (let m = Math.ceil(Math.min(from, from + d) / s); m * s < Math.max(from, from + d); m++) ts.push((m * s - from) / d);
@@ -273,6 +284,7 @@ function kerb(B: Builder, G: StreetGround, a: V2, b: V2, out: V2, h: number) {
   cuts(a[0], dx); cuts(a[1], dz); cuts(a[0] - a[1], dx - dz);
   ts.sort((p, q) => p - q);
   B.tint(KERB);
+  if (t0 > 0 || t1 < 1) ts.splice(0, ts.length, ...ts.filter((t) => t >= t0 && t <= t1));
   for (let k = 0; k + 1 < ts.length; k++) {
     if (ts[k + 1] - ts[k] < 1e-4) continue;
     const p: V2 = [a[0] + dx * ts[k], a[1] + dz * ts[k]], q: V2 = [a[0] + dx * ts[k + 1], a[1] + dz * ts[k + 1]];
@@ -312,6 +324,14 @@ function rect(a: V2, d: V2, t0: number, t1: number, u0: number, u1: number): V2[
 }
 function disc([x, z]: V2, r: number): V2[] {
   return Array.from({ length: 10 }, (_, k): V2 => [x + r * Math.cos((k / 10) * Math.PI * 2), z + r * Math.sin((k / 10) * Math.PI * 2)]);
+}
+// a convex outline's edges as the half-planes a·x + b·z ≥ c inside it
+function edges(ring: V2[]): [number, number, number][] {
+  const w = Math.sign(area(ring));
+  return ring.map((p, i) => {
+    const q = ring[(i + 1) % ring.length], a = -(q[1] - p[1]) * w, b = (q[0] - p[0]) * w;
+    return [a, b, a * p[0] + b * p[1]];
+  });
 }
 function area(p: V2[]) {
   let a = 0;

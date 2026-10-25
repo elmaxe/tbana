@@ -691,7 +691,9 @@ function updateAtmosphere(player: Player<Floor>, dt: number) {
   // flying, out in the open anywhere but in a station or a tunnel: over the city, or in the rock
   // round them
   const target = player.fly ? inside ?? (game?.city ? 1 : 0.5) : inside ?? game?.city?.outdoorsAt(x, y, z) ?? station;
-  outdoor += (target - outdoor) * Math.min(1, dt * 3);
+  // (at once for a picture from a given camera, ?cam: on a slow renderer it would still be on its
+  // way when the picture is taken)
+  outdoor += (target - outdoor) * (params.has('cam') ? 1 : Math.min(1, dt * 3));
   // flying over the city, the sky; without it, the dark the network hangs in
   background.copy(DARK).lerp(SKY, player.fly && !game?.city ? 0 : outdoor);
   fog.color.copy(background);

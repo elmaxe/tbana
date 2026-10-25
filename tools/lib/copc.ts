@@ -22,7 +22,17 @@ export interface CopcFile {
 // The file's header and its whole hierarchy (all its pages).
 export async function openCopc(url: string, headers: Record<string, string> = {}): Promise<CopcFile> {
   const get: Getter = async (begin, end) => {
-    const res = await fetch(url, { headers: { ...headers, Range: `bytes=${begin}-${end - 1}` } });
+    // a long scan makes thousands of requests, and now and then one has its connection reset
+    const fetchRange = async (tries = 4): Promise<Response> => {
+      try {
+        return await fetch(url, { headers: { ...headers, Range: `bytes=${begin}-${end - 1}` } });
+      } catch (e) {
+        if (tries <= 1) throw e;
+        await new Promise((r) => setTimeout(r, 2000));
+        return fetchRange(tries - 1);
+      }
+    };
+    const res = await fetchRange();
     if (!res.ok) throw new Error(`${url}: ${res.status} ${res.statusText}`);
     const buf = new Uint8Array(await res.arrayBuffer());
     // a server that ignores the range sends the whole file
