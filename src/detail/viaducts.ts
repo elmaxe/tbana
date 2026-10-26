@@ -15,7 +15,8 @@ import { DETAIL_ON } from './areas.ts';
 // (src/detail/farsta-line-north.ts) and on the Hagsätra line (src/detail/hagsatra-line.ts) and the
 // Skarpnäck line (src/detail/skarpnack-line.ts), and Skanstullsbron (src/detail/skanstull.ts), and
 // Tranebergsbron and the bridges west of it to Islandstorget (src/detail/vasterort.ts) and on to
-// Johannelund (src/detail/hasselby-line.ts). Within `r` metres of `at` the network (src/network.ts)
+// Johannelund (src/detail/hasselby-line.ts), and the blue line's over Igelbäcken and either side of
+// Kista (src/detail/akalla-line.ts). Within `r` metres of `at` the network (src/network.ts)
 // leaves out its own piers, the railings along its decks and the lamps over its platforms, and keeps
 // the player off its platforms where the `solids` stand on them; where `girder`, it leaves out its
 // decks' girders too, which the landmark draws in their real shape.
@@ -139,7 +140,24 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Abiskovägen', at: [-11041.1, -3936.0], r: 18.2, solids: [], girder: true },
   { name: 'Bergslagsvägen viaduct', at: [-11305.0, -4041.7], r: 87.9, solids: [], girder: true },
   { name: 'Lövstavägen viaduct', at: [-11590.1, -4071.6], r: 58.3, solids: [], girder: true },
+  // (the blue line's bridges over Igelbäcken and Kista's viaduct either side of the station
+  // (src/detail/akalla-line.ts): each holding the network's deck where the landmark's decks are, and
+  // none of it beyond them)
+  { name: 'Igelbäcken', at: [-5203.0, -6819.4], r: 191, solids: [], girder: true },
+  { name: 'Kista viaduct 1', at: [-6116.3, -7590.5], r: 129.4, solids: [], girder: true },
+  { name: 'Kista viaduct 2', at: [-6330.1, -7664.7], r: 108.8, solids: [], girder: true },
+  { name: 'Kista viaduct 3', at: [-6505.7, -7772.9], r: 113.5, solids: [], girder: true },
+  { name: 'Kista viaduct 4', at: [-6762.1, -8139.4], r: 123, solids: [], girder: true },
 ];
+
+// Tunnel mouths drawn in detail near the camera: Kymlinge's, one flat roof over both tracks and the
+// platform between them (src/detail/akalla-line.ts). Within `r` metres of `at` the network leaves
+// out the headwalls round its tunnels' mouths.
+export const DETAILED_PORTALS: { name: string; at: [number, number]; r: number }[] = [
+  // (both tracks' mouths, 118 m north-west of the western deck's end over Igelbäcken)
+  { name: 'Kymlinge', at: [-5363.1, -7082.7], r: 9 },
+];
+export const portalInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_PORTALS.some((p) => Math.hypot(x - p.at[0], z - p.at[1]) < p.r);
 
 // whether the network leaves the viaduct at (x, z) to a landmark
 export const viaductInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_VIADUCTS.some((v) => Math.hypot(x - v.at[0], z - v.at[1]) < v.r);

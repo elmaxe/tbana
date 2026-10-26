@@ -254,6 +254,51 @@
       ],
       "structure": "bridge",
       "why": "Between Stureby and Bandhagen: the long crossover from the northern track to the southern runs between them over Bandhagsvägen on the bridge's one broad deck (Lantmäteriet's laser scan: 15 m wide, from 6 m west of the northern track's bridge to 10 m east of it). OSM leaves it untagged, so it stood on a bank across the road under the bridge."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        46960329,
+        46959834
+      ],
+      "structure": "surface",
+      "why": "Kymlinge, the western track: OSM tags it bridge from the tunnel's mouth north-west of the unused station, but Lantmäteriet's laser scan (2021) has it on the ground along the platform, at 21.3–21.5 m, for the 117 m to where the deck of the bridge over Igelbäcken's valley starts (its node is moved there, below)."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        46960978,
+        46960237
+      ],
+      "structure": "surface",
+      "why": "Kymlinge, the eastern track: as the western track, on the ground from the tunnel's mouth along the platform to the bridge's deck."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        46959856,
+        46959852
+      ],
+      "structure": "surface",
+      "why": "South-east of the bridge over Igelbäcken's valley, the western track: OSM tags it bridge from the tunnel's mouth, but the laser scan has it on the ground, falling from 15.3 m to 14.3 m towards the tunnel, for the 55 m to the deck (its node is moved to the deck's end, below)."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        10980368205,
+        46960216
+      ],
+      "structure": "surface",
+      "why": "South-east of the bridge over Igelbäcken's valley, the eastern track: OSM tags it bridge from the tunnel's mouth, but the laser scan has it on the ground (14.2–15.5 m) for the 57 m to the deck."
+    },
+    {
+      "op": "retag",
+      "nodes": [
+        46960220,
+        10980368205
+      ],
+      "structure": "surface",
+      "why": "As the link south of it: on the ground up to the deck's end."
     }
   ],
   "crossovers": [
@@ -465,6 +510,56 @@
       "node": 3160187317,
       "to": [152166.10, 6585635.00],
       "why": "The bridge over Stocksundet, the eastern track 226 m north of the bridge's southern end: moved onto the laser-scanned deck, as its node at the southern end."
+    },
+    {
+      "node": 46959852,
+      "to": [148243.1, 6586253.0],
+      "why": "The bridge over Igelbäcken's valley at Kymlinge, the western track's south-eastern end: OSM's bridge starts 15 m short of the end of the deck in Lantmäteriet's laser scan (2021); the node is moved along the track to it."
+    },
+    {
+      "node": 46959848,
+      "to": [148235.7, 6586284.2],
+      "why": "The bridge over Igelbäcken's valley, the western track 32 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 4.3 m east of their decks."
+    },
+    {
+      "node": 46959843,
+      "to": [148200.9, 6586367.5],
+      "why": "The bridge over Igelbäcken's valley, the western track 122 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 4.3 m east of their decks."
+    },
+    {
+      "node": 46959842,
+      "to": [148173.8, 6586419.4],
+      "why": "The bridge over Igelbäcken's valley, the western track 180 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 4.3 m east of their decks."
+    },
+    {
+      "node": 46959840,
+      "to": [148139.7, 6586475.8],
+      "why": "The bridge over Igelbäcken's valley, the western track 246 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 4.3 m east of their decks."
+    },
+    {
+      "node": 46960329,
+      "to": [148065.1, 6586584.8],
+      "why": "The bridge over Igelbäcken's valley, the western track's north-western end: OSM's bridge ends 11 m short of the end of the deck in the laser scan, at Kymlinge's platform; the node is moved along the track to it."
+    },
+    {
+      "node": 46960222,
+      "to": [148239.9, 6586322.6],
+      "why": "The bridge over Igelbäcken's valley, the eastern track 67 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 3.1 m east of their decks."
+    },
+    {
+      "node": 46960223,
+      "to": [148219.5, 6586369.8],
+      "why": "The bridge over Igelbäcken's valley, the eastern track 119 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 3.1 m east of their decks."
+    },
+    {
+      "node": 586452384,
+      "to": [148188.1, 6586429.4],
+      "why": "The bridge over Igelbäcken's valley, the eastern track 186 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 3.1 m east of their decks."
+    },
+    {
+      "node": 46960231,
+      "to": [148151.1, 6586489.8],
+      "why": "The bridge over Igelbäcken's valley, the eastern track 256 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 3.1 m east of their decks."
     }
   ],
   "platforms": [

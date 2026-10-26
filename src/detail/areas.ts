@@ -161,6 +161,16 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Hässelby gård–Hässelby strand 1', x: -12500, z: -3850, r: 200 },
   { name: 'Hässelby gård–Hässelby strand 2', x: -12700, z: -3640, r: 200 },
   { name: 'Hässelby strand', x: -12860, z: -3420, r: 200 },
+  // the blue line in the open between Hallonbergen and Husby: Igelbäcken's valley and Kymlinge, the
+  // cutting at Ärvinge and Kista's viaduct
+  { name: 'Igelbäcken', x: -5160, z: -6720, r: 200 },
+  { name: 'Kymlinge', x: -5300, z: -6960, r: 200 },
+  { name: 'Ärvinge', x: -5790, z: -7510, r: 200 },
+  { name: 'Ärvinge–Kista 1', x: -6060, z: -7570, r: 200 },
+  { name: 'Ärvinge–Kista 2', x: -6320, z: -7660, r: 200 },
+  { name: 'Ärvinge–Kista 3', x: -6500, z: -7800, r: 200 },
+  { name: 'Kista', x: -6630, z: -7960, r: 200 },
+  { name: 'Kista–Husby', x: -6800, z: -8180, r: 200 },
 ];
 
 // whether (x, z) is in an area, or within `margin` metres of one

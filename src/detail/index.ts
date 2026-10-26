@@ -28,6 +28,10 @@ import {
   SKARMARBRINK_FLYOVER, SPARRMANS, SPARRMANSVAGEN, ULRICEHAMNS, ULRICEHAMNSVAGEN, YSTADS, YSTADSVAGEN,
 } from './skarpnack-line.ts';
 import { buildSkanstullsbron, SKANSTULLSBRON_PARTS } from './skanstull.ts';
+import {
+  ARVINGE_ROCK, buildArvingeRock, buildKymlinge, buildKymlingelanken, IGELBACKEN, IGELBACKEN_EAST, IGELBACKEN_WEST, KISTA_1, KISTA_2, KISTA_3, KISTA_4,
+  KISTA_VIADUCT_1, KISTA_VIADUCT_2, KISTA_VIADUCT_3, KISTA_VIADUCT_4, KL_ANCHOR, KYMLINGE,
+} from './akalla-line.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import {
   ABRAHAMSBERGSVAGEN, ABRAHAMSBERGSVAGEN_BRIDGE, AKESHOVSVAGEN, AKESHOVSVAGEN_BRIDGE, ALVIK_FLYOVER, ANGBY_UNDERPASS, ANGBY_UNDERPASS_BRIDGE, BROMMAPLAN_VIADUCT, BROMMAPLAN_WEST, buildDvTvarbanan, buildEssingeleden, buildLindhagensplan, buildMariebergsavfarten, buildNockebyViaduct, buildTranebergsbron, buildTranebergsslinganRoads,
@@ -194,6 +198,18 @@ const LANDMARKS: Landmark[] = [
   { name: 'Bergslagsvägen viaduct', outline: [], anchor: BERGSLAGSVAGEN_VIADUCT.at(81, 0.3), build: buildSkarpnackViaduct(BERGSLAGSVAGEN_VIADUCT_BRIDGE) },
   { name: 'Lövstavägen viaduct', outline: [], anchor: LOVSTAVAGEN.at(48, 1.8), build: buildLovstavagen },
   ...HASSELBY_ROADS.map((r): Landmark => ({ name: r.name, outline: [], anchor: r.anchor, build: r.build })),
+  // the blue line in the open between Hallonbergen and Husby: the bridges over Igelbäcken,
+  // Kymlinge's platform, Kymlingelänken's deck over the cutting at Ärvinge and the cutting's rock,
+  // and Kista's viaduct either side of the station (src/detail/akalla-line.ts)
+  { name: 'Igelbäcken bridge west', outline: [], anchor: IGELBACKEN.at(190, 17), build: buildSkarpnackViaduct(IGELBACKEN_WEST) },
+  { name: 'Igelbäcken bridge east', outline: [], anchor: IGELBACKEN.at(180, 34), build: buildSkarpnackViaduct(IGELBACKEN_EAST) },
+  { name: 'Kymlinge', outline: [], anchor: KYMLINGE.at(98, 8.5), build: buildKymlinge },
+  { name: 'Kymlingelänken', outline: [], anchor: KL_ANCHOR, build: buildKymlingelanken },
+  { name: 'Ärvinge cutting', outline: [], anchor: ARVINGE_ROCK, build: buildArvingeRock },
+  { name: 'Kista viaduct 1', outline: [], anchor: KISTA_1.at(125, 3.3), build: buildSkarpnackViaduct(KISTA_VIADUCT_1) },
+  { name: 'Kista viaduct 2', outline: [], anchor: KISTA_2.at(104, 4), build: buildSkarpnackViaduct(KISTA_VIADUCT_2) },
+  { name: 'Kista viaduct 3', outline: [], anchor: KISTA_3.at(105, 10), build: buildSkarpnackViaduct(KISTA_VIADUCT_3) },
+  { name: 'Kista viaduct 4', outline: [], anchor: KISTA_4.at(115, 13), build: buildSkarpnackViaduct(KISTA_VIADUCT_4) },
   // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
   // beside it (src/detail/globen.ts)
   { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },
