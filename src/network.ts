@@ -15,7 +15,7 @@ import { OPEN_STYLES, hallDrawn } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
-import { girderInDetail, viaductInDetail, viaductSolids } from './detail/viaducts.ts';
+import { girderInDetail, portalInDetail, viaductInDetail, viaductSolids } from './detail/viaducts.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -2670,7 +2670,8 @@ export class Network {
     // (into a station, only a little over the crown: the station's other levels may be over it)
     const portal = (t: Sample, station = false) => {
       const shell = shellOutline(t);
-      if (!shell) return;
+      // (a mouth drawn in detail has its own, src/detail/viaducts.ts)
+      if (!shell || (!station && portalInDetail(t.x, t.z))) return;
       const inner = shell.pts;
       const [sa, sb] = structureSpan(t), mid = (sa + sb) / 2;
       const crown = Math.max(...inner.map((p) => p[1]));
