@@ -26,8 +26,8 @@ import { buildViaduct, type Support, type Viaduct } from './skarpnack-line.ts';
 // it from OpenStreetMap, which the bents keep clear of. The tracks' heights are the laser scan's
 // (data/height-corrections.json). The network draws the tracks on the metro's deck and leaves its
 // girders, piers and railings to this (src/detail/viaducts.ts); the city leaves out the road on
-// it, OpenStreetMap's bridge, which this lays on its deck. Johanneshovsbron beside it, and the
-// interchange at its southern end, are not drawn.
+// it, OpenStreetMap's bridge, which this lays on its deck. Johanneshovsbron beside it and the
+// roundabout at its southern end are src/detail/johanneshovsbron.ts and johanneshovsmotet.ts.
 export const SKANSTULLSBRON = new Frame([1194.73, 3352.91], [-0.2973, -0.9548]);
 const SB = SKANSTULLSBRON;
 const SB_TRACKS: Rows = [

@@ -207,7 +207,7 @@
         [1377, 3784]
       ],
       "reach": 10,
-      "why": "Gullmarsplan, south-east of the platforms: the northbound track from Skärmarbrink runs under the bus terminal's deck from its portal by Nynäsvägen, in a concrete box at the level of the station's cutting, not a bored tunnel. The elevation model has the cutting's floor under the deck, at the rails' level, so cover of rock would put the track 6 m under the station and drag the platforms down with it."
+      "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink runs under the bus terminal's deck to its portal by Nynäsvägen, at the level of the station's cutting, not in a bored tunnel. The elevation model has the cutting's floor under the deck, at the rails' level, so cover of rock would put the track 6 m under the station and drag the platforms down with it."
     },
     {
       "along": [
@@ -222,7 +222,7 @@
         [1379, 3791]
       ],
       "reach": 10,
-      "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, under the bus terminal's deck to the same portal as the northbound one beside it."
+      "why": "Gullmarsplan, south-east of the platforms: the northbound track from Skärmarbrink, under the bus terminal's deck from the same portal as the southbound one beside it."
     },
     {
       "along": [[-9960.5, 7445.4], [-9943.1, 7469.9], [-9927.4, 7495.6], [-9910.8, 7520.6], [-9893.4, 7545.1], [-9876.1, 7569.6]],
@@ -359,7 +359,17 @@
         [1306.8, 3758.2, 34.9]
       ],
       "reach": 4,
-      "why": "Gullmarsplan, south-east of the platforms: the southbound track to Skärmarbrink, after it has passed under the tracks to Globen, stays in its deeper tunnel (OpenStreetMap: layer -3) for another 50 m before it climbs to the portal it shares with the northbound track. Left to the solve, it rose to within 1.5 m of the northbound track at once, so the two were drawn as one pair in a single tunnel, though OpenStreetMap has them 25 m apart there, and the plan bent them tighter than the line's 200 m curves."
+      "why": "Gullmarsplan, south-east of the platforms: the northbound track from Skärmarbrink, on its way to the western platform under the tracks to Globen, runs in its deeper tunnel (OpenStreetMap: layer -3) for 50 m before it reaches them, from the portal it shares with the southbound track. Left to the solve, it rose to within 1.5 m of the southbound track at once, so the two were drawn as one pair in a single tunnel, though OpenStreetMap has them 25 m apart there, and the plan bent them tighter than the line's 200 m curves."
+    },
+    {
+      "along": [
+        [1317.3, 3746.0, 35.45],
+        [1324.0, 3753.0, 35.35],
+        [1331.3, 3759.5, 35.45]
+      ],
+      "reach": 3,
+      "sigma": 0.15,
+      "why": "Gullmarsplan, the southbound track to Skärmarbrink in the open gap between the bus terminal's deck and Nynäsvägen's: Lantmäteriet's laser scan has its ballast at 34.9 to 35.25 m there. From the platforms it runs down at about 1.5 % under the terminal, bottoms out in the gap and climbs under Nynäsvägen to its portal; left to the solve, it ran nearly level from the platforms and passed the gap 1 m too high."
     },
     {
       "along": [
@@ -2008,7 +2018,7 @@
       ],
       "reach": 20,
       "clearance": 5.0,
-      "why": "Gullmarsplan, south of the platforms: the southbound track to Skärmarbrink passes under the two tracks to Globen (OpenStreetMap: layer -3 under -2) about 70 m from the platforms' south ends, which the laser scan puts at 38.3 m. Held level that far, the tracks can part by only about 5.2 m at the line's gradient, so with the usual 6.5 m the junction dragged the whole station 2.5 m down. Concrete boxes with a thin slab between them need about 5 m: a C20 is 3.7 m tall over the rail."
+      "why": "Gullmarsplan, south of the platforms: the northbound track from Skärmarbrink passes under the two tracks to Globen (OpenStreetMap: layer -3 under -2) about 70 m from the platforms' south ends, which the laser scan puts at 38.3 m. Held level that far, the tracks can part by only about 5.2 m at the line's gradient, so with the usual 6.5 m the junction dragged the whole station 2.5 m down. Concrete boxes with a thin slab between them need about 5 m: a C20 is 3.7 m tall over the rail."
     }
   ],
   "walled": [

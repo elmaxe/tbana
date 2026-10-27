@@ -32,6 +32,11 @@ import {
   ARVINGE_ROCK, buildArvingeRock, buildKymlinge, buildKymlingelanken, IGELBACKEN, IGELBACKEN_EAST, IGELBACKEN_WEST, KISTA_1, KISTA_2, KISTA_3, KISTA_4,
   KISTA_VIADUCT_1, KISTA_VIADUCT_2, KISTA_VIADUCT_3, KISTA_VIADUCT_4, KL_ANCHOR, KYMLINGE,
 } from './akalla-line.ts';
+import { buildJohanneshovsbron, buildRamp, JOHANNESHOVSBRON_PARTS, OFF_RAMP, ON_RAMP } from './johanneshovsbron.ts';
+import { armAnchor, ARMS, buildGroundRoads, buildRing, buildStationDeckStreets, GROUND_ROAD_TILES, STATION_DECK_ANCHOR } from './johanneshovsmotet.ts';
+import { buildTunnelMouths, MOUTHS_ANCHOR } from './soderledstunneln.ts';
+import { buildTerminal, TERMINAL_ANCHOR, TERMINAL_OUTLINE } from './gullmarsplan-terminal.ts';
+import { buildRoadDeck } from './road-bridges.ts';
 import { buildStreets, type StreetGround, type TileStreets } from './streets.ts';
 import {
   ABRAHAMSBERGSVAGEN, ABRAHAMSBERGSVAGEN_BRIDGE, AKESHOVSVAGEN, AKESHOVSVAGEN_BRIDGE, ALVIK_FLYOVER, ANGBY_UNDERPASS, ANGBY_UNDERPASS_BRIDGE, BROMMAPLAN_VIADUCT, BROMMAPLAN_WEST, buildDvTvarbanan, buildEssingeleden, buildLindhagensplan, buildMariebergsavfarten, buildNockebyViaduct, buildTranebergsbron, buildTranebergsslinganRoads,
@@ -158,6 +163,22 @@ const LANDMARKS: Landmark[] = [
   // Skanstullsbron, from Gullmarsplan over Hammarby kanal to Södermalm: the metro's deck and the road's
   // beside it, their bents and arches, in three parts along it (src/detail/skanstull.ts)
   ...SKANSTULLSBRON_PARTS.map((p, i): Landmark => ({ name: `Skanstullsbron ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildSkanstullsbron(B, g, p.range) })),
+  // Johanneshovsbron beside it, Söderleden's bridge from Skanstull over the canal and over
+  // Skanstullsbron's end to Gullmarsplan, and its ramps for Gullmarsplan; at its northern end
+  // Söderledstunneln's mouths in the hotel's walls on Ringvägen (src/detail/soderledstunneln.ts)
+  { name: "Söderledstunneln's mouths", outline: [], anchor: MOUTHS_ANCHOR, build: buildTunnelMouths },
+  ...JOHANNESHOVSBRON_PARTS.map((p, i): Landmark => ({ name: `Johanneshovsbron ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildJohanneshovsbron(B, g, p.range) })),
+  { name: 'Johanneshovsbron off-ramp', outline: [], anchor: [1239, 3480], build: (B, g) => buildRamp(B, g, OFF_RAMP) },
+  { name: 'Johanneshovsbron on-ramp', outline: [], anchor: [1270, 3457], build: (B, g) => buildRamp(B, g, ON_RAMP) },
+  // the roundabout at its southern end, its arms, and the roads at ground level under them
+  { name: 'Johanneshovsmotet', outline: [], anchor: [1292.36, 3582.04], build: buildRing },
+  ...ARMS.map((a): Landmark => ({ name: `Johanneshovsmotet's ${a.name} arm`, outline: [], anchor: armAnchor(a.deck), build: (B, g) => buildRoadDeck(B, g, a.deck) })),
+  ...GROUND_ROAD_TILES.map((p, i): Landmark => ({ name: `Johanneshovsmotet's roads ${i + 1}`, outline: [], anchor: p, build: (B, g, s) => buildGroundRoads(B, p, s) })),
+  // and Johanneshovsvägen west of it, on the deck over Gullmarsplan's platforms, which the station draws
+  { name: "Johanneshovsvägen's deck", outline: [], anchor: STATION_DECK_ANCHOR, build: (B, g, s) => buildStationDeckStreets(B, s) },
+  // and south of the station Gullmarsplan's bus terminal, on its deck over the tracks to Skärmarbrink
+  // and Globen, with its galleries and pavilions, in place of the city's blocks for them
+  { name: 'Gullmarsplan bus terminal', outline: TERMINAL_OUTLINE, anchor: TERMINAL_ANCHOR, build: buildTerminal },
   // the roads over and beside the line between Fridhemsplan and Kristineberg: Drottningholmsvägen's
   // trench, in two parts, Lindhagensplan's deck over it, Mariebergsavfarten's ramps, and Essingeleden's
   // viaduct, in two parts, with Fredhällspåfarten's deck under it (src/detail/vasterort.ts)
