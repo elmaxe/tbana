@@ -8,6 +8,7 @@ import { inclineCorners, liftCorners } from './station-layout';
 import type { StationLayout, StationLayouts } from './station-layout';
 import type { TrackGraph } from './track-graph';
 import type { TrackGeometry } from './track-geometry';
+import { spreadAt } from './track-geometry';
 
 export type XZ = [number, number];
 export interface Box { x0: number; z0: number; x1: number; z1: number }
@@ -136,7 +137,9 @@ export function buildLayers(graph: TrackGraph, geometry: TrackGeometry, layouts:
         // to the right looking along the piece
         const rx = -dz / l, rz = dx / l;
         edge.push([x + rx * pl.side * PLATFORM_EDGE, z + rz * pl.side * PLATFORM_EDGE]);
-        back.push([x + rx * out, z + rz * out]);
+        // (to the middle of an island where its tracks close in)
+        const d = pl.island ? spreadAt(pl, s) : 0, o = d ? pl.side * Math.min(Math.abs(out), d / 2) : out;
+        back.push([x + rx * o, z + rz * o]);
         ySum += g.y[k] + (g.y[k + 1] - g.y[k]) * t; n++;
       };
       at(pl.s0);

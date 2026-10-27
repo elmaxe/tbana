@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { runningWays } from './track-graph';
 import type { TrackGraph } from './track-graph';
-import { STRUCTURE_KINDS } from './track-geometry';
+import { spreadAt, STRUCTURE_KINDS } from './track-geometry';
 import type { GeometryPiece, GeometryPlatform, StructureKind, TrackGeometry } from './track-geometry';
 import * as S from './sections';
 import * as T from './textures';
@@ -765,9 +765,12 @@ export class Network {
           ? [[side * GROUND_STRIP + toe - e, g], [toe, g], [e, S.FLOOR], [-S.BALLAST.toe, S.FLOOR]]
           : [[S.BALLAST.toe, S.FLOOR], [e, S.FLOOR], [toe, g], [side * GROUND_STRIP + toe - e, g]] };
       }, { uScale: 0.3, vScale: 0.3 });
-      // retaining walls of a cutting, and the ground behind them
+      // retaining walls of a cutting, and the ground behind them (none through a platform on that
+      // side: Gullmarsplan's islands, each with a track of its own line on its outer side, under the
+      // deck the ground model takes for the ground)
+      const platformSide = (sm: Sample) => sm.plat?.side === side || sm.opposite?.side === side;
       sweep(b.concrete, run, (sm) => {
-        if (sm.kind !== 'cutting' || !outer(sm)) return null;
+        if (sm.kind !== 'cutting' || !outer(sm) || platformSide(sm)) return null;
         const u = side * S.CUTTING.wall, t = side * S.CUTTING.thickness, top = Math.max(1, groundV(sm) + S.CUTTING.aboveGround);
         // with the city, its ground falls away behind the wall: the wall's back goes down to it
         return { key: 'cut', pts: [[u, S.FLOOR], [u, top], [u + t, top], [u + t, this.city ? S.FLOOR - 0.5 : groundV(sm)]] };
@@ -876,7 +879,7 @@ export class Network {
       const mine = (sm: Sample) => all(sm) && !!(paving.dahl?.left && onHallLeft(sm)) === left;
       sweep(b[pave] ??= new MeshBuilder(), run, (sm) => {
         if (!mine(sm)) return null;
-        const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = across(sm), o = v ? v / 2 : platformOuter(sm);
+        const p = sm.plat!, e = p.side * S.PLATFORM_EDGE, v = isleAcross(sm), o = v ? v / 2 : platformOuter(sm);
         // (one out to a middle track: to halfway, and the far half from that track's edge, below)
         if (p.reach) return { key: `h${p.side}`, pts: p.side > 0 ? [[e, H], [(e + o) / 2, H]] : [[(e + o) / 2, H], [e, H]] };
         // (an island's halves overlap at its middle, one a hair over the other: where its tracks
@@ -2921,8 +2924,18 @@ function across(sm: Sample) {
   return Math.sign(sm.pair) === p.side ? sm.pair : Math.sign(sm.beside) === p.side ? sm.beside : 0;
 }
 
+// The same for an island whose own pairs don't cross it (a line's two islands with two tracks
+// between them, as at Gullmarsplan): the track across it from its `spread`, where it is narrower
+// than its median width, so that its halves don't run over the tracks where these close in.
+function isleAcross(sm: Sample) {
+  const p = sm.plat, v = across(sm);
+  if (v || !p?.island || !p.spread) return v;
+  const d = spreadAt(p, sm.s);
+  return d && d < 2 * S.PLATFORM_EDGE + p.width ? p.side * d : 0;
+}
+
 function platformOuter(sm: Sample) {
-  const p = sm.plat!, v = across(sm);
+  const p = sm.plat!, v = isleAcross(sm);
   if (v) return v / 2 + p.side * OVERLAP;
   // (a finished vault's, out to its wall)
   if (vaultStyle(sm)?.finish) return p.side * (S.PLATFORM_EDGE + p.width + S.HALL.behindPlatform - 0.01);
@@ -3706,7 +3719,7 @@ function joinPlatforms(list: GeometryPlatform[]): GeometryPlatform[] {
   for (const p of [...list].sort((a, b) => a.s0 - b.s0)) {
     const last = out[out.length - 1];
     if (last && last.station === p.station && last.side === p.side && last.island === p.island && p.s0 - last.s1 < PLATFORM_JOIN) {
-      out[out.length - 1] = { ...last, s1: Math.max(last.s1, p.s1) };
+      out[out.length - 1] = { ...last, s1: Math.max(last.s1, p.s1), ...(last.spread || p.spread ? { spread: [...last.spread ?? [], ...p.spread ?? []].sort((a, b) => a[0] - b[0]) } : {}) };
     } else out.push(p);
   }
   return out;
