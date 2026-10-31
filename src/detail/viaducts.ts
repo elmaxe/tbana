@@ -19,7 +19,8 @@ import { DETAIL_ON } from './areas.ts';
 // Kista (src/detail/akalla-line.ts). Within `r` metres of `at` the network (src/network.ts)
 // leaves out its own piers, the railings along its decks and the lamps over its platforms, and keeps
 // the player off its platforms where the `solids` stand on them; where `girder`, it leaves out its
-// decks' girders too, which the landmark draws in their real shape.
+// decks' girders too, which the landmark draws in their real shape; and it cuts the `cuts` out of
+// what it draws there.
 // Like src/detail/areas.ts it imports next to nothing, for the network.
 
 // Ropsten's frame, as `node tools/build-stations.ts --frame Ropsten` prints it: s metres along the
@@ -35,7 +36,19 @@ export const SNAKE_WALL = { s0: -62, s1: -57.5, u0: -6.1, u1: 4.7 };
 const box = (s0: number, s1: number, u0: number, u1: number, y0: number, y1: number): Volume =>
   prism([ropstenWorld(s0, u0), ropstenWorld(s1, u0), ropstenWorld(s1, u1), ropstenWorld(s0, u1)], [y0, y0, y0, y0], [y1, y1, y1, y1]);
 
-export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number; solids: Volume[]; girder?: boolean }[] = [
+// S:t Eriksbron's frame (src/detail/sankt-eriksbron.ts): s along it north-north-eastwards from the
+// middle of its deck, u to the right; its trough's middle, and the rails' top along it
+const SE = { x: -1380.44, z: -650.8, tx: 0.3826, tz: -0.92391, mid: 0.1, rail: (s: number) => 10.732 + 0.001177 * s };
+const seWorld = (s: number, u: number): [number, number] => [SE.x + SE.tx * s - SE.tz * u, SE.z + SE.tz * s + SE.tx * u];
+// the room outside its trough's sides from one abutment's face to the other, low down, where the
+// network's ballast would stick out through them: the trough holds its tracks 3.2 m apart in 6.8 m
+const seBeside = (side: -1 | 1): Volume => {
+  const [s0, s1] = [-76.8, 74.1], [u0, u1] = side < 0 ? [SE.mid - 4.6, SE.mid - 3.43] : [SE.mid + 3.43, SE.mid + 4.6];
+  const corners: [number, number][] = [[s0, u0], [s1, u0], [s1, u1], [s0, u1]];
+  return prism(corners.map(([s, u]) => seWorld(s, u)), corners.map(([s]) => SE.rail(s) - 0.75), corners.map(([s]) => SE.rail(s) - 0.1));
+};
+
+export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number; solids: Volume[]; girder?: boolean; cuts?: Volume[] }[] = [
   { name: 'Ropsten', at: ropstenWorld(12, 0), r: 105, solids: [box(SNAKE_WALL.s0, SNAKE_WALL.s1, SNAKE_WALL.u0, SNAKE_WALL.u1, ROPSTEN.platform - 0.5, ROPSTEN.platform + 3)] },
   // (from 151 m to 79 m west of Brommaplan's platform's middle)
   { name: 'Brommaplan', at: [-6850.0, -769.5], r: 36, solids: [] },
@@ -148,6 +161,9 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
   { name: 'Kista viaduct 2', at: [-6330.1, -7664.7], r: 108.8, solids: [], girder: true },
   { name: 'Kista viaduct 3', at: [-6505.7, -7772.9], r: 113.5, solids: [], girder: true },
   { name: 'Kista viaduct 4', at: [-6762.1, -8139.4], r: 123, solids: [], girder: true },
+  // (S:t Eriksbron between Fridhemsplan and S:t Eriksplan, its tracks in the trough under the road
+  // from one abutment to the other, 77.6 m south and 74.1 m north of its middle)
+  { name: 'S:t Eriksbron', at: seWorld(-1.75, SE.mid), r: 80, solids: [], girder: true, cuts: [seBeside(-1), seBeside(1)] },
 ];
 
 // Tunnel mouths drawn in detail near the camera: Kymlinge's, one flat roof over both tracks and the
@@ -156,6 +172,11 @@ export const DETAILED_VIADUCTS: { name: string; at: [number, number]; r: number;
 export const DETAILED_PORTALS: { name: string; at: [number, number]; r: number }[] = [
   // (both tracks' mouths, 118 m north-west of the western deck's end over Igelbäcken)
   { name: 'Kymlinge', at: [-5363.1, -7082.7], r: 9 },
+  // (S:t Eriksbron's abutments, the trough's openings in their faces)
+  { name: 'S:t Eriksbron south', at: seWorld(-77.6, SE.mid), r: 8 },
+  { name: 'S:t Eriksbron north', at: seWorld(74.1, SE.mid), r: 8 },
+  // (the box's mouth at the east end of Drottningholmsvägen's trench, under Lindhagensplan, src/detail/vasterort.ts)
+  { name: 'Lindhagensplan', at: [-2216.2, -19.3], r: 6 },
 ];
 export const portalInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_PORTALS.some((p) => Math.hypot(x - p.at[0], z - p.at[1]) < p.r);
 
@@ -165,3 +186,6 @@ export const viaductInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_V
 export const girderInDetail = (x: number, z: number) => DETAIL_ON && DETAILED_VIADUCTS.some((v) => v.girder && Math.hypot(x - v.at[0], z - v.at[1]) < v.r);
 // what stands on their platforms
 export const viaductSolids = (): Volume[] => (DETAIL_ON ? DETAILED_VIADUCTS.flatMap((v) => v.solids) : []);
+// and what the network cuts out of what it draws there, where the landmark's structure is tighter
+// round the tracks than the network's own (S:t Eriksbron's trough)
+export const viaductCuts = (): Volume[] => (DETAIL_ON ? DETAILED_VIADUCTS.flatMap((v) => v.cuts ?? []) : []);
