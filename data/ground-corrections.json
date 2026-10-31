@@ -583,6 +583,10 @@
     {
       "outline": [[1276.5, 3626.7], [1309.0, 3720.8], [1311.7, 3726.3], [1313.3, 3728.9], [1315.7, 3731.2], [1319.8, 3735.1], [1322.4, 3735.8], [1325.6, 3734.7], [1287.1, 3623.0]],
       "why": "Gullmarsplan: the pavement and the street along the bus terminal's eastern side, under and beside the eastern gallery (the laser scan's ground points, asphalt in Google's 3D mesh), not grass."
+    },
+    {
+      "outline": [[-1585.5, -783.0], [-1514.6, -740.7], [-1470.6, -718.3], [-1416.9, -693.4], [-1338.7, -661.3], [-1256.8, -631.8], [-1209.3, -614.9], [-1169.1, -599.5], [-1145.2, -591.7], [-1124.3, -642.1], [-1160.8, -647.4], [-1160.3, -651.8], [-1193.6, -656.4], [-1213.3, -663.9], [-1254.9, -675.9], [-1293.4, -690.2], [-1311.9, -697.1], [-1330.6, -698.5], [-1348.4, -705.2], [-1365.1, -711.7], [-1396.8, -723.7], [-1411.5, -730.5], [-1440.8, -744.2], [-1474.4, -763.3], [-1497.9, -777.5], [-1522.9, -803.1], [-1541.0, -818.7], [-1552.2, -818.1], [-1567.4, -826.7]],
+      "why": "The railway's land between the Central station and Karlberg under S:t Eriksbron's northern spans, from Klarastrandsleden to the fence along Atlasmuren, 240 m either way (OpenStreetMap's landuse=railway): Ostkustbanan's four main lines, the sidings and the yard's tracks on their ballast (src/detail/sankt-eriksbron.ts), gravel and ballast between them. Few buildings stand beside it, so it was grass."
     }
   ],
   "shallow": [
