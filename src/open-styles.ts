@@ -4164,8 +4164,9 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'boardConcrete', roof: 0.15, roofColor: 0x76839a },
       // the walls of the cutting, from the laser scan: on the north the road's (Drottningholmsvägen
       // westbound, falling from 3.3 m over the platform at the west to 0.3 m at the east), on the
-      // south the motorway ramp's, its deck climbing from the ground east of the station to 9.9 m
-      // over the platform at the west, where it bends away south
+      // south the motorway ramp's bank, climbing from the ground east of the station to 7.2 m over the
+      // platform 69 m west of its middle, where Mariebergsavfarten goes on south-westwards over the
+      // road on a deck of its own, open under it (src/detail/vasterort.ts)
       { name: "north road's wall, -120 to -110", plan: [[-120, -4.0], [-110, -3.9], [-110, -22], [-120, -22]], h: [-2.4, 3.28], low: 3.11, from: -2.4,
         walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], roof: 0.02, roofColor: 0x55585a, ground: true },
       { name: "north road's wall, -110 to -100", plan: [[-110, -3.9], [-100, -4.3], [-100, -22], [-110, -22]], h: [-2.4, 3.11], low: 2.96, from: -2.4,
@@ -4192,20 +4193,8 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
         walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
       { name: "north road's wall, 100 to 120", plan: [[100, -13.3], [120, -13.8], [120, -24], [100, -27]], h: [-2.4, 0.26], low: -0.21, from: -2.4,
         walls: 'boardConcrete', sides: [undefined, undefined, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -140 to -130", plan: [[-140, 23.5], [-130, 19.5], [-130, 26.5], [-140, 30.5]], h: [-2.4, 9.83], low: 9.53, from: -2.4,
+      { name: "motorway ramp, -69 to -60", plan: [[-69, 8.39], [-60, 7.8], [-60, 16.25], [-69, 16.9]], h: [-2.4, 7.23], low: 6.86, from: -2.4,
         walls: 'boardConcrete', sides: [undefined, null, undefined, undefined], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -130 to -120", plan: [[-130, 19.5], [-120, 15.5], [-120, 23.0], [-130, 26.5]], h: [-2.4, 9.53], low: 9.23, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -120 to -110", plan: [[-120, 15.5], [-110, 15.1], [-110, 22.5], [-120, 23.0]], h: [-2.4, 9.23], low: 8.84, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -110 to -100", plan: [[-110, 15.1], [-100, 13.2], [-100, 21.5], [-110, 22.5]], h: [-2.4, 8.84], low: 8.51, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -100 to -90", plan: [[-100, 13.2], [-90, 10.7], [-90, 19.0], [-100, 21.5]], h: [-2.4, 8.51], low: 8.06, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -90 to -80", plan: [[-90, 10.7], [-80, 9.1], [-80, 17.7], [-90, 19.0]], h: [-2.4, 8.06], low: 7.69, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
-      { name: "motorway ramp, -80 to -60", plan: [[-80, 9.1], [-60, 7.8], [-60, 16.25], [-80, 17.7]], h: [-2.4, 7.69], low: 6.86, from: -2.4,
-        walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
       { name: "motorway ramp, -60 to -40", plan: [[-60, 7.8], [-40, 7.35], [-40, 15.9], [-60, 16.25]], h: [-2.4, 6.86], low: 6.08, from: -2.4,
         walls: 'boardConcrete', sides: [undefined, null, undefined, null], roof: 0.02, roofColor: 0x55585a, ground: true },
       { name: "motorway ramp, -40 to -20", plan: [[-40, 7.35], [-20, 7.9], [-20, 16.1], [-40, 15.9]], h: [-2.4, 6.08], low: 5.36, from: -2.4,
@@ -4230,7 +4219,7 @@ export const OPEN_STYLES: Record<string, OpenStyle> = {
     // the railings along the walls' tops
     fences: [
       { kind: 'bars', h: [3.30, 4.40], points: [[-120, -4.15, 0.0], [-110, -4.05, -0.17], [-100, -4.45, -0.32], [-80, -4.85, -0.61], [-60, -6.15, -0.97], [-40, -6.65, -1.28], [-20, -7.75, -1.61], [0, -8.7, -1.94], [20, -9.55, -2.38], [40, -10.75, -2.7], [60, -11.65, -2.76], [80, -12.05, -2.86], [100, -13.45, -3.02], [120, -13.95, -3.49]] },
-      { kind: 'bars', h: [9.85, 10.95], points: [[-140, 23.65, 0.0], [-130, 19.65, -0.3], [-120, 15.65, -0.6], [-110, 15.25, -0.99], [-100, 13.35, -1.32], [-90, 10.85, -1.77], [-80, 9.25, -2.14], [-60, 7.95, -2.97], [-40, 7.5, -3.75], [-20, 8.05, -4.47], [0, 8.25, -5.13], [20, 8.95, -5.91], [40, 8.45, -6.69], [60, 7.45, -7.43], [80, 5.8, -8.23], [90, 3.75, -8.57], [100, 2.95, -8.87], [110, 2.15, -9.25]] },
+      { kind: 'bars', h: [9.85, 10.95], points: [[-69, 8.54, -2.6], [-60, 7.95, -2.97], [-40, 7.5, -3.75], [-20, 8.05, -4.47], [0, 8.25, -5.13], [20, 8.95, -5.91], [40, 8.45, -6.69], [60, 7.45, -7.43], [80, 5.8, -8.23], [90, 3.75, -8.57], [100, 2.95, -8.87], [110, 2.15, -9.25]] },
     ],
     art: [
       { kind: 'rooflights', size: 1.7, ceiling: -2.1, top: -1.68,

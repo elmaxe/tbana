@@ -1,7 +1,8 @@
 import type { Builder, V2 } from './builder.ts';
 import { lampMast, lines, Line, railBar, table } from './ropsten.ts';
 import { block, Frame, type Ground, pipeRailing, v3 } from './gubbangen.ts';
-import { band, barrier, barRailing, CONCRETE, type Edge, FLOOR, KERB, line, off, RAILING, railAt, type Rows, steps, track, UNDER } from './farsta-line-north.ts';
+import { band, barrier, barRailing, chainFence, CONCRETE, type Edge, FLOOR, KERB, line, off, RAILING, railAt, type Rows, steps, track, UNDER } from './farsta-line-north.ts';
+import type { LandmarkStreets } from './index.ts';
 import { buildViaduct, CURVED, deckBetween, deckOn, each, RAILINGS, type Support, type Viaduct } from './skarpnack-line.ts';
 import { alongTop, bents, buildRoadDeck, type RoadDeck } from './road-bridges.ts';
 
@@ -78,6 +79,130 @@ export function buildTrench(B: Builder, ground: Ground, [a, b]: V2) {
     B.tint(RAILING);
     for (const r of runs) pipeRailing(B, line(F, r, off(face, side * WALL / 2), (s) => top(s)), 1.0, 2.4);
   }
+}
+
+// ------------------------------------------------------------------ the carriageways in the trench
+// Down in the trench Drottningholmsvägen's two carriageways run either side of the tracks, each
+// parted from them by a wall of concrete panels 1.1 m high with a chain-link fence on it, about
+// 2.5 m out from the outer track (photographs on Mapillary, 2014–2019; Google's mesh). The
+// elevation model's 5 m grid can't part the roads from the tracks, so the city counts the trench's
+// floor as the track's and leaves its streets out there (tools/build-city.ts): they are laid here,
+// the city's own streets where it left them out, on the floor's level (TRENCH_FLOOR) and on an
+// asphalt bed out to the walls.
+// the outer tracks' u along the trench, the network's (public/data/track-geometry.json)
+const TRACK_NORTH = table([[-3.4, 2.51], [6.5, 2.8], [26.1, 3.29], [45.8, 3.74], [65.5, 4.12], [85.2, 4.47], [104.9, 4.79], [124.6, 5.13], [144.2, 5.45],
+  [163.9, 5.8], [183.6, 6.16], [193.4, 6.35]]);
+const TRACK_SOUTH = table([[-2.9, -1.1], [16.8, -0.71], [36.5, -0.29], [56.2, 0.12], [75.9, 0.5], [95.6, 0.83], [115.4, 1.12], [135.1, 1.31], [144.9, 1.32],
+  [154.8, 1.26], [164.6, 1.1], [174.5, 0.83], [184.3, 0.43], [194.2, -0.06]]);
+const PANEL_WALL = { out: 2.5, thick: 0.22, h: 1.1, fence: 1.5 }, PANELS = 0xb8b2a6;
+// each side's panel wall, from its face to the track to its face to the road (side +1 north, −1 south)
+const panelWall = (side: number): [Edge, Edge] => side > 0
+  ? [off(TRACK_NORTH, PANEL_WALL.out), off(TRACK_NORTH, PANEL_WALL.out + PANEL_WALL.thick)]
+  : [off(TRACK_SOUTH, -PANEL_WALL.out), off(TRACK_SOUTH, -PANEL_WALL.out - PANEL_WALL.thick)];
+// At the trench's east end the roads go into their tunnels (Hundra Knutars backe, OpenStreetMap)
+// and the metro into its box, all under Lindhagensplan's eastern side, where the roundabout and the
+// ground east of it lie over them on the tunnels' roof (the photographs: a plain concrete face over
+// three openings, the trench's walls running on into it). The elevation model has the ground under
+// the roundabout down at the tunnels' floors, so the city has a pit there, and no roundabout: the
+// roof is drawn here, its top on the level of the ground round it (the laser scan: 9.2 m at the
+// trench, 9.8 m 30 m east), the city's streets laid on it, with the mouths under its western face,
+// the roads' a few metres deep and dark beyond. In the trench's frame: the face at PORTAL, the roof
+// from there east to ROOF.to and across from ROOF.u[0] to ROOF.u[1]; the roads' tunnels between
+// the trench's walls and the box's (the network's: its outer walls 4.9 m out from the tracks'
+// middle).
+const PORTAL = -0.5, BOX_MOUTH = -2.6, DARK = -4.5, ROOF = { to: -30, u: [-24, 25.5] as V2, depth: 1.0 }, BOX_SIDES: V2 = [-4.25, 5.65];
+const roofTop = (s: number) => 9.22 - 0.02 * Math.min(0, s);
+const GRASS = 0x5c6b40, TUNNEL = 0x2a2b2c;
+
+// the roads are laid with each tile the trench crosses (the city hands a landmark its own tile's
+// streets): the first also draws the panel walls and the tunnels' mouths
+export const TRENCH_ROADS = [TRENCH.at(100, 0), TRENCH.at(185, -12)];
+export function buildTrenchRoads(B: Builder, ground: Ground, streets: LandmarkStreets | undefined, first: boolean) {
+  B.place([0, 0, 0], 0);
+  const F = TRENCH, [s0, s1] = TRENCH_ENDS;
+  if (first) {
+    buildTrenchMouths(B, ground);
+    const ss = steps(BOX_MOUTH, s1, [], 3);
+    for (const side of [1, -1]) {
+      const [back, front] = panelWall(side), mid = off(back, (side * PANEL_WALL.thick) / 2);
+      const foot = (s: number, u: number) => Math.min(ground(...F.at(s, u)) ?? TRENCH_FLOOR(s), TRENCH_FLOOR(s)) - 0.4;
+      B.tint(PANELS);
+      band(B, F, ss, side > 0 ? back : front, side > 0 ? front : back, foot, (s) => TRENCH_FLOOR(s) + PANEL_WALL.h, 'concrete', 3);
+      // the panels' joints, every 3 m on the road's side
+      B.tint(0x8f8a80);
+      for (const s of ss) block(B, F, [[s - 0.03, front(s) - side * 0.01], [s + 0.03, front(s) - side * 0.01], [s + 0.03, front(s) + side * 0.015], [s - 0.03, front(s) + side * 0.015]],
+        () => TRENCH_FLOOR(s), () => TRENCH_FLOOR(s) + PANEL_WALL.h - 0.02, 'concrete', 1, { faces: 'sides' });
+      chainFence(B, line(F, ss, mid, (s) => TRENCH_FLOOR(s) + PANEL_WALL.h), PANEL_WALL.fence);
+    }
+  }
+  if (!streets) return;
+  // in pieces about 24 m long, each a convex outline from the panel wall out past the trench's wall
+  // (over the city's ground where it lies a little higher, as it does in a few of its cells, but not
+  // up the slopes its 5 m grid makes at the trench's end; the bed under the whole width, the streets
+  // only where the city left them out)
+  const city = streets.ground, [ox, oz] = F.o, [tx, tz] = F.t;
+  const height = (x: number, z: number) => {
+    const floor = TRENCH_FLOOR((x - ox) * tx + (z - oz) * tz);
+    return Math.max(floor, Math.min(city.height(x, z), floor + 0.3));
+  };
+  const cuts = steps(DARK, s1, [], 24);
+  for (const side of [1, -1]) {
+    const [, front] = panelWall(side), face = side > 0 ? TRENCH_NORTH : TRENCH_SOUTH;
+    for (let i = 0; i + 1 < cuts.length; i++) {
+      const [a, b] = [cuts[i], cuts[i + 1]], ss = steps(a, b, [], 3);
+      const far = (s: number) => face(s) + side * 0.05;
+      const outline = [F.at(a, front(a)), F.at(b, front(b)), F.at(b, far(b) + side * 3), F.at(a, far(a) + side * 3)];
+      const bed = [...ss.map((s) => F.at(s, front(s))), ...[...ss].reverse().map((s) => F.at(s, far(s)))];
+      streets.draw({ step: city.step, height, bare: (x, z) => !city.bare(x, z), water: () => null, outline });
+      streets.squares({ step: city.step, height, bare: () => true, water: () => null }, [{ kind: 'secondary', surface: 'asphalt', rings: [bed] }]);
+    }
+  }
+  // the roundabout and the rest on the tunnels' roof, where the city left them out
+  const [u0, u1] = ROOF.u;
+  streets.draw({ step: city.step, height: (x, z) => roofTop((x - ox) * tx + (z - oz) * tz), bare: (x, z) => !city.bare(x, z), water: () => null,
+    outline: [F.at(ROOF.to, u0), F.at(s0, u0), F.at(s0, u1), F.at(ROOF.to, u1)] });
+}
+
+// The tunnels' mouths and the roof over them (see PORTAL above).
+function buildTrenchMouths(B: Builder, ground: Ground) {
+  const F = TRENCH, [s0] = TRENCH_ENDS, [u0, u1] = ROOF.u, road = TRENCH_FLOOR(0), under = (s: number) => roofTop(s) - ROOF.depth;
+  const north = TRENCH_NORTH(s0), south = TRENCH_SOUTH(s0), [boxS, boxN] = BOX_SIDES;
+  const plan = (a: number, b: number, c: number, d: number): V2[] => [[Math.min(a, b), Math.min(c, d)], [Math.max(a, b), Math.min(c, d)], [Math.max(a, b), Math.max(c, d)], [Math.min(a, b), Math.max(c, d)]];
+  B.tint(CONCRETE);
+  // the roof: its face over the trench, its underside over the mouths
+  block(B, F, plan(ROOF.to, PORTAL, u0, u1), under, roofTop, 'concrete', 3, { faces: 'sides' });
+  block(B, F, plan(DARK, PORTAL, south, north), under, under, 'concrete', 3);
+  // the box's mouth (the network leaves its own out, src/detail/viaducts.ts): a face round its
+  // opening, the box's inside 4.2 m high over the rails, 4.3 m out from the tracks' middle
+  const rail = 3.16, inside: V2 = [boxS + 0.6, boxN - 0.6];
+  block(B, F, plan(BOX_MOUTH - 0.8, BOX_MOUTH, boxS, boxN), () => rail + 4.2, under, 'concrete', 3);
+  block(B, F, plan(BOX_MOUTH - 0.8, BOX_MOUTH, boxS, inside[0]), () => road - 1.2, () => rail + 4.2, 'concrete', 3);
+  block(B, F, plan(BOX_MOUTH - 0.8, BOX_MOUTH, inside[1], boxN), () => road - 1.2, () => rail + 4.2, 'concrete', 3);
+  // the trench's walls on to the face, with the ground's level behind them out to the roof's edge
+  for (const [face, side, edge] of [[north, 1, u1], [south, -1, u0]] as const) {
+    const back = face + side * WALL;
+    block(B, F, plan(PORTAL, s0, face, back), () => road - 0.6, () => roofTop(PORTAL) + PARAPET, 'concrete', 3);
+    block(B, F, plan(PORTAL, s0, back, edge), () => under(PORTAL), () => roofTop(PORTAL), 'concrete', 3, { faces: 'sides' });
+    // the roads' tunnels: their walls, from the face to the dark, which ends them
+    block(B, F, plan(DARK, PORTAL, face - side * 0.05, face), () => road - 0.6, under, 'concrete', 3, { faces: 'sides' });
+    block(B, F, plan(DARK, BOX_MOUTH - 0.8, side > 0 ? boxN : boxS, (side > 0 ? boxN : boxS) + side * 0.3), () => road - 0.6, under, 'concrete', 3, { faces: 'sides' });
+    B.tint(TUNNEL);
+    block(B, F, plan(DARK - 0.2, DARK, side > 0 ? boxN : face, side > 0 ? face : boxS), () => road - 0.6, under, 'concrete', 1, { faces: 'sides' });
+    B.tint(CONCRETE);
+  }
+  // the roof's top as turf, the city's grass, where the city's own ground lies well under it (the pit),
+  // and over the strips beside the trench's ends, short of which its pavements stop
+  B.tint(GRASS);
+  const rows = steps(ROOF.to, PORTAL, [], 5), cols = steps(u0, u1, [], 5);
+  for (let i = 0; i + 1 < rows.length; i++) for (let j = 0; j + 1 < cols.length; j++) {
+    const [a, b, c, d] = [rows[i], rows[i + 1], cols[j], cols[j + 1]];
+    if (![[a, c], [b, c], [b, d], [a, d]].some(([s, u]) => (ground(...F.at(s, u)) ?? 0) < roofTop(s) - 0.6)) continue;
+    block(B, F, plan(a, b, c, d), (s) => roofTop(s) - 0.3, (s) => roofTop(s) + 0.01, 'gt-turf', 4, { faces: 'top' });
+  }
+  for (const [p, q] of [[north + WALL, u1], [u0, south - WALL]]) block(B, F, plan(PORTAL, s0, p, q), () => roofTop(PORTAL), () => roofTop(PORTAL) + 0.01, 'gt-turf', 4, { faces: 'top' });
+  // the railing along the face's top
+  B.tint(RAILING);
+  pipeRailing(B, [v3(F.at(PORTAL - 0.25, north), roofTop(PORTAL)), v3(F.at(PORTAL - 0.25, south), roofTop(PORTAL))], 1.0, 2.4);
 }
 
 // ------------------------------------------------------------------ Essingeleden

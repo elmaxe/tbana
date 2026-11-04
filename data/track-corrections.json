@@ -560,6 +560,26 @@
       "node": 46960231,
       "to": [148151.1, 6586489.8],
       "why": "The bridge over Igelbäcken's valley, the eastern track 256 m from its south-eastern end: moved to the middle of its deck in Lantmäteriet's laser scan (2021): OSM has the bridge's tracks up to 3.1 m east of their decks."
+    },
+    {
+      "node": 271663866,
+      "to": [151957.4, 6580180.5],
+      "why": "S:t Eriksbron, between Fridhemsplan and S:t Eriksplan, the eastern track at the bridge's southern end: the line crosses Barnhusviken in the bridge's lower storey, a steel trough under the road's deck that passes through an opening 6.81 m wide in each pier (Swedish Wikipedia, from Vinberg 1937), so its two tracks lie about 3.2 m apart under the middle of the road. OSM spreads them 5–10 m apart across the bridge; moved under the middle of the road's deck (Lantmäteriet's laser scan has its edges 24.8 m apart), 1.7 m east of its axis."
+    },
+    {
+      "node": 1799968466,
+      "to": [151954.4, 6580181.4],
+      "why": "S:t Eriksbron, between Fridhemsplan and S:t Eriksplan, the western track at the bridge's southern end: the line crosses Barnhusviken in the bridge's lower storey, a steel trough under the road's deck that passes through an opening 6.81 m wide in each pier (Swedish Wikipedia, from Vinberg 1937), so its two tracks lie about 3.2 m apart under the middle of the road. OSM spreads them 5–10 m apart across the bridge; moved under the middle of the road's deck (Lantmäteriet's laser scan has its edges 24.8 m apart), 1.5 m west of its axis."
+    },
+    {
+      "node": 271886629,
+      "to": [152015.5, 6580320.6],
+      "why": "S:t Eriksbron, between Fridhemsplan and S:t Eriksplan, the eastern track at the bridge's northern end: the line crosses Barnhusviken in the bridge's lower storey, a steel trough under the road's deck that passes through an opening 6.81 m wide in each pier (Swedish Wikipedia, from Vinberg 1937), so its two tracks lie about 3.2 m apart under the middle of the road. OSM spreads them 5–10 m apart across the bridge; moved under the middle of the road's deck (Lantmäteriet's laser scan has its edges 24.8 m apart), 1.7 m east of its axis."
+    },
+    {
+      "node": 2456564526,
+      "to": [152012.5, 6580321.7],
+      "why": "S:t Eriksbron, between Fridhemsplan and S:t Eriksplan, the western track at the bridge's northern end: the line crosses Barnhusviken in the bridge's lower storey, a steel trough under the road's deck that passes through an opening 6.81 m wide in each pier (Swedish Wikipedia, from Vinberg 1937), so its two tracks lie about 3.2 m apart under the middle of the road. OSM spreads them 5–10 m apart across the bridge; moved under the middle of the road's deck (Lantmäteriet's laser scan has its edges 24.8 m apart), 1.5 m west of its axis."
     }
   ],
   "platforms": [

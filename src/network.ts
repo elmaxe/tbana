@@ -15,7 +15,7 @@ import { OPEN_STYLES, hallDrawn } from './open-styles';
 import type { OpenStyle, Paving } from './open-styles';
 import { BULB, TUBE, addLamps, removeLamps, stripLamps } from './lamps';
 import type { Lamp } from './lamps';
-import { girderInDetail, portalInDetail, viaductInDetail, viaductSolids } from './detail/viaducts.ts';
+import { girderInDetail, portalInDetail, viaductCuts, viaductInDetail, viaductSolids } from './detail/viaducts.ts';
 
 // The metro's track outside the station models: track, rails and the conductor rail, and the
 // tunnel, bridge or bank around them, swept along public/data/track-geometry.json in cross-sections
@@ -290,7 +290,8 @@ export class Network {
 
   constructor(graph: TrackGraph, geometry: TrackGeometry, exclude: Exclusion[] = [], { holes = [] as Volume[], solids = [] as Volume[], city = false } = {}) {
     this.group.name = 'network';
-    this.holes = holes;
+    // (and what a viaduct drawn in detail has the network leave out, src/detail/viaducts.ts)
+    this.holes = [...holes, ...viaductCuts()];
     // (and what a landmark stands on a viaduct's platforms, src/detail/viaducts.ts)
     this.solids = [...solids, ...viaductSolids()];
     this.city = city;

@@ -115,6 +115,10 @@ export const DETAIL_AREAS: DetailArea[] = [
   { name: 'Kärrtorp–Bagarmossen 1', x: 3315, z: 5520, r: 200 },
   { name: 'Kärrtorp–Bagarmossen 2', x: 3480, z: 5745, r: 200 },
   { name: 'Kärrtorp–Bagarmossen 3', x: 3650, z: 5875, r: 150 },
+  // the green line over S:t Eriksbron between Fridhemsplan and S:t Eriksplan
+  // (src/detail/sankt-eriksbron.ts): Kungsholms strand and Barnhusviken's water under it, the
+  // railway's tracks and Klarastrandsleden on the north shore, and Atlas's blocks over them
+  { name: 'S:t Eriksbron', x: -1380, z: -650, r: 220 },
   // and the green line west from Fridhemsplan's tunnel (src/detail/vasterort.ts): through Thorildsplan
   // and Kristineberg, over Tranebergssund on Tranebergsbron, through Alvik and on to Stora mossen
   { name: 'Fridhemsplan–Thorildsplan', x: -2300, z: -10, r: 200 },

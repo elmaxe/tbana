@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Building } from '../city-tile.ts';
+import type { Building, Square } from '../city-tile.ts';
 import { Builder, type V2 } from './builder.ts';
 import { buildFacades } from './facades.ts';
 import { buildCentralbron, buildMetroBridge, buildPortals, buildRailway, buildSouthEnd, buildStation, stationOutline } from './gamla-stan.ts';
@@ -41,13 +41,14 @@ import { buildStreets, type StreetGround, type TileStreets } from './streets.ts'
 import {
   ABRAHAMSBERGSVAGEN, ABRAHAMSBERGSVAGEN_BRIDGE, AKESHOVSVAGEN, AKESHOVSVAGEN_BRIDGE, ALVIK_FLYOVER, ANGBY_UNDERPASS, ANGBY_UNDERPASS_BRIDGE, BROMMAPLAN_VIADUCT, BROMMAPLAN_WEST, buildDvTvarbanan, buildEssingeleden, buildLindhagensplan, buildMariebergsavfarten, buildNockebyViaduct, buildTranebergsbron, buildTranebergsslinganRoads,
   DROTTNINGHOLMSVAGEN, DROTTNINGHOLMSVAGEN_BRIDGE, DV_TVARBANAN_ANCHOR, ESSINGELEDEN_PARTS, FLYOVER, LINDHAGENSPLAN_ANCHOR, MARIEBERGSAVFARTEN_ANCHOR, NOCKEBY_ANCHORS,
-  STORA_MOSSEN_BRIDGE, STORA_MOSSENS_BACKE, buildTrench, TRANEBERGSBRON_PARTS, TRENCH_PARTS, TRANEBERGSSLINGAN, TRANEBERGSSLINGAN_BRIDGE, TS_ROADS_ANCHOR,
+  STORA_MOSSEN_BRIDGE, STORA_MOSSENS_BACKE, buildTrench, buildTrenchRoads, TRANEBERGSBRON_PARTS, TRENCH_PARTS, TRENCH_ROADS, TRANEBERGSSLINGAN, TRANEBERGSSLINGAN_BRIDGE, TS_ROADS_ANCHOR,
 } from './vasterort.ts';
 import {
   ABISKOVAGEN, ABISKOVAGEN_BRIDGE, BERGSLAGSVAGEN_RACKSTA, BERGSLAGSVAGEN_RACKSTA_BRIDGE, BERGSLAGSVAGEN_VIADUCT, BERGSLAGSVAGEN_VIADUCT_BRIDGE, BJORNSONSGATAN,
   BJORNSONSGATAN_BRIDGE, buildLovstavagen, buildRackstaArches, DEPOT_FLYOVER, DEPOT_FLYOVER_BRIDGE, HASSELBY_ROADS, LOVSTAVAGEN, RACKSTA_ARCHES,
 } from './hasselby-line.ts';
 import { buildTower, TOWERS } from './towers.ts';
+import { buildSanktEriksbron, buildYard, SANKT_ERIKSBRON_ANCHOR, YARD_ANCHOR } from './sankt-eriksbron.ts';
 
 // The city in detail near the camera, in the areas of src/detail/areas.ts:
 // landmarks built by hand in place of the city's plain blocks of them, and the other buildings'
@@ -58,8 +59,9 @@ import { buildTower, TOWERS } from './towers.ts';
 export { DETAIL_ON } from './areas.ts';
 
 // (a landmark carrying a road gets the tile's streets: the city's ground they lie on, and a way to
-// lay them again on its own, a deck's, where the city leaves them out over the tracks)
-export interface LandmarkStreets { ground: StreetGround; draw: (ground: StreetGround) => void }
+// lay them again on its own, a deck's, where the city leaves them out over the tracks, and to lay
+// squares of its own)
+export interface LandmarkStreets { ground: StreetGround; draw: (ground: StreetGround) => void; squares: (ground: StreetGround, squares: Square[]) => void }
 interface Landmark { name: string; outline: V2[]; anchor: V2; build: (B: Builder, ground: (x: number, z: number) => number | null, streets?: LandmarkStreets) => void }
 const LANDMARKS: Landmark[] = [
   { name: 'Konserthuset', outline: konserthusetOutline(), anchor: [230, -395], build: buildKonserthuset },
@@ -183,6 +185,9 @@ const LANDMARKS: Landmark[] = [
   // trench, in two parts, Lindhagensplan's deck over it, Mariebergsavfarten's ramps, and Essingeleden's
   // viaduct, in two parts, with Fredhällspåfarten's deck under it (src/detail/vasterort.ts)
   ...TRENCH_PARTS.map((p, i): Landmark => ({ name: `Drottningholmsvägen's trench ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildTrench(B, g, p.range) })),
+  // and its carriageways down in it beside the tracks, with the city's streets laid on them (one in
+  // each tile it crosses)
+  ...TRENCH_ROADS.map((anchor, i): Landmark => ({ name: `Drottningholmsvägen in the trench ${i + 1}`, outline: [], anchor, build: (B, g, st) => buildTrenchRoads(B, g, st, i === 0) })),
   { name: 'Lindhagensplan', outline: [], anchor: LINDHAGENSPLAN_ANCHOR, build: buildLindhagensplan },
   { name: 'Mariebergsavfarten', outline: [], anchor: MARIEBERGSAVFARTEN_ANCHOR, build: buildMariebergsavfarten },
   ...ESSINGELEDEN_PARTS.map((p, i): Landmark => ({ name: `Essingeleden at Fredhällsmotet ${i + 1}`, outline: [], anchor: p.anchor, build: (B, g) => buildEssingeleden(B, g, p.range) })),
@@ -231,6 +236,11 @@ const LANDMARKS: Landmark[] = [
   { name: 'Kista viaduct 2', outline: [], anchor: KISTA_2.at(104, 4), build: buildSkarpnackViaduct(KISTA_VIADUCT_2) },
   { name: 'Kista viaduct 3', outline: [], anchor: KISTA_3.at(105, 10), build: buildSkarpnackViaduct(KISTA_VIADUCT_3) },
   { name: 'Kista viaduct 4', outline: [], anchor: KISTA_4.at(115, 13), build: buildSkarpnackViaduct(KISTA_VIADUCT_4) },
+  // S:t Eriksbron between Fridhemsplan and S:t Eriksplan: the road's deck on its girders, the piers
+  // and the abutments, and the metro's trough under the road (src/detail/sankt-eriksbron.ts)
+  { name: 'S:t Eriksbron', outline: [], anchor: SANKT_ERIKSBRON_ANCHOR, build: buildSanktEriksbron },
+  // and the railway's tracks under its northern spans, with their overhead line
+  { name: 'Railway under S:t Eriksbron', outline: [], anchor: YARD_ANCHOR, build: buildYard },
   // Avicii Arena: the sphere in place of the city's cone, the low buildings round it, and Annexet
   // beside it (src/detail/globen.ts)
   { name: 'Avicii Arena', outline: GLOBEN_OUTLINE, anchor: GLOBEN_ANCHOR, build: buildGloben },
@@ -252,7 +262,11 @@ export function tileDetail(buildings: Building[], x0: number, z0: number, size: 
   buildings.forEach((b, k) => {
     if (LANDMARKS.some((l) => inPoly(mid[k][0], mid[k][1], l.outline))) replaced.add(k);
   });
-  const roads = streets && { ground: streets.ground, draw: (G: StreetGround) => buildStreets(B, { streets: streets.streets, ground: G }, x0, z0, size) };
+  const roads = streets && {
+    ground: streets.ground,
+    draw: (G: StreetGround) => buildStreets(B, { streets: streets.streets, ground: G }, x0, z0, size),
+    squares: (G: StreetGround, squares: Square[]) => buildStreets(B, { squares, ground: G }, x0, z0, size),
+  };
   for (const l of LANDMARKS) {
     if (l.anchor[0] >= x0 && l.anchor[0] < x0 + size && l.anchor[1] >= z0 && l.anchor[1] < z0 + size) {
       l.build(B, ground, roads);
