@@ -1,0 +1,81 @@
+{
+  "note": "Rail heights from the long profiles in Stockholms tunnelbanor 1964, en teknisk beskrivning (figs 5:2–5:4, 5:8 and 5:27), for tools/build-heights.ts, in the book's 'Stadens 0-plan' (the red line's stations come out within 0.2 m of Wikidata's heights). Each profile has the services whose track it is; the book's chainage (m) of the stations' platform centres with its rail height there (null: the book draws the other track there); its rail along the line as [chainage, height], joined by straight lines but for the `gaps`; and the steepest gradient the book has along it. Figs 5:3 and 5:4 are built from the gradients printed under them; the rest is read off the figures against their ruled heights (the photographed pages are warped and tilted: about ±0.5 m). The build ties the chainage to each service's track at the stations, and keeps every station at its own height (Wikidata's, a model's, the laser scan's or the book's), carrying its difference from the book's height a little way along the line.",
+  "profiles": [
+    {
+      "figure": "5:2 (upper half)",
+      "line": "green, Fridhemsplan–Hötorget",
+      "routes": ["T17 Åkeshov–Skarpnäck", "T17 Skarpnäck–Åkeshov"],
+      "stations": [["Fridhemsplan", 718, 0.3], ["Sankt Eriksplan", 1655, 7.7], ["Odenplan", 2373, 13.3], ["Rådmansgatan", 3049, -0.35], ["Hötorget", 3829, 2.9]],
+      "steepest": 0.04,
+      "gaps": [[800, 1560]],
+      "rail": [[276, 0.3], [295, 0.3], [315, 0.3], [335, 0.3], [354, 0.3], [718, 0.3], [1655, 7.7], [1818, 7.4], [1838, 7.5], [1878, 7.5], [1898, 7.5], [1918, 7.5], [1938, 7.52], [1958, 7.54], [1978, 7.6], [1998, 7.6], [2038, 7.8], [2058, 7.8], [2078, 7.9], [2098, 8.02], [2118, 8.22], [2138, 8.52], [2158, 8.8], [2178, 9.4], [2218, 10.7], [2238, 11.4], [2373, 13.3], [2477, 13.5], [2497, 12.9], [2517, 12.42], [2537, 11.92], [2557, 11.42], [2577, 10.92], [2597, 10.42], [2617, 9.9], [2637, 9.4], [2737, 7.0], [2756, 6.4], [2816, 4.4], [2856, 2.9], [2876, 2.3], [2896, 1.7], [2916, 1.1], [3049, -0.35], [3209, 0.6], [3231, 1.0], [3252, 1.36], [3274, 1.66], [3295, 1.88], [3316, 2.04], [3338, 2.12], [3359, 2.18], [3380, 2.24], [3402, 2.3], [3423, 2.36], [3444, 2.42], [3466, 2.46], [3487, 2.5], [3509, 2.54], [3530, 2.58], [3551, 2.62], [3573, 2.68], [3594, 2.72], [3615, 2.78], [3637, 2.8], [3658, 2.84], [3679, 2.86], [3701, 2.9], [3722, 2.9], [3829, 2.9]],
+      "why": "From Fridhemsplan to Hötorget, read off the figure. Left out: S:t Eriksbron, which the game has from the laser scan. The book has Hötorget's rail at +2.9, in a box built in an open cut under Sveavägen; the game had no height for it."
+    },
+    {
+      "figure": "5:2 (lower half)",
+      "line": "green southbound, Hötorget–T-Centralen (lower level)",
+      "routes": ["T17 Åkeshov–Skarpnäck"],
+      "stations": [["Hötorget", 3786, 3.0], ["T-Centralen", 4312, -9.7]],
+      "steepest": 0.04,
+      "rail": [],
+      "why": "Only the steepest gradient (1:25, the band under the figure): the book has the southbound track drop about 12.5 m from Hötorget to T-Centralen's lower level, but T-Centralen's model has that level 2.9 m deeper than the book (its upper level is within 0.4 m), so the track drops 15 m here at about the book's steepest."
+    },
+    {
+      "figure": "5:2 (lower half), 5:8",
+      "line": "green southbound and red northbound, T-Centralen (lower level)–Gamla stan",
+      "routes": ["T17 Åkeshov–Skarpnäck", "T13 Norsborg–Ropsten"],
+      "stations": [["T-Centralen", 4312, -9.7], ["Gamla stan", 5393, 1.35]],
+      "steepest": 0.04,
+      "rail": [[4312, -9.7], [4380, -9.9], [4457, -10.2], [4534, -10.2], [4611, -10.2], [4688, -9.6], [4765, -8.9], [4861, -8.4], [4958, -7.6], [5056, -7.0], [5116, -6.7], [5156, -5.0], [5206, -3.0], [5257, -1.0], [5393, 1.35]],
+      "why": "Under Tegelbacken and Norrström the four tracks run in a box built in the water (fig 5:9: two cells side by side, mean water +0.25), the rail about 10 m under the water, rising at 1:150 and then 1:25 up to Gamla stan's platforms (rail +1.10 north, +1.60 south: fig 5:11). Read off fig 5:2 at its ruled heights."
+    },
+    {
+      "figure": "5:8, 5:2 (lower half)",
+      "line": "green northbound and red southbound, T-Centralen (upper level)–Gamla stan",
+      "routes": ["T17 Skarpnäck–Åkeshov", "T13 Ropsten–Norsborg"],
+      "stations": [["T-Centralen", 4312, -4.7], ["Gamla stan", 5393, 1.35]],
+      "steepest": 0.04,
+      "rail": [[4312, -4.7], [4380, -4.8], [4476, -4.8], [4578, -4.8], [4669, -7.0], [4746, -9.1], [4765, -8.9], [4861, -8.4], [4958, -7.6], [5056, -7.0], [5116, -6.7], [5156, -5.0], [5206, -3.0], [5257, -1.0], [5393, 1.35]],
+      "why": "Fig 5:8 (the profile at Tegelbacken): the upper level's tracks run level out of T-Centralen in the upper half of a two-storey box, then come down to the lower level's at the edge of Norrström, and on as those."
+    },
+    {
+      "figure": "5:2 (lower half)",
+      "line": "green, Slussen–Skanstull",
+      "routes": ["T17 Åkeshov–Skarpnäck", "T17 Skarpnäck–Åkeshov"],
+      "stations": [["Slussen", 5914, 7.1], ["Medborgarplatsen", 6382, 15.6], ["Skanstull", 7085, 15.7]],
+      "steepest": 0.04,
+      "gaps": [[5393, 5998]],
+      "rail": [[5914, 7.1], [6037, 9.1], [6057, 9.8], [6077, 10.62], [6096, 11.3], [6116, 11.92], [6136, 12.44], [6156, 12.86], [6175, 13.2], [6195, 13.5], [6234, 13.6], [6254, 14.4], [6274, 14.8], [6293, 15.1], [6382, 15.6], [6490, 15.7], [6510, 16.0], [6530, 16.34], [6549, 16.6], [6569, 16.8], [6589, 16.94], [6608, 17.0], [6628, 17.0], [6648, 17.0], [6667, 17.0], [6687, 17.0], [6707, 17.02], [6726, 17.0], [6746, 17.1], [6785, 17.0], [6805, 16.9], [6825, 16.86], [6844, 16.78], [6864, 16.7], [6884, 16.62], [6904, 16.54], [6923, 16.46], [6943, 16.4], [6963, 16.3], [6982, 16.3], [7085, 15.7], [7199, 15.4], [7219, 15.5], [7238, 15.4]],
+      "why": "From Slussen up under Götgatan to Medborgarplatsen and Skanstull, read off the figure. Left out: the bridge from Gamla stan to Slussen, which the game has from Google's and Lantmäteriet's models."
+    },
+    {
+      "figure": "5:3",
+      "line": "red southbound, Gärdet–T-Centralen (upper level)",
+      "routes": ["T13 Ropsten–Norsborg"],
+      "stations": [["T-Centralen", 1584, -4.7], ["Östermalmstorg", 2709, -24.6], ["Karlaplan", 3640, -11.83], ["Gärdet", 4476, 5.96]],
+      "steepest": 0.0485,
+      "gaps": [[1500, 1900]],
+      "rail": [[1584, -3.31], [1673, -3.6], [2019, -20.38], [2375, -34.62], [2620, -24.82], [2800, -24.37], [2955, -20.81], [3194, -19.21], [3492, -11.46], [3921, -12.53], [4377, 5.71], [4553, 6.15], [4700, 10.85]],
+      "why": "From the gradients in the band under the figure (‰ rising towards Gärdet, from km 1+584 at T-Centralen: -3.3, from 1+673 -48.5, 2+019 -40, 2+375 +40, 2+620 +2.5 (Östermalmstorg), 2+800 +23, 2+955 +6.7, 3+194 +26, 3+492 -2.5 (Karlaplan), 3+921 +40, 4+377 +2.5 (Gärdet), 4+553 +32), set at Östermalmstorg's platforms (+23.6, a metre over the rail). The line bottoms out about 33 m under the city's zero, in the circular tunnels under Brunkebergsåsen's gravel (ch. 8); Karlaplan and Gärdet come out within 0.1 m of where the figure draws them. Left to the build for 300 m from T-Centralen, where the book's upper level is 1.4 m higher than the gradients give and the track is stacked over the green line's."
+    },
+    {
+      "figure": "5:3",
+      "line": "red northbound, T-Centralen (lower level)–Gärdet",
+      "routes": ["T13 Norsborg–Ropsten"],
+      "stations": [["T-Centralen", 1584, null], ["Östermalmstorg", 2709, -24.6], ["Karlaplan", 3640, -11.83], ["Gärdet", 4476, 5.96]],
+      "steepest": 0.0485,
+      "gaps": [[1500, 1900], [2790, 3492]],
+      "rail": [[1584, -3.31], [1673, -3.6], [2019, -20.38], [2375, -34.62], [2620, -24.82], [2800, -24.37], [2955, -20.81], [3194, -19.21], [3492, -11.46], [3921, -12.53], [4377, 5.71], [4553, 6.15], [4700, 10.85]],
+      "why": "As the southbound track, from where its descent passes T-Centralen's lower level. Left to the build from just past Östermalmstorg's platforms to 3+492, where the line levels out for Karlaplan: there the line forks (fig 14:1c, the track to Ropsten between the two to and from the branch north), and the profile is the line's, not each track's. OpenStreetMap has the branch's southbound track pass over this one, which can't be done if this one climbs at 23‰ from the platforms' end as the line does, so it climbs later and more steeply, and meets the line's height again where the two tracks come together."
+    },
+    {
+      "figure": "5:4, 5:27",
+      "line": "red, Slussen–Liljeholmen",
+      "routes": ["T13 Ropsten–Norsborg", "T13 Norsborg–Ropsten"],
+      "stations": [["Slussen", 75, 7.1], ["Mariatorget", 1045, 0.62], ["Zinkensdamm", 1722, 5.03], ["Hornstull", 2428, -0.08], ["Liljeholmen", 3423, 3.21]],
+      "steepest": 0.04,
+      "rail": [[0, 7.1], [145, 7.1], [526, -2.43], [818, -5.21], [956, 0.31], [1134, 0.94], [1322, -3.94], [1636, 5.03], [1809, 5.03], [2080, -5.81], [2329, 0.41], [2526, -0.57], [2808, -11.85], [2957, -12.35], [3346, 3.21], [3500, 3.21]],
+      "why": "From the gradients in the band under fig 5:4 (from km 0+000 at Slussen's platforms, +7.1: level, from 0+145 1:40 down, 0+526 1:105 down, 0+818 1:25 up, 0+956 1:285 up (Mariatorget), 1+134 1:38.5 down, 1+322 1:35 up, 1+636 level (Zinkensdamm), 1+809 1:25 down, 2+080 1:40 up, 2+329 1:200 down (Hornstull), 2+526 1:25 down, 2+808 1:300 down, 2+957 1:25 up), and on fig 5:27 the 1:25 up to Liljeholmen's level platforms, drawn at about +3.2 from about 3+346. Under Södermalm the line dips between every pair of stations, and to about 12 m under the city's zero in the tube sunk across Liljeholmsviken (ch. 8: the fairway over it is 6.9 m deep). Mariatorget, Zinkensdamm and Hornstull come out within 0.2 m of Wikidata, Liljeholmen within 0.4 m."
+    }
+  ]
+}

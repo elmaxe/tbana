@@ -7,11 +7,11 @@
 // The first argument picks the first route whose name starts with it.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { TrackGraph } from '../src/track-graph.ts';
-import { groundSamples, routeProfile } from './lib/graph.ts';
+import { groundSamples, routeProfile, type TrackHeights } from './lib/graph.ts';
 
 const [which = 'T13', out = 'profile.svg', fromKm, toKm] = process.argv.slice(2);
 const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json', 'utf8'));
-const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
+const heights: TrackHeights = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8'));
 const stationHeights: Record<string, { height: number }> = JSON.parse(readFileSync('data/station-heights.json', 'utf8')).stations;
 if (existsSync('data/height-corrections.json')) {
   // (a station given by its depth is drawn without its height)

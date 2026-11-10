@@ -232,8 +232,8 @@
           {"walk": [-1, 5.4], "open": true, "edges": false}
         ] },
         { "from": [3, 0], "width": 9, "go": [
-          {"walk": [9, 0], "ceiling": 3.2},
-          {"escalators": 14.51, "toward": [40, 0], "lanes": "EEEL"},
+          {"walk": [9.21, 0], "ceiling": 3.2},
+          {"escalators": 14.39, "toward": [40, 0], "lanes": "EEEL"},
           {"walk": 3, "width": 9, "ceiling": 3.0},
           {"gates": true},
           {"walk": [50, 0], "width": 9, "ceiling": 3.0},
@@ -306,34 +306,34 @@
     },
     "Liljeholmen": {
       "drawing": "liljeholmen.png",
-      "note": "Three platforms side by side in a hall under the deck of Liljeholmstorget, from west to east an island between the two tracks of the line, an island between its third track (where trains turning back stand, on Albert Guillaumes's drawing) and the eastern track, and a platform beyond the eastern track, behind it the glass wall of the bus terminal. At the south end each platform has stairs and an escalator side by side climbing to the 1964 hall on the square, its gates and a passage across it, with doors onto the square to the east and down to Liljeholmsgränd to the west, and a glazed walkway south along Liljeholmsgränd to the inclined lift up Nybohovsberget. At the north end stairs and escalators climb from each platform into the hall in the ground floor of the buildings on the deck, joined by a bridge over the tracks, with doors onto the square and the street. From OpenStreetMap's indoor ways (2026: the flights, the landings, the gates, the doors, the walkway), the laser scan (the deck and the square 5.0 to 5.2 m over the platforms, Liljeholmsgränd 0.5 m under them) and photographs.",
+      "note": "Three platforms side by side in a hall under the deck of Liljeholmstorget, from west to east an island between the two tracks of the line, an island between its third track (where trains turning back stand, on Albert Guillaumes's drawing) and the eastern track, and a platform beyond the eastern track, behind it the glass wall of the bus terminal. At the south end each platform has stairs and an escalator side by side climbing to the 1964 hall on the square, its gates and a passage across it, with doors onto the square to the east and down to Liljeholmsgränd to the west, and a glazed walkway south along Liljeholmsgränd to the inclined lift up Nybohovsberget. At the north end stairs and escalators climb from each platform into the hall in the ground floor of the buildings on the deck, joined by a bridge over the tracks, with doors onto the square and the street. From OpenStreetMap's indoor ways (2026: the flights, the landings, the gates, the doors, the walkway), the laser scan (the deck and the square 5.2 to 5.4 m over the platforms, Liljeholmsgränd 0.3 m under them) and photographs.",
       "routes": [
         { "from": [-73, -13.6], "width": 5, "go": [
-          {"walk": [-82.5, -13.8], "open": true, "edges": false},
-          {"escalators": 5.0, "toward": [-130, -14.0], "lanes": "SE"},
+          {"walk": [-82.19, -13.8], "open": true, "edges": false},
+          {"escalators": 5.18, "toward": [-130, -14.0], "lanes": "SE"},
           {"walk": [-99.0, -14.0], "width": 6, "open": true},
           {"gates": true},
           {"walk": [-104.5, -14.0], "open": true}
         ] },
         { "from": [-73, 1.6], "width": 4, "go": [
-          {"walk": [-82.5, 1.5], "open": true, "edges": false},
-          {"escalators": 5.0, "toward": [-130, 1.4], "lanes": "ES"},
+          {"walk": [-82.19, 1.5], "open": true, "edges": false},
+          {"escalators": 5.18, "toward": [-130, 1.4], "lanes": "ES"},
           {"walk": [-99.0, 1.4], "width": 5, "open": true},
           {"gates": true},
           {"walk": [-104.5, 1.4], "open": true}
         ] },
         { "from": [-73, 13.6], "width": 4, "go": [
-          {"walk": [-82.5, 13.6], "open": true, "edges": false},
-          {"escalators": 5.0, "toward": [-130, 13.4], "lanes": "SE"},
+          {"walk": [-82.19, 13.6], "open": true, "edges": false},
+          {"escalators": 5.18, "toward": [-130, 13.4], "lanes": "SE"},
           {"walk": [-99.0, 13.4], "width": 5, "open": true},
           {"gates": true},
           {"walk": [-104.5, 13.4], "open": true}
         ] },
-        { "from": [-104.5, -22.6], "h": 5.0, "width": 5, "go": [
+        { "from": [-104.5, -22.6], "h": 5.18, "width": 5, "go": [
           {"walk": [-104.5, 15.0], "open": true},
           {"exit": {"at": [-104.8, 22.5], "name": "Liljeholmstorget"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [-102.5, -22.6], "h": 5.0, "width": 2, "go": [
+        { "from": [-102.5, -22.6], "h": 5.18, "width": 2, "go": [
           {"stairs": -2.72, "toward": [-102.5, -60], "lanes": "S"},
           {"walk": [-102.5, -29.4], "open": true},
           {"walk": [-105.0, -29.4], "open": true},
@@ -341,35 +341,35 @@
           {"walk": [-105.0, -23.6], "open": true},
           {"exit": 1039107356, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [-106.6, -22.6], "h": 5.0, "width": 4, "go": [
+        { "from": [-106.6, -22.6], "h": 5.18, "width": 4, "go": [
           {"walk": [-108.8, -26.3], "open": true},
           {"exit": 773549420, "by": "walk", "open": true}
         ] },
-        { "from": [-19.0, -11.0], "width": 4, "go": [
-          {"stairs": 5.2, "toward": [10, -10.8], "lanes": "SS"},
+        { "from": [-19.34, -11.0], "width": 4, "go": [
+          {"stairs": 5.38, "toward": [10, -10.8], "lanes": "SS"},
           {"walk": [-6.5, -10.8], "open": true, "edges": false},
           {"walk": [-1.6, -7.0], "width": 2.4, "open": true, "edges": false},
           {"walk": [9.5, -7.0], "open": true, "edges": false}
         ] },
-        { "from": [-1.5, -10.05], "width": 3.2, "go": [
-          {"escalators": 5.2, "toward": [20, -9.8], "lanes": "EE"},
+        { "from": [-1.81, -10.05], "width": 3.2, "go": [
+          {"escalators": 5.38, "toward": [20, -9.8], "lanes": "EE"},
           {"walk": [10.5, -9.9], "width": 5.4, "open": true, "edges": false},
           {"walk": [19.2, -9.7], "width": 4, "open": true, "edges": false}
         ] },
-        { "from": [32.0, -9.0], "width": 1.6, "go": [
-          {"escalators": 5.2, "toward": [0, -9.2], "lanes": "E"},
+        { "from": [32.31, -9.0], "width": 1.6, "go": [
+          {"escalators": 5.38, "toward": [0, -9.2], "lanes": "E"},
           {"walk": [19.2, -9.5], "width": 3, "open": true, "edges": false}
         ] },
-        { "from": [7.0, 5.3], "width": 4, "go": [
-          {"stairs": 5.2, "toward": [30, 5.4], "lanes": "SS"},
+        { "from": [6.66, 5.3], "width": 4, "go": [
+          {"stairs": 5.38, "toward": [30, 5.4], "lanes": "SS"},
           {"walk": [19.2, 5.4], "open": true, "edges": false}
         ] },
         { "from": [5.0, 16.0], "width": 5.2, "go": [
-          {"walk": [7.0, 16.0], "open": true, "edges": false},
-          {"escalators": 5.2, "toward": [30, 16.0], "lanes": "EES"},
+          {"walk": [6.69, 16.0], "open": true, "edges": false},
+          {"escalators": 5.38, "toward": [30, 16.0], "lanes": "EES"},
           {"walk": [19.2, 16.0], "open": true, "edges": false}
         ] },
-        { "from": [19.2, -11.5], "h": 5.2, "width": 3, "go": [
+        { "from": [19.2, -11.5], "h": 5.38, "width": 3, "go": [
           {"walk": [19.2, 18.0], "open": true, "edges": false},
           {"gates": true},
           {"walk": [19.2, 21.0], "width": 6, "open": true, "edges": false},
@@ -1459,10 +1459,10 @@
     },
     "Hötorget": {
       "drawing": "hotorget.png",
-      "note": "An island platform deep under Sveavägen, with three ticket halls: one over the middle of the platform, under the street at Hötorget, and one at each end.",
+      "note": "An island platform in a concrete box under Sveavägen, built in an open cut, about 9 m under the street (its level from the long profile in Stockholms tunnelbanor 1964), with three ticket halls over it: one over the middle of the platform, under the street at Hötorget, and one at each end. The halls' depth is guessed.",
       "routes": [
         { "from": [-20, 0], "width": 5, "go": [
-          {"escalators": 10, "toward": [150, 0], "lanes": "EES"},
+          {"escalators": 5, "toward": [150, 0], "lanes": "EES"},
           {"walk": 4, "width": 8},
           {"gates": true},
           {"mark": "middle"},
@@ -1472,7 +1472,7 @@
           {"exit": 266319011}
         ] },
         { "from": [42, 0], "width": 5, "go": [
-          {"escalators": 10, "toward": [150, 0], "lanes": "EES"},
+          {"escalators": 5, "toward": [150, 0], "lanes": "EES"},
           {"walk": 10, "width": 8},
           {"gates": true},
           {"mark": "north"},
@@ -1482,7 +1482,7 @@
           {"exit": 446162174}
         ] },
         { "from": [-42, 0], "width": 5, "go": [
-          {"escalators": 10, "toward": [-150, 0], "lanes": "EES"},
+          {"escalators": 5, "toward": [-150, 0], "lanes": "EES"},
           {"walk": 10, "width": 8},
           {"gates": true},
           {"mark": "south"},
@@ -1495,81 +1495,81 @@
     },
     "Rådmansgatan": {
       "drawing": "radmansgatan.png",
-      "note": "An island platform 150 m long under Sveavägen (1952), one row of yellow-tiled columns down its middle. From its south end escalators climb 4.3 m to the southern ticket hall under the street, a lift beside them; through the gates passages lead west under the crossing with Rådmansgatan, past Sture V Nilsson's Strindberg wall (1983), to stairs up into the ground floor of the corner building, and east to stairs up into the glass pavilion on the eastern pavement, and a lift climbs to its tower on the western pavement. From its north end escalators climb 5.6 m to the northern ticket hall, an inclined lift beside them (the lift itself isn't walked); through the gates passages lead north-west to stairs up into the small glazed house at the park's corner, a lift beside them climbing to its tower, and north-east under the crossing with Rehnsgatan to stairs up into the ground floor of the corner building, Sveavägen 98. From OpenStreetMap's indoor mapping (the flights, lifts, halls and passages), the elevation model (the street 7.2 to 7.4 m above the platform at the south end, 8.5 to 9.1 m at the north end), Google's 3D mesh (the pavilion, the house's shape and the lift towers, the southern one 3.6 m south of OpenStreetMap's lift) and photographs (1955, 2005–2023); the halls' columns and booth are placed from photographs, and the pavilion's doors are inferred.",
+      "note": "An island platform 150 m long under Sveavägen (1952), one row of yellow-tiled columns down its middle. From its south end escalators climb 4.9 m to the southern ticket hall under the street, a lift beside them; through the gates passages lead west under the crossing with Rådmansgatan, past Sture V Nilsson's Strindberg wall (1983), to stairs up into the ground floor of the corner building, and east to stairs up into the glass pavilion on the eastern pavement, and a lift climbs to its tower on the western pavement. From its north end escalators climb 6.2 m to the northern ticket hall, an inclined lift beside them (the lift itself isn't walked); through the gates passages lead north-west to stairs up into the small glazed house at the park's corner, a lift beside them climbing to its tower, and north-east under the crossing with Rehnsgatan to stairs up into the ground floor of the corner building, Sveavägen 98. From OpenStreetMap's indoor mapping (the flights, lifts, halls and passages), the elevation model (the street 7.8 to 8.0 m above the platform at the south end, 9.1 to 9.7 m at the north end; the platform's level is the 1964 technical description's, from its long profile), Google's 3D mesh (the pavilion, the house's shape and the lift towers, the southern one 3.6 m south of OpenStreetMap's lift) and photographs (1955, 2005–2023); the halls' columns and booth are placed from photographs, and the pavilion's doors are inferred.",
       "routes": [
-        { "from": [-75.2, 1.9], "width": 3.6, "go": [
-          {"escalators": 4.3, "toward": [-200, 1.9], "lanes": "ES", "ceiling": 2.4}
+        { "from": [-74.14, 1.9], "width": 3.6, "go": [
+          {"escalators": 4.91, "toward": [-200, 1.9], "lanes": "ES", "ceiling": 2.4}
         ] },
         { "from": [-73.0, -1.4], "width": 2.2, "go": [
           {"walk": [-75.2, -1.4], "open": true},
-          {"lift": 4.3, "above": 2.6, "through": true},
+          {"lift": 4.91, "above": 2.6, "through": true},
           {"walk": [-84.5, -1.4], "ceiling": 2.6}
         ] },
-        { "from": [-82.5, 1.0], "h": 4.3, "width": 8.0, "go": [
+        { "from": [-82.5, 1.0], "h": 4.91, "width": 8.0, "go": [
           {"walk": [-90.6, 1.0], "ceiling": 2.6}
         ] },
-        { "from": [-90.5, -1.7], "h": 4.3, "width": 2.6, "go": [
+        { "from": [-90.5, -1.7], "h": 4.91, "width": 2.6, "go": [
           {"walk": [-91.0, -1.7], "ceiling": 2.6},
           {"gates": true},
           {"walk": [-91.6, -1.7], "ceiling": 2.6}
         ] },
-        { "from": [-90.5, 1.7], "h": 4.3, "width": 2.6, "go": [
+        { "from": [-90.5, 1.7], "h": 4.91, "width": 2.6, "go": [
           {"walk": [-91.0, 1.7], "ceiling": 2.6},
           {"gates": true},
           {"walk": [-91.6, 1.7], "ceiling": 2.6}
         ] },
-        { "from": [-91.5, 1.0], "h": 4.3, "width": 8.0, "go": [
+        { "from": [-91.5, 1.0], "h": 4.91, "width": 8.0, "go": [
           {"walk": [-101.0, 1.0], "ceiling": 2.6}
         ] },
-        { "from": [-99.5, -2.0], "h": 4.3, "width": 3.0, "go": [
+        { "from": [-99.5, -2.0], "h": 4.91, "width": 3.0, "go": [
           {"walk": [-104.0, -13.0], "ceiling": 2.4},
           {"walk": [-106.5, -21.5], "ceiling": 2.4},
           {"walk": [-111.8, -23.0], "ceiling": 2.4},
           {"exit": {"at": [-111.8, -14.8]}, "by": "stairs", "lanes": "Ss"}
         ] },
-        { "from": [-99.5, 4.0], "h": 4.3, "width": 3.0, "go": [
+        { "from": [-99.5, 4.0], "h": 4.91, "width": 3.0, "go": [
           {"walk": [-111.85, 12.15], "ceiling": 2.2},
           {"walk": [-116.4, 12.15], "width": 2.2, "ceiling": 2.2},
           {"exit": {"at": [-121.3, 12.15]}, "by": "stairs", "lanes": "Ss"}
         ] },
-        { "from": [-96.0, -2.5], "h": 4.3, "width": 2.2, "go": [
+        { "from": [-96.0, -2.5], "h": 4.91, "width": 2.2, "go": [
           {"walk": [-96.0, -10.4], "ceiling": 2.4},
           {"walk": [-80.7, -10.4], "ceiling": 2.4},
           {"lift": 2.91, "above": 3.6, "through": true},
           {"walk": [-75.5, -10.4], "open": true}
         ] },
-        { "from": [75.5, -2.6], "width": 3.6, "go": [
-          {"escalators": 5.6, "toward": [200, -2.6], "lanes": "ES", "ceiling": 2.4}
+        { "from": [74.44, -2.6], "width": 3.6, "go": [
+          {"escalators": 6.21, "toward": [200, -2.6], "lanes": "ES", "ceiling": 2.4}
         ] },
-        { "from": [85.2, -2.6], "h": 5.6, "width": 7.0, "go": [
+        { "from": [85.2, -2.6], "h": 6.21, "width": 7.0, "go": [
           {"walk": [96.1, -2.6], "ceiling": 2.6}
         ] },
-        { "from": [96.0, -4.5], "h": 5.6, "width": 3.2, "go": [
+        { "from": [96.0, -4.5], "h": 6.21, "width": 3.2, "go": [
           {"walk": [96.5, -4.5], "ceiling": 2.6},
           {"gates": true},
           {"walk": [97.1, -4.5], "ceiling": 2.6}
         ] },
-        { "from": [96.0, -0.7], "h": 5.6, "width": 3.2, "go": [
+        { "from": [96.0, -0.7], "h": 6.21, "width": 3.2, "go": [
           {"walk": [96.5, -0.7], "ceiling": 2.6},
           {"gates": true},
           {"walk": [97.1, -0.7], "ceiling": 2.6}
         ] },
-        { "from": [97.0, -2.6], "h": 5.6, "width": 7.0, "go": [
+        { "from": [97.0, -2.6], "h": 6.21, "width": 7.0, "go": [
           {"walk": [106.5, -2.6], "ceiling": 2.6}
         ] },
-        { "from": [105.0, -5.0], "h": 5.6, "width": 3.0, "go": [
+        { "from": [105.0, -5.0], "h": 6.21, "width": 3.0, "go": [
           {"walk": [110.0, -22.25], "ceiling": 2.4},
           {"walk": [112.0, -22.25], "ceiling": 2.4},
           {"stairs": 3.55, "toward": [200, -22.25], "lanes": "Ss", "ceiling": 2.4},
           {"walk": [121.4, -22.25], "open": true},
           {"exit": {"at": [122.2, -22.25]}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [109.2, -17.3], "h": 5.6, "width": 2.2, "go": [
+        { "from": [109.2, -17.3], "h": 6.21, "width": 2.2, "go": [
           {"walk": [110.3, -17.3], "ceiling": 2.4},
           {"lift": 3.22, "above": 3.6, "through": true},
           {"walk": [115.5, -17.3], "open": true}
         ] },
-        { "from": [104.0, 0.0], "h": 5.6, "width": 3.0, "go": [
+        { "from": [104.0, 0.0], "h": 6.21, "width": 3.0, "go": [
           {"walk": [113.2, 21.5], "ceiling": 2.4},
           {"walk": [117.8, 24.0], "ceiling": 2.4},
           {"walk": [129.1, 24.0], "ceiling": 2.4},
@@ -1579,78 +1579,78 @@
     },
     "Sankt Eriksplan": {
       "drawing": "st_eriksplan.png",
-      "note": "An island platform 154 m long under Sankt Eriksgatan (1952), on two rows of columns in exposed-aggregate concrete. From its south end an escalator and stairs climb 3.8 m to the southern ticket hall under the square, a lift beside them; through the gates a passage leads south-west to stairs up into the glazed stair house on the square's western side, a lift beside it climbing to its tower, and another south-east to the glass pavilion, whose escalator and stairs climb to its doors at its south end and whose lift climbs inside it, and on under the square, falling 1 m, to stairs up through the pavement on its south-eastern side. From its north end an escalator and stairs climb 4.6 m to the northern ticket hall, an inclined lift beside them (the lift itself isn't walked); through the gates a few steps climb to the stairs up into the barrel-roofed stair house at the corner of Torsgatan, a lift beside it climbing to its glazed tower. From OpenStreetMap's indoor mapping (the flights, lifts, halls and passages; its moving walkway at the north end is drawn as an escalator, and the steps beyond the northern gates turned to climb along the hall), the elevation model (the street 6.6 m above the platform round the square, 5.6 m at the south-eastern stairs and 10.2 m at the north end), the laser scan and Google's 3D mesh (the stair houses, the pavilion and the lift towers) and photographs (2008–2023); the halls' heights are inferred from the flights' lengths.",
+      "note": "An island platform 154 m long under Sankt Eriksgatan (1952), on two rows of columns in exposed-aggregate concrete. From its south end an escalator and stairs climb 4.85 m to the southern ticket hall under the square, a lift beside them; through the gates a passage leads south-west to stairs up into the glazed stair house on the square's western side, a lift beside it climbing to its tower, and another south-east to the glass pavilion, whose escalator and stairs climb to its doors at its south end and whose lift climbs inside it, and on under the square, falling 1 m, to stairs up through the pavement on its south-eastern side. From its north end an escalator and stairs climb 5.65 m to the northern ticket hall, an inclined lift beside them (the lift itself isn't walked); through the gates a few steps climb to the stairs up into the barrel-roofed stair house at the corner of Torsgatan, a lift beside it climbing to its glazed tower. From OpenStreetMap's indoor mapping (the flights, lifts, halls and passages; its moving walkway at the north end is drawn as an escalator, and the steps beyond the northern gates turned to climb along the hall), the elevation model (the street 7.65 m above the platform round the square, 6.65 m at the south-eastern stairs and 11.25 m at the north end; the platform's level is the 1964 technical description's, from its long profile), the laser scan and Google's 3D mesh (the stair houses, the pavilion and the lift towers) and photographs (2008–2023); the halls' heights are inferred from the flights' lengths.",
       "signName": "S:t Eriksplan",
       "routes": [
-        { "from": [-76.9, -0.6], "width": 3.6, "go": [
-          {"escalators": 3.8, "toward": [-200, -0.6], "lanes": "ES", "ceiling": 2.4}
+        { "from": [-75.08, -0.6], "width": 3.6, "go": [
+          {"escalators": 4.85, "toward": [-200, -0.6], "lanes": "ES", "ceiling": 2.4}
         ] },
         { "from": [-73.5, -3.7], "width": 2.2, "go": [
           {"walk": [-76.9, -3.7], "ceiling": 2.75},
-          {"lift": 3.8, "above": 2.5, "through": true},
+          {"lift": 4.85, "above": 2.5, "through": true},
           {"walk": [-86.0, -3.7], "ceiling": 2.5}
         ] },
-        { "from": [-83.4, -1.6], "h": 3.8, "width": 8.0, "go": [
+        { "from": [-83.4, -1.6], "h": 4.85, "width": 8.0, "go": [
           {"walk": [-91.2, -1.6], "ceiling": 2.5}
         ] },
-        { "from": [-91.1, -1.0], "h": 3.8, "width": 5.2, "go": [
+        { "from": [-91.1, -1.0], "h": 4.85, "width": 5.2, "go": [
           {"walk": [-91.5, -1.0], "ceiling": 2.5},
           {"gates": true},
           {"walk": [-92.1, -1.0], "ceiling": 2.5}
         ] },
-        { "from": [-92.0, -1.6], "h": 3.8, "width": 8.0, "go": [
+        { "from": [-92.0, -1.6], "h": 4.85, "width": 8.0, "go": [
           {"walk": [-97.0, -1.6], "ceiling": 2.5}
         ] },
-        { "from": [-95.0, -4.0], "h": 3.8, "width": 3.0, "go": [
+        { "from": [-95.0, -4.0], "h": 4.85, "width": 3.0, "go": [
           {"walk": [-103.63, -14.99], "ceiling": 2.4},
           {"walk": [-105.4, -17.0], "ceiling": 2.4},
           {"exit": {"at": [-110.54, -22.77]}, "by": "stairs", "lanes": "Ss", "sign": false}
         ] },
-        { "from": [-102.4, -13.4], "h": 3.8, "width": 2.2, "go": [
+        { "from": [-102.4, -13.4], "h": 4.85, "width": 2.2, "go": [
           {"walk": [-101.88, -18.1], "ceiling": 2.4},
           {"walk": [-103.23, -19.61], "ceiling": 2.4},
           {"lift": 2.87, "above": 3.0, "through": true},
           {"walk": [-106.25, -22.98], "width": 1.6, "open": true}
         ] },
-        { "from": [-95.0, 0.0], "h": 3.8, "width": 3.0, "go": [
+        { "from": [-95.0, 0.0], "h": 4.85, "width": 3.0, "go": [
           {"walk": [-107.71, 13.16], "ceiling": 2.4},
           {"walk": [-125.94, 21.63], "ceiling": 2.4},
           {"walk": [-146.52, 31.21], "dh": -1.0, "ceiling": 2.4},
           {"exit": {"at": [-146.59, 38.6]}, "by": "stairs", "lanes": "Ss"}
         ] },
-        { "from": [-107.5, 12.9], "h": 3.8, "width": 2.8, "go": [
+        { "from": [-107.5, 12.9], "h": 4.85, "width": 2.8, "go": [
           {"walk": [-112.71, 18.46], "ceiling": 2.4},
           {"lift": 2.88, "above": 3.0, "through": true},
           {"walk": [-119.61, 25.68], "dh": -0.12, "open": true}
         ] },
-        { "from": [-108.67, 18.5], "h": 3.8, "width": 5.0, "go": [
+        { "from": [-108.67, 18.5], "h": 4.85, "width": 5.0, "go": [
           {"walk": [-111.6, 20.92], "ceiling": 2.4}
         ] },
-        { "from": [-111.13, 21.18], "h": 3.8, "width": 3.6, "go": [
+        { "from": [-111.13, 21.18], "h": 4.85, "width": 3.6, "go": [
           {"escalators": 2.88, "toward": [-126.13, 33.5], "lanes": "SE", "ceiling": 2.4},
           {"exit": {"at": [-118.63, 27.34]}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [75.6, 2.9], "width": 3.6, "go": [
-          {"escalators": 4.6, "toward": [200, 2.9], "lanes": "ES", "ceiling": 2.4}
+        { "from": [73.78, 2.9], "width": 3.6, "go": [
+          {"escalators": 5.65, "toward": [200, 2.9], "lanes": "ES", "ceiling": 2.4}
         ] },
-        { "from": [83.5, 3.0], "h": 4.6, "width": 7.0, "go": [
+        { "from": [83.5, 3.0], "h": 5.65, "width": 7.0, "go": [
           {"walk": [95.2, 3.0], "ceiling": 2.6}
         ] },
-        { "from": [95.1, 3.0], "h": 4.6, "width": 5.0, "go": [
+        { "from": [95.1, 3.0], "h": 5.65, "width": 5.0, "go": [
           {"walk": [95.5, 3.0], "ceiling": 2.6},
           {"gates": true},
           {"walk": [96.1, 3.0], "ceiling": 2.6}
         ] },
-        { "from": [96.0, 0.75], "h": 4.6, "width": 9.5, "go": [
+        { "from": [96.0, 0.75], "h": 5.65, "width": 9.5, "go": [
           {"walk": [100.6, 0.75], "ceiling": 2.6}
         ] },
-        { "from": [99.6, -2.4], "h": 4.6, "width": 3.5, "go": [
+        { "from": [99.6, -2.4], "h": 5.65, "width": 3.5, "go": [
           {"walk": [100.1, -2.4], "ceiling": 2.6},
           {"stairs": 1.0, "toward": [200, -2.4], "lanes": "Ss", "ceiling": 2.4},
           {"walk": [107.3, -2.4], "width": 5.0, "ceiling": 2.4},
           {"exit": {"at": [115.8, -2.29]}, "by": "stairs", "lanes": "Ss", "sign": false}
         ] },
-        { "from": [103.5, -1.5], "h": 5.6, "width": 2.2, "go": [
+        { "from": [103.5, -1.5], "h": 6.65, "width": 2.2, "go": [
           {"walk": [105.6, 0.5], "ceiling": 2.4},
           {"walk": [108.0, 0.5], "ceiling": 2.4},
           {"lift": 4.64, "above": 3.0, "through": true},
@@ -2259,49 +2259,49 @@
     },
     "Medborgarplatsen": {
       "drawing": "medborgarplatsen.png",
-      "note": "An island platform 145 m long in the concrete box of the 1933 tram tunnel under Götgatan, its northern third the vaulted lengthening of 1950. From its south end an escalator and stairs side by side climb 4.1 m to the ticket hall under the crossing with Folkungagatan; through the gates passages lead east and west under the street to stairs up into the ground floors of the corner buildings, the hotel at Folkungagatan 47 and Medborgarhuset at 45, the western one curving past Mari Pårup's mosaics (1997). Near the middle of the platform an escalator climbs north and stairs climb south to a landing under the street, a lift beside them; from it an escalator and stairs, a lift beside them, climb 3.9 m into the glass pavilion in Björns trädgård (1995), its gates just inside its doors. From OpenStreetMap's indoor mapping (2025; its platform is drawn in the wrong place, so its flights are set on the real one), the elevation model (the street 7.8 to 8.0 m above the platform at the three entrances) and photographs (2009–2025); the landing's layout is inferred.",
+      "note": "An island platform 145 m long in the concrete box of the 1933 tram tunnel under Götgatan, its northern third the vaulted lengthening of 1950. From its south end an escalator and stairs side by side climb 4.0 m to the ticket hall under the crossing with Folkungagatan; through the gates passages lead east and west under the street to stairs up into the ground floors of the corner buildings, the hotel at Folkungagatan 47 and Medborgarhuset at 45, the western one curving past Mari Pårup's mosaics (1997). Near the middle of the platform an escalator climbs north and stairs climb south to a landing under the street, a lift beside them; from it an escalator and stairs, a lift beside them, climb 3.9 m into the glass pavilion in Björns trädgård (1995), its gates just inside its doors. From OpenStreetMap's indoor mapping (2025; its platform is drawn in the wrong place, so its flights are set on the real one), the elevation model (the street 7.7 to 7.9 m above the platform at the three entrances) and photographs (2009–2025); the landing's layout is inferred.",
       "routes": [
-        { "from": [-72.5, -1.0], "width": 3.6, "go": [
-          {"escalators": 4.1, "toward": [-200, -1.0], "lanes": "ES", "ceiling": 2.6}
+        { "from": [-72.74, -1.0], "width": 3.6, "go": [
+          {"escalators": 3.96, "toward": [-200, -1.0], "lanes": "ES", "ceiling": 2.6}
         ] },
-        { "from": [-79.6, -1.0], "h": 4.1, "width": 8.0, "go": [
+        { "from": [-79.6, -1.0], "h": 3.96, "width": 8.0, "go": [
           {"walk": [-89.0, -1.0], "ceiling": 2.6},
           {"gates": true},
           {"walk": [-99.0, -1.0], "ceiling": 2.6}
         ] },
-        { "from": [-97.6, 3.0], "h": 4.1, "width": 3.0, "go": [
+        { "from": [-97.6, 3.0], "h": 3.96, "width": 3.0, "go": [
           {"walk": [-97.9, 10.7], "ceiling": 2.4},
           {"exit": 254887800, "by": "stairs", "lanes": "Ss"}
         ] },
-        { "from": [-96.0, -5.0], "h": 4.1, "width": 3.0, "go": [
+        { "from": [-96.0, -5.0], "h": 3.96, "width": 3.0, "go": [
           {"walk": [-95.0, -15.5], "ceiling": 2.4},
           {"walk": [-97.9, -30.5], "ceiling": 2.4},
           {"exit": 254887892, "by": "stairs", "lanes": "Ss"}
         ] },
-        { "from": [-5.6, -0.5], "width": 1.6, "go": [
-          {"escalators": 4.1, "toward": [200, -0.5], "lanes": "E", "ceiling": 2.6}
+        { "from": [-5.36, -0.5], "width": 1.6, "go": [
+          {"escalators": 3.96, "toward": [200, -0.5], "lanes": "E", "ceiling": 2.6}
         ] },
-        { "from": [16.1, -0.5], "width": 2.0, "go": [
-          {"stairs": 4.1, "toward": [-200, -0.5], "lanes": "S", "ceiling": 2.6}
+        { "from": [15.84, -0.5], "width": 2.0, "go": [
+          {"stairs": 3.96, "toward": [-200, -0.5], "lanes": "S", "ceiling": 2.6}
         ] },
         { "from": [-1.0, 2.6], "width": 2.2, "go": [
           {"walk": [3.5, 2.6], "open": true},
-          {"lift": 4.1, "above": 2.6, "through": true}
+          {"lift": 3.96, "above": 2.6, "through": true}
         ] },
-        { "from": [1.45, 2.75], "h": 4.1, "width": 9.1, "go": [
+        { "from": [1.45, 2.75], "h": 3.96, "width": 9.1, "go": [
           {"walk": [8.4, 2.75], "ceiling": 2.6}
         ] },
-        { "from": [8.0, 3.5], "h": 4.1, "width": 3.1, "go": [
+        { "from": [8.0, 3.5], "h": 3.96, "width": 3.1, "go": [
           {"walk": [10.8, 3.5], "ceiling": 2.6},
           {"escalators": 3.87, "toward": [200, 3.5], "lanes": "Es", "ceiling": 2.6, "open": true},
           {"walk": [17.6, 3.5], "open": true}
         ] },
-        { "from": [8.0, 6.2], "h": 4.1, "width": 2.2, "go": [
+        { "from": [8.0, 6.2], "h": 3.96, "width": 2.2, "go": [
           {"walk": [9.6, 6.2], "ceiling": 2.6},
           {"lift": 3.87, "above": 2.8, "through": true},
           {"walk": [17.6, 6.2], "open": true}
         ] },
-        { "from": [17.5, 4.6], "h": 7.97, "width": 5.2, "go": [
+        { "from": [17.5, 4.6], "h": 7.83, "width": 5.2, "go": [
           {"walk": [17.9, 4.6], "open": true},
           {"gates": true},
           {"walk": [18.4, 4.6], "open": true},
@@ -2311,45 +2311,45 @@
     },
     "Skanstull": {
       "drawing": "skanstull.png",
-      "note": "An island platform 180 m long in the concrete box of the old tram tunnel under Götgatan (1933, lengthened for the metro in 1950). At its south end an escalator and stairs side by side, and a lift beside them, climb 3.55 m to a low ticket hall under the street, just above the trains; through the gates a lift rises to Götgatan's median, a passage leads east over the northbound track and down a few steps into a sunken court with stairs up to the pavement at each end, one of them in a glass stair house with a lift beside it, and a passage leads south-west under the building on the corner and Ringvägen to a glass stair house on Ringvägen's north side and to open stairs at its south-west corner. At the north end stairs lead down under the southbound track to a passage west, and three escalators climb 10.2 m to the hall under the end of Allhelgonagatan, whose glass front, under the street's railing, opens onto Götgatan. From OpenStreetMap's indoor mapping (the flights, lifts, gates, passages and entrances), the laser scan (the court's floor 2.6 m over the platform and the pavement round it at 4.6 m; Allhelgonagatan's end 3.2 m above Götgatan's pavement; the stair houses' roofs; the open stairs at Ringvägen) and photographs (2013).",
+      "note": "An island platform 180 m long in the concrete box of the old tram tunnel under Götgatan (1933, lengthened for the metro in 1950). At its south end an escalator and stairs side by side, and a lift beside them, climb 4.1 m to a low ticket hall under the street, just above the trains; through the gates a lift rises to Götgatan's median, a passage leads east over the northbound track and down a few steps into a sunken court with stairs up to the pavement at each end, one of them in a glass stair house with a lift beside it, and a passage leads south-west under the building on the corner and Ringvägen to a glass stair house on Ringvägen's north side and to open stairs at its south-west corner. At the north end stairs lead down under the southbound track to a passage west, and three escalators climb 10.8 m to the hall under the end of Allhelgonagatan, whose glass front, under the street's railing, opens onto Götgatan. From OpenStreetMap's indoor mapping (the flights, lifts, gates, passages and entrances), the laser scan (the court's floor 3.2 m over the platform and the pavement round it at 5.2 m; Allhelgonagatan's end 3.2 m above Götgatan's pavement; the stair houses' roofs; the open stairs at Ringvägen) and photographs (2013); the platform's level is the 1964 technical description's, from its long profile.",
       "routes": [
-        { "from": [-89.9, 1.4], "width": 3.6, "go": [
-          {"escalators": 3.55, "toward": [-200, 1.4], "lanes": "SE", "ceiling": 2.2}
+        { "from": [-88.91, 1.4], "width": 3.6, "go": [
+          {"escalators": 4.12, "toward": [-200, 1.4], "lanes": "SE", "ceiling": 2.2}
         ] },
         { "from": [-84.0, -2.4], "width": 2.2, "go": [
           {"walk": [-87.4, -2.4], "open": true},
-          {"lift": 3.55, "above": 2.2, "through": true},
+          {"lift": 4.12, "above": 2.2, "through": true},
           {"walk": [-96.05, -2.4], "ceiling": 2.1}
         ] },
-        { "from": [-96.05, 0.5], "h": 3.55, "width": 7.0, "go": [
+        { "from": [-96.05, 0.5], "h": 4.12, "width": 7.0, "go": [
           {"walk": [-104.0, 0.5], "ceiling": 2.1},
           {"gates": true},
           {"walk": [-112.6, 0.5], "ceiling": 2.1}
         ] },
-        { "from": [-112.6, 0.8], "h": 3.55, "width": 2.4, "go": [
+        { "from": [-112.6, 0.8], "h": 4.12, "width": 2.4, "go": [
           {"walk": [-115.4, 0.8], "ceiling": 2.1},
           {"exit": 9558088612, "by": "lift"}
         ] },
-        { "from": [-110.5, 4.0], "h": 3.55, "width": 3.0, "go": [
+        { "from": [-110.5, 4.0], "h": 4.12, "width": 3.0, "go": [
           {"walk": [-110.5, 9.0], "ceiling": 2.1},
           {"stairs": -0.95, "toward": [-110.5, 40], "ceiling": 2.1},
           {"walk": [-110.5, 18.4], "ceiling": 1.95}
         ] },
-        { "from": [-108.4, 20.6], "h": 2.6, "width": 4.4, "go": [
+        { "from": [-108.4, 20.6], "h": 3.17, "width": 4.4, "go": [
           {"walk": [-114.0, 20.6], "open": true, "edges": false}
         ] },
-        { "from": [-114.0, 20.6], "h": 2.6, "width": 3.5, "go": [
+        { "from": [-114.0, 20.6], "h": 3.17, "width": 3.5, "go": [
           {"exit": {"at": [-117.9, 20.6], "name": "Götgatan"}, "by": "stairs", "lanes": "Ss", "sign": false}
         ] },
-        { "from": [-108.4, 19.4], "h": 2.6, "width": 2.0, "go": [
+        { "from": [-108.4, 19.4], "h": 3.17, "width": 2.0, "go": [
           {"exit": {"at": [-103.5, 19.4], "name": "Götgatan"}, "by": "stairs", "lanes": "S", "sign": false}
         ] },
-        { "from": [-108.4, 21.6], "h": 2.6, "width": 2.2, "go": [
+        { "from": [-108.4, 21.6], "h": 3.17, "width": 2.2, "go": [
           {"walk": [-108.2, 21.6], "open": true, "edges": false},
           {"lift": 2.0, "through": true},
           {"exit": {"at": [-103.4, 21.6], "name": "Götgatan"}, "by": "walk", "sign": false}
         ] },
-        { "from": [-111.0, -3.0], "h": 3.55, "width": 3.0, "go": [
+        { "from": [-111.0, -3.0], "h": 4.12, "width": 3.0, "go": [
           {"walk": [-111.0, -8.0], "ceiling": 2.1},
           {"walk": [-121.5, -11.5], "dh": -0.85, "ceiling": 2.3},
           {"walk": [-128.0, -14.5], "dh": -0.3, "ceiling": 2.3},
@@ -2369,27 +2369,27 @@
         { "from": [90.0, -0.6], "width": 4.0, "go": [
           {"stairs": -4.5, "toward": [200, -0.6], "lanes": "SS", "ceiling": 2.6},
           {"walk": [99.7, -0.6], "ceiling": 2.4},
-          {"walk": [99.7, -27.5], "width": 4.8, "ceiling": 2.4},
-          {"escalators": 10.2, "toward": [99.7, -200], "lanes": "EEE", "ceiling": 3.0, "open": true},
+          {"walk": [99.7, -26.51], "width": 4.8, "ceiling": 2.4},
+          {"escalators": 10.77, "toward": [99.7, -200], "lanes": "EEE", "ceiling": 3.0, "open": true},
           {"walk": [99.7, -47.3], "width": 9.8, "open": true}
         ] },
-        { "from": [103.4, -45.17], "h": 5.7, "width": 2.4, "go": [
+        { "from": [103.4, -45.17], "h": 6.27, "width": 2.4, "go": [
           {"walk": [103.4, -39.8], "open": true}
         ] },
-        { "from": [96.0, -45.17], "h": 5.7, "width": 2.4, "go": [
+        { "from": [96.0, -45.17], "h": 6.27, "width": 2.4, "go": [
           {"walk": [96.0, -39.8], "open": true}
         ] },
-        { "from": [99.7, -39.8], "h": 5.7, "width": 9.8, "go": [
+        { "from": [99.7, -39.8], "h": 6.27, "width": 9.8, "go": [
           {"walk": [99.7, -24.0], "open": true},
           {"gates": true},
           {"walk": [99.7, -18.3], "open": true},
           {"walk": [99.7, -18.25], "width": 3.6, "open": true},
           {"exit": {"at": [99.7, -14.5], "name": "Allhelgonagatan"}, "by": "walk", "open": true, "sign": false}
         ] },
-        { "from": [96.35, -18.1], "h": 5.7, "width": 3.1, "go": [
+        { "from": [96.35, -18.1], "h": 6.27, "width": 3.1, "go": [
           {"walk": [96.35, -14.5], "open": true}
         ] },
-        { "from": [103.05, -18.1], "h": 5.7, "width": 3.1, "go": [
+        { "from": [103.05, -18.1], "h": 6.27, "width": 3.1, "go": [
           {"walk": [103.05, -14.5], "open": true}
         ] }
       ]
@@ -2962,7 +2962,7 @@
         { "from": [71.0, 6.37], "width": 2.0, "go": [
           {"walk": [72.0, 6.54], "open": true},
           {"walk": [83.26, 8.4], "open": true},
-          {"stairs": -3.75, "toward": [100, 11.18], "lanes": "S"},
+          {"stairs": -3.8, "toward": [100, 11.18], "lanes": "S"},
           {"walk": [92.2, 9.88], "ceiling": 2.6},
           {"walk": [94.6, 10.27], "width": 1.9, "ceiling": 2.6},
           {"walk": [95.0, 10.34], "width": 4.0, "ceiling": 2.6},
@@ -2974,9 +2974,9 @@
         { "from": [71.0, 4.32], "width": 1.6, "go": [
           {"walk": [72.0, 4.49], "open": true},
           {"walk": [91.9, 7.78], "open": true},
-          {"lift": -3.75, "above": 4.85}
+          {"lift": -3.8, "above": 4.85}
         ] },
-        { "from": [90.2, 7.5], "h": -3.75, "width": 2.2, "go": [
+        { "from": [90.2, 7.5], "h": -3.8, "width": 2.2, "go": [
           {"walk": [91.9, 7.78], "ceiling": 2.6}
         ] },
         { "from": "underpass", "width": 4.0, "go": [

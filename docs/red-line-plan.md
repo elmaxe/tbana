@@ -396,7 +396,9 @@ Each phase ends in a pull request with a playable preview.
      - Building heights are estimated for 60%. Lantmäteriet's or Stockholm stad's building data
        would do better.
      - The troughs under Riddarholmskanalen and Liljeholmsviken have their tops above the water
-       in the track heights, and make low mounds across it.
+       in the track heights, and make low mounds across it. (Since fixed: the 1964 book's long
+       profiles have the rail about 10 m under the water at Norrström and 14 m at
+       Liljeholmsviken.)
      - The other lines' tracks above ground, at Gamla stan, Slussen and beyond, are phase 9.
 8. **Depots and the red line's other track.** *Done.*
    - Settled before starting: this phase is the red line's own track (its two depots, crossovers,
@@ -525,7 +527,8 @@ Each phase ends in a pull request with a playable preview.
        height for the underground ones (Fridhemsplan 1.3 m above sea level, Medborgarplatsen
        17 m, Hagsätra 46.2 m; Sankt Eriksplan, Rådmansgatan 8 m deep, Odenplan 9, Skanstull and
        Farsta strand 5, Bagarmossen 19, Skarpnäck 25). A depth is taken from the ground over the
-       platforms (`depth` in `data/height-corrections.json`). Hötorget has neither.
+       platforms (`depth` in `data/height-corrections.json`). Hötorget has neither. (Since then
+       the 1964 book's long profile gives Sankt Eriksplan, Rådmansgatan, Hötorget and Skanstull.)
      - A station with no height still has its platform tracks level with each other: without it,
        Hötorget's two tracks came out 3.6 m apart, and Gullmarsplan's up to 6 m.
      - Vertical curves are held at the line's limit, like the gradient, across the nodes too: the
@@ -704,8 +707,9 @@ game's code.
 - [x] A free Geotorget account at Lantmäteriet, for the 1 m elevation model in phases 3 and 7.
       The downloads use HTTP Basic auth with the account's user name and password. Phase 3's tools
       will read them from the environment variables `LM_USER` and `LM_PASSWORD`.
-- [ ] Borrow the 1964 technical description from Stockholms stadsbibliotek, and photograph its red
-      line profiles and standard sections.
+- [x] Borrow the 1964 technical description from Stockholms stadsbibliotek, and photograph its red
+      line profiles and standard sections. Axel photographed it (2026-11); its profiles are in
+      `data/profiles-1964.json`.
 - [ ] Does Wikidata's station height mean top of rail or platform level, and in which height system?
       Check it against the new-line drawings, which give top of rail in RH 2000. Against the
       elevation model it is the platform for underground stations (Slussen: 8 m, with 7–24 m of

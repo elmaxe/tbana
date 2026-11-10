@@ -53,7 +53,7 @@ import type { GeometryPiece, StructureKind, TrackGeometry } from '../src/track-g
 import { ISLAND_WIDTH, ISLAND_WIDTHS, MIDDLE_TRACK_STATIONS, PLATFORM_EDGE, SIDE_PLATFORM_WIDTH, TRACK_CENTRES, islandWidth } from '../src/sections.ts';
 import { ORIGIN } from '../src/geo.ts';
 import { deckAt } from './lib/decks.ts';
-import { chainage, groundSamples, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces } from './lib/graph.ts';
+import { chainage, groundSamples, heightsAlong, interp, lineTrack, mouthDistances, pointAt, runningCrossings, sidingPieces, type TrackHeights } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
@@ -111,7 +111,9 @@ const graph: TrackGraph = JSON.parse(readFileSync('public/data/track-graph.json'
 // the line a piece belongs to: as OpenStreetMap names it, or the line of the services on it
 const serviceLine = new Map(runningWays(graph).flatMap((r) => r.path.map((st) => [st.piece, r.line] as const)));
 const lineOf = (p: TrackPiece) => p.lines[0] ?? serviceLine.get(p.id) ?? '';
-const heights: Record<string, number[]> = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8')).pieces;
+const heights: TrackHeights = JSON.parse(readFileSync('public/data/track-heights.json', 'utf8'));
+// the rail's height a distance along a piece
+const heightAt = (p: TrackPiece, s: number) => { const h = heightsAlong(heights, p); return interp(h.s, h.y, s); };
 const corrections = existsSync('data/height-corrections.json') ? JSON.parse(readFileSync('data/height-corrections.json', 'utf8')) : {};
 // side platforms measured wider than SIDE_PLATFORM_WIDTH, from data/track-corrections.json
 const trackCorrections = JSON.parse(readFileSync('data/track-corrections.json', 'utf8'));
@@ -130,9 +132,10 @@ const straightInners = new Map<string, { x: number; z: number }>((trackCorrectio
   .map((w: { station: string; inner: [number, number] }) => [w.station, { x: w.inner[0] - ORIGIN.e, z: ORIGIN.n - w.inner[1] }]));
 // places where a line's two tracks in tunnels keep OpenStreetMap's spacing, within `reach` m of `at`
 // (SWEREF 99 18 00 east, north; data/track-corrections.json `apart`), rather than being drawn
-// together over a siding between them
-const keepApart: { x: number; z: number; reach: number }[] = (trackCorrections.apart ?? [])
-  .map((c: { at: [number, number]; reach: number }) => ({ x: c.at[0] - ORIGIN.e, z: ORIGIN.n - c.at[1], reach: c.reach }));
+// together over a siding between them, or where they run in tunnels of their own; only the
+// `line`'s tracks, where it is given
+const keepApart: { x: number; z: number; reach: number; line?: string }[] = (trackCorrections.apart ?? [])
+  .map((c: { at: [number, number]; reach: number; line?: string }) => ({ x: c.at[0] - ORIGIN.e, z: ORIGIN.n - c.at[1], reach: c.reach, line: c.line }));
 const ground = groundSamples(graph);
 if (!ground.length) console.warn(`data/ground/<line>-line.json missing: every tunnel is taken to be in rock, and all open track on the ground`);
 
@@ -190,7 +193,7 @@ const modelStations = new Set(models.map((m) => m.station));
 function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, log: (...a: unknown[]) => void) {
   // ------------------------------------------------------------------ the pieces and their points
   const pieces = graph.pieces.filter((p) => used.has(p.id));
-  for (const p of pieces) if (!heights[p.id]) throw new Error(`no heights for piece ${p.id}: run build-heights first`);
+  for (const p of pieces) if (!heights.pieces[p.id]) throw new Error(`no heights for piece ${p.id}: run build-heights first`);
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
 
   // the services on each piece ('T13', 'T14'), and the direction they run it in
@@ -227,7 +230,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       const [x, z] = pointAt(p, sk);
       if (node !== null) nodeVar.set(node, vars.length);
       v.push(vars.length);
-      vars.push({ x0: x, z0: z, y: interp(cum, heights[p.id], sk), tunnel: p.structure === 'tunnel', key: node !== null ? `n${node}` : `${p.id}:${k}` });
+      vars.push({ x0: x, z0: z, y: heightAt(p, sk), tunnel: p.structure === 'tunnel', key: node !== null ? `n${node}` : `${p.id}:${k}` });
     }
     disc.set(p.id, { s, v, cum });
   }
@@ -560,7 +563,7 @@ function plan(used: Set<number>, pinned: Map<string, [number, number]> | null, l
       const here = platformAt(p.id, s[k]), there = platformAt(b.piece.id, b.s);
       let target: number, f: number;
       if (between(runningSegments, a.x0, a.z0, b.x, b.z, [p.id, b.piece.id])) return;
-      if (keepApart.some((c) => Math.hypot(a.x0 - c.x, a.z0 - c.z) < c.reach)) {
+      if (keepApart.some((c) => (!c.line || p.lines.includes(c.line)) && Math.hypot(a.x0 - c.x, a.z0 - c.z) < c.reach)) {
         // as far apart as OpenStreetMap has them
         target = b.d;
         f = 1;
@@ -812,7 +815,7 @@ for (const p of pieces) {
   const { s, v, cum } = disc.get(p.id)!;
   const piece: GeometryPiece = { s: [], x: [], z: [], y: [], ground: [], kind: [], pair: [], pairDy: [], platforms: [] };
   v.forEach((vi, k) => {
-    const [x, z] = pos(vi), y = interp(cum, heights[p.id], s[k]);
+    const [x, z] = pos(vi), y = heightAt(p, s[k]);
     piece.s.push(s[k]); piece.x.push(x); piece.z.push(z); piece.y.push(y);
     piece.ground.push(groundAt(x, z, 12));
     piece.kind.push(STRUCTURE_KINDS.indexOf(kindOf(p, s[k], x, z, y)));
