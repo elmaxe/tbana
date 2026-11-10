@@ -3,7 +3,7 @@
   "stations": {
     "Östermalmstorg": {
       "drawing": "ostermalmstorg.png",
-      "note": "Two platform halls, one for each track, joined at both ends and in the middle. From the south-west end, escalators climb in two flights to a long ticket hall under Stureplan with four exits; from the north-east end, two flights to the hall at Sibyllegatan and Nybrogatan.",
+      "note": "Two platform halls, one for each track, joined at both ends and in the middle. From the south-west end, escalators climb in two flights to a long ticket hall under Stureplan with four exits; from the north-east end, two flights to the hall at Sibyllegatan and Nybrogatan. The flights' heights are from the long sections in Stockholms tunnelbanor 1964 (figs 5:21 and 14:1b, read against the second's scale bar): the platforms at about −23.6 m, the western landing about −17.8 m and its hall +0.25 m (the passage on under Birger Jarlsgatan −0.70 m), the eastern landing, under a dome, about −7.8 m and its hall +8.90 m, 5.9 m under the square at +14.80 m. The book's levels on the platforms and halls are printed; the landings' are measured off the sections, to about a metre.",
       "routes": [
         { "from": [0, -6], "width": 8, "go": [
           {"walk": [0, 6]}
@@ -16,31 +16,31 @@
         ] },
         { "from": [-66, 0], "width": 6, "go": [
           {"walk": [-90, 0]},
-          {"escalators": 8, "toward": [-150, 0], "lanes": "EEE"},
+          {"escalators": 5.5, "toward": [-150, 0], "lanes": "EEE"},
           {"walk": 6},
-          {"escalators": 14, "toward": [-150, -40], "lanes": "EEE"},
-          {"walk": 8, "width": 8},
+          {"escalators": 18.05, "toward": [-150, -40], "lanes": "EEE"},
+          {"walk": 8, "width": 8, "ceiling": 2.8},
           {"gates": true},
-          {"walk": 4},
+          {"walk": 4, "ceiling": 2.8},
           {"mark": "stureplan"},
-          {"walk": [-200, -45]},
+          {"walk": [-200, -45], "ceiling": 2.8},
           {"mark": "west"},
-          {"exit": 13900880262}
+          {"exit": 13900880262, "ceiling": 2.8}
         ] },
         { "from": "stureplan", "width": 4, "go": [
-          {"exit": 300266770}
+          {"exit": 300266770, "ceiling": 2.8}
         ] },
         { "from": "west", "width": 4, "go": [
-          {"exit": 12468956319}
+          {"exit": 12468956319, "ceiling": 2.8}
         ] },
         { "from": "west", "width": 4, "go": [
-          {"exit": 13900880261}
+          {"exit": 13900880261, "ceiling": 2.8}
         ] },
         { "from": [66, 0], "width": 6, "go": [
           {"walk": [90, 0]},
-          {"escalators": 18, "toward": [150, -20], "lanes": "EEE"},
+          {"escalators": 15.5, "toward": [150, -20], "lanes": "EEE"},
           {"walk": 6},
-          {"escalators": 12, "toward": [150, -40], "lanes": "EEE"},
+          {"escalators": 16.7, "toward": [150, -40], "lanes": "EEE"},
           {"walk": 6, "width": 8},
           {"gates": true},
           {"walk": 3},

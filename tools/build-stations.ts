@@ -349,7 +349,7 @@ function buildStation(name: string, d: Description, problems: Problems): Station
         } else {
           const run = Math.abs(dh) / (by === 'stairs' ? STAIR_SLOPE : ESCALATOR_SLOPE);
           if (l < run - 0.5) problems.add(`${where}: the exit ${sg.exit} is ${l.toFixed(1)} m away, and ${by} up ${dh.toFixed(1)} m need ${run.toFixed(1)} m`);
-          if (l > run + 0.1) walkTo(x + nx * (l - run), z + nz * (l - run));
+          if (l > run + 0.1) walkTo(x + nx * (l - run), z + nz * (l - run), 0, sg.ceiling);
           const lanes = sg.lanes ?? (by === 'stairs' ? 'S'.repeat(Math.max(1, Math.round(width / LANE.S))) : 'EES');
           incline(by, dh, nx, nz, lanes, CEILING.incline, ey);
         }
