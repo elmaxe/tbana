@@ -6,9 +6,9 @@
 // Reads public/data/track-graph.json, data/station-heights.json (Wikidata), the T-Centralen
 // model, data/ground/<line>-line.json (Lantmäteriet's elevation model) when they are there,
 // data/osm/buildings.json (for the depots), and the fixes to these in data/height-corrections.json; writes
-// public/data/track-heights.json: the height of the top of the rail (RH 2000) at every point of
-// every piece of the lines' track: what their services run on, and the crossovers, sidings and
-// depots joined to that (tools/lib/graph.ts lineTrack).
+// public/data/track-heights.json: the height of the top of the rail (RH 2000) about every 10 m
+// along every piece of the lines' track: what their services run on, and the crossovers, sidings
+// and depots joined to that (tools/lib/graph.ts lineTrack).
 //
 // Every piece is cut into points about 10 m apart, joined at the graph's nodes, and the heights
 // are the smoothest line through these, by least squares:
@@ -31,17 +31,22 @@
 // Then the result is checked against the 1975 limits: 40‰ at most, 10‰ along platforms, vertical
 // curves of at least 2,000 m radius on the red line, 1,500 m on the green and 4,000 m on the blue.
 // The build fails on anything clearly outside them, and lists it.
+//
+// Where data/profiles-1964.json has the line's long profile from the 1964 technical description,
+// the rail between the stations follows it, and may be as steep as the book has it (48.5‰ east of
+// T-Centralen).
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runningWays } from '../src/track-graph.ts';
 import type { TrackGraph, TrackPiece } from '../src/track-graph.ts';
 import { PLATFORM_SIDING_STATIONS } from '../src/sections.ts';
-import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile, runningCrossings, sidingPieces } from './lib/graph.ts';
+import { groundSamples, lineTrack, mouthDistances, pointAt, routeProfile, runningCrossings, sidingPieces, type TrackHeights } from './lib/graph.ts';
 import { LeastSquares } from './lib/least-squares.ts';
 import type { Row } from './lib/least-squares.ts';
 import { loadStationModel, modelPlatforms, placeSample } from './lib/station-model.ts';
 
 const OUT = 'public/data/track-heights.json';
 const CORRECTIONS = 'data/height-corrections.json';
+const PROFILES = 'data/profiles-1964.json';
 const BUILDINGS = 'data/osm/buildings.json';
 const STEP = 10;
 const PLATFORM_ABOVE_RAIL = 1.0;
@@ -50,7 +55,7 @@ const LIMITS = { gradient: 0.040, platformGradient: 0.010, cover: 6, yardCover: 
 // 1,500 m, the red to 2,000 m, the blue to 4,000 m)
 const VERTICAL_RADIUS: Record<string, number> = { green: 1500, red: 2000, blue: 4000 };
 // how far each kind of anchor may be off, in metres (or 1/m for curvature, and m/m for gradients)
-const SIGMA = { station: 0.7, model: 0.3, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05, stacked: 0.3 };
+const SIGMA = { station: 0.7, bookStation: 0.2, model: 0.3, book: 0.5, ground: 1.0, cover: 0.1, curvature: 1 / 4000, platformGradient: 0.002, platformLevel: 0.1, grade: 0.001, bend: 1e-5, level: 50, pinned: 0.01, siding: 0.05, stacked: 0.3 };
 // a siding is laid at the height of a running line this close beside it in a tunnel
 const SIDING_REACH = 9;
 let sidingAnchors = 0;
@@ -84,6 +89,20 @@ interface Corrections {
   stacked?: (Segment & { clearance: number })[];
 }
 interface Segment { along: [number, number][]; reach: number; why: string }
+// The long profiles of the 1964 technical description: for each, the services whose track it is,
+// the book's chainage of the stations' platform centres with its rail height there (null: the
+// track is not the one the book draws at that station), its rail height along the line (joined
+// by straight lines, but for the gaps), and the steepest gradient the book has along it.
+interface BookProfile {
+  figure: string; line: string; routes: string[]; stations: [string, number, number | null][]; steepest: number;
+  gaps?: [number, number][]; rail: [number, number][]; why: string;
+}
+const profiles: BookProfile[] = existsSync(PROFILES) ? JSON.parse(readFileSync(PROFILES, 'utf8')).profiles : [];
+// how far along the line a station's difference from the book's height there is carried
+const BOOK_BLEND = 400;
+// within this far of a station's platform centre the book's line is not used: there the station's
+// own height comes first, and the line's vertical curves, which can't start on the level platform
+const BOOK_NEAR = 200;
 const corrections: Corrections = existsSync(CORRECTIONS) ? JSON.parse(readFileSync(CORRECTIONS, 'utf8')) : {};
 const ground = groundSamples(graph);
 for (const c of corrections.stations ?? []) {
@@ -281,7 +300,10 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     }
   }
 
-  // stations: their platform tracks
+  // stations: their platform tracks. Where the 1964 book's profile has the station too, at about
+  // the height it has, the two agree, and it is held more firmly: there the line's vertical curves
+  // between its level platforms and the book's gradients give way, not the station.
+  const bookStations = new Set(profiles.flatMap((p) => p.stations.filter((st) => st[2] !== null).map((st) => st[0])));
   const stationRows: { name: string; v: number; b: number }[] = [];
   for (const st of graph.stations) {
     const h = stationHeights[st.name]?.height;
@@ -293,7 +315,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
         d.s.forEach((s, k) => {
           // where a model draws the platform, its track's height is taken instead (below)
           if (s < t.s0 || s > t.s1 || modelUnder(t.piece, s, vars[d.v[k]].x, vars[d.v[k]].z)) return;
-          addAnchor(d.v[k], h - PLATFORM_ABOVE_RAIL, SIGMA.station);
+          addAnchor(d.v[k], h - PLATFORM_ABOVE_RAIL, bookStations.has(st.name) ? SIGMA.bookStation : SIGMA.station);
           stationRows.push({ name: st.name, v: d.v[k], b: h - PLATFORM_ABOVE_RAIL });
         });
       }
@@ -356,6 +378,76 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       const r = railAt(vars[vi].x, vars[vi].z, [(b.x - a.x) / l, (b.z - a.z) / l]);
       if (r !== null) { addAnchor(vi, r.h, r.sigma); railAnchors++; railHeld.add(vi); }
     });
+  }
+  // the rail along the 1964 book's long profiles, where the corrections don't give it: the book's
+  // chainage is tied to each service's track at the stations, and near each station the book's
+  // line is shifted by the station's difference from the book's height there, so the stations
+  // keep theirs (Wikidata's, a model's, the laser scan's). Along it the line may be as steep as
+  // the book has it (the gradient hold below).
+  let bookAnchors = 0;
+  const bookGrade = new Map<number, number>();
+  for (const prof of profiles) {
+    const rail = [...prof.rail].sort((a, b) => a[0] - b[0]);
+    const bookRail = (c: number) => {
+      const k = rail.findIndex((r) => r[0] >= c);
+      if (k < 0 || (k === 0 && rail[0][0] > c) || (prof.gaps ?? []).some(([a, b]) => c > a && c < b)) return null;
+      if (rail[k][0] === c) return rail[k][1];
+      const [c0, h0] = rail[k - 1], [c1, h1] = rail[k];
+      return h0 + ((h1 - h0) * (c - c0)) / (c1 - c0);
+    };
+    for (const name of prof.routes) {
+      const route = graph.routes.find((r) => r.name === name);
+      if (!route) throw new Error(`${PROFILES}: no service ${name}`);
+      // the route's points in order, with their distance along it (as tools/lib/graph.ts
+      // routeProfile), and where each piece of its path starts
+      const along: { vi: number; s: number }[] = [];
+      const starts: { piece: number; base: number; first: number }[] = [];
+      let base = 0;
+      route.path.forEach((step, i) => {
+        const p = graph.pieces[step.piece];
+        const first = i === 0 ? route.stops[0].s : step.dir === 1 ? 0 : p.length;
+        const last = i === route.path.length - 1 ? route.stops[route.stops.length - 1].s : step.dir === 1 ? p.length : 0;
+        starts.push({ piece: p.id, base, first });
+        const d = disc.get(p.id);
+        if (d) d.s.forEach((s, k) => { if (s >= Math.min(first, last) && s <= Math.max(first, last)) along.push({ vi: d.v[k], s: base + Math.abs(s - first) }); });
+        base += Math.abs(last - first);
+      });
+      const ties = prof.stations.map(([station, c, h]) => {
+        const stop = route.stops.find((st) => st.station === station);
+        if (!stop) throw new Error(`${PROFILES}: ${name} doesn't stop at ${station}`);
+        const at = starts.find((st) => st.piece === stop.piece)!;
+        const [x, z] = pointAt(graph.pieces[stop.piece], stop.s);
+        const m = modelUnder(stop.piece, stop.s, x, z), own = stationHeights[station]?.height;
+        const game = m ? m.y - PLATFORM_ABOVE_RAIL : own !== undefined ? own - PLATFORM_ABOVE_RAIL : null;
+        return { s: at.base + Math.abs(stop.s - at.first), c, off: h === null || game === null ? 0 : game - h };
+      }).sort((a, b) => a.s - b.s);
+      const dir = Math.sign(ties[ties.length - 1].c - ties[0].c);
+      // the book's chainage at a distance along the route: between the stations in proportion,
+      // beyond the first and last one metre for metre
+      const chainageAt = (s: number) => {
+        if (s <= ties[0].s) return ties[0].c + (s - ties[0].s) * dir;
+        const k = ties.findIndex((t) => t.s >= s);
+        if (k < 0) return ties[ties.length - 1].c + (s - ties[ties.length - 1].s) * dir;
+        const a = ties[k - 1], b = ties[k];
+        return a.c + ((b.c - a.c) * (s - a.s)) / (b.s - a.s);
+      };
+      const heightAt = (s: number) => {
+        const c = chainageAt(s), h = bookRail(c);
+        return h === null ? null : h + ties.reduce((sum, t) => sum + t.off * Math.max(0, 1 - Math.abs(c - t.c) / BOOK_BLEND), 0);
+      };
+      const cs = [...ties.map((t) => t.c), ...rail.map((r) => r[0])], c0 = Math.min(...cs), c1 = Math.max(...cs);
+      for (const { vi, s } of along) {
+        const c = chainageAt(s);
+        if (c >= c0 && c <= c1) bookGrade.set(vi, Math.max(bookGrade.get(vi) ?? 0, prof.steepest));
+        if (onPlatform.has(vi) || railHeld.has(vi)) continue;
+        const h = heightAt(s);
+        if (h === null) continue;
+        if (ties.some((t) => Math.abs(c - t.c) < BOOK_NEAR)) continue;
+        addAnchor(vi, h, SIGMA.book);
+        railHeld.add(vi);
+        bookAnchors++;
+      }
+    }
   }
 
   // the ground under every point, if known (nearest sample within 6 m)
@@ -450,6 +542,8 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     const { s, v } = disc.get(p.id)!;
     return v.slice(1).map((b, k) => ({ a: v[k], b, h: s[k + 1] - s[k] }));
   });
+  // the gradient a step is held to: GRADE_HOLD, or as steep as the 1964 profile has it there
+  const holdOf = ({ a, b }: { a: number; b: number }) => Math.max(GRADE_HOLD, bookGrade.get(a) ?? 0, bookGrade.get(b) ?? 0);
   // - and the vertical curves of the services' track, which the ground may bend tighter than
   //   its line was built to: held at the line's limit
   const bends = pieces.filter((p) => run.has(p.id)).flatMap((p) => {
@@ -535,6 +629,22 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       }
     }
   }
+  // The same two tracks may cross at more than one place (red over green along T-Centralen's
+  // platforms, then green over red north-east of them, where the red line has dropped from the
+  // upper level and passes under the green line's southbound track): each place has its own order.
+  {
+    const up = crossings.map((_, k) => k);
+    const root = (k: number): number => (up[k] === k ? k : (up[k] = root(up[k])));
+    const byPair = new Map<string, number[]>();
+    crossings.forEach((c, k) => (byPair.get(c.pieces) ?? byPair.set(c.pieces, []).get(c.pieces)!).push(k));
+    for (const ks of byPair.values()) {
+      for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) {
+        const a = vars[crossings[ks[i]].a], b = vars[crossings[ks[j]].a];
+        if (Math.hypot(a.x - b.x, a.z - b.z) < 40) up[root(ks[i])] = root(ks[j]);
+      }
+    }
+    crossings.forEach((c, k) => { c.pieces = `${c.pieces}@${root(k)}`; });
+  }
   if (process.env.DEBUG) {
     const seen = new Set<string>();
     for (const c of crossings) {
@@ -557,7 +667,7 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
     ...[...floorHeld].map((vi): Row => ({ i: [vi], c: [1], b: floorAt(vi)!, w: 1 / SIGMA.cover })),
     ...[...gradeHeld].map(([k, sign]): Row => {
       const { a, b, h } = steps[k];
-      return { i: [a, b], c: [-1 / h, 1 / h], b: sign * GRADE_HOLD, w: 1 / SIGMA.grade };
+      return { i: [a, b], c: [-1 / h, 1 / h], b: sign * holdOf(steps[k]), w: 1 / SIGMA.grade };
     }),
     ...[...bendHeld].map(([k, sign]): Row => ({ ...bendRow(bends[k]), b: sign / bends[k].radius, w: 1 / SIGMA.bend })),
   ];
@@ -576,10 +686,10 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
       if (!floorHeld.has(vi) && y[vi] < floor) { floorHeld.add(vi); changed++; }
       else if (floorHeld.has(vi) && y[vi] > floor) { floorHeld.delete(vi); changed++; }
     });
-    steps.forEach(({ a, b, h }, k) => {
-      const g = (y[b] - y[a]) / h;
-      if (!gradeHeld.has(k) && Math.abs(g) > GRADE_HOLD) { gradeHeld.set(k, Math.sign(g)); changed++; }
-      else if (gradeHeld.has(k) && Math.abs(g) < GRADE_HOLD) { gradeHeld.delete(k); changed++; }
+    steps.forEach((step, k) => {
+      const g = (y[step.b] - y[step.a]) / step.h, hold = holdOf(step);
+      if (!gradeHeld.has(k) && Math.abs(g) > hold) { gradeHeld.set(k, Math.sign(g)); changed++; }
+      else if (gradeHeld.has(k) && Math.abs(g) < hold) { gradeHeld.delete(k); changed++; }
     });
     bends.forEach((bend, k) => {
       const g = bendOf(bend);
@@ -600,36 +710,34 @@ function fit(used: Set<number>, pinned: Map<string, number> | null) {
   }
 
   return {
-    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
+    pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, bookAnchors, bookGrade, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
     groundOf, coverGround, coverAt, onGround,
   };
 }
 const first = fit(run, null);
 const {
-  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
+  pieces, vars, disc, y, stationRows, onPlatform, modelAnchors, railAnchors, bookAnchors, bookGrade, groundAnchors, coverHeld, floorHeld, gradeHeld, stackHeld, bendHeld,
   groundOf, coverGround, coverAt, onGround,
 } = fit(lineTrack(graph), new Map(first.vars.map((v, i) => [v.key, first.y[i]])));
 
 // ------------------------------------------------------------------ write
-const heights: Record<string, number[]> = {};
+// the fitted points themselves, about 10 m apart, with how far along its piece each is: the
+// track's own points can be far apart in a tunnel, and joined straight they would cut through the
+// line's vertical curves (and, near a station, slope its platform)
+const heights: TrackHeights = { pieces: {}, at: {} };
 for (const p of pieces) {
   const { s, v } = disc.get(p.id)!;
-  let cum = 0;
-  heights[p.id] = p.points.map((pt, i) => {
-    if (i) cum += Math.hypot(pt[0] - p.points[i - 1][0], pt[1] - p.points[i - 1][1]);
-    let k = 1;
-    while (k < s.length - 1 && s[k] < cum) k++;
-    const t = Math.max(0, Math.min(1, (cum - s[k - 1]) / (s[k] - s[k - 1] || 1)));
-    return Math.round((y[v[k - 1]] + (y[v[k]] - y[v[k - 1]]) * t) * 100) / 100;
-  });
+  heights.at![p.id] = s.map((sk) => Math.round(sk * 10) / 10);
+  heights.pieces[p.id] = v.map((vi) => Math.round(y[vi] * 100) / 100);
 }
 writeFileSync(OUT, JSON.stringify({
   attribution: graph.attribution + (ground.length ? '; Markhöjdmodell © Lantmäteriet, CC BY 4.0' : ''),
   osm: graph.osm,
-  note: 'Height of the top of the rail (RH 2000) at each point of each piece of the drawn lines\' track in public/data/track-graph.json: the pieces their services run on, and the crossovers, sidings and depots joined to them.',
-  pieces: heights,
+  note: 'Height of the top of the rail (RH 2000) along each piece of the drawn lines\' track in public/data/track-graph.json (the pieces their services run on, and the crossovers, sidings and depots joined to them): `pieces` has the heights at points about 10 m apart, `at` how far along the piece (m) each point is.',
+  at: heights.at,
+  pieces: heights.pieces,
 }) + '\n');
-console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the station models, ${railAnchors} at a rail height from the corrections, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${floorHeld.size} held over it on bridges, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰, ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
+console.log(`${vars.length} points, ${stationRows.length} on platforms, ${modelAnchors} on the station models, ${railAnchors} at a rail height from the corrections, ${bookAnchors} on the 1964 book's profiles, ${sidingAnchors} sidings beside a running line, ${groundAnchors} on surface ground, ${coverHeld.size} held under ground, ${floorHeld.size} held over it on bridges, ${gradeHeld.size} steps held to ${GRADE_HOLD * 1000}‰ (or the book's gradient), ${stackHeld.size} held ${STACKED} m from a track crossing over or under, ${bendHeld.size} held to the line's vertical curve`);
 console.log(`wrote ${OUT}`);
 
 // ------------------------------------------------------------------ check
@@ -641,15 +749,25 @@ for (const st of new Set(stationRows.map((r) => r.name))) {
   const off = Math.max(...mine.map((r) => Math.abs(y[r.v] - r.b)));
   if (off > 2) problems.push(`${st}: platform ${off.toFixed(1)} m off its height`);
 }
+// the 1964 profile's gradient at the point of a piece nearest (x, z), where it has one
+const bookGradeNear = (piece: number, x: number, z: number) => {
+  const d = disc.get(piece);
+  if (!d) return 0;
+  const vi = d.v.reduce((a, b) => (Math.hypot(vars[b].x - x, vars[b].z - z) < Math.hypot(vars[a].x - x, vars[a].z - z) ? b : a));
+  return bookGrade.get(vi) ?? 0;
+};
 for (const route of graph.routes) {
   const prof = routeProfile(graph, route, heights);
   // gradient over 20 m, curvature over 60 m
-  let worstGrade = { g: 0, at: '' }, worstRadius = { r: Infinity, at: '' };
+  let worstGrade = { g: 0, at: '' }, worstRadius = { r: Infinity, at: '' }, worstOver = { over: 0, g: 0, limit: 0, at: '' };
   for (let i = 0, j = 0; i < prof.length; i++) {
     while (j < prof.length - 1 && prof[j].s - prof[i].s < 20) j++;
     if (prof[j].s - prof[i].s < 10) continue;
     const g = Math.abs((prof[j].y - prof[i].y) / (prof[j].s - prof[i].s));
     if (g > worstGrade.g) worstGrade = { g, at: near(prof[i].x, prof[i].z) };
+    // the limit, or the 1964 profile's gradient where that is steeper
+    const limit = Math.max(LIMITS.gradient, bookGradeNear(prof[i].piece, prof[i].x, prof[i].z), bookGradeNear(prof[j].piece, prof[j].x, prof[j].z));
+    if (g / limit > worstOver.over) worstOver = { over: g / limit, g, limit, at: near(prof[i].x, prof[i].z) };
   }
   for (let i = 0; i < prof.length; i++) {
     const a = prof.findLast((q) => q.s <= prof[i].s - 30), c = prof.find((q) => q.s >= prof[i].s + 30);
@@ -660,7 +778,7 @@ for (const route of graph.routes) {
   }
   const line = `${route.name}: steepest ${(worstGrade.g * 1000).toFixed(1)}‰ near ${worstGrade.at}, tightest vertical curve ${Math.round(worstRadius.r)} m near ${worstRadius.at}`;
   console.log(line);
-  if (worstGrade.g > LIMITS.gradient * 1.1) problems.push(`${route.name}: ${(worstGrade.g * 1000).toFixed(1)}‰ near ${worstGrade.at} (limit 40‰)`);
+  if (worstOver.over > 1.1) problems.push(`${route.name}: ${(worstOver.g * 1000).toFixed(1)}‰ near ${worstOver.at} (limit ${(worstOver.limit * 1000).toFixed(1)}‰)`);
   const limit = VERTICAL_RADIUS[route.line] ?? 2000;
   if (worstRadius.r < limit * 0.75) problems.push(`${route.name}: vertical curve of ${Math.round(worstRadius.r)} m near ${worstRadius.at} (limit ${limit.toLocaleString('en')} m)`);
 }

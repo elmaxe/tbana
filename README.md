@@ -306,14 +306,20 @@ each with its reason:
 - Universitetet's island platform, 156 m long since 1997 (Swedish Wikipedia) and 31.6 m wide
   round its two cores of rock (Albert Guillaumes' drawing), where OpenStreetMap's is 146 m long
   and 10 m wide, and its tracks held straight
+- the red line's southbound track north-east of T-Centralen, which OpenStreetMap draws on top of
+  the green line's southbound track: the 1964 book has it pass between the green line's two
+  tracks and under the eastern one (`moves`); and from there to Östermalmstorg the red line's two
+  single-track tubes, kept as far apart as OpenStreetMap has them (`apart`, with `line` for only
+  that line's tracks)
 
 [Gleisplanweb's track plan](https://www.gleisplanweb.eu/) was the reference for these. It is
 only a reference, because its licence doesn't allow reuse.
 
 ### Track heights
 
-`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) along every piece
-of the red, green and blue lines' track: what their services run on, and the crossovers, sidings,
+`public/data/track-heights.json` gives the height of the top of the rail (RH 2000) about every
+10 m along every piece of the red, green and blue lines' track (`at`: how far along the piece each
+height is; `heightsAlong` in `tools/lib/graph.ts` reads it): what their services run on, and the crossovers, sidings,
 turnback tracks and depots joined to that, and the tracks joining the lines (`lineTrack` in
 `tools/lib/graph.ts`). Track no service runs on is left out where it passes a
 platform (Sätra's middle track), because the station is described without it; Liljeholmen's third
@@ -333,11 +339,22 @@ npm run plot-profile -- "T13 Norsborg" t13.svg  # side view of a service
   and level along the platform. Wikidata has none of the green line's: for its underground
   stations `data/height-corrections.json` gives the height or the depth under the ground from
   Swedish Wikipedia (Fridhemsplan 1.3 m, Odenplan 9 m deep, Skarpnäck 25 m deep…), and so for
-  four of the blue line's. A station with no height still has its platform tracks level with each
-  other.
+  four of the blue line's, or from the 1964 book's long profiles (below: Sankt Eriksplan,
+  Rådmansgatan, Hötorget and Skanstull). A station with no height still has its platform tracks
+  level with each other.
 - **The station models:** their platforms, T-Centralen's, Odenplan's and Fridhemsplan's, take the
   model's heights instead (Fridhemsplan's blue line is 8 m below its green).
 - **Surface track:** the ground from Lantmäteriet's 1 m elevation model.
+- **The 1964 book's long profiles** (`data/profiles-1964.json`): *Stockholms tunnelbanor 1964, en
+  teknisk beskrivning* draws the rail along the green line from Fridhemsplan to Skanstull and the
+  red line from Gärdet to Liljeholmen. The book's chainage is tied to each service's track at the
+  stations, and its rail anchors the line between them: the dips under Norrström, the Slussen to
+  Liljeholmen stretch and Liljeholmsviken, and the red line's 48.5‰ drop from T-Centralen's upper
+  level to 33 m down at Östermalmstorg. Each station keeps its own height, its difference from the
+  book's carried 400 m along the line, and the book's line isn't used within 200 m of a station,
+  where the vertical curves off its level platforms are. A station that is in the book and has
+  about the book's height is held more firmly. Where the profile is steeper than the usual 37‰,
+  the line may be as steep as the book has it.
 
 It keeps tunnels at least 6 m under the ground away from their mouths (3 m for the track no
 service runs on, which may be in concrete boxes), and the gradient at 37‰ or less, the way a real
@@ -347,9 +364,9 @@ the rest of the track with the running lines pinned, so the depots don't move th
 tracks cross one over the other (OpenStreetMap's layers differ), they are held 6.5 m apart. A
 depot's track through its halls, or inside any building, gets no ground anchor: the elevation
 model there follows the roof. It then checks the
-result against the 1975 limits: 40‰, 10‰ along platforms, and vertical curves of at least 2,000 m
-on the red line, 1,500 m on the green and 4,000 m on the blue. It fails on anything outside them,
-and says where. Bridges get no anchor; where the corrections say a street passes under one
+result against the 1975 limits: 40‰ (or the 1964 profile's own steepest, where it has the line),
+10‰ along platforms, and vertical curves of at least 2,000 m on the red line, 1,500 m on the
+green and 4,000 m on the blue. It fails on anything outside them, and says where. Bridges get no anchor; where the corrections say a street passes under one
 (Kistaviadukten, and the bridges at Kymlinge and Hjorthagen), its rail is held a clearance above
 the ground, and where they give the rail's height (`rail`), it is anchored there like a platform.
 
@@ -359,11 +376,14 @@ the ground, and where they give the rail's height (`rail`), it is anchored there
   rails are at 2.7 m where they leave the platforms. The strip the elevation model shows over the
   platforms at +7 m is the station's roof.
 - Between T-Centralen and Gamla stan the line runs in a trough under the water and Riddarholmskanalen,
-  not a bored tunnel, so it needs no cover; its rail is held level with T-Centralen's under the water.
+  not a bored tunnel, so it needs no cover; its rail, about 10 m under the water, is the 1964
+  profile's.
 - South of Gamla stan's platforms, OSM's surface track is already on the bridge to Slussen, whose
   rails climb from 4 m to 8 m.
 - At Sätra, OSM draws a siding a few metres into the bank beside the running lines.
-- The green line's station heights and depths, above.
+- The green line's station heights and depths, above. Hötorget has none in Wikidata or Wikipedia,
+  and the smoothing had put it at -6 m, deeper than T-Centralen's upper level; the 1964 profile
+  has its platform at +3.9.
 - Under the green line at Kristineberg, Alvik and Farsta the elevation model dips 5 m where a road
   passes under the track, and at Svedmyra the platform stands on a bank over the street.
 - At Gullmarsplan the tracks south of the platforms are in a box under the bus terminal's deck.

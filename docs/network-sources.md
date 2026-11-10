@@ -183,7 +183,14 @@ LIBRIS codes for who holds a book: Ssb = Stockholms stadsbibliotek, T = KTH Libr
 
 1. ***Stockholms tunnelbanor 1964: en teknisk beskrivning*** (136 pp). Can be borrowed from
    Stockholms stadsbibliotek: <https://biblioteket.stockholm.se/titel/66668>. Covers the green line
-   and the first red line.
+   and the first red line. Axel photographed it in 2026 (99 pages; not in the repository,
+   as it is under copyright: only numbers read from it go in). Its long profiles of the green line
+   from Fridhemsplan to Skanstull (fig 5:2) and the red line from Gärdet to Liljeholmen (figs 5:3,
+   5:4, 5:8, 5:27) are in `data/profiles-1964.json`, and anchor the track heights. It also has the
+   standards (gradients up to 1:25, vertical curves of 1,500 m on the green line and 2,000 m on the
+   red), standard tunnel and box sections, station plans and sections (Gamla stan, Slussen,
+   T-Centralen, Östermalmstorg, Mariatorget, Hornstull, Liljeholmen, Telefonplan…), the
+   construction methods, the track plan with its switches, and the C1–C4 cars.
 2. ***Stockholms tunnelbanor '75: teknisk beskrivning*** (Asker, 184 pp,
    <http://libris.kb.se/bib/1303796>). Held at KTH, KB and Stadsarkivet. Also scanned; see above.
 3. ***Teknisk beskrivning av Stockholms tunnelbana*** (Wigander, 1957, 148 pp,

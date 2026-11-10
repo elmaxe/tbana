@@ -387,6 +387,41 @@
   ],
   "moves": [
     {
+      "node": 10091611319,
+      "to": [153576.9, 6579684.7],
+      "why": "T-Centralen, the red line's southbound track north-east of the platforms: OpenStreetMap draws it on top of the green line's southbound track for 150 m, crossing it back and forth. Stockholms tunnelbanor 1964 (p. 25): right after leaving the upper level's platform it bends north, passes between the green line's two tunnels and continues under the eastern one, dropping at 50‰ (fig 5:3: 48.5‰) to get under Malmskillnadsgatan's low rock. Moved to the middle between the green line's two tracks, which change levels here too (fig 5:2), 11–13 m from each."
+    },
+    {
+      "node": 8920216360,
+      "to": [153580.9, 6579687.6],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
+      "node": 8920216361,
+      "to": [153604.5, 6579705.5],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
+      "node": 8920216362,
+      "to": [153616.0, 6579715.2],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
+      "node": 8920216363,
+      "to": [153628.0, 6579726.5],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
+      "node": 8920216364,
+      "to": [153644.5, 6579746.2],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
+      "node": 8920216365,
+      "to": [153660.9, 6579771.3],
+      "why": "As the node before: the red line's southbound track north-east of T-Centralen, between the green line's two tracks."
+    },
+    {
       "node": 91778258,
       "to": [152385.3, 6586055.6],
       "why": "Danderyds sjukhus, the western track 164 m south of the station's node: OSM only interpolated both tracks here (source=interpolation), straight and 5 m apart, too close for the island platform between them. OSM's indoor mapping (2026, from SL's plans and local knowledge), whose stairs, lifts and entrances at the street are where Google's mesh and Lantmäteriet's laser scan have them, puts the platform 8 to 12 m west of them and turned a little, its middle from 7.4 m west of OSM's tracks at the foot of the north escalator to 12.2 m west at the foot of the south stairs; the north escalator then climbs beside the sunken path the north entrance opens on (10.9 m high in the laser scan), not under it. The tracks are moved to either side of that line, 12.14 m apart (the platform's 9 m and its edges)."
@@ -874,7 +909,13 @@
   "apart": [
     {"at": [149819.2, 6575884.5], "reach": 45, "why": "Telefonplan: west of the platform the two tracks run on into their own tunnels under the station building, about 14 m apart, the siding to the buffer stop beyond between them (OpenStreetMap; Lantmäteriet's laser scan has the ballast either side of the platform's west end 15 m apart). Drawn together to the usual spacing over the siding, they pulled the platform's west end in to 7.4 m wide, where it is about 10.5 m."},
     {"at": [145482.75, 6574372.55], "reach": 100, "why": "Sätra: south of the platforms the three tracks run on in tunnels under Sätra centrum and beyond, the western one in a single-track tunnel of its own and the turnback track between it and the eastern one (OpenStreetMap; Lantmäteriet's laser scan has the outer tracks' ballast 24 m apart at the centre's face). Drawn together to the usual spacing over the turnback track, they pulled the islands' south ends in to under 5 m wide."},
-    {"at": [145587.89, 6574690.63], "reach": 70, "why": "Sätra: north of the platforms the western track runs into a single-track tunnel of its own and the eastern one, with the turnback track, into a double-track tunnel beside it, after a pillar of rock (OpenStreetMap; photographs, 2006 and 2018). Drawn together to the usual spacing over the turnback track, they pulled the islands' north ends in and the eastern track across the turnback track."}
+    {"at": [145587.89, 6574690.63], "reach": 70, "why": "Sätra: north of the platforms the western track runs into a single-track tunnel of its own and the eastern one, with the turnback track, into a double-track tunnel beside it, after a pillar of rock (OpenStreetMap; photographs, 2006 and 2018). Drawn together to the usual spacing over the turnback track, they pulled the islands' north ends in and the eastern track across the turnback track."},
+    {"at": [153666, 6579782], "reach": 110, "line": "red", "why": "T-Centralen to Östermalmstorg: the red line's two tracks run in single-track tubes of their own, blasted 6.5 m across and lined round to 5.2 m, under Brunkebergsåsen's gravel and the clay at Birger Jarlsgatan (Stockholms tunnelbanor 1964, ch. 8:15); OpenStreetMap has them 12–15 m apart. Once the 1964 long profile put both at one level, about 33 m down, drawn together to the usual spacing of a double-track tunnel they wound in to it with curves of 160–200 m."},
+    {"at": [153796, 6579932], "reach": 100, "line": "red", "why": "As above, further east."},
+    {"at": [153946, 6579974], "reach": 90, "line": "red", "why": "As above, further east."},
+    {"at": [154086, 6579954], "reach": 90, "line": "red", "why": "As above, further east."},
+    {"at": [154186, 6579947], "reach": 50, "line": "red", "why": "As above, further east."},
+    {"at": [154286, 6579972], "reach": 70, "line": "red", "why": "As above, to Östermalmstorg's platforms."}
   ],
   "straight": [
     {"station": "Gärdet", "apart": 24.3, "why": "Gärdet's two platform halls are straight and parallel, each with its track on the outside and its side platform on the inside, either side of a rock core about 10 m wide (Albert Guillaumes's drawing, 2024; OpenStreetMap's platform outlines are straight, 5.3 m wide, with their tracks 24.3 m apart). OpenStreetMap's sketch of the tracks bows the north-east track 1.5 m inward at the north-east end, and the fit bowed it 5 m."},

@@ -13,8 +13,8 @@
     },
     {
       "station": "Sankt Eriksplan",
-      "depth": 8,
-      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is about eight metres under the ground."
+      "height": 8.7,
+      "why": "Wikidata has no height. The long profile in Stockholms tunnelbanor 1964 (fig 5:2) has the platform at +8.7 (Swedish Wikipedia's article only says about eight metres under the ground, which put it a metre higher)."
     },
     {
       "station": "Odenplan",
@@ -23,8 +23,8 @@
     },
     {
       "station": "Rådmansgatan",
-      "depth": 8,
-      "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is 8 m under the ground."
+      "height": 0.65,
+      "why": "Wikidata has no height. The long profile in Stockholms tunnelbanor 1964 (fig 5:2) has the platform at +0.65, in the lower half of a two-storey box under Sveavägen (Swedish Wikipedia's article: 8 m under the ground)."
     },
     {
       "station": "Medborgarplatsen",
@@ -32,9 +32,14 @@
       "why": "Wikidata has no height. Swedish Wikipedia's article on the station: the platform is 6–18 m under the ground, but 17 m above sea level."
     },
     {
+      "station": "Hötorget",
+      "height": 3.9,
+      "why": "Neither Wikidata nor Wikipedia has a height or depth, and the line's smoothing had put the platform at -6 m, deeper than T-Centralen's upper level. The long profile in Stockholms tunnelbanor 1964 (fig 5:2, both halves) has it at +3.9, in a box built in an open cut under Sveavägen with the ticket hall over it, the rail at about +2.9."
+    },
+    {
       "station": "Skanstull",
-      "depth": 5,
-      "why": "Wikidata has no height. Swedish Wikipedia's article on the station (infobox): 5 m deep."
+      "height": 16.7,
+      "why": "Wikidata has no height. The long profile in Stockholms tunnelbanor 1964 (fig 5:2) has the platform at +16.7 under Götgatan (Swedish Wikipedia's infobox: 5 m deep)."
     },
     {
       "station": "Bagarmossen",
@@ -181,7 +186,7 @@
         [426, 860]
       ],
       "reach": 25,
-      "why": "Between T-Centralen and Gamla stan the line runs in a trough built in the water and in Riddarholmskanalen, with Centralbron resting on it, not in a bored tunnel under ground. It needs no cover under the water (its depth is under rail, below), and from the canal to the platforms' north end the \"ground\" above it is Centralbron and Gamla stan's station roof."
+      "why": "Between T-Centralen and Gamla stan the line runs in a trough built in the water and in Riddarholmskanalen, with Centralbron resting on it, not in a bored tunnel under ground. It needs no cover under the water (its depth is from the 1964 long profile, data/profiles-1964.json), and from the canal to the platforms' north end the \"ground\" above it is Centralbron and Gamla stan's station roof."
     },
     {
       "along": [
@@ -321,14 +326,6 @@
     }
   ],
   "rail": [
-    {
-      "along": [
-        [122, 398, -3.8],
-        [301, 593, -3.8]
-      ],
-      "reach": 25,
-      "why": "The trough between T-Centralen and Gamla stan, under the water off Tegelbacken and Riddarholmskanalen: Google Earth's 3D model has the water's surface (0.9 m) right over the line here, with Centralbron's road beside it at about 5 m, so the trough's roof is under the water and its rail about a train's height and a roof below it, level with T-Centralen's platforms. Without this the line climbed straight from T-Centralen and stood above the water in the canal."
-    },
     {
       "along": [
         [510, 1011, 4.0],

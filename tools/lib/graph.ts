@@ -61,15 +61,25 @@ export function interp(xs: number[], ys: number[], x: number) {
 
 export interface ProfilePoint { s: number; x: number; z: number; y: number; piece: number; structure: TrackPiece['structure'] }
 
+// public/data/track-heights.json: for each piece, the rail's height at points along it (`pieces`),
+// and how far along the piece each point is (`at`; without it, the heights are at the piece's
+// own points)
+export interface TrackHeights { pieces: Record<string, number[]>; at?: Record<string, number[]> }
+// a piece's heights, and how far along it each is
+export function heightsAlong(heights: TrackHeights, p: TrackPiece) {
+  const y = heights.pieces[p.id];
+  if (!y) throw new Error(`no heights for piece ${p.id}`);
+  return { s: heights.at?.[p.id] ?? chainage(p), y };
+}
+
 // A route's track as one line from its first stop to its last, with heights from
-// public/data/track-heights.json: every point of every piece in running order.
-export function routeProfile(graph: TrackGraph, route: Route, heights: Record<string, number[]>) {
+// public/data/track-heights.json: every point the heights are given at, in running order.
+export function routeProfile(graph: TrackGraph, route: Route, heights: TrackHeights) {
   const out: ProfilePoint[] = [];
   let base = 0;
   route.path.forEach((step, i) => {
     const p = graph.pieces[step.piece];
-    const cum = chainage(p), hs = heights[p.id];
-    if (!hs) throw new Error(`no heights for piece ${p.id}`);
+    const { s: cum, y: hs } = heightsAlong(heights, p);
     // the part of the piece that is run: from the first stop on the first piece, to the last
     // stop on the last
     const first = i === 0 ? route.stops[0].s : step.dir === 1 ? 0 : p.length;
