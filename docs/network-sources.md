@@ -191,6 +191,20 @@ LIBRIS codes for who holds a book: Ssb = Stockholms stadsbibliotek, T = KTH Libr
    red), standard tunnel and box sections, station plans and sections (Gamla stan, Slussen,
    T-Centralen, Östermalmstorg, Mariatorget, Hornstull, Liljeholmen, Telefonplan…), the
    construction methods, the track plan with its switches, and the C1–C4 cars.
+
+   Its station plans and sections, checked against the game's stations in 2026:
+
+   | Station | The book | The game |
+   | --- | --- | --- |
+   | Östermalmstorg (figs 5:21, 14:1b) | platforms about −23.6 m; west: landing about −17.8, hall +0.25 under Stureplan, passage on under Birger Jarlsgatan −0.70; east: landing about −7.8 under a dome, hall +8.90, the square +14.80 | was 8 + 14 m up to a hall at −1.3 in the west and 18 + 12 m to +6.7 in the east; now the book's (`data/station-descriptions.json`) |
+   | Telefonplan (fig 14:7a) | platform +34.50, hall +39.80 | 34.52 and about 40.2 (the laser scan): agrees |
+   | Västertorp (fig 14:8a) | platform +43.00, the ground at the north-eastern hall +36.90, ramp 1:10 | 42.95; the laser scan has the street there at 37.35, and the ramp a little gentler to meet it: kept |
+   | Bredäng (fig 14:4) | ticket hall at the platform 46.05, the lobby on the square 40.00 | the same 6 m between them, all 0.55 m higher (the track heights): kept |
+   | Liljeholmen (fig 14:6c) | platform +4.90, the station house's ground floor +9.10 | 4.52, and the halls at the square as the laser scan has it now (5.2–5.4 m over the platforms; the square has been rebuilt): kept |
+   | Gamla stan (fig 5:11) | rail +1.10 at the north end, +1.60 at the south (1:300); no level for the hall under the platforms | rail 2.6–2.7 from the laser scan and Google's mesh: kept. The book's datum may sit lower than RH 2000 here (its Mälaren is +0.25, the elevation model's +0.89) |
+   | Slussen (fig 5:13) | the four tracks side by side at about +8 at Urvädersgränd, the 1964 halls; no levels for the passages to Götgatan | the passages have since been rebuilt: kept |
+   | Mariatorget, Hornstull, Zinkensdamm (text, figs 5:22, 14:3) | two platform tunnels joined through the core, escalators from the ends (Zinkensdamm: from the middle, through a cross tunnel about 20 m wide with six steel-cased pillars in front of the escalators) | the same layouts; Zinkensdamm's join is 8.7 m wide beside the glass screens at the escalators' foot, from photographs, without the pillars: left until there are photographs of it |
+
 2. ***Stockholms tunnelbanor '75: teknisk beskrivning*** (Asker, 184 pp,
    <http://libris.kb.se/bib/1303796>). Held at KTH, KB and Stadsarkivet. Also scanned; see above.
 3. ***Teknisk beskrivning av Stockholms tunnelbana*** (Wigander, 1957, 148 pp,
