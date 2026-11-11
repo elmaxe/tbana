@@ -14,6 +14,7 @@ import type { MapHere } from './minimap';
 import { buildLayers } from './map-layers';
 import { Input } from './input';
 import { Sound } from './sound';
+import { mountVolume } from './volume';
 import { LINES } from './lines';
 import { mountBuildSwitcher } from './build-switcher';
 import { mountOffline } from './offline';
@@ -116,6 +117,7 @@ const input = new Input(canvas, {
 const touchMode = () => input.touchMode;
 document.body.classList.toggle('touch', touchMode());
 mountBuildSwitcher($('buildSwitch'));
+mountVolume($('volume'), sound);
 
 // ------------------------------------------------------------------ loading
 
@@ -170,7 +172,7 @@ function onStationLoaded(root: THREE.Object3D, net: NetworkData | null) {
   void mountOffline($('offline'), () => {
     if (running) toast(`A new version is ready: ${touchMode() ? '☰' : 'Esc'} to update`, 4000);
   });
-  (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate };
+  (window as Window & { __game?: unknown }).__game = { ...game, scene, camera, renderer, THREE, simulate, sound };
 }
 
 const _platforms: SurfaceHit<PlatformFloorData>[] = [];
@@ -213,6 +215,8 @@ getJson<Record<string, StationPlacement>>('data/stations.json')
 function start() {
   if (!game) return;
   sound.start();
+  // so the arrow keys walk, rather than move the volume slider if it was the last thing touched
+  (document.activeElement as HTMLElement | null)?.blur();
   $('overlay').hidden = true;
   running = true;
   if (touchMode()) {
@@ -354,8 +358,8 @@ function handleKey(code: string, key?: string) {
       toast(lightsUp ? 'Lights up' : 'Lights as built');
       break;
     case 'KeyN':
-      sound.setMuted(!sound.muted);
-      toast(sound.muted ? 'Sound off' : 'Sound on');
+      sound.setMuted(!sound.silent);
+      toast(sound.silent ? 'Sound off' : `Sound on (${Math.round(sound.volume * 100)}%)`);
       break;
     case 'KeyR': fadeTo(() => { endJourney(); player.teleport(station.spawn.pos, station.spawn.yaw); }); break;
     default: {

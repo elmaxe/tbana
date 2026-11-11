@@ -2,6 +2,23 @@
 // and recorded clips (public/sounds/) for a train coming into a station and the C30's doors closing.
 export type ChimeKind = 'open' | 'close';
 
+// The player's volume (0 to 1, where the slider is) and mute, kept in the browser between visits.
+// Full volume is the level the game always had. The gain is the slider's square, which makes its
+// middle sound about half as loud.
+const FULL = 0.8;
+const VOLUME_KEY = 'tbana-volume', MUTED_KEY = 'tbana-muted';
+const stored = (key: string) => {
+  try { return localStorage.getItem(key); } catch { return null; }
+};
+const store = (key: string, value: string) => {
+  try { localStorage.setItem(key, value); } catch { /* not kept */ }
+};
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const savedVolume = () => {
+  const v = Number.parseFloat(stored(VOLUME_KEY) ?? '');
+  return Number.isNaN(v) ? 1 : clamp01(v);
+};
+
 // platform: the chime on the platform as a train comes in; next: the one inside the train as it
 // comes into the next station; closing: the C30's warning as its doors close, which drops in
 // level when they have shut (C30_SHUT in src/service.ts); shut: the doors themselves
@@ -107,9 +124,11 @@ interface Graph {
 }
 
 export class Sound {
-  muted = false;
+  muted = stored(MUTED_KEY) === '1';
+  volume = savedVolume();
   private g: Graph | null = null;
   private clips = new Map<Clip, AudioBuffer>();
+  private listeners: (() => void)[] = [];
 
   get ctx(): AudioContext | null {
     return this.g?.ctx ?? null;
@@ -122,7 +141,7 @@ export class Sound {
     if (!AC) return;
     const ctx = new AC();
     const master = ctx.createGain();
-    master.gain.value = this.muted ? 0 : 0.8;
+    master.gain.value = this.level;
     master.connect(ctx.destination);
 
     // brown noise → low-pass → rumble gain
@@ -160,9 +179,41 @@ export class Sound {
     }
   }
 
+  // the master gain
+  private get level() {
+    return this.muted ? 0 : FULL * this.volume ** 2;
+  }
+
+  // Unmuting with the volume all the way down turns it up halfway, to be heard.
   setMuted(m: boolean) {
     this.muted = m;
-    if (this.g) this.g.master.gain.value = m ? 0 : 0.8;
+    if (!m && this.volume === 0) this.volume = 0.5;
+    this.changed();
+  }
+
+  // Setting the volume unmutes.
+  setVolume(v: number) {
+    this.volume = clamp01(v);
+    this.muted = false;
+    this.changed();
+  }
+
+  // nothing heard: muted, or the volume all the way down
+  get silent() {
+    return this.muted || this.volume === 0;
+  }
+
+  // `fn` is called whenever the volume or mute changes.
+  onChange(fn: () => void) {
+    this.listeners.push(fn);
+  }
+
+  private changed() {
+    // glided to, so a slider dragged doesn't click
+    if (this.g) this.g.master.gain.setTargetAtTime(this.level, this.g.ctx.currentTime, 0.02);
+    store(VOLUME_KEY, String(this.volume));
+    store(MUTED_KEY, this.muted ? '1' : '0');
+    for (const fn of this.listeners) fn();
   }
 
   setRumble(level: number) {

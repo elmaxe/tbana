@@ -176,6 +176,20 @@ h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: 
 }
 #offline button:hover { background: #1460c4; }
 #offline button[hidden] { display: none; }
+.volume { display: flex; align-items: center; gap: 10px; max-width: 420px; margin-top: 14px; }
+.volume > span { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.volume button {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; cursor: pointer;
+  border: 1px solid #3a4656; border-radius: 8px; background: #1a212c; color: var(--text);
+}
+.volume button:hover { border-color: #3d7bd0; }
+.volume svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.volume .speaker { fill: currentColor; }
+.volume .cross, .volume.off .waves { display: none; }
+.volume.off .cross { display: inline; }
+.volume input { flex: 1; min-width: 0; height: 44px; margin: 0; accent-color: #3d7bd0; cursor: pointer; }
+.volume output { width: 3em; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; color: #d4dbe4; }
+.volume.off input, .volume.off output { opacity: 0.5; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
 ul { list-style: none; margin: 0; padding: 0; }
 .keys li { margin: 5px 0; color: #d4dbe4; }

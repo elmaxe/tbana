@@ -52,6 +52,14 @@
       <div id="loading">Loading station… <div class="bar"><div id="progress"></div></div></div>
       <button id="start" hidden>Enter the station</button>
       <div id="offline" hidden></div>
+      <div id="volume" class="volume">
+        <span>Sound</span>
+        <button type="button" aria-label="Mute" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker" d="M3 9h4l5-4v14l-5-4H3z"/><path class="waves" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="cross" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+        </button>
+        <input type="range" min="0" max="100" step="5" aria-label="Volume">
+        <output>100%</output>
+      </div>
       <div class="cols">
         <div>
           <h2>Controls</h2>
@@ -59,7 +67,7 @@
             <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Shift</kbd> run</li>
             <li><kbd>Mouse</kbd> look · <kbd>Esc</kbd> pause</li>
             <li><kbd>E</kbd>/<kbd>Q</kbd> lift up / down (stand next to a blue shaft)</li>
-            <li><kbd>M</kbd> map (<kbd>+</kbd> <kbd>−</kbd> zoom) · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> sound · <kbd>L</kbd> lights up</li>
+            <li><kbd>M</kbd> map (<kbd>+</kbd> <kbd>−</kbd> zoom) · <kbd>F</kbd> free flight · <kbd>R</kbd> respawn · <kbd>N</kbd> mute · <kbd>L</kbd> lights up</li>
           </ul>
           <ul class="keys touchonly-block">
             <li><b>Left side</b>: drag to walk (push far to run)</li>

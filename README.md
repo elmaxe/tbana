@@ -89,7 +89,7 @@ to each, and exports them:
 | `+` / `−` | Zoom the map (the minimap, or the full map while it's open) |
 | `F` | Free flight (`Space` / `C` to rise and sink) |
 | `R` | Back to the start |
-| `N` | Sound on/off |
+| `N` | Sound on/off (the volume is on the pause screen) |
 | `L` | Lights up: daylight everywhere and hardly any fog, to see dark stations and tunnels (`?light` starts with it on) |
 
 ### Phones and tablets
@@ -103,7 +103,7 @@ Touch controls switch on automatically:
 - **Map** opens the full map, and so does tapping the minimap. Pinch to zoom it, drag to move it,
   tap to close it.
 - Board a train by walking through an open door, as on a computer.
-- **☰** opens the menu and the list of platforms to jump to.
+- **☰** opens the menu, with the sound's volume and the list of platforms to jump to.
 
 On Android the game goes fullscreen in landscape when you start. On iPhone, turn the phone sideways
 for the widest view. If the frame rate is low, the render resolution drops automatically.
@@ -120,6 +120,9 @@ comes into the next station. The C20 and C30 have their own door warnings instea
 and their doors shut as the warning ends. The C30's is a recording, like the chimes (in
 `public/sounds/`). The C20's is built in code (`c20Warning` in `src/sound.ts`) from a recording made
 on one: a whistle, then a buzz that swells while the doors close and stops as they meet.
+
+The start and pause screen has the volume: a slider and a mute button. The browser keeps both
+between visits (`tbana-volume` and `tbana-muted` in its local storage).
 
 On the red, green and blue lines the trains run the whole line on a timetable (see [Trains on the
 network](#trains-on-the-network)), so you ride on from station to station through the real tunnels
